@@ -1,0 +1,72 @@
+﻿node_modules/
+dist/
+build/
+.tmp/
+coverage/
+.angular/
+.env
+.env.*
+*.env
+*.log
+logs/
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.sql
+*.sqlite
+*.sqlite3
+*.mp4
+*.mov
+*.avi
+*.zip
+*.rar
+*.7z
+
+# installers/binaries
+*.exe
+*.msi
+*.iso
+
+# === Binaries / installers ===
+*.exe
+*.msi
+*.iso
+
+# === App uploads (không commit dữ liệu người dùng) ===
+backend-lms-postgres/uploads/**
+
+# === Build & deps chung ===
+node_modules/
+dist/
+build/
+coverage/
+.angular/
+
+# === Env & logs ===
+.env
+.env.*
+*.env
+*.log
+logs/
+
+# === IDE / OS ===
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# === Media / dumps lớn (nếu có) ===
+*.mp4
+*.mov
+*.avi
+*.zip
+*.rar
+*.7z
+*.sql
+
+# === Node runtime đóng gói kèm (KHÔNG cần track) ===
+Front-end-NCKH_v2-main/node-v*/**
+Front-end-NCKH_v2-main/nodejs/**
+
+backend-lms-postgres/uploads/**

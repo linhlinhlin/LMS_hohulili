@@ -1,0 +1,320 @@
+// Maritime Header Custom Styles
+
+// Wave animation for logo
+@keyframes wave {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-2px); }
+}
+
+// Lighthouse beam animation
+@keyframes lighthouse-beam {
+  0%, 100% { opacity: 0.8; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+// Underline wave animation
+@keyframes underline-wave {
+  0% { transform: scaleX(0); transform-origin: left; }
+  100% { transform: scaleX(1); transform-origin: left; }
+}
+
+// Search focus glow
+@keyframes search-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(255, 193, 7, 0); }
+}
+
+// Maritime theme colors - Updated according to design
+:root {
+  --maritime-dark: #0A2A43;      // Bầu trời biển đêm
+  --maritime-light: #FFFFFF;     // Ánh bình minh trên boong
+  --sunburst-gold: #FFC861;      // Ánh mặt trời mọc
+  --maritime-blue: #1E40AF;      // Màu xanh biển
+  --maritime-gray: #64748B;       // Màu xám biển
+  --lighthouse-yellow: #FFD700;   // Ánh hải đăng
+}
+
+// Top header dark theme
+.maritime-top-header {
+  background: linear-gradient(135deg, var(--maritime-dark) 0%, #1e3a52 50%, var(--maritime-dark) 100%);
+  position: relative;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.1) 50%, transparent 100%);
+  }
+}
+
+// User type selector
+.user-type-selector {
+  button {
+    position: relative;
+    overflow: hidden;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+      transition: left 0.5s;
+    }
+    
+    &:hover::before {
+      left: 100%;
+    }
+  }
+}
+
+// Logo with wave effect
+.maritime-logo {
+  .wave-decoration {
+    animation: wave 3s ease-in-out infinite;
+  }
+}
+
+// Search box lighthouse effect
+.search-lighthouse {
+  .search-icon {
+    &.focused {
+      animation: lighthouse-beam 2s ease-in-out infinite;
+      color: var(--lighthouse-yellow);
+    }
+  }
+  
+  .search-input {
+    &.focused {
+      animation: search-glow 2s ease-in-out infinite;
+    }
+  }
+}
+
+// Navigation underline wave
+.nav-wave {
+  position: relative;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, var(--maritime-blue), var(--sunburst-gold));
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s ease;
+  }
+  
+  &:hover::after,
+  &.active::after {
+    transform: scaleX(1);
+  }
+}
+
+// Sunburst button effect
+.sunburst-button {
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+  }
+  
+  &:hover::before {
+    width: 300px;
+    height: 300px;
+  }
+}
+
+// Mobile menu slide animation
+.mobile-menu {
+  transform: translateY(-100%);
+  opacity: 0;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  
+  &.open {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 1024px) {
+  .search-centerpiece {
+    max-width: 100%;
+    margin: 0 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .maritime-top-header {
+    .user-type-selector {
+      display: none;
+    }
+  }
+  
+  .search-centerpiece {
+    margin: 0 0.5rem;
+  }
+}
+
+// Dark mode support
+@media (prefers-color-scheme: dark) {
+  .maritime-top-header {
+    background: linear-gradient(135deg, #000 0%, #1a1a1a 50%, #000 100%);
+  }
+}
+
+// High contrast mode
+@media (prefers-contrast: high) {
+  .sunburst-button {
+    border: 2px solid var(--maritime-dark);
+  }
+  
+  .search-input {
+    border-width: 3px;
+  }
+}
+
+// Compass rotation animation
+@keyframes compass-rotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+// Mega menu slide down animation
+@keyframes mega-menu-slide {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Search suggestions fade in
+@keyframes suggestions-fade {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+// Enhanced compass logo styles
+.maritime-logo {
+  .wave-decoration {
+    animation: wave 3s ease-in-out infinite;
+  }
+  
+  // Compass rotation
+  .animate-spin {
+    animation: compass-rotate 20s linear infinite;
+  }
+  
+  // Hover effect
+  &:hover {
+    .animate-spin {
+      animation-duration: 10s;
+    }
+  }
+}
+
+// Mega menu animations
+.mega-menu-container {
+  animation: mega-menu-slide 0.3s ease-out;
+}
+
+// Search suggestions animation
+.search-suggestions-container {
+  animation: suggestions-fade 0.2s ease-out;
+}
+
+// Enhanced navigation wave effect
+.nav-wave {
+  position: relative;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, var(--maritime-blue), var(--sunburst-gold));
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s ease;
+  }
+  
+  &:hover::after,
+  &.active::after {
+    transform: scaleX(1);
+  }
+}
+
+// Enhanced sunburst button
+.sunburst-button {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--sunburst-gold), #f59e0b);
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+  }
+  
+  &:hover::before {
+    width: 300px;
+    height: 300px;
+  }
+  
+  &:hover {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 25px rgba(255, 193, 97, 0.3);
+  }
+}
+
+// Reduced motion
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  .maritime-logo .animate-spin {
+    animation: none;
+  }
+}

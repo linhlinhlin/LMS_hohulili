@@ -1,0 +1,265 @@
+
+/* Tailwind CSS v4 Configuration - Must be first */
+@use "tailwindcss";
+
+// Include theming for Angular Material with `mat.theme()`.
+// This Sass mixin will define CSS variables that are used for styling Angular Material
+// components according to the Material 3 design spec.
+// Learn more about theming and how to use it for your application's
+// custom components at https://material.angular.dev/guide/theming
+@use '@angular/material' as mat;
+
+html {
+  @include mat.theme((
+    color: (
+      primary: mat.$azure-palette,
+      tertiary: mat.$blue-palette,
+    ),
+    typography: Roboto,
+    density: 0,
+  ));
+}
+
+body {
+  // Default the application to a light color theme. This can be changed to
+  // `dark` to enable the dark color theme, or to `light dark` to defer to the
+  // user's system settings.
+  color-scheme: light;
+
+  // Set a default background, font and text colors for the application using
+  // Angular Material's system-level CSS variables. Learn more about these
+  // variables at https://material.angular.dev/guide/system-variables
+  background-color: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-body-medium);
+
+  // Reset the user agent margin.
+  margin: 0;
+}
+/* Global styles for LMS Maritime - Professional Design System */
+
+/* ===== DESIGN TOKENS ===== */
+:root {
+  /* Color Palette - Light Mode */
+  --c-bg: #F8FAFC;
+  --c-surface: #FFFFFF;
+  --c-text: #0A2A43;       /* Mariner text */
+  --c-muted: #4B5565;
+  --c-border: rgba(10,42,67,.08);
+  --c-primary: #1C5C86;    /* Mariner Blue */
+  --c-accent: #FFC861;     /* Sunburst Gold */
+  --c-accent-press: #E39A1C;
+  --c-focus: #FFC861;
+  
+  /* Icon sizing tokens */
+  --icon-xs: 14px;
+  --icon-sm: 16px;
+  --icon-md: 20px;
+  --icon-lg: 24px;
+  
+  /* Spacing tokens */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  
+  /* Border radius tokens */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  
+  /* Shadow tokens */
+  --shadow-elev-1: 0 1px 2px rgba(10,42,67,.06);
+  --shadow-elev-2: 0 6px 16px rgba(10,42,67,.12);
+  --shadow-elev-3: 0 12px 24px rgba(10,42,67,.18);
+  
+  /* Transition tokens */
+  --transition-fast: 150ms cubic-bezier(.2,.8,.2,1);
+  --transition-normal: 200ms cubic-bezier(.2,.8,.2,1);
+  --transition-slow: 300ms cubic-bezier(.2,.8,.2,1);
+}
+
+/* Dark Mode */
+.dark {
+  --c-bg: #0E1520;
+  --c-surface: #121A26;
+  --c-text: #E2E8F0;
+  --c-muted: #94A3B8;
+  --c-border: rgba(226,232,240,.08);
+  --c-primary: #123E5E;
+  --c-accent: #F2B650;
+  --c-accent-press: #C9901A;
+  --c-focus: #F2B650;
+  
+  /* Adjust shadows for dark mode */
+  --shadow-elev-1: 0 1px 2px rgba(0,0,0,.2);
+  --shadow-elev-2: 0 6px 16px rgba(0,0,0,.3);
+  --shadow-elev-3: 0 12px 24px rgba(0,0,0,.4);
+}
+
+/* ===== BASE STYLES ===== */
+html {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color-scheme: light dark;
+}
+
+body {
+  margin: 0;
+  background-color: var(--c-bg);
+  color: var(--c-text);
+  transition: background-color var(--transition-normal), color var(--transition-normal);
+}
+
+/* ===== ACCESSIBILITY ===== */
+/* Skip link */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 6px;
+  background: var(--c-accent);
+  color: var(--c-text);
+  padding: 8px;
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  z-index: 1000;
+  transition: top var(--transition-fast);
+}
+
+.skip-link:focus {
+  top: 6px;
+}
+
+/* Focus styles */
+*:focus-visible {
+  outline: 2px solid var(--c-focus);
+  outline-offset: 2px;
+}
+
+/* Reduce motion */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ===== UTILITY CLASSES ===== */
+.text-balance {
+  text-wrap: balance;
+}
+
+.text-pretty {
+  text-wrap: pretty;
+}
+
+/* Custom scrollbar */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--c-border) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: var(--c-border);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: var(--c-muted);
+}
+
+/* ===== COMPONENT STYLES ===== */
+/* Button base styles */
+.btn-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  transition: all var(--transition-fast);
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+}
+
+.btn-base:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-base:active {
+  transform: translateY(1px);
+}
+
+/* Ghost button */
+.btn-ghost {
+  @extend .btn-base;
+  background: transparent;
+  color: var(--c-text);
+  padding: var(--space-sm) var(--space-md);
+}
+
+.btn-ghost:hover {
+  background: rgba(0,0,0,.05);
+}
+
+.dark .btn-ghost:hover {
+  background: rgba(255,255,255,.05);
+}
+
+/* Accent button */
+.btn-accent {
+  @extend .btn-base;
+  background: var(--c-accent);
+  color: #1A2432;
+  padding: var(--space-sm) var(--space-md);
+  font-weight: 600;
+  box-shadow: var(--shadow-elev-1);
+}
+
+.btn-accent:hover {
+  filter: brightness(1.05);
+}
+
+.btn-accent:active {
+  filter: brightness(0.95);
+}
+
+/* Input base styles */
+.input-base {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-md);
+  background: var(--c-surface);
+  color: var(--c-text);
+  font-size: 14px;
+  transition: all var(--transition-fast);
+}
+
+.input-base:focus {
+  outline: none;
+  border-color: var(--c-focus);
+  box-shadow: 0 0 0 2px rgba(255,200,97,.2);
+}
+
+.input-base::placeholder {
+  color: var(--c-muted);
+  opacity: 0.7;
+}
+html, body { height: 100%; }
+body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }

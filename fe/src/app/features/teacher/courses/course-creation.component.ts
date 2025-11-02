@@ -1,0 +1,203 @@
+import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, signal, computed } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule, FormBuilder, Validators, FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
+import { CourseApi } from '../../../api/client/course.api';
+import { CreateCourseRequest, CourseSummary } from '../../../api/types/course.types';
+
+@Component({
+  selector: 'app-course-creation',
+  imports: [CommonModule, ReactiveFormsModule, FormsModule],
+  encapsulation: ViewEncapsulation.None,
+  template: `
+    <div class="max-w-6xl mx-auto p-6 space-y-6">
+      <h1 class="text-2xl font-bold text-gray-900 mb-6">Tạo khóa học mới</h1>
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="bg-white rounded-lg shadow p-6 space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Mã khóa học</label>
+          <input formControlName="code" type="text" class="w-full border rounded px-3 py-2" placeholder="VD: ME101" />
+          <div class="text-sm text-red-600 mt-1" *ngIf="form.controls.code.invalid && form.controls.code.touched">
+            Mã khóa học bắt buộc, tối đa 64 ký tự
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Tên khóa học</label>
+          <input formControlName="title" type="text" class="w-full border rounded px-3 py-2" placeholder="Tên khóa học" />
+          <div class="text-sm text-red-600 mt-1" *ngIf="form.controls.title.invalid && form.controls.title.touched">
+            Tên khóa học bắt buộc, tối đa 255 ký tự
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Mô tả</label>
+          <textarea formControlName="description" rows="4" class="w-full border rounded px-3 py-2" placeholder="Mô tả ngắn gọn..."></textarea>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <button type="submit" [disabled]="form.invalid || isSubmitting()" class="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50">
+            {{ isSubmitting() ? 'Đang tạo...' : 'Tạo khóa học' }}
+          </button>
+          <span class="text-green-700" *ngIf="successMsg()">{{ successMsg() }}</span>
+          <span class="text-red-600" *ngIf="errorMsg()">{{ errorMsg() }}</span>
+        </div>
+      </form>
+
+      <!-- LMS-style: Existing courses to use as template -->
+      <div class="bg-white rounded-lg shadow">
+        <div class="p-4 flex flex-wrap items-center justify-between gap-3">
+          <h2 class="text-xl font-semibold text-gray-900">Khóa học của tôi</h2>
+          <div class="flex items-center gap-2">
+            <input class="border rounded px-3 py-2 w-64" placeholder="Tìm theo mã hoặc tên" [(ngModel)]="keyword" />
+            <button class="px-4 py-2 border rounded" (click)="applyFilters()">Lọc</button>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-4 text-left text-sm md:text-base font-semibold text-gray-600 uppercase tracking-wider">Mã</th>
+                <th class="px-6 py-4 text-left text-sm md:text-base font-semibold text-gray-600 uppercase tracking-wider">Tên</th>
+                <th class="px-6 py-4"></th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <tr *ngFor="let c of paged()">
+                <td class="px-6 py-5 whitespace-nowrap font-mono text-base md:text-lg text-gray-900">{{ c.code }}</td>
+                <td class="px-6 py-5 whitespace-nowrap text-base md:text-lg text-gray-900">{{ c.title }}</td>
+                <td class="px-6 py-5 whitespace-nowrap text-right">
+                  <button class="px-3 py-1 border rounded text-sm disabled:opacity-50" [disabled]="prefillingId() === c.id" (click)="prefillFrom(c.id)">
+                    {{ prefillingId() === c.id ? 'Đang nạp...' : 'Dùng làm mẫu' }}
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="p-6 text-gray-500" *ngIf="!loadingCourses() && filtered().length === 0">Không có khóa học.</div>
+        <div class="p-6 text-gray-500" *ngIf="loadingCourses()">Đang tải...</div>
+        <div class="p-6 text-red-600" *ngIf="errorCourses()">{{ errorCourses() }}</div>
+
+        <!-- Pagination Controls -->
+        <div class="p-4 flex flex-wrap items-center justify-between gap-3 border-t">
+          <div class="flex items-center gap-2">
+            <span class="text-sm text-gray-600">Hiển thị</span>
+            <select class="border rounded px-2 py-1" [ngModel]="pageSize()" (ngModelChange)="onPageSizeChange($event)">
+              <option [ngValue]="5">5</option>
+              <option [ngValue]="10">10</option>
+              <option [ngValue]="20">20</option>
+            </select>
+            <span class="text-sm text-gray-600">mỗi trang</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button class="px-3 py-1 border rounded disabled:opacity-50" [disabled]="pageIndex() <= 1" (click)="prevPage()">Trước</button>
+            <span class="text-sm text-gray-700">Trang {{ pageIndex() }} / {{ totalPages() }}</span>
+            <button class="px-3 py-1 border rounded disabled:opacity-50" [disabled]="pageIndex() >= totalPages()" (click)="nextPage()">Sau</button>
+          </div>
+          <div class="text-sm text-gray-600">Tổng: {{ total() }}</div>
+        </div>
+      </div>
+    </div>
+  `,
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class CourseCreationComponent {
+  private fb = inject(FormBuilder);
+  private api = inject(CourseApi);
+  private router = inject(Router);
+
+  isSubmitting = signal(false);
+  successMsg = signal<string>('');
+  errorMsg = signal<string>('');
+
+  // Existing courses (LMS-style section)
+  loadingCourses = signal<boolean>(true);
+  errorCourses = signal<string>('');
+  courses = signal<CourseSummary[]>([]);
+  filtered = signal<CourseSummary[]>([]);
+  keyword = '';
+  pageIndex = signal(1);
+  pageSize = signal(10);
+  paged = computed(() => {
+    const start = (this.pageIndex() - 1) * this.pageSize();
+    return this.filtered().slice(start, start + this.pageSize());
+  });
+  total = computed(() => this.filtered().length);
+  totalPages = computed(() => Math.max(1, Math.ceil(this.total() / this.pageSize())));
+  goToPage(n: number) { this.pageIndex.set(Math.min(Math.max(1, n), this.totalPages())); }
+  nextPage() { this.goToPage(this.pageIndex() + 1); }
+  prevPage() { this.goToPage(this.pageIndex() - 1); }
+  onPageSizeChange(v?: any) { if (v !== undefined) this.pageSize.set(Number(v)); this.goToPage(1); }
+  applyFilters() {
+    const kw = (this.keyword || '').trim().toLowerCase();
+    this.filtered.set(
+      this.courses().filter(c => !kw || c.code?.toLowerCase().includes(kw) || c.title?.toLowerCase().includes(kw))
+    );
+    this.pageIndex.set(1);
+  }
+  prefillingId = signal<string | null>(null);
+
+  form = this.fb.group({
+    code: ['', [Validators.required, Validators.maxLength(64)]],
+    title: ['', [Validators.required, Validators.maxLength(255)]],
+    description: ['']
+  });
+
+  constructor() {
+    // Load my courses for template use
+    this.api.myCourses().subscribe({
+      next: (res) => {
+        const data = res?.data || [];
+        this.courses.set(data);
+        this.filtered.set(data);
+        this.pageIndex.set(1);
+      },
+      error: (err) => this.errorCourses.set(err?.message || 'Không tải được danh sách khóa học'),
+      complete: () => this.loadingCourses.set(false)
+    });
+  }
+
+  async onSubmit() {
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
+    this.isSubmitting.set(true);
+    this.errorMsg.set('');
+    this.successMsg.set('');
+
+    const payload = this.form.getRawValue() as CreateCourseRequest;
+
+    try {
+      const res = await this.api.createCourse(payload).toPromise();
+      const course = res?.data;
+      if (course?.id) {
+        this.successMsg.set('Tạo khóa học thành công. Đang chuyển đến trang chỉnh sửa...');
+        // Điều hướng đến trang chỉnh sửa
+        await this.router.navigate([`/teacher/courses/${course.id}/edit`]);
+      } else {
+        this.errorMsg.set('Phản hồi không hợp lệ từ máy chủ');
+      }
+    } catch (e: any) {
+      this.errorMsg.set(e?.error?.message || 'Tạo khóa học thất bại');
+    } finally {
+      this.isSubmitting.set(false);
+    }
+  }
+
+  async prefillFrom(courseId: string) {
+    try {
+      this.prefillingId.set(courseId);
+      const res = await this.api.getCourseById(courseId).toPromise();
+      const c: any = res?.data;
+      if (c) {
+        const newCode = ((c.code || '') + '-copy').slice(0, 64);
+        this.form.patchValue({
+          code: newCode,
+          title: c.title || '',
+          description: c.description || ''
+        });
+      }
+    } finally {
+      this.prefillingId.set(null);
+    }
+  }
+}
