@@ -325,7 +325,7 @@ import { firstValueFrom } from 'rxjs';
               
               <!-- Inline File Viewer -->
               <div *ngIf="expandedAttachment === i" class="p-4 bg-white">
-                <!-- PDF Viewer -->
+                <!-- PDF Viewer - Simple như professional-learning -->
                 <div *ngIf="isPdfFile(attachment.originalFileName)" class="w-full">
                   <iframe [src]="getSafeUrl(attachment.fileUrl)"
                           class="w-full border-0 rounded"
@@ -339,7 +339,22 @@ import { firstValueFrom } from 'rxjs';
                       <span class="font-medium">Xem trước PDF:</span> {{ attachment.originalFileName }}
                     </div>
                     <div class="flex items-center gap-2">
-                      <button class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                      <a [href]="attachment.fileUrl" target="_blank"
+                         class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">
+                        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                        </svg>
+                        Mở tab mới
+                      </a>
+                      <a [href]="attachment.fileUrl" 
+                         download
+                         class="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700">
+                        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        Tải xuống
+                      </a>
+                      <button class="px-3 py-1 bg-purple-600 text-white text-sm rounded hover:bg-purple-700"
                               (click)="openPdfFullscreen(attachment)">
                         <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path>
@@ -777,10 +792,7 @@ import { firstValueFrom } from 'rxjs';
 })
 export class SectionEditorComponent implements OnDestroy {
 
-  // Cache of sanitized SafeResourceUrls created from fetched blobs (keyed by original URL)
-  safeUrls = signal<Record<string, SafeResourceUrl | null>>({});
-  // Keep raw blob URLs so we can revoke them when no longer needed
-  private blobUrlMap: Record<string, string> = {};
+
 
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -1725,40 +1737,14 @@ export class SectionEditorComponent implements OnDestroy {
   }
 
   toggleAttachmentViewer(index: number) {
-    const newVal = this.expandedAttachment === index ? null : index;
-    this.expandedAttachment = newVal;
-    if (newVal !== null && this.selected() && this.selected().attachments) {
-      const attachment = this.selected().attachments[newVal];
-      if (attachment && attachment.fileUrl) {
-        this.prefetchAndCreateBlob(attachment.fileUrl).catch(() => {});
-      }
-    }
+    // Simple toggle like professional-learning
+    this.expandedAttachment = this.expandedAttachment === index ? null : index;
   }
 
 
   getSafeUrl(url: string): any {
-    // Prefer blob-based object URLs (works around servers that forbid framing via X-Frame-Options)
-    const cache = this.safeUrls();
-    if (cache[url]) return cache[url];
-
-    // If we already created a blob URL for this original URL, use it
-    const existingBlob = this.blobUrlMap[url];
-    if (existingBlob) {
-      const safe = this.sanitizer.bypassSecurityTrustResourceUrl(existingBlob);
-      this.safeUrls.set({ ...cache, [url]: safe });
-      return safe;
-    }
-
-    // Fallback: return sanitized remote URL immediately, and start a background prefetch to create blob URL
-    const sanitized = this.sanitizer.bypassSecurityTrustResourceUrl(url);
-    this.safeUrls.set({ ...cache, [url]: sanitized });
-    
-    // Try prefetch in background - but don't wait for it
-    this.prefetchAndCreateBlob(url).catch(err => {
-      console.warn('Prefetch PDF failed for', url, '- using direct URL fallback', err);
-    });
-    
-    return sanitized;
+    // Simple implementation like professional-learning
+    return this.sanitizer.bypassSecurityTrustResourceUrl(url);
   }
 
   getOfficeViewerUrl(fileUrl: string): any {
@@ -1768,36 +1754,18 @@ export class SectionEditorComponent implements OnDestroy {
     return this.sanitizer.bypassSecurityTrustResourceUrl(viewerUrl);
   }
 
-  /**
-   * Try to fetch a remote PDF and create a blob URL so it can be embedded even if the remote site
-   * sends X-Frame-Options that would block direct framing. This only works if the server allows
-   * CORS (Access-Control-Allow-Origin) for the resource. If not possible, the original remote URL
-   * will remain the fallback.
-   */
-  private async prefetchAndCreateBlob(url: string) {
-    try {
-      // Use fetch to get the resource as a blob. The server must allow cross-origin requests.
-      const res = await fetch(url, { mode: 'cors' });
-      if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
-      const blob = await res.blob();
-      // Create object URL and sanitize it
-      const blobUrl = URL.createObjectURL(blob);
-      this.blobUrlMap[url] = blobUrl;
-      const safe = this.sanitizer.bypassSecurityTrustResourceUrl(blobUrl);
-      const cache = this.safeUrls();
-      this.safeUrls.set({ ...cache, [url]: safe });
-    } catch (err) {
-      // If CORS prevents fetching, we leave the remote URL as fallback.
-      console.warn('Could not prefetch PDF as blob for', url, err);
-    }
+  getGoogleDocsPdfUrl(fileUrl: string): any {
+    // Sử dụng Google Docs viewer cho PDF
+    const encodedUrl = encodeURIComponent(fileUrl);
+    const viewerUrl = `https://docs.google.com/viewer?url=${encodedUrl}&embedded=true`;
+    return this.sanitizer.bypassSecurityTrustResourceUrl(viewerUrl);
   }
 
+
+
   ngOnDestroy(): void {
-    // Revoke any created blob URLs
-    for (const k of Object.keys(this.blobUrlMap)) {
-      try { URL.revokeObjectURL(this.blobUrlMap[k]); } catch {}
-    }
-    this.blobUrlMap = {};
+    // Clean up any timeouts
+    this.clearHeaderTimeout();
   }
 
   openPdfFullscreen(attachment: any) {
@@ -1810,19 +1778,6 @@ export class SectionEditorComponent implements OnDestroy {
     // Clear auto-hide timeout
     this.clearHeaderTimeout();
     this.showFullscreenHeader = true;
-    
-    // Revoke blob URL associated with this attachment if we created one
-    if (this.pdfFullscreenAttachment && this.pdfFullscreenAttachment.fileUrl) {
-      const original = this.pdfFullscreenAttachment.fileUrl;
-      const blob = this.blobUrlMap[original];
-      if (blob) {
-        try { URL.revokeObjectURL(blob); } catch {}
-        delete this.blobUrlMap[original];
-        const cache = this.safeUrls();
-        delete cache[original];
-        this.safeUrls.set({ ...cache });
-      }
-    }
     this.pdfFullscreenAttachment = null;
   }
 

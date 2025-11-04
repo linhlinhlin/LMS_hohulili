@@ -66,7 +66,8 @@
     "msw": "^2.11.2",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.13",
-    "typescript": "~5.9.2"
+    "typescript": "~5.9.2",
+    "vite": "^7.1.12"
   },
   "msw": {
     "workerDirectory": [

@@ -13,6 +13,14 @@ import { HomepageLayoutComponent } from './shared/components/layout/homepage-lay
  */
 export const routes: Routes = [
   // ========================================
+  // AUTHENTICATION ROUTES (No Layout/Header)
+  // ========================================
+  {
+    path: 'auth',
+    loadChildren: () => import('./features/auth/auth.routes').then(m => m.authRoutes)
+  },
+
+  // ========================================
   // PUBLIC ROUTES (Homepage Layout)
   // ========================================
   {
@@ -97,11 +105,7 @@ export const routes: Routes = [
         path: 'terms',
         loadComponent: () => import('./features/terms/terms-of-service.component').then(m => m.TermsOfServiceComponent),
         title: 'Điều khoản sử dụng - LMS Maritime'
-      },
-      {
-        path: 'auth',
-        loadChildren: () => import('./features/auth/auth.routes').then(m => m.authRoutes)
-      },
+      }
     ]
   },
   
