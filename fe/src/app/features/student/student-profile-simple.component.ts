@@ -13,10 +13,10 @@ import { AuthService } from '../../core/services/auth.service';
         <div class="bg-white rounded-lg shadow-md p-6 mb-8">
           <div class="flex items-center space-x-6">
             <div class="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-2xl font-bold">
-              {{ authService.currentUser()?.name?.charAt(0) }}
+              {{ authService.currentUser()?.fullName?.charAt(0) }}
             </div>
             <div class="flex-1">
-              <h2 class="text-2xl font-bold text-gray-900">{{ authService.currentUser()?.name }}</h2>
+              <h2 class="text-2xl font-bold text-gray-900">{{ authService.currentUser()?.fullName }}</h2>
               <p class="text-gray-600 mb-2">{{ authService.currentUser()?.email }}</p>
               <div class="flex items-center space-x-4">
                 <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
@@ -39,7 +39,7 @@ import { AuthService } from '../../core/services/auth.service';
             <div class="space-y-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Họ và tên</label>
-                <input type="text" value="{{ authService.currentUser()?.name }}" 
+                <input type="text" value="{{ authService.currentUser()?.fullName }}"
                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
               </div>
               <div>
