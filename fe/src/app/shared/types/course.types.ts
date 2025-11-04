@@ -132,7 +132,7 @@ export interface ExtendedCourse extends Course {
   studentsCount: number;
   lessonsCount: number;
   isPublished: boolean;
-  isEnrolled?: boolean; // Whether current user is enrolled in this course
+  isEnrolled: boolean; // Whether current user is enrolled in this course (mandatory)
   instructor: {
     id: string;
     name: string;

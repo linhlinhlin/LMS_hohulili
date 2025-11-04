@@ -235,8 +235,6 @@ export class CoursesComponent implements OnInit {
   priceMax: number | null = null;
   private searchDebounce: any;
 
-  // Enrollment tracking for efficient lookup
-  private enrolledCourseIds = new Set<string>();
 
 
   ngOnInit(): void {
@@ -253,20 +251,6 @@ export class CoursesComponent implements OnInit {
       (window as any).coursesComponent = this;
     }
 
-    // Load enrolled courses for authenticated students to check enrollment status
-    if (this.authService.isAuthenticated() && this.authService.userRole() === 'student') {
-      console.log('[COURSES COMPONENT] Loading enrolled courses for student');
-      // Load enrolled courses and update the Set for efficient lookup
-      this.enrollmentService.loadEnrolledCourses().then(() => {
-        console.log('[COURSES COMPONENT] Enrolled courses loaded successfully');
-        // Update the enrolledCourseIds Set for fast lookup
-        const enrolledIds = this.enrollmentService.enrolledCourses().map(course => course.id);
-        this.enrolledCourseIds = new Set(enrolledIds);
-        console.log('[COURSES COMPONENT] Enrolled course IDs updated:', enrolledIds);
-      }).catch(error => {
-        console.error('[COURSES COMPONENT] Failed to load enrolled courses:', error);
-      });
-    }
 
     this.route.queryParamMap.subscribe((params) => {
       const q = params.get('q') || '';
@@ -329,13 +313,20 @@ export class CoursesComponent implements OnInit {
       )
       .subscribe({
         next: (response: PaginatedResult<DomainCourse>) => {
+            // Log API sample for debugging
+            console.log('[courses] api sample:', response.items[0]);
+
             // Convert domain courses to UI courses using dedicated mapper
             const uiCourses = response.items.map(domainCourse =>
               this.mapDomainToExtendedCourse(domainCourse)
             );
 
-            // Set courses data to signal
-            this.courses.set(uiCourses);
+
+            // Log UI sample for debugging
+            console.log('[courses] ui sample:', uiCourses[0]);
+
+            // Set courses data to signal with new reference for OnPush
+            this.courses.set([...uiCourses]);
 
           // Update pagination info
           this.paginationInfo.set({
@@ -590,16 +581,9 @@ export class CoursesComponent implements OnInit {
       studentsCount: studentsCount,
       lessonsCount: specifications?.lessonsCount ?? 0,
       isPublished: isPublished,
-      isEnrolled: this.isEnrolled(rawCourse?.id ?? '')
+      isEnrolled: rawCourse?.metadata?.isEnrolled ?? false
     };
   }
 
-  /**
-   * Check if a course is enrolled by the current student
-   * Uses the enrolledCourseIds Set for O(1) lookup performance
-   */
-  public isEnrolled(courseId: string): boolean {
-    return this.enrolledCourseIds.has(courseId);
-  }
 
 }

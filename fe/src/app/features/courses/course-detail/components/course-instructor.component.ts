@@ -174,7 +174,8 @@ export class CourseInstructorComponent {
         certificate: { type: 'Professional', description: '' },
         curriculum: { modules: 0, lessons: 0, duration: '' },
         lessonsCount: 0,
-        isPublished: true
+        isPublished: true,
+        isEnrolled: false // Default for instructor courses
       },
       {
         id: 'other-2',
@@ -197,7 +198,8 @@ export class CourseInstructorComponent {
         certificate: { type: 'Professional', description: '' },
         curriculum: { modules: 0, lessons: 0, duration: '' },
         lessonsCount: 0,
-        isPublished: true
+        isPublished: true,
+        isEnrolled: false // Default for instructor courses
       }
     ];
   }

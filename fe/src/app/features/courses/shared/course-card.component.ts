@@ -1,6 +1,6 @@
 import { Component, Input, ChangeDetectionStrategy, inject } from '@angular/core';
 import { CommonModule, NgOptimizedImage } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { LEVEL_LABELS, CourseLevel, ExtendedCourse } from '../../../shared/types/course.types';
 import { AuthService } from '../../../core/services/auth.service';
 import { StudentEnrollmentService } from '../../../features/student/services/enrollment.service';
@@ -57,30 +57,18 @@ import { StudentEnrollmentService } from '../../../features/student/services/enr
 
           <!-- Enrollment Button for Students -->
            @if (authService.isAuthenticated() && authService.userRole() === 'student') {
-             @if (course?.isEnrolled) {
-               <button
-                 disabled
-                 class="bg-gray-500 text-white px-4 py-2 rounded-md text-sm font-medium cursor-not-allowed">
-                 Đã đăng ký
-               </button>
-             } @else {
-               <button
-                 (click)="enrollInCourse(course?.id)"
-                 [disabled]="enrollmentService.isLoading()"
-                 class="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
-                 @if (enrollmentService.isLoading()) {
-                   <span class="inline-flex items-center">
-                     <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                     </svg>
-                     Đang xử lý...
-                   </span>
-                 } @else {
-                   Đăng ký
-                 }
-               </button>
-             }
+             <button
+               class="w-full px-4 py-2 rounded-md text-sm font-medium transition-colors"
+               [class.bg-gray-200]="course?.isEnrolled"
+               [class.text-gray-700]="course?.isEnrolled"
+               [class.bg-blue-600]="!course?.isEnrolled"
+               [class.text-white]="!course?.isEnrolled"
+               [class.hover:bg-blue-700]="!course?.isEnrolled"
+               [class.cursor-not-allowed]="course?.isEnrolled"
+               [disabled]="course?.isEnrolled"
+               (click)="!course?.isEnrolled && enrollInCourse(course?.id)">
+               {{ course?.isEnrolled ? 'Đã đăng ký' : 'Đăng ký' }}
+             </button>
            } @else {
             <a [routerLink]="['/courses', course?.id]"
                [attr.aria-label]="'Xem chi tiết khóa học ' + (course?.title || '')"
@@ -99,6 +87,7 @@ export class CourseCardComponent {
   // Services
   protected authService = inject(AuthService);
   protected enrollmentService = inject(StudentEnrollmentService);
+  private router = inject(Router);
 
   levelLabel(level: CourseLevel): string {
     return LEVEL_LABELS[level] ?? level;
@@ -148,8 +137,20 @@ export class CourseCardComponent {
 
     const success = await this.enrollmentService.enrollInCourse(courseId);
     if (success) {
-      // Enrollment successful - the service will update its state
-      // The UI will automatically update due to signals
+      // Enrollment successful - update the course's isEnrolled property
+      this.course.isEnrolled = true;
+
+      // Also update the parent CoursesComponent's enrolledCourseIds Set if available
+      const coursesComponent = this.getCoursesComponent();
+      if (coursesComponent && typeof coursesComponent.enrolledCourseIds?.add === 'function') {
+        coursesComponent.enrolledCourseIds.add(courseId);
+        console.log(`[COURSE CARD] Updated enrolled course IDs in parent component:`, Array.from(coursesComponent.enrolledCourseIds));
+      }
+
+      // Navigate to learning page after successful enrollment
+      this.router.navigate(['/student/learn/course', courseId]).catch(error => {
+        console.error('Navigation error after enrollment:', error);
+      });
     }
   }
 }

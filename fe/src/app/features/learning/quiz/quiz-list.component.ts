@@ -219,6 +219,7 @@ export class QuizListComponent implements OnInit {
       // Mock data for courses
       const mockCourses: ExtendedCourse[] = [
         {
+          isEnrolled: false, // Default for quiz courses
           id: '1',
           title: 'Kỹ thuật Tàu biển Cơ bản',
           description: 'Khóa học cung cấp kiến thức cơ bản về kỹ thuật tàu biển',
@@ -259,6 +260,7 @@ export class QuizListComponent implements OnInit {
         },
         {
           id: '2',
+          isEnrolled: false,
           title: 'An toàn Hàng hải',
           description: 'Các quy định và thực hành an toàn trong ngành hàng hải',
           thumbnail: 'https://images.unsplash.com/photo-1506905925346-14b1e3d71e51?w=300&h=200&fit=crop',

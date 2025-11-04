@@ -1,7 +1,9 @@
-import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject } from '@angular/core';
+import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
+import { StudentEnrollmentService } from './services/enrollment.service';
+import { EnrolledCourse } from './types';
 
 @Component({
   selector: 'app-student-dashboard-simple',
@@ -46,7 +48,7 @@ import { AuthService } from '../../core/services/auth.service';
               </div>
               <div class="ml-4">
                 <p class="text-sm font-medium text-gray-600">Khóa học đang học</p>
-                <p class="text-2xl font-semibold text-gray-900">3</p>
+                <p class="text-2xl font-semibold text-gray-900">{{ inProgressCoursesCount() }}</p>
               </div>
             </div>
           </div>
@@ -59,8 +61,8 @@ import { AuthService } from '../../core/services/auth.service';
                 </svg>
               </div>
               <div class="ml-4">
-                <p class="text-sm font-medium text-gray-600">Bài tập hoàn thành</p>
-                <p class="text-2xl font-semibold text-gray-900">12</p>
+                <p class="text-sm font-medium text-gray-600">Khóa học hoàn thành</p>
+                <p class="text-2xl font-semibold text-gray-900">{{ completedCoursesCount() }}</p>
               </div>
             </div>
           </div>
@@ -73,8 +75,8 @@ import { AuthService } from '../../core/services/auth.service';
                 </svg>
               </div>
               <div class="ml-4">
-                <p class="text-sm font-medium text-gray-600">Điểm trung bình</p>
-                <p class="text-2xl font-semibold text-gray-900">8.5</p>
+                <p class="text-sm font-medium text-gray-600">Tiến độ trung bình</p>
+                <p class="text-2xl font-semibold text-gray-900">{{ averageProgress() }}%</p>
               </div>
             </div>
           </div>
@@ -141,54 +143,77 @@ import { AuthService } from '../../core/services/auth.service';
         <!-- Recent Activity -->
         <div class="bg-white rounded-lg shadow p-6">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">Hoạt động gần đây</h3>
-          <div class="space-y-4">
-            <div class="flex items-center p-4 border border-gray-200 rounded-lg">
-              <div class="p-2 rounded-full bg-blue-100 text-blue-600 mr-3">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-                </svg>
-              </div>
-              <div class="flex-1">
-                <p class="font-medium text-gray-900">Hoàn thành bài tập "Navigation Basics"</p>
-                <p class="text-sm text-gray-600">2 giờ trước</p>
-              </div>
-              <span class="text-green-600 font-medium">+10 điểm</span>
+          @if (enrolledCourses().length > 0) {
+            <div class="space-y-4">
+              @for (course of enrolledCourses().slice(0, 3); track course.id) {
+                <div class="flex items-center p-4 border border-gray-200 rounded-lg">
+                  <div class="p-2 rounded-full bg-blue-100 text-blue-600 mr-3">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                    </svg>
+                  </div>
+                  <div class="flex-1">
+                    <p class="font-medium text-gray-900">Đang học "{{ course.title }}"</p>
+                    <p class="text-sm text-gray-600">Tiến độ: {{ course.progress }}% • {{ course.completedLessons }}/{{ course.totalLessons }} bài học</p>
+                  </div>
+                  <span class="text-blue-600 font-medium">{{ course.status === 'completed' ? 'Hoàn thành' : 'Đang học' }}</span>
+                </div>
+              }
             </div>
-
-            <div class="flex items-center p-4 border border-gray-200 rounded-lg">
-              <div class="p-2 rounded-full bg-green-100 text-green-600 mr-3">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-              </div>
-              <div class="flex-1">
-                <p class="font-medium text-gray-900">Tham gia khóa học "Maritime Safety"</p>
-                <p class="text-sm text-gray-600">1 ngày trước</p>
-              </div>
-              <span class="text-blue-600 font-medium">Mới</span>
+          } @else {
+            <div class="text-center py-8">
+              <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+              </svg>
+              <h3 class="text-lg font-medium text-gray-900 mb-2">Chưa có hoạt động nào</h3>
+              <p class="text-gray-600">Hãy bắt đầu bằng việc đăng ký khóa học đầu tiên của bạn.</p>
             </div>
-
-            <div class="flex items-center p-4 border border-gray-200 rounded-lg">
-              <div class="p-2 rounded-full bg-yellow-100 text-yellow-600 mr-3">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                </svg>
-              </div>
-              <div class="flex-1">
-                <p class="font-medium text-gray-900">Nhận điểm cao cho bài kiểm tra</p>
-                <p class="text-sm text-gray-600">3 ngày trước</p>
-              </div>
-              <span class="text-yellow-600 font-medium">9.5/10</span>
-            </div>
-          </div>
+          }
         </div>
       </main>
     </div>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class StudentDashboardSimpleComponent {
+export class StudentDashboardSimpleComponent implements OnInit {
   protected authService = inject(AuthService);
+  private enrollmentService = inject(StudentEnrollmentService);
+  private router = inject(Router);
+
+  // Reactive state
+  enrolledCourses = signal<EnrolledCourse[]>([]);
+  isLoading = signal(false);
+
+  // Computed stats
+  readonly enrolledCoursesCount = computed(() => this.enrolledCourses().length);
+  readonly inProgressCoursesCount = computed(() =>
+    this.enrolledCourses().filter(course => course.status === 'in-progress').length
+  );
+  readonly completedCoursesCount = computed(() =>
+    this.enrolledCourses().filter(course => course.status === 'completed').length
+  );
+  readonly averageProgress = computed(() => {
+    const courses = this.enrolledCourses();
+    if (courses.length === 0) return 0;
+    return Math.round(courses.reduce((sum, course) => sum + course.progress, 0) / courses.length);
+  });
+
+  ngOnInit(): void {
+    this.loadDashboardData();
+  }
+
+  private async loadDashboardData(): Promise<void> {
+    try {
+      this.isLoading.set(true);
+      await this.enrollmentService.loadEnrolledCourses();
+      this.enrolledCourses.set(this.enrollmentService.enrolledCourses());
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+      // Keep empty state if loading fails
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
 
   logout(): void {
     this.authService.logout();

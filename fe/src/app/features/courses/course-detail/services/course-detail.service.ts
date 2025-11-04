@@ -54,6 +54,7 @@ export class CourseRepository {
     return [
       {
         id: '1',
+        isEnrolled: false,
         title: 'Kỹ thuật Tàu biển Cơ bản',
         description: 'Khóa học cung cấp kiến thức cơ bản về kỹ thuật tàu biển, cấu trúc tàu và hệ thống động lực. Học viên sẽ được trang bị kiến thức từ cơ bản đến nâng cao về các hệ thống trên tàu.',
         shortDescription: 'Khóa học cơ bản về kỹ thuật tàu biển',
@@ -93,6 +94,7 @@ export class CourseRepository {
       },
       {
         id: '2',
+        isEnrolled: false,
         title: 'Hàng hải và Định vị',
         description: 'Khóa học về kỹ thuật hàng hải, định vị GPS, và quy tắc an toàn trên biển. Bao gồm các kỹ thuật điều hướng hiện đại và truyền thống.',
         shortDescription: 'Kỹ thuật hàng hải và định vị',

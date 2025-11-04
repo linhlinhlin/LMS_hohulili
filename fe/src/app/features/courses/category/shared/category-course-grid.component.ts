@@ -56,6 +56,7 @@ export class CategoryCourseGridComponent {
   convertToExtendedCourse(item: CategoryCourseItem): ExtendedCourse {
     // Convert CategoryCourseItem to ExtendedCourse for the enhanced card
     return {
+      isEnrolled: false, // Default for category courses
       id: item.id,
       title: item.title,
       description: item.description || '',

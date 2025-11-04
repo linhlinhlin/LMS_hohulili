@@ -217,6 +217,7 @@ export class CourseService {
     const mockCourses: ExtendedCourse[] = [
       {
         id: '1',
+        isEnrolled: false,
         title: 'Kỹ thuật Tàu biển Cơ bản',
         description: 'Khóa học cung cấp kiến thức cơ bản về kỹ thuật tàu biển, cấu trúc tàu và hệ thống động lực',
         shortDescription: 'Khóa học cơ bản về kỹ thuật tàu biển',
@@ -256,6 +257,7 @@ export class CourseService {
       },
       {
         id: '2',
+        isEnrolled: false, // Default for course service
         title: 'Hàng hải và Định vị',
         description: 'Khóa học về kỹ thuật hàng hải, định vị GPS, và quy tắc an toàn trên biển',
         shortDescription: 'Kỹ thuật hàng hải và định vị',
@@ -294,6 +296,7 @@ export class CourseService {
         isPublished: true
       },
       {
+        isEnrolled: false, // Default for course service
         id: '3',
         title: 'Quản lý Cảng biển',
         description: 'Khóa học về quản lý cảng biển, logistics và chuỗi cung ứng hàng hải',
@@ -333,6 +336,7 @@ export class CourseService {
         isPublished: true
       },
       {
+        isEnrolled: false, // Default for course service
         id: '4',
         title: 'An toàn Hàng hải Quốc tế',
         description: 'Khóa học về các quy tắc an toàn hàng hải quốc tế và quản lý rủi ro',
@@ -372,6 +376,7 @@ export class CourseService {
         isPublished: true
       },
       {
+        isEnrolled: false, // Default for course service
         id: '5',
         title: 'Luật Hàng hải và Bảo hiểm',
         description: 'Khóa học về luật hàng hải quốc tế, bảo hiểm tàu biển và giải quyết tranh chấp',
@@ -411,6 +416,7 @@ export class CourseService {
         isPublished: true
       },
       {
+        isEnrolled: false, // Default for course service
         id: '6',
         title: 'Chứng chỉ Thuyền trưởng Hạng 2',
         description: 'Khóa học đào tạo thuyền trưởng hạng 2 theo tiêu chuẩn quốc tế',
@@ -475,6 +481,7 @@ export class CourseService {
       const instructor = instructors[Math.floor(Math.random() * instructors.length)];
       
       additionalCourses.push({
+        isEnrolled: false, // Default for course service
         id: i.toString(),
         title: `Khóa học ${category} ${i}`,
         description: `Mô tả chi tiết cho khóa học ${category} số ${i}`,
