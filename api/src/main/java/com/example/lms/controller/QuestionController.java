@@ -1,6 +1,7 @@
 package com.example.lms.controller;
 
 import com.example.lms.dto.ApiResponse;
+import com.example.lms.dto.QuestionDTO;
 import com.example.lms.entity.Question;
 import com.example.lms.entity.User;
 import com.example.lms.service.QuestionService;
@@ -10,11 +11,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/questions")
@@ -26,53 +29,123 @@ public class QuestionController {
     private final QuestionService questionService;
 
     @PostMapping
+    @PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
     @Operation(summary = "Tạo câu hỏi mới", description = "Giảng viên tạo câu hỏi mới cho ngân hàng")
-    public ResponseEntity<ApiResponse<Question>> createQuestion(
+    public ResponseEntity<ApiResponse<QuestionDTO>> createQuestion(
             @AuthenticationPrincipal User currentUser,
             @RequestBody CreateQuestionRequest request
     ) {
         try {
+            System.out.println("🔍 Create Question - User info:");
+            System.out.println("   - User ID: " + currentUser.getId());
+            System.out.println("   - Username: " + currentUser.getUsername());
+            System.out.println("   - Role: " + currentUser.getRole().name());
+            System.out.println("   - Course ID: " + request.getCourseId());
+            
             Question question = questionService.createQuestion(
                     currentUser,
                     request.getContent(),
                     request.getCorrectOption(),
                     request.getOptions(),
                     request.getDifficulty(),
-                    request.getTags()
+                    request.getTags(),
+                    request.getCourseId()  // Add courseId parameter
             );
-            return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(question));
+            System.out.println("✅ Question created successfully: " + question.getId());
+            
+            QuestionDTO questionDTO = QuestionDTO.fromEntity(question);
+            return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(questionDTO));
         } catch (RuntimeException e) {
+            System.out.println("❌ Error creating question: " + e.getMessage());
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
     @Operation(summary = "Lấy danh sách câu hỏi", description = "Lấy danh sách câu hỏi theo bộ lọc")
-    public ResponseEntity<ApiResponse<List<Question>>> getQuestions(
+    public ResponseEntity<ApiResponse<List<QuestionDTO>>> getQuestions(
             @AuthenticationPrincipal User currentUser,
             @RequestParam(required = false) Question.Status status,
             @RequestParam(required = false) Question.Difficulty difficulty,
             @RequestParam(required = false) String tags
     ) {
         try {
+            // Enhanced logging
+            System.out.println("🔍 Question API - User info:");
+            System.out.println("   - User ID: " + currentUser.getId());
+            System.out.println("   - Username: " + currentUser.getUsername());
+            System.out.println("   - Role: " + currentUser.getRole());
+            System.out.println("   - Role name: " + currentUser.getRole().name());
+            System.out.println("   - Enabled: " + currentUser.isEnabled());
+            
             List<Question> questions;
-            if (status == null) {
-                questions = questionService.getQuestionsByCreatorAndStatus(currentUser, Question.Status.ACTIVE);
+            
+            // Default: get all active questions for teachers/admins
+            if (status == null && difficulty == null && (tags == null || tags.isEmpty())) {
+                System.out.println("📋 Getting all active questions...");
+                questions = questionService.getActiveQuestions();
             } else {
-                questions = questionService.searchQuestions(status, difficulty, tags);
+                System.out.println("🔍 Applying filters - Status: " + status + ", Difficulty: " + difficulty + ", Tags: " + tags);
+                // Apply filters
+                Question.Status filterStatus = status != null ? status : Question.Status.ACTIVE;
+                questions = questionService.searchQuestions(filterStatus, difficulty, tags);
             }
-            return ResponseEntity.ok(ApiResponse.success(questions));
+            
+            System.out.println("📊 Found " + questions.size() + " questions");
+            
+            // Convert to DTOs
+            List<QuestionDTO> questionDTOs = questions.stream()
+                    .map(QuestionDTO::fromEntity)
+                    .collect(Collectors.toList());
+            
+            return ResponseEntity.ok(ApiResponse.success(questionDTOs));
         } catch (RuntimeException e) {
+            System.out.println("❌ Error in getQuestions: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @GetMapping("/my-questions")
+    @PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
+    @Operation(summary = "Lấy câu hỏi của tôi", description = "Lấy danh sách câu hỏi do giảng viên hiện tại tạo")
+    public ResponseEntity<ApiResponse<List<QuestionDTO>>> getMyQuestions(
+            @AuthenticationPrincipal User currentUser,
+            @RequestParam(required = false) Question.Status status
+    ) {
+        try {
+            List<Question> questions;
+            // If caller provided a status filter, apply it. Otherwise, return all questions created by the user
+            if (status == null) {
+                System.out.println("🔍 getMyQuestions: no status provided - returning all questions created by user " + currentUser.getId());
+                questions = questionService.getQuestionsByCreator(currentUser);
+            } else {
+                System.out.println("🔍 getMyQuestions: status=" + status + " - returning filtered list for user " + currentUser.getId());
+                questions = questionService.getQuestionsByCreatorAndStatus(currentUser, status);
+            }
+            
+            // Convert to DTOs
+            List<QuestionDTO> questionDTOs = questions.stream()
+                    .map(QuestionDTO::fromEntity)
+                    .collect(Collectors.toList());
+            
+            System.out.println("✅ getMyQuestions: returning " + questionDTOs.size() + " questions as DTOs");
+            return ResponseEntity.ok(ApiResponse.success(questionDTOs));
+        } catch (RuntimeException e) {
+            System.out.println("❌ Error in getMyQuestions: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Lấy chi tiết câu hỏi", description = "Lấy thông tin chi tiết của một câu hỏi")
-    public ResponseEntity<ApiResponse<Question>> getQuestion(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<QuestionDTO>> getQuestion(@PathVariable UUID id) {
         try {
             Question question = questionService.getQuestionById(id);
-            return ResponseEntity.ok(ApiResponse.success(question));
+            QuestionDTO questionDTO = QuestionDTO.fromEntity(question);
+            return ResponseEntity.ok(ApiResponse.success(questionDTO));
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(ApiResponse.error("Câu hỏi không tồn tại"));
@@ -81,7 +154,7 @@ public class QuestionController {
 
     @PutMapping("/{id}")
     @Operation(summary = "Cập nhật câu hỏi", description = "Giảng viên cập nhật câu hỏi của mình")
-    public ResponseEntity<ApiResponse<Question>> updateQuestion(
+    public ResponseEntity<ApiResponse<QuestionDTO>> updateQuestion(
             @PathVariable UUID id,
             @AuthenticationPrincipal User currentUser,
             @RequestBody UpdateQuestionRequest request
@@ -96,7 +169,8 @@ public class QuestionController {
                     request.getTags(),
                     request.getStatus()
             );
-            return ResponseEntity.ok(ApiResponse.success(question));
+            QuestionDTO questionDTO = QuestionDTO.fromEntity(question);
+            return ResponseEntity.ok(ApiResponse.success(questionDTO));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
@@ -116,14 +190,105 @@ public class QuestionController {
         }
     }
 
+    @GetMapping("/course/{courseId}")
+    @Operation(summary = "Lấy tất cả câu hỏi theo khóa học", 
+               description = "Teacher lấy tất cả câu hỏi có thể sử dụng cho quiz trong khóa học")
+    @PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<List<QuestionDTO>>> getQuestionsByCourse(
+            @PathVariable UUID courseId,
+            @RequestParam(defaultValue = "ACTIVE") String status,
+            @AuthenticationPrincipal User currentUser
+    ) {
+        try {
+            System.out.println("🔍 Getting questions for course: " + courseId + " with status: " + status);
+            
+            List<Question> questions = questionService.getQuestionsByCourse(courseId, status, currentUser);
+            
+            List<QuestionDTO> questionDTOs = questions.stream()
+                    .map(QuestionDTO::fromEntity)
+                    .collect(Collectors.toList());
+                    
+            System.out.println("✅ Found " + questionDTOs.size() + " questions for course " + courseId);
+            return ResponseEntity.ok(ApiResponse.success(questionDTOs));
+        } catch (RuntimeException e) {
+            System.err.println("❌ Error getting questions by course: " + e.getMessage());
+            String msg = e.getMessage() != null ? e.getMessage() : "Không thể lấy danh sách câu hỏi";
+            if (msg.toLowerCase().contains("quyền")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.error(msg));
+            }
+            return ResponseEntity.badRequest().body(ApiResponse.error(msg));
+        }
+    }
+
     @PostMapping("/by-ids")
     @Operation(summary = "Lấy câu hỏi theo danh sách IDs", description = "Lấy nhiều câu hỏi dựa trên list IDs")
-    public ResponseEntity<ApiResponse<List<Question>>> getQuestionsByIds(
+    public ResponseEntity<ApiResponse<List<QuestionDTO>>> getQuestionsByIds(
             @RequestBody GetQuestionsByIdsRequest request
     ) {
         try {
             List<Question> questions = questionService.getQuestionsByIds(request.getQuestionIds());
-            return ResponseEntity.ok(ApiResponse.success(questions));
+            List<QuestionDTO> questionDTOs = questions.stream()
+                    .map(QuestionDTO::fromEntity)
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(ApiResponse.success(questionDTOs));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @GetMapping("/course/{courseId}/all")
+    @PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
+    @Operation(summary = "Lấy tất cả câu hỏi theo khóa học", description = "Lấy tất cả câu hỏi thuộc về khóa học cụ thể")
+    public ResponseEntity<ApiResponse<List<QuestionDTO>>> getAllQuestionsByCourse(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID courseId,
+            @RequestParam(required = false) Question.Status status
+    ) {
+        try {
+            List<Question> questions;
+            
+            // If status filter is provided, use it. Otherwise return all questions
+            if (status == null) {
+                questions = questionService.getQuestionsByCourse(courseId);
+            } else {
+                questions = questionService.getQuestionsByCourseAndStatus(courseId, status);
+            }
+            
+            // Convert to DTOs
+            List<QuestionDTO> questionDTOs = questions.stream()
+                    .map(QuestionDTO::fromEntity)
+                    .collect(Collectors.toList());
+            
+            return ResponseEntity.ok(ApiResponse.success(questionDTOs));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @GetMapping("/course/{courseId}/user")
+    @PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
+    @Operation(summary = "Lấy câu hỏi của tôi trong khóa học", description = "Lấy câu hỏi mà giảng viên hiện tại đã tạo cho khóa học cụ thể")
+    public ResponseEntity<ApiResponse<List<QuestionDTO>>> getMyQuestionsInCourse(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID courseId,
+            @RequestParam(required = false) Question.Status status
+    ) {
+        try {
+            List<Question> questions;
+            
+            // If status filter is provided, use it. Otherwise return all questions
+            if (status == null) {
+                questions = questionService.getQuestionsByCourseAndUser(courseId, currentUser.getId());
+            } else {
+                questions = questionService.getQuestionsByCourseAndStatus(courseId, status);
+            }
+            
+            // Convert to DTOs
+            List<QuestionDTO> questionDTOs = questions.stream()
+                    .map(QuestionDTO::fromEntity)
+                    .collect(Collectors.toList());
+            
+            return ResponseEntity.ok(ApiResponse.success(questionDTOs));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
@@ -143,19 +308,21 @@ public class QuestionController {
         private List<String> options;
         private Question.Difficulty difficulty;
         private String tags;
+        private UUID courseId;  // Add courseId field
 
         // Getters and setters
         public String getContent() { return content; }
         public void setContent(String content) { this.content = content; }
         public String getCorrectOption() { return correctOption; }
         public void setCorrectOption(String correctOption) { this.correctOption = correctOption; }
-        public List<String> options() { return options; }
+        public List<String> getOptions() { return options; }
         public void setOptions(List<String> options) { this.options = options; }
         public Question.Difficulty getDifficulty() { return difficulty; }
         public void setDifficulty(Question.Difficulty difficulty) { this.difficulty = difficulty; }
         public String getTags() { return tags; }
         public void setTags(String tags) { this.tags = tags; }
-        public List<String> getOptions() { return options; }
+        public UUID getCourseId() { return courseId; }
+        public void setCourseId(UUID courseId) { this.courseId = courseId; }
     }
 
     public static class UpdateQuestionRequest {

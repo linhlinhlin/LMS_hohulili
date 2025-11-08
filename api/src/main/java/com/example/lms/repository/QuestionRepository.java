@@ -16,6 +16,9 @@ public interface QuestionRepository extends JpaRepository<Question, UUID> {
 
     List<Question> findByStatus(Question.Status status);
 
+    // Find all questions created by a specific user (any status)
+    List<Question> findByCreatedById(UUID createdById);
+
     @Query("SELECT q FROM Question q WHERE q.status = :status AND " +
            "(:difficulty IS NULL OR q.difficulty = :difficulty) AND " +
            "(:tags IS NULL OR q.tags LIKE %:tags%)")
@@ -25,4 +28,17 @@ public interface QuestionRepository extends JpaRepository<Question, UUID> {
 
     @Query("SELECT q FROM Question q WHERE q.id IN :ids")
     List<Question> findByIds(@Param("ids") List<UUID> ids);
+
+    // NEW: Find questions by course
+    List<Question> findByCourseId(UUID courseId);
+
+    // NEW: Find questions by course and status
+    List<Question> findByCourseIdAndStatus(UUID courseId, Question.Status status);
+
+    // NEW: Find questions by course and user
+    List<Question> findByCourseIdAndCreatedById(UUID courseId, UUID userId);
+
+    // NEW: Find questions for a specific course created by a specific user
+    @Query("SELECT q FROM Question q WHERE q.course.id = :courseId AND q.createdBy.id = :userId")
+    List<Question> findByCourseAndUser(@Param("courseId") UUID courseId, @Param("userId") UUID userId);
 }

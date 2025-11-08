@@ -9,6 +9,7 @@ import { LessonAttachmentApi } from '../../../api/client/lesson-attachment.api';
 import { CreateAssignmentLessonRequest } from '../../../api/types/assignment.types';
 import { CreateLessonRequest } from '../../../api/types/course.types';
 import { QuizApi } from '../../../api/endpoints/quiz.api';
+import { QuestionApi, Question } from '../../../api/endpoints/question.api';
 import { firstValueFrom } from 'rxjs';
 
 @Component({
@@ -20,7 +21,7 @@ import { firstValueFrom } from 'rxjs';
   <div class="max-w-5xl mx-auto p-6">
       <div class="flex items-center justify-between mb-6">
         <h1 class="text-2xl font-bold text-gray-900">Nội dung chương</h1>
-        <a class="px-4 py-2 border rounded hover:bg-gray-50 transition-colors flex items-center gap-2" [routerLink]="['/teacher/courses', courseId, 'sections']">
+        <a class="px-4 py-2 border hover:bg-gray-50 transition-colors flex items-center gap-2" [routerLink]="['/teacher/courses', courseId, 'sections']">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
           </svg>
@@ -28,40 +29,71 @@ import { firstValueFrom } from 'rxjs';
         </a>
       </div>
 
-      <div class="bg-white rounded-lg shadow p-6">
+      <!-- Action Bar -->
+      <div class="bg-white shadow-sm">
         
-        <div class="p-6 text-gray-500" *ngIf="!loading() && lessons().length === 0">Chưa có bài học nào.</div>
+        <!-- Empty State -->
+        <div class="p-8 text-gray-500 text-center" *ngIf="!loading() && lessons().length === 0">
+          <svg class="w-12 h-12 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+          </svg>
+          Chưa có bài học nào trong chương này.
+        </div>
         <div class="p-6 text-red-600" *ngIf="error()">{{ error() }}</div>
 
-        <ul class="divide-y">
-          <li *ngFor="let l of lessons()" class="py-3 flex items-center justify-between">
-            <div class="pr-3 flex items-center gap-3">
-              <div>
-                <div class="font-medium">{{ l.title }}</div>
-                <div class="text-sm font-medium">
-                  <ng-container *ngIf="l.lessonType === 'ASSIGNMENT'">
-                    <span class="text-green-600">Bài tập</span>
-                  </ng-container>
-                  <ng-container *ngIf="!l.lessonType || l.lessonType === 'LECTURE'">
-                    <span class="text-blue-600">Bài học</span>
-                  </ng-container>
-                  <ng-container *ngIf="l.lessonType === 'QUIZ'">
-                    <span class="text-purple-600">Trắc nghiệm</span>
-                  </ng-container>
-                </div>
-              </div>
-            </div>
-            <div class="inline-flex items-center gap-2">
-              <button class="px-3 py-1 border rounded" (click)="viewLesson(l)">Xem</button>
-              <button class="px-3 py-1 border rounded" (click)="startEdit(l)">Sửa</button>
-              <button class="px-3 py-1 border rounded text-red-600" (click)="deleteLesson(l.id)">Xóa</button>
-            </div>
-          </li>
-        </ul>
+        <!-- Lessons Table -->
+        <div *ngIf="!loading() && lessons().length > 0">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-4 text-left text-sm md:text-base font-medium text-gray-600 uppercase tracking-wider">STT</th>
+                <th class="px-6 py-4 text-left text-sm md:text-base font-medium text-gray-600 uppercase tracking-wider">Tên bài học</th>
+                <th class="px-6 py-4 text-left text-sm md:text-base font-medium text-gray-600 uppercase tracking-wider">Loại</th>
+                <th class="px-6 py-4 text-left text-sm md:text-base font-medium text-gray-600 uppercase tracking-wider">Trạng thái</th>
+                <th class="px-6 py-4 text-right text-sm md:text-base font-medium text-gray-600 uppercase tracking-wider">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <tr *ngFor="let l of lessons(); let i = index" class="hover:bg-gray-50 transition-colors">
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  {{ i + 1 }}
+                </td>
+                <td class="px-6 py-4">
+                  <div class="font-medium text-gray-900">{{ l.title }}</div>
+                  <div class="text-sm text-gray-500" *ngIf="l.description">{{ l.description | slice:0:100 }}{{ l.description?.length > 100 ? '...' : '' }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span class="inline-flex px-2 py-1 text-xs font-semibold leading-5"
+                        [ngClass]="{
+                          'bg-blue-100 text-blue-800': !l.lessonType || l.lessonType === 'LECTURE',
+                          'bg-green-100 text-green-800': l.lessonType === 'ASSIGNMENT',
+                          'bg-purple-100 text-purple-800': l.lessonType === 'QUIZ'
+                        }">
+                    <ng-container *ngIf="l.lessonType === 'ASSIGNMENT'">Bài tập</ng-container>
+                    <ng-container *ngIf="!l.lessonType || l.lessonType === 'LECTURE'">Bài học</ng-container>
+                    <ng-container *ngIf="l.lessonType === 'QUIZ'">Trắc nghiệm</ng-container>
+                  </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span class="inline-flex px-2 py-1 text-xs font-semibold leading-5 bg-green-100 text-green-800">
+                    Đã xuất bản
+                  </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <div class="inline-flex items-center gap-2">
+                    <button class="px-3 py-1 shadow-sm text-gray-600 hover:shadow-md hover:text-gray-700 transition-all duration-200" (click)="viewLesson(l)">Xem</button>
+                    <button class="px-3 py-1 shadow-sm text-blue-600 hover:shadow-md hover:text-blue-700 transition-all duration-200" (click)="startEdit(l)">Sửa</button>
+                    <button class="px-3 py-1 shadow-sm text-red-600 hover:shadow-md hover:text-red-700 transition-all duration-200" (click)="deleteLesson(l.id)">Xóa</button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <!-- Video viewer -->
-      <div class="bg-white rounded-lg shadow p-6 mt-6" *ngIf="selected() as s">
+      <div class="bg-white border shadow p-6 mt-6" *ngIf="selected() as s">
         <div class="flex items-center justify-between mb-3">
           <div class="font-semibold">Xem bài học: {{ s.title }}</div>
           <div class="inline-flex items-center gap-2">
@@ -208,6 +240,21 @@ import { firstValueFrom } from 'rxjs';
                       </svg>
                       Thêm câu hỏi
                     </button>
+                    <button (click)="previewQuiz(s.id, s.title)"
+                            class="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 flex items-center gap-2">
+                      <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path>
+                        <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"></path>
+                      </svg>
+                      Xem trước quiz
+                    </button>
+                    <button (click)="loadQuestionsByCourse(courseId)"
+                            class="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 flex items-center gap-2">
+                      <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"></path>
+                      </svg>
+                      Chọn câu hỏi từ khóa học
+                    </button>
                   </div>
                 </div>
 
@@ -230,7 +277,7 @@ import { firstValueFrom } from 'rxjs';
                 <div *ngIf="!isLoadingQuizQuestions() && currentViewingQuizId() === s.id && quizQuestions().length > 0" 
                      class="space-y-4">
                   <div *ngFor="let question of quizQuestions(); let idx = index" 
-                       class="border border-gray-200 rounded-lg p-4">
+                       class="shadow-sm p-4">
                     <div class="flex items-start gap-3">
                       <div class="flex-shrink-0 w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-semibold">
                         {{ idx + 1 }}
@@ -274,6 +321,143 @@ import { firstValueFrom } from 'rxjs';
                             {{ question.difficulty === 'EASY' ? 'Dễ' : question.difficulty === 'MEDIUM' ? 'Trung bình' : 'Khó' }}
                           </span>
                           <span class="text-xs text-gray-500">Tags: {{ question.tags }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Course Questions Section -->
+                <div *ngIf="isLoadingCourseQuestions()" class="text-center py-8">
+                  <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                  <p class="text-gray-500 mt-2">Đang tải câu hỏi khóa học...</p>
+                </div>
+
+                <div *ngIf="courseQuestionsError()" class="text-center py-8 text-red-600">
+                  <p>{{ courseQuestionsError() }}</p>
+                </div>
+
+                <div *ngIf="!isLoadingCourseQuestions() && !courseQuestionsError() && courseQuestions().length === 0" 
+                     class="text-center py-8 text-gray-500">
+                  <svg class="w-12 h-12 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  <p class="text-sm">Không tìm thấy câu hỏi nào trong khóa học này.</p>
+                </div>
+
+                <!-- Course Questions List -->
+                <div *ngIf="!isLoadingCourseQuestions() && courseQuestions().length > 0"
+                     class="space-y-4">
+                  <div class="bg-blue-50 border border-blue-200 rounded p-3 mb-4">
+                    <div class="flex items-center justify-between mb-2">
+                      <h4 class="font-semibold text-blue-900">Ngân hàng câu hỏi khóa học</h4>
+                      <div class="text-sm text-blue-700">
+                        Tìm thấy {{ courseQuestions().length }} câu hỏi | Đã chọn: {{ getSelectedQuestionCount() }}
+                      </div>
+                    </div>
+                    <p class="text-sm text-blue-700">Chọn nhiều câu hỏi để thêm vào quiz cùng lúc.</p>
+                  </div>
+                  
+                  <!-- Bulk Selection Controls -->
+                  <div class="bg-gray-50 border border-gray-200 rounded p-3 mb-4">
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center gap-2">
+                        <button (click)="selectAllQuestions()"
+                                class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 flex items-center gap-2">
+                          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                          </svg>
+                          Chọn tất cả
+                        </button>
+                        <button (click)="clearQuestionSelection()"
+                                class="px-3 py-1 bg-gray-600 text-white text-sm rounded hover:bg-gray-700 flex items-center gap-2">
+                          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                          </svg>
+                          Bỏ chọn
+                        </button>
+                      </div>
+                      <div *ngIf="getSelectedQuestionCount() > 0" class="flex items-center gap-2">
+                        <span class="text-sm text-gray-600">{{ getSelectedQuestionCount() }} câu hỏi được chọn</span>
+                        <button (click)="addSelectedQuestionsToQuiz(s.id)"
+                                class="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 flex items-center gap-2">
+                          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"></path>
+                          </svg>
+                          Thêm {{ getSelectedQuestionCount() }} câu hỏi vào quiz
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div *ngFor="let question of courseQuestions(); let idx = index"
+                       class="shadow-sm p-4 hover:shadow-md transition-shadow border border-gray-200 rounded-lg"
+                       [class.border-blue-400]="isQuestionSelected(question.id)"
+                       [class.bg-blue-50]="isQuestionSelected(question.id)">
+                    <div class="flex items-start gap-3">
+                      <!-- Selection Checkbox -->
+                      <div class="flex-shrink-0 pt-1">
+                        <input type="checkbox"
+                               [checked]="isQuestionSelected(question.id)"
+                               (change)="toggleQuestionSelection(question.id)"
+                               class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2">
+                      </div>
+                      
+                      <div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-semibold">
+                        {{ idx + 1 }}
+                      </div>
+                      <div class="flex-1">
+                        <div class="font-medium text-gray-900 mb-3">{{ question.content }}</div>
+                        <div class="space-y-2">
+                          <div *ngFor="let option of question.options"
+                               class="flex items-center gap-2 p-2 rounded"
+                               [class.bg-green-50]="option.optionKey === question.correctOption"
+                               [class.border-green-200]="option.optionKey === question.correctOption"
+                               [class.bg-gray-50]="option.optionKey !== question.correctOption"
+                               [class.border-gray-200]="option.optionKey !== question.correctOption"
+                               [class.border]="true">
+                            <div class="flex-shrink-0 w-6 h-6 rounded flex items-center justify-center text-sm font-semibold"
+                                 [class.bg-green-500]="option.optionKey === question.correctOption"
+                                 [class.text-white]="option.optionKey === question.correctOption"
+                                 [class.bg-gray-400]="option.optionKey !== question.correctOption"
+                                 [class.text-white]="option.optionKey !== question.correctOption">
+                              {{ option.optionKey }}
+                            </div>
+                            <span [class.text-green-900]="option.optionKey === question.correctOption"
+                                  [class.font-medium]="option.optionKey === question.correctOption"
+                                  [class.text-gray-700]="option.optionKey !== question.correctOption">
+                              {{ option.content }}
+                            </span>
+                            <svg *ngIf="option.optionKey === question.correctOption"
+                                 class="w-5 h-5 text-green-600 ml-auto" fill="currentColor" viewBox="0 0 20 20">
+                              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                          </div>
+                        </div>
+                        <div class="mt-3 flex items-center justify-between">
+                          <div class="flex items-center gap-4">
+                            <span class="text-xs px-2 py-1 rounded-full font-medium"
+                                  [class.bg-green-100]="question.difficulty === 'EASY'"
+                                  [class.text-green-700]="question.difficulty === 'EASY'"
+                                  [class.bg-yellow-100]="question.difficulty === 'MEDIUM'"
+                                  [class.text-yellow-700]="question.difficulty === 'MEDIUM'"
+                                  [class.bg-red-100]="question.difficulty === 'HARD'"
+                                  [class.text-red-700]="question.difficulty === 'HARD'">
+                              {{ question.difficulty === 'EASY' ? 'Dễ' : question.difficulty === 'MEDIUM' ? 'Trung bình' : 'Khó' }}
+                            </span>
+                            <span class="text-xs text-gray-500">Tags: {{ question.tags }}</span>
+                            <span class="text-xs text-gray-500">Tác giả: {{ question.createdBy?.fullName || question.createdBy?.username }}</span>
+                          </div>
+                          <div class="flex items-center gap-2">
+                            <span *ngIf="isQuestionSelected(question.id)" class="text-xs text-blue-600 font-medium">✓ Đã chọn</span>
+                            <button (click)="addQuestionToQuiz(question.id, s.id)"
+                                    class="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 flex items-center gap-1">
+                              <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"></path>
+                              </svg>
+                              Thêm
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -477,7 +661,7 @@ import { firstValueFrom } from 'rxjs';
 
       <!-- Create new lesson form (collapsible) -->
       <div class="bg-white rounded-lg shadow p-6 mt-4" *ngIf="showCreateForm()">
-        <div class="font-semibold mb-3">Thêm bài học mới</div>
+       
         <form [formGroup]="createForm" class="space-y-4">
           <!-- Basic Info -->
           <div class="flex flex-wrap items-center gap-2">
@@ -511,7 +695,7 @@ import { firstValueFrom } from 'rxjs';
           </div>
 
           <!-- File Attachments Section - Hidden for Quiz type -->
-          <div *ngIf="!isQuizType" class="border-2 border-dashed border-gray-300 rounded-lg p-4 bg-gray-50">
+          <div *ngIf="!isQuizType" class="border-2 border-dashed border-gray-300 p-4 bg-gray-50">
             <div class="text-sm font-medium text-gray-700 mb-2">
               <span *ngIf="!isAssignmentType">📎 File đính kèm (PDF, Word, Excel, PowerPoint, Video, Audio):</span>
               <span *ngIf="isAssignmentType">📎 File đính kèm và mẫu/template cho sinh viên:</span>
@@ -643,17 +827,17 @@ import { firstValueFrom } from 'rxjs';
                 
                 <div class="bg-white rounded-lg p-4 mb-4">
                   <label class="block text-sm font-medium text-gray-700 mb-2">Thời gian làm bài (phút):</label>
-                  <input type="number" formControlName="quizTimeLimit" class="w-full md:w-48 border-2 border-gray-300 rounded-lg px-4 py-3 text-base focus:border-purple-500 focus:outline-none" placeholder="30" min="1" />
+                  <input type="number" formControlName="quizTimeLimit" class="w-full md:w-48 border-2 border-gray-300 px-4 py-3 text-base focus:border-purple-500 focus:outline-none" placeholder="30" min="1" />
                 </div>
 
                 <div class="bg-white rounded-lg p-4 mb-4">
                   <label class="block text-sm font-medium text-gray-700 mb-2">Điểm tối đa:</label>
-                  <input type="number" formControlName="quizMaxScore" class="w-full md:w-48 border-2 border-gray-300 rounded-lg px-4 py-3 text-base focus:border-purple-500 focus:outline-none" placeholder="100" min="1" />
+                  <input type="number" formControlName="quizMaxScore" class="w-full md:w-48 border-2 border-gray-300 px-4 py-3 text-base focus:border-purple-500 focus:outline-none" placeholder="100" min="1" />
                 </div>
 
                 <div class="bg-white rounded-lg p-4 mb-4">
                   <label class="block text-sm font-medium text-gray-700 mb-2">Số lần làm bài tối đa:</label>
-                  <input type="number" formControlName="quizMaxAttempts" class="w-full md:w-48 border-2 border-gray-300 rounded-lg px-4 py-3 text-base focus:border-purple-500 focus:outline-none" placeholder="1" min="1" />
+                  <input type="number" formControlName="quizMaxAttempts" class="w-full md:w-48 border-2 border-gray-300 px-4 py-3 text-base focus:border-purple-500 focus:outline-none" placeholder="1" min="1" />
                 </div>
 
                 <div class="bg-yellow-100 border-l-4 border-yellow-500 p-4 mt-4">
@@ -704,7 +888,7 @@ import { firstValueFrom } from 'rxjs';
           </div>
 
           <!-- Document Upload for Edit -->
-          <div class="border border-gray-300 rounded-lg p-3 bg-gray-50">
+          <div class="shadow-sm p-3 bg-gray-50">
             <div class="text-sm font-medium text-gray-700 mb-2">Tải file Word để thay thế nội dung:</div>
             <input 
               type="file" 
@@ -715,7 +899,7 @@ import { firstValueFrom } from 'rxjs';
           </div>
 
           <!-- File Attachments Management for Edit -->
-          <div class="border border-gray-300 rounded-lg p-3 bg-blue-50">
+          <div class="shadow-sm p-3 bg-blue-50">
             <div class="text-sm font-medium text-gray-700 mb-2">Quản lý tệp đính kèm:</div>
             
             <!-- Add New Attachments -->
@@ -787,6 +971,91 @@ import { firstValueFrom } from 'rxjs';
         </form>
       </div>
     </div>
+
+    <!-- Quiz Preview Modal -->
+    @if (showQuizPreview()) {
+      <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-start justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+          <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" (click)="closeQuizPreview()"></div>
+
+          <div class="inline-block align-top bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+            <!-- Header -->
+            <div class="bg-indigo-600 px-6 py-4">
+              <div class="flex items-center justify-between">
+                <h3 class="text-lg font-medium text-white">
+                  Xem trước: {{ previewQuizTitle() }}
+                </h3>
+                <button (click)="closeQuizPreview()" class="text-indigo-200 hover:text-white">
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                  </svg>
+                </button>
+              </div>
+              <p class="text-indigo-200 text-sm mt-1">
+                Đây là giao diện mà học viên sẽ thấy khi làm quiz
+              </p>
+            </div>
+
+            <!-- Quiz Content -->
+            <div class="bg-white px-6 py-6 max-h-96 overflow-y-auto">
+              <div class="space-y-8">
+                @for (question of previewQuestions(); track question.id; let idx = $index) {
+                  <div class="border border-gray-200 rounded-lg p-6">
+                    <!-- Question Header -->
+                    <div class="flex items-start gap-4 mb-4">
+                      <div class="flex-shrink-0 w-8 h-8 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center font-semibold">
+                        {{ question.questionNumber }}
+                      </div>
+                      <div class="flex-1">
+                        <h4 class="text-lg font-medium text-gray-900">{{ question.content }}</h4>
+                      </div>
+                    </div>
+
+                    <!-- Options -->
+                    <div class="ml-12 space-y-3">
+                      @for (option of question.options; track option.optionKey) {
+                        <label class="flex items-start gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                               [class.border-indigo-500]="question.selectedAnswer === option.optionKey"
+                               [class.bg-indigo-50]="question.selectedAnswer === option.optionKey">
+                          <input type="radio" 
+                                 [name]="'preview-q-' + question.id"
+                                 [value]="option.optionKey"
+                                 [checked]="question.selectedAnswer === option.optionKey"
+                                 (change)="selectPreviewAnswer(question.id, option.optionKey)"
+                                 class="mt-0.5 h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500">
+                          <div class="flex-1">
+                            <div class="flex items-center gap-2">
+                              <span class="font-medium text-gray-900">{{ option.optionKey }}.</span>
+                              <span class="text-gray-700">{{ option.content }}</span>
+                            </div>
+                          </div>
+                        </label>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="bg-gray-50 px-6 py-4 flex justify-between items-center">
+              <div class="text-sm text-gray-600">
+                Tổng {{ previewQuestions().length }} câu hỏi
+              </div>
+              <div class="flex gap-3">
+                <button (click)="closeQuizPreview()" 
+                        class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                  Đóng
+                </button>
+                <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+                  Xem kết quả
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -802,6 +1071,7 @@ export class SectionEditorComponent implements OnDestroy {
   private sanitizer = inject(DomSanitizer);
   private documentService = inject(DocumentService);
   private quizApi = inject(QuizApi);
+  private questionApi = inject(QuestionApi);
 
   courseId: string = '';
   lessons = signal<any[]>([]);
@@ -839,6 +1109,20 @@ export class SectionEditorComponent implements OnDestroy {
   currentViewingQuizId = signal<string | null>(null);
   quizQuestions = signal<any[]>([]);
   isLoadingQuizQuestions = signal<boolean>(false);
+  
+  // Quiz preview data
+  showQuizPreview = signal<boolean>(false);
+  previewQuizId = signal<string | null>(null);
+  previewQuizTitle = signal<string>('');
+  previewQuestions = signal<any[]>([]);
+  
+  // Course questions data
+  courseQuestions = signal<Question[]>([]);
+  isLoadingCourseQuestions = signal<boolean>(false);
+  courseQuestionsError = signal<string>('');
+  
+  // Selected questions for bulk addition
+  selectedQuestionIds = signal<Set<string>>(new Set());
   
   // Temporary storage for attachments before lesson creation
   tempAttachments: File[] = [];
@@ -1000,8 +1284,8 @@ export class SectionEditorComponent implements OnDestroy {
         error: (err) => this.opError.set(err?.message || 'Tạo bài tập thất bại')
       });
     } else if (lessonType === 'QUIZ') {
-      // Create quiz lesson
-      const payload: CreateLessonRequest = {
+      // Create quiz lesson with proper backend integration
+      const lessonPayload: CreateLessonRequest = {
         title: this.createForm.value.title ?? '',
         lessonType: 'QUIZ',
         quizTimeLimit: Number(this.createForm.value.quizTimeLimit) || 30,
@@ -1009,37 +1293,69 @@ export class SectionEditorComponent implements OnDestroy {
         quizMaxAttempts: Number(this.createForm.value.quizMaxAttempts) || 1
       };
 
-      this.lessonApi.createLesson(sectionId, payload).subscribe({
-        next: (res) => {
-          const l = res?.data;
-          if (l) {
-            this.lessons.update(list => [...list, l]);
-            
-            // Save quiz ID and title for Quiz Bank navigation
-            this.lastCreatedQuizId.set(l.id);
-            this.lastCreatedQuizTitle.set(l.title);
+      // First create the lesson
+      this.lessonApi.createLesson(sectionId, lessonPayload).subscribe({
+        next: async (lessonRes) => {
+          const lesson = lessonRes?.data;
+          if (lesson) {
+            try {
+              // Create corresponding Quiz entity using Backend Quiz API
+              const quizPayload = {
+                questionIds: [], // Empty array initially
+                timeLimitMinutes: Number(this.createForm.value.quizTimeLimit) || 30,
+                maxAttempts: Number(this.createForm.value.quizMaxAttempts) || 1,
+                passingScore: Number(this.createForm.value.quizMaxScore) || 100,
+                shuffleQuestions: false,
+                shuffleOptions: false,
+                showResultsImmediately: true,
+                showCorrectAnswers: true
+              };
 
-            this.createForm.reset({
-              title: '',
-              lessonType: 'LECTURE',
-              content: '',
-              videoUrl: '',
-              assignmentTitle: '',
-              assignmentDescription: '',
-              assignmentInstructions: '',
-              dueDate: '',
-              maxScore: 100,
-              quizTimeLimit: 30,
-              quizMaxScore: 100,
-              quizMaxAttempts: 1
-            });
+              // Create Quiz entity
+              const quizResponse = await firstValueFrom(this.quizApi.createQuiz(lesson.id, quizPayload));
+              const createdQuiz = quizResponse;
 
-            // Close the form after successful creation
-            this.showCreateForm.set(false);
-            
-            // Show success message
-            this.opError.set('');
-            alert(`✅ Đã tạo bài trắc nghiệm "${l.title}" thành công!\n\n💡 Click nút "➕ Thêm/Chọn câu hỏi từ Quiz Bank" để thêm câu hỏi cho quiz này.`);
+              if (createdQuiz) {
+                this.lessons.update(list => [...list, lesson]);
+                
+                // Save quiz ID and title for Quiz Bank navigation
+                this.lastCreatedQuizId.set(createdQuiz.id || lesson.id);
+                this.lastCreatedQuizTitle.set(lesson.title);
+
+                this.createForm.reset({
+                  title: '',
+                  lessonType: 'LECTURE',
+                  content: '',
+                  videoUrl: '',
+                  assignmentTitle: '',
+                  assignmentDescription: '',
+                  assignmentInstructions: '',
+                  dueDate: '',
+                  maxScore: 100,
+                  quizTimeLimit: 30,
+                  quizMaxScore: 100,
+                  quizMaxAttempts: 1
+                });
+
+                // Close the form after successful creation
+                this.showCreateForm.set(false);
+                
+                // Show success message
+                this.opError.set('');
+                alert(`✅ Đã tạo bài trắc nghiệm "${lesson.title}" thành công!\n\nQuiz ID: ${createdQuiz.id}\n\n💡 Click nút "➕ Thêm/Chọn câu hỏi từ Quiz Bank" để thêm câu hỏi cho quiz này.`);
+              } else {
+                // Lesson created but Quiz creation failed
+                this.lessons.update(list => [...list, lesson]);
+                this.opError.set('');
+                alert(`⚠️ Đã tạo lesson "${lesson.title}" nhưng không thể tạo Quiz entity. Vui lòng kiểm tra logs.`);
+              }
+            } catch (quizError) {
+              console.error('Quiz creation error:', quizError);
+              // Still add the lesson even if quiz creation failed
+              this.lessons.update(list => [...list, lesson]);
+              this.opError.set('');
+              alert(`⚠️ Đã tạo lesson "${lesson.title}" nhưng lỗi khi tạo Quiz entity: ${(quizError as any)?.message || 'Lỗi không xác định'}`);
+            }
           }
         },
         error: (err) => this.opError.set(err?.message || 'Tạo bài trắc nghiệm thất bại')
@@ -1089,6 +1405,11 @@ export class SectionEditorComponent implements OnDestroy {
   startEdit(l: any) {
     this.editingId.set(l.id);
     this.editForm.patchValue({ title: l.title || '', content: l.content || '', videoUrl: l.videoUrl || '' });
+  }
+
+  startAddNew() {
+    this.showCreateForm.set(true);
+    this.createForm.reset();
   }
 
   cancelEdit() { this.editingId.set(null); }
@@ -1512,7 +1833,7 @@ export class SectionEditorComponent implements OnDestroy {
     
     if (quizId && quizTitle) {
       // Pass quiz context via URL query params
-      this.router.navigate(['/teacher/quiz-bank'], {
+      this.router.navigate(['/teacher/quiz/quiz-bank'], {
         queryParams: {
           quizId: quizId,
           quizTitle: quizTitle,
@@ -1521,7 +1842,7 @@ export class SectionEditorComponent implements OnDestroy {
       });
     } else {
       // Open without context
-      this.router.navigate(['/teacher/quiz-bank']);
+      this.router.navigate(['/teacher/quiz/quiz-bank']);
     }
   }
 
@@ -1531,7 +1852,12 @@ export class SectionEditorComponent implements OnDestroy {
       this.currentViewingQuizId.set(quizId);
       
       // Fetch real questions from API
-      const questions = await firstValueFrom(this.quizApi.getQuizQuestions(quizId));
+      const response = await firstValueFrom(this.quizApi.getQuizQuestions(quizId));
+      
+      // Handle ApiResponse wrapper
+      const questions = Array.isArray(response) ? response : (response as any).data || [];
+      
+      console.log('📊 Loaded quiz questions:', questions.length, 'questions');
       
       // Transform to display format
       this.quizQuestions.set(questions.map((q: any) => ({
@@ -1554,12 +1880,53 @@ export class SectionEditorComponent implements OnDestroy {
     }
   }
 
+  async previewQuiz(quizId: string, quizTitle: string) {
+    try {
+      console.log('🔍 Preview Quiz - ID:', quizId, 'Title:', quizTitle);
+      
+      // Load quiz questions first to validate
+      const response = await firstValueFrom(this.quizApi.getQuizQuestions(quizId));
+      console.log('🔍 Preview Quiz - API Response:', response);
+      
+      const questions = Array.isArray(response) ? response : (response as any).data || [];
+      console.log('🔍 Preview Quiz - Questions:', questions);
+      
+      if (questions.length === 0) {
+        alert('Quiz này chưa có câu hỏi nào. Vui lòng thêm câu hỏi trước khi xem trước.');
+        return;
+      }
+
+      // Navigate to quiz preview page
+      this.router.navigate(['/teacher/quiz/preview', quizId]);
+      
+    } catch (error) {
+      console.error('❌ Error loading quiz for preview:', error);
+      alert('Không thể tải quiz để xem trước: ' + (error as any).message);
+    }
+  }
+
+  closeQuizPreview() {
+    this.showQuizPreview.set(false);
+    this.previewQuizId.set(null);
+    this.previewQuizTitle.set('');
+    this.previewQuestions.set([]);
+  }
+
+  selectPreviewAnswer(questionId: string, selectedKey: string) {
+    const questions = this.previewQuestions();
+    const updatedQuestions = questions.map(q => 
+      q.id === questionId ? { ...q, selectedAnswer: selectedKey } : q
+    );
+    this.previewQuestions.set(updatedQuestions);
+  }
+
   openQuizBankToAddQuestions(quizId: string, quizTitle: string) {
     // Navigate to Quiz Bank to add questions to an existing quiz
-    this.router.navigate(['/teacher/quiz-bank'], {
+    this.router.navigate(['/teacher/quiz/quiz-bank'], {
       queryParams: {
         quizId: quizId,
         quizTitle: quizTitle,
+        courseId: this.courseId,  // Pass courseId for question creation
         returnUrl: this.router.url
       }
     });
@@ -1801,6 +2168,93 @@ export class SectionEditorComponent implements OnDestroy {
     this.startHeaderAutoHide();
   }
 
+  // Bulk question selection methods
+  toggleQuestionSelection(questionId: string): void {
+    const currentSelection = this.selectedQuestionIds();
+    const newSelection = new Set(currentSelection);
+    
+    if (newSelection.has(questionId)) {
+      newSelection.delete(questionId);
+    } else {
+      newSelection.add(questionId);
+    }
+    
+    this.selectedQuestionIds.set(newSelection);
+  }
+
+  selectAllQuestions(): void {
+    const allQuestionIds = new Set(this.courseQuestions().map(q => q.id));
+    this.selectedQuestionIds.set(allQuestionIds);
+  }
+
+  clearQuestionSelection(): void {
+    this.selectedQuestionIds.set(new Set());
+  }
+
+  getSelectedQuestionCount(): number {
+    return this.selectedQuestionIds().size;
+  }
+
+  isQuestionSelected(questionId: string): boolean {
+    return this.selectedQuestionIds().has(questionId);
+  }
+
+  // Add selected questions to quiz (bulk operation)
+  async addSelectedQuestionsToQuiz(quizId: string): Promise<void> {
+    const selectedIds = Array.from(this.selectedQuestionIds());
+    
+    if (selectedIds.length === 0) {
+      alert('Vui lòng chọn ít nhất một câu hỏi để thêm vào quiz.');
+      return;
+    }
+
+    try {
+      console.log('🔄 Adding selected questions to quiz:', selectedIds.length, 'questions');
+      
+      // Get current quiz to know existing questions
+      const currentQuiz = await firstValueFrom(
+        this.quizApi.getQuizByLessonId(quizId)
+      );
+      
+      const existingQuestionIds = currentQuiz.questionIds ?
+        currentQuiz.questionIds.split(',').filter((id: string) => id.trim()) : [];
+      
+      // Filter out already selected questions
+      const newQuestionIds = selectedIds.filter(id => !existingQuestionIds.includes(id));
+      
+      if (newQuestionIds.length === 0) {
+        alert('Tất cả câu hỏi đã chọn đã có trong quiz rồi!');
+        return;
+      }
+      
+      // Combine existing and new question IDs
+      const updatedQuestionIds = [...existingQuestionIds, ...newQuestionIds];
+      
+      // Update quiz questions
+      await firstValueFrom(
+        this.quizApi.updateQuizQuestions(quizId, {
+          questionIds: updatedQuestionIds
+        })
+      );
+      
+      // Clear selection after successful addition
+      this.clearQuestionSelection();
+      
+      // Refresh quiz questions display
+      await this.loadQuizQuestions(quizId);
+      
+      // Show success message
+      const totalQuestions = updatedQuestionIds.length;
+      const addedCount = newQuestionIds.length;
+      alert(`✅ Đã thêm ${addedCount} câu hỏi vào quiz thành công!\n\nQuiz hiện có tổng cộng ${totalQuestions} câu hỏi.`);
+      
+      console.log('✅ Successfully added selected questions to quiz. Total questions:', totalQuestions);
+    } catch (error: any) {
+      console.error('❌ Error adding selected questions to quiz:', error);
+      alert('❌ Lỗi khi thêm câu hỏi vào quiz: ' + (error?.message || 'Lỗi không xác định'));
+    }
+  }
+
 
 
   removeAttachmentFromLesson(lessonId: string, attachmentId: string) {
@@ -1958,6 +2412,90 @@ export class SectionEditorComponent implements OnDestroy {
     
     // For now, show an alert with placeholder info
     alert(`Xem bài nộp cho bài tập: ${lesson.title}\n\nTính năng này sẽ được phát triển trong phase tiếp theo.`);
+  }
+
+  // Load course questions for quiz creation
+  async loadQuestionsByCourse(courseId: string): Promise<void> {
+    try {
+      this.isLoadingCourseQuestions.set(true);
+      this.courseQuestionsError.set('');
+      
+      console.log('🔍 Loading questions for course:', courseId);
+      
+      const response = await firstValueFrom(
+        this.questionApi.getQuestionsByCourse(courseId, 'ACTIVE')
+      );
+      
+      console.log('📦 API Response:', response);
+      console.log('📦 Response type:', typeof response);
+      console.log('📦 Response.data:', response.data);
+      
+      // Backend trả về {data: Question[], pagination: null, message: null}
+      if (response && response.data) {
+        this.courseQuestions.set(response.data);
+        console.log('✅ Loaded', response.data.length, 'questions for course');
+      } else {
+        console.log('❌ No data in response:', response);
+        this.courseQuestionsError.set('Không có dữ liệu câu hỏi');
+      }
+    } catch (error: any) {
+      console.error('❌ Error loading course questions:', error);
+      this.courseQuestionsError.set(
+        error?.error?.message || error?.message || 'Có lỗi xảy ra khi tải câu hỏi'
+      );
+    } finally {
+      this.isLoadingCourseQuestions.set(false);
+    }
+  }
+
+  // Add question to quiz (single question)
+  async addQuestionToQuiz(questionId: string, quizId: string): Promise<void> {
+    try {
+      console.log('🔍 Adding question', questionId, 'to quiz', quizId);
+      
+      // Get current quiz to know existing questions
+      const currentQuiz = await firstValueFrom(
+        this.quizApi.getQuizByLessonId(quizId)
+      );
+      
+      const existingQuestionIds = currentQuiz.questionIds ?
+        currentQuiz.questionIds.split(',').filter((id: string) => id.trim()) : [];
+      
+      // Check if question already exists
+      if (existingQuestionIds.includes(questionId)) {
+        alert('Câu hỏi này đã được thêm vào quiz rồi!');
+        return;
+      }
+      
+      // Add new question ID
+      const updatedQuestionIds = [...existingQuestionIds, questionId];
+      
+      // Update quiz questions
+      await firstValueFrom(
+        this.quizApi.updateQuizQuestions(quizId, {
+          questionIds: updatedQuestionIds
+        })
+      );
+      
+      // If question was in selected set, remove it
+      this.selectedQuestionIds.update(selected => {
+        const newSelected = new Set(selected);
+        newSelected.delete(questionId);
+        return newSelected;
+      });
+      
+      // Refresh quiz questions display
+      await this.loadQuizQuestions(quizId);
+      
+      // Show success message
+      const questionCount = updatedQuestionIds.length;
+      alert(`✅ Đã thêm câu hỏi vào quiz thành công!\n\nQuiz hiện có ${questionCount} câu hỏi.`);
+      
+      console.log('✅ Successfully added question to quiz. Total questions:', questionCount);
+    } catch (error: any) {
+      console.error('❌ Error adding question to quiz:', error);
+      alert('❌ Lỗi khi thêm câu hỏi vào quiz: ' + (error?.message || 'Lỗi không xác định'));
+    }
   }
 
   toggleAssignmentStatus(lesson: any): void {

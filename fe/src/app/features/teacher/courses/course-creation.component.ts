@@ -12,28 +12,28 @@ import { CreateCourseRequest, CourseSummary } from '../../../api/types/course.ty
   template: `
     <div class="max-w-6xl mx-auto p-6 space-y-6">
       <h1 class="text-2xl font-bold text-gray-900 mb-6">Tạo khóa học mới</h1>
-      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="bg-white rounded-lg shadow p-6 space-y-4">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="bg-white shadow p-6 space-y-4">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Mã khóa học</label>
-          <input formControlName="code" type="text" class="w-full border rounded px-3 py-2" placeholder="VD: ME101" />
+          <input formControlName="code" type="text" class="w-full border px-3 py-2" placeholder="VD: ME101" />
           <div class="text-sm text-red-600 mt-1" *ngIf="form.controls.code.invalid && form.controls.code.touched">
             Mã khóa học bắt buộc, tối đa 64 ký tự
           </div>
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Tên khóa học</label>
-          <input formControlName="title" type="text" class="w-full border rounded px-3 py-2" placeholder="Tên khóa học" />
+          <input formControlName="title" type="text" class="w-full border px-3 py-2" placeholder="Tên khóa học" />
           <div class="text-sm text-red-600 mt-1" *ngIf="form.controls.title.invalid && form.controls.title.touched">
             Tên khóa học bắt buộc, tối đa 255 ký tự
           </div>
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Mô tả</label>
-          <textarea formControlName="description" rows="4" class="w-full border rounded px-3 py-2" placeholder="Mô tả ngắn gọn..."></textarea>
+          <textarea formControlName="description" rows="4" class="w-full border px-3 py-2" placeholder="Mô tả ngắn gọn..."></textarea>
         </div>
 
         <div class="flex items-center gap-3">
-          <button type="submit" [disabled]="form.invalid || isSubmitting()" class="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50">
+          <button type="submit" [disabled]="form.invalid || isSubmitting()" class="px-4 py-2 bg-blue-600 text-white disabled:opacity-50">
             {{ isSubmitting() ? 'Đang tạo...' : 'Tạo khóa học' }}
           </button>
           <span class="text-green-700" *ngIf="successMsg()">{{ successMsg() }}</span>
@@ -42,12 +42,12 @@ import { CreateCourseRequest, CourseSummary } from '../../../api/types/course.ty
       </form>
 
       <!-- LMS-style: Existing courses to use as template -->
-      <div class="bg-white rounded-lg shadow">
+      <div class="bg-white shadow">
         <div class="p-4 flex flex-wrap items-center justify-between gap-3">
           <h2 class="text-xl font-semibold text-gray-900">Khóa học của tôi</h2>
           <div class="flex items-center gap-2">
-            <input class="border rounded px-3 py-2 w-64" placeholder="Tìm theo mã hoặc tên" [(ngModel)]="keyword" />
-            <button class="px-4 py-2 border rounded" (click)="applyFilters()">Lọc</button>
+            <input class="border px-3 py-2 w-64" placeholder="Tìm theo mã hoặc tên" [(ngModel)]="keyword" />
+            <button class="px-4 py-2 border" (click)="applyFilters()">Lọc</button>
           </div>
         </div>
         <div class="overflow-x-auto">
@@ -64,7 +64,7 @@ import { CreateCourseRequest, CourseSummary } from '../../../api/types/course.ty
                 <td class="px-6 py-5 whitespace-nowrap font-mono text-base md:text-lg text-gray-900">{{ c.code }}</td>
                 <td class="px-6 py-5 whitespace-nowrap text-base md:text-lg text-gray-900">{{ c.title }}</td>
                 <td class="px-6 py-5 whitespace-nowrap text-right">
-                  <button class="px-3 py-1 border rounded text-sm disabled:opacity-50" [disabled]="prefillingId() === c.id" (click)="prefillFrom(c.id)">
+                  <button class="px-3 py-1 border text-sm disabled:opacity-50" [disabled]="prefillingId() === c.id" (click)="prefillFrom(c.id)">
                     {{ prefillingId() === c.id ? 'Đang nạp...' : 'Dùng làm mẫu' }}
                   </button>
                 </td>
@@ -80,7 +80,7 @@ import { CreateCourseRequest, CourseSummary } from '../../../api/types/course.ty
         <div class="p-4 flex flex-wrap items-center justify-between gap-3 border-t">
           <div class="flex items-center gap-2">
             <span class="text-sm text-gray-600">Hiển thị</span>
-            <select class="border rounded px-2 py-1" [ngModel]="pageSize()" (ngModelChange)="onPageSizeChange($event)">
+            <select class="border px-2 py-1" [ngModel]="pageSize()" (ngModelChange)="onPageSizeChange($event)">
               <option [ngValue]="5">5</option>
               <option [ngValue]="10">10</option>
               <option [ngValue]="20">20</option>
@@ -88,9 +88,9 @@ import { CreateCourseRequest, CourseSummary } from '../../../api/types/course.ty
             <span class="text-sm text-gray-600">mỗi trang</span>
           </div>
           <div class="flex items-center gap-2">
-            <button class="px-3 py-1 border rounded disabled:opacity-50" [disabled]="pageIndex() <= 1" (click)="prevPage()">Trước</button>
+            <button class="px-3 py-1 border disabled:opacity-50" [disabled]="pageIndex() <= 1" (click)="prevPage()">Trước</button>
             <span class="text-sm text-gray-700">Trang {{ pageIndex() }} / {{ totalPages() }}</span>
-            <button class="px-3 py-1 border rounded disabled:opacity-50" [disabled]="pageIndex() >= totalPages()" (click)="nextPage()">Sau</button>
+            <button class="px-3 py-1 border disabled:opacity-50" [disabled]="pageIndex() >= totalPages()" (click)="nextPage()">Sau</button>
           </div>
           <div class="text-sm text-gray-600">Tổng: {{ total() }}</div>
         </div>
