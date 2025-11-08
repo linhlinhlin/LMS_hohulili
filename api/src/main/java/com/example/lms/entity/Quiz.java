@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.time.Instant;
 import java.util.List;
@@ -15,6 +17,7 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Quiz {
 
     @Id
@@ -23,6 +26,7 @@ public class Quiz {
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "lesson_id", nullable = false)
+    @JsonIgnore
     private Lesson lesson;
 
     @Column(name = "time_limit_minutes")
@@ -74,7 +78,14 @@ public class Quiz {
 
     @OneToMany(mappedBy = "quiz", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
+    @JsonIgnore
     private List<QuizAttempt> attempts = new java.util.ArrayList<>();
+
+    @OneToMany(mappedBy = "quiz", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("displayOrder ASC")
+    @Builder.Default
+    @JsonIgnore
+    private List<QuizQuestion> quizQuestions = new java.util.ArrayList<>();
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

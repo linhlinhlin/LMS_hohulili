@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { teacherGuard } from '../../core/guards/role.guard';
+import { quizRoutes } from './quiz/quiz.routes';
 
 /**
  * Teacher Routes Configuration
@@ -96,12 +97,8 @@ export const teacherRoutes: Routes = [
         title: 'Chi tiết học viên'
       },
 
-      // Quiz Bank Route
-      {
-        path: 'quiz-bank',
-        loadComponent: () => import('../thamkhao/quiz/quiz-bank.component').then(m => m.QuizBankComponent),
-        title: 'Ngân hàng câu hỏi trắc nghiệm'
-      },
+      // Quiz Management Routes
+      ...quizRoutes,
       
       // Analytics Routes
       {

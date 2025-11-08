@@ -21,7 +21,7 @@ export const UserRole = {
   STUDENT: 'student'
 } as const;
 
-// Type alias for role values (used in type positions)
+// TypeScript type for roles (used in type positions)
 export type UserRole = typeof UserRole[keyof typeof UserRole];
 
 export interface LoginRequest {

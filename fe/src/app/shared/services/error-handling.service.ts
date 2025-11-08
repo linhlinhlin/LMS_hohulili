@@ -89,11 +89,33 @@ export class ErrorHandlingService {
    */
   handleApiError(error: any, context: string): void {
     let message = 'Đã xảy ra lỗi khi tải dữ liệu. Vui lòng thử lại.';
+    let action = {
+      label: 'Tải lại',
+      handler: () => window.location.reload()
+    };
     
     if (error.status === 404) {
       message = 'Không tìm thấy dữ liệu yêu cầu.';
     } else if (error.status === 403) {
-      message = 'Bạn không có quyền truy cập vào tài nguyên này.';
+      // Extract the Vietnamese error message from the backend
+      const backendMessage = error?.error?.message || error?.original?.error?.message || '';
+      if (backendMessage.includes('Bạn không có quyền truy cập tính năng này')) {
+        message = 'Bạn không có quyền truy cập tính năng này. Vui lòng đăng ký khóa học để xem nội dung.';
+        action = {
+          label: 'Xem khóa học',
+          handler: () => window.location.href = '/courses'
+        };
+      } else if (backendMessage.includes('403')) {
+        message = 'Bạn không có quyền truy cập vào tính năng này. Vui lòng liên hệ quản trị viên để được cấp quyền.';
+      } else {
+        message = 'Bạn không có quyền truy cập vào tài nguyên này. Vui lòng kiểm tra quyền của bạn.';
+      }
+    } else if (error.status === 401) {
+      message = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+      action = {
+        label: 'Đăng nhập lại',
+        handler: () => window.location.href = '/auth/login'
+      };
     } else if (error.status === 500) {
       message = 'Lỗi máy chủ. Vui lòng thử lại sau.';
     } else if (error.status === 0) {
@@ -104,10 +126,7 @@ export class ErrorHandlingService {
       message,
       type: 'error',
       context,
-      action: {
-        label: 'Tải lại',
-        handler: () => window.location.reload()
-      }
+      action
     });
   }
 

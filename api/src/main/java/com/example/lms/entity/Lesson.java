@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.time.Instant;
 import java.util.List;
@@ -15,6 +17,7 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Lesson {
 
     @Id
@@ -51,11 +54,13 @@ public class Lesson {
     private LessonType lessonType = LessonType.LECTURE;
 
     @OneToOne(mappedBy = "lesson", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     private LessonAssignment lessonAssignment;
 
     @OneToMany(mappedBy = "lesson", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("displayOrder ASC")
     @Builder.Default
+    @JsonIgnore
     private List<LessonAttachment> attachments = new java.util.ArrayList<>();
 
     @CreationTimestamp

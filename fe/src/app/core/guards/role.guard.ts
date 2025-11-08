@@ -1,7 +1,8 @@
 import { inject } from '@angular/core';
 import { Router, CanActivateFn } from '@angular/router';
 import { AuthService } from '../services/auth.service';
-import { UserRole, UserRole as UserRoleType } from '../../shared/types/user.types';
+import { ErrorHandlingService } from '../../shared/services/error-handling.service';
+import { UserRole } from '../../shared/types/user.types';
 
 /**
  * General Auth Guard - Ensures user is authenticated
@@ -27,12 +28,19 @@ export const authGuard: CanActivateFn = (route, state) => {
  * @param allowedRoles Array of roles that can access the route
  * @returns CanActivateFn guard function
  */
-export const roleGuard = (allowedRoles: UserRoleType[]): CanActivateFn => {
+export const roleGuard = (allowedRoles: UserRole[]): CanActivateFn => {
   return (route, state) => {
     const authService = inject(AuthService);
     const router = inject(Router);
+    const errorService = inject(ErrorHandlingService);
 
     const userRole = authService.userRole();
+
+    console.log('🛡️ ROLE GUARD CHECK');
+    console.log('   - Current user role:', userRole);
+    console.log('   - Required roles:', allowedRoles);
+    console.log('   - Role check passed:', userRole && allowedRoles.includes(userRole));
+    console.log('   - Is authenticated:', authService.isAuthenticated());
 
     if (userRole && allowedRoles.includes(userRole)) {
       return true;
@@ -40,10 +48,27 @@ export const roleGuard = (allowedRoles: UserRoleType[]): CanActivateFn => {
 
     // If user is authenticated but doesn't have the right role
     if (authService.isAuthenticated()) {
-      // Redirect to their appropriate area root, each module defaults to its own dashboard
+      // Show error message based on required roles
+      let errorMessage = 'Bạn không có quyền truy cập tính năng này.';
+      
+      if (allowedRoles.includes(UserRole.TEACHER)) {
+        errorMessage = 'Tính năng này chỉ dành cho giảng viên. Vui lòng đăng ký khóa học để xem nội dung.';
+      } else if (allowedRoles.includes(UserRole.ADMIN)) {
+        errorMessage = 'Tính năng này chỉ dành cho quản trị viên.';
+      } else if (allowedRoles.includes(UserRole.STUDENT)) {
+        errorMessage = 'Tính năng này chỉ dành cho học viên.';
+      }
+      
+      errorService.addError({
+        message: errorMessage,
+        type: 'error',
+        context: 'authorization'
+      });
+
+      // Redirect to their appropriate area root
       const role = authService.userRole();
       if (role) {
-        const target = role === 'teacher' ? '/teacher' : role === 'admin' ? '/admin' : '/student';
+        const target = role === UserRole.TEACHER ? '/teacher' : role === UserRole.ADMIN ? '/admin' : '/courses';
         return router.createUrlTree([target]);
       }
     }

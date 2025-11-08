@@ -25,7 +25,12 @@ export class AuthService {
   readonly isLoading = computed(() => this._isLoading());
   readonly error = computed(() => this._error());
   readonly isAuthenticated = computed(() => !!this._user());
-  readonly userRole = computed(() => this._user()?.role || null);
+  readonly userRole = computed(() => {
+    const user = this._user();
+    const role = user?.role || null;
+    console.log('👤 AuthService.userRole computed - User:', user, 'Role:', role);
+    return role;
+  });
   readonly userName = computed(() => this._user()?.name || this._user()?.fullName || '');
   readonly userEmail = computed(() => this._user()?.email || '');
 
@@ -303,7 +308,7 @@ export class AuthService {
     return this._user();
   }
 
-  private getRoleFromEmail(email: string): UserRole {
+  private guessRoleFromEmail(email: string): UserRole {
     if (email.includes('admin')) return 'admin';
     if (email.includes('teacher')) return 'teacher';
     if (email.includes('student')) return 'student';

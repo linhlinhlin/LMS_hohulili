@@ -17,12 +17,21 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   // Attach token if available, regardless of whether currentUser state is hydrated yet.
   if (!isAuthEndpoint) {
     const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    console.log('🔍 Auth Interceptor Debug:', {
+      url: req.url,
+      isAuthEndpoint,
+      tokenExists: !!token,
+      tokenPreview: token ? token.substring(0, 20) + '...' : 'NO_TOKEN'
+    });
     if (token) {
       authReq = req.clone({
         setHeaders: {
           Authorization: `Bearer ${token}`
         }
       });
+      console.log('✅ Authorization header added to request');
+    } else {
+      console.log('❌ No token found - request will be sent without Authorization header');
     }
   }
 
@@ -32,6 +41,19 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         // Token expired or invalid
         authService.logout();
         router.navigate(['/auth/login']);
+      } else if (error.status === 403 && !isAuthEndpoint) {
+        // Permission denied - redirect based on user role
+        const userRole = authService.userRole();
+        if (userRole === 'student') {
+          // Students should be redirected to courses to enroll
+          router.navigate(['/courses']);
+        } else if (userRole === 'teacher') {
+          // Teachers should go to teacher dashboard
+          router.navigate(['/teacher']);
+        } else {
+          // Unknown role, go to home
+          router.navigate(['/']);
+        }
       }
       return throwError(() => error);
     })

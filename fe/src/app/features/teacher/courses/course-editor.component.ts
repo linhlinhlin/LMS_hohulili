@@ -15,26 +15,26 @@ import { SectionApi } from '../../../api/client/section.api';
   <div class="max-w-5xl mx-auto p-6">
       <h1 class="text-2xl font-bold text-gray-900 mb-6">Chỉnh sửa khóa học</h1>
 
-      <div class="bg-white rounded-lg shadow p-6" *ngIf="course() as c; else loadingTpl">
+      <div class="bg-white shadow p-6" *ngIf="course() as c; else loadingTpl">
         <form [formGroup]="form" (ngSubmit)="onSave()" class="space-y-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Mã khóa học</label>
-            <input formControlName="code" type="text" class="w-full border rounded px-3 py-2" />
+            <input formControlName="code" type="text" class="w-full border px-3 py-2" />
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Tên khóa học</label>
-            <input formControlName="title" type="text" class="w-full border rounded px-3 py-2" />
+            <input formControlName="title" type="text" class="w-full border px-3 py-2" />
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Mô tả</label>
-            <textarea formControlName="description" rows="8" class="w-full border rounded px-3 py-2 min-h-[180px]"></textarea>
+            <textarea formControlName="description" rows="8" class="w-full border px-3 py-2 min-h-[180px]"></textarea>
           </div>
 
           <div class="flex items-center gap-3">
-            <button type="submit" [disabled]="form.invalid || saving()" class="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50">
+            <button type="submit" [disabled]="form.invalid || saving()" class="px-4 py-2 bg-blue-600 text-white disabled:opacity-50">
               {{ saving() ? 'Đang lưu...' : 'Lưu thay đổi' }}
             </button>
-            <button type="button" (click)="onPublish()" [disabled]="publishing()" class="px-4 py-2 bg-green-600 text-white rounded disabled:opacity-50">
+            <button type="button" (click)="onPublish()" [disabled]="publishing()" class="px-4 py-2 bg-green-600 text-white disabled:opacity-50">
               {{ publishing() ? 'Đang xuất bản...' : 'Xuất bản' }}
             </button>
             <span class="text-green-700">{{ success() }}</span>
@@ -44,48 +44,87 @@ import { SectionApi } from '../../../api/client/section.api';
       </div>
 
       <!-- Course Content Management -->
-      <div class="bg-white rounded-lg shadow p-6 mt-6" *ngIf="course() as c">
-        <h2 class="text-xl font-semibold text-gray-900 mb-4">Nội dung khóa học</h2>
+      <h2 class="text-xl font-semibold text-gray-900 mb-6 mt-8" *ngIf="course() as c">Nội dung khóa học</h2>
 
-        <!-- Empty state: no sections yet -->
-        <div *ngIf="sections().length === 0" class="p-4 border rounded-lg bg-gray-50 text-gray-700 mb-4">
-          Chưa có chương nào. Tạo chương đầu tiên để thêm bài học.
-        </div>
-
-        <!-- Create section -->
-        <div class="flex flex-wrap items-center gap-3 mb-6">
-          <input class="border rounded px-3 py-2 w-64" placeholder="Tiêu đề chương (VD: Chương 1)" [(ngModel)]="newSectionTitle" name="newSectionTitle" />
-          <button type="button" class="px-4 py-2 bg-indigo-600 text-white rounded" (click)="createSection()">+ Tạo chương</button>
-          <span class="text-red-600" *ngIf="sectionError">{{ sectionError }}</span>
-        </div>
-
-        <!-- Sections list -->
-        <div class="space-y-6">
-          <div *ngFor="let sec of sections()" class="border rounded-lg p-4">
-            <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
-              <div class="flex items-center gap-2">
-                <input class="border rounded px-3 py-2 w-72" [ngModel]="sectionTitles[sec.id]" (ngModelChange)="sectionTitles[sec.id] = $event"/>
-                <button class="px-3 py-2 border rounded" (click)="renameSection(sec.id)">Lưu tên</button>
-              </div>
-              <div class="inline-flex items-center gap-2">
-                <a class="px-3 py-2 border rounded" [routerLink]="['/teacher/courses', course()!.id, 'sections', sec.id]">Quản lý bài học</a>
-                <button class="px-3 py-2 border rounded text-red-600" (click)="deleteSection(sec.id)">Xóa chương</button>
-              </div>
-            </div>
-            <!-- Lessons managed on a dedicated page (link above) -->
-          </div>
-        </div>
+      <!-- Empty state: no sections yet -->
+      <div *ngIf="sections().length === 0" class="p-6 text-gray-500 text-center bg-gray-50 mb-6">
+        <svg class="w-12 h-12 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+        </svg>
+        Chưa có chương nào. Tạo chương đầu tiên để thêm bài học.
       </div>
 
+      <!-- Action Bar -->
+      <div class="flex items-center justify-between mb-4" *ngIf="course() as c">
+        <div class="flex items-center gap-3">
+          <input class="shadow-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Tiêu đề chương (VD: Chương 1)" [(ngModel)]="newSectionTitle" name="newSectionTitle" />
+          <button type="button" class="px-4 py-2 bg-indigo-600 text-white hover:bg-indigo-700 transition-colors flex items-center gap-2" (click)="createSection()">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            Tạo chương
+          </button>
+        </div>
+      </div>
+      
+      <div *ngIf="sectionError" class="mb-4 p-3 bg-red-50 text-red-600 text-sm">
+        {{ sectionError }}
+      </div>
+
+      <!-- Sections Table -->
+      <div class="shadow-sm" *ngIf="sections().length > 0">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-4 text-left text-sm md:text-base font-medium text-gray-600 uppercase tracking-wider">STT</th>
+                <th class="px-6 py-4 text-left text-sm md:text-base font-medium text-gray-600 uppercase tracking-wider">Tên chương</th>
+                <th class="px-6 py-4 text-left text-sm md:text-base font-medium text-gray-600 uppercase tracking-wider">Mô tả</th>
+                <th class="px-6 py-4 text-left text-sm md:text-base font-medium text-gray-600 uppercase tracking-wider">Bài học</th>
+                <th class="px-6 py-4 text-right text-sm md:text-base font-medium text-gray-600 uppercase tracking-wider">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <tr *ngFor="let sec of sections(); let i = index" class="hover:bg-gray-50 transition-colors">
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  {{ i + 1 }}
+                </td>
+                <td class="px-6 py-4">
+                  <input class="w-full border-0 bg-transparent focus:outline-none text-gray-900" 
+                         [ngModel]="sectionTitles[sec.id]" 
+                         (ngModelChange)="sectionTitles[sec.id] = $event"
+                         (blur)="renameSection(sec.id)"
+                         placeholder="Nhập tên chương"/>
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-500">
+                  {{ sec.description || 'Chưa có mô tả' }}
+                </td>
+                <td class="px-6 py-4 text-sm text-blue-600">
+                  {{ sec.lessonCount || 0 }} bài học
+                </td>
+                <td class="px-6 py-4 text-right text-sm">
+                  <a class="text-green-600 hover:text-green-700 mr-4" 
+                     [routerLink]="['/teacher/courses', course()!.id, 'sections', sec.id]">
+                    Quản lý bài học
+                  </a>
+                  <button class="text-red-600 hover:text-red-700" 
+                          (click)="deleteSection(sec.id)">
+                    Xóa chương
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
       <!-- Assign student to this course (teacher/admin) -->
-      <div class="bg-white rounded-lg shadow p-6 mt-6" *ngIf="course() as c">
+      <div class="bg-white shadow p-6 mt-6" *ngIf="course() as c">
         <h2 class="text-xl font-semibold text-gray-900 mb-4">Gán học viên vào khóa học</h2>
         <div class="flex gap-3 items-end">
           <div class="flex-1">
             <label class="block text-sm font-medium text-gray-700 mb-1">Email học viên</label>
-            <input [(ngModel)]="assign.email" name="assignEmail" type="email" class="w-full border rounded px-3 py-2" placeholder="hocvien@example.com" required />
+            <input [(ngModel)]="assign.email" name="assignEmail" type="email" class="w-full border px-3 py-2" placeholder="hocvien@example.com" required />
           </div>
-          <button type="button" class="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:opacity-50" (click)="assignStudent()" [disabled]="assigning() || !assign.email?.trim()">
+          <button type="button" class="px-4 py-2 bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50" (click)="assignStudent()" [disabled]="assigning() || !assign.email?.trim()">
             {{ assigning() ? 'Đang gán...' : 'Gán học viên' }}
           </button>
         </div>
@@ -97,42 +136,42 @@ import { SectionApi } from '../../../api/client/section.api';
       </div>
 
       <!-- Bulk enrollment via Excel -->
-      <div class="bg-white rounded-lg shadow p-6 mt-6" *ngIf="course() as c">
+      <div class="bg-white shadow p-6 mt-6" *ngIf="course() as c">
         <h2 class="text-xl font-semibold text-gray-900 mb-4">Gán nhiều học viên bằng file Excel</h2>
         <div class="space-y-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Chọn file Excel (.xlsx hoặc .xls)</label>
-            <input type="file" #fileInput (change)="onExcelFileSelected($event)" accept=".xlsx,.xls" class="w-full border rounded px-3 py-2 file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+            <input type="file" #fileInput (change)="onExcelFileSelected($event)" accept=".xlsx,.xls" class="w-full border px-3 py-2 file:mr-3 file:py-1 file:px-3 file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
           </div>
           <div class="flex gap-3">
-            <button type="button" (click)="bulkEnrollStudents()" [disabled]="bulkEnrolling() || !selectedFile()" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50">
+            <button type="button" (click)="bulkEnrollStudents()" [disabled]="bulkEnrolling() || !selectedFile()" class="px-4 py-2 bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50">
               {{ bulkEnrolling() ? 'Đang xử lý...' : 'Gán học viên từ Excel' }}
             </button>
-            <button type="button" (click)="clearExcelFile()" [disabled]="!selectedFile()" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 disabled:opacity-50">
+            <button type="button" (click)="clearExcelFile()" [disabled]="!selectedFile()" class="px-4 py-2 bg-gray-500 text-white hover:bg-gray-600 disabled:opacity-50">
               Xóa file
             </button>
           </div>
           
           <!-- File info -->
-          <div *ngIf="selectedFile()" class="p-3 bg-blue-50 rounded border">
+          <div *ngIf="selectedFile()" class="p-3 bg-blue-50 border">
             <p class="text-sm text-blue-800">
               <strong>File đã chọn:</strong> {{ selectedFile()?.name }} ({{ (selectedFile()!.size / 1024).toFixed(1) }} KB)
             </p>
           </div>
           
           <!-- Bulk enrollment results -->
-          <div *ngIf="bulkResult()" class="p-4 border rounded">
+          <div *ngIf="bulkResult()" class="p-4 border">
             <h3 class="font-semibold text-gray-900 mb-2">Kết quả gán học viên:</h3>
             <div class="grid grid-cols-3 gap-4 mb-3">
-              <div class="text-center p-2 bg-blue-50 rounded">
+              <div class="text-center p-2 bg-blue-50 border">
                 <div class="text-2xl font-bold text-blue-600">{{ bulkResult()?.totalProcessed || 0 }}</div>
                 <div class="text-xs text-blue-800">Tổng xử lý</div>
               </div>
-              <div class="text-center p-2 bg-green-50 rounded">
+              <div class="text-center p-2 bg-green-50 border">
                 <div class="text-2xl font-bold text-green-600">{{ bulkResult()?.successCount || 0 }}</div>
                 <div class="text-xs text-green-800">Thành công</div>
               </div>
-              <div class="text-center p-2 bg-red-50 rounded">
+              <div class="text-center p-2 bg-red-50 border">
                 <div class="text-2xl font-bold text-red-600">{{ bulkResult()?.errorCount || 0 }}</div>
                 <div class="text-xs text-red-800">Lỗi</div>
               </div>
@@ -141,7 +180,7 @@ import { SectionApi } from '../../../api/client/section.api';
             <!-- Success list -->
             <div *ngIf="bulkResult()?.successfulEnrollments?.length" class="mb-3">
               <h4 class="text-sm font-medium text-green-800 mb-1">Emails đã gán thành công:</h4>
-              <div class="max-h-32 overflow-y-auto bg-green-50 p-2 rounded text-xs">
+              <div class="max-h-32 overflow-y-auto bg-green-50 p-2 border text-xs">
                 <div *ngFor="let email of bulkResult()?.successfulEnrollments" class="text-green-700">✓ {{ email }}</div>
               </div>
             </div>
@@ -149,7 +188,7 @@ import { SectionApi } from '../../../api/client/section.api';
             <!-- Error list -->
             <div *ngIf="bulkResult()?.errors?.length" class="mb-3">
               <h4 class="text-sm font-medium text-red-800 mb-1">Emails lỗi:</h4>
-              <div class="max-h-32 overflow-y-auto bg-red-50 p-2 rounded text-xs">
+              <div class="max-h-32 overflow-y-auto bg-red-50 p-2 border text-xs">
                 <div *ngFor="let error of bulkResult()?.errors" class="text-red-700 mb-1">
                   ✗ {{ error.email }}: {{ error.errorMessage }}
                 </div>
@@ -171,13 +210,13 @@ import { SectionApi } from '../../../api/client/section.api';
       </div>
 
       <ng-template #loadingTpl>
-        <div class="bg-white rounded-lg shadow p-6">
+        <div class="bg-white border shadow p-6">
           <ng-container *ngIf="!error(); else errorTpl">
             <div class="text-gray-600">Đang tải khóa học...</div>
           </ng-container>
           <ng-template #errorTpl>
             <div class="text-red-600 mb-3">{{ error() }}</div>
-            <a class="inline-flex items-center gap-2 px-4 py-2 border rounded hover:bg-gray-50 transition-colors" routerLink="/teacher/courses">
+            <a class="inline-flex items-center gap-2 px-4 py-2 border hover:bg-gray-50 transition-colors" routerLink="/teacher/courses">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
               </svg>
