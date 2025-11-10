@@ -1,5 +1,6 @@
 # Giai đoạn 1: Build ứng dụng (dùng Maven)
-FROM maven:3.8.5-openjdk-21 AS build
+# SỬA: Dùng image Temurin (một bản build OpenJDK) chính thức cho Java 21
+FROM maven:3.9.7-eclipse-temurin-21 AS build
 
 # Đặt thư mục làm việc
 WORKDIR /app
@@ -13,7 +14,8 @@ COPY src ./src
 RUN mvn clean package -DskipTests
 
 # Giai đoạn 2: Chạy ứng dụng (dùng Java runtime)
-FROM openjdk:21-jre-slim
+# SỬA: Dùng image JRE (runtime) của Temurin 21
+FROM eclipse-temurin:21-jre
 
 WORKDIR /app
 
