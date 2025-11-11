@@ -9,14 +9,14 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
   imports: [CommonModule, FormsModule, LoadingComponent],
   encapsulation: ViewEncapsulation.None,
   template: `
-    <!-- Loading State -->
-    <app-loading 
+    <!-- Loading State - Temporarily disabled -->
+    <!-- <app-loading 
       [show]="adminService.isLoading()" 
       text="Đang tải cài đặt hệ thống..."
       subtext="Vui lòng chờ trong giây lát"
       variant="overlay"
       color="red">
-    </app-loading>
+    </app-loading> -->
 
     <div class="bg-gradient-to-br from-slate-50 via-red-50 to-pink-100 min-h-screen">
       <div class="max-w-4xl mx-auto px-6 py-8">
@@ -373,29 +373,43 @@ export class SystemSettingsComponent implements OnInit {
   // State
   activeTab = signal<'general' | 'email' | 'payment' | 'security'>('general');
   isSaving = signal(false);
+  settings = signal<SystemSettings | null>(null);
 
   // Computed properties
-  settings = computed(() => this.adminService.settings());
+  // settings = computed(() => this.adminService.settings()); // Removed, using signal instead
 
   ngOnInit(): void {
     this.loadSettings();
   }
 
-  async loadSettings(): Promise<void> {
-    await this.adminService.getSettings();
+  private loadSettings(): void {
+    this.adminService.getSettings().subscribe({
+      next: (settings) => {
+        this.settings.set(settings);
+      },
+      error: (error) => {
+        console.error('Error loading settings:', error);
+      }
+    });
   }
 
   setActiveTab(tab: 'general' | 'email' | 'payment' | 'security'): void {
     this.activeTab.set(tab);
   }
 
-  async saveSettings(): Promise<void> {
+  saveSettings(): void {
     this.isSaving.set(true);
-    try {
-      if (this.settings()) {
-        await this.adminService.updateSettings(this.settings()!);
-      }
-    } finally {
+    if (this.settings()) {
+      this.adminService.updateSettings(this.settings()!).subscribe({
+        next: () => {
+          this.isSaving.set(false);
+        },
+        error: (error) => {
+          console.error('Error saving settings:', error);
+          this.isSaving.set(false);
+        }
+      });
+    } else {
       this.isSaving.set(false);
     }
   }
@@ -411,7 +425,7 @@ export class SystemSettingsComponent implements OnInit {
           [key]: value
         }
       };
-      this.adminService.updateSettings(updatedSettings);
+      this.settings.set(updatedSettings);
     }
   }
 
@@ -425,7 +439,7 @@ export class SystemSettingsComponent implements OnInit {
           [key]: value
         }
       };
-      this.adminService.updateSettings(updatedSettings);
+      this.settings.set(updatedSettings);
     }
   }
 
@@ -439,7 +453,7 @@ export class SystemSettingsComponent implements OnInit {
           [key]: value
         }
       };
-      this.adminService.updateSettings(updatedSettings);
+      this.settings.set(updatedSettings);
     }
   }
 
@@ -453,7 +467,7 @@ export class SystemSettingsComponent implements OnInit {
           [key]: value
         }
       };
-      this.adminService.updateSettings(updatedSettings);
+      this.settings.set(updatedSettings);
     }
   }
 }

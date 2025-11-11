@@ -46,10 +46,12 @@ public class SecurityConfig {
                                 "/api/v1/auth/**", // Fixed: Add v1 auth endpoints
                                 "/api/v1/health/**",
                                 "/api/health/**",
-                "/api/v1/courses", // Public course list (approved courses only)
+                                "/api/v1/courses", // Public course list (approved courses only)
+                                "/api/v1/dev/**", // DEV endpoints (REMOVE IN PRODUCTION!)
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
-                                "/swagger-ui.html"
+                                "/swagger-ui.html",
+                                "/actuator/**"
                         ).permitAll()
             // Public read-only course endpoints (detail) - allow GET for course detail
             .requestMatchers(HttpMethod.GET, "/api/v1/courses/*").permitAll()

@@ -19,7 +19,7 @@ import { AuthService } from '../../../core/services/auth.service';
           </div>
           <div>
             <h2 class="text-lg font-semibold text-gray-900">Teacher Portal</h2>
-            <p class="text-sm text-gray-600">{{ authService.currentUser()?.name }}</p>
+            <p class="text-sm text-gray-600">{{ authService.currentUser()?.fullName || authService.currentUser()?.name }}</p>
           </div>
         </div>
       </div>

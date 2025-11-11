@@ -201,8 +201,15 @@ public class UserService implements UserDetailsService {
         userRepository.save(user);
     }
 
-    public void updatePassword(User user, String newPassword) {
-        user.setPassword(passwordEncoder.encode(newPassword));
-        userRepository.save(user);
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
+
+    public User toggleUserStatus(UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy user với ID: " + userId));
+        
+        user.setEnabled(!user.getEnabled());
+        return userRepository.save(user);
     }
 }

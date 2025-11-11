@@ -1,7 +1,7 @@
 import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
-import { AdminService, AdminAnalytics } from '../../infrastructure/services/admin.service';
+import { AdminService, SystemAnalytics } from '../../infrastructure/services/admin.service';
 import { LoadingComponent } from '../../../../shared/components/loading/loading.component';
 
 @Component({
@@ -309,12 +309,19 @@ export class AdminComponent implements OnInit {
   private router = inject(Router);
 
   isLoading = signal(true);
-  analytics = signal<AdminAnalytics>({
+  analytics = signal<SystemAnalytics>({
     totalUsers: 0,
     totalTeachers: 0,
     totalStudents: 0,
+    totalAdmins: 0,
     totalCourses: 0,
+    approvedCourses: 0,
     pendingCourses: 0,
+    rejectedCourses: 0,
+    draftCourses: 0,
+    totalAssignments: 0,
+    totalSubmissions: 0,
+    totalEnrollments: 0,
     totalRevenue: 0,
     monthlyRevenue: 0,
     activeUsers: 0,
@@ -340,6 +347,9 @@ export class AdminComponent implements OnInit {
       lastMonth: 0,
       growthRate: 0
     },
+    coursesByStatus: {},
+    usersByRole: {},
+    enrollmentsByMonth: {},
     studentGrowth: 0,
     courseGrowth: 0,
     revenue: 0,
@@ -363,12 +373,15 @@ export class AdminComponent implements OnInit {
   }
 
   private loadAnalytics(): void {
-    this.adminService.getAnalytics().then((data) => {
-      this.analytics.set(data);
-      this.isLoading.set(false);
-    }).catch((error) => {
-      console.error('Error loading analytics:', error);
-      this.isLoading.set(false);
+    this.adminService.getSystemAnalytics().subscribe({
+      next: (data) => {
+        this.analytics.set(data);
+        this.isLoading.set(false);
+      },
+      error: (error) => {
+        console.error('Error loading analytics:', error);
+        this.isLoading.set(false);
+      }
     });
   }
 

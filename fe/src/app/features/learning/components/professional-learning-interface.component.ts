@@ -4,7 +4,6 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { RealVideoPlayerComponent, VideoPlayerConfig } from '../../../shared/components/video-player/real-video-player.component';
 import { environment } from '../../../../environments/environment';
 import { CourseApi } from '../../../api/client/course.api';
 import { LessonApi } from '../../../api/client/lesson.api';
@@ -61,7 +60,7 @@ interface Course {
 
 @Component({
   selector: 'app-professional-learning-interface',
-  imports: [CommonModule, RouterModule, FormsModule, RealVideoPlayerComponent],
+  imports: [CommonModule, RouterModule, FormsModule],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="h-screen bg-gray-50 flex flex-col">
@@ -552,7 +551,7 @@ export class ProfessionalLearningInterfaceComponent implements OnInit {
     return this.course().lessons.findIndex(lesson => lesson.id === current.id);
   });
 
-  videoPlayerConfig = signal<VideoPlayerConfig>({
+  videoPlayerConfig = signal<any>({
     src: '',
     controls: true,
     autoplay: false,

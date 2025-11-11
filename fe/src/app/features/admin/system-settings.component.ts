@@ -1,22 +1,23 @@
 import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { AdminService, SystemSettings } from './services/admin.service';
+import { AdminService, SystemSettings } from './infrastructure/services/admin.service';
 import { LoadingComponent } from '../../shared/components/loading/loading.component';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Component({
   selector: 'app-system-settings',
   imports: [CommonModule, FormsModule, LoadingComponent],
   encapsulation: ViewEncapsulation.None,
   template: `
-    <!-- Loading State -->
-    <app-loading 
-      [show]="adminService.isLoading()" 
+    <!-- Loading State - Temporarily disabled -->
+    <!-- <app-loading 
+      [show]="adminService.isLoading" 
       text="Đang tải cài đặt hệ thống..."
       subtext="Vui lòng chờ trong giây lát"
       variant="overlay"
       color="red">
-    </app-loading>
+    </app-loading> -->
 
     <div class="bg-gradient-to-br from-slate-50 via-red-50 to-pink-100 min-h-screen">
       <div class="max-w-4xl mx-auto px-6 py-8">
@@ -373,30 +374,41 @@ export class SystemSettingsComponent implements OnInit {
   // State
   activeTab = signal<'general' | 'email' | 'payment' | 'security'>('general');
   isSaving = signal(false);
-
-  // Computed properties
-  settings = computed(() => this.adminService.settings());
+  settings = signal<SystemSettings | null>(null);
 
   ngOnInit(): void {
     this.loadSettings();
   }
 
-  async loadSettings(): Promise<void> {
-    await this.adminService.getSettings();
+  loadSettings(): void {
+    this.adminService.getSettings().subscribe({
+      next: (data: SystemSettings) => {
+        this.settings.set(data);
+      },
+      error: (error: HttpErrorResponse) => {
+        console.error('Error loading settings:', error);
+      }
+    });
   }
 
   setActiveTab(tab: 'general' | 'email' | 'payment' | 'security'): void {
     this.activeTab.set(tab);
   }
 
-  async saveSettings(): Promise<void> {
+  saveSettings(): void {
     this.isSaving.set(true);
-    try {
-      if (this.settings()) {
-        await this.adminService.updateSettings(this.settings()!);
-      }
-    } finally {
-      this.isSaving.set(false);
+    const currentSettings = this.settings();
+    if (currentSettings) {
+      this.adminService.updateSettings(currentSettings).subscribe({
+        next: (response: { message: string }) => {
+          console.log('Settings saved:', response.message);
+          this.isSaving.set(false);
+        },
+        error: (error: HttpErrorResponse) => {
+          console.error('Error saving settings:', error);
+          this.isSaving.set(false);
+        }
+      });
     }
   }
 
@@ -404,56 +416,52 @@ export class SystemSettingsComponent implements OnInit {
   updateGeneralSetting(key: string, value: any): void {
     const currentSettings = this.settings();
     if (currentSettings) {
-      const updatedSettings = {
+      this.settings.set({
         ...currentSettings,
         general: {
           ...currentSettings.general,
           [key]: value
         }
-      };
-      this.adminService.updateSettings(updatedSettings);
+      });
     }
   }
 
   updateEmailSetting(key: string, value: any): void {
     const currentSettings = this.settings();
     if (currentSettings) {
-      const updatedSettings = {
+      this.settings.set({
         ...currentSettings,
         email: {
           ...currentSettings.email,
           [key]: value
         }
-      };
-      this.adminService.updateSettings(updatedSettings);
+      });
     }
   }
 
   updatePaymentSetting(key: string, value: any): void {
     const currentSettings = this.settings();
     if (currentSettings) {
-      const updatedSettings = {
+      this.settings.set({
         ...currentSettings,
         payment: {
           ...currentSettings.payment,
           [key]: value
         }
-      };
-      this.adminService.updateSettings(updatedSettings);
+      });
     }
   }
 
   updateSecuritySetting(key: string, value: any): void {
     const currentSettings = this.settings();
     if (currentSettings) {
-      const updatedSettings = {
+      this.settings.set({
         ...currentSettings,
         security: {
           ...currentSettings.security,
           [key]: value
         }
-      };
-      this.adminService.updateSettings(updatedSettings);
+      });
     }
   }
 }

@@ -1,8 +1,9 @@
 import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
-import { AdminService, AdminAnalytics } from './services/admin.service';
+import { AdminService, SystemAnalytics } from './infrastructure/services/admin.service';
 import { LoadingComponent } from '../../shared/components/loading/loading.component';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Component({
   selector: 'app-admin',
@@ -40,12 +41,12 @@ import { LoadingComponent } from '../../shared/components/loading/loading.compon
               <div class="flex items-center justify-between">
                 <div>
                   <p class="text-sm font-medium text-gray-600 mb-1">Tổng học viên</p>
-                  <p class="text-3xl font-bold text-gray-900">{{ analytics().totalStudents | number }}</p>
+                  <p class="text-3xl font-bold text-gray-900">{{ analytics()?.totalStudents || 0 | number }}</p>
                   <p class="text-sm text-green-600 flex items-center mt-1">
                     <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
                     </svg>
-                    +{{ analytics().studentGrowth }}% so với tháng trước
+                    +{{ analytics()?.studentGrowth || 0 }}% so với tháng trước
                   </p>
                 </div>
                 <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
@@ -60,12 +61,12 @@ import { LoadingComponent } from '../../shared/components/loading/loading.compon
               <div class="flex items-center justify-between">
                 <div>
                   <p class="text-sm font-medium text-gray-600 mb-1">Khóa học</p>
-                  <p class="text-3xl font-bold text-gray-900">{{ analytics().totalCourses }}</p>
+                  <p class="text-3xl font-bold text-gray-900">{{ analytics()?.totalCourses || 0 }}</p>
                   <p class="text-sm text-green-600 flex items-center mt-1">
                     <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
                     </svg>
-                    +{{ analytics().courseGrowth }} mới
+                    +{{ analytics()?.courseGrowth || 0 }} mới
                   </p>
                 </div>
                 <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
@@ -81,12 +82,12 @@ import { LoadingComponent } from '../../shared/components/loading/loading.compon
               <div class="flex items-center justify-between">
                 <div>
                   <p class="text-sm font-medium text-gray-600 mb-1">Doanh thu</p>
-                  <p class="text-3xl font-bold text-gray-900">{{ analytics().revenue | currency:'VND':'symbol':'1.0-0' }}</p>
+                  <p class="text-3xl font-bold text-gray-900">{{ analytics()?.revenue || 0 | currency:'VND':'symbol':'1.0-0' }}</p>
                   <p class="text-sm text-green-600 flex items-center mt-1">
                     <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
                     </svg>
-                    +{{ analytics().revenueGrowth }}% tháng này
+                    +{{ analytics()?.revenueGrowth || 0 }}% tháng này
                   </p>
                 </div>
                 <div class="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
@@ -101,7 +102,7 @@ import { LoadingComponent } from '../../shared/components/loading/loading.compon
               <div class="flex items-center justify-between">
                 <div>
                   <p class="text-sm font-medium text-gray-600 mb-1">Hoạt động</p>
-                  <p class="text-3xl font-bold text-gray-900">{{ analytics().systemUptime }}%</p>
+                  <p class="text-3xl font-bold text-gray-900">{{ analytics()?.systemUptime || 0 }}%</p>
                   <p class="text-sm text-purple-600 flex items-center mt-1">
                     <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
@@ -280,19 +281,19 @@ import { LoadingComponent } from '../../shared/components/loading/loading.compon
                 <div class="space-y-4">
                   <div class="flex items-center justify-between">
                     <span class="text-sm text-gray-600">Học viên online</span>
-                    <span class="text-lg font-semibold text-gray-900">{{ analytics().onlineStudents }}</span>
+                    <span class="text-lg font-semibold text-gray-900">{{ analytics()?.onlineStudents || 0 }}</span>
                   </div>
                   <div class="flex items-center justify-between">
                     <span class="text-sm text-gray-600">Khóa học đang diễn ra</span>
-                    <span class="text-lg font-semibold text-gray-900">{{ analytics().activeCourses }}</span>
+                    <span class="text-lg font-semibold text-gray-900">{{ analytics()?.activeCourses || 0 }}</span>
                   </div>
                   <div class="flex items-center justify-between">
                     <span class="text-sm text-gray-600">Bài tập chưa chấm</span>
-                    <span class="text-lg font-semibold text-gray-900">{{ analytics().pendingAssignments }}</span>
+                    <span class="text-lg font-semibold text-gray-900">{{ analytics()?.pendingAssignments || 0 }}</span>
                   </div>
                   <div class="flex items-center justify-between">
                     <span class="text-sm text-gray-600">Tin nhắn chưa đọc</span>
-                    <span class="text-lg font-semibold text-gray-900">{{ analytics().unreadMessages }}</span>
+                    <span class="text-lg font-semibold text-gray-900">{{ analytics()?.unreadMessages || 0 }}</span>
                   </div>
                 </div>
               </div>
@@ -309,47 +310,7 @@ export class AdminComponent implements OnInit {
   private router = inject(Router);
 
   isLoading = signal(true);
-  analytics = signal<AdminAnalytics>({
-    totalUsers: 0,
-    totalTeachers: 0,
-    totalStudents: 0,
-    totalCourses: 0,
-    pendingCourses: 0,
-    totalRevenue: 0,
-    monthlyRevenue: 0,
-    activeUsers: 0,
-    systemHealth: {
-      database: 'healthy',
-      api: 'healthy',
-      storage: 'healthy',
-      email: 'healthy'
-    },
-    userGrowth: {
-      thisMonth: 0,
-      lastMonth: 0,
-      growthRate: 0
-    },
-    courseStats: {
-      pending: 0,
-      approved: 0,
-      rejected: 0,
-      active: 0
-    },
-    revenueStats: {
-      thisMonth: 0,
-      lastMonth: 0,
-      growthRate: 0
-    },
-    studentGrowth: 0,
-    courseGrowth: 0,
-    revenue: 0,
-    revenueGrowth: 0,
-    systemUptime: 0,
-    onlineStudents: 0,
-    activeCourses: 0,
-    pendingAssignments: 0,
-    unreadMessages: 0
-  });
+  analytics = signal<SystemAnalytics | null>(null);
 
   recentActivities = signal([
     { id: 1, message: 'Người dùng mới đăng ký', timestamp: new Date() },
@@ -363,12 +324,15 @@ export class AdminComponent implements OnInit {
   }
 
   private loadAnalytics(): void {
-    this.adminService.getAnalytics().then((data) => {
-      this.analytics.set(data);
-      this.isLoading.set(false);
-    }).catch((error) => {
-      console.error('Error loading analytics:', error);
-      this.isLoading.set(false);
+    this.adminService.getSystemAnalytics().subscribe({
+      next: (data: SystemAnalytics) => {
+        this.analytics.set(data);
+        this.isLoading.set(false);
+      },
+      error: (error: HttpErrorResponse) => {
+        console.error('Error loading analytics:', error);
+        this.isLoading.set(false);
+      }
     });
   }
 
