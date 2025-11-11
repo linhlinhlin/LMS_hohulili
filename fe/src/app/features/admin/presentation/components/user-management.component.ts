@@ -2,7 +2,8 @@ import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, V
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { AdminService, AdminUser, UserRole } from '../../infrastructure/services/admin.service';
+import { AdminService, AdminUser, CreateUserRequest, UpdateUserRequest } from '../../infrastructure/services/admin.service';
+import { UserRole } from '../../../../core/services/auth.service';
 import { LoadingComponent } from '../../../../shared/components/loading/loading.component';
 
 @Component({
@@ -10,14 +11,14 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
   imports: [CommonModule, RouterModule, FormsModule, LoadingComponent],
   encapsulation: ViewEncapsulation.None,
   template: `
-    <!-- Loading State -->
-    <app-loading 
-      [show]="adminService.isLoading()" 
+    <!-- Loading State - Temporarily disabled to debug -->
+    <!-- <app-loading 
+      [show]="adminService.isLoading" 
       text="Đang tải dữ liệu người dùng..."
       subtext="Vui lòng chờ trong giây lát"
       variant="overlay"
       color="red">
-    </app-loading>
+    </app-loading> -->
 
     <div class="bg-gradient-to-br from-slate-50 via-red-50 to-pink-100 min-h-screen">
       <div class="max-w-7xl mx-auto px-6 py-8">
@@ -273,8 +274,6 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
     @if (showCreateModal()) {
       <div class="fixed inset-0 z-50 overflow-y-auto">
         <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-          <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" (click)="closeCreateUserModal()"></div>
-          
           <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
             <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
               <div class="sm:flex sm:items-start">
@@ -441,6 +440,9 @@ export class UserManagementComponent implements OnInit {
   roleFilter = signal('');
   statusFilter = signal('');
 
+  // Data signals
+  users = signal<AdminUser[]>([]);
+
   // Modal state
   showCreateModal = signal(false);
   newUser = signal<Partial<AdminUser>>({
@@ -455,14 +457,14 @@ export class UserManagementComponent implements OnInit {
   editingUser = signal<AdminUser | null>(null);
 
   // Computed properties
-  totalUsers = computed(() => this.adminService.totalUsers());
-  totalTeachers = computed(() => this.adminService.totalTeachers());
-  totalStudents = computed(() => this.adminService.totalStudents());
-  totalAdmins = computed(() => this.adminService.totalAdmins());
-  activeUsers = computed(() => this.adminService.activeUsers());
+  totalUsers = computed(() => this.users().length);
+  totalTeachers = computed(() => this.users().filter(u => u.role === UserRole.TEACHER).length);
+  totalStudents = computed(() => this.users().filter(u => u.role === UserRole.STUDENT).length);
+  totalAdmins = computed(() => this.users().filter(u => u.role === UserRole.ADMIN).length);
+  activeUsers = computed(() => this.users().filter(u => u.isActive).length);
 
   filteredUsers = computed(() => {
-    let users = this.adminService.users();
+    let users = this.users();
     
     // Filter by search query
     if (this.searchQuery()) {
@@ -492,8 +494,15 @@ export class UserManagementComponent implements OnInit {
     this.loadUsers();
   }
 
-  async loadUsers(): Promise<void> {
-    await this.adminService.getUsers();
+  private loadUsers(): void {
+    this.adminService.getUsers().subscribe({
+      next: (response) => {
+        this.users.set(response.data);
+      },
+      error: (error) => {
+        console.error('Error loading users:', error);
+      }
+    });
   }
 
   openCreateUserModal(): void {
@@ -510,10 +519,42 @@ export class UserManagementComponent implements OnInit {
     this.showCreateModal.set(false);
   }
 
-  async createUser(): Promise<void> {
-    if (this.newUser().name && this.newUser().email && this.newUser().role) {
-      await this.adminService.createUser(this.newUser());
-      this.closeCreateUserModal();
+  createUser(): void {
+    const userData = this.newUser();
+    if (userData.name && userData.email && userData.role) {
+      // Map UserRole enum to backend role format
+      let backendRole: 'ADMIN' | 'TEACHER' | 'STUDENT';
+      switch (userData.role) {
+        case UserRole.ADMIN:
+          backendRole = 'ADMIN';
+          break;
+        case UserRole.TEACHER:
+          backendRole = 'TEACHER';
+          break;
+        case UserRole.STUDENT:
+        default:
+          backendRole = 'STUDENT';
+          break;
+      }
+      
+      // Map to the expected interface
+      const createData: CreateUserRequest = {
+        username: userData.email.split('@')[0], // Use email prefix as username
+        email: userData.email,
+        password: 'Password123!', // Default password, user should change later
+        fullName: userData.name,
+        role: backendRole
+      };
+      
+      this.adminService.createUser(createData).subscribe({
+        next: () => {
+          this.closeCreateUserModal();
+          this.loadUsers();
+        },
+        error: (error) => {
+          console.error('Error creating user:', error);
+        }
+      });
     }
   }
 
@@ -530,13 +571,27 @@ export class UserManagementComponent implements OnInit {
     this.isEditModalOpen.set(true);
   }
 
-  async toggleUserStatus(userId: string): Promise<void> {
-    await this.adminService.toggleUserStatus(userId);
+  toggleUserStatus(userId: string): void {
+    this.adminService.toggleUserStatus(userId).subscribe({
+      next: () => {
+        this.loadUsers();
+      },
+      error: (error) => {
+        console.error('Error toggling user status:', error);
+      }
+    });
   }
 
-  async deleteUser(userId: string): Promise<void> {
+  deleteUser(userId: string): void {
     if (confirm('Bạn có chắc chắn muốn xóa người dùng này?')) {
-      await this.adminService.deleteUser(userId);
+      this.adminService.deleteUser(userId).subscribe({
+        next: () => {
+          this.loadUsers();
+        },
+        error: (error) => {
+          console.error('Error deleting user:', error);
+        }
+      });
     }
   }
 
@@ -546,16 +601,41 @@ export class UserManagementComponent implements OnInit {
     this.editingUser.set(null);
   }
 
-  async saveUserEdit(): Promise<void> {
+  saveUserEdit(): void {
     const user = this.editingUser();
     if (!user) return;
 
-    try {
-      await this.adminService.updateUser(user.id, user);
-      this.closeEditModal();
-    } catch (error) {
-      console.error('Error updating user:', error);
+    // Map UserRole enum to backend role format
+    let backendRole: 'ADMIN' | 'TEACHER' | 'STUDENT';
+    switch (user.role) {
+      case UserRole.ADMIN:
+        backendRole = 'ADMIN';
+        break;
+      case UserRole.TEACHER:
+        backendRole = 'TEACHER';
+        break;
+      case UserRole.STUDENT:
+      default:
+        backendRole = 'STUDENT';
+        break;
     }
+    
+    const updateData: UpdateUserRequest = {
+      email: user.email,
+      fullName: user.name,
+      role: backendRole,
+      enabled: user.isActive
+    };
+
+    this.adminService.updateUser(user.id, updateData).subscribe({
+      next: () => {
+        this.closeEditModal();
+        this.loadUsers();
+      },
+      error: (error) => {
+        console.error('Error updating user:', error);
+      }
+    });
   }
 
   updateEditingUser(field: keyof AdminUser, value: any): void {
@@ -585,26 +665,26 @@ export class UserManagementComponent implements OnInit {
     }).format(amount);
   }
 
-  getRoleClass(role: UserRole): string {
-    switch (role) {
-      case 'admin':
+  getRoleClass(role: string): string {
+    switch (role.toUpperCase()) {
+      case 'ADMIN':
         return 'bg-red-100 text-red-800';
-      case 'teacher':
+      case 'TEACHER':
         return 'bg-purple-100 text-purple-800';
-      case 'student':
+      case 'STUDENT':
         return 'bg-blue-100 text-blue-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
   }
 
-  getRoleText(role: UserRole): string {
-    switch (role) {
-      case 'admin':
+  getRoleText(role: string): string {
+    switch (role.toUpperCase()) {
+      case 'ADMIN':
         return 'Quản trị viên';
-      case 'teacher':
+      case 'TEACHER':
         return 'Giảng viên';
-      case 'student':
+      case 'STUDENT':
         return 'Học viên';
       default:
         return 'Không xác định';

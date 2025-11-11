@@ -10,6 +10,7 @@ import { provideClientHydration, withEventReplay } from '@angular/platform-brows
 import { provideServiceWorker } from '@angular/service-worker';
 import { authInterceptor } from './api/interceptors/auth.interceptor';
 import { errorInterceptor } from './api/interceptors/error.interceptor';
+import { baseUrlInterceptor } from './api/interceptors/base-url.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -20,7 +21,7 @@ export const appConfig: ApplicationConfig = {
     provideAnimationsAsync(),
     provideHttpClient(
       withFetch(),
-      withInterceptors([authInterceptor, errorInterceptor])
+      withInterceptors([baseUrlInterceptor, authInterceptor, errorInterceptor])
     ),
     // Set default locale to Vietnamese for pipes like CurrencyPipe, DatePipe, etc.
     { provide: LOCALE_ID, useValue: 'vi' },

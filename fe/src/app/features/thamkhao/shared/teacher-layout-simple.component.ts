@@ -41,7 +41,7 @@ import { TeacherSidebarSimpleComponent } from './teacher-sidebar-simple.componen
                 <h1 class="ml-3 text-lg font-semibold text-gray-900">Teacher Portal</h1>
               </div>
               <div class="flex items-center space-x-4">
-                <span class="text-sm text-gray-600">{{ authService.currentUser()?.name }}</span>
+                <span class="text-sm text-gray-600">{{ authService.currentUser()?.fullName || authService.currentUser()?.name }}</span>
                 <button (click)="logout()" 
                         class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-sm font-medium transition-colors">
                   Logout

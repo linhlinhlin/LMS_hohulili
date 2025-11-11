@@ -1,0 +1,97 @@
+# 📋 ONE-PAGE REFERENCE: Admin 401 Fix
+
+## ⚠️ The Problem
+```
+Admin page → Load users → API returns 401 Unauthorized
+❌ User list doesn't load
+```
+
+## ✅ The Solution
+**User must be logged in first!**
+
+## 🚀 3-Step Fix
+
+### Step 1️⃣: Login
+```
+1. Go to: http://localhost:4200/login
+2. Enter email & password
+3. Click "Đăng nhập"
+4. Should see: Redirected to admin page
+```
+
+### Step 2️⃣: Check Console (F12)
+```
+Look for messages with 🔐 prefix:
+✅ Token in localStorage: EXISTS → Good!
+❌ Token in localStorage: MISSING → Login failed, try again
+```
+
+### Step 3️⃣: Check User List
+```
+If token exists → User list should load automatically
+If token missing → Go back to Step 1
+```
+
+## 🔧 If Still Not Working
+
+| Issue | Solution |
+|-------|----------|
+| ❌ Can't login | Check password, database running |
+| ❌ Redirects to login | Token expired, logout & login again |
+| ❌ Token missing | Login didn't work, try again |
+| ❌ Users still not loading | Check network tab for errors |
+| ❌ 401 error | Make sure you're logged in |
+
+## 📚 Detailed Guides
+- `QUICK_FIX_401_ERROR.md` - Full quick start
+- `VISUAL_AUTHENTICATION_GUIDE.md` - Flowcharts
+- `DEBUG_AUTHENTICATION_GUIDE.md` - Troubleshooting
+- `BROWSER_CONSOLE_DIAGNOSTIC.js` - Auto diagnosis
+
+## 💻 Quick Console Check
+```javascript
+// Paste in Console (F12):
+localStorage.getItem('auth_token') ? '✅ Logged in' : '❌ Not logged in'
+```
+
+## 🎯 What's Being Checked
+```
+ngOnInit() → Check localStorage for token
+    ↓
+authInterceptor → Add "Authorization: Bearer <token>"
+    ↓
+Backend JWT → Validate token signature & role
+    ↓
+If valid → Return user list (200 OK)
+If missing → Return 401 Unauthorized
+```
+
+## ✨ Success Looks Like
+```
+Console shows:
+✅ Token in localStorage: EXISTS
+✅ User in localStorage: EXISTS
+✅ AuthInterceptor: Adding Authorization header
+
+Network tab shows:
+✅ GET /api/v1/users → 200 OK
+
+Admin page shows:
+✅ User list table with data
+```
+
+## 🔑 Key Files Modified
+- `fe/src/app/features/admin/user-management.component.ts` - Added 🔐 debug
+- `fe/src/app/api/interceptors/auth.interceptor.ts` - Added 🔗 debug
+
+## 📊 Status
+✅ Backend running  
+✅ Frontend built  
+✅ Debug logging enabled  
+📍 **Waiting for user to login and test**
+
+---
+
+**Start with**: `QUICK_FIX_401_ERROR.md` (5 minutes)  
+**For details**: `DEBUG_AUTHENTICATION_GUIDE.md` (20 minutes)  
+**Want auto-diagnosis**: Copy `BROWSER_CONSOLE_DIAGNOSTIC.js` to console

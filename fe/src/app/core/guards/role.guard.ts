@@ -1,7 +1,7 @@
 import { inject } from '@angular/core';
 import { Router, CanActivateFn } from '@angular/router';
 import { AuthService } from '../services/auth.service';
-import { UserRole, UserRole as UserRoleType } from '../../shared/types/user.types';
+import { UserRole } from '../services/auth.service';
 
 /**
  * General Auth Guard - Ensures user is authenticated
@@ -27,27 +27,36 @@ export const authGuard: CanActivateFn = (route, state) => {
  * @param allowedRoles Array of roles that can access the route
  * @returns CanActivateFn guard function
  */
-export const roleGuard = (allowedRoles: UserRoleType[]): CanActivateFn => {
+export const roleGuard = (allowedRoles: UserRole[]): CanActivateFn => {
   return (route, state) => {
     const authService = inject(AuthService);
     const router = inject(Router);
 
     const userRole = authService.userRole();
+    console.log('🛡️ RoleGuard: Checking access for route:', state.url);
+    console.log('🛡️ RoleGuard: User role:', userRole);
+    console.log('🛡️ RoleGuard: Allowed roles:', allowedRoles);
 
-    if (userRole && allowedRoles.includes(userRole)) {
+    if (userRole && allowedRoles.includes(userRole as UserRole)) {
+      console.log('✅ RoleGuard: Access granted');
       return true;
     }
 
+    console.log('❌ RoleGuard: Access denied');
+
     // If user is authenticated but doesn't have the right role
     if (authService.isAuthenticated()) {
+      console.log('🔄 RoleGuard: User authenticated but wrong role, redirecting...');
       // Redirect to their appropriate area root, each module defaults to its own dashboard
       const role = authService.userRole();
       if (role) {
         const target = role === 'teacher' ? '/teacher' : role === 'admin' ? '/admin' : '/student';
+        console.log('🔄 RoleGuard: Redirecting to:', target);
         return router.createUrlTree([target]);
       }
     }
 
+    console.log('🔄 RoleGuard: User not authenticated, redirecting to login');
     // If not authenticated, redirect to login
     return router.createUrlTree(['/auth/login'], {
       queryParams: { returnUrl: state.url }

@@ -2,22 +2,24 @@ import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, V
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { AdminService, AdminCourse } from './services/admin.service';
+import { AdminService, AdminCourseSummary } from './infrastructure/services/admin.service';
 import { LoadingComponent } from '../../shared/components/loading/loading.component';
+import { HttpErrorResponse } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-course-management',
   imports: [CommonModule, RouterModule, FormsModule, LoadingComponent],
   encapsulation: ViewEncapsulation.None,
   template: `
-    <!-- Loading State -->
-    <app-loading 
-      [show]="adminService.isLoading()" 
+    <!-- Loading State - Temporarily disabled -->
+    <!-- <app-loading 
+      [show]="adminService.isLoading" 
       text="Đang tải dữ liệu khóa học..."
       subtext="Vui lòng chờ trong giây lát"
       variant="overlay"
       color="red">
-    </app-loading>
+    </app-loading> -->
 
     <div class="bg-gradient-to-br from-slate-50 via-red-50 to-pink-100 min-h-screen">
       <div class="max-w-7xl mx-auto px-6 py-8">
@@ -161,7 +163,7 @@ import { LoadingComponent } from '../../shared/components/loading/loading.compon
             <div class="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group">
               <!-- Course Thumbnail -->
               <div class="relative h-48 overflow-hidden">
-                <img [src]="course.thumbnail" 
+                <img [src]="course.thumbnail || '/assets/images/default-course.jpg'" 
                      [alt]="course.title"
                      class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
                 <div class="absolute top-4 right-4">
@@ -172,7 +174,7 @@ import { LoadingComponent } from '../../shared/components/loading/loading.compon
                 </div>
                 <div class="absolute bottom-4 left-4">
                   <span class="px-3 py-1 text-xs font-medium bg-white bg-opacity-90 rounded-full">
-                    {{ getLevelText(course.level) }}
+                    {{ getLevelText(course.level || 'beginner') }}
                   </span>
                 </div>
               </div>
@@ -183,17 +185,17 @@ import { LoadingComponent } from '../../shared/components/loading/loading.compon
                   {{ course.title }}
                 </h3>
                 <p class="text-gray-600 text-sm mb-4 line-clamp-2">
-                  {{ course.shortDescription }}
+                  {{ course.shortDescription || course.description || 'Không có mô tả' }}
                 </p>
 
                 <!-- Instructor Info -->
                 <div class="flex items-center mb-4">
-                  <img [src]="course.instructor.avatar" 
-                       [alt]="course.instructor.name"
-                       class="w-8 h-8 rounded-full mr-3">
+                  <div class="w-8 h-8 rounded-full bg-gray-300 mr-3 flex items-center justify-center">
+                    <span class="text-xs font-medium text-gray-600">{{ course.teacherName.charAt(0) }}</span>
+                  </div>
                   <div>
-                    <div class="text-sm font-medium text-gray-900">{{ course.instructor.name }}</div>
-                    <div class="text-xs text-gray-500">{{ course.instructor.email }}</div>
+                    <div class="text-sm font-medium text-gray-900">{{ course.teacherName }}</div>
+                    <div class="text-xs text-gray-500">{{ course.teacherEmail || '' }}</div>
                   </div>
                 </div>
 
@@ -203,20 +205,20 @@ import { LoadingComponent } from '../../shared/components/loading/loading.compon
                     <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 8v1h1.5a.5.5 0 01.5.5v9a.5.5 0 01-.5.5h-13a.5.5 0 01-.5-.5v-9a.5.5 0 01.5-.5H8v-1a5 5 0 00-5 5v1h9.93z"></path>
                     </svg>
-                    {{ course.students }} học viên
+                    {{ course.enrolledCount || 0 }} học viên
                   </div>
                   <div class="flex items-center">
                     <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
                     </svg>
-                    {{ course.rating }}/5
+                    {{ course.rating || 0 }}/5
                   </div>
                 </div>
 
                 <!-- Course Price -->
                 <div class="flex items-center justify-between mb-4">
-                  <span class="text-2xl font-bold text-red-600">{{ formatCurrency(course.price) }}</span>
-                  <span class="text-sm text-gray-500">{{ formatCurrency(course.revenue) }} doanh thu</span>
+                  <span class="text-2xl font-bold text-red-600">{{ formatCurrency(course.price || 0) }}</span>
+                  <span class="text-sm text-gray-500">{{ formatCurrency(course.revenue || 0) }} doanh thu</span>
                 </div>
 
                 <!-- Course Actions -->
@@ -245,7 +247,9 @@ import { LoadingComponent } from '../../shared/components/loading/loading.compon
                 <!-- Submission Info -->
                 <div class="mt-4 pt-4 border-t border-gray-200">
                   <div class="text-xs text-gray-500">
-                    <div>Nộp lúc: {{ formatDate(course.submittedAt) }}</div>
+                    @if (course.submittedAt) {
+                      <div>Nộp lúc: {{ formatDate(course.submittedAt) }}</div>
+                    }
                     @if (course.approvedAt) {
                       <div>Phê duyệt: {{ formatDate(course.approvedAt) }}</div>
                     }
@@ -297,7 +301,7 @@ import { LoadingComponent } from '../../shared/components/loading/loading.compon
                       <strong>{{ selectedCourse()?.title }}</strong>
                     </div>
                     <div class="text-sm text-gray-500">
-                      Giảng viên: {{ selectedCourse()?.instructor?.name || 'Không xác định' }}
+                      Giảng viên: {{ selectedCourse()?.teacherName || 'Không xác định' }}
                     </div>
                   </div>
                   
@@ -342,26 +346,29 @@ export class CourseManagementComponent implements OnInit {
 
   // Modal state
   showRejectModal = signal(false);
-  selectedCourse = signal<AdminCourse | null>(null);
+  selectedCourse = signal<AdminCourseSummary | null>(null);
   rejectionReason = signal('');
 
+  // State for courses
+  courses = signal<AdminCourseSummary[]>([]);
+  
   // Computed properties
-  totalCourses = computed(() => this.adminService.courses().length);
-  pendingCourses = computed(() => this.adminService.pendingCourses());
-  approvedCourses = computed(() => this.adminService.approvedCourses());
-  totalRevenue = computed(() => this.adminService.totalRevenue());
+  totalCourses = computed(() => this.courses().length);
+  pendingCourses = computed(() => this.courses().filter(c => c.status === 'pending').length);
+  approvedCourses = computed(() => this.courses().filter(c => c.status === 'approved').length);
+  totalRevenue = computed(() => this.courses().reduce((sum, c) => sum + (c.revenue || 0), 0));
 
   filteredCourses = computed(() => {
-    let courses = this.adminService.courses();
+    let courses = this.courses();
     
     // Filter by search query
     if (this.searchQuery()) {
       const query = this.searchQuery().toLowerCase();
       courses = courses.filter(course => 
         course.title.toLowerCase().includes(query) ||
-        course.description.toLowerCase().includes(query) ||
-        course.shortDescription.toLowerCase().includes(query) ||
-        course.instructor.name.toLowerCase().includes(query)
+        (course.description && course.description.toLowerCase().includes(query)) ||
+        (course.shortDescription && course.shortDescription.toLowerCase().includes(query)) ||
+        course.teacherName.toLowerCase().includes(query)
       );
     }
     
@@ -382,15 +389,30 @@ export class CourseManagementComponent implements OnInit {
     this.loadCourses();
   }
 
-  async loadCourses(): Promise<void> {
-    await this.adminService.getCourses();
+  loadCourses(): void {
+    this.adminService.getAllCourses().subscribe({
+      next: (response: { data: AdminCourseSummary[]; pagination: any }) => {
+        this.courses.set(response.data);
+      },
+      error: (error: HttpErrorResponse) => {
+        console.error('Error loading courses:', error);
+      }
+    });
   }
 
-  async approveCourse(courseId: string): Promise<void> {
-    await this.adminService.approveCourse(courseId);
+  approveCourse(courseId: string): void {
+    this.adminService.approveCourse(courseId).subscribe({
+      next: (response: { message: string }) => {
+        console.log('Course approved:', response.message);
+        this.loadCourses(); // Reload courses
+      },
+      error: (error: HttpErrorResponse) => {
+        console.error('Error approving course:', error);
+      }
+    });
   }
 
-  openRejectModal(course: AdminCourse): void {
+  openRejectModal(course: AdminCourseSummary): void {
     this.selectedCourse.set(course);
     this.showRejectModal.set(true);
     this.rejectionReason.set('');
@@ -402,10 +424,18 @@ export class CourseManagementComponent implements OnInit {
     this.rejectionReason.set('');
   }
 
-  async rejectCourse(): Promise<void> {
+  rejectCourse(): void {
     if (this.selectedCourse() && this.rejectionReason()) {
-      await this.adminService.rejectCourse(this.selectedCourse()!.id, this.rejectionReason());
-      this.closeRejectModal();
+      this.adminService.rejectCourse(this.selectedCourse()!.id, this.rejectionReason()).subscribe({
+        next: (response: { message: string }) => {
+          console.log('Course rejected:', response.message);
+          this.closeRejectModal();
+          this.loadCourses(); // Reload courses
+        },
+        error: (error: HttpErrorResponse) => {
+          console.error('Error rejecting course:', error);
+        }
+      });
     }
   }
 
@@ -419,7 +449,7 @@ export class CourseManagementComponent implements OnInit {
     window.open(`/teacher/courses/${courseId}/edit`, '_blank');
   }
 
-  formatDate(date: Date): string {
+  formatDate(date: string | Date): string {
     return new Date(date).toLocaleDateString('vi-VN', {
       day: '2-digit',
       month: '2-digit',

@@ -1,21 +1,22 @@
 import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { AdminService, AdminAnalytics } from './services/admin.service';
+import { AdminService, SystemAnalytics } from './infrastructure/services/admin.service';
 import { LoadingComponent } from '../../shared/components/loading/loading.component';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Component({
   selector: 'app-admin-analytics',
   imports: [CommonModule, LoadingComponent],
   encapsulation: ViewEncapsulation.None,
   template: `
-    <!-- Loading State -->
-    <app-loading 
-      [show]="adminService.isLoading()" 
+    <!-- Loading State - Temporarily disabled -->
+    <!-- <app-loading 
+      [show]="adminService.isLoading" 
       text="Đang tải dữ liệu phân tích..."
       subtext="Vui lòng chờ trong giây lát"
       variant="overlay"
       color="red">
-    </app-loading>
+    </app-loading> -->
 
     <div class="bg-gradient-to-br from-slate-50 via-red-50 to-pink-100 min-h-screen">
       <div class="max-w-7xl mx-auto px-6 py-8">
@@ -292,19 +293,26 @@ export class AdminAnalyticsComponent implements OnInit {
   protected adminService = inject(AdminService);
   protected Math = Math;
 
-  // Computed properties
-  analytics = computed(() => this.adminService.analytics());
+  // State
+  analytics = signal<SystemAnalytics | null>(null);
 
   ngOnInit(): void {
     this.loadAnalytics();
   }
 
-  async loadAnalytics(): Promise<void> {
-    await this.adminService.getAnalytics();
+  loadAnalytics(): void {
+    this.adminService.getSystemAnalytics().subscribe({
+      next: (data: SystemAnalytics) => {
+        this.analytics.set(data);
+      },
+      error: (error: HttpErrorResponse) => {
+        console.error('Error loading analytics:', error);
+      }
+    });
   }
 
-  async refreshAnalytics(): Promise<void> {
-    await this.loadAnalytics();
+  refreshAnalytics(): void {
+    this.loadAnalytics();
   }
 
   getCurrentTime(): string {

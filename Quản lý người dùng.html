@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<!-- saved from url=(0033)http://localhost:4200/admin/users -->
+<html lang="vi"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <script type="module" src="./Quản lý người dùng_files/client"></script>
+
+  
+  <title>Quản lý người dùng</title>
+  <!--<base href="/">--><base href=".">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <meta name="description" content="Hệ thống quản lý học tập chuyên về ngành hàng hải">
+  <meta name="keywords" content="LMS, hàng hải, học tập, thủy thủ, maritime">
+  <meta name="author" content="LMS Maritime Team">
+  
+  <!-- PWA Meta Tags -->
+  <meta name="theme-color" content="#3b82f6">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="LMS Maritime">
+  <meta name="msapplication-TileColor" content="#3b82f6">
+  <meta name="msapplication-config" content="/browserconfig.xml">
+  
+  <!-- Icons -->
+  <link rel="icon" type="image/x-icon" href="http://localhost:4200/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="http://localhost:4200/assets/icons/icon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="http://localhost:4200/assets/icons/icon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="http://localhost:4200/assets/icons/icon-180x180.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="http://localhost:4200/assets/icons/icon-152x152.png">
+  <link rel="apple-touch-icon" sizes="144x144" href="http://localhost:4200/assets/icons/icon-144x144.png">
+  <link rel="apple-touch-icon" sizes="120x120" href="http://localhost:4200/assets/icons/icon-120x120.png">
+  <link rel="apple-touch-icon" sizes="114x114" href="http://localhost:4200/assets/icons/icon-114x114.png">
+  <link rel="apple-touch-icon" sizes="76x76" href="http://localhost:4200/assets/icons/icon-76x76.png">
+  <link rel="apple-touch-icon" sizes="72x72" href="http://localhost:4200/assets/icons/icon-72x72.png">
+  <link rel="apple-touch-icon" sizes="60x60" href="http://localhost:4200/assets/icons/icon-60x60.png">
+  <link rel="apple-touch-icon" sizes="57x57" href="http://localhost:4200/assets/icons/icon-57x57.png">
+  
+  <!-- Manifest -->
+  <link rel="manifest" href="http://localhost:4200/manifest.webmanifest">
+
+  <!-- Preload critical resources (removed unused font preload to avoid warnings) -->
+  
+  <!-- Open Graph Meta Tags -->
+  <meta property="og:title" content="LMS Maritime - Hệ thống quản lý học tập">
+  <meta property="og:description" content="Hệ thống quản lý học tập chuyên về ngành hàng hải">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://lms-maritime.com">
+  <meta property="og:image" content="assets/images/og-image.png">
+  
+  <!-- Twitter Card Meta Tags -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="LMS Maritime - Hệ thống quản lý học tập">
+  <meta name="twitter:description" content="Hệ thống quản lý học tập chuyên về ngành hàng hải">
+  <meta name="twitter:image" content="assets/images/twitter-image.png">
+  <link href="./Quản lý người dùng_files/css2" rel="stylesheet">
+  <link href="./Quản lý người dùng_files/icon" rel="stylesheet">
+<link rel="stylesheet" href="./Quản lý người dùng_files/styles.css"><style>/* angular:styles/component:scss;81cd99ff6c77e1188f30f93f93ded473939392987a9c47c57645894701c127da;D:/lms_1/LMS_hohulili/fe/src/app/shared/components/navigation/sidebar.component.ts */
+.sidebar-container {
+  background: white;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid rgba(229, 231, 235, 0.5);
+}
+.sidebar-header {
+  padding: 1.5rem;
+  background: white;
+  border-bottom: 1px solid rgba(229, 231, 235, 0.5);
+}
+.sidebar-logo {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+.sidebar-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #111827;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sidebar-subtitle {
+  font-size: 0.875rem;
+  color: #6b7280;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sidebar-progress-card {
+  margin-top: 1rem;
+  padding: 1rem;
+  background:
+    linear-gradient(
+      to right,
+      #eff6ff,
+      #e0e7ff);
+  border-radius: 0.5rem;
+  border: 1px solid #bfdbfe;
+}
+.progress-bar {
+  background:
+    linear-gradient(
+      to right,
+      #3b82f6,
+      #6366f1);
+  height: 0.5rem;
+  border-radius: 9999px;
+  transition: all 0.5s;
+}
+.sidebar-nav {
+  flex: 1;
+  padding: 1rem 0.75rem;
+  overflow-y: auto;
+}
+.nav-item-container {
+  margin-bottom: 0.25rem;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  padding: 0.625rem 0.75rem;
+  color: #374151;
+  border-radius: 0.5rem;
+  transition: all 0.2s;
+}
+.nav-item:hover {
+  background-color: #f9fafb;
+}
+.nav-item.active {
+  background-color: #eff6ff;
+  color: #1d4ed8;
+  border-right: 2px solid #3b82f6;
+}
+.nav-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-right: 0.75rem;
+  color: #9ca3af;
+  transition: transform 0.2s;
+}
+.nav-item:hover .nav-icon {
+  transform: scale(1.1);
+}
+.nav-label {
+  font-weight: 500;
+  font-size: 0.875rem;
+  flex: 1;
+}
+.nav-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+.sub-menu {
+  margin-left: 2rem;
+  margin-top: 0.5rem;
+}
+.sub-menu-item {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  color: #6b7280;
+  border-radius: 0.5rem;
+  transition: all 0.2s;
+}
+.sub-menu-item:hover {
+  background-color: #f3f4f6;
+  color: #111827;
+}
+.sub-icon {
+  width: 1rem;
+  height: 1rem;
+  margin-right: 0.5rem;
+  color: #9ca3af;
+}
+.sidebar-footer {
+  padding: 1rem;
+  border-top: 1px solid rgba(229, 231, 235, 0.5);
+}
+.logout-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0.625rem 0.75rem;
+  color: #dc2626;
+  border-radius: 0.5rem;
+  transition: all 0.2s;
+}
+.logout-btn:hover {
+  background-color: #fef2f2;
+}
+.logout-btn svg {
+  margin-right: 0.75rem;
+}
+.logout-btn span {
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+.sidebar-student .sidebar-logo {
+  background:
+    linear-gradient(
+      to bottom right,
+      #2563eb,
+      #4f46e5);
+}
+.sidebar-student .nav-item.active {
+  background-color: #eff6ff;
+  color: #1d4ed8;
+  border-right: 2px solid #3b82f6;
+}
+.sidebar-teacher .sidebar-logo {
+  background:
+    linear-gradient(
+      to bottom right,
+      #9333ea,
+      #7c3aed);
+}
+.sidebar-teacher .nav-item.active {
+  background-color: #faf5ff;
+  color: #7c3aed;
+  border-right: 2px solid #9333ea;
+}
+.sidebar-admin .sidebar-logo {
+  background:
+    linear-gradient(
+      to bottom right,
+      #dc2626,
+      #b91c1c);
+}
+.sidebar-admin .nav-item.active {
+  background-color: #fef2f2;
+  color: #b91c1c;
+  border-right: 2px solid #dc2626;
+}
+/*# sourceMappingURL=/sidebar.component.css.map */
+</style></head>
+<body ngcm="">
+  <app-root ng-version="20.3.0"><router-outlet></router-outlet><app-admin-layout-simple><div class="min-h-screen bg-gray-100 flex"><div class="hidden lg:flex lg:w-64 lg:flex-col"><app-sidebar><div class="sidebar-container sidebar-admin"><div class="sidebar-header"><div class="flex items-center space-x-3"><div class="sidebar-logo sidebar-logo-admin"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-6 h-6 text-white"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z"></path></svg></div><div class="flex-1 min-w-0"><h2 class="sidebar-title">Admin Portal</h2><p class="sidebar-subtitle">Test Administrator</p></div></div><!--container--></div><nav class="sidebar-nav"><div class="nav-item-container"><a routerlinkactive="active" class="nav-item" href="http://localhost:4200/admin/dashboard"><div class="nav-icon flex items-center justify-center text-red-500"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-full h-full"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0h6"></path></svg></div><span class="nav-label">Dashboard</span><!--container--></a><!--container--></div><div class="nav-item-container"><a routerlinkactive="active" class="nav-item active" href="http://localhost:4200/admin/users"><div class="nav-icon flex items-center justify-center text-red-500"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-full h-full"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg></div><span class="nav-label">Người dùng</span><!--container--></a><!--container--></div><div class="nav-item-container"><a routerlinkactive="active" class="nav-item" href="http://localhost:4200/admin/courses"><div class="nav-icon flex items-center justify-center text-red-500"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-full h-full"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6l-8 4 8 4 8-4-8-4zm0 10l-8-4v6l8 4 8-4v-6l-8 4z"></path></svg></div><span class="nav-label">Khóa học</span><!--container--></a><!--container--></div><div class="nav-item-container"><a routerlinkactive="active" class="nav-item" href="http://localhost:4200/admin/analytics"><div class="nav-icon flex items-center justify-center text-red-500"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-full h-full"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V9a2 2 0 00-2-2H5v12h4zm6 0V5h-4v14h4zm2 0h2V7h-2v12z"></path></svg></div><span class="nav-label">Phân tích</span><!--container--></a><!--container--></div><div class="nav-item-container"><a routerlinkactive="active" class="nav-item" href="http://localhost:4200/admin/settings"><div class="nav-icon flex items-center justify-center text-red-500"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-full h-full"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.983 2a1 1 0 01.894.553l.894 1.789a6.992 6.992 0 012.122.879l1.98-.495a1 1 0 011.118.446l1 1.732a1 1 0 01-.224 1.29l-1.511 1.21c.083.45.125.912.125 1.386s-.042.936-.125 1.386l1.511 1.21a1 1 0 01.224 1.29l-1 1.732a1 1 0 01-1.118.446l-1.98-.495a6.992 6.992 0 01-2.122.879l-.894 1.789a1 1 0 01-.894.553h-2a1 1 0 01-.894-.553l-.894-1.789a6.992 6.992 0 01-2.122-.879l-1.98.495a1 1 0 01-1.118-.446l-1-1.732a1 1 0 01.224-1.29l1.511-1.21A6.97 6.97 0 015 12c0-.474.042-.936.125-1.386L3.614 9.404a1 1 0 01-.224-1.29l1-1.732a1 1 0 011.118-.446l1.98.495a6.992 6.992 0 012.122-.879l.894-1.789A1 1 0 019.983 2h2z"></path></svg></div><span class="nav-label">Cài đặt hệ thống</span><!--container--></a><!--container--></div><div class="nav-item-container"><a routerlinkactive="active" class="nav-item" href="http://localhost:4200/admin/reports"><div class="nav-icon flex items-center justify-center text-red-500"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-full h-full"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2H9zm0 0a2 2 0 002 2h2a2 2 0 002-2"></path></svg></div><span class="nav-label">Báo cáo</span><!--container--></a><!--container--></div><div class="nav-item-container"><a routerlinkactive="active" class="nav-item" href="http://localhost:4200/admin/notifications"><div class="nav-icon flex items-center justify-center text-red-500"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-full h-full"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0a3 3 0 11-6 0"></path></svg></div><span class="nav-label">Thông báo</span><!--container--></a><!--container--></div><div class="nav-item-container"><a routerlinkactive="active" class="nav-item" href="http://localhost:4200/admin/logs"><div class="nav-icon flex items-center justify-center text-red-500"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-full h-full"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 20H6a2 2 0 01-2-2V8l6-4 6 4v2m-4 10V12h8m-8 8h8a2 2 0 002-2v-8h-8a2 2 0 00-2 2v8z"></path></svg></div><span class="nav-label">Nhật ký hệ thống</span><!--container--></a><!--container--></div><!--container--></nav><div class="sidebar-footer"><button class="logout-btn"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg><span>Đăng xuất</span></button></div></div></app-sidebar></div><!--container--><div class="flex-1 flex flex-col min-w-0"><header class="bg-white shadow-sm border-b border-gray-200 lg:hidden"><div class="px-4 sm:px-6 lg:px-8"><div class="flex justify-between items-center h-16"><div class="flex items-center"><button class="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-red-500"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="h-6 w-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg></button><h1 class="ml-3 text-lg font-semibold text-gray-900">Admin Portal</h1></div><div class="flex items-center space-x-4"><span class="text-sm text-gray-600">Test Administrator</span><button class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-sm font-medium transition-colors"> Logout </button></div></div></div></header><main class="flex-1 overflow-auto"><router-outlet></router-outlet><app-user-management><div class="bg-gradient-to-br from-slate-50 via-red-50 to-pink-100 min-h-screen"><div class="max-w-7xl mx-auto px-6 py-8"><div class="mb-8"><div class="flex items-center justify-between"><div><h1 class="text-3xl font-bold text-gray-900 mb-2">👥 Quản lý người dùng</h1><p class="text-gray-600">Quản lý và theo dõi tất cả người dùng trong hệ thống</p></div><button class="px-6 py-3 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-xl hover:from-red-700 hover:to-pink-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"><svg fill="currentColor" viewBox="0 0 20 20" class="w-5 h-5 inline mr-2"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"></path></svg> Thêm người dùng </button></div></div><div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8"><div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 border-l-4 border-red-500"><div class="flex items-center justify-between"><div><p class="text-sm font-medium text-gray-600 mb-1">Tổng người dùng</p><p class="text-3xl font-bold text-gray-900">10</p><p class="text-sm text-red-600 flex items-center mt-1"><svg fill="currentColor" viewBox="0 0 20 20" class="w-4 h-4 mr-1"><path fill-rule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg> +9 đang hoạt động </p></div><div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center"><svg fill="currentColor" viewBox="0 0 20 20" class="w-6 h-6 text-red-600"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 8v1h1.5a.5.5 0 01.5.5v9a.5.5 0 01-.5.5h-13a.5.5 0 01-.5-.5v-9a.5.5 0 01.5-.5H8v-1a5 5 0 00-5 5v1h9.93z"></path></svg></div></div></div><div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 border-l-4 border-purple-500"><div class="flex items-center justify-between"><div><p class="text-sm font-medium text-gray-600 mb-1">Giảng viên</p><p class="text-3xl font-bold text-gray-900">2</p><p class="text-sm text-purple-600 flex items-center mt-1"><svg fill="currentColor" viewBox="0 0 20 20" class="w-4 h-4 mr-1"><path fill-rule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg> Hoạt động </p></div><div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center"><svg fill="currentColor" viewBox="0 0 20 20" class="w-6 h-6 text-purple-600"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path><path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path></svg></div></div></div><div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 border-l-4 border-blue-500"><div class="flex items-center justify-between"><div><p class="text-sm font-medium text-gray-600 mb-1">Học viên</p><p class="text-3xl font-bold text-gray-900">4</p><p class="text-sm text-blue-600 flex items-center mt-1"><svg fill="currentColor" viewBox="0 0 20 20" class="w-4 h-4 mr-1"><path fill-rule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg> Đang học </p></div><div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center"><svg fill="currentColor" viewBox="0 0 20 20" class="w-6 h-6 text-blue-600"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 8v1h1.5a.5.5 0 01.5.5v9a.5.5 0 01-.5.5h-13a.5.5 0 01-.5-.5v-9a.5.5 0 01.5-.5H8v-1a5 5 0 00-5 5v1h9.93z"></path></svg></div></div></div><div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 border-l-4 border-green-500"><div class="flex items-center justify-between"><div><p class="text-sm font-medium text-gray-600 mb-1">Quản trị viên</p><p class="text-3xl font-bold text-gray-900">4</p><p class="text-sm text-green-600 flex items-center mt-1"><svg fill="currentColor" viewBox="0 0 20 20" class="w-4 h-4 mr-1"><path fill-rule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg> Quản lý hệ thống </p></div><div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center"><svg fill="currentColor" viewBox="0 0 20 20" class="w-6 h-6 text-green-600"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path></svg></div></div></div></div><div class="bg-white rounded-xl shadow-lg p-6 mb-8"><div class="flex flex-col md:flex-row gap-4"><div class="flex-1"><input type="text" placeholder="Tìm kiếm người dùng..." class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 ng-untouched ng-pristine ng-valid"></div><div class="flex gap-4"><select class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 ng-untouched ng-pristine ng-valid"><option value="">Tất cả vai trò</option><option value="admin">Quản trị viên</option><option value="teacher">Giảng viên</option><option value="student">Học viên</option></select><select class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 ng-untouched ng-pristine ng-valid"><option value="">Tất cả trạng thái</option><option value="active">Đang hoạt động</option><option value="inactive">Không hoạt động</option></select></div></div></div><div class="bg-white rounded-xl shadow-lg overflow-hidden"><div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"> Người dùng </th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"> Vai trò </th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"> Trạng thái </th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"> Hoạt động cuối </th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"> Thống kê </th><th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"> Thao tác </th></tr></thead><tbody class="bg-white divide-y divide-gray-200"><tr class="hover:bg-gray-50 transition-colors"><td class="px-6 py-4 whitespace-nowrap"><div class="flex items-center"><img class="w-10 h-10 rounded-full" src="http://localhost:4200/" alt="Teacher"><div class="ml-4"><div class="text-sm font-medium text-gray-900">Teacher</div><div class="text-sm text-gray-500">teacher@gmail.com</div><!--container--></div></div></td><td class="px-6 py-4 whitespace-nowrap"><span class="px-3 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800"> Giảng viên </span></td><td class="px-6 py-4 whitespace-nowrap"><span class="px-3 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800"> Hoạt động </span></td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"> 10:59 11/11/2025 </td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><div> khóa học</div><!--container--><!--container--><!--container--></td><td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><div class="flex items-center justify-end space-x-2"><button class="text-indigo-600 hover:text-indigo-900"><svg fill="currentColor" viewBox="0 0 20 20" class="w-4 h-4"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"></path></svg></button><button class="hover:text-red-900 text-red-600"><svg fill="currentColor" viewBox="0 0 20 20" class="w-4 h-4"><path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"></path></svg><!--container--><!--container--></button><button class="text-red-600 hover:text-red-900"><svg fill="currentColor" viewBox="0 0 20 20" class="w-4 h-4"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg></button></div></td></tr><tr class="hover:bg-gray-50 transition-colors"><td class="px-6 py-4 whitespace-nowrap"><div class="flex items-center"><img class="w-10 h-10 rounded-full" src="http://localhost:4200/" alt="Test User"><div class="ml-4"><div class="text-sm font-medium text-gray-900">Test User</div><div class="text-sm text-gray-500">test@example.com</div><!--container--></div></div></td><td class="px-6 py-4 whitespace-nowrap"><span class="px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800"> Học viên </span></td><td class="px-6 py-4 whitespace-nowrap"><span class="px-3 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800"> Hoạt động </span></td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"> 10:59 11/11/2025 </td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><!--container--><div> khóa học</div><div>0&nbsp;₫</div><!--container--><!--container--></td><td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><div class="flex items-center justify-end space-x-2"><button class="text-indigo-600 hover:text-indigo-900"><svg fill="currentColor" viewBox="0 0 20 20" class="w-4 h-4"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"></path></svg></button><button class="hover:text-red-900 text-red-600"><svg fill="currentColor" viewBox="0 0 20 20" class="w-4 h-4"><path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"></path></svg><!--container--><!--container--></button><button class="text-red-600 hover:text-red-900"><svg fill="currentColor" viewBox="0 0 20 20" class="w-4 h-4"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg></button></div></td></tr><tr class="hover:bg-gray-50 transition-colors"><td class="px-6 py-4 whitespace-nowrap"><div class="flex items-center"><img class="w-10 h-10 rounded-full" src="http://localhost:4200/" alt="vui"><div class="ml-4"><div class="text-sm font-medium text-gray-900">vui</div><div class="text-sm text-gray-500">vv@gmail.com</div><!--container--></div></div></td><td class="px-6 py-4 whitespace-nowrap"><span class="px-3 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800"> Quản trị viên </span></td><td class="px-6 py-4 whitespace-nowrap"><span class="px-3 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800"> Hoạt động </span></td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"> 10:59 11/11/2025 </td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><!--container--><!--container--><div>0 lần đăng nhập</div><!--container--></td><td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><div class="flex items-center justify-end space-x-2"><button class="text-indigo-600 hover:text-indigo-900"><svg fill="currentColor" viewBox="0 0 20 20" class="w-4 h-4"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"></path></svg></button><button class="hover:text-red-900 text-red-600"><svg fill="currentColor" viewBox="0 0 20 20" class="w-4 h-4"><path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"></path></svg><!--container--><!--container--></button><button class="text-red-600 hover:text-red-900"><svg fill="currentColor" viewBox="0 0 20 20" class="w-4 h-4"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg></button></div></td></tr><tr class="hover:bg-gray-50 transition-colors"><td class="px-6 py-4 whitespace-nowrap"><div class="flex items-center"><img class="w-10 h-10 rounded-full" src="http://localhost:4200/" alt="New Student Test"><div class="ml-4"><div class="text-sm font-medium text-gray-900">New Student Test</div><div class="text-sm text-gray-500">newstudent@lms.com</div><!--container--></div></div></td><td class="px-6 py-4 whitespace-nowrap"><span class="px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800"> Học viên </span></td><td class="px-6 py-4 whitespace-nowrap"><span class="px-3 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800"> Hoạt động </span></td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"> 10:59 11/11/2025 </td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><!--container--><div> khóa học</div><div>0&nbsp;₫</div><!--container--><!--container--></td><td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><div class="flex items-center justify-end space-x-2"><button class="text-indigo-600 hover:text-indigo-900"><svg fill="currentColor" viewBox="0 0 20 20" class="w-4 h-4"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"></path></svg></button><button class="hover:text-red-900 text-red-600"><svg fill="currentColor" viewBox="0 0 20 20" class="w-4 h-4"><path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"></path></svg><!--container--><!--container--></button><button class="text-red-600 hover:text-red-900"><svg fill="currentColor" viewBox="0 0 20 20" class="w-4 h-4"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg></button></div></td></tr><tr class="hover:bg-gray-50 transition-colors"><td class="px-6 py-4 whitespace-nowrap"><div class="flex items-center"><img class="w-10 h-10 rounded-full" src="http://localhost:4200/" alt="Gi???ng Vi??n 1"><div class="ml-4"><div class="text-sm font-medium text-gray-900">Gi???ng Vi??n 1</div><div class="text-sm text-gray-500">teacher1@lms.com</div><!--container--></div></div></td><td class="px-6 py-4 whitespace-nowrap"><span class="px-3 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800"> Giảng viên </span></td><td class="px-6 py-4 whitespace-nowrap"><span class="px-3 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800"> Hoạt động </span></td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"> 10:59 11/11/2025 </td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><div> khóa học</div><!--container--><!--container--><!--container--></td><td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><div class="flex items-center justify-end space-x-2"><button class="text-indigo-600 hover:text-indigo-900"><svg fill="currentColor" viewBox="0 0 20 20" class="w-4 h-4"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"></path></svg></button><button class="hover:text-red-900 text-red-600"><svg fill="currentColor" viewBox="0 0 20 20" class="w-4 h-4"><path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"></path></svg><!--container--><!--container--></button><button class="text-red-600 hover:text-red-900"><svg fill="currentColor" viewBox="0 0 20 20" class="w-4 h-4"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg></button></div></td></tr><tr class="hover:bg-gray-50 transition-colors"><td class="px-6 py-4 whitespace-nowrap"><div class="flex items-center"><img class="w-10 h-10 rounded-full" src="http://localhost:4200/" alt="H???c Vi??n 1"><div class="ml-4"><div class="text-sm font-medium text-gray-900">H???c Vi??n 1</div><div class="text-sm text-gray-500">student1@lms.com</div><!--container--></div></div></td><td class="px-6 py-4 whitespace-nowrap"><span class="px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800"> Học viên </span></td><td class="px-6 py-4 whitespace-nowrap"><span class="px-3 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800"> Hoạt động </span></td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"> 10:59 11/11/2025 </td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><!--container--><div> khóa học</div><div>0&nbsp;₫</div><!--container--><!--container--></td><td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><div class="flex items-center justify-end space-x-2"><button class="text-indigo-600 hover:text-indigo-900"><svg fill="currentColor" viewBox="0 0 20 20" class="w-4 h-4"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"></path></svg></button><button class="hover:text-red-900 text-red-600"><svg fill="currentColor" viewBox="0 0 20 20" class="w-4 h-4"><path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"></path></svg><!--container--><!--container--></button><button class="text-red-600 hover:text-red-900"><svg fill="currentColor" viewBox="0 0 20 20" class="w-4 h-4"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg></button></div></td></tr><tr class="hover:bg-gray-50 transition-colors"><td class="px-6 py-4 whitespace-nowrap"><div class="flex items-center"><img class="w-10 h-10 rounded-full" src="http://localhost:4200/" alt="Admin Test User"><div class="ml-4"><div class="text-sm font-medium text-gray-900">Admin Test User</div><div class="text-sm text-gray-500">admintest@lms.com</div><!--container--></div></div></td><td class="px-6 py-4 whitespace-nowrap"><span class="px-3 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800"> Quản trị viên </span></td><td class="px-6 py-4 whitespace-nowrap"><span class="px-3 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800"> Hoạt động </span></td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"> 10:59 11/11/2025 </td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><!--container--><!--container--><div>0 lần đăng nhập</div><!--container--></td><td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><div class="flex items-center justify-end space-x-2"><button class="text-indigo-600 hover:text-indigo-900"><svg fill="currentColor" viewBox="0 0 20 20" class="w-4 h-4"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"></path></svg></button><button class="hover:text-red-900 text-red-600"><svg fill="currentColor" viewBox="0 0 20 20" class="w-4 h-4"><path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"></path></svg><!--container--><!--container--></button><button class="text-red-600 hover:text-red-900"><svg fill="currentColor" viewBox="0 0 20 20" class="w-4 h-4"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg></button></div></td></tr><tr class="hover:bg-gray-50 transition-colors"><td class="px-6 py-4 whitespace-nowrap"><div class="flex items-center"><img class="w-10 h-10 rounded-full" src="http://localhost:4200/" alt="System Administrator"><div class="ml-4"><div class="text-sm font-medium text-gray-900">System Administrator</div><div class="text-sm text-gray-500">admin@lms.com</div><!--container--></div></div></td><td class="px-6 py-4 whitespace-nowrap"><span class="px-3 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800"> Quản trị viên </span></td><td class="px-6 py-4 whitespace-nowrap"><span class="px-3 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800"> Hoạt động </span></td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"> 10:59 11/11/2025 </td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><!--container--><!--container--><div>0 lần đăng nhập</div><!--container--></td><td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><div class="flex items-center justify-end space-x-2"><button class="text-indigo-600 hover:text-indigo-900"><svg fill="currentColor" viewBox="0 0 20 20" class="w-4 h-4"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"></path></svg></button><button class="hover:text-red-900 text-red-600"><svg fill="currentColor" viewBox="0 0 20 20" class="w-4 h-4"><path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"></path></svg><!--container--><!--container--></button><button class="text-red-600 hover:text-red-900"><svg fill="currentColor" viewBox="0 0 20 20" class="w-4 h-4"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg></button></div></td></tr><tr class="hover:bg-gray-50 transition-colors"><td class="px-6 py-4 whitespace-nowrap"><div class="flex items-center"><img class="w-10 h-10 rounded-full" src="http://localhost:4200/" alt="Test Administrator"><div class="ml-4"><div class="text-sm font-medium text-gray-900">Test Administrator</div><div class="text-sm text-gray-500">myadmin@lms.com</div><!--container--></div></div></td><td class="px-6 py-4 whitespace-nowrap"><span class="px-3 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800"> Quản trị viên </span></td><td class="px-6 py-4 whitespace-nowrap"><span class="px-3 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800"> Hoạt động </span></td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"> 10:59 11/11/2025 </td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><!--container--><!--container--><div>0 lần đăng nhập</div><!--container--></td><td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><div class="flex items-center justify-end space-x-2"><button class="text-indigo-600 hover:text-indigo-900"><svg fill="currentColor" viewBox="0 0 20 20" class="w-4 h-4"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"></path></svg></button><button class="hover:text-red-900 text-red-600"><svg fill="currentColor" viewBox="0 0 20 20" class="w-4 h-4"><path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"></path></svg><!--container--><!--container--></button><button class="text-red-600 hover:text-red-900"><svg fill="currentColor" viewBox="0 0 20 20" class="w-4 h-4"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg></button></div></td></tr><tr class="hover:bg-gray-50 transition-colors"><td class="px-6 py-4 whitespace-nowrap"><div class="flex items-center"><img class="w-10 h-10 rounded-full" src="http://localhost:4200/" alt="Test Student"><div class="ml-4"><div class="text-sm font-medium text-gray-900">Test Student</div><div class="text-sm text-gray-500">student@gmail.com</div><!--container--></div></div></td><td class="px-6 py-4 whitespace-nowrap"><span class="px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800"> Học viên </span></td><td class="px-6 py-4 whitespace-nowrap"><span class="px-3 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800"> Không hoạt động </span></td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"> 10:59 11/11/2025 </td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><!--container--><div> khóa học</div><div>0&nbsp;₫</div><!--container--><!--container--></td><td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><div class="flex items-center justify-end space-x-2"><button class="text-indigo-600 hover:text-indigo-900"><svg fill="currentColor" viewBox="0 0 20 20" class="w-4 h-4"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"></path></svg></button><button class="hover:text-green-900 text-green-600"><!--container--><svg fill="currentColor" viewBox="0 0 20 20" class="w-4 h-4"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg><!--container--></button><button class="text-red-600 hover:text-red-900"><svg fill="currentColor" viewBox="0 0 20 20" class="w-4 h-4"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg></button></div></td></tr><!--container--></tbody></table></div></div><!--container--></div></div><!--container--><!--container--></app-user-management><!--container--></main></div></div></app-admin-layout-simple><!--container--></app-root>
+  <noscript>
+    <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+      <h1>JavaScript Required</h1>
+      <p>Vui lòng bật JavaScript để sử dụng ứng dụng LMS Maritime.</p>
+      <p>Please enable JavaScript to continue using this application.</p>
+    </div>
+  </noscript>
+<script src="./Quản lý người dùng_files/main.js.download" type="module"></script>
+<link rel="modulepreload" href="http://localhost:4200/chunk-6SEXV5VF.js">
+<link rel="modulepreload" href="http://localhost:4200/chunk-5AECFOOE.js">
+<link rel="modulepreload" href="http://localhost:4200/chunk-H5S54ZX3.js">
+
+
+</body></html>

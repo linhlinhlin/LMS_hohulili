@@ -228,7 +228,7 @@ type LoginForm = {
               }
 
               <!-- Error Message -->
-              @if (authService.error()) {
+              @if (errorMessage()) {
                 <div class="bg-red-50 border border-red-200 rounded-lg p-4 animate-fade-in" role="alert" aria-live="polite">
                   <div class="flex">
                     <div class="flex-shrink-0">
@@ -238,7 +238,7 @@ type LoginForm = {
                     </div>
                     <div class="ml-3">
                       <h3 class="text-sm font-medium text-red-800 mb-1">Đăng nhập thất bại</h3>
-                      <p class="text-sm text-red-700">{{ getErrorMessage(authService.error()!) }}</p>
+                      <p class="text-sm text-red-700">{{ errorMessage() }}</p>
                     </div>
                   </div>
                 </div>
@@ -247,9 +247,9 @@ type LoginForm = {
               <!-- Submit Button -->
               <div>
                 <button type="submit"
-                        [disabled]="loginForm.invalid || authService.isLoading()"
+                        [disabled]="loginForm.invalid || isLoading()"
                         class="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-lg text-base font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:from-gray-400 disabled:to-gray-400 transform hover:scale-[1.02] transition-all duration-200">
-                  @if (authService.isLoading()) {
+                  @if (isLoading()) {
                     <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
                       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -387,6 +387,8 @@ export class LoginComponent {
   showPassword = signal(false);
   showSuccessMessage = signal(false);
   successMessage = signal('');
+  isLoading = signal(false);
+  errorMessage = signal('');
   private returnUrl: string;
 
   constructor() {
@@ -406,13 +408,57 @@ export class LoginComponent {
       return;
     }
 
-    try {
-  const credentials: LoginRequest = this.loginForm.getRawValue();
-      await this.authService.login(credentials);
-      // ✅ Redirect is handled by AuthService
-    } catch (error) {
-      // Error is handled by the service
-    }
+    this.isLoading.set(true);
+    this.errorMessage.set('');
+
+    const formValue = this.loginForm.getRawValue();
+    const credentials: LoginRequest = {
+      email: formValue.email,
+      password: formValue.password
+    };
+
+    this.authService.login(credentials).subscribe({
+      next: (response) => {
+        console.log('✅ Login successful in component:', response);
+        this.isLoading.set(false);
+        
+        // Redirect based on user role
+        const userRole = response.user.role.toLowerCase();
+        console.log('👤 User role:', userRole);
+        
+        let redirectUrl = '/';
+        switch (userRole) {
+          case 'admin':
+            redirectUrl = '/admin';
+            break;
+          case 'teacher':
+            redirectUrl = '/teacher';
+            break;
+          case 'student':
+            redirectUrl = '/student';
+            break;
+          default:
+            redirectUrl = '/';
+        }
+        
+        console.log('🔄 Redirecting to:', redirectUrl);
+        console.log('🔄 Calling router.navigate with:', [redirectUrl]);
+        
+        this.router.navigate([redirectUrl]).then(success => {
+          console.log('🔄 Navigation result:', success);
+          if (!success) {
+            console.error('❌ Navigation failed!');
+          }
+        }).catch(error => {
+          console.error('❌ Navigation error:', error);
+        });
+      },
+      error: (error) => {
+        console.error('❌ Login failed in component:', error);
+        this.isLoading.set(false);
+        this.errorMessage.set(error.error?.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
+      }
+    });
   }
 
   // Allow either a valid email or a simple username (alphanumeric, dots, underscores, hyphens)

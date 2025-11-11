@@ -47,31 +47,31 @@ import { StudentEnrollmentService } from '../../../features/student/services/enr
             <span class="text-sm font-medium text-gray-900" [attr.aria-label]="'Đánh giá ' + (course?.rating || 0) + ' sao'">{{ course?.rating }}</span>
             <span class="text-sm text-gray-500 ml-1" [attr.aria-label]="'Số học viên: ' + (course?.studentsCount || 0)">({{ course?.studentsCount }})</span>
           </div>
-          <div class="text-sm text-gray-500" [attr.aria-label]="'Số bài học: ' + (course?.lessonsCount || 0)">{{ course?.lessonsCount }} bài học</div>
+          <div class="text-sm text-gray-500" [attr.aria-label]="'Số bài học: ' + (course.lessonsCount || 0)">{{ course.lessonsCount }} bài học</div>
         </div>
 
         <div class="flex items-center justify-between">
-          <div class="text-lg font-bold text-gray-900" [attr.aria-label]="'Giá khóa học: ' + (course?.price === 0 ? 'Miễn phí' : ((course?.price || 0) | currency:'VND':'symbol':'1.0-0':'vi'))">
-            {{ course?.price === 0 ? 'Miễn phí' : (course?.price | currency:'VND':'symbol':'1.0-0':'vi') }}
+          <div class="text-lg font-bold text-gray-900" [attr.aria-label]="'Giá khóa học: ' + (course.price === 0 ? 'Miễn phí' : ((course.price || 0) | currency:'VND':'symbol':'1.0-0':'vi'))">
+            {{ course.price === 0 ? 'Miễn phí' : (course.price | currency:'VND':'symbol':'1.0-0':'vi') }}
           </div>
 
           <!-- Enrollment Button for Students -->
            @if (authService.isAuthenticated() && authService.userRole() === 'student') {
              <button
                class="w-full px-4 py-2 rounded-md text-sm font-medium transition-colors"
-               [class.bg-gray-200]="course?.isEnrolled"
-               [class.text-gray-700]="course?.isEnrolled"
-               [class.bg-blue-600]="!course?.isEnrolled"
-               [class.text-white]="!course?.isEnrolled"
-               [class.hover:bg-blue-700]="!course?.isEnrolled"
-               [class.cursor-not-allowed]="course?.isEnrolled"
-               [disabled]="course?.isEnrolled"
-               (click)="!course?.isEnrolled && enrollInCourse(course?.id)">
-               {{ course?.isEnrolled ? 'Đã đăng ký' : 'Đăng ký' }}
+               [class.bg-gray-200]="course.isEnrolled"
+               [class.text-gray-700]="course.isEnrolled"
+               [class.bg-blue-600]="!course.isEnrolled"
+               [class.text-white]="!course.isEnrolled"
+               [class.hover:bg-blue-700]="!course.isEnrolled"
+               [class.cursor-not-allowed]="course.isEnrolled"
+               [disabled]="course.isEnrolled"
+               (click)="!course.isEnrolled && enrollInCourse(course.id)">
+               {{ course.isEnrolled ? 'Đã đăng ký' : 'Đăng ký' }}
              </button>
            } @else {
-            <a [routerLink]="['/courses', course?.id]"
-               [attr.aria-label]="'Xem chi tiết khóa học ' + (course?.title || '')"
+            <a [routerLink]="['/courses', course.id]"
+               [attr.aria-label]="'Xem chi tiết khóa học ' + (course.title || '')"
                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
               Xem chi tiết
             </a>

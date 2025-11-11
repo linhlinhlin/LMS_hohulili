@@ -4,7 +4,6 @@ import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { CourseService } from '../../../state/course.service';
 import { ErrorHandlingService } from '../../../shared/services/error-handling.service';
-import { LoadingComponent } from '../../../shared/components/loading/loading.component';
 import {
   EnrolledCourse,
   Assignment,
@@ -22,7 +21,6 @@ import { StudentEnrollmentService } from '../services/enrollment.service';
   imports: [
     CommonModule,
     RouterModule,
-    LoadingComponent,
     DashboardHeroComponent,
     DashboardQuickActionsComponent,
     DashboardContinueLearningComponent,

@@ -19,7 +19,7 @@ import { EnrolledCourse } from './types';
               <h1 class="text-xl font-semibold text-gray-900">🎓 Student Dashboard</h1>
             </div>
             <div class="flex items-center space-x-4">
-              <span class="text-sm text-gray-600">{{ authService.currentUser()?.name }}</span>
+              <span class="text-sm text-gray-600">{{ authService.currentUser()?.fullName || authService.currentUser()?.name }}</span>
               <button (click)="logout()" 
                       class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                 Logout
@@ -34,7 +34,7 @@ import { EnrolledCourse } from './types';
         <!-- Welcome Section -->
         <div class="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-6 text-white mb-8">
           <h2 class="text-2xl font-bold mb-2">Chào mừng trở lại!</h2>
-          <p class="text-blue-100">Bạn đang học {{ authService.currentUser()?.name }}</p>
+          <p class="text-blue-100">Bạn đang học {{ authService.currentUser()?.fullName || authService.currentUser()?.name }}</p>
         </div>
 
         <!-- Quick Stats -->

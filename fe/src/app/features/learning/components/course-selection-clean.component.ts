@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { ErrorHandlingService } from '../../../shared/services/error-handling.service';
-import { LoadingComponent } from '../../../shared/components/loading/loading.component';
 import { StudentEnrollmentService } from '../../student/services/enrollment.service';
 import { CourseSummary } from '../../../api/types/course.types';
 
@@ -17,7 +16,7 @@ import { CourseSummary } from '../../../api/types/course.types';
  */
 @Component({
   selector: 'app-course-selection',
-  imports: [CommonModule, RouterModule, ReactiveFormsModule, LoadingComponent],
+  imports: [CommonModule, RouterModule, ReactiveFormsModule],
   encapsulation: ViewEncapsulation.None,
   standalone: true,
   template: `
