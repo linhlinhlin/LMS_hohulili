@@ -7,7 +7,7 @@
 
 // Components
 export { StudentLayoutSimpleComponent } from './shared/student-layout-simple.component';
-export { EnhancedStudentDashboardComponent } from './dashboard/enhanced-student-dashboard.component';
+export { StudentDashboardComponent } from './dashboard/student-dashboard.component';
 
 // Routes
 export { studentRoutes } from './student.routes';

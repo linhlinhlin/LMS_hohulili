@@ -8,8 +8,8 @@ export const learningRoutes: Routes = [
   },
   {
     path: 'select',
-    loadComponent: () => import('./components/course-selection-clean.component').then(m => m.CourseSelectionComponent),
-    title: 'Chọn khóa học - LMS Maritime'
+    redirectTo: '/student/my-courses',
+    pathMatch: 'full'
   },
   {
     path: 'course/:id',

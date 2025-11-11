@@ -108,8 +108,8 @@ import { UserRole } from '../../../shared/types/user.types';
               <span class="text-xs font-medium">Dashboard</span>
             </a>
 
-            <!-- Courses -->
-            <a routerLink="/student/courses"
+            <!-- My Courses -->
+            <a routerLink="/student/my-courses"
                routerLinkActive="text-emerald-600"
                class="flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 min-w-0 flex-1">
               <div class="w-6 h-6 mb-1">

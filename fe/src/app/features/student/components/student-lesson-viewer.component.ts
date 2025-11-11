@@ -290,7 +290,7 @@ type LessonAttachment = ApiLessonAttachment;
 
                             <!-- Fallback options -->
                             <div class="border rounded-lg overflow-hidden mt-4">
-                              <div class="bg-red-100 p-3 font-medium text-red-800">❌ Fallback Options</div>
+                              <div class="bg-red-100 p-3 font-medium text-red-800">Fallback Options</div>
                               <div class="p-6 text-center bg-gray-50">
                                 <div class="space-x-3">
                                   <a [href]="attachment.fileUrl" target="_blank"
@@ -442,9 +442,9 @@ export class StudentLessonViewerComponent implements OnInit {
       try {
         const attachmentResponse = await firstValueFrom(this.lessonAttachmentApi.getAttachments(lessonId));
         attachments = attachmentResponse || [];
-        console.log('✅ StudentLessonViewer: Attachments loaded', attachments.length);
+        console.log('[SUCCESS] StudentLessonViewer: Attachments loaded', attachments.length);
       } catch (attachmentError) {
-        console.warn('⚠️ StudentLessonViewer: Could not load attachments', attachmentError);
+        console.warn('[WARNING] StudentLessonViewer: Could not load attachments', attachmentError);
         attachments = [];
       }
 
@@ -465,10 +465,10 @@ export class StudentLessonViewerComponent implements OnInit {
         lastModified: lessonData.updatedAt || lessonData.createdAt
       });
 
-      console.log('✅ StudentLessonViewer: Lesson loaded successfully', this._currentLesson());
+      console.log('[SUCCESS] StudentLessonViewer: Lesson loaded successfully', this._currentLesson());
     } catch (error: any) {
       const errorMessage = error?.message || 'Không thể tải bài học';
-      console.error('❌ StudentLessonViewer: Error loading lesson:', error);
+      console.error('[ERROR] StudentLessonViewer: Error loading lesson:', error);
       this._error.set(errorMessage);
       this.errorService.handleApiError(error, 'lesson-viewer');
     } finally {
@@ -627,7 +627,7 @@ export class StudentLessonViewerComponent implements OnInit {
     if (lesson) {
       const updatedLesson = { ...lesson, isCompleted: true };
       this._currentLesson.set(updatedLesson);
-      console.log('✅ Lesson marked as completed:', lesson.id);
+      console.log('[SUCCESS] Lesson marked as completed:', lesson.id);
       
       // In production, call API to update completion status
       // this.lessonApi.markLessonComplete(lesson.id).subscribe();

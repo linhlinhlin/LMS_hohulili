@@ -9,6 +9,9 @@
 // custom components at https://material.angular.dev/guide/theming
 @use '@angular/material' as mat;
 
+/* Coursera Design Tokens */
+@import 'styles/variables';
+
 html {
   @include mat.theme((
     color: (

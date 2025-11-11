@@ -108,7 +108,7 @@ export class StudentEnrollmentService {
           this._totalCount.set(response.pagination.totalItems || 0);
         }
 
-        console.log('✅ StudentEnrollmentService: Enrolled courses loaded successfully', {
+        console.log('[SUCCESS] StudentEnrollmentService: Enrolled courses loaded successfully', {
           count: enrolledCourses.length,
           pagination: response.pagination
         });
@@ -118,7 +118,7 @@ export class StudentEnrollmentService {
       this._error.set(errorMessage);
       this.errorService.handleApiError(error, 'enrollment');
       
-      console.error('❌ StudentEnrollmentService: Error loading enrolled courses:', error);
+      console.error('[ERROR] StudentEnrollmentService: Error loading enrolled courses:', error);
     } finally {
       this._isLoading.set(false);
     }
@@ -171,7 +171,7 @@ export class StudentEnrollmentService {
       if (response?.data) {
         this._availableCourses.set(response.data);
         
-        console.log('✅ StudentEnrollmentService: Available courses loaded successfully', {
+        console.log('[SUCCESS] StudentEnrollmentService: Available courses loaded successfully', {
           count: response.data.length
         });
       }
@@ -180,7 +180,7 @@ export class StudentEnrollmentService {
       this._error.set(errorMessage);
       this.errorService.handleApiError(error, 'enrollment');
       
-      console.error('❌ StudentEnrollmentService: Error loading available courses:', error);
+      console.error('[ERROR] StudentEnrollmentService: Error loading available courses:', error);
     } finally {
       this._isLoading.set(false);
     }
@@ -203,14 +203,14 @@ export class StudentEnrollmentService {
 
       this.errorService.showSuccess('Đăng ký khóa học thành công!', 'enrollment');
       
-      console.log('✅ StudentEnrollmentService: Successfully enrolled in course:', courseId);
+      console.log('[SUCCESS] StudentEnrollmentService: Successfully enrolled in course:', courseId);
       return true;
     } catch (error: any) {
       const errorMessage = error?.message || 'Không thể đăng ký khóa học';
       this._error.set(errorMessage);
       this.errorService.handleApiError(error, 'enrollment');
       
-      console.error('❌ StudentEnrollmentService: Error enrolling in course:', error);
+      console.error('[ERROR] StudentEnrollmentService: Error enrolling in course:', error);
       return false;
     } finally {
       this._isLoading.set(false);
