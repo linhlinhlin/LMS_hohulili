@@ -3,9 +3,10 @@ spring:
     activate:
       on-profile: dev
   datasource:
-    url: jdbc:postgresql://localhost:5432/lms
-    username: lms
-    password: lms
+    url: jdbc:postgresql://aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres
+    username: postgres.rljldvpboqapokzecfff
+    password: ho_hu_li_li_
+    driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: update
