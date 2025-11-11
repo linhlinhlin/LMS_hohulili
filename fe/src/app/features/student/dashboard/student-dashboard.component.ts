@@ -303,7 +303,8 @@ export class StudentDashboardComponent implements OnInit {
   }
 
   continueCourse(courseId: string): void {
-    this.router.navigate(['/student/learn/course', courseId]);
+    // Navigate to course detail page first (overview)
+    this.router.navigate(['/student/course', courseId]);
   }
 
   editGoal(): void {

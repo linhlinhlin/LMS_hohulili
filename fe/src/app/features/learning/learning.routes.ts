@@ -11,10 +11,22 @@ export const learningRoutes: Routes = [
     redirectTo: '/student/my-courses',
     pathMatch: 'full'
   },
+  // New Learning Interface (Refactored)
+  {
+    path: 'course/:courseId',
+    loadComponent: () => import('./pages/course-learning.component').then(m => m.CourseLearningComponent),
+    title: 'Khóa học - LMS Maritime'
+  },
+  {
+    path: 'course/:courseId/lesson/:lessonId',
+    loadComponent: () => import('./pages/course-learning.component').then(m => m.CourseLearningComponent),
+    title: 'Bài học - LMS Maritime'
+  },
+  // Legacy route for backward compatibility (will be removed later)
   {
     path: 'course/:id',
-    loadComponent: () => import('./components/professional-learning-interface.component').then(m => m.ProfessionalLearningInterfaceComponent),
-    title: 'Khóa học - LMS Maritime'
+    redirectTo: 'course/:id',
+    pathMatch: 'full'
   },
   {
     path: 'planner',

@@ -1,0 +1,393 @@
+<div class="learning-interface">
+  <!-- Professional Learning Interface -->
+  <div class="learning-container">
+    <!-- Left Navigation Sidebar -->
+    <aside class="sidebar" role="complementary" aria-label="Danh sách bài học">
+      <!-- Course Header -->
+      <div class="sidebar-header">
+        <div class="course-info">
+          <h2 class="course-title">{{ course().title }}</h2>
+          <p class="course-instructor">{{ course().instructor }}</p>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-section">
+          <div class="progress-label">
+            <span class="progress-text">Tiến độ</span>
+            <span class="progress-value">{{ course().progress }}%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" [style.width.%]="course().progress"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation Search -->
+      <div class="sidebar-search">
+        <div class="search-input-wrapper">
+          <input 
+            type="text"
+            placeholder="Tìm kiếm bài học..."
+            class="search-input"
+            [(ngModel)]="searchQuery"
+            (input)="filterLessons()"
+            aria-label="Tìm kiếm bài học">
+          <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Lessons Navigation -->
+      <div class="lessons-list">
+        <h3 class="lessons-heading" id="lessons-heading">Danh sách bài học</h3>
+        <nav aria-labelledby="lessons-heading" role="navigation">
+          <ul class="lessons-nav" role="list">
+            @for (lesson of filteredLessons(); track lesson.id; let i = $index) {
+              <li role="listitem">
+                <button 
+                  (click)="selectLesson(lesson)"
+                  [class]="getLessonButtonClass(lesson)"
+                  [attr.aria-current]="isCurrentLesson(lesson) ? 'true' : null"
+                  [attr.aria-label]="'Bài học ' + (i + 1) + ': ' + lesson.title + (lesson.isCompleted ? ' - Đã hoàn thành' : '')"
+                  class="lesson-button">
+                  <div class="lesson-content">
+                    <!-- Lesson Number -->
+                    <div class="lesson-number" [class]="getLessonNumberClass(lesson)">
+                      {{ i + 1 }}
+                    </div>
+
+                    <!-- Lesson Info -->
+                    <div class="lesson-info">
+                      <h4 class="lesson-title">{{ lesson.title }}</h4>
+                      <p class="lesson-duration">{{ formatDuration(lesson.duration) }}</p>
+                    </div>
+
+                    <!-- Status Indicators -->
+                    <div class="lesson-status">
+                      @if (lesson.isCompleted) {
+                        <svg class="status-icon completed" fill="currentColor" viewBox="0 0 20 20">
+                          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                      } @else if (lesson.watchedDuration > 0) {
+                        <div class="status-icon in-progress">
+                          <div class="progress-dot"></div>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                </button>
+              </li>
+            }
+          </ul>
+        </nav>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content" role="main">
+      <!-- Top Navigation Header -->
+      <header class="content-header">
+        <div class="header-content">
+          <!-- Breadcrumb and Title -->
+          <div class="breadcrumb-section">
+            <button 
+              (click)="goBack()"
+              class="back-button"
+              aria-label="Quay lại">
+              <svg class="back-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+              </svg>
+            </button>
+
+            <nav class="breadcrumb" aria-label="Breadcrumb">
+              <a [routerLink]="getBreadcrumbLink()" class="breadcrumb-link">Học tập</a>
+              <svg class="breadcrumb-separator" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+              </svg>
+              <span class="breadcrumb-current">{{ course().title }}</span>
+              @if (currentLesson()) {
+                <svg class="breadcrumb-separator" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                </svg>
+                <span class="breadcrumb-lesson">{{ currentLesson()!.title }}</span>
+              }
+            </nav>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="header-actions">
+            @if (isStudent()) {
+              <button 
+                (click)="enrollCurrentCourse()" 
+                class="btn-enroll"
+                [disabled]="enrolling()">
+                {{ enrolling() ? 'Đang đăng ký...' : 'Đăng ký khóa học' }}
+              </button>
+            }
+          </div>
+        </div>
+      </header>
+
+      <!-- Content Area -->
+      <div class="content-body">
+        @if (isLoadingCourse()) {
+          <!-- Loading Course State -->
+          <div class="loading-state">
+            <div class="loading-spinner"></div>
+            <p class="loading-text">Đang tải khóa học...</p>
+          </div>
+        } @else if (accessDenied()) {
+          <!-- Access Denied / Not Enrolled State -->
+          <div class="access-denied">
+            <div class="access-denied-card">
+              <h2 class="access-denied-title">Bạn chưa có quyền truy cập nội dung khóa học</h2>
+              <p class="access-denied-message">
+                @if (isStudent()) {
+                  Bạn chưa đăng ký khóa học này. Hãy đăng ký để mở khóa tất cả bài học và video.
+                } @else if (isTeacher()) {
+                  Bạn đang đăng nhập với vai trò Giảng viên. Bạn chưa được ghi danh như học viên cho khóa học này.
+                } @else if (isAdmin()) {
+                  Bạn đang đăng nhập với vai trò Quản trị. Chỉ học viên đã đăng ký mới có thể xem nội dung học.
+                } @else {
+                  Có thể bạn chưa đăng ký khóa học này. Hãy đăng ký để mở khóa tất cả bài học và video.
+                }
+              </p>
+              <div class="access-denied-actions">
+                @if (isStudent()) {
+                  <button 
+                    (click)="enrollCurrentCourse()" 
+                    [disabled]="enrolling()"
+                    class="btn-primary">
+                    {{ enrolling() ? 'Đang đăng ký...' : 'Đăng ký khóa học' }}
+                  </button>
+                }
+                <button (click)="loadCourse(course().id)" class="btn-secondary">
+                  Thử tải lại
+                </button>
+              </div>
+            </div>
+          </div>
+        } @else if (isLoadingLesson()) {
+          <!-- Loading Lesson State -->
+          <div class="loading-state">
+            <div class="loading-spinner"></div>
+            <p class="loading-text">Đang tải bài học...</p>
+          </div>
+        } @else if (currentLesson()) {
+          <!-- Lesson Content -->
+          <div class="lesson-content">
+            <!-- Lesson Title -->
+            <div class="lesson-header">
+              <h1 class="lesson-title-main">{{ currentLesson()!.title }}</h1>
+            </div>
+
+            <!-- Video Player Section -->
+            @if (currentLesson()?.videoUrl && (currentLesson()?.videoUrl + '').trim() !== '') {
+              <div class="video-section">
+                <h2 class="section-title">Video bài học</h2>
+                @if (isYouTube(currentLesson()?.videoUrl)) {
+                  <div class="video-wrapper">
+                    <iframe 
+                      class="video-iframe" 
+                      [src]="getSafeYouTubeEmbedUrl(currentLesson()?.videoUrl)" 
+                      frameborder="0" 
+                      allowfullscreen>
+                    </iframe>
+                  </div>
+                } @else {
+                  <video class="video-player" controls [src]="currentLesson()?.videoUrl"></video>
+                }
+              </div>
+            }
+
+            <!-- Interactive Content Section -->
+            <div class="content-section">
+              <h2 class="section-title">Nội dung bài học</h2>
+              <div class="content-body-text">
+                @if (currentLesson()?.content) {
+                  <div [innerHTML]="currentLesson()?.content" class="lesson-text"></div>
+                } @else if (currentLesson()?.description) {
+                  <p class="lesson-text">{{ currentLesson()?.description }}</p>
+                } @else {
+                  <p class="no-content">Không có nội dung cho bài học này.</p>
+                }
+              </div>
+            </div>
+
+            <!-- File Attachments Section -->
+            @if (currentLesson()?.attachments && currentLesson()?.attachments!.length > 0) {
+              <div class="attachments-section">
+                <h2 class="section-title">Tài liệu đính kèm ({{ currentLesson()?.attachments!.length }})</h2>
+                <div class="attachments-list">
+                  @for (attachment of currentLesson()?.attachments; track attachment.id; let i = $index) {
+                    <div class="attachment-card">
+                      <!-- Attachment Header -->
+                      <div class="attachment-header">
+                        <div class="attachment-info">
+                          <div class="file-type-badge" [class]="getFileTypeClass(attachment.originalFileName)">
+                            {{ getFileExtension(attachment.originalFileName) }}
+                          </div>
+                          <div class="file-details">
+                            <div class="file-name">{{ attachment.originalFileName }}</div>
+                            <div class="file-meta">{{ formatFileSize(attachment.fileSize) }} • {{ attachment.fileType }}</div>
+                          </div>
+                        </div>
+                        <div class="attachment-actions">
+                          @if (isPdfFile(attachment.originalFileName)) {
+                            <button 
+                              (click)="toggleAttachmentViewer(i)"
+                              class="btn-view btn-pdf">
+                              {{ expandedAttachment === i ? 'Thu gọn' : 'Xem PDF' }}
+                            </button>
+                          }
+                          @if (isPresentationFile(attachment.originalFileName)) {
+                            <button 
+                              (click)="toggleAttachmentViewer(i)"
+                              class="btn-view btn-presentation">
+                              {{ expandedAttachment === i ? 'Thu gọn' : 'Xem slide' }}
+                            </button>
+                          }
+                          <a [href]="attachment.fileUrl" target="_blank" class="btn-download">
+                            Tải về
+                          </a>
+                        </div>
+                      </div>
+                      
+                      <!-- Inline File Viewer -->
+                      @if (expandedAttachment === i) {
+                        <div class="attachment-viewer">
+                          <!-- PDF Viewer -->
+                          @if (isPdfFile(attachment.originalFileName)) {
+                            <div class="pdf-viewer">
+                              <iframe 
+                                [src]="getSafeUrl(attachment.fileUrl)"
+                                class="file-iframe"
+                                frameborder="0">
+                                <p>Trình duyệt không hỗ trợ xem PDF. <a [href]="attachment.fileUrl" target="_blank">Tải về để xem</a></p>
+                              </iframe>
+                              <div class="viewer-controls">
+                                <div class="viewer-info">
+                                  <span class="viewer-label">Xem trước PDF:</span> {{ attachment.originalFileName }}
+                                </div>
+                                <div class="viewer-actions">
+                                  <a [href]="attachment.fileUrl" target="_blank" class="btn-control btn-open">
+                                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                                    </svg>
+                                    Mở tab mới
+                                  </a>
+                                  <a [href]="attachment.fileUrl" download class="btn-control btn-download-alt">
+                                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                    Tải xuống
+                                  </a>
+                                </div>
+                              </div>
+                            </div>
+                          }
+                          
+                          <!-- Office Document Viewer -->
+                          @if (isOfficeFile(attachment.originalFileName)) {
+                            <div class="office-viewer">
+                              <iframe 
+                                [src]="getOfficeViewerUrl(attachment.fileUrl)" 
+                                class="file-iframe"
+                                frameborder="0">
+                              </iframe>
+                            </div>
+                          }
+                          
+                          <!-- Image Viewer -->
+                          @if (isImageFile(attachment.originalFileName)) {
+                            <div class="image-viewer">
+                              <img [src]="attachment.fileUrl" [alt]="attachment.originalFileName" class="preview-image">
+                            </div>
+                          }
+                          
+                          <!-- Video Player -->
+                          @if (isVideoFile(attachment.originalFileName)) {
+                            <div class="video-viewer">
+                              <video controls class="preview-video">
+                                <source [src]="attachment.fileUrl" [type]="getVideoMimeType(attachment.originalFileName)">
+                                Trình duyệt không hỗ trợ video này.
+                              </video>
+                            </div>
+                          }
+                          
+                          <!-- Audio Player -->
+                          @if (isAudioFile(attachment.originalFileName)) {
+                            <div class="audio-viewer">
+                              <audio controls class="preview-audio">
+                                <source [src]="attachment.fileUrl" [type]="getAudioMimeType(attachment.originalFileName)">
+                                Trình duyệt không hỗ trợ audio này.
+                              </audio>
+                            </div>
+                          }
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+
+            <!-- Lesson Actions -->
+            <div class="lesson-actions">
+              <button 
+                (click)="previousLesson()"
+                [disabled]="isFirstLesson()"
+                class="btn-nav btn-previous">
+                <svg class="nav-icon" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                </svg>
+                <span>Bài trước</span>
+              </button>
+
+              <button 
+                (click)="markAsComplete()"
+                [class.completed]="currentLesson()!.isCompleted"
+                class="btn-complete">
+                @if (currentLesson()!.isCompleted) {
+                  <svg class="complete-icon" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                  </svg>
+                  Đã hoàn thành
+                } @else {
+                  Đánh dấu hoàn thành
+                }
+              </button>
+
+              <button 
+                (click)="nextLesson()"
+                [disabled]="isLastLesson()"
+                class="btn-nav btn-next">
+                <span>Bài tiếp</span>
+                <svg class="nav-icon" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+        } @else {
+          <!-- No Lesson Selected -->
+          <div class="no-lesson">
+            <div class="no-lesson-content">
+              <div class="no-lesson-icon">
+                <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                </svg>
+              </div>
+              <h3 class="no-lesson-title">Chọn bài học để bắt đầu</h3>
+              <p class="no-lesson-text">Hãy chọn một bài học từ danh sách bên trái để bắt đầu học tập.</p>
+              <button (click)="selectFirstLesson()" class="btn-start">
+                Bắt đầu từ bài đầu tiên
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    </main>
+  </div>
+</div>

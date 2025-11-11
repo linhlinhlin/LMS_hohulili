@@ -97,7 +97,10 @@ Kế hoạch **UI/UX improvements only** theo Coursera design pattern. **KHÔNG 
   - **Template changes only**
   - _Requirements: 2.4, 12.1_
 
-- [ ] 3. Improve Learning Interface UI/UX
+- [x] 3. Improve Learning Interface UI/UX
+
+
+
   - Better typography và spacing
   - Improved lesson list styling
   - Coursera-style buttons
@@ -105,22 +108,29 @@ Kế hoạch **UI/UX improvements only** theo Coursera design pattern. **KHÔNG 
   - **UI/UX only - keep existing video player and logic**
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
 
+
+
 - [ ] 3.1 Improve Layout Styling
   - Better visual hierarchy (headings, spacing)
   - Cleaner lesson list với completion indicators (✓)
   - Collapsible sidebar với smooth transition
   - **CSS/SCSS only - no structural changes**
+
   - _Requirements: 3.1, 3.2_
 
 - [ ] 3.2 Keep Existing Video Player
   - **NO CHANGES** to video player
   - Use existing HTML5 video
   - Keep existing controls
+
   - **This task is just a reminder - no work needed**
+
   - _Requirements: 3.3_
 
 - [ ] 3.3 Improve Navigation Buttons
   - Redesign buttons: Previous, Mark Complete, Next
+
+
   - Coursera button style (blue primary)
   - Better disabled states
   - **UI only - keep existing click handlers**

@@ -42,6 +42,13 @@ export const studentRoutes: Routes = [
         title: 'Khóa học của tôi'
       },
       
+      // Course Detail - Chi tiết khóa học
+      {
+        path: 'course/:id',
+        loadComponent: () => import('./pages/course-detail.component').then(m => m.CourseDetailComponent),
+        title: 'Chi tiết khóa học'
+      },
+      
       // Assignment Routes
       {
         path: 'assignments',

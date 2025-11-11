@@ -1,0 +1,223 @@
+<div class="course-detail">
+  @if (isLoading()) {
+    <!-- Loading State -->
+    <div class="loading-container">
+      <div class="loading-spinner"></div>
+      <p class="loading-text">Đang tải khóa học...</p>
+    </div>
+  } @else if (course()) {
+    <!-- Course Header -->
+    <header class="course-header">
+      <div class="header-content">
+        <!-- Breadcrumb Navigation -->
+        <nav class="breadcrumb-nav" aria-label="Breadcrumb">
+          <ol class="breadcrumb-list">
+            <li class="breadcrumb-item">
+              <a [routerLink]="['/student/dashboard']" class="breadcrumb-link">
+                <svg class="breadcrumb-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                </svg>
+                <span>Dashboard</span>
+              </a>
+            </li>
+            <li class="breadcrumb-separator">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+              </svg>
+            </li>
+            <li class="breadcrumb-item">
+              <a [routerLink]="['/student/my-courses']" class="breadcrumb-link">
+                <span>Khóa học của tôi</span>
+              </a>
+            </li>
+            <li class="breadcrumb-separator">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+              </svg>
+            </li>
+            <li class="breadcrumb-item breadcrumb-current">
+              <span>{{ course()!.title }}</span>
+            </li>
+          </ol>
+        </nav>
+
+        <div class="course-info">
+          <h1 class="course-title">{{ course()!.title }}</h1>
+          <p class="course-instructor">{{ course()!.teacherName }}</p>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="course-content">
+      <!-- Left Column: Course Overview -->
+      <div class="overview-column">
+        <!-- Course Description -->
+        <section class="description-card">
+          <h2 class="section-title">Giới thiệu khóa học</h2>
+          <div class="description-content">
+            <p class="description-text" [class.expanded]="isDescriptionExpanded()">
+              {{ course()!.description }}
+            </p>
+            @if (course()!.description && course()!.description.length > 200) {
+              <button (click)="toggleDescription()" class="toggle-description-btn">
+                @if (isDescriptionExpanded()) {
+                  <span>Thu gọn</span>
+                  <svg class="toggle-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
+                  </svg>
+                } @else {
+                  <span>Đọc thêm</span>
+                  <svg class="toggle-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                }
+              </button>
+            }
+          </div>
+        </section>
+
+        <!-- Course Stats -->
+        <section class="stats-card">
+          <h2 class="section-title">Thông tin khóa học</h2>
+          <div class="stats-grid">
+            <div class="stat-item">
+              <svg class="stat-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+              </svg>
+              <div class="stat-content">
+                <span class="stat-label">Số chương</span>
+                <span class="stat-value">{{ course()!.sectionsCount }}</span>
+              </div>
+            </div>
+
+            <div class="stat-item">
+              <svg class="stat-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+              </svg>
+              <div class="stat-content">
+                <span class="stat-label">Số bài học</span>
+                <span class="stat-value">{{ totalLessons() }}</span>
+              </div>
+            </div>
+
+            <div class="stat-item">
+              <svg class="stat-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <div class="stat-content">
+                <span class="stat-label">Thời lượng</span>
+                <span class="stat-value">{{ formatDuration(totalDuration()) }}</span>
+              </div>
+            </div>
+
+            <div class="stat-item">
+              <svg class="stat-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+              </svg>
+              <div class="stat-content">
+                <span class="stat-label">Học viên</span>
+                <span class="stat-value">{{ course()!.enrolledCount }}</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Progress Card -->
+        <section class="progress-card">
+          <h2 class="section-title">Tiến độ học tập</h2>
+          <div class="progress-content">
+            <div class="progress-stats">
+              <span class="progress-label">Hoàn thành</span>
+              <span class="progress-value">{{ progressPercentage() }}%</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" [style.width.%]="progressPercentage()"></div>
+            </div>
+            <p class="progress-detail">
+              {{ completedLessons() }} / {{ totalLessons() }} bài học đã hoàn thành
+            </p>
+          </div>
+
+          <div class="action-buttons">
+            @if (progressPercentage() > 0) {
+              <button (click)="resumeLearning()" class="btn-primary">
+                <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Tiếp tục học
+              </button>
+            } @else {
+              <button (click)="startLearning()" class="btn-primary">
+                <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Bắt đầu học
+              </button>
+            }
+          </div>
+        </section>
+      </div>
+
+      <!-- Right Column: Course Content -->
+      <div class="content-column">
+        <section class="content-card">
+          <h2 class="section-title">Nội dung khóa học</h2>
+          
+          <div class="sections-list">
+            @for (section of sections(); track section.id; let sectionIndex = $index) {
+              <div class="section-item">
+                <!-- Section Header -->
+                <button 
+                  (click)="toggleSection(section.id)"
+                  class="section-header"
+                  [class.expanded]="isSectionExpanded(section.id)">
+                  <div class="section-info">
+                    <span class="section-number">Chương {{ sectionIndex + 1 }}</span>
+                    <h3 class="section-name">{{ section.title }}</h3>
+                  </div>
+                  <div class="section-meta">
+                    <span class="lesson-count">{{ section.lessons.length }} bài học</span>
+                    <svg class="chevron-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                  </div>
+                </button>
+
+                <!-- Lessons List -->
+                @if (isSectionExpanded(section.id)) {
+                  <div class="lessons-list">
+                    @for (lesson of section.lessons; track lesson.id; let lessonIndex = $index) {
+                      <button 
+                        (click)="goToLesson(lesson.id)"
+                        class="lesson-item"
+                        [class.completed]="lesson.isCompleted">
+                        <div class="lesson-status">
+                          @if (lesson.isCompleted) {
+                            <svg class="status-icon completed" fill="currentColor" viewBox="0 0 20 20">
+                              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                          } @else {
+                            <div class="status-icon pending"></div>
+                          }
+                        </div>
+                        <div class="lesson-content">
+                          <span class="lesson-title">{{ lesson.title }}</span>
+                          @if (lesson.durationMinutes) {
+                            <span class="lesson-duration">{{ lesson.durationMinutes }} phút</span>
+                          }
+                        </div>
+                      </button>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </section>
+      </div>
+    </div>
+  }
+</div>

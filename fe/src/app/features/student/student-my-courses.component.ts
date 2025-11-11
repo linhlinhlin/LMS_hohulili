@@ -115,7 +115,7 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
                   </div>
 
                   <h3 class="course-title">
-                    <a [routerLink]="['/student/learn/course', course.id]">
+                    <a [routerLink]="['/student/course', course.id]">
                       {{ course.title }}
                     </a>
                   </h3>
@@ -164,7 +164,7 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
                             <div class="lessons-list">
                               @for (lesson of module.lessons; track lesson.id) {
                                 <a 
-                                  [routerLink]="['/student/learn/course', course.id]"
+                                  [routerLink]="['/student/course', course.id]"
                                   class="lesson-item"
                                   [class.completed]="lesson.completed">
                                   <span class="lesson-title">{{ lesson.title }}</span>
@@ -940,7 +940,8 @@ export class StudentMyCoursesComponent implements OnInit {
   }
 
   resumeCourse(courseId: string): void {
-    this.router.navigate(['/student/learn/course', courseId]);
+    // Navigate to course detail page first (overview)
+    this.router.navigate(['/student/course', courseId]);
   }
 
   onSortChange(event: Event): void {

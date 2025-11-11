@@ -86,9 +86,7 @@ import { UserRole } from '../../../shared/types/user.types';
 
         <!-- Page content with modern spacing -->
         <main class="flex-1 overflow-auto bg-transparent">
-          <div class="py-6 px-4 sm:px-6 lg:px-8">
-            <router-outlet></router-outlet>
-          </div>
+          <router-outlet></router-outlet>
         </main>
 
         <!-- Mobile Bottom Navigation Bar - Like Udemy/Coursera -->
@@ -207,15 +205,17 @@ export class StudentLayoutSimpleComponent implements OnInit, OnDestroy {
 
   private handleRouteChange(url: string) {
     const isInLearningInterface = url.includes('/student/learn/course/');
+    const isInCourseDetail = url.match(/\/student\/course\/[^\/]+$/); // Match /student/course/:id but not /student/courses
+    const shouldHide = isInLearningInterface || isInCourseDetail;
     const isCurrentlyHidden = this.sidebarHidden();
 
-    // Auto-hide sidebar when entering learning interface
-    if (isInLearningInterface && !isCurrentlyHidden) {
+    // Auto-hide sidebar when entering learning interface or course detail
+    if (shouldHide && !isCurrentlyHidden) {
       this.sidebarHidden.set(true);
       this.saveSidebarState(true);
     }
-    // Auto-show sidebar when leaving learning interface
-    else if (!isInLearningInterface && isCurrentlyHidden) {
+    // Auto-show sidebar when leaving learning interface and course detail
+    else if (!shouldHide && isCurrentlyHidden) {
       this.sidebarHidden.set(false);
       this.saveSidebarState(false);
     }
