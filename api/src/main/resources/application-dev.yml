@@ -7,16 +7,21 @@ spring:
     username: postgres.rljldvpboqapokzecfff
     password: ho_hu_li_li_
     driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 2
+      minimum-idle: 1
+      connection-timeout: 20000
+      idle-timeout: 300000
   jpa:
     hibernate:
-      ddl-auto: update  # Keep existing data
+      ddl-auto: update
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
     open-in-view: true
   flyway:
-    enabled: false  # Disable Flyway for dev to avoid migration issues
+    enabled: false
 
 server:
-  port: 8088
+  port: 8089

@@ -74,72 +74,68 @@ import { MegaMenuComponent } from './mega-menu/mega-menu.component';
         </div>
       </div>
 
-      <!-- Bottom Header - Main Maritime Deck - Shrinks on scroll -->
-      <div class="bg-white transition-all duration-300"
-           [class.-mt-12]="isScrolled()">
-        <div class="max-w-7xl mx-auto px-8">
+      <!-- Bottom Header - Main Maritime Deck - Full-width in both modes for consistency -->
+      <div class="bg-white transition-all duration-300 w-full"
+           [class.-mt-8]="isScrolled()"
+           [class.shadow-lg]="isScrolled()">
+        <div class="px-8 max-w-7xl mx-auto">
           <!-- Desktop Layout - All items in one row -->
           <div class="hidden lg:flex items-center justify-between transition-all duration-300"
                [class.h-20]="!isScrolled()"
-               [class.h-16]="isScrolled()">
+               [class.h-19]="isScrolled()"
+               [class.py-4]="!isScrolled()"
+               [class.py-3]="isScrolled()">
           
-            <!-- Left: Logo - Shrinks on scroll -->
-            <div class="flex-shrink-0">
-              <a routerLink="/" class="flex items-center group">
-                <div class="bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center mr-3 transition-all duration-300"
-                     [class.w-14]="!isScrolled()"
-                     [class.h-14]="!isScrolled()"
-                     [class.w-10]="isScrolled()"
-                     [class.h-10]="isScrolled()">
-                    <!-- Compass Background Circle -->
-                    <div class="absolute inset-2 bg-white/10 rounded-full pointer-events-none"></div>
-                    
-                    <!-- Compass Needle -->
-                    <div class="relative w-8 h-8 pointer-events-none">
-                      <!-- North Pointer -->
-                      <div class="absolute top-0 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-2 border-r-2 border-b-4 border-transparent border-b-white"></div>
-                      <!-- South Pointer -->
-                      <div class="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-2 border-r-2 border-t-4 border-transparent border-t-white/60"></div>
-                      <!-- Center Dot -->
-                      <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-1 h-1 bg-white rounded-full"></div>
-                    </div>
-                    
-                    <!-- Wave Decorations -->
-                    <div class="wave-decoration absolute -bottom-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full opacity-80 pointer-events-none"></div>
-                    <div class="absolute -top-1 -left-1 w-2 h-2 bg-yellow-300 rounded-full opacity-60 pointer-events-none"></div>
-                    
-                    <!-- Subtle border -->
-                    <div class="absolute inset-0 border-2 border-white/20 rounded-full pointer-events-none"></div>
-                  </div>
-                
-                <span class="font-bold text-gray-900 group-hover:text-blue-600 transition-all duration-300"
-                      [class.text-xl]="!isScrolled()"
-                      [class.text-lg]="isScrolled()">
-                  LMS Maritime
-                </span>
-              </a>
+            <!-- Left: Logo + Navigation -->
+            <div class="flex items-center space-x-8">
+              <!-- Logo -->
+              <div class="flex-shrink-0">
+                <a routerLink="/" class="flex items-center group">
+                  <!-- Professional Logo -->
+                  <img
+                    src="/images/homepage/Logo-truong.png"
+                    alt="LMS Maritime Logo"
+                    class="mr-3 transition-all duration-300 object-contain"
+                    [class.w-14]="!isScrolled()"
+                    [class.h-14]="!isScrolled()"
+                    [class.w-10]="isScrolled()"
+                    [class.h-10]="isScrolled()">
+
+                  <span class="font-bold text-gray-900 group-hover:text-blue-600 transition-all duration-300"
+                        [class.text-xl]="!isScrolled()"
+                        [class.text-lg]="isScrolled()">
+                    LMS Maritime
+                  </span>
+                </a>
+              </div>
+
+              <!-- Navigation - Mega Menu -->
+              <nav class="flex items-center">
+                <app-mega-menu></app-mega-menu>
+              </nav>
             </div>
 
-            <!-- Center: Search Box - MAIN FOCUS (Udemy/Coursera Style) -->
-            <div class="flex-1 max-w-4xl mx-8 transition-all duration-300"
-                 [class.max-w-3xl]="isScrolled()">
+            <!-- Center: Search Box - MAIN FOCUS - Full width with min-width -->
+            <div class="flex-1 px-8 transition-all duration-300"
+                 [class]="isScrolled() ? 'max-w-none' : ''"
+                 style="min-width: 480px;">
               <div class="search-lighthouse relative">
                 <!-- Search Input -->
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   placeholder="Bạn muốn học gì hôm nay?"
                   [(ngModel)]="searchQuery"
                   (input)="onSearch($event)"
                   (focus)="onSearchFocus()"
                   (blur)="onSearchBlur()"
                   [class]="getSearchInputClass()"
-                  class="search-input w-full h-14 pl-16 pr-6 text-lg border-2 border-gray-300 rounded-3xl focus:outline-none focus:border-yellow-400 focus:shadow-lg focus:shadow-yellow-100 bg-gray-50 focus:bg-white transition-all duration-300 shadow-sm">
-                
-                <!-- Search Icon - Lighthouse -->
-                <div class="absolute left-5 top-1/2 transform -translate-y-1/2">
-                  <svg class="search-icon w-6 h-6 text-gray-400 transition-all duration-300" 
-                       [class]="isSearchFocused() ? 'focused text-yellow-500' : 'text-gray-400'"
-                       fill="currentColor" viewBox="0 0 20 20">
+                  class="search-input w-full h-14 pl-6 pr-16 text-lg border-2 border-gray-300 rounded-3xl focus:outline-none focus:border-yellow-400 focus:shadow-lg focus:shadow-yellow-100 bg-gray-50 focus:bg-white transition-all duration-300 shadow-sm">
+
+                <!-- Search Icon - Moved to right edge -->
+                <div class="absolute right-5 top-1/2 transform -translate-y-1/2">
+                  <svg class="search-icon w-6 h-6 text-gray-400 transition-all duration-300"
+                        [class]="isSearchFocused() ? 'focused text-yellow-500' : 'text-gray-400'"
+                        fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"></path>
                   </svg>
                 </div>
@@ -200,39 +196,16 @@ import { MegaMenuComponent } from './mega-menu/mega-menu.component';
               </div>
             </div>
 
-            <!-- Right: Navigation & Auth -->
-            <div class="flex items-center space-x-6">
-              <!-- Navigation Links -->
-              <nav class="hidden lg:flex items-center space-x-6">
-                <a routerLink="/" routerLinkActive="text-blue-600" 
-                   class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">
-                  Trang chủ
-                </a>
-                
-                <!-- Mega Menu for Courses -->
-                <app-mega-menu></app-mega-menu>
-                
-                <a routerLink="/about" routerLinkActive="text-blue-600"
-                   class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">
-                  Giới thiệu
-                </a>
-                <a routerLink="/contact" routerLinkActive="text-blue-600"
-                   class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">
-                  Liên hệ
-                </a>
-              </nav>
-
-              <!-- Auth Buttons -->
-              <div class="flex items-center space-x-3">
-                <a routerLink="/auth/login" 
-                   class="text-gray-700 hover:text-blue-600 px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200">
-                  Đăng nhập
-                </a>
-                <a routerLink="/auth/register" 
-                   class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md text-sm font-semibold transition-all duration-200 hover:shadow-md">
-                  Tham gia miễn phí
-                </a>
-              </div>
+            <!-- Right: Auth Buttons Only -->
+            <div class="flex items-center space-x-3">
+              <a routerLink="/auth/login"
+                 class="text-gray-700 hover:text-blue-600 px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200">
+                Đăng nhập
+              </a>
+              <a routerLink="/auth/register"
+                 class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md text-sm font-semibold transition-all duration-200 hover:shadow-md">
+                Tham gia miễn phí
+              </a>
             </div>
           </div>
 
@@ -268,13 +241,13 @@ import { MegaMenuComponent } from './mega-menu/mega-menu.component';
             <div class="pb-4">
               <div class="search-lighthouse relative">
                 <!-- Search Input -->
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   placeholder="Bạn muốn học gì hôm nay?"
                   [(ngModel)]="searchQuery"
                   (input)="onSearch($event)"
-                  class="w-full h-12 pl-12 pr-4 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent bg-gray-50 focus:bg-white transition-all duration-200">
-                <svg class="absolute left-4 top-3.5 w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                  class="w-full h-12 pl-4 pr-12 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent bg-gray-50 focus:bg-white transition-all duration-200">
+                <svg class="absolute right-4 top-3.5 w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"></path>
                 </svg>
               </div>

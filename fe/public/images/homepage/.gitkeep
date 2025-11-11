@@ -1,0 +1,6 @@
+# Homepage Images
+
+This directory should contain:
+- Logo-truong.png: Main LMS Maritime logo (recommended size: 56x56px for normal, 40x40px for scrolled state)
+
+Note: The PublicHeaderComponent will fallback to a compass icon if the logo image is not found.
