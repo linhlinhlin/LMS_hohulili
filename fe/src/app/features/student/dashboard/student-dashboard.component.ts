@@ -1,7 +1,8 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { StudentEnrollmentService } from '../services/enrollment.service';
 import { IconComponent } from '../../../shared/components/ui/icon/icon.component';
 import { ButtonComponent } from '../../../shared/components/ui/button/button.component';
 import { CardComponent } from '../../../shared/components/ui/card/card.component';
@@ -64,21 +65,58 @@ interface Course {
   templateUrl: './student-dashboard.component.html',
   styleUrl: './student-dashboard.component.scss'
 })
-export class StudentDashboardComponent {
+export class StudentDashboardComponent implements OnInit {
   protected authService = inject(AuthService);
   private router = inject(Router);
+  private enrollmentService = inject(StudentEnrollmentService);
 
   // State
   careerGoal = signal<string>('Chuyên gia Hàng hải');
   todayGoalProgress = signal<number>(1);
   learningStreak = signal<number>(3);
   completedGoals = signal<number>(12);
-  inProgressCount = signal<number>(3);
   totalStudyTime = signal<number>(24);
   activeTab = signal<'in-progress' | 'completed'>('in-progress');
+  
+  // Loading state
+  isLoading = this.enrollmentService.isLoading;
+  
+  // Get enrolled courses from service
+  enrolledCourses = this.enrollmentService.enrolledCourses;
+  
+  // Track which courses have modules expanded
+  private expandedModules = signal<Set<string>>(new Set());
+  
+  ngOnInit(): void {
+    // Load enrolled courses on component init
+    this.enrollmentService.loadEnrolledCourses(1, 20); // Load first 20 courses
+  }
 
-  // Mock courses data with modules
-  courses = signal<Course[]>([
+  // Map enrolled courses to dashboard course format with modules
+  courses = computed(() => {
+    const expanded = this.expandedModules();
+    return this.enrolledCourses().map(course => ({
+      id: course.id,
+      title: course.title,
+      instructor: typeof course.instructor === 'string' ? course.instructor : course.instructor.name,
+      partner: 'LMS Maritime',
+      progress: course.progress,
+      completedLessons: course.completedLessons,
+      totalLessons: course.totalLessons,
+      status: course.status as 'in-progress' | 'completed',
+      estimatedCompletion: course.status === 'completed' ? 'Completed' : 'Đang học',
+      showModules: expanded.has(course.id),
+      nextItem: {
+        title: course.status === 'completed' ? 'Khóa học đã hoàn thành' : 'Tiếp tục học',
+        type: course.status === 'completed' ? 'Certificate' : 'Video',
+        duration: course.status === 'completed' ? '' : '15 minutes'
+      },
+      modules: [] as Module[] // Explicitly type as Module[] to avoid 'never[]'
+    }));
+  });
+
+  // OLD MOCK DATA - REMOVED
+  _oldMockCourses = signal<Course[]>([
     {
       id: '1',
       title: 'Cơ bản về Hàng hải',
@@ -175,11 +213,9 @@ export class StudentDashboardComponent {
       .slice(0, 2)
   );
 
-  averageProgress = computed(() => {
-    const courses = this.courses().filter(c => c.status === 'in-progress');
-    if (courses.length === 0) return 0;
-    return Math.round(courses.reduce((sum, c) => sum + c.progress, 0) / courses.length);
-  });
+  // Use enrollment service stats as computed signals
+  inProgressCount = computed(() => this.enrollmentService.enrollmentStats().inProgress);
+  averageProgress = computed(() => this.enrollmentService.enrollmentStats().averageProgress);
 
   // Learning heatmap (12 months / 52 weeks) - GitHub style with maritime blue
   learningHeatmap = this.generateYearHeatmap();
@@ -279,11 +315,15 @@ export class StudentDashboardComponent {
   }
 
   toggleModules(courseId: string): void {
-    this.courses.update(courses =>
-      courses.map(c =>
-        c.id === courseId ? { ...c, showModules: !c.showModules } : c
-      )
-    );
+    this.expandedModules.update(expanded => {
+      const newSet = new Set(expanded);
+      if (newSet.has(courseId)) {
+        newSet.delete(courseId);
+      } else {
+        newSet.add(courseId);
+      }
+      return newSet;
+    });
   }
 
   switchTab(tab: 'in-progress' | 'completed'): void {
