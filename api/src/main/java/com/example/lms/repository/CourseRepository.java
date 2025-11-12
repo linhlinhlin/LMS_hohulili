@@ -56,4 +56,16 @@ public interface CourseRepository extends JpaRepository<Course, UUID> {
     long countByTeacherAndStatusIn(User teacher, List<Course.CourseStatus> statuses);
     
     long countByCreatedAtAfter(Instant createdAt);
+    
+    /**
+     * Find all enrolled students in a course with pagination
+     */
+    @Query("SELECT es FROM Course c JOIN c.enrolledStudents es WHERE c.id = :courseId ORDER BY es.fullName ASC")
+    Page<User> findEnrolledStudents(@Param("courseId") UUID courseId, Pageable pageable);
+    
+    /**
+     * Find enrolled students by search term (fullName or email)
+     */
+    @Query("SELECT es FROM Course c JOIN c.enrolledStudents es WHERE c.id = :courseId AND (LOWER(es.fullName) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(es.email) LIKE LOWER(CONCAT('%', :search, '%'))) ORDER BY es.fullName ASC")
+    Page<User> searchEnrolledStudents(@Param("courseId") UUID courseId, @Param("search") String search, Pageable pageable);
 }

@@ -130,45 +130,45 @@ Implementation plan để cải thiện UX/UI cho Teacher Portal theo phong các
   - Add smooth transitions
   - _Requirements: 3.4_
 
-- [-] 4. Course Management Enhancement
+- [x] 4. Course Management Enhancement
 
   - Redesign course management table
   - Improve course creation form
-  - Update course editor layout
-  - Add better action menus
+  - Update course editor layout with accordion sections
+  - Add separate student list component
   - _Requirements: 4.1, 4.2, 4.3, 4.4_
 
-
-
-
-
-
-- [ ] 4.1 Redesign Course Management Table
+- [x] 4.1 Redesign Course Management Table
   - Update `CourseManagementComponent` với clean table design
   - Improve column headers với sort indicators
   - Add status badges (Active, Draft, Archived)
   - Improve action menu (⋮) với dropdown
+  - Add search and filters with sidebar widgets
   - _Requirements: 4.1, 4.2_
 
-- [ ] 4.2 Improve Search and Filters
+- [x] 4.2 Improve Search and Filters
   - Update search input với better styling
   - Improve filter dropdowns (Status, Category)
   - Add clear visual feedback
   - Ensure responsive layout
+  - Add sidebar widgets for quick stats
   - _Requirements: 4.2, 4.3_
 
-- [ ] 4.3 Update Course Creation Form
+- [x] 4.3 Update Course Creation Form
   - Update `CourseCreationComponent` với clean form layout
   - Improve input fields styling
   - Add inline validation feedback
   - Use Coursera-style button design
+  - Add template selection feature
   - _Requirements: 4.3, 4.4_
 
-- [ ] 4.4 Improve Course Editor
-  - Update `CourseEditorComponent` layout
+- [x] 4.4 Improve Course Editor
+  - Update `CourseEditorComponent` layout with accordion sections
   - Better section management UI
   - Improve lesson list display
   - Add clear action buttons
+  - Create separate `CourseStudentsListComponent` with search and pagination
+  - Organize content in collapsible accordion sections
   - _Requirements: 4.3, 4.4_
 
 - [ ]* 4.5 Add Empty States
