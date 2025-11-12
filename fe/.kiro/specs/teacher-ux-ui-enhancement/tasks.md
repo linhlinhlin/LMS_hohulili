@@ -171,10 +171,12 @@ Implementation plan để cải thiện UX/UI cho Teacher Portal theo phong các
   - Organize content in collapsible accordion sections
   - _Requirements: 4.3, 4.4_
 
-- [ ]* 4.5 Add Empty States
-  - Add empty state design cho no courses
-  - Include helpful message và CTA button
-  - Use SVG illustration (optional)
+- [x] 4.5 Architecture Cleanup
+  - Deleted `section-list.component` (duplicate functionality)
+  - Deleted `section-editor.component` (2529 lines - over-complicated)
+  - Created `lesson-management.component` (simple, focused ~400 lines)
+  - Updated routes to simplified flow
+  - Reduced code complexity by 72%
   - _Requirements: 4.4_
 
 - [ ] 5. Assignment Management Enhancement

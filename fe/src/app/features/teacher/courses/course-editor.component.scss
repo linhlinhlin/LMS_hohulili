@@ -270,93 +270,74 @@
   }
 }
 
-/* ===== SECTIONS TABLE ===== */
-.sections-table-container {
-  // No padding needed, already in accordion-content
+/* ===== SECTIONS LIST ===== */
+.sections-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.sections-table {
-  width: 100%;
-  border-collapse: collapse;
+.section-item {
+  background: white;
+  border: 1px solid $border-default;
+  border-radius: $radius-md;
+  overflow: hidden;
+}
 
-  thead {
-    background: $gray-50;
-    border-bottom: 2px solid $border-default;
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: $gray-50;
+  border-bottom: 1px solid $border-light;
 
-    th {
-      padding: 16px 20px;
-      text-align: left;
-      font-size: $text-xs;
-      font-weight: $font-bold;
-      color: $text-secondary;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-
-      &.text-right {
-        text-align: right;
-      }
-
-      &.text-center {
-        text-align: center;
-      }
-
-      &.w-16 {
-        width: 64px;
-      }
-
-      &.w-32 {
-        width: 128px;
-      }
-
-      &.w-48 {
-        width: 192px;
-      }
-    }
+  @include mobile {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
   }
+}
 
-  tbody {
-    tr {
-      border-bottom: 1px solid $border-light;
-      transition: background $transition-fast;
+.section-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
 
-      &:hover {
-        background: $gray-50;
-      }
-
-      &:last-child {
-        border-bottom: none;
-      }
-    }
-
-    td {
-      padding: 16px 20px;
-      font-size: $text-sm;
-      color: $text-primary;
-
-      &.text-right {
-        text-align: right;
-      }
-
-      &.text-center {
-        text-align: center;
-      }
-    }
+  @include mobile {
+    flex-wrap: wrap;
   }
+}
+
+.section-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: $blue-primary;
+  color: white;
+  border-radius: $radius-full;
+  font-weight: $font-bold;
+  font-size: $text-sm;
+  flex-shrink: 0;
 }
 
 .section-title-input {
-  width: 100%;
+  flex: 1;
+  min-width: 200px;
   padding: 8px 12px;
   border: 1px solid transparent;
   border-radius: $radius-sm;
   font-size: $text-base;
-  font-weight: $font-medium;
+  font-weight: $font-semibold;
   color: $text-primary;
   background: transparent;
   transition: all $transition-fast;
 
   &:hover {
-    background: $gray-50;
+    background: white;
     border-color: $border-default;
   }
 
@@ -368,22 +349,24 @@
   }
 }
 
-.lesson-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.lesson-count-badge {
   padding: 4px 12px;
   background: $blue-light;
   color: $blue-primary;
   border-radius: $radius-full;
   font-weight: $font-semibold;
-  font-size: $text-sm;
+  font-size: $text-xs;
+  white-space: nowrap;
 }
 
-.action-buttons {
+.section-actions {
   display: flex;
   gap: 8px;
-  justify-content: flex-end;
+
+  @include mobile {
+    width: 100%;
+    justify-content: flex-end;
+  }
 
   ::ng-deep .btn-delete {
     color: $error;
@@ -392,6 +375,232 @@
     &:not(:disabled):hover {
       background: rgba(220, 38, 38, 0.1);
       border-color: #B91C1C;
+    }
+  }
+}
+
+/* ===== LESSONS CONTAINER ===== */
+.lessons-container {
+  padding: 20px;
+  background: $gray-50;
+}
+
+.add-lesson-bar {
+  margin-bottom: 16px;
+}
+
+.lesson-form-card {
+  background: white;
+  border: 1px solid $border-default;
+  border-radius: $radius-md;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.lesson-form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+
+  h4 {
+    font-size: $text-base;
+    font-weight: $font-semibold;
+    color: $text-primary;
+    margin: 0;
+  }
+}
+
+.close-btn {
+  padding: 4px;
+  background: transparent;
+  border: none;
+  border-radius: $radius-sm;
+  color: $text-muted;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: $gray-100;
+    color: $text-primary;
+  }
+}
+
+.lesson-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  label {
+    font-size: $text-sm;
+    font-weight: $font-semibold;
+    color: $text-primary;
+  }
+}
+
+.form-input,
+.form-select {
+  padding: 8px 12px;
+  border: 1px solid $border-default;
+  border-radius: $radius-sm;
+  font-size: $text-sm;
+  color: $text-primary;
+  background: white;
+  transition: all $transition-fast;
+
+  &:focus {
+    outline: none;
+    border-color: $blue-primary;
+    box-shadow: 0 0 0 3px rgba(0, 86, 210, 0.1);
+  }
+
+  &:disabled {
+    background: $gray-100;
+    cursor: not-allowed;
+  }
+}
+
+.form-textarea {
+  padding: 8px 12px;
+  border: 1px solid $border-default;
+  border-radius: $radius-sm;
+  font-size: $text-sm;
+  color: $text-primary;
+  background: white;
+  transition: all $transition-fast;
+  resize: vertical;
+  font-family: inherit;
+
+  &:focus {
+    outline: none;
+    border-color: $blue-primary;
+    box-shadow: 0 0 0 3px rgba(0, 86, 210, 0.1);
+  }
+}
+
+.form-actions {
+  display: flex;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+/* Lessons List */
+.lessons-loading,
+.lessons-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: $text-muted;
+
+  app-icon {
+    margin-bottom: 12px;
+  }
+
+  p {
+    margin: 0;
+    font-size: $text-sm;
+  }
+}
+
+.lessons-loading app-icon {
+  color: $blue-primary;
+}
+
+.lessons-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lesson-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: white;
+  border: 1px solid $border-default;
+  border-radius: $radius-sm;
+  transition: all $transition-fast;
+
+  &:hover {
+    border-color: $blue-primary;
+    box-shadow: 0 2px 4px rgba(0, 86, 210, 0.1);
+  }
+
+  @include mobile {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+}
+
+.lesson-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+
+  @include mobile {
+    flex-wrap: wrap;
+  }
+}
+
+.lesson-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: $gray-200;
+  color: $text-secondary;
+  border-radius: $radius-full;
+  font-weight: $font-semibold;
+  font-size: $text-xs;
+  flex-shrink: 0;
+}
+
+.lesson-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.lesson-title {
+  font-weight: $font-medium;
+  color: $text-primary;
+  font-size: $text-sm;
+}
+
+.lesson-description {
+  font-size: $text-xs;
+  color: $text-muted;
+  margin-top: 2px;
+  @include truncate;
+}
+
+.lesson-actions {
+  display: flex;
+  gap: 4px;
+
+  @include mobile {
+    justify-content: flex-end;
+  }
+
+  ::ng-deep .btn-delete {
+    color: $error;
+
+    &:not(:disabled):hover {
+      background: rgba(220, 38, 38, 0.1);
     }
   }
 }

@@ -65,6 +65,12 @@ export class CourseCreationComponent {
   }
   prefillingId = signal<string | null>(null);
 
+  // Accordion state
+  accordionState = {
+    courseInfo: true,
+    useTemplate: false
+  };
+
   form = this.fb.group({
     code: ['', [Validators.required, Validators.maxLength(64)]],
     title: ['', [Validators.required, Validators.maxLength(255)]],
@@ -133,5 +139,9 @@ export class CourseCreationComponent {
     } finally {
       this.prefillingId.set(null);
     }
+  }
+
+  toggleAccordion(section: keyof typeof this.accordionState) {
+    this.accordionState[section] = !this.accordionState[section];
   }
 }

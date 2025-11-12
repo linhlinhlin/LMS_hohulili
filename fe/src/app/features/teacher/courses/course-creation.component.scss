@@ -11,16 +11,9 @@
   }
 }
 
-/* ===== MAIN CONTENT ===== */
-.main-content {
-  display: flex;
-  flex-direction: column;
-  gap: 32px;
-}
-
-/* Page Header */
+/* ===== PAGE HEADER ===== */
 .page-header {
-  margin-bottom: 8px;
+  margin-bottom: 32px;
 }
 
 .header-left {
@@ -43,79 +36,123 @@
   font-weight: $font-normal;
 }
 
-/* ===== FORM CARD ===== */
-.form-card {
+/* ===== ACCORDION CONTAINER ===== */
+.accordion-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.accordion-item {
   background: $bg-surface;
   border: 1px solid $border-default;
   border-radius: $radius-lg;
-  box-shadow: $shadow-md;
+  box-shadow: $shadow-sm;
   overflow: hidden;
+  transition: all $transition-fast;
+
+  &.expanded {
+    box-shadow: $shadow-md;
+  }
 }
 
-.form-header {
+.accordion-header {
+  width: 100%;
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 16px;
-  padding: 24px;
-  background: linear-gradient(135deg, $blue-primary 0%, #0073E6 100%);
-  color: white;
+  padding: 20px 24px;
+  background: $gray-50;
+  border: none;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: $gray-100;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+  }
 }
 
-.form-icon {
-  width: 48px;
-  height: 48px;
-  background: rgba(255, 255, 255, 0.2);
+.header-icon {
+  width: 40px;
+  height: 40px;
+  background: $blue-light;
   border-radius: $radius-md;
   display: flex;
   align-items: center;
   justify-content: center;
+  color: $blue-primary;
   flex-shrink: 0;
 }
 
-.form-title {
-  font-size: 20px;
-  font-weight: $font-bold;
-  margin: 0 0 4px 0;
-  color: white;
-}
-
-.form-subtitle {
-  font-size: $text-sm;
+.accordion-title {
+  font-size: 18px;
+  font-weight: $font-semibold;
+  color: $text-primary;
   margin: 0;
-  color: rgba(255, 255, 255, 0.9);
 }
 
-.form-content {
+.chevron-icon {
+  color: $text-muted;
+  transition: transform $transition-fast;
+}
+
+.accordion-content {
   padding: 32px;
+  border-top: 1px solid $border-light;
+  animation: slideDown 0.3s ease-out;
 
   @include mobile {
     padding: 24px;
   }
 }
 
-/* ===== FORM GROUPS ===== */
-.form-group {
-  margin-bottom: 28px;
-
-  &:last-of-type {
-    margin-bottom: 32px;
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
   }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===== FORM CONTENT ===== */
+.form-subtitle {
+  font-size: $text-sm;
+  color: $text-muted;
+  margin: 0 0 24px 0;
+}
+
+.form-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .form-label {
-  display: block;
   font-size: $text-sm;
   font-weight: $font-semibold;
   color: $text-primary;
-  margin-bottom: 8px;
 
   .required {
     color: $error;
-    margin-left: 2px;
   }
 }
 
-/* Input Wrapper */
 .input-wrapper {
   position: relative;
   display: flex;
@@ -127,12 +164,11 @@
   left: 14px;
   color: $text-muted;
   pointer-events: none;
-  z-index: 1;
 }
 
 .form-input {
   width: 100%;
-  padding: 12px 16px 12px 44px;
+  padding: 12px 16px 12px 42px;
   border: 2px solid $border-default;
   border-radius: $radius-sm;
   font-size: $text-base;
@@ -156,10 +192,6 @@
 
   &.error {
     border-color: $error;
-
-    &:focus {
-      box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
-    }
   }
 }
 
@@ -191,40 +223,32 @@
   }
 }
 
-.help-text {
-  margin: 8px 0 0 0;
-  font-size: $text-xs;
-  color: $text-muted;
-  line-height: 1.5;
-}
-
 .error-message {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-top: 8px;
-  font-size: $text-sm;
+  font-size: $text-xs;
   color: $error;
-
-  app-icon {
-    flex-shrink: 0;
-  }
+  font-weight: $font-medium;
 }
 
-/* ===== FORM ACTIONS ===== */
+.help-text {
+  font-size: $text-xs;
+  color: $text-muted;
+  margin: 0;
+}
+
 .form-actions {
   display: flex;
-  align-items: center;
   gap: 12px;
   padding-top: 8px;
 
   @include mobile {
     flex-direction: column;
-    align-items: stretch;
   }
 }
 
-/* Alerts */
+/* ===== ALERTS ===== */
 .success-alert {
   display: flex;
   align-items: center;
@@ -236,11 +260,6 @@
   color: $success;
   font-size: $text-sm;
   font-weight: $font-medium;
-  margin-top: 16px;
-
-  app-icon {
-    flex-shrink: 0;
-  }
 }
 
 .error-alert {
@@ -254,77 +273,20 @@
   color: $error;
   font-size: $text-sm;
   font-weight: $font-medium;
-  margin-top: 16px;
-
-  app-icon {
-    flex-shrink: 0;
-  }
 }
 
 /* ===== TEMPLATE SECTION ===== */
-.template-section {
-  background: $bg-surface;
-  border: 1px solid $border-default;
-  border-radius: $radius-lg;
-  box-shadow: $shadow-sm;
-  overflow: hidden;
-}
-
-.template-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 24px;
-  border-bottom: 1px solid $border-light;
-  gap: 24px;
-
-  @include mobile {
-    flex-direction: column;
-    align-items: stretch;
-  }
-}
-
-.template-header-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex: 1;
-}
-
-.template-icon {
-  width: 40px;
-  height: 40px;
-  background: rgba(251, 191, 36, 0.1);
-  border-radius: $radius-md;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #F59E0B;
-  flex-shrink: 0;
-}
-
-.template-title {
-  font-size: 18px;
-  font-weight: $font-semibold;
-  color: $text-primary;
-  margin: 0 0 4px 0;
-}
-
 .template-subtitle {
   font-size: $text-sm;
-  color: $text-secondary;
-  margin: 0;
+  color: $text-muted;
+  margin: 0 0 24px 0;
 }
 
 .template-search {
   position: relative;
   display: flex;
   align-items: center;
-  min-width: 300px;
-
-  @include mobile {
-    min-width: 100%;
-  }
+  margin-bottom: 24px;
 }
 
 .search-icon {
@@ -340,17 +302,8 @@
   border: 1px solid $border-default;
   border-radius: $radius-sm;
   font-size: $text-sm;
-  color: $text-primary;
   background: white;
   transition: all $transition-fast;
-
-  &::placeholder {
-    color: $text-muted;
-  }
-
-  &:hover {
-    border-color: $gray-400;
-  }
 
   &:focus {
     outline: none;
@@ -359,9 +312,12 @@
   }
 }
 
-/* ===== TEMPLATE TABLE ===== */
-.template-table-container {
-  min-height: 300px;
+.table-container {
+  margin-bottom: 24px;
+  overflow-x: auto;
+  background: white;
+  border: 1px solid $border-default;
+  border-radius: $radius-md;
 }
 
 .template-table {
@@ -370,10 +326,10 @@
 
   thead {
     background: $gray-50;
-    border-bottom: 1px solid $border-default;
+    border-bottom: 2px solid $border-default;
 
     th {
-      padding: 16px 24px;
+      padding: 16px 20px;
       text-align: left;
       font-size: $text-xs;
       font-weight: $font-bold;
@@ -402,9 +358,8 @@
     }
 
     td {
-      padding: 16px 24px;
+      padding: 16px 20px;
       font-size: $text-sm;
-      color: $text-primary;
 
       &.text-right {
         text-align: right;
@@ -414,29 +369,23 @@
 }
 
 .course-code {
-  font-family: 'Courier New', monospace;
-  font-size: $text-xs;
-  font-weight: $font-bold;
+  font-weight: $font-semibold;
   color: $blue-primary;
-  background: $blue-light;
-  padding: 4px 12px;
-  border-radius: $radius-full;
-  display: inline-block;
+  font-family: 'Courier New', monospace;
 }
 
 .course-title {
-  font-weight: $font-medium;
-  @include line-clamp(1);
+  color: $text-primary;
 }
 
-/* Template Pagination */
+/* Pagination */
 .template-pagination {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 24px;
+  padding: 16px 20px;
+  background: white;
   border-top: 1px solid $border-light;
-  background: $gray-50;
 
   @include mobile {
     flex-direction: column;
@@ -457,13 +406,6 @@
     border-radius: $radius-sm;
     font-size: $text-sm;
     cursor: pointer;
-    background: white;
-    color: $text-primary;
-
-    &:focus {
-      outline: none;
-      border-color: $blue-primary;
-    }
   }
 }
 
@@ -485,15 +427,15 @@
 .error-state {
   text-align: center;
   padding: 60px 24px;
-  color: $text-secondary;
 
   app-icon {
     margin-bottom: 16px;
+    color: $text-muted;
   }
 
   p {
     margin: 0;
-    font-size: $text-base;
+    color: $text-secondary;
   }
 }
 
@@ -502,14 +444,15 @@
 }
 
 .error-state {
-  color: $error;
-
   app-icon {
+    color: $error;
+  }
+
+  p {
     color: $error;
   }
 }
 
-/* Spin Animation */
 .spin {
   animation: spin 1s linear infinite;
 }

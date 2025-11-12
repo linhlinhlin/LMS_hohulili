@@ -3,10 +3,12 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { CourseApi } from '../../../api/client/course.api';
-import { CourseDetail, CreateSectionRequest } from '../../../api/types/course.types';
+import { CourseDetail, CreateSectionRequest, CreateLessonRequest } from '../../../api/types/course.types';
 import { SectionApi } from '../../../api/client/section.api';
+import { LessonApi } from '../../../api/client/lesson.api';
 import { IconComponent } from '../../../shared/components/ui/icon/icon.component';
 import { ButtonComponent } from '../../../shared/components/ui/button/button.component';
+import { BadgeComponent } from '../../../shared/components/ui/badge/badge.component';
 import { CourseStudentsListComponent } from './components/course-students-list.component';
 
 /**
@@ -28,6 +30,7 @@ import { CourseStudentsListComponent } from './components/course-students-list.c
     RouterLink,
     IconComponent,
     ButtonComponent,
+    BadgeComponent,
     CourseStudentsListComponent
   ],
   templateUrl: './course-editor.component.html',
@@ -39,6 +42,7 @@ export class CourseEditorComponent {
   private api = inject(CourseApi);
   private fb = inject(FormBuilder);
   private sectionApi = inject(SectionApi);
+  private lessonApi = inject(LessonApi);
 
   course = signal<CourseDetail | null>(null);
   saving = signal(false);
@@ -59,7 +63,16 @@ export class CourseEditorComponent {
   sectionTitles: Record<string, string> = {};
   newSectionTitle = '';
   sectionError = '';
-  // Inline lesson editing removed
+  
+  // Expanded sections (for showing lessons)
+  expandedSections: Record<string, boolean> = {};
+  sectionLessons: Record<string, any[]> = {};
+  loadingLessons: Record<string, boolean> = {};
+  
+  // Lesson form state
+  showLessonForm: Record<string, boolean> = {};
+  editingLesson: Record<string, any> = {};
+  lessonForms: Record<string, any> = {};
 
   // Assign student state
   assigning = signal(false);
@@ -276,5 +289,132 @@ export class CourseEditorComponent {
 
   toggleAccordion(section: keyof typeof this.accordionState) {
     this.accordionState[section] = !this.accordionState[section];
+  }
+
+  // ===== LESSON MANAGEMENT =====
+  toggleSection(sectionId: string) {
+    this.expandedSections[sectionId] = !this.expandedSections[sectionId];
+    if (this.expandedSections[sectionId] && !this.sectionLessons[sectionId]) {
+      this.loadLessons(sectionId);
+    }
+  }
+
+  loadLessons(sectionId: string) {
+    this.loadingLessons[sectionId] = true;
+    this.lessonApi.listBySection(sectionId).subscribe({
+      next: (res: any) => {
+        this.sectionLessons[sectionId] = res?.data || [];
+        this.loadingLessons[sectionId] = false;
+      },
+      error: () => {
+        this.loadingLessons[sectionId] = false;
+      }
+    });
+  }
+
+  openLessonForm(sectionId: string, lesson?: any) {
+    if (!this.lessonForms[sectionId]) {
+      this.lessonForms[sectionId] = this.fb.group({
+        title: ['', [Validators.required, Validators.maxLength(255)]],
+        description: [''],
+        lessonType: ['LECTURE', Validators.required],
+        content: [''],
+        videoUrl: ['']
+      });
+    }
+
+    if (lesson) {
+      this.editingLesson[sectionId] = lesson;
+      this.lessonForms[sectionId].patchValue({
+        title: lesson.title,
+        description: lesson.description || '',
+        lessonType: lesson.lessonType,
+        content: lesson.content || '',
+        videoUrl: lesson.videoUrl || ''
+      });
+    } else {
+      this.editingLesson[sectionId] = null;
+      this.lessonForms[sectionId].reset({ lessonType: 'LECTURE' });
+    }
+
+    this.showLessonForm[sectionId] = true;
+  }
+
+  closeLessonForm(sectionId: string) {
+    this.showLessonForm[sectionId] = false;
+    this.editingLesson[sectionId] = null;
+    if (this.lessonForms[sectionId]) {
+      this.lessonForms[sectionId].reset();
+    }
+  }
+
+  saveLesson(sectionId: string) {
+    const form = this.lessonForms[sectionId];
+    if (!form || form.invalid) return;
+
+    const editing = this.editingLesson[sectionId];
+    const raw = form.getRawValue();
+    const payload: CreateLessonRequest = {
+      title: raw.title || '',
+      description: raw.description || undefined,
+      lessonType: raw.lessonType || 'LECTURE',
+      content: raw.content || undefined,
+      videoUrl: raw.videoUrl || undefined
+    };
+
+    if (editing) {
+      // Update
+      this.lessonApi.updateLesson(editing.id, payload).subscribe({
+        next: () => {
+          this.loadLessons(sectionId);
+          this.closeLessonForm(sectionId);
+        },
+        error: (err: any) => {
+          this.sectionError = err?.message || 'Cập nhật bài học thất bại';
+        }
+      });
+    } else {
+      // Create
+      this.lessonApi.createLesson(sectionId, payload).subscribe({
+        next: () => {
+          this.loadLessons(sectionId);
+          this.closeLessonForm(sectionId);
+        },
+        error: (err: any) => {
+          this.sectionError = err?.message || 'Tạo bài học thất bại';
+        }
+      });
+    }
+  }
+
+  deleteLesson(sectionId: string, lessonId: string) {
+    if (!confirm('Bạn có chắc muốn xóa bài học này?')) return;
+
+    this.lessonApi.deleteLesson(lessonId).subscribe({
+      next: () => {
+        this.loadLessons(sectionId);
+      },
+      error: (err: any) => {
+        this.sectionError = err?.message || 'Xóa bài học thất bại';
+      }
+    });
+  }
+
+  getLessonTypeLabel(type: string): string {
+    switch (type) {
+      case 'LECTURE': return 'Bài giảng';
+      case 'ASSIGNMENT': return 'Bài tập';
+      case 'QUIZ': return 'Trắc nghiệm';
+      default: return type;
+    }
+  }
+
+  getLessonTypeBadgeVariant(type: string): 'info' | 'success' | 'warning' {
+    switch (type) {
+      case 'LECTURE': return 'info';
+      case 'ASSIGNMENT': return 'success';
+      case 'QUIZ': return 'warning';
+      default: return 'info';
+    }
   }
 }

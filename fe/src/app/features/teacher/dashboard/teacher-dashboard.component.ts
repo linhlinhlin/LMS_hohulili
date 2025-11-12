@@ -47,15 +47,19 @@ export class TeacherDashboardComponent {
   private authService = inject(AuthService);
   private router = inject(Router);
 
-  // Computed values
+  // Tab state
+  activeTab = computed(() => 'courses' as 'courses' | 'assignments');
+  private _activeTab = 'courses' as 'courses' | 'assignments';
+
+  // Computed values - Show only 2 most recent items
   recentCourses = computed(() => 
-    this.teacher.courses().slice(0, 3)
+    this.teacher.courses().slice(0, 2)
   );
 
   pendingAssignments = computed(() =>
     this.teacher.assignments()
       .filter(a => a.status === 'pending' || a.status === 'submitted')
-      .slice(0, 3)
+      .slice(0, 2)
   );
 
   pendingAssignmentsCount = computed(() =>
@@ -212,5 +216,14 @@ export class TeacherDashboardComponent {
       'check-circle': 'check-circle'
     };
     return iconMap[iconName] || 'bell';
+  }
+
+  // Tab switching
+  switchTab(tab: 'courses' | 'assignments'): void {
+    this._activeTab = tab;
+  }
+
+  isActiveTab(tab: 'courses' | 'assignments'): boolean {
+    return this._activeTab === tab;
   }
 }

@@ -50,54 +50,77 @@
       </div>
     </div>
 
-    <!-- Recent Courses Section -->
+    <!-- Recent Items Section with Tabs -->
     <div class="section">
       <div class="section-header">
-        <h2 class="section-title">Khóa học gần đây</h2>
-        <a [routerLink]="['/teacher/courses']" class="view-all-link">
+        <div class="tabs-container" role="tablist">
+          <button 
+            class="tab-chip"
+            [class.active]="isActiveTab('courses')"
+            (click)="switchTab('courses')"
+            role="tab"
+            [attr.aria-selected]="isActiveTab('courses')"
+            type="button">
+            <span class="tab-label">Khóa học gần đây</span>
+          </button>
+          <button 
+            class="tab-chip"
+            [class.active]="isActiveTab('assignments')"
+            (click)="switchTab('assignments')"
+            role="tab"
+            [attr.aria-selected]="isActiveTab('assignments')"
+            type="button">
+            <span class="tab-label">Bài tập chờ chấm</span>
+          </button>
+        </div>
+        <a 
+          [routerLink]="isActiveTab('courses') ? ['/teacher/courses'] : ['/teacher/assignments']" 
+          class="view-all-link">
           Xem tất cả
           <app-icon name="arrow-right" size="xs" />
         </a>
       </div>
 
-      <div class="courses-list">
-        @for (course of recentCourses(); track course.id) {
-          <div class="course-card-wrapper">
-            <!-- Course Metadata -->
-            <div class="course-metadata">
-              <div class="course-header">
-                <div class="course-code">{{ getCourseCode(course) }}</div>
-                <app-badge 
-                  [variant]="getStatusVariant(course.status)" 
-                  size="sm">
-                  {{ getStatusLabel(course.status) }}
-                </app-badge>
-              </div>
+      <!-- Courses Tab Content -->
+      @if (isActiveTab('courses')) {
+        <div class="courses-list">
+          @for (course of recentCourses(); track course.id) {
+            <div class="course-card-wrapper">
+              <!-- Course Metadata -->
+              <div class="course-metadata">
+                <div class="course-header">
+                  <div class="course-code">{{ getCourseCode(course) }}</div>
+                  <app-badge 
+                    [variant]="getStatusVariant(course.status)" 
+                    size="sm">
+                    {{ getStatusLabel(course.status) }}
+                  </app-badge>
+                </div>
 
-              <h3 class="course-title">
-                <a [routerLink]="['/teacher/courses', course.id]">
-                  {{ course.title }}
-                </a>
-              </h3>
+                <h3 class="course-title">
+                  <a [routerLink]="['/teacher/courses', course.id]">
+                    {{ course.title }}
+                  </a>
+                </h3>
 
-              <div class="course-meta">
-                <span>{{ course.category }}</span>
-                <span class="separator">·</span>
-                <span>{{ course.enrolledStudents }} học viên</span>
-                @if (course.rating) {
+                <div class="course-meta">
+                  <span>{{ course.category }}</span>
                   <span class="separator">·</span>
-                  <span class="rating">
-                    <app-icon name="star" size="xs" />
-                    {{ course.rating }}
-                  </span>
-                }
+                  <span>{{ course.enrolledStudents }} học viên</span>
+                  @if (course.rating) {
+                    <span class="separator">·</span>
+                    <span class="rating">
+                      <app-icon name="star" size="xs" />
+                      {{ course.rating }}
+                    </span>
+                  }
+                </div>
               </div>
-            </div>
 
-            <!-- Course Actions -->
-            <div class="course-actions">
-              <app-button 
-                variant="ghost" 
+              <!-- Course Actions -->
+              <div class="course-actions">
+                <app-button 
+                  variant="ghost" 
                 size="sm"
                 (clicked)="editCourse(course.id)">
                 <app-icon name="pencil" size="sm" />
@@ -112,61 +135,54 @@
             </div>
           </div>
         }
-      </div>
-    </div>
+        </div>
+      }
 
-    <!-- Pending Assignments Section -->
-    <div class="section">
-      <div class="section-header">
-        <h2 class="section-title">Bài tập chờ chấm</h2>
-        <a [routerLink]="['/teacher/assignments']" class="view-all-link">
-          Xem tất cả
-          <app-icon name="arrow-right" size="xs" />
-        </a>
-      </div>
+      <!-- Assignments Tab Content -->
+      @if (isActiveTab('assignments')) {
+        <div class="assignments-list">
+          @for (assignment of pendingAssignments(); track assignment.id) {
+            <div class="assignment-card">
+              <div class="assignment-info">
+                <div class="assignment-header">
+                  <h4 class="assignment-title">{{ assignment.title }}</h4>
+                  <app-badge 
+                    [variant]="getAssignmentStatusVariant(assignment.status)" 
+                    size="sm"
+                    [dot]="true">
+                    {{ getAssignmentStatusLabel(assignment.status) }}
+                  </app-badge>
+                </div>
 
-      <div class="assignments-list">
-        @for (assignment of pendingAssignments(); track assignment.id) {
-          <div class="assignment-card">
-            <div class="assignment-info">
-              <div class="assignment-header">
-                <h4 class="assignment-title">{{ assignment.title }}</h4>
-                <app-badge 
-                  [variant]="getAssignmentStatusVariant(assignment.status)" 
+                <div class="assignment-meta">
+                  <span>{{ assignment.courseTitle }}</span>
+                  <span class="separator">·</span>
+                  <span>Hạn: {{ assignment.dueDate }}</span>
+                </div>
+
+                <div class="assignment-progress">
+                  <span class="progress-text">
+                    {{ assignment.submissions }}/{{ assignment.totalStudents }} đã nộp
+                  </span>
+                  <app-progress-bar 
+                    [progress]="getSubmissionProgress(assignment)" 
+                    [thin]="true" 
+                  />
+                </div>
+              </div>
+
+              <div class="assignment-action">
+                <app-button 
+                  variant="primary" 
                   size="sm"
-                  [dot]="true">
-                  {{ getAssignmentStatusLabel(assignment.status) }}
-                </app-badge>
-              </div>
-
-              <div class="assignment-meta">
-                <span>{{ assignment.courseTitle }}</span>
-                <span class="separator">·</span>
-                <span>Hạn: {{ assignment.dueDate }}</span>
-              </div>
-
-              <div class="assignment-progress">
-                <span class="progress-text">
-                  {{ assignment.submissions }}/{{ assignment.totalStudents }} đã nộp
-                </span>
-                <app-progress-bar 
-                  [progress]="getSubmissionProgress(assignment)" 
-                  [thin]="true" 
-                />
+                  (clicked)="gradeAssignment(assignment.id)">
+                  Chấm bài
+                </app-button>
               </div>
             </div>
-
-            <div class="assignment-action">
-              <app-button 
-                variant="primary" 
-                size="sm"
-                (clicked)="gradeAssignment(assignment.id)">
-                Chấm bài
-              </app-button>
-            </div>
-          </div>
-        }
-      </div>
+          }
+        </div>
+      }
     </div>
   </div>
 

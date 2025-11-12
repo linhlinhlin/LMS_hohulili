@@ -1,0 +1,177 @@
+<div class="student-management-container">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1 class="page-title">Quản lý học viên</h1>
+      <p class="page-subtitle">Theo dõi tiến độ và thành tích của học viên</p>
+    </div>
+  </div>
+
+  <!-- Search & Filters -->
+  <div class="filters-card">
+    <div class="search-wrapper">
+      <app-icon name="magnifying-glass" size="sm" class="search-icon" />
+      <input 
+        class="search-input" 
+        placeholder="Tìm kiếm theo tên hoặc email..."
+        [(ngModel)]="keyword"
+        (input)="applyFilters()" />
+    </div>
+
+    <div class="filters-row">
+      <select class="filter-select" [(ngModel)]="selectedCourse" (change)="applyFilters()">
+        <option value="">Tất cả khóa học</option>
+        @for (course of courses(); track course.id) {
+          <option [value]="course.id">{{ course.title }}</option>
+        }
+      </select>
+
+      <select class="filter-select" [(ngModel)]="status" (change)="applyFilters()">
+        <option value="">Tất cả trạng thái</option>
+        <option value="active">Đang học</option>
+        <option value="inactive">Không hoạt động</option>
+        <option value="suspended">Tạm khóa</option>
+      </select>
+
+      <div class="results-count">
+        <strong>{{ total() }}</strong> học viên
+      </div>
+    </div>
+  </div>
+
+  <!-- Students Table -->
+  <div class="table-card">
+    @if (loading()) {
+      <div class="loading-state">
+        <app-icon name="arrow-path" size="xl" class="spin" />
+        <p>Đang tải danh sách học viên...</p>
+      </div>
+    }
+
+    @if (error() && !loading()) {
+      <div class="error-state">
+        <app-icon name="exclamation-circle" size="xl" />
+        <p>{{ error() }}</p>
+        <app-button variant="ghost" (clicked)="onReload()">
+          <app-icon name="arrow-path" size="sm" />
+          Thử lại
+        </app-button>
+      </div>
+    }
+
+    @if (!loading() && !error() && paged().length === 0) {
+      <div class="empty-state">
+        <app-icon name="users" size="xl" />
+        <h3>Không tìm thấy học viên</h3>
+        <p>Thử điều chỉnh bộ lọc hoặc tìm kiếm với từ khóa khác</p>
+      </div>
+    }
+
+    @if (!loading() && !error() && paged().length > 0) {
+      <div class="table-container">
+        <table class="students-table">
+          <thead>
+            <tr>
+              <th>Học viên</th>
+              <th class="text-center">Tiến độ</th>
+              <th class="text-center">Điểm TB</th>
+              <th class="text-center">Trạng thái</th>
+              <th class="text-right">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (student of paged(); track student.id) {
+              <tr>
+                <td>
+                  <div class="student-info">
+                    <div class="student-avatar">
+                      {{ getInitials(student.name) }}
+                    </div>
+                    <div class="student-details">
+                      <div class="student-name">{{ student.name }}</div>
+                      <div class="student-email">{{ student.email }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="text-center">
+                  <div class="progress-cell">
+                    <span class="progress-text">{{ student.progress }}%</span>
+                    <app-progress-bar 
+                      [progress]="student.progress" 
+                      [thin]="true" 
+                    />
+                  </div>
+                </td>
+                <td class="text-center">
+                  <span 
+                    class="grade-badge"
+                    [class.grade-excellent]="student.averageGrade >= 8"
+                    [class.grade-good]="student.averageGrade >= 6 && student.averageGrade < 8"
+                    [class.grade-poor]="student.averageGrade < 6">
+                    {{ student.averageGrade.toFixed(1) }}
+                  </span>
+                </td>
+                <td class="text-center">
+                  <app-badge 
+                    [variant]="getStatusVariant(student.status)" 
+                    size="sm">
+                    {{ getStatusLabel(student.status) }}
+                  </app-badge>
+                </td>
+                <td class="text-right">
+                  <div class="action-buttons">
+                    <app-button 
+                      variant="ghost" 
+                      size="sm"
+                      [routerLink]="['/teacher/students', student.id]">
+                      <app-icon name="document-text" size="xs" />
+                      Chi tiết
+                    </app-button>
+                    <app-button 
+                      variant="ghost" 
+                      size="sm"
+                      (clicked)="sendMessage(student.id)">
+                      <app-icon name="bell" size="xs" />
+                      Nhắn tin
+                    </app-button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination-bar">
+        <div class="page-size-selector">
+          <span>Hiển thị</span>
+          <select [ngModel]="pageSize()" (ngModelChange)="onPageSizeChange($event)">
+            <option [ngValue]="5">5</option>
+            <option [ngValue]="10">10</option>
+            <option [ngValue]="20">20</option>
+          </select>
+          <span>mỗi trang</span>
+        </div>
+        
+        <div class="page-navigation">
+          <app-button 
+            variant="ghost" 
+            size="sm"
+            [disabled]="pageIndex() <= 1"
+            (clicked)="prevPage()">
+            Trước
+          </app-button>
+          <span class="page-info">Trang {{ pageIndex() }} / {{ totalPages() }}</span>
+          <app-button 
+            variant="ghost" 
+            size="sm"
+            [disabled]="pageIndex() >= totalPages()"
+            (clicked)="nextPage()">
+            Sau
+          </app-button>
+        </div>
+      </div>
+    }
+  </div>
+</div>

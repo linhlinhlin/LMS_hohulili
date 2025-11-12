@@ -177,54 +177,177 @@
           <p>Tạo chương đầu tiên để thêm bài học vào khóa học</p>
         </div>
       } @else {
-        <div class="sections-table-container">
-          <table class="sections-table">
-            <thead>
-              <tr>
-                <th class="w-16">STT</th>
-                <th>Tên chương</th>
-                <th class="w-32">Bài học</th>
-                <th class="w-48 text-right">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (sec of sections(); track sec.id; let i = $index) {
-                <tr>
-                  <td class="text-center">{{ i + 1 }}</td>
-                  <td>
-                    <input 
-                      class="section-title-input" 
-                      [ngModel]="sectionTitles[sec.id]" 
-                      (ngModelChange)="sectionTitles[sec.id] = $event"
-                      (blur)="renameSection(sec.id)"
-                      placeholder="Nhập tên chương"/>
-                  </td>
-                  <td class="text-center">
-                    <span class="lesson-count">{{ sec.lessonCount || 0 }}</span>
-                  </td>
-                  <td class="text-right">
-                    <div class="action-buttons">
+        <!-- Sections List with Expandable Lessons -->
+        <div class="sections-list">
+          @for (sec of sections(); track sec.id; let i = $index) {
+            <div class="section-item">
+              <!-- Section Header -->
+              <div class="section-header">
+                <div class="section-info">
+                  <span class="section-number">{{ i + 1 }}</span>
+                  <input 
+                    class="section-title-input" 
+                    [ngModel]="sectionTitles[sec.id]" 
+                    (ngModelChange)="sectionTitles[sec.id] = $event"
+                    (blur)="renameSection(sec.id)"
+                    placeholder="Nhập tên chương"/>
+                  <span class="lesson-count-badge">{{ sec.lessonCount || 0 }} bài học</span>
+                </div>
+                
+                <div class="section-actions">
+                  <app-button 
+                    variant="ghost" 
+                    size="sm"
+                    (clicked)="toggleSection(sec.id)">
+                    <app-icon [name]="expandedSections[sec.id] ? 'chevron-up' : 'chevron-down'" size="xs" />
+                    {{ expandedSections[sec.id] ? 'Thu gọn' : 'Xem bài học' }}
+                  </app-button>
+                  <app-button 
+                    variant="outline" 
+                    size="sm"
+                    class="btn-delete"
+                    (clicked)="deleteSection(sec.id)">
+                    <app-icon name="x-circle" size="xs" />
+                    Xóa chương
+                  </app-button>
+                </div>
+              </div>
+
+              <!-- Lessons (Expandable) -->
+              @if (expandedSections[sec.id]) {
+                <div class="lessons-container">
+                  <!-- Add Lesson Button -->
+                  @if (!showLessonForm[sec.id]) {
+                    <div class="add-lesson-bar">
                       <app-button 
-                        variant="ghost" 
+                        variant="primary" 
                         size="sm"
-                        [routerLink]="['/teacher/courses', c.id, 'sections', sec.id]">
-                        <app-icon name="pencil" size="xs" />
-                        Quản lý bài học
-                      </app-button>
-                      <app-button 
-                        variant="outline" 
-                        size="sm"
-                        class="btn-delete"
-                        (clicked)="deleteSection(sec.id)">
-                        <app-icon name="x-circle" size="xs" />
-                        Xóa
+                        (clicked)="openLessonForm(sec.id)">
+                        <app-icon name="plus" size="xs" />
+                        Thêm bài học
                       </app-button>
                     </div>
-                  </td>
-                </tr>
+                  }
+
+                  <!-- Lesson Form -->
+                  @if (showLessonForm[sec.id]) {
+                    <div class="lesson-form-card">
+                      <div class="lesson-form-header">
+                        <h4>{{ editingLesson[sec.id] ? 'Chỉnh sửa bài học' : 'Tạo bài học mới' }}</h4>
+                        <button class="close-btn" (click)="closeLessonForm(sec.id)">
+                          <app-icon name="x-mark" size="xs" />
+                        </button>
+                      </div>
+                      
+                      <form [formGroup]="lessonForms[sec.id]" class="lesson-form">
+                        <div class="form-row">
+                          <div class="form-group">
+                            <label>Loại bài học</label>
+                            <select formControlName="lessonType" class="form-select" [disabled]="!!editingLesson[sec.id]">
+                              <option value="LECTURE">Bài giảng</option>
+                              <option value="ASSIGNMENT">Bài tập</option>
+                              <option value="QUIZ">Trắc nghiệm</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div class="form-group">
+                          <label>Tiêu đề *</label>
+                          <input formControlName="title" type="text" class="form-input" placeholder="Tên bài học" />
+                        </div>
+
+                        <div class="form-group">
+                          <label>Mô tả</label>
+                          <textarea formControlName="description" rows="2" class="form-textarea" placeholder="Mô tả ngắn"></textarea>
+                        </div>
+
+                        @if (lessonForms[sec.id]?.get('lessonType')?.value === 'LECTURE') {
+                          <div class="form-group">
+                            <label>Video URL</label>
+                            <input formControlName="videoUrl" type="url" class="form-input" placeholder="https://youtube.com/..." />
+                          </div>
+                        }
+
+                        <div class="form-group">
+                          <label>Nội dung</label>
+                          <textarea formControlName="content" rows="4" class="form-textarea" placeholder="Nội dung chi tiết"></textarea>
+                        </div>
+
+                        <div class="form-actions">
+                          <app-button 
+                            variant="primary" 
+                            size="sm"
+                            [disabled]="lessonForms[sec.id]?.invalid"
+                            (clicked)="saveLesson(sec.id)">
+                            {{ editingLesson[sec.id] ? 'Cập nhật' : 'Tạo bài học' }}
+                          </app-button>
+                          <app-button 
+                            variant="ghost" 
+                            size="sm"
+                            (clicked)="closeLessonForm(sec.id)">
+                            Hủy
+                          </app-button>
+                        </div>
+                      </form>
+                    </div>
+                  }
+
+                  <!-- Loading Lessons -->
+                  @if (loadingLessons[sec.id]) {
+                    <div class="lessons-loading">
+                      <app-icon name="arrow-path" size="md" class="spin" />
+                      <span>Đang tải bài học...</span>
+                    </div>
+                  }
+
+                  <!-- Lessons List -->
+                  @if (!loadingLessons[sec.id] && sectionLessons[sec.id] && sectionLessons[sec.id].length > 0) {
+                    <div class="lessons-list">
+                      @for (lesson of sectionLessons[sec.id]; track lesson.id; let j = $index) {
+                        <div class="lesson-item">
+                          <div class="lesson-info">
+                            <span class="lesson-number">{{ j + 1 }}</span>
+                            <div class="lesson-details">
+                              <div class="lesson-title">{{ lesson.title }}</div>
+                              @if (lesson.description) {
+                                <div class="lesson-description">{{ lesson.description }}</div>
+                              }
+                            </div>
+                            <app-badge [variant]="getLessonTypeBadgeVariant(lesson.lessonType)" size="sm">
+                              {{ getLessonTypeLabel(lesson.lessonType) }}
+                            </app-badge>
+                          </div>
+                          <div class="lesson-actions">
+                            <app-button 
+                              variant="ghost" 
+                              size="sm"
+                              (clicked)="openLessonForm(sec.id, lesson)">
+                              <app-icon name="pencil" size="xs" />
+                            </app-button>
+                            <app-button 
+                              variant="ghost" 
+                              size="sm"
+                              class="btn-delete"
+                              (clicked)="deleteLesson(sec.id, lesson.id)">
+                              <app-icon name="x-circle" size="xs" />
+                            </app-button>
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  }
+
+                  <!-- Empty Lessons -->
+                  @if (!loadingLessons[sec.id] && (!sectionLessons[sec.id] || sectionLessons[sec.id]?.length === 0)) {
+                    <div class="lessons-empty">
+                      <app-icon name="book-open" size="md" />
+                      <p>Chưa có bài học nào. Click "Thêm bài học" để tạo bài học đầu tiên.</p>
+                    </div>
+                  }
+                </div>
               }
-            </tbody>
-          </table>
+            </div>
+          }
         </div>
       }
           </div>

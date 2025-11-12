@@ -1,0 +1,379 @@
+@import '../../../../styles/variables';
+
+.student-management-container {
+  padding: 40px 48px;
+  background: $bg-page;
+  min-height: 100vh;
+
+  @include mobile {
+    padding: 24px 16px;
+  }
+}
+
+/* Page Header */
+.page-header {
+  margin-bottom: 32px;
+}
+
+.header-left {
+  flex: 1;
+}
+
+.page-title {
+  font-size: 32px;
+  font-weight: $font-bold;
+  color: $text-primary;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.8px;
+}
+
+.page-subtitle {
+  font-size: $text-base;
+  color: $text-secondary;
+  margin: 0;
+}
+
+/* Filters Card */
+.filters-card {
+  background: $bg-surface;
+  border: 1px solid $border-default;
+  border-radius: $radius-lg;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: $shadow-sm;
+}
+
+.search-wrapper {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: $text-muted;
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  padding: 12px 16px 12px 42px;
+  border: 2px solid $border-default;
+  border-radius: $radius-sm;
+  font-size: $text-base;
+  color: $text-primary;
+  background: white;
+  transition: all $transition-fast;
+
+  &::placeholder {
+    color: $text-muted;
+  }
+
+  &:hover {
+    border-color: $gray-400;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: $blue-primary;
+    box-shadow: 0 0 0 3px rgba(0, 86, 210, 0.1);
+  }
+}
+
+.filters-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+
+  @include mobile {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+.filter-select {
+  padding: 10px 16px;
+  border: 1px solid $border-default;
+  border-radius: $radius-sm;
+  font-size: $text-sm;
+  color: $text-primary;
+  background: white;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    border-color: $gray-400;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: $blue-primary;
+    box-shadow: 0 0 0 3px rgba(0, 86, 210, 0.1);
+  }
+
+  @include mobile {
+    width: 100%;
+  }
+}
+
+.results-count {
+  margin-left: auto;
+  font-size: $text-sm;
+  color: $text-secondary;
+
+  strong {
+    color: $text-primary;
+    font-weight: $font-semibold;
+  }
+
+  @include mobile {
+    margin-left: 0;
+  }
+}
+
+/* Table Card */
+.table-card {
+  background: $bg-surface;
+  border: 1px solid $border-default;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-sm;
+  overflow: hidden;
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+.students-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  thead {
+    background: $gray-50;
+    border-bottom: 2px solid $border-default;
+
+    th {
+      padding: 16px 20px;
+      text-align: left;
+      font-size: $text-xs;
+      font-weight: $font-bold;
+      color: $text-secondary;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+
+      &.text-center {
+        text-align: center;
+      }
+
+      &.text-right {
+        text-align: right;
+      }
+    }
+  }
+
+  tbody {
+    tr {
+      border-bottom: 1px solid $border-light;
+      transition: background $transition-fast;
+
+      &:hover {
+        background: $gray-50;
+      }
+
+      &:last-child {
+        border-bottom: none;
+      }
+    }
+
+    td {
+      padding: 16px 20px;
+      font-size: $text-sm;
+
+      &.text-center {
+        text-align: center;
+      }
+
+      &.text-right {
+        text-align: right;
+      }
+    }
+  }
+}
+
+.student-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.student-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: $radius-full;
+  background: linear-gradient(135deg, $blue-primary 0%, #0073E6 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: $text-sm;
+  font-weight: $font-bold;
+  flex-shrink: 0;
+}
+
+.student-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.student-name {
+  font-weight: $font-semibold;
+  color: $text-primary;
+  margin-bottom: 2px;
+}
+
+.student-email {
+  font-size: $text-xs;
+  color: $text-muted;
+  @include truncate;
+}
+
+.progress-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 120px;
+}
+
+.progress-text {
+  font-weight: $font-semibold;
+  color: $text-primary;
+  font-size: $text-sm;
+}
+
+.grade-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: $radius-full;
+  font-weight: $font-bold;
+  font-size: $text-sm;
+
+  &.grade-excellent {
+    background: rgba(5, 150, 105, 0.1);
+    color: $success;
+  }
+
+  &.grade-good {
+    background: rgba(217, 119, 6, 0.1);
+    color: $warning;
+  }
+
+  &.grade-poor {
+    background: rgba(220, 38, 38, 0.1);
+    color: $error;
+  }
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* Pagination */
+.pagination-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-top: 1px solid $border-light;
+
+  @include mobile {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
+.page-size-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: $text-sm;
+  color: $text-secondary;
+
+  select {
+    padding: 6px 12px;
+    border: 1px solid $border-default;
+    border-radius: $radius-sm;
+    font-size: $text-sm;
+    cursor: pointer;
+  }
+}
+
+.page-navigation {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.page-info {
+  font-size: $text-sm;
+  color: $text-primary;
+  font-weight: $font-medium;
+}
+
+/* States */
+.loading-state,
+.error-state,
+.empty-state {
+  text-align: center;
+  padding: 60px 24px;
+
+  app-icon {
+    margin-bottom: 16px;
+    color: $text-muted;
+  }
+
+  h3 {
+    font-size: $text-xl;
+    font-weight: $font-semibold;
+    color: $text-primary;
+    margin: 0 0 8px 0;
+  }
+
+  p {
+    margin: 0 0 16px 0;
+    color: $text-secondary;
+  }
+}
+
+.loading-state app-icon {
+  color: $blue-primary;
+}
+
+.error-state {
+  app-icon {
+    color: $error;
+  }
+
+  p {
+    color: $error;
+  }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
