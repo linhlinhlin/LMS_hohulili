@@ -1,99 +1,216 @@
-import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, signal, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { TeacherService } from '../infrastructure/services/teacher.service';
+import { TeacherCourse } from '../types/teacher.types';
+import { AuthService } from '../../../core/services/auth.service';
+import { IconComponent, IconName } from '../../../shared/components/ui/icon/icon.component';
+import { ButtonComponent } from '../../../shared/components/ui/button/button.component';
+import { CardComponent } from '../../../shared/components/ui/card/card.component';
+import { ProgressBarComponent } from '../../../shared/components/ui/progress-bar/progress-bar.component';
+import { BadgeComponent } from '../../../shared/components/ui/badge/badge.component';
 
+interface Activity {
+  id: string;
+  icon: string;
+  text: string;
+  time: string;
+}
+
+/**
+ * Teacher Dashboard - Coursera Style
+ * 
+ * Professional dashboard with:
+ * - Greeting + KPI cards
+ * - Recent courses with status badges
+ * - Pending assignments with progress
+ * - Sidebar widgets (Stats, Top Students, Activities)
+ */
 @Component({
   selector: 'app-teacher-dashboard',
-  imports: [CommonModule, RouterModule],
-  encapsulation: ViewEncapsulation.None,
-  template: `
-    <div class="p-6 space-y-6">
-      <h1 class="text-2xl font-bold text-gray-900">Teacher Dashboard</h1>
-
-      <!-- KPI Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white rounded-xl shadow p-5">
-          <p class="text-sm text-gray-500">Tổng số khóa học</p>
-          <p class="mt-2 text-2xl font-semibold text-gray-900">{{ teacher.totalCourses() }}</p>
-        </div>
-        <div class="bg-white rounded-xl shadow p-5">
-          <p class="text-sm text-gray-500">Khóa học đang hoạt động</p>
-          <p class="mt-2 text-2xl font-semibold text-gray-900">{{ teacher.activeCourses().length }}</p>
-        </div>
-        <div class="bg-white rounded-xl shadow p-5">
-          <p class="text-sm text-gray-500">Tổng học viên</p>
-          <p class="mt-2 text-2xl font-semibold text-gray-900">{{ teacher.totalStudents() }}</p>
-        </div>
-        <div class="bg-white rounded-xl shadow p-5">
-          <p class="text-sm text-gray-500">Doanh thu (mock)</p>
-          <p class="mt-2 text-2xl font-semibold text-gray-900">{{ teacher.totalRevenue() | number:'1.0-0' }} đ</p>
-        </div>
-      </div>
-
-      <!-- Recent Courses & Assignments -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="bg-white rounded-xl shadow p-6">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-semibold text-gray-900">Khóa học gần đây</h2>
-            <a routerLink="/teacher/courses" class="text-sm text-indigo-600">Xem tất cả</a>
-          </div>
-          <ul class="divide-y divide-gray-100">
-            <li *ngFor="let c of teacher.courses() | slice:0:5" class="py-3 flex items-center justify-between">
-              <div>
-                <p class="font-medium text-gray-900">{{ c.title }}</p>
-                <p class="text-sm text-gray-500">{{ c.category }} • {{ c.status }}</p>
-              </div>
-              <div class="text-right">
-                <p class="text-sm text-gray-600">{{ c.enrolledStudents }} HV</p>
-                <p class="text-xs text-gray-400">Rating {{ c.rating }}</p>
-              </div>
-            </li>
-          </ul>
-        </div>
-
-        <div class="bg-white rounded-xl shadow p-6">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-semibold text-gray-900">Bài tập</h2>
-            <a routerLink="/teacher/assignments" class="text-sm text-indigo-600">Xem tất cả</a>
-          </div>
-          <ul class="divide-y divide-gray-100">
-            <li *ngFor="let a of teacher.assignments() | slice:0:5" class="py-3 flex items-center justify-between">
-              <div>
-                <p class="font-medium text-gray-900">{{ a.title }}</p>
-                <p class="text-sm text-gray-500">Course #{{ a.courseId }} • Hạn: {{ a.dueDate }}</p>
-              </div>
-              <div class="text-right">
-                <p class="text-sm text-gray-600">{{ a.submissions }}/{{ a.totalStudents }} nộp</p>
-                <p class="text-xs text-gray-400">TT {{ a.status }}</p>
-              </div>
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      <!-- Students quick view -->
-      <div class="bg-white rounded-xl shadow p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-lg font-semibold text-gray-900">Học viên tiêu biểu</h2>
-          <a routerLink="/teacher/students" class="text-sm text-indigo-600">Quản lý học viên</a>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div *ngFor="let s of topStudents()" class="border rounded-lg p-4">
-            <p class="font-medium text-gray-900">{{ s.name }}</p>
-            <p class="text-sm text-gray-500">{{ s.email }}</p>
-            <p class="text-sm text-gray-600 mt-1">Điểm TB: {{ s.averageGrade }} • Tiến độ: {{ s.progress }}%</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  `,
+  standalone: true,
+  imports: [
+    CommonModule,
+    RouterModule,
+    IconComponent,
+    ButtonComponent,
+    CardComponent,
+    ProgressBarComponent,
+    BadgeComponent
+  ],
+  templateUrl: './teacher-dashboard.component.html',
+  styleUrl: './teacher-dashboard.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class TeacherDashboardComponent {
-  teacher = inject(TeacherService);
+  protected teacher = inject(TeacherService);
+  private authService = inject(AuthService);
+  private router = inject(Router);
 
-  topStudents = () => {
-    return [...this.teacher.students()].sort((a,b) => (b.averageGrade || 0) - (a.averageGrade || 0)).slice(0, 3);
-  };
+  // Computed values
+  recentCourses = computed(() => 
+    this.teacher.courses().slice(0, 3)
+  );
+
+  pendingAssignments = computed(() =>
+    this.teacher.assignments()
+      .filter(a => a.status === 'pending' || a.status === 'submitted')
+      .slice(0, 3)
+  );
+
+  pendingAssignmentsCount = computed(() =>
+    this.teacher.assignments()
+      .filter(a => a.status === 'pending' || a.status === 'submitted')
+      .length
+  );
+
+  averageRating = computed(() => {
+    const courses = this.teacher.courses();
+    if (courses.length === 0) return '0.0';
+    const sum = courses.reduce((acc, c) => acc + (c.rating || 0), 0);
+    return (sum / courses.length).toFixed(1);
+  });
+
+  topStudents = computed(() => 
+    [...this.teacher.students()]
+      .sort((a, b) => (b.averageGrade || 0) - (a.averageGrade || 0))
+      .slice(0, 3)
+  );
+
+  pendingGradingCount = computed(() =>
+    this.teacher.assignments()
+      .filter(a => a.status === 'submitted')
+      .reduce((sum, a) => sum + (a.submissions || 0), 0)
+  );
+
+  newStudentsThisWeek = computed(() => {
+    // Mock data - in real app, filter by enrollment date
+    return 12;
+  });
+
+  recentActivities = computed<Activity[]>(() => [
+    {
+      id: '1',
+      icon: 'users',
+      text: '5 học viên mới đăng ký khóa học',
+      time: '2 giờ trước'
+    },
+    {
+      id: '2',
+      icon: 'clipboard-document-check',
+      text: '12 bài tập mới được nộp',
+      time: '4 giờ trước'
+    },
+    {
+      id: '3',
+      icon: 'star',
+      text: 'Nhận được 3 đánh giá 5 sao',
+      time: '1 ngày trước'
+    }
+  ]);
+
+  // Helper methods
+  getGreeting(): string {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Chào buổi sáng';
+    if (hour < 18) return 'Chào buổi chiều';
+    return 'Chào buổi tối';
+  }
+
+  getUserFirstName(): string {
+    const fullName = this.authService.currentUser()?.name || 'Giảng viên';
+    return fullName.split(' ').pop() || fullName;
+  }
+
+  getStatusVariant(status: string): 'success' | 'warning' | 'error' | 'info' | 'default' {
+    switch (status) {
+      case 'active':
+        return 'success';
+      case 'draft':
+        return 'warning';
+      case 'archived':
+        return 'default';
+      default:
+        return 'info';
+    }
+  }
+
+  getStatusLabel(status: string): string {
+    switch (status) {
+      case 'active':
+        return 'Đang hoạt động';
+      case 'draft':
+        return 'Nháp';
+      case 'archived':
+        return 'Đã lưu trữ';
+      default:
+        return status;
+    }
+  }
+
+  getAssignmentStatusVariant(status: string): 'success' | 'warning' | 'error' | 'info' | 'default' {
+    switch (status) {
+      case 'graded':
+        return 'success';
+      case 'pending':
+        return 'warning';
+      case 'submitted':
+        return 'info';
+      default:
+        return 'default';
+    }
+  }
+
+  getAssignmentStatusLabel(status: string): string {
+    switch (status) {
+      case 'graded':
+        return 'Đã chấm';
+      case 'pending':
+        return 'Chờ nộp';
+      case 'submitted':
+        return 'Đã nộp';
+      default:
+        return status;
+    }
+  }
+
+  getSubmissionProgress(assignment: any): number {
+    if (!assignment.totalStudents) return 0;
+    return Math.round((assignment.submissions / assignment.totalStudents) * 100);
+  }
+
+  // Navigation methods
+  editCourse(courseId: string): void {
+    this.router.navigate(['/teacher/courses', courseId, 'edit']);
+  }
+
+  viewCourse(courseId: string): void {
+    this.router.navigate(['/teacher/courses', courseId]);
+  }
+
+  gradeAssignment(assignmentId: string): void {
+    this.router.navigate(['/teacher/assignments', assignmentId, 'grade']);
+  }
+
+  viewAllStudents(): void {
+    this.router.navigate(['/teacher/students']);
+  }
+
+  getCourseCode(course: TeacherCourse): string {
+    // Generate course code from id or use a default pattern
+    return `COURSE-${course.id.toUpperCase().slice(0, 6)}`;
+  }
+
+  getActivityIcon(iconName: string): IconName {
+    // Map activity icon names to valid IconName type
+    const iconMap: Record<string, IconName> = {
+      'users': 'users',
+      'clipboard-document-check': 'clipboard-document-check',
+      'star': 'star',
+      'user': 'user',
+      'bell': 'bell',
+      'check-circle': 'check-circle'
+    };
+    return iconMap[iconName] || 'bell';
+  }
 }

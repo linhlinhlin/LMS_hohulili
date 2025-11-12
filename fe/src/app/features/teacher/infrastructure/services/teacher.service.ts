@@ -1,4 +1,5 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import { ApiClient } from '../../../../api/client/api-client';
 import { TeacherCourse, TeacherStudent, TeacherAssignment } from '../../types/teacher.types';
 
@@ -37,12 +38,12 @@ export class TeacherService {
   );
 
   constructor() {
-    // Initialize with mock data for development
-    this.initializeMockData();
+    // Load real data from API
+    this.loadMyCourses();
   }
 
   private initializeMockData(): void {
-    // Mock courses data
+    // Fallback mock data when API fails
     const mockCourses: TeacherCourse[] = [
       {
         id: '1',
@@ -82,7 +83,12 @@ export class TeacherService {
       }
     ];
 
-    // Mock students data
+    this._courses.set(mockCourses);
+    this.initializeMockStudentsAndAssignments();
+  }
+
+  private initializeMockStudentsAndAssignments(): void {
+    // Mock students data (until backend provides API)
     const mockStudents: TeacherStudent[] = [
       {
         id: '1',
@@ -122,14 +128,15 @@ export class TeacherService {
       }
     ];
 
-    // Mock assignments data
+    // Mock assignments data (until backend provides API)
     const mockAssignments: TeacherAssignment[] = [
       {
         id: '1',
         title: 'Safety Procedures Quiz',
         courseId: '1',
+        courseTitle: 'Maritime Safety Fundamentals',
         description: 'Test knowledge of maritime safety procedures',
-        dueDate: '2024-09-20',
+        dueDate: '2024-11-20',
         status: 'pending',
         submissions: 35,
         totalStudents: 45,
@@ -141,8 +148,9 @@ export class TeacherService {
         id: '2',
         title: 'Navigation Project',
         courseId: '2',
+        courseTitle: 'Navigation Systems Advanced',
         description: 'Practical navigation exercise',
-        dueDate: '2024-09-25',
+        dueDate: '2024-11-25',
         status: 'submitted',
         submissions: 28,
         totalStudents: 32,
@@ -152,28 +160,59 @@ export class TeacherService {
       }
     ];
 
-    this._courses.set(mockCourses);
     this._students.set(mockStudents);
     this._assignments.set(mockAssignments);
   }
 
-  // API Methods (to be implemented with real backend)
-  async getCourses(): Promise<TeacherCourse[]> {
+  // API Methods - Real Backend Integration
+  async loadMyCourses(page: number = 1, limit: number = 100): Promise<void> {
     this._isLoading.set(true);
     this._error.set(null);
 
     try {
-      // TODO: Replace with real API call
-      // const response = await this.apiClient.get<TeacherCourse[]>('/api/v1/teacher/courses');
-      // this._courses.set(response);
-      await this.simulateApiCall();
-      return this._courses();
+      // Call real API: GET /api/v1/courses/my-courses
+      const response = await firstValueFrom(
+        this.apiClient.get<any>(`/api/v1/courses/my-courses?page=${page}&limit=${limit}`)
+      );
+      
+      // Backend returns: { success: true, data: { content: [...], pageable: {...} } }
+      const apiData = response.data || response;
+      const coursesData = apiData.content || [];
+      
+      // Map backend response to TeacherCourse format
+      const courses: TeacherCourse[] = coursesData.map((course: any) => ({
+        id: course.id,
+        title: course.title,
+        description: course.description,
+        category: 'General', // Backend doesn't provide category yet
+        status: 'active', // Assume active for now
+        enrolledStudents: course.enrolledCount || 0,
+        rating: 0, // Backend doesn't provide rating yet
+        revenue: 0, // Backend doesn't provide revenue yet
+        createdAt: course.createdAt,
+        updatedAt: course.updatedAt,
+        // Additional fields from backend
+        sectionCount: course.sectionCount,
+        lessonCount: course.lessonCount
+      }));
+
+      this._courses.set(courses);
+      
+      // Initialize mock data for students and assignments (until backend provides these)
+      this.initializeMockStudentsAndAssignments();
     } catch (error) {
+      console.error('Failed to load courses:', error);
       this._error.set('Failed to load courses');
-      throw error;
+      // Fallback to mock data on error
+      this.initializeMockData();
     } finally {
       this._isLoading.set(false);
     }
+  }
+
+  async getCourses(): Promise<TeacherCourse[]> {
+    await this.loadMyCourses();
+    return this._courses();
   }
 
   async getStudents(): Promise<TeacherStudent[]> {

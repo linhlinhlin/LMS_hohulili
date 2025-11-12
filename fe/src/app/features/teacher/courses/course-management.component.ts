@@ -1,135 +1,118 @@
-import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, signal, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { CourseApi } from '../../../api/client/course.api';
 import { CourseSummary } from '../../../api/types/course.types';
+import { IconComponent, IconName } from '../../../shared/components/ui/icon/icon.component';
+import { ButtonComponent } from '../../../shared/components/ui/button/button.component';
+import { CardComponent } from '../../../shared/components/ui/card/card.component';
+import { BadgeComponent } from '../../../shared/components/ui/badge/badge.component';
 
+interface Activity {
+  id: string;
+  icon: IconName;
+  text: string;
+  time: string;
+}
+
+/**
+ * Course Management - Coursera Style
+ * 
+ * Professional course management with:
+ * - Clean table design with status badges
+ * - Search and filter functionality
+ * - Sidebar widgets (Stats, Recent Activity)
+ * - Pagination controls
+ */
 @Component({
   selector: 'app-course-management',
-  imports: [CommonModule, RouterModule, FormsModule],
-  encapsulation: ViewEncapsulation.None,
-  template: `
-    <div class="p-6 space-y-4">
-      <div class="flex items-center justify-between">
-        <h1 class="text-2xl font-medium text-gray-900">Khóa học của tôi</h1>
-        <a routerLink="/teacher/course-creation" 
-           class="px-4 py-2 bg-slate-800 text-white hover:bg-slate-900 transition-colors duration-200 font-normal text-sm">
-          Tạo khóa học
-        </a>
-      </div>
-
-      <!-- Simple search bar outside container -->
-      <div class="flex gap-3 items-center mb-4">
-        <input class="shadow-sm px-4 py-2 flex-1 focus:outline-none focus:ring-2 focus:ring-blue-500" 
-               placeholder="Tìm kiếm theo mã hoặc tên khóa học..." 
-               [(ngModel)]="keyword" />
-        <select class="shadow-sm px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" [(ngModel)]="status">
-          <option value="">Tất cả trạng thái</option>
-          <option value="APPROVED">APPROVED</option>
-          <option value="PENDING">PENDING</option>
-          <option value="DRAFT">DRAFT</option>
-        </select>
-        <button class="px-6 py-2 bg-slate-600 text-white hover:bg-slate-700 transition-colors duration-200 font-normal text-sm" 
-                (click)="applyFilters()">
-          Lọc
-        </button>
-      </div>
-
-      <div class="bg-white shadow-sm">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="px-6 py-4 text-left text-sm md:text-base font-medium text-gray-600 uppercase tracking-wider">Mã</th>
-              <th class="px-6 py-4 text-left text-sm md:text-base font-medium text-gray-600 uppercase tracking-wider">Tên</th>
-              <th class="px-6 py-4 text-left text-sm md:text-base font-medium text-gray-600 uppercase tracking-wider">Trạng thái</th>
-              <th class="px-6 py-4 text-left text-sm md:text-base font-medium text-gray-600 uppercase tracking-wider">Học viên</th>
-              <th class="px-6 py-4"></th>
-            </tr>
-          </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
-            <tr *ngFor="let c of paged(); trackBy: trackById">
-              <td class="px-6 py-5 whitespace-nowrap font-normal text-base md:text-lg text-gray-900">{{ c.code }}</td>
-              <td class="px-6 py-5 whitespace-nowrap font-normal text-base md:text-lg text-gray-900">{{ c.title }}</td>
-              <td class="px-6 py-5 whitespace-nowrap text-base md:text-lg">
-                <span class="px-2 inline-flex text-xs leading-5 font-normal border"
-                      [class.bg-green-100]="c.status === 'APPROVED'"
-                      [class.text-green-800]="c.status === 'APPROVED'"
-                      [class.border-green-300]="c.status === 'APPROVED'"
-                      [class.bg-yellow-100]="c.status !== 'APPROVED'"
-                      [class.text-yellow-800]="c.status !== 'APPROVED'"
-                      [class.border-yellow-300]="c.status !== 'APPROVED'">
-                  {{ c.status }}
-                </span>
-              </td>
-              <td class="px-6 py-5 whitespace-nowrap font-normal text-base md:text-lg text-gray-900">{{ c.enrolledCount }}</td>
-              <td class="px-6 py-5 whitespace-nowrap text-right text-base md:text-lg">
-                <div class="inline-flex items-center gap-2">
-                  <a [routerLink]="['/teacher/courses', c.id, 'edit']" 
-                     class="px-3 py-2 bg-stone-500 text-white hover:bg-stone-600 transition-colors duration-200 font-normal text-sm">
-                    Sửa
-                  </a>
-                  <button *ngIf="c.status !== 'APPROVED'"
-                          class="px-3 py-2 bg-teal-500 text-white hover:bg-teal-600 transition-colors duration-200 font-normal text-sm disabled:opacity-50"
-                          [disabled]="publishingId() === c.id"
-                          (click)="publish(c.id)">
-                    {{ publishingId() === c.id ? 'Đang xuất bản...' : 'Xuất bản' }}
-                  </button>
-                  <button class="px-3 py-2 bg-red-400 text-white hover:bg-red-500 transition-colors duration-200 font-normal text-sm disabled:opacity-50"
-                          [disabled]="deletingId() === c.id"
-                          (click)="deleteCourse(c.id, c.title)">
-                    {{ deletingId() === c.id ? 'Đang xóa...' : 'Xóa' }}
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <div class="p-6 text-gray-500" *ngIf="!loading() && filtered().length === 0">Không có kết quả.</div>
-        <div class="p-6 text-gray-500" *ngIf="loading()">Đang tải...</div>
-        <div class="p-6 text-red-600" *ngIf="error()">{{ error() }}</div>
-      </div>
-
-      <!-- Pagination Controls -->
-      <div class="bg-white shadow p-4 flex flex-wrap items-center justify-between gap-3">
-        <div class="flex items-center gap-2">
-          <span class="text-sm text-gray-600">Hiển thị</span>
-          <select class="border px-2 py-1" [ngModel]="pageSize()" (ngModelChange)="onPageSizeChange($event)">
-            <option [ngValue]="5">5</option>
-            <option [ngValue]="10">10</option>
-            <option [ngValue]="20">20</option>
-          </select>
-          <span class="text-sm text-gray-600">mỗi trang</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <button class="px-3 py-1 shadow-sm text-gray-600 hover:shadow-md hover:text-gray-700 disabled:opacity-50 transition-all duration-200" [disabled]="pageIndex() <= 1" (click)="prevPage()">Trước</button>
-          <span class="text-sm text-gray-700">Trang {{ pageIndex() }} / {{ totalPages() }}</span>
-          <button class="px-3 py-1 shadow-sm text-gray-600 hover:shadow-md hover:text-gray-700 disabled:opacity-50 transition-all duration-200" [disabled]="pageIndex() >= totalPages()" (click)="nextPage()">Sau</button>
-        </div>
-        <div class="text-sm text-gray-600">Tổng: {{ total() }}</div>
-      </div>
-    </div>
-  `,
+  imports: [
+    CommonModule,
+    RouterModule,
+    FormsModule,
+    IconComponent,
+    ButtonComponent,
+    CardComponent,
+    BadgeComponent
+  ],
+  templateUrl: './course-management.component.html',
+  styleUrl: './course-management.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CourseManagementComponent {
   private api = inject(CourseApi);
+  private router = inject(Router);
+
+  // State
   courses = signal<CourseSummary[]>([]);
   filtered = signal<CourseSummary[]>([]);
   loading = signal(true);
   error = signal('');
+  
+  // Filter state
   keyword = '';
   status: '' | 'APPROVED' | 'PENDING' | 'DRAFT' = '';
+  
+  // Action state
   publishingId = signal<string | null>(null);
   deletingId = signal<string | null>(null);
+  
+  // Pagination state
   pageIndex = signal(1);
   pageSize = signal(10);
+
+  // Computed
   paged = computed(() => {
     const start = (this.pageIndex() - 1) * this.pageSize();
     return this.filtered().slice(start, start + this.pageSize());
   });
 
+  total = computed(() => this.filtered().length);
+  totalPages = computed(() => Math.max(1, Math.ceil(this.total() / this.pageSize())));
+
+  activeCourses = computed(() => 
+    this.courses().filter(c => c.status === 'APPROVED')
+  );
+
+  draftCourses = computed(() =>
+    this.courses().filter(c => c.status === 'DRAFT')
+  );
+
+  totalStudents = computed(() =>
+    this.courses().reduce((sum, c) => sum + (c.enrolledCount || 0), 0)
+  );
+
+  recentActivities = computed<Activity[]>(() => [
+    {
+      id: '1',
+      icon: 'academic-cap',
+      text: 'Khóa học mới được tạo',
+      time: '2 giờ trước'
+    },
+    {
+      id: '2',
+      icon: 'users',
+      text: '5 học viên mới đăng ký',
+      time: '4 giờ trước'
+    },
+    {
+      id: '3',
+      icon: 'check-circle',
+      text: 'Khóa học được phê duyệt',
+      time: '1 ngày trước'
+    }
+  ]);
+
   constructor() {
+    this.loadCourses();
+  }
+
+  // Load courses
+  loadCourses() {
+    this.loading.set(true);
+    this.error.set('');
+    
     this.api.myCourses().subscribe({
       next: (res) => {
         const list = res?.data || [];
@@ -142,6 +125,7 @@ export class CourseManagementComponent {
     });
   }
 
+  // Filter methods
   applyFilters() {
     const kw = this.keyword.trim().toLowerCase();
     this.filtered.set(
@@ -152,12 +136,33 @@ export class CourseManagementComponent {
     this.pageIndex.set(1);
   }
 
+  clearSearch() {
+    this.keyword = '';
+    this.applyFilters();
+  }
+
+  resetFilters() {
+    this.keyword = '';
+    this.status = '';
+    this.applyFilters();
+  }
+
+  // Action methods
+  createCourse() {
+    this.router.navigate(['/teacher/course-creation']);
+  }
+
+  editCourse(id: string) {
+    this.router.navigate(['/teacher/courses', id, 'edit']);
+  }
+
   publish(id: string) {
     this.publishingId.set(id);
     this.api.publishCourse(id).subscribe({
       next: () => {
-        // reflect change locally in both master and filtered lists
-        const apply = (list: CourseSummary[]) => list.map(item => item.id === id ? { ...item, status: 'APPROVED' } : item);
+        // Update local state
+        const apply = (list: CourseSummary[]) => 
+          list.map(item => item.id === id ? { ...item, status: 'APPROVED' } : item);
         this.courses.set(apply(this.courses()));
         this.filtered.set(apply(this.filtered()));
       },
@@ -166,14 +171,19 @@ export class CourseManagementComponent {
   }
 
   deleteCourse(id: string, title: string) {
-    const confirmed = confirm(`Bạn có chắc chắn muốn xóa khóa học "${title}"?\n\nTất cả dữ liệu liên quan (chương, bài học, bài tập,...) sẽ bị xóa vĩnh viễn.\nHành động này không thể hoàn tác!`);
+    const confirmed = confirm(
+      `Bạn có chắc chắn muốn xóa khóa học "${title}"?\n\n` +
+      `Tất cả dữ liệu liên quan (chương, bài học, bài tập,...) sẽ bị xóa vĩnh viễn.\n` +
+      `Hành động này không thể hoàn tác!`
+    );
     if (!confirmed) return;
 
     this.deletingId.set(id);
     this.api.deleteCourse(id).subscribe({
       next: () => {
         // Remove course from both master and filtered lists
-        const removeFromList = (list: CourseSummary[]) => list.filter(item => item.id !== id);
+        const removeFromList = (list: CourseSummary[]) => 
+          list.filter(item => item.id !== id);
         this.courses.set(removeFromList(this.courses()));
         this.filtered.set(removeFromList(this.filtered()));
       },
@@ -184,12 +194,52 @@ export class CourseManagementComponent {
     });
   }
 
-  total = computed(() => this.filtered().length);
-  totalPages = computed(() => Math.max(1, Math.ceil(this.total() / this.pageSize())));
-  goToPage(n: number) { this.pageIndex.set(Math.min(Math.max(1, n), this.totalPages())); }
-  nextPage() { this.goToPage(this.pageIndex() + 1); }
-  prevPage() { this.goToPage(this.pageIndex() - 1); }
-  onPageSizeChange(v?: any) { if (v !== undefined) this.pageSize.set(Number(v)); this.goToPage(1); }
+  // Helper methods
+  getStatusVariant(status: string): 'success' | 'warning' | 'error' | 'info' | 'default' {
+    switch (status) {
+      case 'APPROVED':
+        return 'success';
+      case 'PENDING':
+        return 'warning';
+      case 'DRAFT':
+        return 'default';
+      default:
+        return 'info';
+    }
+  }
 
-  trackById(_index: number, item: CourseSummary) { return item.id; }
+  getStatusLabel(status: string): string {
+    switch (status) {
+      case 'APPROVED':
+        return 'Đang hoạt động';
+      case 'PENDING':
+        return 'Chờ duyệt';
+      case 'DRAFT':
+        return 'Nháp';
+      default:
+        return status;
+    }
+  }
+
+  // Pagination methods
+  goToPage(n: number) {
+    this.pageIndex.set(Math.min(Math.max(1, n), this.totalPages()));
+  }
+
+  nextPage() {
+    this.goToPage(this.pageIndex() + 1);
+  }
+
+  prevPage() {
+    this.goToPage(this.pageIndex() - 1);
+  }
+
+  onPageSizeChange(v?: any) {
+    if (v !== undefined) this.pageSize.set(Number(v));
+    this.goToPage(1);
+  }
+
+  trackById(_index: number, item: CourseSummary) {
+    return item.id;
+  }
 }

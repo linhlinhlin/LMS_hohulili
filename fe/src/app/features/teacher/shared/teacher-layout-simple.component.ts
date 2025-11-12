@@ -81,11 +81,9 @@ import { teacherSidebarConfig } from '../../../shared/components/navigation/side
           </div>
         </header>
 
-        <!-- Page content with modern spacing -->
+        <!-- Page content -->
         <main class="flex-1 overflow-auto bg-transparent">
-          <div class="py-6 px-4 sm:px-6 lg:px-8">
-            <router-outlet></router-outlet>
-          </div>
+          <router-outlet></router-outlet>
         </main>
       </div>
     </div>

@@ -1,0 +1,258 @@
+<div class="course-management-container">
+  <!-- Main Content (70%) -->
+  <div class="main-content">
+    <!-- Header with breadcrumb feel -->
+    <div class="page-header">
+      <div class="header-left">
+        <h1 class="page-title">Khóa học của tôi</h1>
+        <p class="page-subtitle">Quản lý và theo dõi tất cả khóa học của bạn</p>
+      </div>
+      <app-button 
+        variant="primary" 
+        (clicked)="createCourse()">
+        <app-icon name="plus" size="sm" />
+        Tạo khóa học mới
+      </app-button>
+    </div>
+
+    <!-- Filters Bar with better UX -->
+    <div class="filters-bar">
+      <div class="search-wrapper">
+        <app-icon name="magnifying-glass" size="sm" class="search-icon" />
+        <input 
+          class="search-input" 
+          placeholder="Tìm kiếm theo mã hoặc tên khóa học..."
+          [(ngModel)]="keyword"
+          (input)="applyFilters()"
+          aria-label="Tìm kiếm khóa học" />
+        @if (keyword) {
+          <button 
+            class="clear-search" 
+            (click)="clearSearch()"
+            aria-label="Xóa tìm kiếm">
+            <app-icon name="x-mark" size="xs" />
+          </button>
+        }
+      </div>
+      
+      <div class="filter-wrapper">
+        <app-icon name="bars-3" size="sm" class="filter-icon" />
+        <select 
+          class="filter-select" 
+          [(ngModel)]="status" 
+          (change)="applyFilters()"
+          aria-label="Lọc theo trạng thái">
+          <option value="">Tất cả trạng thái</option>
+          <option value="APPROVED">Đang hoạt động</option>
+          <option value="PENDING">Chờ duyệt</option>
+          <option value="DRAFT">Nháp</option>
+        </select>
+      </div>
+
+      @if (keyword || status) {
+        <button class="reset-filters" (click)="resetFilters()">
+          <app-icon name="arrow-path" size="xs" />
+          Đặt lại
+        </button>
+      }
+    </div>
+
+    <!-- Courses Table with better visual hierarchy -->
+    <div class="table-container">
+      <!-- Results count -->
+      @if (!loading() && paged().length > 0) {
+        <div class="results-header">
+          <span class="results-count">
+            Hiển thị <strong>{{ paged().length }}</strong> trong tổng số <strong>{{ total() }}</strong> khóa học
+          </span>
+        </div>
+      }
+
+      <table class="courses-table">
+        <thead>
+          <tr>
+            <th>Mã khóa học</th>
+            <th>Tên khóa học</th>
+            <th>Trạng thái</th>
+            <th class="text-center">Học viên</th>
+            <th class="text-right">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (course of paged(); track course.id) {
+            <tr class="course-row">
+              <td class="course-code-cell">
+                <span class="course-code">{{ course.code }}</span>
+              </td>
+              <td class="course-title-cell">
+                <span class="course-title">{{ course.title }}</span>
+              </td>
+              <td class="course-status">
+                <app-badge 
+                  [variant]="getStatusVariant(course.status)" 
+                  size="sm">
+                  {{ getStatusLabel(course.status) }}
+                </app-badge>
+              </td>
+              <td class="course-students text-center">
+                <div class="students-count">
+                  <app-icon name="users" size="xs" class="students-icon" />
+                  <span>{{ course.enrolledCount || 0 }}</span>
+                </div>
+              </td>
+              <td class="course-actions">
+                <div class="action-buttons">
+                  <app-button 
+                    variant="ghost" 
+                    size="sm"
+                    (clicked)="editCourse(course.id)"
+                    title="Chỉnh sửa khóa học">
+                    <app-icon name="pencil" size="xs" />
+                    <span class="btn-text">Sửa</span>
+                  </app-button>
+                  
+                  @if (course.status !== 'APPROVED') {
+                    <app-button 
+                      variant="primary" 
+                      size="sm"
+                      [disabled]="publishingId() === course.id"
+                      (clicked)="publish(course.id)"
+                      title="Xuất bản khóa học">
+                      @if (publishingId() === course.id) {
+                        <app-icon name="arrow-path" size="xs" class="spin" />
+                      }
+                      <span class="btn-text">{{ publishingId() === course.id ? 'Đang xuất bản...' : 'Xuất bản' }}</span>
+                    </app-button>
+                  }
+                  
+                  <app-button 
+                    variant="outline" 
+                    size="sm"
+                    class="btn-delete"
+                    [disabled]="deletingId() === course.id"
+                    (clicked)="deleteCourse(course.id, course.title)"
+                    title="Xóa khóa học">
+                    @if (deletingId() === course.id) {
+                      <app-icon name="arrow-path" size="xs" class="spin" />
+                    } @else {
+                      <app-icon name="x-circle" size="xs" />
+                    }
+                    <span class="btn-text">{{ deletingId() === course.id ? 'Đang xóa...' : 'Xóa' }}</span>
+                  </app-button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+
+      <!-- Empty State -->
+      @if (!loading() && paged().length === 0) {
+        <div class="empty-state">
+          <app-icon name="book-open" size="xl" />
+          <h3>Chưa có khóa học nào</h3>
+          <p>Tạo khóa học đầu tiên của bạn</p>
+          <app-button variant="primary" (clicked)="createCourse()">
+            <app-icon name="plus" size="sm" />
+            Tạo khóa học
+          </app-button>
+        </div>
+      }
+
+      <!-- Loading State -->
+      @if (loading()) {
+        <div class="loading-state">
+          <app-icon name="arrow-path" size="xl" class="spin" />
+          <p>Đang tải...</p>
+        </div>
+      }
+
+      <!-- Error State -->
+      @if (error()) {
+        <div class="error-state">
+          <app-icon name="exclamation-circle" size="xl" />
+          <p>{{ error() }}</p>
+          <app-button variant="ghost" (clicked)="loadCourses()">
+            <app-icon name="arrow-path" size="sm" />
+            Thử lại
+          </app-button>
+        </div>
+      }
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination-bar">
+      <div class="page-size-selector">
+        <span>Hiển thị</span>
+        <select [ngModel]="pageSize()" (ngModelChange)="onPageSizeChange($event)">
+          <option [ngValue]="5">5</option>
+          <option [ngValue]="10">10</option>
+          <option [ngValue]="20">20</option>
+        </select>
+        <span>mỗi trang</span>
+      </div>
+      
+      <div class="page-navigation">
+        <app-button 
+          variant="ghost" 
+          size="sm"
+          [disabled]="pageIndex() <= 1"
+          (clicked)="prevPage()">
+          Trước
+        </app-button>
+        <span class="page-info">Trang {{ pageIndex() }} / {{ totalPages() }}</span>
+        <app-button 
+          variant="ghost" 
+          size="sm"
+          [disabled]="pageIndex() >= totalPages()"
+          (clicked)="nextPage()">
+          Sau
+        </app-button>
+      </div>
+      
+      <div class="total-count">
+        Tổng: {{ total() }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Sidebar (30%) -->
+  <aside class="sidebar">
+    <!-- Quick Stats Widget -->
+    <app-card class="widget">
+      <h3 class="widget-title">Thống kê nhanh</h3>
+      <div class="stats-list">
+        <div class="stat-item">
+          <span class="stat-label">Đang hoạt động</span>
+          <span class="stat-value">{{ activeCourses().length }}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Nháp</span>
+          <span class="stat-value">{{ draftCourses().length }}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Tổng học viên</span>
+          <span class="stat-value">{{ totalStudents() }}</span>
+        </div>
+      </div>
+    </app-card>
+
+    <!-- Recent Activity Widget -->
+    <app-card class="widget">
+      <h3 class="widget-title">Hoạt động gần đây</h3>
+      <div class="activity-list">
+        @for (activity of recentActivities(); track activity.id) {
+          <div class="activity-item">
+            <div class="activity-icon">
+              <app-icon [name]="activity.icon" size="sm" />
+            </div>
+            <div class="activity-content">
+              <p class="activity-text">{{ activity.text }}</p>
+              <p class="activity-time">{{ activity.time }}</p>
+            </div>
+          </div>
+        }
+      </div>
+    </app-card>
+  </aside>
+</div>
