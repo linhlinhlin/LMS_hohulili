@@ -1,0 +1,217 @@
+<!-- Loading State -->
+@if (isLoading()) {
+  <div class="loading-container">
+    <app-loading></app-loading>
+  </div>
+} @else {
+  <div class="dashboard-container">
+    <!-- Page Header -->
+    <div class="page-header">
+      <h1 class="page-title">Quản trị Hệ thống</h1>
+    </div>
+
+    <!-- Stat Cards -->
+    <div class="stat-cards-grid">
+      <!-- Card 1: Tổng người dùng -->
+      <div class="stat-card">
+        <div class="stat-card-icon icon-users">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path>
+          </svg>
+        </div>
+        <div class="stat-card-content">
+          <div class="stat-card-label">TỔNG NGƯỜI DÙNG</div>
+          <div class="stat-card-value">{{ analytics().totalUsers | number }}</div>
+          <div class="stat-card-trend trend-positive">
+            <svg class="trend-icon" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+            </svg>
+            +12% so với tháng trước
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 2: Doanh thu -->
+      <div class="stat-card">
+        <div class="stat-card-icon icon-revenue">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+        </div>
+        <div class="stat-card-content">
+          <div class="stat-card-label">DOANH THU (THÁNG NÀY)</div>
+          <div class="stat-card-value">{{ analytics().revenue | number:'1.0-0' }}đ</div>
+          <div class="stat-card-trend trend-positive">
+            <svg class="trend-icon" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+            </svg>
+            +{{ analytics().revenueGrowth }}% so với tháng trước
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 3: Chờ duyệt -->
+      <div class="stat-card stat-card-warning">
+        <div class="stat-card-icon icon-pending">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+        </div>
+        <div class="stat-card-content">
+          <div class="stat-card-label">KHÓA HỌC CHỜ DUYỆT</div>
+          <div class="stat-card-value">{{ analytics().pendingCourses | number }}</div>
+          <div class="stat-card-trend trend-warning">
+            <svg class="trend-icon" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
+            </svg>
+            Cần xử lý
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 4: Uptime hệ thống -->
+      <div class="stat-card">
+        <div class="stat-card-icon icon-uptime">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+        </div>
+        <div class="stat-card-content">
+          <div class="stat-card-label">UPTIME HỆ THỐNG</div>
+          <div class="stat-card-value">{{ analytics().systemUptime }}%</div>
+          <div class="stat-card-trend trend-success">
+            <svg class="trend-icon" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+            </svg>
+            Hoạt động tốt
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart & Activity Feed -->
+    <div class="main-content-grid">
+      <!-- Left: Chart -->
+      <div class="chart-section">
+        <div class="section-header">
+          <h2 class="section-title">Tổng quan Doanh thu (30 ngày gần đây)</h2>
+        </div>
+        <div class="chart-content">
+          <app-revenue-chart [revenueData]="revenueChartData()" />
+        </div>
+      </div>
+
+      <!-- Right: Activity Feed -->
+      <div class="activity-section">
+        <div class="section-header">
+          <h2 class="section-title">Hoạt động gần đây</h2>
+        </div>
+        <div class="activity-feed">
+          @for (activity of recentActivities(); track activity.id) {
+            <div class="activity-item">
+              <div class="activity-dot"></div>
+              <div class="activity-content">
+                <p class="activity-message">{{ activity.message }}</p>
+                <p class="activity-time">{{ activity.timestamp | date:'short' }}</p>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Approvals & System Status -->
+    <div class="bottom-content-grid">
+      <!-- Left: Pending Approvals -->
+      <div class="approvals-section">
+        <div class="section-header">
+          <h2 class="section-title">Danh sách chờ duyệt</h2>
+        </div>
+        <div class="approvals-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Tên</th>
+                <th>Loại</th>
+                <th>Ngày gửi</th>
+                <th>Hành động</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Lập trình Java cơ bản</td>
+                <td><span class="badge badge-course">Khóa học</span></td>
+                <td>13/11/2025</td>
+                <td>
+                  <div class="action-buttons">
+                    <button class="btn-approve">Duyệt</button>
+                    <button class="btn-reject">Từ chối</button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td>Python cho người mới</td>
+                <td><span class="badge badge-course">Khóa học</span></td>
+                <td>12/11/2025</td>
+                <td>
+                  <div class="action-buttons">
+                    <button class="btn-approve">Duyệt</button>
+                    <button class="btn-reject">Từ chối</button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td>Nguyễn Văn A</td>
+                <td><span class="badge badge-teacher">Giảng viên</span></td>
+                <td>11/11/2025</td>
+                <td>
+                  <div class="action-buttons">
+                    <button class="btn-approve">Duyệt</button>
+                    <button class="btn-reject">Từ chối</button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Right: System Status -->
+      <div class="status-section">
+        <div class="section-header">
+          <h2 class="section-title">Trạng thái Hệ thống</h2>
+        </div>
+        <div class="status-list">
+          <div class="status-item status-success">
+            <div class="status-indicator"></div>
+            <div class="status-content">
+              <span class="status-name">API Service</span>
+              <span class="status-label">Hoạt động</span>
+            </div>
+          </div>
+          <div class="status-item status-success">
+            <div class="status-indicator"></div>
+            <div class="status-content">
+              <span class="status-name">Database</span>
+              <span class="status-label">Hoạt động</span>
+            </div>
+          </div>
+          <div class="status-item status-success">
+            <div class="status-indicator"></div>
+            <div class="status-content">
+              <span class="status-name">Email Service</span>
+              <span class="status-label">Hoạt động</span>
+            </div>
+          </div>
+          <div class="status-item status-warning">
+            <div class="status-indicator"></div>
+            <div class="status-content">
+              <span class="status-name">Bộ nhớ</span>
+              <span class="status-label">85% đã sử dụng</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+}

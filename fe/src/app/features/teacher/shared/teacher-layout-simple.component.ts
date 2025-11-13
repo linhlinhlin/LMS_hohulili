@@ -11,7 +11,7 @@ import { teacherSidebarConfig } from '../../../shared/components/navigation/side
   encapsulation: ViewEncapsulation.None,
   template: `
     <!-- Modern gradient background for teacher portal -->
-    <div class="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50/30 to-purple-50/50 flex flex-col">
+    <div class="min-h-screen flex flex-col">
       <!-- Desktop Sidebar - Full Height -->
       <div class="hidden lg:flex lg:w-72 lg:flex-col lg:fixed lg:inset-y-0 lg:z-40">
         <app-sidebar [config]="teacherSidebarConfig"></app-sidebar>

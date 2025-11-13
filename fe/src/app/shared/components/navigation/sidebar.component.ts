@@ -16,6 +16,7 @@ export interface SidebarMenuItem {
 export interface SidebarConfig {
   role: UserRole;
   title: string;
+  subtitle?: string;
   logoIcon: string;
   menuItems: SidebarMenuItem[];
   showProgress?: boolean;

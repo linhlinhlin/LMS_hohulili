@@ -1,0 +1,60 @@
+/* Critical CSS - Loaded immediately to prevent FOUC */
+
+/* Prevent layout shift during load */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #FAFAFA;
+  color: #1F1F1F;
+}
+
+/* Prevent flash of unstyled content */
+.dashboard-container {
+  opacity: 1;
+  transition: opacity 0.15s ease-in;
+}
+
+/* Loading state to prevent FOUC */
+body:not(.loaded) .dashboard-container {
+  opacity: 0;
+}
+
+/* Critical layout styles */
+.dashboard-container {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 32px;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 40px 48px;
+  background: #FAFAFA;
+  min-height: 100vh;
+}
+
+@media (max-width: 768px) {
+  .dashboard-container {
+    grid-template-columns: 1fr;
+    padding: 24px 16px;
+    gap: 24px;
+  }
+}
+
+/* Prevent layout shift for cards */
+.course-card-wrapper,
+.widget {
+  background: white;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  min-height: 100px;
+}

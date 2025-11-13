@@ -26,7 +26,12 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
         <div class="mb-8">
           <div class="flex items-center justify-between">
             <div>
-              <h1 class="text-3xl font-bold text-gray-900 mb-2">👥 Quản lý người dùng</h1>
+              <h1 class="text-3xl font-bold text-gray-900 mb-2">
+                <svg class="w-8 h-8 inline-block mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 8v1h1.5a.5.5 0 01.5.5v9a.5.5 0 01-.5.5h-13a.5.5 0 01-.5-.5v-9a.5.5 0 01.5-.5H8v-1a5 5 0 00-5 5v1h9.93z"></path>
+                </svg>
+                Quản lý người dùng
+              </h1>
               <p class="text-gray-600">Quản lý và theo dõi tất cả người dùng trong hệ thống</p>
             </div>
             <button (click)="openCreateUserModal()"

@@ -25,7 +25,13 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
         <div class="mb-8">
           <div class="flex items-center justify-between">
             <div>
-              <h1 class="text-3xl font-bold text-gray-900 mb-2">📚 Quản lý khóa học hệ thống</h1>
+              <h1 class="text-3xl font-bold text-gray-900 mb-2">
+                <svg class="w-8 h-8 inline-block mr-2 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
+                  <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
+                </svg>
+                Quản lý khóa học hệ thống
+              </h1>
               <p class="text-gray-600">Phê duyệt và quản lý tất cả khóa học trong hệ thống</p>
             </div>
             <div class="flex items-center space-x-4">

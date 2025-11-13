@@ -27,6 +27,7 @@
               }
             ],
             "styles": [
+              "src/styles/critical.scss",
               "src/styles.scss"
             ],
             "server": "src/main.server.ts",

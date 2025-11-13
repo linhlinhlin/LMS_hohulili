@@ -9,7 +9,6 @@
   margin: 0 auto;
   padding: 40px 48px;
   background: $bg-page;
-  min-height: 100vh;
 
   @include mobile {
     grid-template-columns: 1fr;

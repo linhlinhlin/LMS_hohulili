@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, inject, computed } from '@angular/core';
+import { Component, inject, computed, OnInit, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { TeacherService } from '../infrastructure/services/teacher.service';
@@ -39,13 +39,33 @@ interface Activity {
     BadgeComponent
   ],
   templateUrl: './teacher-dashboard.component.html',
-  styleUrl: './teacher-dashboard.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  styleUrl: './teacher-dashboard.component.scss'
+  // Removed OnPush - signals work better with default change detection
 })
-export class TeacherDashboardComponent {
+export class TeacherDashboardComponent implements OnInit {
   protected teacher = inject(TeacherService);
   private authService = inject(AuthService);
   private router = inject(Router);
+
+  constructor() {
+    // Effect to log when data changes
+    effect(() => {
+      console.log('[TEACHER DASHBOARD] Courses updated:', this.teacher.courses().length);
+      console.log('[TEACHER DASHBOARD] Loading state:', this.teacher.isLoading());
+    });
+  }
+
+  ngOnInit(): void {
+    // Explicitly load data when component initializes
+    console.log('[TEACHER DASHBOARD] Component initialized, loading data...');
+    this.teacher.loadMyCourses()
+      .then(() => {
+        console.log('[TEACHER DASHBOARD] ✅ Data loaded successfully');
+      })
+      .catch(error => {
+        console.error('[TEACHER DASHBOARD] ❌ Failed to load courses:', error);
+      });
+  }
 
   // Tab state
   activeTab = computed(() => 'courses' as 'courses' | 'assignments');

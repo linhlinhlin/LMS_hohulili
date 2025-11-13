@@ -1,15 +1,8 @@
-
-/* Tailwind CSS v4 Configuration - Must be first */
+// @use rules MUST come first before any other rules
+@use '@angular/material' as mat;
 @use "tailwindcss";
 
-// Include theming for Angular Material with `mat.theme()`.
-// This Sass mixin will define CSS variables that are used for styling Angular Material
-// components according to the Material 3 design spec.
-// Learn more about theming and how to use it for your application's
-// custom components at https://material.angular.dev/guide/theming
-@use '@angular/material' as mat;
-
-/* Coursera Design Tokens */
+// Import variables after @use rules
 @import 'styles/variables';
 
 html {
@@ -32,9 +25,10 @@ body {
   // Set a default background, font and text colors for the application using
   // Angular Material's system-level CSS variables. Learn more about these
   // variables at https://material.angular.dev/guide/system-variables
-  background-color: var(--mat-sys-surface);
+  background-color: var(--c-bg);
   color: var(--mat-sys-on-surface);
   font: var(--mat-sys-body-medium);
+  transition: background-color var(--transition-normal), color var(--transition-normal);
 
   // Reset the user agent margin.
   margin: 0;
@@ -111,12 +105,7 @@ html {
   color-scheme: light dark;
 }
 
-body {
-  margin: 0;
-  background-color: var(--c-bg);
-  color: var(--c-text);
-  transition: background-color var(--transition-normal), color var(--transition-normal);
-}
+// Body styles moved to Angular Material section above to avoid conflicts
 
 /* ===== ACCESSIBILITY ===== */
 /* Skip link */
@@ -264,5 +253,8 @@ body {
   color: var(--c-muted);
   opacity: 0.7;
 }
-html, body { height: 100%; }
-body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+
+/* Ensure html and body take full height */
+html, body { 
+  height: 100%; 
+}

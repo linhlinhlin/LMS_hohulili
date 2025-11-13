@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Router } from '@angular/router';
 import { BehaviorSubject, Observable, tap } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { AUTH_ENDPOINTS } from '../../api/endpoints/auth.endpoints';
@@ -32,6 +33,7 @@ export interface AuthResponse {
 })
 export class AuthService {
   private http = inject(HttpClient);
+  private router = inject(Router);
   private tokenKey = 'lms_access_token';
   private refreshTokenKey = 'lms_refresh_token';
   private userKey = 'lms_user';
@@ -73,14 +75,23 @@ export class AuthService {
   }
 
   logout(): void {
-    // Call backend logout
-    this.http.post(AUTH_ENDPOINTS.LOGOUT, {}).subscribe();
+    // Call backend logout (fire and forget)
+    this.http.post(AUTH_ENDPOINTS.LOGOUT, {}).subscribe({
+      error: (err) => {
+        console.warn('Logout API call failed, but continuing with local logout:', err);
+      }
+    });
 
     // Clear local storage
     localStorage.removeItem(this.tokenKey);
     localStorage.removeItem(this.refreshTokenKey);
     localStorage.removeItem(this.userKey);
     this.currentUserSubject.next(null);
+
+    // Redirect to login page
+    this.router.navigate(['/auth/login'], { 
+      queryParams: { message: 'Đã đăng xuất thành công' }
+    });
   }
 
   private setTokens(accessToken: string, refreshToken: string): void {
