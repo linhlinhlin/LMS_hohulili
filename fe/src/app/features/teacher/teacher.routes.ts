@@ -47,6 +47,11 @@ export const teacherRoutes: Routes = [
         loadComponent: () => import('./courses/course-editor.component').then(m => m.CourseEditorComponent),
         title: 'Chỉnh sửa khóa học'
       },
+      {
+        path: 'courses/:courseId/sections/:sectionId',
+        loadComponent: () => import('./courses/section-editor.component').then(m => m.SectionEditorComponent),
+        title: 'Quản lý bài học'
+      },
       
       // Assignment Management Routes
       {

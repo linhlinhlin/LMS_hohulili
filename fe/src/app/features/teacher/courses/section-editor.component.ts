@@ -21,11 +21,11 @@ import { firstValueFrom } from 'rxjs';
   <div class="max-w-5xl mx-auto p-6">
       <div class="flex items-center justify-between mb-6">
         <h1 class="text-2xl font-bold text-gray-900">Nội dung chương</h1>
-        <a class="px-4 py-2 border hover:bg-gray-50 transition-colors flex items-center gap-2" [routerLink]="['/teacher/courses', courseId, 'sections']">
+        <a class="px-4 py-2 border hover:bg-gray-50 transition-colors flex items-center gap-2" [routerLink]="['/teacher/courses', courseId, 'edit']">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
           </svg>
-          Quay lại chương
+          Quay lại khóa học
         </a>
       </div>
 
