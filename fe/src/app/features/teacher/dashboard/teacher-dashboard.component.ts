@@ -1,137 +1,211 @@
-import { Component, inject, computed, OnInit, effect } from '@angular/core';
+import { Component, inject, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { TeacherService } from '../infrastructure/services/teacher.service';
-import { TeacherCourse } from '../types/teacher.types';
 import { AuthService } from '../../../core/services/auth.service';
-import { IconComponent, IconName } from '../../../shared/components/ui/icon/icon.component';
-import { ButtonComponent } from '../../../shared/components/ui/button/button.component';
-import { CardComponent } from '../../../shared/components/ui/card/card.component';
-import { ProgressBarComponent } from '../../../shared/components/ui/progress-bar/progress-bar.component';
-import { BadgeComponent } from '../../../shared/components/ui/badge/badge.component';
 
-interface Activity {
-  id: string;
-  icon: string;
-  text: string;
-  time: string;
-}
-
-/**
- * Teacher Dashboard - Coursera Style
- * 
- * Professional dashboard with:
- * - Greeting + KPI cards
- * - Recent courses with status badges
- * - Pending assignments with progress
- * - Sidebar widgets (Stats, Top Students, Activities)
- */
 @Component({
   selector: 'app-teacher-dashboard',
   standalone: true,
-  imports: [
-    CommonModule,
-    RouterModule,
-    IconComponent,
-    ButtonComponent,
-    CardComponent,
-    ProgressBarComponent,
-    BadgeComponent
-  ],
-  templateUrl: './teacher-dashboard.component.html',
-  styleUrl: './teacher-dashboard.component.scss'
-  // Removed OnPush - signals work better with default change detection
+  imports: [CommonModule, RouterModule],
+  template: `
+    <div class="min-h-screen bg-gray-50 p-6">
+      <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="mb-8">
+          <h1 class="text-3xl font-bold text-gray-900">{{ getGreeting() }}, {{ getUserFirstName() }}</h1>
+          <p class="text-gray-600 mt-1">Chào mừng trở lại với Teacher Portal</p>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <div class="bg-white rounded shadow p-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm text-gray-600">Tổng khóa học</p>
+                <p class="text-3xl font-bold text-blue-600 mt-2">{{ totalCourses() }}</p>
+              </div>
+              <div class="w-12 h-12 bg-blue-50 rounded flex items-center justify-center">
+                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded shadow p-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm text-gray-600">Tổng học viên</p>
+                <p class="text-3xl font-bold text-blue-600 mt-2">{{ totalStudents() }}</p>
+              </div>
+              <div class="w-12 h-12 bg-blue-50 rounded flex items-center justify-center">
+                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded shadow p-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm text-gray-600">Bài tập chờ chấm</p>
+                <p class="text-3xl font-bold text-blue-600 mt-2">{{ pendingCount() }}</p>
+              </div>
+              <div class="w-12 h-12 bg-blue-50 rounded flex items-center justify-center">
+                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2H9zm0 0a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded shadow p-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm text-gray-600">Đánh giá TB</p>
+                <p class="text-3xl font-bold text-blue-600 mt-2">{{ avgRating() }}</p>
+              </div>
+              <div class="w-12 h-12 bg-blue-50 rounded flex items-center justify-center">
+                <svg class="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- Courses List -->
+          <div class="lg:col-span-2">
+            <div class="bg-white rounded shadow p-6">
+              <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold text-gray-900">Khóa học của tôi</h2>
+                <a routerLink="/teacher/courses" class="text-sm text-blue-600 hover:text-blue-700">Xem tất cả</a>
+              </div>
+
+              <!-- Empty -->
+              <div *ngIf="courses().length === 0" class="text-center py-8">
+                <svg class="w-12 h-12 text-gray-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                </svg>
+                <p class="text-gray-600 mb-3">Chưa có khóa học nào</p>
+                <a routerLink="/teacher/course-creation" class="inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                  Tạo khóa học mới
+                </a>
+              </div>
+
+              <!-- Courses -->
+              <div class="space-y-3">
+                <div *ngFor="let course of courses()" 
+                     class="border border-gray-200 rounded p-4 hover:border-blue-300 hover:shadow transition-all cursor-pointer"
+                     (click)="goToCourse(course.id)">
+                  <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                      <h3 class="font-semibold text-gray-900">{{ course.title }}</h3>
+                      <p class="text-sm text-gray-600 mt-1 line-clamp-2">{{ course.description }}</p>
+                      <div class="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                        <span>{{ course.enrolledStudents || 0 }} học viên</span>
+                        <span *ngIf="course.rating" class="flex items-center">
+                          <svg class="w-4 h-4 text-blue-500 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                          </svg>
+                          {{ course.rating }}
+                        </span>
+                      </div>
+                    </div>
+                    <span *ngIf="course.status" 
+                          [class]="getStatusClass(course.status)"
+                          class="px-2 py-1 rounded text-xs font-medium">
+                      {{ getStatusText(course.status) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Actions -->
+          <div class="space-y-4">
+            <div class="bg-white rounded shadow p-6">
+              <h3 class="text-lg font-bold text-gray-900 mb-4">Thao tác nhanh</h3>
+              <div class="space-y-3">
+                <a routerLink="/teacher/course-creation"
+                   class="flex items-center gap-3 p-3 rounded border border-gray-200 hover:bg-blue-50 hover:border-blue-400 transition-colors">
+                  <div class="w-10 h-10 bg-blue-100 rounded flex items-center justify-center">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                  </div>
+                  <div>
+                    <div class="text-sm font-medium text-gray-900">Tạo khóa học</div>
+                    <div class="text-xs text-gray-500">Bắt đầu khóa học mới</div>
+                  </div>
+                </a>
+
+                <a routerLink="/teacher/assignments"
+                   class="flex items-center gap-3 p-3 rounded border border-gray-200 hover:bg-blue-50 hover:border-blue-400 transition-colors">
+                  <div class="w-10 h-10 bg-blue-100 rounded flex items-center justify-center">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2H9zm0 0a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                    </svg>
+                  </div>
+                  <div>
+                    <div class="text-sm font-medium text-gray-900">Quản lý bài tập</div>
+                    <div class="text-xs text-gray-500">Xem và chấm bài</div>
+                  </div>
+                </a>
+
+                <a routerLink="/teacher/students"
+                   class="flex items-center gap-3 p-3 rounded border border-gray-200 hover:bg-blue-50 hover:border-blue-400 transition-colors">
+                  <div class="w-10 h-10 bg-blue-100 rounded flex items-center justify-center">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                    </svg>
+                  </div>
+                  <div>
+                    <div class="text-sm font-medium text-gray-900">Xem học viên</div>
+                    <div class="text-xs text-gray-500">Theo dõi tiến độ</div>
+                  </div>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `
 })
 export class TeacherDashboardComponent implements OnInit {
   protected teacher = inject(TeacherService);
   private authService = inject(AuthService);
   private router = inject(Router);
 
-  constructor() {
-    // Effect to log when data changes
-    effect(() => {
-      console.log('[TEACHER DASHBOARD] Courses updated:', this.teacher.courses().length);
-      console.log('[TEACHER DASHBOARD] Loading state:', this.teacher.isLoading());
+  ngOnInit(): void {
+    this.teacher.loadMyCourses().catch(err => {
+      console.error('Failed to load courses:', err);
     });
   }
 
-  ngOnInit(): void {
-    // Explicitly load data when component initializes
-    console.log('[TEACHER DASHBOARD] Component initialized, loading data...');
-    this.teacher.loadMyCourses()
-      .then(() => {
-        console.log('[TEACHER DASHBOARD] ✅ Data loaded successfully');
-      })
-      .catch(error => {
-        console.error('[TEACHER DASHBOARD] ❌ Failed to load courses:', error);
-      });
-  }
-
-  // Tab state
-  activeTab = computed(() => 'courses' as 'courses' | 'assignments');
-  private _activeTab = 'courses' as 'courses' | 'assignments';
-
-  // Computed values - Show only 2 most recent items
-  recentCourses = computed(() => 
-    this.teacher.courses().slice(0, 2)
+  // Computed properties
+  courses = computed(() => this.teacher.courses().slice(0, 5));
+  totalCourses = computed(() => this.teacher.totalCourses());
+  totalStudents = computed(() => this.teacher.totalStudents());
+  
+  pendingCount = computed(() => 
+    this.teacher.assignments().filter(a => 
+      a.status === 'pending' || a.status === 'submitted'
+    ).length
   );
 
-  pendingAssignments = computed(() =>
-    this.teacher.assignments()
-      .filter(a => a.status === 'pending' || a.status === 'submitted')
-      .slice(0, 2)
-  );
-
-  pendingAssignmentsCount = computed(() =>
-    this.teacher.assignments()
-      .filter(a => a.status === 'pending' || a.status === 'submitted')
-      .length
-  );
-
-  averageRating = computed(() => {
+  avgRating = computed(() => {
     const courses = this.teacher.courses();
     if (courses.length === 0) return '0.0';
     const sum = courses.reduce((acc, c) => acc + (c.rating || 0), 0);
     return (sum / courses.length).toFixed(1);
   });
-
-  topStudents = computed(() => 
-    [...this.teacher.students()]
-      .sort((a, b) => (b.averageGrade || 0) - (a.averageGrade || 0))
-      .slice(0, 3)
-  );
-
-  pendingGradingCount = computed(() =>
-    this.teacher.assignments()
-      .filter(a => a.status === 'submitted')
-      .reduce((sum, a) => sum + (a.submissions || 0), 0)
-  );
-
-  newStudentsThisWeek = computed(() => {
-    // Mock data - in real app, filter by enrollment date
-    return 12;
-  });
-
-  recentActivities = computed<Activity[]>(() => [
-    {
-      id: '1',
-      icon: 'users',
-      text: '5 học viên mới đăng ký khóa học',
-      time: '2 giờ trước'
-    },
-    {
-      id: '2',
-      icon: 'clipboard-document-check',
-      text: '12 bài tập mới được nộp',
-      time: '4 giờ trước'
-    },
-    {
-      id: '3',
-      icon: 'star',
-      text: 'Nhận được 3 đánh giá 5 sao',
-      time: '1 ngày trước'
-    }
-  ]);
 
   // Helper methods
   getGreeting(): string {
@@ -142,108 +216,39 @@ export class TeacherDashboardComponent implements OnInit {
   }
 
   getUserFirstName(): string {
-    const fullName = this.authService.currentUser()?.name || 'Giảng viên';
+    const user = this.authService.currentUser();
+    const fullName = user?.fullName || user?.name || 'Giáo viên';
+    // If it's the default "Giáo viên", return only "Giáo"
+    if (fullName === 'Giáo viên') return 'Giáo viên';
+    // Otherwise, get the last word (first name in Vietnamese naming convention)
     return fullName.split(' ').pop() || fullName;
   }
 
-  getStatusVariant(status: string): 'success' | 'warning' | 'error' | 'info' | 'default' {
-    switch (status) {
-      case 'active':
-        return 'success';
-      case 'draft':
-        return 'warning';
-      case 'archived':
-        return 'default';
-      default:
-        return 'info';
-    }
-  }
-
-  getStatusLabel(status: string): string {
-    switch (status) {
-      case 'active':
-        return 'Đang hoạt động';
-      case 'draft':
-        return 'Nháp';
-      case 'archived':
-        return 'Đã lưu trữ';
-      default:
-        return status;
-    }
-  }
-
-  getAssignmentStatusVariant(status: string): 'success' | 'warning' | 'error' | 'info' | 'default' {
-    switch (status) {
-      case 'graded':
-        return 'success';
-      case 'pending':
-        return 'warning';
-      case 'submitted':
-        return 'info';
-      default:
-        return 'default';
-    }
-  }
-
-  getAssignmentStatusLabel(status: string): string {
-    switch (status) {
-      case 'graded':
-        return 'Đã chấm';
-      case 'pending':
-        return 'Chờ nộp';
-      case 'submitted':
-        return 'Đã nộp';
-      default:
-        return status;
-    }
-  }
-
-  getSubmissionProgress(assignment: any): number {
-    if (!assignment.totalStudents) return 0;
-    return Math.round((assignment.submissions / assignment.totalStudents) * 100);
-  }
-
-  // Navigation methods
-  editCourse(courseId: string): void {
-    this.router.navigate(['/teacher/courses', courseId, 'edit']);
-  }
-
-  viewCourse(courseId: string): void {
-    this.router.navigate(['/teacher/courses', courseId]);
-  }
-
-  gradeAssignment(assignmentId: string): void {
-    this.router.navigate(['/teacher/assignments', assignmentId, 'grade']);
-  }
-
-  viewAllStudents(): void {
-    this.router.navigate(['/teacher/students']);
-  }
-
-  getCourseCode(course: TeacherCourse): string {
-    // Generate course code from id or use a default pattern
-    return `COURSE-${course.id.toUpperCase().slice(0, 6)}`;
-  }
-
-  getActivityIcon(iconName: string): IconName {
-    // Map activity icon names to valid IconName type
-    const iconMap: Record<string, IconName> = {
-      'users': 'users',
-      'clipboard-document-check': 'clipboard-document-check',
-      'star': 'star',
-      'user': 'user',
-      'bell': 'bell',
-      'check-circle': 'check-circle'
+  getStatusClass(status: string): string {
+    const statusMap: Record<string, string> = {
+      'active': 'bg-green-100 text-green-800',
+      'draft': 'bg-gray-100 text-gray-800',
+      'archived': 'bg-red-100 text-red-800',
+      'APPROVED': 'bg-green-100 text-green-800',
+      'PENDING': 'bg-yellow-100 text-yellow-800',
+      'DRAFT': 'bg-gray-100 text-gray-800'
     };
-    return iconMap[iconName] || 'bell';
+    return statusMap[status] || 'bg-gray-100 text-gray-800';
   }
 
-  // Tab switching
-  switchTab(tab: 'courses' | 'assignments'): void {
-    this._activeTab = tab;
+  getStatusText(status: string): string {
+    const textMap: Record<string, string> = {
+      'active': 'Đang hoạt động',
+      'draft': 'Nháp',
+      'archived': 'Đã lưu trữ',
+      'APPROVED': 'Đã xuất bản',
+      'PENDING': 'Chờ duyệt',
+      'DRAFT': 'Nháp'
+    };
+    return textMap[status] || status;
   }
 
-  isActiveTab(tab: 'courses' | 'assignments'): boolean {
-    return this._activeTab === tab;
+  goToCourse(courseId: string): void {
+    this.router.navigate(['/teacher/courses', courseId, 'edit']);
   }
 }

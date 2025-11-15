@@ -3,7 +3,6 @@ import { UserRole } from '../shared/types/user.types';
 import { AuthService } from '../core/services/auth.service';
 import { CourseService } from './course.service';
 import { CommunicationService } from '../shared/services/communication.service';
-import { NotificationService } from '../shared/services/notification.service';
 
 /**
  * Global State Service - Unified Application State Management
@@ -19,7 +18,6 @@ export class GlobalState {
   private authService = inject(AuthService);
   private courseService = inject(CourseService);
   private communicationService = inject(CommunicationService);
-  private notificationService = inject(NotificationService);
 
   // Global application state signals
   private _isInitializing = signal<boolean>(true);
@@ -34,14 +32,6 @@ export class GlobalState {
   // Auth state is managed by AuthService - use authService directly
   // These computed signals are removed to avoid duplication
 
-  readonly totalUnreadNotifications = computed(() =>
-    this.communicationService.totalUnreadCount() +
-    this.notificationService.unreadCount()
-  );
-
-  readonly hasUrgentNotifications = computed(() =>
-    this.communicationService.unreadAnnouncements().some(a => a.priority === 'urgent')
-  );
 
   readonly userProgressSummary = computed(() => {
     const user = this.authService.currentUser();
@@ -50,7 +40,6 @@ export class GlobalState {
     // This would aggregate progress across all enrolled courses
     // For now, return mock data
     return {
-      totalCourses: 5,
       completedCourses: 2,
       inProgressCourses: 3,
       totalProgress: 65,
@@ -65,10 +54,6 @@ export class GlobalState {
     isLoading: this.courseService.isLoading() || this.communicationService.isLoading()
   }));
 
-  // Global state management methods
-  setInitializing(initializing: boolean): void {
-    this._isInitializing.set(initializing);
-  }
 
   updateLastActivity(): void {
     this._lastActivity.set(new Date());
@@ -118,7 +103,6 @@ export class GlobalState {
     return {
       enrolledCourses: this.courseService.courses(),
       recentMessages: this.communicationService.recentMessages(),
-      unreadCount: this.totalUnreadNotifications(),
       progressSummary: this.userProgressSummary()
     };
   });
@@ -130,8 +114,7 @@ export class GlobalState {
       courses: this.courseService.courses(),
       students: [], // Would come from teacher service
       assignments: [], // Would come from teacher service
-      unreadMessages: this.communicationService.unreadMessages(),
-      notifications: this.notificationService.notifications()
+      unreadMessages: this.communicationService.unreadMessages()
     };
   });
 
@@ -149,8 +132,7 @@ export class GlobalState {
         total: this.courseService.courses().length,
         pending: 0, // Would come from admin service
         approved: 0
-      },
-      notifications: this.notificationService.notifications()
+      }
     };
   });
 

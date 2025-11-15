@@ -18,7 +18,7 @@ import { firstValueFrom } from 'rxjs';
   imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink],
   encapsulation: ViewEncapsulation.None,
   template: `
-  <div class="max-w-5xl mx-auto p-6">
+  <div class="max-w-7xl mx-auto p-4">
       <div class="flex items-center justify-between mb-6">
         <h1 class="text-2xl font-bold text-gray-900">Nội dung chương</h1>
         <a class="px-4 py-2 border hover:bg-gray-50 transition-colors flex items-center gap-2" [routerLink]="['/teacher/courses', courseId, 'edit']">
@@ -33,7 +33,7 @@ import { firstValueFrom } from 'rxjs';
       <div class="bg-white shadow-sm">
         
         <!-- Empty State -->
-        <div class="p-8 text-gray-500 text-center" *ngIf="!loading() && lessons().length === 0">
+        <div class="p-8 text-gray-500 text-center" *ngIf="lessons().length === 0">
           <svg class="w-12 h-12 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
           </svg>
@@ -42,7 +42,7 @@ import { firstValueFrom } from 'rxjs';
         <div class="p-6 text-red-600" *ngIf="error()">{{ error() }}</div>
 
         <!-- Lessons Table -->
-        <div *ngIf="!loading() && lessons().length > 0">
+        <div *ngIf="lessons().length > 0">
           <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
               <tr>
@@ -81,9 +81,9 @@ import { firstValueFrom } from 'rxjs';
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div class="inline-flex items-center gap-2">
-                    <button class="px-3 py-1 shadow-sm text-gray-600 hover:shadow-md hover:text-gray-700 transition-all duration-200" (click)="viewLesson(l)">Xem</button>
-                    <button class="px-3 py-1 shadow-sm text-blue-600 hover:shadow-md hover:text-blue-700 transition-all duration-200" (click)="startEdit(l)">Sửa</button>
-                    <button class="px-3 py-1 shadow-sm text-red-600 hover:shadow-md hover:text-red-700 transition-all duration-200" (click)="deleteLesson(l.id)">Xóa</button>
+                    <button class="px-3 py-1.5 text-base shadow-sm text-gray-600 hover:shadow-md hover:text-gray-700 transition-all duration-200" (click)="viewLesson(l)">Xem</button>
+                    <button class="px-3 py-1.5 text-base shadow-sm text-blue-600 hover:shadow-md hover:text-blue-700 transition-all duration-200" (click)="startEdit(l)">Sửa</button>
+                    <button class="px-3 py-1.5 text-base shadow-sm text-red-600 hover:shadow-md hover:text-red-700 transition-all duration-200" (click)="deleteLesson(l.id)">Xóa</button>
                   </div>
                 </td>
               </tr>
@@ -258,14 +258,8 @@ import { firstValueFrom } from 'rxjs';
                   </div>
                 </div>
 
-                <!-- Loading state -->
-                <div *ngIf="isLoadingQuizQuestions() && currentViewingQuizId() === s.id" class="text-center py-8">
-                  <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-                  <p class="text-gray-500 mt-2">Đang tải câu hỏi...</p>
-                </div>
-
                 <!-- Empty state -->
-                <div *ngIf="!isLoadingQuizQuestions() && currentViewingQuizId() === s.id && quizQuestions().length === 0" 
+                <div *ngIf="currentViewingQuizId() === s.id && quizQuestions().length === 0" 
                      class="text-center py-8 text-gray-500">
                   <svg class="w-12 h-12 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -274,7 +268,7 @@ import { firstValueFrom } from 'rxjs';
                 </div>
 
                 <!-- Question List -->
-                <div *ngIf="!isLoadingQuizQuestions() && currentViewingQuizId() === s.id && quizQuestions().length > 0" 
+                <div *ngIf="currentViewingQuizId() === s.id && quizQuestions().length > 0" 
                      class="space-y-4">
                   <div *ngFor="let question of quizQuestions(); let idx = index" 
                        class="shadow-sm p-4">
@@ -328,16 +322,11 @@ import { firstValueFrom } from 'rxjs';
                 </div>
 
                 <!-- Course Questions Section -->
-                <div *ngIf="isLoadingCourseQuestions()" class="text-center py-8">
-                  <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-                  <p class="text-gray-500 mt-2">Đang tải câu hỏi khóa học...</p>
-                </div>
-
                 <div *ngIf="courseQuestionsError()" class="text-center py-8 text-red-600">
                   <p>{{ courseQuestionsError() }}</p>
                 </div>
 
-                <div *ngIf="!isLoadingCourseQuestions() && !courseQuestionsError() && courseQuestions().length === 0" 
+                <div *ngIf="!courseQuestionsError() && courseQuestions().length === 0" 
                      class="text-center py-8 text-gray-500">
                   <svg class="w-12 h-12 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -346,7 +335,7 @@ import { firstValueFrom } from 'rxjs';
                 </div>
 
                 <!-- Course Questions List -->
-                <div *ngIf="!isLoadingCourseQuestions() && courseQuestions().length > 0"
+                <div *ngIf="courseQuestions().length > 0"
                      class="space-y-4">
                   <div class="bg-blue-50 border border-blue-200 rounded p-3 mb-4">
                     <div class="flex items-center justify-between mb-2">
@@ -1075,7 +1064,6 @@ export class SectionEditorComponent implements OnDestroy {
 
   courseId: string = '';
   lessons = signal<any[]>([]);
-  loading = signal<boolean>(true);
   error = signal<string>('');
   opError = signal<string>('');
   editingId = signal<string | null>(null);
@@ -1108,7 +1096,6 @@ export class SectionEditorComponent implements OnDestroy {
   // Quiz viewer data
   currentViewingQuizId = signal<string | null>(null);
   quizQuestions = signal<any[]>([]);
-  isLoadingQuizQuestions = signal<boolean>(false);
   
   // Quiz preview data
   showQuizPreview = signal<boolean>(false);
@@ -1118,7 +1105,6 @@ export class SectionEditorComponent implements OnDestroy {
   
   // Course questions data
   courseQuestions = signal<Question[]>([]);
-  isLoadingCourseQuestions = signal<boolean>(false);
   courseQuestionsError = signal<string>('');
   
   // Selected questions for bulk addition
@@ -1186,8 +1172,7 @@ export class SectionEditorComponent implements OnDestroy {
       || '';
     this.lessonApi.listBySection(sectionId).subscribe({
       next: (res) => this.lessons.set(res?.data || []),
-      error: (err) => this.error.set(err?.message || 'Không tải được danh sách bài học'),
-      complete: () => this.loading.set(false)
+      error: (err) => this.error.set(err?.message || 'Không tải được danh sách bài học')
     });
 
     // Watch lesson type changes and update field validation
@@ -1313,7 +1298,7 @@ export class SectionEditorComponent implements OnDestroy {
 
               // Create Quiz entity
               const quizResponse = await firstValueFrom(this.quizApi.createQuiz(lesson.id, quizPayload));
-              const createdQuiz = quizResponse;
+              const createdQuiz = quizResponse as any;
 
               if (createdQuiz) {
                 this.lessons.update(list => [...list, lesson]);
@@ -1848,7 +1833,6 @@ export class SectionEditorComponent implements OnDestroy {
 
   async loadQuizQuestions(quizId: string): Promise<void> {
     try {
-      this.isLoadingQuizQuestions.set(true);
       this.currentViewingQuizId.set(quizId);
       
       // Fetch real questions from API
@@ -1875,8 +1859,6 @@ export class SectionEditorComponent implements OnDestroy {
     } catch (error) {
       console.error('Error loading quiz questions:', error);
       this.quizQuestions.set([]);
-    } finally {
-      this.isLoadingQuizQuestions.set(false);
     }
   }
 
@@ -2417,7 +2399,6 @@ export class SectionEditorComponent implements OnDestroy {
   // Load course questions for quiz creation
   async loadQuestionsByCourse(courseId: string): Promise<void> {
     try {
-      this.isLoadingCourseQuestions.set(true);
       this.courseQuestionsError.set('');
       
       console.log('🔍 Loading questions for course:', courseId);
@@ -2428,12 +2409,12 @@ export class SectionEditorComponent implements OnDestroy {
       
       console.log('📦 API Response:', response);
       console.log('📦 Response type:', typeof response);
-      console.log('📦 Response.data:', response.data);
+      console.log('📦 Response.data:', (response as any).data);
       
       // Backend trả về {data: Question[], pagination: null, message: null}
-      if (response && response.data) {
-        this.courseQuestions.set(response.data);
-        console.log('✅ Loaded', response.data.length, 'questions for course');
+      if (response && (response as any).data) {
+        this.courseQuestions.set((response as any).data);
+        console.log('✅ Loaded', (response as any).data.length, 'questions for course');
       } else {
         console.log('❌ No data in response:', response);
         this.courseQuestionsError.set('Không có dữ liệu câu hỏi');
@@ -2443,8 +2424,6 @@ export class SectionEditorComponent implements OnDestroy {
       this.courseQuestionsError.set(
         error?.error?.message || error?.message || 'Có lỗi xảy ra khi tải câu hỏi'
       );
-    } finally {
-      this.isLoadingCourseQuestions.set(false);
     }
   }
 
@@ -2456,7 +2435,7 @@ export class SectionEditorComponent implements OnDestroy {
       // Get current quiz to know existing questions
       const currentQuiz = await firstValueFrom(
         this.quizApi.getQuizByLessonId(quizId)
-      );
+      ) as any;
       
       const existingQuestionIds = currentQuiz.questionIds ?
         currentQuiz.questionIds.split(',').filter((id: string) => id.trim()) : [];

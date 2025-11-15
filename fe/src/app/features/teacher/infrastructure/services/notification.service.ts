@@ -141,9 +141,6 @@ export class NotificationService {
     this._error.set(null);
 
     try {
-      // TODO: Replace with real API call
-      // const response = await this.apiClient.get<Notification[]>('/api/v1/teacher/notifications');
-      // this._notifications.set(response);
       await this.simulateApiCall();
       this._lastChecked.set(new Date());
       return this._notifications();
@@ -160,10 +157,7 @@ export class NotificationService {
     this._error.set(null);
 
     try {
-      // TODO: Replace with real API call
-      // await this.apiClient.put(`/api/v1/teacher/notifications/${notificationId}/read`, {});
       await this.simulateApiCall();
-
       this._notifications.update(notifications =>
         notifications.map(notification =>
           notification.id === notificationId
@@ -184,10 +178,7 @@ export class NotificationService {
     this._error.set(null);
 
     try {
-      // TODO: Replace with real API call
-      // await this.apiClient.put('/api/v1/teacher/notifications/mark-all-read', {});
       await this.simulateApiCall();
-
       this._notifications.update(notifications =>
         notifications.map(notification => ({ ...notification, isRead: true }))
       );
@@ -204,10 +195,7 @@ export class NotificationService {
     this._error.set(null);
 
     try {
-      // TODO: Replace with real API call
-      // await this.apiClient.delete(`/api/v1/teacher/notifications/${notificationId}`);
       await this.simulateApiCall();
-
       this._notifications.update(notifications =>
         notifications.filter(notification => notification.id !== notificationId)
       );
@@ -261,8 +249,6 @@ export class NotificationService {
       message: `Học viên ${studentName} đã nộp bài tập trong khóa học "${courseTitle}"`,
       type: 'assignment',
       priority: 'medium',
-      actionUrl: `/teacher/assignments/${assignmentId}/submissions`,
-      actionText: 'Xem bài nộp',
       metadata: { assignmentId, studentName, courseTitle }
     });
   }
@@ -279,7 +265,6 @@ export class NotificationService {
     });
   }
 
-  // Course-related notifications
   notifyCourseCreated(courseId: string, courseTitle: string): void {
     this.createNotification({
       title: 'Khóa học mới được tạo',
@@ -304,7 +289,6 @@ export class NotificationService {
     });
   }
 
-  // Student-related notifications
   notifyStudentEnrolled(studentId: string, studentName: string, courseTitle: string): void {
     this.createNotification({
       title: 'Học viên mới đăng ký',
@@ -331,7 +315,6 @@ export class NotificationService {
     }
   }
 
-  // System notifications
   notifySystemMaintenance(scheduledTime: Date): void {
     this.createNotification({
       title: 'Bảo trì hệ thống',

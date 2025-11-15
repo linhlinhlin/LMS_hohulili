@@ -94,6 +94,7 @@ export const teacherRoutes: Routes = [
 
       // Quiz Management Routes
       ...quizRoutes,
+
       
       // Analytics Routes
       {
@@ -129,12 +130,7 @@ export const teacherRoutes: Routes = [
         title: 'Chỉnh sửa Rubric'
       },
       
-      // Notifications Routes
-      {
-        path: 'notifications',
-        loadComponent: () => import('./notifications/teacher-notifications.component').then(m => m.TeacherNotificationsComponent),
-        title: 'Thông báo'
-      }
+      
     ]
   }
 ];

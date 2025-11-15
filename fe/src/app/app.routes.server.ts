@@ -94,7 +94,7 @@ export const serverRoutes: ServerRoute[] = [
     renderMode: RenderMode.Client
   },
   {
-    path: 'teacher/notifications',
+    path: '',
     renderMode: RenderMode.Client
   },
   {

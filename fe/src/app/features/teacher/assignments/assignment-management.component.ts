@@ -65,14 +65,11 @@ import { AssignmentApi, AssignmentSummary } from '../../../api/client/assignment
           </tbody>
         </table>
         </div>
-        <div class="p-6 text-center" *ngIf="loading()">
-          <div class="text-gray-500">Đang tải danh sách bài tập...</div>
-        </div>
         <div class="p-6 text-center text-red-600" *ngIf="error()">
           {{ error() }}
                     <button (click)="onReload()" class="ml-2 text-blue-600 underline text-sm">Tải lại</button>
         </div>
-        <div class="p-6 text-gray-500" *ngIf="!loading() && !error() && paged().length === 0">Chưa có bài tập.</div>
+        <div class="p-6 text-gray-500" *ngIf="!error() && paged().length === 0">Chưa có bài tập.</div>
       </div>
 
       <!-- Pagination Controls -->
@@ -108,7 +105,6 @@ export class AssignmentManagementComponent {
   sortDir: 'asc'|'desc' = 'desc';
   
   assignments = signal<AssignmentSummary[]>([]);
-  loading = signal(true);
   error = signal('');
   
   filtered = computed(() => this.assignments().filter(a =>
@@ -141,7 +137,6 @@ export class AssignmentManagementComponent {
   }
 
   private loadAssignments() {
-    this.loading.set(true);
     this.error.set('');
     
     // Temporarily load mock data until we integrate with CourseApi to get all assignments
@@ -174,10 +169,7 @@ export class AssignmentManagementComponent {
       }
     ];
     
-    setTimeout(() => {
-      this.assignments.set(mockAssignments);
-      this.loading.set(false);
-    }, 500);
+    this.assignments.set(mockAssignments);
   }
 
   goToPage(n: number) { 
