@@ -30,27 +30,8 @@ interface Quiz {
   imports: [CommonModule, ReactiveFormsModule, FormsModule],
   template: `
     <div class="max-w-7xl mx-auto p-6">
-      <!-- Permission Check Loading State -->
-      <div *ngIf="isCheckingPermissions()" class="text-center py-12">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-        <p class="text-gray-600">Đang kiểm tra quyền truy cập...</p>
-      </div>
-
-      <!-- No Permission State -->
-      <div *ngIf="!hasPermission() && !isCheckingPermissions()" class="text-center py-12">
-        <svg class="w-16 h-16 mx-auto mb-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-        </svg>
-        <h3 class="text-lg font-medium mb-2 text-gray-900">Không có quyền truy cập</h3>
-        <p class="text-gray-600 mb-4">Tính năng này chỉ dành cho giảng viên.</p>
-        <button (click)="navigateToCourses()"
-                class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
-          📚 Xem khóa học
-        </button>
-      </div>
-
-      <!-- Main Content - Only show if user has permission -->
-      <div *ngIf="hasPermission() && !isCheckingPermissions()">
+      <!-- Main Content -->
+      <div>
         <!-- Header -->
         <div class="flex items-center justify-between mb-6">
           <div>
@@ -290,17 +271,8 @@ interface Quiz {
         </div>
       </div>
 
-      <!-- Loading State -->
-      <div *ngIf="loading()"
-           class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white rounded-lg p-6 text-center">
-          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p class="text-gray-700">{{ loadingMessage() }}</p>
-        </div>
-      </div>
-
       <!-- Error State -->
-      <div *ngIf="error() && !isCheckingPermissions()"
+      <div *ngIf="error()"
            class="fixed bottom-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded z-50">
         {{ error() }}
         <button (click)="error.set('')" class="ml-2">✕</button>
@@ -321,11 +293,10 @@ export class QuizBankComponent implements OnInit {
 
   // Component state
   activeTab = signal<'quizzes' | 'questions'>('quizzes');
-  loading = signal<boolean>(false);
-  loadingMessage = signal<string>('');
   error = signal<string>('');
-  hasPermission = signal<boolean>(false);
-  isCheckingPermissions = signal<boolean>(true);
+
+
+
 
   // Data
   quizzes = signal<any[]>([]);
@@ -356,101 +327,27 @@ export class QuizBankComponent implements OnInit {
         this.activeTab.set('questions');
       }
       
-      // Check for refresh request - only load data if user has permission
-      if (params['refresh'] === 'true' && this.hasPermission()) {
+      // Check for refresh request
+      if (params['refresh'] === 'true') {
         this.activeTab.set('questions'); // Switch to questions tab after creating
-        this.loadData(); // Reload data only if permission granted
+        this.loadData();
       }
     });
   }
 
   async ngOnInit(): Promise<void> {
-    console.log('🔍 Quiz Bank ngOnInit - Current user role:', this.authService.userRole());
-    console.log('🔍 Quiz Bank ngOnInit - Is authenticated:', this.authService.isAuthenticated());
-    console.log('🔍 Quiz Bank ngOnInit - Current user:', this.authService.user());
-    
     // Get context from URL params
     this.currentQuizId = this.route.snapshot.queryParamMap.get('quizId');
     this.currentQuizTitle = this.route.snapshot.queryParamMap.get('quizTitle') || '';
     this.courseId = this.route.snapshot.queryParamMap.get('courseId');
     
-    console.log('🔍 Quiz Bank context:', {
-      quizId: this.currentQuizId,
-      quizTitle: this.currentQuizTitle,
-      courseId: this.courseId
-    });
-    
-    // Check permissions first and set flag immediately
-    await this.checkPermissions();
-  }
-
-  private async checkPermissions(): Promise<void> {
-    this.isCheckingPermissions.set(true);
-    
-    try {
-      // Check if user is authenticated
-      if (!this.authService.isAuthenticated()) {
-        console.log('❌ User not authenticated - DEBUG MODE: not redirecting');
-        this.hasPermission.set(false);
-        this.errorService.addError({
-          message: 'Bạn cần đăng nhập để truy cập tính năng này.',
-          type: 'error',
-          context: 'authentication'
-        });
-        // DEBUG MODE: this.router.navigate(['/auth/login']);
-        return;
-      }
-
-      // Check if user has teacher role
-      const userRole = this.authService.userRole();
-      console.log('🔍 User role:', userRole);
-      console.log('🔍 UserRole constants - TEACHER:', UserRole.TEACHER, 'ADMIN:', UserRole.ADMIN);
-      
-      if (userRole !== UserRole.TEACHER && userRole !== UserRole.ADMIN) {
-        console.log('❌ User does not have required role:', userRole);
-        console.log('🔍 Expected roles:', [UserRole.TEACHER, UserRole.ADMIN]);
-        this.hasPermission.set(false);
-        this.errorService.addError({
-          message: `Tính năng này chỉ dành cho giảng viên. Role hiện tại: ${userRole}`,
-          type: 'error',
-          context: 'authorization'
-        });
-        return;
-      }
-
-      // User has proper permissions
-      console.log('✅ User has required permissions - loading data');
-      this.hasPermission.set(true);
-      await this.loadData();
-      
-    } catch (error) {
-      console.error('Permission check error:', error);
-      this.hasPermission.set(false);
-    } finally {
-      this.isCheckingPermissions.set(false);
-    }
+    // Load data immediately
+    await this.loadData();
   }
 
   async loadData(): Promise<void> {
-    // Safety check - only load data if user has permission
-    if (!this.hasPermission()) {
-      console.log('🚫 loadData blocked - user does not have permission');
-      return;
-    }
-
-    if (!this.authService.isAuthenticated()) {
-      console.log('🚫 loadData blocked - user not authenticated');
-      return;
-    }
 
     try {
-      this.loading.set(true);
-      this.loadingMessage.set('Đang tải dữ liệu...');
-
-      console.log('🔄 loadData - About to call getMyQuestions API (teacher-specific)');
-      console.log('🔄 loadData - Current user role:', this.authService.userRole());
-      console.log('🔄 loadData - Is authenticated:', this.authService.isAuthenticated());
-      console.log('🔄 loadData - Has permission:', this.hasPermission());
       
       // Add JWT token debugging
       const token = localStorage.getItem('access_token');
@@ -493,33 +390,7 @@ export class QuizBankComponent implements OnInit {
 
     } catch (error: any) {
       console.error('Error loading data:', error);
-      
-      // Enhanced error handling for specific scenarios
-      let errorMessage = 'Lỗi khi tải dữ liệu: ';
-      
-      if (error?.status === 403) {
-        const backendMessage = error?.error?.message || error?.original?.error?.message || '';
-        if (backendMessage.includes('Bạn không có quyền truy cập tính năng này')) {
-          errorMessage += 'Bạn không có quyền truy cập tính năng này. Vui lòng đăng ký khóa học để xem nội dung.';
-        } else {
-          errorMessage += 'Bạn không có quyền truy cập vào ngân hàng câu hỏi. Vui lòng liên hệ quản trị viên để được cấp quyền giảng viên.';
-        }
-        
-        // Set permission to false and navigate away on 403 errors
-        this.hasPermission.set(false);
-        console.log('🔍 DEBUG: 403 error - not redirecting for debugging');
-        // TEMPORARILY DISABLED: this.router.navigate(['/courses']);
-      } else if (error?.status === 401) {
-        errorMessage += 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
-        console.log('🔍 DEBUG: 401 error - not redirecting for debugging');
-        // DEBUG MODE: this.router.navigate(['/auth/login']);
-      } else {
-        errorMessage += (error?.error?.message || error?.message || 'Lỗi không xác định');
-      }
-      
-      this.error.set(errorMessage);
-    } finally {
-      this.loading.set(false);
+      this.error.set('Lỗi khi tải dữ liệu: ' + (error?.error?.message || error?.message || 'Lỗi không xác định'));
     }
   }
 
@@ -640,20 +511,8 @@ export class QuizBankComponent implements OnInit {
 
   async addQuestionToCurrentQuiz(question: Question): Promise<void> {
     if (!this.currentQuizId) return;
-    
-    // Check permissions before making API calls
-    if (!this.hasPermission() || !this.authService.isAuthenticated()) {
-      this.errorService.addError({
-        message: 'Bạn không có quyền thực hiện hành động này.',
-        type: 'error',
-        context: 'authorization'
-      });
-      return;
-    }
 
     try {
-      this.loading.set(true);
-      this.loadingMessage.set('Đang thêm câu hỏi vào quiz...');
       
       await firstValueFrom(this.quizApi.addQuestionToQuiz(this.currentQuizId, question.id));
       
@@ -664,8 +523,6 @@ export class QuizBankComponent implements OnInit {
     } catch (error: any) {
       console.error('Error adding question to quiz:', error);
       this.error.set('Lỗi khi thêm câu hỏi vào quiz: ' + (error?.error?.message || error?.message || 'Lỗi không xác định'));
-    } finally {
-      this.loading.set(false);
     }
   }
 
@@ -679,21 +536,9 @@ export class QuizBankComponent implements OnInit {
   }
 
   async testApiAccess(): Promise<void> {
-    console.log('🧪 === TESTING API ACCESS ===');
-    console.log('🧪 Current user role:', this.authService.userRole());
-    console.log('🧪 Is authenticated:', this.authService.isAuthenticated());
-    console.log('🧪 User data:', this.authService.user());
-    
     try {
-      console.log('🧪 Testing /api/v1/questions endpoint...');
-      const allQuestions = await firstValueFrom(this.questionApi.getQuestions());
-      console.log('✅ getQuestions() successful:', allQuestions?.length || 0, 'questions');
-      
-      console.log('🧪 Testing /api/v1/questions/my-questions endpoint...');
       const myQuestions = await firstValueFrom(this.questionApi.getMyQuestions());
-      console.log('✅ getMyQuestions() successful:', myQuestions?.length || 0, 'questions');
-      
-      alert(`✅ API Test thành công!\n- getQuestions(): ${allQuestions?.length || 0} câu hỏi\n- getMyQuestions(): ${myQuestions?.length || 0} câu hỏi`);
+      alert(`✅ API Test thành công!\n- getMyQuestions(): ${myQuestions?.length || 0} câu hỏi`);
     } catch (error: any) {
       console.error('❌ API Test failed:', error);
       alert(`❌ API Test thất bại:\n${error?.error?.message || error?.message || 'Lỗi không xác định'}`);

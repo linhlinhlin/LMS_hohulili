@@ -59,18 +59,8 @@ interface QuizPreviewData {
         </div>
       </div>
 
-      <!-- Loading State -->
-      @if (isLoading()) {
-        <div class="max-w-4xl mx-auto px-4 py-8">
-          <div class="text-center">
-            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <p class="mt-2 text-gray-600">Đang tải bài kiểm tra...</p>
-          </div>
-        </div>
-      }
-
       <!-- Quiz Content -->
-      @if (!isLoading() && quizData()) {
+      @if (quizData()) {
         <div class="max-w-4xl mx-auto px-4 py-6">
           <!-- Quiz Info -->
           <div class="bg-white rounded-lg shadow-sm border p-6 mb-6">
@@ -173,7 +163,7 @@ interface QuizPreviewData {
       }
 
       <!-- Empty State -->
-      @if (!isLoading() && !quizData()) {
+      @if (!quizData()) {
         <div class="max-w-4xl mx-auto px-4 py-12">
           <div class="text-center">
             <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -259,8 +249,6 @@ export class QuizPreviewComponent implements OnInit {
     } catch (error) {
       console.error('Error loading quiz preview:', error);
       this.quizData.set(null);
-    } finally {
-      this.isLoading.set(false);
     }
   }
 

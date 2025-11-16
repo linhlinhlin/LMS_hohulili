@@ -43,23 +43,15 @@ import { CourseSummary } from '../../../api/types/course.types';
               </tr>
             </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
-              <tr *ngIf="loading()">
-                <td colspan="6" class="px-6 py-12 text-center text-gray-500">
-                  <div class="flex items-center justify-center space-x-2">
-                    <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-                    <span>Đang tải danh sách học viên...</span>
-                  </div>
-                </td>
-              </tr>
               
-              <tr *ngIf="error() && !loading()">
+              <tr *ngIf="error()">
                 <td colspan="6" class="px-6 py-12 text-center text-red-600">
                   {{ error() }}
                               <button (click)="onReload()" class="ml-2 text-blue-600 underline text-sm">Tải lại</button>
                 </td>
               </tr>
 
-              <tr *ngIf="!loading() && !error() && paged().length === 0">
+              <tr *ngIf="!error() && paged().length === 0">
                 <td colspan="6" class="px-6 py-12 text-center text-gray-500">
                   Không tìm thấy học viên nào.
                 </td>
@@ -136,7 +128,6 @@ export class StudentManagementComponent {
   
   students = signal<StudentSummary[]>([]);
   courses = signal<CourseSummary[]>([]);
-  loading = signal(true);
   error = signal('');
   
   pageIndex = signal(1);
@@ -163,7 +154,6 @@ export class StudentManagementComponent {
   }
 
   private loadData() {
-    this.loading.set(true);
     this.error.set('');
     
     // Load courses first, then students
@@ -177,7 +167,6 @@ export class StudentManagementComponent {
       error: (error) => {
         console.error('Error loading courses:', error);
         this.error.set('Không thể tải danh sách khóa học');
-        this.loading.set(false);
       }
     });
   }
@@ -240,9 +229,6 @@ export class StudentManagementComponent {
       error: (error) => {
         console.error('Error loading students:', error);
         this.error.set('Không thể tải danh sách học viên');
-      },
-      complete: () => {
-        this.loading.set(false);
       }
     });
   }

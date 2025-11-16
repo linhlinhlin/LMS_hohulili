@@ -69,26 +69,12 @@ export const teacherSidebarConfig: SidebarConfig = {
     {
       label: 'Khóa học',
       route: '/teacher/courses',
-  icon: 'M12 6l-8 4 8 4 8-4-8-4zm0 10l-8-4v6l8 4 8-4v-6l-8 4z',
-      children: [
-        {
-          label: 'Tạo khóa học',
-          route: '/teacher/course-creation',
-          icon: 'M12 6v6m0 0v6m0-6h6m-6 0H6'
-        }
-      ]
+  icon: 'M12 6l-8 4 8 4 8-4-8-4zm0 10l-8-4v6l8 4 8-4v-6l-8 4z'
     },
     {
       label: 'Bài tập',
       route: '/teacher/assignments',
-  icon: 'M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2H9zm0 0a2 2 0 002 2h2a2 2 0 002-2',
-      children: [
-        {
-          label: 'Tạo bài tập',
-          route: '/teacher/assignment-creation',
-          icon: 'M12 6v6m0 0v6m0-6h6m-6 0H6'
-        }
-      ]
+  icon: 'M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2H9zm0 0a2 2 0 002 2h2a2 2 0 002-2'
     },
     {
       label: 'Học viên',
@@ -98,26 +84,12 @@ export const teacherSidebarConfig: SidebarConfig = {
     {
       label: 'Quiz Bank',
       route: '/teacher/quiz/quiz-bank',
-  icon: 'M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
-      children: [
-        {
-          label: 'Tạo câu hỏi',
-          route: '/teacher/quiz/question/create',
-          icon: 'M12 6v6m0 0v6m0-6h6m-6 0H6'
-        }
-      ]
+  icon: 'M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
     },
     {
       label: 'Chấm điểm',
       route: '/teacher/grading',
-  icon: 'M5 13l4 4L19 7',
-      children: [
-        {
-          label: 'Quản lý Rubric',
-          route: '/teacher/rubrics',
-          icon: 'M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2'
-        }
-      ]
+  icon: 'M5 13l4 4L19 7'
     },
     {
       label: 'Phân tích',

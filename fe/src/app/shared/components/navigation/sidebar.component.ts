@@ -179,6 +179,16 @@ export interface SidebarConfig {
       overflow-y: auto;
     }
 
+    /* Hide scrollbar */
+    .sidebar-nav::-webkit-scrollbar {
+      display: none;
+    }
+
+    .sidebar-nav {
+      -ms-overflow-style: none;  /* IE and Edge */
+      scrollbar-width: none;  /* Firefox */
+    }
+
     .nav-item-container {
       margin-bottom: 0.25rem;
     }
@@ -298,13 +308,13 @@ export interface SidebarConfig {
     }
 
     .sidebar-teacher .sidebar-logo {
-      background: linear-gradient(to bottom right, #9333ea, #7c3aed);
+      background: linear-gradient(to bottom right, #2563eb, #4f46e5);
     }
 
     .sidebar-teacher .nav-item.active {
-      background-color: #faf5ff;
-      color: #7c3aed;
-      border-right: 2px solid #9333ea;
+      background-color: #eff6ff;
+      color: #1d4ed8;
+      border-right: 2px solid #3b82f6;
     }
 
     .sidebar-admin .sidebar-logo {
@@ -355,7 +365,7 @@ export class SidebarComponent {
       case 'student':
         return `${baseClasses} text-blue-500`;
       case 'teacher':
-        return `${baseClasses} text-purple-500`;
+        return `${baseClasses} text-blue-500`;
       case 'admin':
         return `${baseClasses} text-red-500`;
       default:
