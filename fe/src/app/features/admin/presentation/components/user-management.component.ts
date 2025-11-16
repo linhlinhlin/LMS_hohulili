@@ -1336,7 +1336,8 @@ export class UserManagementComponent implements OnInit {
             },
             error: (error) => {
               failCount++;
-              errors.push(`Dòng ${i + 1} (${createRequest.email}): ${error.message || 'Lỗi tạo người dùng'}`);
+              const friendlyError = this.formatBulkImportError(error, createRequest.email);
+              errors.push(`Dòng ${i + 1}: ${friendlyError}`);
               resolve(); // Continue even if one fails
             }
           });
@@ -1514,5 +1515,48 @@ export class UserManagementComponent implements OnInit {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
+  formatBulkImportError(error: any, email: string): string {
+    // Extract meaningful error message from API response
+    let errorMessage = '';
+    
+    // Try to get error from different possible locations
+    if (error?.error?.message) {
+      errorMessage = error.error.message;
+    } else if (error?.message) {
+      errorMessage = error.message;
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    } else {
+      errorMessage = 'Lỗi không xác định';
+    }
+
+    // Clean up common error patterns
+    errorMessage = errorMessage
+      .replace(/^Server Error:\s*undefined\s*-\s*/i, '') // Remove "Server Error: undefined - "
+      .replace(/^Error:\s*/i, '') // Remove "Error: " prefix
+      .replace(/^undefined\s*-\s*/i, ''); // Remove "undefined - " prefix
+
+    // Make specific errors more user-friendly
+    if (errorMessage.includes('Username đã tồn tại') || errorMessage.includes('username already exists')) {
+      const username = email.split('@')[0];
+      return `Email "${email}" đã được sử dụng (username: ${username})`;
+    }
+    
+    if (errorMessage.includes('Email đã tồn tại') || errorMessage.includes('email already exists')) {
+      return `Email "${email}" đã tồn tại trong hệ thống`;
+    }
+
+    if (errorMessage.includes('Invalid email') || errorMessage.includes('email không hợp lệ')) {
+      return `Email "${email}" không hợp lệ`;
+    }
+
+    if (errorMessage.includes('Required field') || errorMessage.includes('Thiếu thông tin')) {
+      return `Thiếu thông tin bắt buộc`;
+    }
+
+    // Return cleaned error message with email context
+    return `${email}: ${errorMessage}`;
   }
 }
