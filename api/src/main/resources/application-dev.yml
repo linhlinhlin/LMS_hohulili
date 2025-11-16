@@ -7,13 +7,13 @@ spring:
     url: jdbc:postgresql://aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres
     username: postgres.rljldvpboqapokzecfff
     password: ho_hu_li_li_
+    driver-class-name: org.postgresql.Driver
 
     # DB local: 
     # url: jdbc:postgresql://localhost:5432/lms
     # username: lms
     # password: lms
 
-    driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 2
       minimum-idle: 1

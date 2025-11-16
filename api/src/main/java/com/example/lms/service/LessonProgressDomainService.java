@@ -12,7 +12,9 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Domain Service: Lesson Progress Management
@@ -158,6 +160,50 @@ public class LessonProgressDomainService {
                 progressRepository.save(progress);
             }
         }
+    }
+
+    /**
+     * Get next lesson to continue learning for a student in a course
+     *
+     * Business Rules:
+     * 1. Return first uncompleted lesson in order
+     * 2. If all lessons completed, return first lesson
+     * 3. Consider lesson order within sections
+     */
+    public UUID getNextLessonToContinue(User student, Course course) {
+        log.debug("Finding next lesson to continue for student {} in course {}", student.getId(), course.getId());
+
+        // Get all lessons in course order (sections then lessons within sections)
+        List<Lesson> allLessons = course.getSections().stream()
+                .sorted((s1, s2) -> Integer.compare(s1.getOrderIndex() != null ? s1.getOrderIndex() : 0,
+                                                   s2.getOrderIndex() != null ? s2.getOrderIndex() : 0))
+                .flatMap(section -> section.getLessons().stream()
+                        .sorted((l1, l2) -> Integer.compare(l1.getOrderIndex() != null ? l1.getOrderIndex() : 0,
+                                                           l2.getOrderIndex() != null ? l2.getOrderIndex() : 0)))
+                .collect(Collectors.toList());
+
+        if (allLessons.isEmpty()) {
+            throw new IllegalStateException("Course has no lessons");
+        }
+
+        // Get progress for all lessons in this course
+        List<StudentLessonProgress> progressList = getCourseLessonProgress(student, course);
+        Set<UUID> completedLessonIds = progressList.stream()
+                .filter(StudentLessonProgress::isCompleted)
+                .map(progress -> progress.getLesson().getId())
+                .collect(Collectors.toSet());
+
+        // Find first uncompleted lesson
+        for (Lesson lesson : allLessons) {
+            if (!completedLessonIds.contains(lesson.getId())) {
+                log.debug("Next lesson to continue: {}", lesson.getId());
+                return lesson.getId();
+            }
+        }
+
+        // All lessons completed, return first lesson
+        log.debug("All lessons completed, returning first lesson: {}", allLessons.get(0).getId());
+        return allLessons.get(0).getId();
     }
 
     /**

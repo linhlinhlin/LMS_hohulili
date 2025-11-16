@@ -224,6 +224,32 @@ public class StudentProgressController {
     }
 
     /**
+     * Get next lesson to continue learning
+     */
+    @GetMapping("/courses/{courseId}/next-lesson")
+    @Operation(summary = "Lấy bài học tiếp theo cần học",
+               description = "Lấy ID của bài học tiếp theo mà học viên cần học trong khóa học")
+    public ResponseEntity<ApiResponse<UUID>> getNextLesson(
+            @PathVariable UUID courseId,
+            @AuthenticationPrincipal User student
+    ) {
+        try {
+            // Create course entity for domain service
+            Course course = new Course();
+            course.setId(courseId);
+
+            // Get next lesson through domain service
+            UUID nextLessonId = progressDomainService.getNextLessonToContinue(student, course);
+
+            return ResponseEntity.ok(ApiResponse.success(nextLessonId, "Bài học tiếp theo"));
+
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    /**
      * Get detailed progress for all lessons in a course
      */
     @GetMapping("/courses/{courseId}/lessons")

@@ -88,4 +88,12 @@ export class CourseApi {
   deleteCourse(id: string) {
     return this.api.delete<ApiResponse<string>>(COURSE_ENDPOINTS.BY_ID(id));
   }
+
+  getCourseProgress(courseId: string) {
+    return this.api.getWithResponse<any>(`/api/v1/student/progress/courses/${courseId}`);
+  }
+
+  getNextLesson(courseId: string) {
+    return this.api.getWithResponse<any>(`/api/v1/student/progress/courses/${courseId}/next-lesson`);
+  }
 }

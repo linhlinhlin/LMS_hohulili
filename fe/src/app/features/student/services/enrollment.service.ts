@@ -45,7 +45,7 @@ export class StudentEnrollmentService {
   readonly hasPrevPage = computed(() => this._currentPage() > 1);
 
   readonly inProgressCourses = computed(() =>
-    this._enrolledCourses().filter(course => course.status === 'in-progress')
+    this._enrolledCourses().filter(course => course.status === 'in-progress' || course.status === 'enrolled')
   );
 
   readonly completedCourses = computed(() =>
@@ -64,6 +64,14 @@ export class StudentEnrollmentService {
     completed: this.completedCourses().length,
     averageProgress: this.totalProgress()
   }));
+
+  readonly coursesWithProgress = computed(() =>
+    this._enrolledCourses().filter(course => course.progress > 0)
+  );
+
+  readonly coursesWithoutProgress = computed(() =>
+    this._enrolledCourses().filter(course => course.progress === 0)
+  );
 
   // === PUBLIC METHODS ===
 
@@ -98,7 +106,13 @@ export class StudentEnrollmentService {
         const response = await firstValueFrom(this.courseApi.enrolledCourses({ page: safePage, limit }));
 
       if (response?.data) {
-        const enrolledCourses: EnrolledCourse[] = response.data.map(course => this.mapToEnrolledCourse(course));
+        // Fetch progress for each course and map to EnrolledCourse
+        const enrolledCourses: EnrolledCourse[] = await Promise.all(
+          response.data.map(async (course) => {
+            const progress = await this.fetchCourseProgress(course.id);
+            return this.mapToEnrolledCourse(course, progress);
+          })
+        );
         this._enrolledCourses.set(enrolledCourses);
         
         // Update pagination info
@@ -248,19 +262,19 @@ export class StudentEnrollmentService {
   /**
    * Map CourseSummary từ API thành EnrolledCourse cho UI
    */
-  private mapToEnrolledCourse(course: CourseSummary): EnrolledCourse {
-    // Extract progress from course metadata or set default
-    const progress = this.extractProgressFromCourse(course);
-    const status = this.determineEnrollmentStatus(course, progress);
-    
+  private mapToEnrolledCourse(course: CourseSummary, progress?: number): EnrolledCourse {
+    // Use provided progress or extract from course metadata
+    const actualProgress = progress !== undefined ? progress : this.extractProgressFromCourse(course);
+    const status = this.determineEnrollmentStatus(course, actualProgress);
+
     return {
       id: course.id,
       title: course.title,
       description: course.description || 'Mô tả khóa học',
       instructor: course.teacherName || 'Giảng viên',
-      progress: progress,
+      progress: actualProgress,
       totalLessons: 10, // Default value - can be fetched from course details if needed
-      completedLessons: Math.floor((progress / 100) * 10),
+      completedLessons: Math.floor((actualProgress / 100) * 10),
       duration: '40 giờ', // Default duration
       deadline: undefined, // No deadline info in CourseSummary
       status: status,
@@ -274,11 +288,30 @@ export class StudentEnrollmentService {
   }
 
   /**
-   * Extract progress từ course metadata  
+   * Fetch actual progress for enrolled courses from backend
+   */
+  private async fetchCourseProgress(courseId: string): Promise<number> {
+    try {
+      // Call the progress API to get actual progress
+      const response = await firstValueFrom(this.courseApi.getCourseProgress(courseId));
+      if (response?.data?.progressPercentage !== undefined) {
+        return Math.round(response.data.progressPercentage);
+      }
+      return 0;
+    } catch (error) {
+      console.error('Error fetching course progress:', error);
+      // Fallback to random progress for demo
+      return Math.floor(Math.random() * 100);
+    }
+  }
+
+  /**
+   * Extract progress từ course metadata
    */
   private extractProgressFromCourse(course: CourseSummary): number {
     // CourseSummary doesn't have progress info - will be fetched separately
     // For now, return 0 for new courses, random for demo
+    // TODO: Fetch actual progress from backend API
     return Math.floor(Math.random() * 100);
   }
 

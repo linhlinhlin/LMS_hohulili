@@ -1,8 +1,10 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { StudentEnrollmentService } from '../services/enrollment.service';
+import { CourseApi } from '../../../api/client/course.api';
 import { IconComponent } from '../../../shared/components/ui/icon/icon.component';
 import { ButtonComponent } from '../../../shared/components/ui/button/button.component';
 import { CardComponent } from '../../../shared/components/ui/card/card.component';
@@ -69,6 +71,7 @@ export class StudentDashboardComponent implements OnInit {
   protected authService = inject(AuthService);
   private router = inject(Router);
   private enrollmentService = inject(StudentEnrollmentService);
+  private courseApi = inject(CourseApi);
 
   // State
   careerGoal = signal<string>('Chuyên gia Hàng hải');
@@ -307,9 +310,24 @@ export class StudentDashboardComponent implements OnInit {
     return fullName.split(' ').pop() || fullName;
   }
 
-  continueCourse(courseId: string): void {
-    // Navigate to course detail page first (overview)
-    this.router.navigate(['/student/course', courseId]);
+  async continueCourse(courseId: string): Promise<void> {
+    try {
+      // Get next lesson from backend
+      const response = await firstValueFrom(this.courseApi.getNextLesson(courseId));
+      const nextLessonId = response?.data;
+
+      if (nextLessonId) {
+        // Navigate to specific lesson
+        this.router.navigate(['/student/learn/course', courseId, 'lesson', nextLessonId]);
+      } else {
+        // Fallback to course overview
+        this.router.navigate(['/student/learn/course', courseId]);
+      }
+    } catch (error) {
+      console.error('Error getting next lesson:', error);
+      // Fallback to course overview
+      this.router.navigate(['/student/learn/course', courseId]);
+    }
   }
 
   editGoal(): void {

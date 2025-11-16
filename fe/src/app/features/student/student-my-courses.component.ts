@@ -2,8 +2,10 @@ import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { StudentEnrollmentService } from './services/enrollment.service';
+import { CourseApi } from '../../api/client/course.api';
 import { EnrolledCourse } from './types';
 import { IconComponent } from '../../shared/components/ui/icon/icon.component';
 import { ButtonComponent } from '../../shared/components/ui/button/button.component';
@@ -817,6 +819,7 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
 export class StudentMyCoursesComponent implements OnInit {
   protected authService = inject(AuthService);
   private enrollmentService = inject(StudentEnrollmentService);
+  private courseApi = inject(CourseApi);
   private router = inject(Router);
 
   // State
@@ -939,9 +942,24 @@ export class StudentMyCoursesComponent implements OnInit {
     console.log('Menu clicked for course:', courseId);
   }
 
-  resumeCourse(courseId: string): void {
-    // Navigate to course detail page first (overview)
-    this.router.navigate(['/student/course', courseId]);
+  async resumeCourse(courseId: string): Promise<void> {
+    try {
+      // Get next lesson from backend
+      const response = await firstValueFrom(this.courseApi.getNextLesson(courseId)) as any;
+      const nextLessonId = response?.data;
+
+      if (nextLessonId) {
+        // Navigate to specific lesson
+        this.router.navigate(['/student/learn/course', courseId, 'lesson', nextLessonId]);
+      } else {
+        // Fallback to course overview
+        this.router.navigate(['/student/learn/course', courseId]);
+      }
+    } catch (error) {
+      console.error('Error getting next lesson:', error);
+      // Fallback to course overview
+      this.router.navigate(['/student/learn/course', courseId]);
+    }
   }
 
   onSortChange(event: Event): void {
