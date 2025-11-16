@@ -512,7 +512,7 @@ interface BulkImportProgress {
                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
                   </svg>
                   <p class="text-xs text-blue-700">
-                    Mật khẩu mặc định là <span class="font-semibold">123456</span>. Người dùng nên đổi mật khẩu sau lần đăng nhập đầu tiên.
+                    Mật khẩu mặc định là <span class="font-semibold">Password123!</span>. Người dùng nên đổi mật khẩu sau lần đăng nhập đầu tiên.
                   </p>
                 </div>
               </div>
@@ -620,19 +620,28 @@ interface BulkImportProgress {
                   <!-- Template Info -->
                   <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                     <div class="flex">
-                      <svg class="w-5 h-5 text-blue-400 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                      <svg class="w-5 h-5 text-blue-400 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
                       </svg>
                       <div class="text-sm text-blue-700">
-                        <p class="font-medium mb-1">Định dạng file Excel yêu cầu:</p>
-                        <ul class="list-disc list-inside space-y-1 text-xs">
+                        <p class="font-medium mb-2">Định dạng file Excel yêu cầu:</p>
+                        <ul class="list-disc list-inside space-y-1 text-xs mb-3">
                           <li>Cột A: Username (bắt buộc) - Tên đăng nhập</li>
                           <li>Cột B: Email (bắt buộc) - Địa chỉ email</li>
                           <li>Cột C: Full Name (bắt buộc) - Họ tên đầy đủ</li>
-                          <li>Cột D: Department (tùy chọn) - Phòng ban/Khoa</li>
+                          <li>Cột D: Password (tùy chọn) - Mật khẩu</li>
+                          <li>Cột E: Department (tùy chọn) - Phòng ban/Khoa</li>
                         </ul>
+                        <div class="bg-blue-100 border border-blue-300 rounded p-2 mb-2">
+                          <p class="text-xs font-medium">
+                            🔐 Mật khẩu mặc định: <span class="font-bold">Password123!</span>
+                          </p>
+                          <p class="text-xs mt-1">
+                            Nếu file Excel không có cột Password, tất cả tài khoản sẽ dùng mật khẩu này.
+                          </p>
+                        </div>
                         <button (click)="downloadTemplate()"
-                                class="mt-2 text-blue-600 hover:text-blue-800 underline text-xs">
+                                class="text-blue-600 hover:text-blue-800 underline text-xs font-medium">
                           Tải template mẫu
                         </button>
                       </div>
@@ -1037,7 +1046,7 @@ export class UserManagementComponent implements OnInit {
     const request: CreateUserRequest = {
       username: this.newUserEmail().split('@')[0],
       email: this.newUserEmail(),
-      password: '123456', // Default password
+      password: 'Password123!', // Default password
       fullName: this.newUserName(),
       role: this.newUserRole() as 'ADMIN' | 'TEACHER' | 'STUDENT'
     };
