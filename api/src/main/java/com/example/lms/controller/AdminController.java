@@ -100,6 +100,20 @@ public class AdminController {
         }
     }
 
+    @DeleteMapping("/courses/{courseId}")
+    @Operation(summary = "Xóa khóa học", description = "Admin xóa một khóa học (chỉ xóa được khóa học chưa xuất bản)")
+    public ResponseEntity<ApiResponse<String>> deleteCourse(
+            @PathVariable UUID courseId,
+            @AuthenticationPrincipal User currentUser
+    ) {
+        try {
+            adminService.deleteCourse(courseId);
+            return ResponseEntity.ok(ApiResponse.success("Khóa học đã được xóa"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
     @GetMapping("/courses/all")
     @Operation(summary = "Lấy tất cả khóa học", description = "Admin lấy danh sách tất cả khóa học trong hệ thống")
     public ResponseEntity<ApiResponse<Page<AdminCourseSummary>>> getAllCourses(
