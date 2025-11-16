@@ -428,13 +428,16 @@ interface BulkImportProgress {
           <!-- Empty State -->
           @if (filteredUsers().length === 0 && !isLoadingUsers()) {
             <div class="text-center py-12">
-              <svg class="w-24 h-24 text-gray-300 mx-auto mb-4" fill="currentColor" viewBox="0 0 20 20">
+              <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 8v1h1.5a.5.5 0 01.5.5v9a.5.5 0 01-.5.5h-13a.5.5 0 01-.5-.5v-9a.5.5 0 01.5-.5H8v-1a5 5 0 00-5 5v1h9.93z"></path>
               </svg>
-              <h3 class="text-lg font-medium text-gray-900 mb-2">Không có người dùng nào</h3>
-              <p class="text-gray-500 mb-6">Bắt đầu thêm người dùng đầu tiên</p>
+              <h3 class="text-base font-medium text-gray-900 mb-2">Không có người dùng nào</h3>
+              <p class="text-sm text-gray-600 mb-6">Bắt đầu thêm người dùng đầu tiên</p>
               <button (click)="openCreateUserModal()"
-                      class="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                      class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 transition-colors">
+                <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"></path>
+                </svg>
                 Thêm người dùng
               </button>
             </div>
@@ -443,68 +446,90 @@ interface BulkImportProgress {
       </div>
     </div>
 
-    <!-- Create User Modal -->
+    <!-- Create User Modal - Coursera Style -->
     @if (showCreateModal()) {
-      <div class="fixed inset-0 z-50 overflow-y-auto bg-gray-600 bg-opacity-50" (click)="closeCreateUserModal()">
+      <div class="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-40" (click)="closeCreateUserModal()">
         <div class="flex items-center justify-center min-h-screen p-4">
-          <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full" (click)="$event.stopPropagation()">
-            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-              <div class="sm:flex sm:items-start">
-                <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
-                  <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                  </svg>
-                </div>
-                <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                  <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
-                    Thêm người dùng mới
-                  </h3>
-
-                  <form (ngSubmit)="createUser()" class="space-y-4">
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">Tên người dùng *</label>
-                      <input type="text"
-                             [(ngModel)]="newUserName"
-                             name="name"
-                             required
-                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-red-500 focus:border-red-500">
-                    </div>
-
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-                      <input type="email"
-                             [(ngModel)]="newUserEmail"
-                             name="email"
-                             required
-                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-red-500 focus:border-red-500">
-                    </div>
-
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">Vai trò *</label>
-                      <select [(ngModel)]="newUserRole"
-                              name="role"
-                              required
-                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-red-500 focus:border-red-500">
-                        <option value="">Chọn vai trò</option>
-                        <option value="ADMIN">Quản trị viên</option>
-                        <option value="TEACHER">Giảng viên</option>
-                        <option value="STUDENT">Học viên</option>
-                      </select>
-                    </div>
-                  </form>
-                </div>
-              </div>
+          <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full" (click)="$event.stopPropagation()">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between p-6 border-b border-gray-200">
+              <h3 class="text-xl font-semibold text-gray-900">
+                Thêm người dùng mới
+              </h3>
+              <button (click)="closeCreateUserModal()"
+                      class="text-gray-400 hover:text-gray-600 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
             </div>
 
-            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-              <button (click)="createUser()"
-                      [disabled]="!newUserName || !newUserEmail || !newUserRole"
-                      class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed">
-                Tạo người dùng
-              </button>
+            <!-- Modal Body -->
+            <form (ngSubmit)="createUser()" class="p-6 space-y-5">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  Tên người dùng <span class="text-red-500">*</span>
+                </label>
+                <input type="text"
+                       [(ngModel)]="newUserName"
+                       name="name"
+                       required
+                       placeholder="Nhập tên đầy đủ"
+                       class="w-full px-3 py-2.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  Email <span class="text-red-500">*</span>
+                </label>
+                <input type="email"
+                       [(ngModel)]="newUserEmail"
+                       name="email"
+                       required
+                       placeholder="example@domain.com"
+                       class="w-full px-3 py-2.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  Vai trò <span class="text-red-500">*</span>
+                </label>
+                <select [(ngModel)]="newUserRole"
+                        name="role"
+                        required
+                        class="w-full px-3 py-2.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white">
+                  <option value="">Chọn vai trò</option>
+                  <option value="ADMIN">Quản trị viên</option>
+                  <option value="TEACHER">Giảng viên</option>
+                  <option value="STUDENT">Học viên</option>
+                </select>
+              </div>
+
+              <!-- Info Note -->
+              <div class="bg-blue-50 border border-blue-200 rounded p-3">
+                <div class="flex">
+                  <svg class="w-5 h-5 text-blue-600 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                  </svg>
+                  <p class="text-xs text-blue-700">
+                    Mật khẩu mặc định là <span class="font-semibold">123456</span>. Người dùng nên đổi mật khẩu sau lần đăng nhập đầu tiên.
+                  </p>
+                </div>
+              </div>
+            </form>
+
+            <!-- Modal Footer -->
+            <div class="flex items-center justify-end gap-3 px-6 py-4 bg-gray-50 border-t border-gray-200">
               <button (click)="closeCreateUserModal()"
-                      class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                      type="button"
+                      class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors">
                 Hủy
+              </button>
+              <button (click)="createUser()"
+                      type="button"
+                      [disabled]="!newUserName() || !newUserEmail() || !newUserRole()"
+                      class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                Tạo người dùng
               </button>
             </div>
           </div>
@@ -512,53 +537,61 @@ interface BulkImportProgress {
       </div>
     }
 
-    <!-- Edit User Modal -->
+    <!-- Edit User Modal - Coursera Style -->
     @if (isEditModalOpen()) {
-      <div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-          <div class="mt-3">
-            <div class="flex items-center justify-between mb-4">
-              <h3 class="text-lg font-medium text-gray-900">Chỉnh sửa người dùng</h3>
-              <button (click)="closeEditModal()" class="text-gray-400 hover:text-gray-600">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div class="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-40" (click)="closeEditModal()">
+        <div class="flex items-center justify-center min-h-screen p-4">
+          <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full" (click)="$event.stopPropagation()">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between p-6 border-b border-gray-200">
+              <h3 class="text-xl font-semibold text-gray-900">
+                Chỉnh sửa người dùng
+              </h3>
+              <button (click)="closeEditModal()"
+                      class="text-gray-400 hover:text-gray-600 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>
               </button>
             </div>
 
-            <div class="space-y-4">
+            <!-- Modal Body -->
+            <div class="p-6 space-y-5">
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Tên</label>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Tên</label>
                 <input type="text"
                        [(ngModel)]="editingUserName"
-                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500">
+                       class="w-full px-3 py-2.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
                 <input type="email"
                        [(ngModel)]="editingUserEmail"
-                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500">
+                       class="w-full px-3 py-2.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Vai trò</label>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Vai trò</label>
                 <select [(ngModel)]="editingUserRole"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500">
+                        class="w-full px-3 py-2.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white">
                   <option value="STUDENT">Học viên</option>
                   <option value="TEACHER">Giảng viên</option>
-                  <option value="ADMIN">Quản trị</option>
+                  <option value="ADMIN">Quản trị viên</option>
                 </select>
               </div>
             </div>
 
-            <div class="flex justify-end space-x-3 mt-6">
+            <!-- Modal Footer -->
+            <div class="flex items-center justify-end gap-3 px-6 py-4 bg-gray-50 border-t border-gray-200">
               <button (click)="closeEditModal()"
-                      class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors">
+                      type="button"
+                      class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors">
                 Hủy
               </button>
               <button (click)="saveUserEdit()"
-                      class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors">
+                      type="button"
+                      class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700 transition-colors">
                 Lưu thay đổi
               </button>
             </div>
