@@ -63,7 +63,7 @@ interface Course {
     TabsComponent
   ],
   templateUrl: './student-dashboard.component.html',
-  styleUrl: './student-dashboard.component.scss'
+  styleUrls: ['./student-dashboard.component.scss']
 })
 export class StudentDashboardComponent implements OnInit {
   protected authService = inject(AuthService);
@@ -88,6 +88,11 @@ export class StudentDashboardComponent implements OnInit {
   private expandedModules = signal<Set<string>>(new Set());
   
   ngOnInit(): void {
+    // Mark body as loaded to prevent FOUC
+    if (typeof document !== 'undefined') {
+      document.body.classList.add('loaded');
+    }
+    
     // Load enrolled courses on component init
     this.enrollmentService.loadEnrolledCourses(1, 20); // Load first 20 courses
   }

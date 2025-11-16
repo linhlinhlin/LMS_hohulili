@@ -13,7 +13,7 @@ import { UserRole } from '../../../shared/types/user.types';
   encapsulation: ViewEncapsulation.None,
   template: `
     <!-- Modern gradient background -->
-    <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50 flex flex-col">
+    <div class="min-h-screen flex flex-col">
       <!-- Desktop Sidebar - Full Height -->
       <div class="hidden md:flex md:w-72 md:flex-col md:fixed md:inset-y-0 md:z-40"
            *ngIf="!shouldHideSidebar()">

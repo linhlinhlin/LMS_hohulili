@@ -76,6 +76,17 @@ public class Course {
     @Column
     private Instant updatedAt;
     
+    // Review fields - Added for admin approval workflow
+    @Column(columnDefinition = "TEXT")
+    private String reviewComment;
+    
+    @Column
+    private Instant reviewedAt;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reviewed_by_id")
+    private User reviewedBy;
+    
     // Constructor for creation
     public Course(String code, String title, String description, User teacher) {
         this.code = code;

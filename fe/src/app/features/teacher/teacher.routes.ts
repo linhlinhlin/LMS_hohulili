@@ -47,6 +47,11 @@ export const teacherRoutes: Routes = [
         loadComponent: () => import('./courses/course-editor.component').then(m => m.CourseEditorComponent),
         title: 'Chỉnh sửa khóa học'
       },
+      {
+        path: 'courses/:courseId/sections/:sectionId',
+        loadComponent: () => import('./courses/section-editor.component').then(m => m.SectionEditorComponent),
+        title: 'Quản lý bài học'
+      },
       
       // Assignment Management Routes
       {
@@ -89,6 +94,7 @@ export const teacherRoutes: Routes = [
 
       // Quiz Management Routes
       ...quizRoutes,
+
       
       // Analytics Routes
       {
@@ -124,12 +130,7 @@ export const teacherRoutes: Routes = [
         title: 'Chỉnh sửa Rubric'
       },
       
-      // Notifications Routes
-      {
-        path: 'notifications',
-        loadComponent: () => import('./notifications/teacher-notifications.component').then(m => m.TeacherNotificationsComponent),
-        title: 'Thông báo'
-      }
+      
     ]
   }
 ];

@@ -1,4 +1,4 @@
-import { ApplicationConfig, provideBrowserGlobalErrorListeners, provideZonelessChangeDetection, isDevMode, LOCALE_ID } from '@angular/core';
+import { ApplicationConfig, provideBrowserGlobalErrorListeners, provideZonelessChangeDetection, isDevMode, LOCALE_ID, APP_INITIALIZER } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { registerLocaleData } from '@angular/common';
@@ -11,6 +11,29 @@ import { provideServiceWorker } from '@angular/service-worker';
 import { authInterceptor } from './api/interceptors/auth.interceptor';
 import { errorInterceptor } from './api/interceptors/error.interceptor';
 import { baseUrlInterceptor } from './api/interceptors/base-url.interceptor';
+import { AuthService } from './core/services/auth.service';
+
+// ✅ FIXED: Factory function to setup global state when app initializes
+function initializeApp(authService: AuthService): () => Promise<void> {
+  return () => {
+    // ✅ Guard against SSR context where localStorage doesn't exist
+    if (typeof localStorage === 'undefined') {
+      console.log('[APP INIT] Running in SSR context, skipping localStorage access');
+      return Promise.resolve();
+    }
+    
+    console.log('[APP INIT] Initializing application...');
+    
+    // If user is already authenticated (token in localStorage), restore context
+    if (authService.isAuthenticated()) {
+      console.log('[APP INIT] User already authenticated, restoring context...');
+      const user = authService.getCurrentUser();
+      console.log('[APP INIT] Restored user:', user?.fullName, 'role:', user?.role);
+    }
+    
+    return Promise.resolve();
+  };
+}
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -31,7 +54,14 @@ export const appConfig: ApplicationConfig = {
         enabled: true,
         registrationStrategy: 'registerWhenStable:30000'
       })
-    ])
+    ]),
+    // ✅ FIXED: Add APP_INITIALIZER to setup global state before app renders
+    {
+      provide: APP_INITIALIZER,
+      useFactory: initializeApp,
+      deps: [AuthService],
+      multi: true
+    }
   ]
 };
 

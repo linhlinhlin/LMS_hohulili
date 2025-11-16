@@ -1,32 +1,47 @@
-import { Component, ChangeDetectionStrategy, inject, signal, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { CourseApi } from '../../../api/client/course.api';
 import { CreateCourseRequest, CourseSummary } from '../../../api/types/course.types';
-import { IconComponent } from '../../../shared/components/ui/icon/icon.component';
-import { ButtonComponent } from '../../../shared/components/ui/button/button.component';
 
-/**
- * Course Creation - Coursera Style
- * 
- * Professional course creation form with:
- * - Clean form design with inline validation
- * - Helpful hints and guidance
- * - Template selection from existing courses
- * - User-centric UX
- */
 @Component({
   selector: 'app-course-creation',
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    FormsModule,
-    IconComponent,
-    ButtonComponent
-  ],
-  templateUrl: './course-creation.component.html',
-  styleUrl: './course-creation.component.scss',
+  imports: [CommonModule, ReactiveFormsModule, FormsModule],
+  encapsulation: ViewEncapsulation.None,
+  template: `
+    <div class="max-w-6xl mx-auto p-6 space-y-6">
+      <h1 class="text-2xl font-bold text-gray-900 mb-6">Tạo khóa học mới</h1>
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="bg-white shadow p-6 space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Mã khóa học</label>
+          <input formControlName="code" type="text" class="w-full border px-3 py-2" placeholder="VD: ME101" />
+          <div class="text-sm text-red-600 mt-1" *ngIf="form.controls.code.invalid && form.controls.code.touched">
+            Mã khóa học bắt buộc, tối đa 64 ký tự
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Tên khóa học</label>
+          <input formControlName="title" type="text" class="w-full border px-3 py-2" placeholder="Tên khóa học" />
+          <div class="text-sm text-red-600 mt-1" *ngIf="form.controls.title.invalid && form.controls.title.touched">
+            Tên khóa học bắt buộc, tối đa 255 ký tự
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Mô tả</label>
+          <textarea formControlName="description" rows="4" class="w-full border px-3 py-2" placeholder="Mô tả ngắn gọn..."></textarea>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <button type="submit" [disabled]="form.invalid || isSubmitting()" class="px-4 py-2 bg-blue-600 text-white disabled:opacity-50">
+            {{ isSubmitting() ? 'Đang tạo...' : 'Tạo khóa học' }}
+          </button>
+          <span class="text-green-700" *ngIf="successMsg()">{{ successMsg() }}</span>
+          <span class="text-red-600" *ngIf="errorMsg()">{{ errorMsg() }}</span>
+        </div>
+      </form>
+    </div>
+  `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CourseCreationComponent {
@@ -39,7 +54,6 @@ export class CourseCreationComponent {
   errorMsg = signal<string>('');
 
   // Existing courses (LMS-style section)
-  loadingCourses = signal<boolean>(true);
   errorCourses = signal<string>('');
   courses = signal<CourseSummary[]>([]);
   filtered = signal<CourseSummary[]>([]);
@@ -65,12 +79,6 @@ export class CourseCreationComponent {
   }
   prefillingId = signal<string | null>(null);
 
-  // Accordion state
-  accordionState = {
-    courseInfo: true,
-    useTemplate: false
-  };
-
   form = this.fb.group({
     code: ['', [Validators.required, Validators.maxLength(64)]],
     title: ['', [Validators.required, Validators.maxLength(255)]],
@@ -86,8 +94,7 @@ export class CourseCreationComponent {
         this.filtered.set(data);
         this.pageIndex.set(1);
       },
-      error: (err) => this.errorCourses.set(err?.message || 'Không tải được danh sách khóa học'),
-      complete: () => this.loadingCourses.set(false)
+      error: (err) => this.errorCourses.set(err?.message || 'Không tải được danh sách khóa học')
     });
   }
 
@@ -119,10 +126,6 @@ export class CourseCreationComponent {
     }
   }
 
-  cancel() {
-    this.router.navigate(['/teacher/courses']);
-  }
-
   async prefillFrom(courseId: string) {
     try {
       this.prefillingId.set(courseId);
@@ -139,9 +142,5 @@ export class CourseCreationComponent {
     } finally {
       this.prefillingId.set(null);
     }
-  }
-
-  toggleAccordion(section: keyof typeof this.accordionState) {
-    this.accordionState[section] = !this.accordionState[section];
   }
 }

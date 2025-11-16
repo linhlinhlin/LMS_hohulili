@@ -36,7 +36,7 @@ export const adminRoutes: Routes = [
         children: [
           {
             path: '',
-            loadComponent: () => import('./user-management.component').then(m => m.UserManagementComponent),
+            loadComponent: () => import('./presentation/components/user-management.component').then(m => m.UserManagementComponent),
             title: 'Quản lý người dùng'
           }
         ]

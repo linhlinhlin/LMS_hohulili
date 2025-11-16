@@ -197,11 +197,16 @@ export class AdminService {
   readonly users = this._users.asReadonly();
 
   getSystemAnalytics(): Observable<SystemAnalytics> {
+    console.log('[ADMIN SERVICE] 🔍 Loading system analytics');
     this._isLoading.next(true);
-    return this.apiClient.get<SystemAnalytics>(ADMIN_ENDPOINTS.ANALYTICS).pipe(
+    return this.apiClient.getWithResponse<SystemAnalytics>(ADMIN_ENDPOINTS.ANALYTICS).pipe(
       finalize(() => this._isLoading.next(false)),
+      map(response => {
+        console.log('[ADMIN SERVICE] ✅ Analytics loaded successfully:', response);
+        return response.data;
+      }),
       catchError(error => {
-        console.error('[ADMIN SERVICE] Error loading analytics:', error);
+        console.error('[ADMIN SERVICE] ❌ Error loading analytics:', error);
         return throwError(() => error);
       })
     );

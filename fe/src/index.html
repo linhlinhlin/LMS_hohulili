@@ -35,7 +35,42 @@
   <!-- Manifest -->
   <link rel="manifest" href="/manifest.webmanifest">
 
-  <!-- Preload critical resources (removed unused font preload to avoid warnings) -->
+  <!-- Preload critical resources -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  
+  <!-- Prevent FOUC with inline critical CSS -->
+  <style>
+    /* Prevent flash of unstyled content */
+    body { 
+      margin: 0; 
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      background-color: #FAFAFA;
+      color: #1F1F1F;
+    }
+    
+    /* Loading indicator */
+    .app-loading {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+    
+    .app-loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #E5E7EB;
+      border-top-color: #0056D2;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
   
   <!-- Open Graph Meta Tags -->
   <meta property="og:title" content="LMS Maritime - Hệ thống quản lý học tập">
@@ -53,7 +88,13 @@
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
 <body>
-  <app-root></app-root>
+  <app-root>
+    <!-- Loading indicator shown until Angular bootstraps -->
+    <div class="app-loading">
+      <div class="app-loading-spinner"></div>
+      <p style="margin-top: 16px; color: #6B7280; font-size: 14px;">Đang tải...</p>
+    </div>
+  </app-root>
   <noscript>
     <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
       <h1>JavaScript Required</h1>

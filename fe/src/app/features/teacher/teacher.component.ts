@@ -7,7 +7,7 @@ import { RouterModule } from '@angular/router';
   imports: [CommonModule, RouterModule],
   encapsulation: ViewEncapsulation.None,
   template: `
-    <div class="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-indigo-100">
+    <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       <div class="max-w-7xl mx-auto px-6 py-8">
         <!-- Header -->
         <div class="mb-8">
@@ -53,15 +53,15 @@ import { RouterModule } from '@angular/router';
           </a>
 
           <a routerLink="/teacher/assignments" 
-             class="group bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 border-l-4 border-purple-500 hover:border-purple-600">
+             class="group bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 border-l-4 border-blue-500 hover:border-blue-600">
             <div class="flex items-center space-x-4">
-              <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center group-hover:bg-purple-200 transition-colors">
-                <svg class="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+              <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                <svg class="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path>
                 </svg>
               </div>
               <div class="text-left">
-                <h3 class="font-semibold text-gray-900 group-hover:text-purple-600 transition-colors">Bài tập</h3>
+                <h3 class="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">Bài tập</h3>
                 <p class="text-sm text-gray-600">Quản lý bài tập</p>
               </div>
             </div>

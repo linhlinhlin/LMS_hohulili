@@ -25,7 +25,13 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
         <div class="mb-8">
           <div class="flex items-center justify-between">
             <div>
-              <h1 class="text-3xl font-bold text-gray-900 mb-2">📚 Quản lý khóa học hệ thống</h1>
+              <h1 class="text-3xl font-bold text-gray-900 mb-2">
+                <svg class="w-8 h-8 inline-block mr-2 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
+                  <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
+                </svg>
+                Quản lý khóa học hệ thống
+              </h1>
               <p class="text-gray-600">Phê duyệt và quản lý tất cả khóa học trong hệ thống</p>
             </div>
             <div class="flex items-center space-x-4">
@@ -348,29 +354,63 @@ export class CourseManagementComponent implements OnInit {
   rejectionReason = signal('');
 
   // Computed properties
-  totalCourses = computed(() => this.courses().length);
-  pendingCourses = computed(() => this.courses().filter(c => c.status === 'pending').length);
-  approvedCourses = computed(() => this.courses().filter(c => c.status === 'approved').length);
-  totalRevenue = computed(() => 0); // TODO: Add revenue to AdminCourseSummary if needed
+  totalCourses = computed(() => {
+    const courses = this.courses();
+    return Array.isArray(courses) ? courses.length : 0;
+  });
+  
+  pendingCourses = computed(() => {
+    const courses = this.courses();
+    return Array.isArray(courses) ? courses.filter(c => c.status === 'pending' || c.status === 'PENDING').length : 0;
+  });
+  
+  approvedCourses = computed(() => {
+    const courses = this.courses();
+    return Array.isArray(courses) ? courses.filter(c => c.status === 'approved' || c.status === 'APPROVED').length : 0;
+  });
+  
+  totalRevenue = computed(() => {
+    const courses = this.courses();
+    if (!Array.isArray(courses)) return 0;
+    return courses.reduce((sum, c) => sum + (c.revenue || 0), 0);
+  });
 
   filteredCourses = computed(() => {
-    let courses = this.courses();
+    const courses = this.courses();
+    
+    // Safety check: ensure courses is an array
+    if (!Array.isArray(courses)) {
+      console.warn('[CourseManagement] courses is not an array:', courses);
+      return [];
+    }
+    
+    let filtered = [...courses];
     
     // Filter by search query
     if (this.searchQuery()) {
       const query = this.searchQuery().toLowerCase();
-      courses = courses.filter((course: AdminCourseSummary) => 
-        course.title.toLowerCase().includes(query) ||
-        course.teacherName.toLowerCase().includes(query)
+      filtered = filtered.filter((course: AdminCourseSummary) => 
+        course.title?.toLowerCase().includes(query) ||
+        course.teacherName?.toLowerCase().includes(query)
       );
     }
     
     // Filter by status
     if (this.statusFilter()) {
-      courses = courses.filter((course: AdminCourseSummary) => course.status === this.statusFilter());
+      const status = this.statusFilter().toUpperCase();
+      filtered = filtered.filter((course: AdminCourseSummary) => 
+        course.status?.toUpperCase() === status
+      );
     }
     
-    return courses;
+    // Filter by category
+    if (this.categoryFilter()) {
+      filtered = filtered.filter((course: AdminCourseSummary) => 
+        course.category?.toLowerCase() === this.categoryFilter().toLowerCase()
+      );
+    }
+    
+    return filtered;
   });
 
   ngOnInit(): void {
@@ -378,14 +418,25 @@ export class CourseManagementComponent implements OnInit {
   }
 
   private loadCourses(): void {
+    console.log('[CourseManagement] Loading courses...');
+    this.isLoading.set(true);
+    
     this.adminService.getAllCourses().subscribe({
       next: (response) => {
-        this.courses.set(response.data);
+        console.log('[CourseManagement] Courses loaded:', response);
+        
+        // Ensure we have an array
+        const coursesData = Array.isArray(response.data) ? response.data : [];
+        console.log('[CourseManagement] Setting courses:', coursesData.length, 'items');
+        
+        this.courses.set(coursesData);
         this.isLoading.set(false);
       },
       error: (error) => {
-        console.error('Error loading courses:', error);
+        console.error('[CourseManagement] Error loading courses:', error);
+        this.courses.set([]); // Set empty array on error
         this.isLoading.set(false);
+        alert('Không thể tải danh sách khóa học. Vui lòng thử lại.');
       }
     });
   }
