@@ -32,27 +32,25 @@ interface BulkImportProgress {
   standalone: true,
   imports: [CommonModule, RouterModule, FormsModule],
   styles: [`
-    /* Role select: normalize sizing and prevent clipping of native dropdown */
+    /* Coursera-inspired clean styles */
     select.role-select {
       cursor: pointer;
-      transition: all 0.12s ease;
-      /* sizing to ensure the selected label is visible and the native dropdown aligns */
+      transition: all 0.2s ease;
       display: inline-block;
       box-sizing: border-box;
-      min-width: 140px;
-      max-width: 220px;
+      min-width: 130px;
+      max-width: 200px;
       width: auto;
       line-height: 1.5;
       appearance: auto;
       -webkit-appearance: auto;
       -moz-appearance: auto;
-      /* make sure text is left-aligned and not clipped */
       text-align: left;
       padding-right: 0.75rem;
     }
 
     select.role-select:hover {
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+      border-color: #9CA3AF;
     }
 
     select.role-select:focus {
@@ -65,29 +63,32 @@ interface BulkImportProgress {
       color: #1f2937;
     }
 
-    /* Ensure table cells allow dropdowns to overflow when rendered by the browser */
+    /* Table cell overflow */
     td { overflow: visible; }
   `],
   template: `
-    <div class="bg-gray-50 min-h-screen">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <!-- Header with Actions -->
-        <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
-          <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+    <!-- Modern Coursera-inspired Layout -->
+    <div class="min-h-screen bg-white">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <!-- Clean Header Section -->
+        <div class="mb-8">
+          <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <!-- Title Section -->
             <div>
-              <h1 class="text-2xl lg:text-3xl font-bold text-gray-900">👥 Quản lý người dùng</h1>
-              <p class="text-gray-600 mt-1">Quản lý và theo dõi tất cả người dùng trong hệ thống</p>
+              <h1 class="text-2xl font-bold text-gray-900 mb-1">Quản lý người dùng</h1>
+              <p class="text-sm text-gray-600">Quản lý và theo dõi tất cả người dùng trong hệ thống</p>
             </div>
+            <!-- Action Buttons - Coursera Style -->
             <div class="flex flex-col sm:flex-row gap-3">
               <button (click)="openCreateUserModal()"
-                      class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors duration-200">
+                      class="inline-flex items-center justify-center px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 transition-colors">
                 <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"></path>
                 </svg>
                 Thêm người dùng
               </button>
               <button (click)="openBulkImportModal()"
-                      class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition-colors duration-200">
+                      class="inline-flex items-center justify-center px-4 py-2.5 bg-white text-gray-700 text-sm font-medium rounded border border-gray-300 hover:bg-gray-50 transition-colors">
                 <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"></path>
                 </svg>
@@ -97,42 +98,34 @@ interface BulkImportProgress {
           </div>
         </div>
 
-        <!-- Stats Overview -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
-          <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 border-l-4 border-red-500">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm font-medium text-gray-600 mb-1">Tổng người dùng</p>
-                <p class="text-3xl font-bold text-gray-900">{{ totalUsers() }}</p>
-                <p class="text-sm text-red-600 flex items-center mt-1">
-                  <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
-                  </svg>
-                  +{{ activeUsers() }} đang hoạt động
-                </p>
+        <!-- Stats Cards - Coursera Style -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <!-- Total Users Card -->
+          <div class="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-start justify-between">
+              <div class="flex-1">
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Tổng người dùng</p>
+                <p class="text-2xl font-bold text-gray-900">{{ totalUsers() }}</p>
+                <p class="text-xs text-gray-600 mt-2">{{ activeUsers() }} đang hoạt động</p>
               </div>
-              <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
-                <svg class="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+              <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 8v1h1.5a.5.5 0 01.5.5v9a.5.5 0 01-.5.5h-13a.5.5 0 01-.5-.5v-9a.5.5 0 01.5-.5H8v-1a5 5 0 00-5 5v1h9.93z"></path>
                 </svg>
               </div>
             </div>
           </div>
 
-          <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 border-l-4 border-purple-500">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm font-medium text-gray-600 mb-1">Giảng viên</p>
-                <p class="text-3xl font-bold text-gray-900">{{ totalTeachers() }}</p>
-                <p class="text-sm text-purple-600 flex items-center mt-1">
-                  <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
-                  </svg>
-                  Hoạt động
-                </p>
+          <!-- Teachers Card -->
+          <div class="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-start justify-between">
+              <div class="flex-1">
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Giảng viên</p>
+                <p class="text-2xl font-bold text-gray-900">{{ totalTeachers() }}</p>
+                <p class="text-xs text-gray-600 mt-2">Đang giảng dạy</p>
               </div>
-              <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                <svg class="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+              <div class="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
                   <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
                 </svg>
@@ -140,40 +133,32 @@ interface BulkImportProgress {
             </div>
           </div>
 
-          <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 border-l-4 border-blue-500">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm font-medium text-gray-600 mb-1">Học viên</p>
-                <p class="text-3xl font-bold text-gray-900">{{ totalStudents() }}</p>
-                <p class="text-sm text-blue-600 flex items-center mt-1">
-                  <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
-                  </svg>
-                  Đang học
-                </p>
+          <!-- Students Card -->
+          <div class="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-start justify-between">
+              <div class="flex-1">
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Học viên</p>
+                <p class="text-2xl font-bold text-gray-900">{{ totalStudents() }}</p>
+                <p class="text-xs text-gray-600 mt-2">Đang học tập</p>
               </div>
-              <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                <svg class="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 8v1h1.5a.5.5 0 01.5.5v9a.5.5 0 01-.5.5h-13a.5.5 0 01-.5-.5v-9a.5.5 0 01.5-.5H8v-1a5 5 0 00-5 5v1h9.93z"></path>
+              <div class="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z"></path>
                 </svg>
               </div>
             </div>
           </div>
 
-          <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 border-l-4 border-green-500">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm font-medium text-gray-600 mb-1">Quản trị viên</p>
-                <p class="text-3xl font-bold text-gray-900">{{ totalAdmins() }}</p>
-                <p class="text-sm text-green-600 flex items-center mt-1">
-                  <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
-                  </svg>
-                  Quản lý hệ thống
-                </p>
+          <!-- Admins Card -->
+          <div class="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-start justify-between">
+              <div class="flex-1">
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Quản trị viên</p>
+                <p class="text-2xl font-bold text-gray-900">{{ totalAdmins() }}</p>
+                <p class="text-xs text-gray-600 mt-2">Quản lý hệ thống</p>
               </div>
-              <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                <svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+              <div class="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path>
                 </svg>
               </div>
@@ -181,69 +166,101 @@ interface BulkImportProgress {
           </div>
         </div>
 
-        <!-- Filter and Search -->
-        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
-          <div class="flex flex-col md:flex-row gap-4">
+        <!-- Search and Filter - Coursera Style -->
+        <div class="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+          <div class="flex flex-col lg:flex-row gap-4">
+            <!-- Search Input -->
             <div class="flex-1">
-              <input type="text" 
-                     [value]="searchQuery()"
-                     (input)="onSearchInput($any($event.target).value)"
-                     placeholder="Tìm kiếm người dùng..."
-                     class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500">
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg class="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"></path>
+                  </svg>
+                </div>
+                <input type="text" 
+                       [value]="searchQuery()"
+                       (input)="onSearchInput($any($event.target).value)"
+                       placeholder="Tìm kiếm theo tên hoặc email..."
+                       class="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              </div>
             </div>
-            <div class="flex gap-4">
+            <!-- Filter Controls -->
+            <div class="flex flex-col sm:flex-row gap-3">
+              <!-- Role Filter -->
               <select [value]="roleFilter()"
                       (change)="onRoleFilterChange($any($event.target).value)"
-                      class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                      class="px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
                 <option value="">Tất cả vai trò</option>
                 <option value="ADMIN">Quản trị viên</option>
                 <option value="TEACHER">Giảng viên</option>
                 <option value="STUDENT">Học viên</option>
               </select>
+              <!-- Status Filter -->
               <select [value]="statusFilter()"
                       (change)="onStatusFilterChange($any($event.target).value)"
-                      class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                      class="px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
                 <option value="">Tất cả trạng thái</option>
                 <option value="active">Đang hoạt động</option>
                 <option value="inactive">Không hoạt động</option>
               </select>
             </div>
           </div>
+          <!-- Results Count -->
+          <div class="mt-3 pt-3 border-t border-gray-200">
+            <p class="text-xs text-gray-600">
+              Hiển thị <span class="font-medium text-gray-900">{{ filteredUsers().length }}</span> 
+              trong tổng số <span class="font-medium text-gray-900">{{ totalUsers() }}</span> người dùng
+            </p>
+          </div>
         </div>
 
-        <!-- Users Table -->
-        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+        <!-- Users Table - Coursera Style -->
+        <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
           @if (isLoadingUsers()) {
-            <div class="p-8 text-center">
-              <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
-              <p class="mt-4 text-gray-600">Đang tải danh sách người dùng...</p>
+            <div class="p-12 text-center">
+              <div class="inline-block">
+                <div class="w-12 h-12 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin"></div>
+              </div>
+              <p class="mt-4 text-sm text-gray-600">Đang tải danh sách người dùng...</p>
+            </div>
+          } @else if (filteredUsers().length === 0) {
+            <div class="p-12 text-center">
+              <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 8v1h1.5a.5.5 0 01.5.5v9a.5.5 0 01-.5.5h-13a.5.5 0 01-.5-.5v-9a.5.5 0 01.5-.5H8v-1a5 5 0 00-5 5v1h9.93z"></path>
+              </svg>
+              <h3 class="text-base font-medium text-gray-900 mb-2">Không tìm thấy người dùng</h3>
+              <p class="text-sm text-gray-600 mb-4">Thử điều chỉnh bộ lọc hoặc tìm kiếm với từ khóa khác</p>
+              <button (click)="clearFilters()" 
+                      class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 transition-colors">
+                Xóa bộ lọc
+              </button>
             </div>
           } @else {
             <div class="overflow-x-auto">
               <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                   <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                       Người dùng
                     </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                       Vai trò
                     </th>
-                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
                       Thao tác
                     </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                       Trạng thái
                     </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                       Hoạt động cuối
                     </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                       Thống kê
                     </th>
                   </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
+                <tbody class="bg-white divide-y divide-gray-100">
                   @for (user of filteredUsers(); track user.id) {
                     <tr class="hover:bg-gray-50 transition-colors">
                       <!-- Người dùng -->
@@ -251,20 +268,19 @@ interface BulkImportProgress {
                         <div class="flex items-center">
                           <img [src]="user.avatar || getDefaultAvatar(user.email)" 
                                [alt]="user.name"
-                               class="w-10 h-10 rounded-full">
-                          <div class="ml-4">
+                               class="w-10 h-10 rounded-full border border-gray-200">
+                          <div class="ml-3">
                             <div class="text-sm font-medium text-gray-900">{{ user.name }}</div>
-                            <div class="text-sm text-gray-500">{{ user.email }}</div>
+                            <div class="text-xs text-gray-500">{{ user.email }}</div>
                           </div>
                         </div>
                       </td>
                       <!-- Vai trò -->
                       <td class="px-6 py-4 whitespace-nowrap">
-                        <!-- Debug: {{ user.name }} - Role: {{ user.role }} ({{ typeof user.role }}) -->
                         <select [ngModel]="user.role"
                                 (ngModelChange)="onRoleChange(user.id, user.role, $event)"
                                 [name]="'user-role-' + user.id"
-                                class="role-select px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 cursor-pointer"
+                                class="role-select px-3 py-1.5 text-xs font-medium rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer bg-white"
                                 [ngClass]="getRoleClass(user.role)"
                                 title="Click để thay đổi vai trò">
                           @for (roleOpt of ROLE_OPTIONS; track roleOpt.value) {
@@ -274,9 +290,9 @@ interface BulkImportProgress {
                       </td>
                       <!-- Thao tác -->
                       <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                        <div class="flex items-center justify-center space-x-2">
+                        <div class="flex items-center justify-center space-x-1">
                           <button (click)="toggleUserStatus(user.id)"
-                                  [class]="user.isActive ? 'p-1 text-red-600 hover:text-red-900 hover:bg-red-50 rounded' : 'p-1 text-green-600 hover:text-green-900 hover:bg-green-50 rounded'"
+                                  [class]="user.isActive ? 'p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors' : 'p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded transition-colors'"
                                   [title]="user.isActive ? 'Khóa tài khoản' : 'Mở khóa tài khoản'">
                             @if (user.isActive) {
                               <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -289,7 +305,7 @@ interface BulkImportProgress {
                             }
                           </button>
                           <button (click)="deleteUser(user.id)"
-                                  class="p-1 text-red-600 hover:text-red-900 hover:bg-red-50 rounded"
+                                  class="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                                   title="Xóa">
                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                               <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
@@ -299,41 +315,43 @@ interface BulkImportProgress {
                       </td>
                       <!-- Trạng thái -->
                       <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="px-3 py-1 text-xs font-medium rounded-full"
-                              [class]="user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'">
+                        <span class="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded"
+                              [class]="user.isActive ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-gray-50 text-gray-700 border border-gray-200'">
+                          <span class="w-1.5 h-1.5 rounded-full mr-1.5"
+                                [class]="user.isActive ? 'bg-green-500' : 'bg-gray-400'"></span>
                           {{ user.isActive ? 'Hoạt động' : 'Không hoạt động' }}
                         </span>
                       </td>
                       <!-- Hoạt động cuối -->
-                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-600">
                         {{ user.lastLogin ? formatDate(user.lastLogin) : 'Chưa đăng nhập' }}
                       </td>
                       <!-- Thống kê -->
-                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-600">
                         <div class="space-y-1">
                           @if (user.role === 'TEACHER') {
-                            <div class="flex items-center text-xs">
-                              <svg class="w-3 h-3 mr-1 text-purple-500" fill="currentColor" viewBox="0 0 20 20">
+                            <div class="flex items-center">
+                              <svg class="w-3 h-3 mr-1.5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
                                 <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
                               </svg>
-                              {{ user.coursesCreated || 0 }} khóa học
+                              <span>{{ user.coursesCreated || 0 }} khóa học</span>
                             </div>
                           }
                           @if (user.role === 'STUDENT') {
-                            <div class="flex items-center text-xs">
-                              <svg class="w-3 h-3 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                            <div class="flex items-center">
+                              <svg class="w-3 h-3 mr-1.5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
                                 <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
                               </svg>
-                              {{ user.coursesEnrolled || 0 }} đã đăng ký
+                              <span>{{ user.coursesEnrolled || 0 }} đã đăng ký</span>
                             </div>
                           }
-                          <div class="flex items-center text-xs">
-                            <svg class="w-3 h-3 mr-1 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                          <div class="flex items-center">
+                            <svg class="w-3 h-3 mr-1.5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                               <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"></path>
                             </svg>
-                            {{ user.loginCount || 0 }} lần đăng nhập
+                            <span>{{ user.loginCount || 0 }} lần</span>
                           </div>
                         </div>
                       </td>
@@ -928,6 +946,13 @@ export class UserManagementComponent implements OnInit {
     this.loadUsers(1);
   }
 
+  clearFilters(): void {
+    this.searchQuery.set('');
+    this.roleFilter.set('');
+    this.statusFilter.set('');
+    this.loadUsers(1);
+  }
+
   // Pagination methods
   goToPage(page: number): void {
     const paginationInfo = this.pagination();
@@ -1418,15 +1443,16 @@ export class UserManagementComponent implements OnInit {
   }
 
   getRoleClass(role: string): string {
+    // Coursera-inspired subtle colors
     switch (role) {
       case 'ADMIN':
-        return 'bg-red-100 text-red-800';
+        return 'bg-orange-50 text-orange-700 border-orange-200';
       case 'TEACHER':
-        return 'bg-purple-100 text-purple-800';
+        return 'bg-purple-50 text-purple-700 border-purple-200';
       case 'STUDENT':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-blue-50 text-blue-700 border-blue-200';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-50 text-gray-700 border-gray-200';
     }
   }
 
@@ -1436,7 +1462,8 @@ export class UserManagementComponent implements OnInit {
 
   getDefaultAvatar(email: string): string {
     const name = email.split('@')[0];
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=dc2626&color=ffffff&size=150`;
+    // Coursera-style blue avatar
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0056D2&color=ffffff&size=150`;
   }
 
   formatFileSize(bytes: number): string {
