@@ -389,6 +389,53 @@ export class TeacherDashboardComponent implements OnInit {
     return Math.round((assignment.submissions / assignment.totalStudents) * 100);
   }
 
+  // Computed properties for template
+  courses = computed(() => this.teacher.courses().slice(0, 5));
+  totalCourses = computed(() => this.teacher.totalCourses());
+  totalStudents = computed(() => this.teacher.totalStudents());
+  
+  pendingCount = computed(() => 
+    this.teacher.assignments().filter(a => 
+      a.status === 'pending' || a.status === 'submitted'
+    ).length
+  );
+
+  avgRating = computed(() => {
+    const courses = this.teacher.courses();
+    if (courses.length === 0) return '0.0';
+    const sum = courses.reduce((acc, c) => acc + (c.rating || 0), 0);
+    return (sum / courses.length).toFixed(1);
+  });
+
+  // Helper methods for template
+  getStatusClass(status: string): string {
+    const statusMap: Record<string, string> = {
+      'active': 'bg-green-100 text-green-800',
+      'draft': 'bg-gray-100 text-gray-800',
+      'archived': 'bg-red-100 text-red-800',
+      'APPROVED': 'bg-green-100 text-green-800',
+      'PENDING': 'bg-yellow-100 text-yellow-800',
+      'DRAFT': 'bg-gray-100 text-gray-800'
+    };
+    return statusMap[status] || 'bg-gray-100 text-gray-800';
+  }
+
+  getStatusText(status: string): string {
+    const textMap: Record<string, string> = {
+      'active': 'Đang hoạt động',
+      'draft': 'Nháp',
+      'archived': 'Đã lưu trữ',
+      'APPROVED': 'Đã xuất bản',
+      'PENDING': 'Chờ duyệt',
+      'DRAFT': 'Nháp'
+    };
+    return textMap[status] || status;
+  }
+
+  goToCourse(courseId: string): void {
+    this.router.navigate(['/teacher/courses', courseId, 'edit']);
+  }
+
   // Navigation methods
   editCourse(courseId: string): void {
     this.router.navigate(['/teacher/courses', courseId, 'edit']);
