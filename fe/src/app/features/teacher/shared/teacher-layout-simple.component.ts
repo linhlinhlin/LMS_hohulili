@@ -7,6 +7,7 @@ import { teacherSidebarConfig } from '../../../shared/components/navigation/side
 
 @Component({
   selector: 'app-teacher-layout-simple',
+  standalone: true,
   imports: [CommonModule, RouterModule, RouterOutlet, SidebarComponent],
   encapsulation: ViewEncapsulation.None,
   template: `

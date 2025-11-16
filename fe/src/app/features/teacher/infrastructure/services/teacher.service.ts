@@ -38,8 +38,9 @@ export class TeacherService {
   );
 
   constructor() {
-    // Load real data from API
-    this.loadMyCourses();
+    // ✅ FIXED: Removed constructor initialization to avoid race condition
+    // Component's ngOnInit() will explicitly call loadMyCourses()
+    // This ensures signal state is ready before async data load begins
   }
 
   private initializeMockData(): void {

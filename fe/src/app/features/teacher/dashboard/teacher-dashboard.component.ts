@@ -1,4 +1,4 @@
-import { Component, inject, computed, OnInit, effect } from '@angular/core';
+import { Component, inject, computed, OnInit, effect, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { TeacherService } from '../infrastructure/services/teacher.service';
@@ -39,7 +39,8 @@ interface Activity {
     BadgeComponent
   ],
   templateUrl: './teacher-dashboard.component.html',
-  styleUrl: './teacher-dashboard.component.scss'
+  styleUrl: './teacher-dashboard.component.scss',
+  encapsulation: ViewEncapsulation.None
   // Removed OnPush - signals work better with default change detection
 })
 export class TeacherDashboardComponent implements OnInit {
@@ -58,13 +59,32 @@ export class TeacherDashboardComponent implements OnInit {
   ngOnInit(): void {
     // Explicitly load data when component initializes
     console.log('[TEACHER DASHBOARD] Component initialized, loading data...');
-    this.teacher.loadMyCourses()
-      .then(() => {
-        console.log('[TEACHER DASHBOARD] ✅ Data loaded successfully');
-      })
-      .catch(error => {
-        console.error('[TEACHER DASHBOARD] ❌ Failed to load courses:', error);
-      });
+    
+    // ✅ FIXED: Check if already loading to avoid duplicate calls
+    if (!this.teacher.isLoading()) {
+      this.teacher.loadMyCourses()
+        .then(() => {
+          console.log('[TEACHER DASHBOARD] ✅ Data loaded successfully');
+          // Add loaded class to body to show dashboard (fix for critical.scss opacity: 0 rule)
+          document.body.classList.add('loaded');
+        })
+        .catch(error => {
+          console.error('[TEACHER DASHBOARD] ❌ Failed to load courses:', error);
+          // Fallback: show error message
+          this.showErrorMessage('Failed to load courses. Please try again.');
+          // Add loaded class even on error to show dashboard
+          document.body.classList.add('loaded');
+        });
+    } else {
+      console.log('[TEACHER DASHBOARD] Data is already loading, skipping duplicate call');
+      // Add loaded class if already loading
+      document.body.classList.add('loaded');
+    }
+  }
+
+  private showErrorMessage(message: string): void {
+    // Log error - in production, show toast/snackbar
+    console.warn('[TEACHER DASHBOARD] Error:', message);
   }
 
   // Tab state

@@ -1,4 +1,4 @@
-import { inject } from '@angular/core';
+import { inject, Injector } from '@angular/core';
 import { Router, CanActivateFn } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { UserRole } from '../services/auth.service';
@@ -28,9 +28,10 @@ export const authGuard: CanActivateFn = (route, state) => {
  * @returns CanActivateFn guard function
  */
 export const roleGuard = (allowedRoles: UserRole[]): CanActivateFn => {
-  return (route, state) => {
+  return async (route, state) => {
     const authService = inject(AuthService);
     const router = inject(Router);
+    const injector = inject(Injector);
 
     const userRole = authService.userRole();
     console.log('🛡️ RoleGuard: Checking access for route:', state.url);
@@ -39,6 +40,16 @@ export const roleGuard = (allowedRoles: UserRole[]): CanActivateFn => {
 
     if (userRole && allowedRoles.includes(userRole as UserRole)) {
       console.log('✅ RoleGuard: Access granted');
+      
+      // ✅ FIXED: Ensure role-specific service is initialized before component loads
+      try {
+        await ensureRoleServiceInitialized(userRole as UserRole, injector);
+        console.log('✅ RoleGuard: Service initialization completed');
+      } catch (error) {
+        console.error('⚠️ RoleGuard: Service initialization failed:', error);
+        // Continue anyway - component will handle missing data
+      }
+      
       return true;
     }
 
@@ -63,6 +74,34 @@ export const roleGuard = (allowedRoles: UserRole[]): CanActivateFn => {
     });
   };
 };
+
+// ✅ FIXED: Helper function to initialize role-specific services
+// Uses Injector.get() instead of inject() to avoid NG0203 error
+async function ensureRoleServiceInitialized(role: UserRole | string, injector: Injector): Promise<void> {
+  const normalizedRole = typeof role === 'string' ? role.toLowerCase() : role;
+  
+  if (normalizedRole === 'teacher' || normalizedRole === UserRole.TEACHER) {
+    try {
+      // Lazy import to avoid circular dependencies
+      const { TeacherService } = await import('../../features/teacher/infrastructure/services/teacher.service');
+      // ✅ Use injector.get() instead of inject() - valid in async function
+      const teacherService = injector.get(TeacherService);
+      
+      if (!teacherService.courses().length && !teacherService.isLoading()) {
+        console.log('🔄 RoleGuard: Loading teacher service data...');
+        await teacherService.loadMyCourses();
+      }
+    } catch (err) {
+      console.warn('⚠️ RoleGuard: Failed to initialize TeacherService:', err);
+    }
+  } else if (normalizedRole === 'admin' || normalizedRole === UserRole.ADMIN) {
+    // AdminService will initialize on component init, but we can trigger it here if needed
+    console.log('🔄 RoleGuard: Admin role detected, service will initialize in component');
+  } else if (normalizedRole === 'student' || normalizedRole === UserRole.STUDENT) {
+    // StudentEnrollmentService will initialize on component init
+    console.log('🔄 RoleGuard: Student role detected, service will initialize in component');
+  }
+}
 
 /**
  * Student Guard - Only allows students

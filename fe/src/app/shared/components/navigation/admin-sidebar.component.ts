@@ -14,6 +14,7 @@ interface NavigationItem {
 
 @Component({
   selector: 'app-admin-sidebar',
+  standalone: true,
   imports: [CommonModule, RouterModule, RouterLinkActive],
   encapsulation: ViewEncapsulation.None,
   template: `

@@ -16,9 +16,19 @@ export class ApiClient {
 
   // Generic GET request
   get<T>(endpoint: string, options?: any): Observable<T> {
-    return this.http.get(`${this.baseUrl}${endpoint}`, options).pipe(
-      map(response => response as T),
-      catchError(this.handleError)
+    const fullUrl = `${this.baseUrl}${endpoint}`;
+    console.log('[API CLIENT] 🌐 GET Request:', fullUrl);
+    console.log('[API CLIENT] 📦 Options:', options);
+    
+    return this.http.get(fullUrl, options).pipe(
+      map(response => {
+        console.log('[API CLIENT] ✅ GET Response for', endpoint, ':', response);
+        return response as T;
+      }),
+      catchError((error) => {
+        console.error('[API CLIENT] ❌ GET Error for', endpoint, ':', error);
+        return this.handleError(error);
+      })
     );
   }
 

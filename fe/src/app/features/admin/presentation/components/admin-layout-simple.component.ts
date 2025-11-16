@@ -6,6 +6,7 @@ import { AdminSidebarComponent } from '../../../../shared/components/navigation/
 
 @Component({
   selector: 'app-admin-layout-simple',
+  standalone: true,
   imports: [CommonModule, RouterModule, RouterOutlet, AdminSidebarComponent],
   encapsulation: ViewEncapsulation.None,
   template: `

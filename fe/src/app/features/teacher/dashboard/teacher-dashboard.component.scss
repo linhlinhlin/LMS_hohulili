@@ -1,5 +1,11 @@
 @import '../../../../styles/variables';
 
+/* ===== HOST ===== */
+:host {
+  display: block;
+  width: 100%;
+}
+
 /* ===== DASHBOARD CONTAINER ===== */
 .dashboard-container {
   display: grid;

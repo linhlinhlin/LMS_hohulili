@@ -118,6 +118,8 @@ export class AdminComponent implements OnInit {
         this.analytics.set(data);
         this.lastUpdate.set(new Date());
         this.isLoading.set(false);
+        // Add loaded class to body to show dashboard (fix for critical.scss opacity: 0 rule)
+        document.body.classList.add('loaded');
       },
       error: (error) => {
         console.error('[ADMIN DASHBOARD] ❌ Error loading analytics:', error);
@@ -177,6 +179,8 @@ export class AdminComponent implements OnInit {
         this.analytics.set(mockData);
         this.lastUpdate.set(new Date());
         this.isLoading.set(false);
+        // Add loaded class to body to show dashboard (fix for critical.scss opacity: 0 rule)
+        document.body.classList.add('loaded');
       }
     });
   }
