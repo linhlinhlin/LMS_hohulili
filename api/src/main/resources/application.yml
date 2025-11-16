@@ -15,6 +15,11 @@ spring:
       enabled: true
       max-file-size: 100MB
       max-request-size: 100MB
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
 
 management:
   endpoints:
@@ -26,6 +31,10 @@ logging:
   level:
     root: INFO
     com.example.lms: DEBUG
+    org.hibernate.SQL: debug
+    org.hibernate.orm.jdbc.bind: trace
+    org.springframework.orm.jpa: DEBUG
+    org.springframework.transaction: DEBUG
 
 springdoc:
   api-docs:

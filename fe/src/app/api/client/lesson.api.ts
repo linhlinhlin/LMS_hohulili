@@ -33,6 +33,12 @@ export class LessonApi {
     return this.api.getWithResponse<any>(LESSON_ENDPOINTS.LIST_BY_COURSE(courseId));
   }
 
+  markLessonComplete(lessonId: string) {
+    const url = `/api/v1/student/progress/lessons/${lessonId}/complete`;
+    console.log('[API] lesson.api.markLessonComplete: Calling', url);
+    return this.api.postWithResponse<any>(url, {});
+  }
+
   // ========================================
   // ASSIGNMENT API METHODS
   // ========================================

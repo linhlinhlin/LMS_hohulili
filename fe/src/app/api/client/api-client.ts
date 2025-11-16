@@ -63,9 +63,17 @@ export class ApiClient {
   }
 
   postWithResponse<T>(endpoint: string, data: any, options?: any): Observable<ApiResponse<T>> {
-    return this.http.post<ApiResponse<T>>(`${this.baseUrl}${endpoint}`, data, options).pipe(
-      map(response => response as unknown as ApiResponse<T>),
-      catchError(this.handleError)
+    const fullUrl = `${this.baseUrl}${endpoint}`;
+    console.log('[HTTP] ApiClient.postWithResponse:', fullUrl, 'with data:', data);
+    return this.http.post<ApiResponse<T>>(fullUrl, data, options).pipe(
+      map(response => {
+        console.log('[HTTP] ApiClient.postWithResponse success:', fullUrl, 'response:', response);
+        return response as unknown as ApiResponse<T>;
+      }),
+      catchError(error => {
+        console.error('[HTTP] ApiClient.postWithResponse error:', fullUrl, 'error:', error);
+        return this.handleError(error);
+      })
     );
   }
 

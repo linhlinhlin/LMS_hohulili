@@ -89,7 +89,17 @@ export class AuthService {
   }
 
   getToken(): string | null {
-    return localStorage.getItem(this.tokenKey);
+    // Primary token key
+    let token = localStorage.getItem(this.tokenKey);
+
+    // Fallback to other possible keys if primary is not found
+    if (!token) {
+      token = localStorage.getItem('token') ||
+              localStorage.getItem('access_token') ||
+              localStorage.getItem('auth_token');
+    }
+
+    return token;
   }
 
   private setUser(user: User): void {

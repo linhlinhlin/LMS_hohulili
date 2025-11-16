@@ -95,7 +95,19 @@ public class User implements UserDetails {
     // UserDetails implementation
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
+        // Lấy tên role từ enum, ví dụ: STUDENT, TEACHER, ADMIN
+        String roleName = role != null ? role.name() : null;
+
+        if (roleName == null) {
+            // Không có role thì không có quyền nào
+            return List.of();
+        }
+
+        // Spring Security mong đợi format "ROLE_STUDENT" khi bạn dùng hasRole("STUDENT")
+        if (!roleName.startsWith("ROLE_")) {
+            roleName = "ROLE_" + roleName;
+        }
+        return List.of(new SimpleGrantedAuthority(roleName));
     }
     
     @Override

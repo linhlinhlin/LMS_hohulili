@@ -68,4 +68,10 @@ public interface CourseRepository extends JpaRepository<Course, UUID> {
      */
     @Query("SELECT es FROM Course c JOIN c.enrolledStudents es WHERE c.id = :courseId AND (LOWER(es.fullName) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(es.email) LIKE LOWER(CONCAT('%', :search, '%'))) ORDER BY es.fullName ASC")
     Page<User> searchEnrolledStudents(@Param("courseId") UUID courseId, @Param("search") String search, Pageable pageable);
+
+    /**
+     * Check if a student is enrolled in a course
+     */
+    @Query("SELECT CASE WHEN COUNT(es) > 0 THEN true ELSE false END FROM Course c JOIN c.enrolledStudents es WHERE c.id = :courseId AND es.id = :studentId")
+    boolean existsByEnrolledStudentAndCourse(@Param("studentId") UUID studentId, @Param("courseId") UUID courseId);
 }

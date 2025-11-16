@@ -3,9 +3,16 @@ spring:
     activate:
       on-profile: dev
   datasource:
+    # DB online
     url: jdbc:postgresql://aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres
     username: postgres.rljldvpboqapokzecfff
     password: ho_hu_li_li_
+
+    # DB local: 
+    # url: jdbc:postgresql://localhost:5432/lms
+    # username: lms
+    # password: lms
+
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 2
@@ -21,7 +28,7 @@ spring:
         format_sql: true
     open-in-view: true
   flyway:
-    enabled: false
+    enabled: true
 
 server:
   port: 8088

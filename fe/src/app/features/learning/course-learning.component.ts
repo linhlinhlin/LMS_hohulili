@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
+import { LessonApi } from '../../api/client/lesson.api';
+import { firstValueFrom } from 'rxjs';
 
 interface CourseModule {
   id: string;
@@ -389,6 +391,7 @@ export class CourseLearningComponent implements OnInit {
   protected authService = inject(AuthService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  private lessonApi = inject(LessonApi);
 
   // Component state
   course = signal<CourseLearning | null>(null);
@@ -779,4 +782,83 @@ export class CourseLearningComponent implements OnInit {
       }
     });
   }
+
+  async onMarkComplete(): Promise<void> {
+    const lesson = this.currentLesson();
+    if (!lesson) {
+      console.log('[CourseLearning] onMarkComplete: no current lesson');
+      return;
+    }
+
+    // Nếu đã completed thì không gọi lại
+    if (lesson.isCompleted) {
+      console.log('[CourseLearning] onMarkComplete: lesson already completed');
+      return;
+    }
+
+    console.log('[CourseLearning] onMarkComplete: START, lessonId =', lesson.id);
+
+    const token = localStorage.getItem('lms_access_token');
+    console.log('[CourseLearning] Token check:', {
+      tokenExists: !!token,
+      tokenLength: token?.length,
+      tokenPrefix: token?.substring(0, 20) + '...'
+    });
+
+    if (token) {
+      try {
+        // Decode JWT để kiểm tra payload
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        console.log('[CourseLearning] JWT Payload:', {
+          sub: payload.sub,
+          roles: payload.roles || payload.authorities,
+          exp: new Date(payload.exp * 1000).toISOString(),
+          isExpired: payload.exp * 1000 < Date.now()
+        });
+      } catch (e) {
+        console.error('[CourseLearning] Cannot decode JWT:', e);
+      }
+    }
+
+    try {
+      console.log('[CourseLearning] BEFORE API CALL');
+
+      const res = await firstValueFrom(
+        this.lessonApi.markLessonComplete(lesson.id)
+      );
+
+      console.log('[CourseLearning] API success:', res);
+
+      // Cập nhật trạng thái hoàn thành ở FE
+      this.course.update(course => {
+        if (!course) return course;
+
+        const updatedCourse = { ...course };
+        updatedCourse.modules = updatedCourse.modules.map(module => ({
+          ...module,
+          lessons: module.lessons.map(l =>
+            l.id === lesson.id ? { ...l, isCompleted: true } : l
+          )
+        }));
+
+        // Tính lại progress
+        const totalLessons = updatedCourse.modules.reduce((total, module) => total + module.lessons.length, 0);
+        const completedLessons = updatedCourse.modules.reduce((total, module) =>
+          total + module.lessons.filter(l => l.isCompleted).length, 0);
+        updatedCourse.progress = Math.round((completedLessons / totalLessons) * 100);
+
+        return updatedCourse;
+      });
+
+    } catch (error: any) {
+      console.error('[CourseLearning] API error:', {
+        status: error?.status,
+        statusText: error?.statusText,
+        message: error?.message,
+        url: error?.url,
+        error: error?.error
+      });
+    }
+  }
+
 }

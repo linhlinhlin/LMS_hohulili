@@ -35,13 +35,39 @@ export class AuthInterceptor implements HttpInterceptor {
 
 export const authInterceptor = (req: HttpRequest<any>, next: HttpHandlerFn): Observable<HttpEvent<any>> => {
   const authService = inject(AuthService);
-  const token = authService.getToken();
+
+  // 🔍 DEBUG: Try multiple token keys
+  let token = authService.getToken(); // Primary: lms_access_token
+
+  if (!token) {
+    // Fallback: check other possible keys
+    token = localStorage.getItem('token') ||
+            localStorage.getItem('access_token') ||
+            localStorage.getItem('auth_token');
+  }
 
   console.log('🔗 AuthInterceptor: Processing request to:', req.url);
   console.log('🔗 AuthInterceptor: Token exists:', !!token);
-  
+  console.log('🔗 AuthInterceptor: Token source:', token ? 'found' : 'NOT FOUND');
+
   if (token) {
     console.log('🔗 AuthInterceptor: Adding Authorization header, token length:', token.length);
+
+    // 🔍 DEBUG: Decode JWT payload for student endpoints
+    if (req.url.includes('/student/')) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        console.log('🔗 AuthInterceptor: JWT Payload for student endpoint:', {
+          sub: payload.sub,
+          roles: payload.roles || payload.authorities,
+          exp: new Date(payload.exp * 1000).toISOString(),
+          isExpired: payload.exp * 1000 < Date.now()
+        });
+      } catch (decodeError) {
+        console.error('🔗 AuthInterceptor: Cannot decode JWT:', decodeError);
+      }
+    }
+
     req = req.clone({
       setHeaders: {
         Authorization: `Bearer ${token}`
@@ -50,11 +76,19 @@ export const authInterceptor = (req: HttpRequest<any>, next: HttpHandlerFn): Obs
     console.log('🔗 AuthInterceptor: Request cloned with Authorization header');
   } else {
     console.log('🔗 AuthInterceptor: ⚠️  NO TOKEN FOUND - Request will be sent WITHOUT Authorization header');
+    console.log('🔗 AuthInterceptor: Available localStorage keys:', Object.keys(localStorage));
   }
 
   return next(req).pipe(
     catchError((error) => {
       console.log('🔗 AuthInterceptor: Error response status:', error.status);
+
+      // 🔍 DEBUG: Log 403 errors for student endpoints
+      if (error.status === 403 && req.url.includes('/student/')) {
+        console.error('🔗 AuthInterceptor: 403 Forbidden on student endpoint:', req.url);
+        console.error('🔗 AuthInterceptor: Check token validity and user roles');
+      }
+
       if (error.status === 401) {
         console.log('🔗 AuthInterceptor: 401 Unauthorized - Logging out and redirecting to login');
         authService.logout();

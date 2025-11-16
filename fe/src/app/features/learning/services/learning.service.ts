@@ -3,6 +3,7 @@ import { forkJoin, of, Observable } from 'rxjs';
 import { catchError, tap, map } from 'rxjs/operators';
 import { CourseApi } from '../../../api/client/course.api';
 import { LessonApi } from '../../../api/client/lesson.api';
+import { ApiClient } from '../../../api/client/api-client';
 import { CourseContentSection } from '../../../api/types/course.types';
 import {
   CourseOverview,
@@ -28,6 +29,7 @@ import { getLessonTypeFromTitle } from '../models/lesson-types.enum';
 export class LearningService {
   private courseApi = inject(CourseApi);
   private lessonApi = inject(LessonApi);
+  private api = inject(ApiClient);
 
   // Private state signals
   private courseState = signal<CourseState>({
@@ -48,6 +50,9 @@ export class LearningService {
     progressPercentage: 0,
     lastAccessedLessonId: undefined
   });
+
+  // New signals for progress tracking
+  private courseProgress = signal<{ completedLessonIds: string[] } | null>(null);
 
   // Lesson cache for performance
   private lessonCache = new Map<string, LessonDetail>();
@@ -97,7 +102,14 @@ export class LearningService {
 
   /** Check if a specific lesson is completed */
   isLessonCompleted = (lessonId: string) => {
-    return computed(() => this.completedLessons().has(lessonId));
+    return computed(() => {
+      // Check both progress state and sections state
+      const fromProgress = this.completedLessons().has(lessonId);
+      const fromSections = this.sections().some(section =>
+        section.lessons.some(lesson => lesson.id === lessonId && lesson.isCompleted)
+      );
+      return fromProgress || fromSections;
+    });
   };
 
   /** Get current lesson index in the flat list */
@@ -171,7 +183,7 @@ export class LearningService {
       error: null
     }));
 
-    // Load course info and content in parallel
+    // Load course info, content, and progress in parallel
     forkJoin({
       courseInfo: this.courseApi.getCourseById(courseId).pipe(
         catchError(err => {
@@ -184,9 +196,16 @@ export class LearningService {
           console.error('Error loading course content:', err);
           return of(null);
         })
+      ),
+      courseProgress: this.getCourseProgress(courseId).pipe(
+        catchError(err => {
+          console.error('Error loading course progress:', err);
+          return of(null);
+        })
       )
     }).subscribe({
-      next: ({ courseInfo, courseContent }) => {
+      next: ({ courseInfo, courseContent, courseProgress }) => {
+        console.log('[LearningService] Course loaded successfully, progress data:', courseProgress);
         if (!courseInfo || !courseContent) {
           this.courseState.update(state => ({
             ...state,
@@ -213,16 +232,51 @@ export class LearningService {
         // Map sections
         const sections = this.mapSections(courseContent.data || []);
 
+        // Merge progress data
+        console.log('[LearningService] About to merge progress:', courseProgress);
+        const mergedSections = this.mergeProgressIntoSections(sections, courseProgress);
+        console.log('[LearningService] Merged sections completed');
+
         // Update state
         this.courseState.set({
           course,
-          sections,
+          sections: mergedSections,
           loading: false,
           error: null
         });
 
-        // Load progress from localStorage
-        this.loadProgressFromStorage(courseId);
+        // Update progress state từ backend
+        if (courseProgress?.completedLessonIds && Array.isArray(courseProgress.completedLessonIds)) {
+          const completedLessonIds = courseProgress.completedLessonIds;
+
+          this.progressState.update(state => ({
+            ...state,
+            completedLessons: new Set(completedLessonIds)
+          }));
+
+          const total = this.totalLessons();
+          const completed = completedLessonIds.length;
+          const progressPercentage = total > 0
+            ? Math.round((completed / total) * 100)
+            : 0;
+
+          this.progressState.update(state => ({
+            ...state,
+            progressPercentage
+          }));
+
+          console.log('[LearningService] Updated progress from backend:', {
+            completedLessonIds,
+            progressPercentage,
+            totalLessons: total
+          });
+        } else {
+          // ❗ Chỉ fallback localStorage nếu BE không trả gì
+          console.log('[LearningService] No progress from backend, falling back to localStorage');
+          this.loadProgressFromStorage(courseId);
+        }
+
+
       },
       error: (err) => {
         const errorMessage = this.getErrorMessage(err);
@@ -353,7 +407,7 @@ export class LearningService {
       newCompleted.add(lessonId);
 
       const total = this.totalLessons();
-      const progressPercentage = total > 0 
+      const progressPercentage = total > 0
         ? Math.round((newCompleted.size / total) * 100)
         : 0;
 
@@ -368,6 +422,19 @@ export class LearningService {
 
       return newState;
     });
+
+    // Update sections to reflect completion
+    this.courseState.update(state => ({
+      ...state,
+      sections: state.sections.map(section => ({
+        ...section,
+        lessons: section.lessons.map(lesson =>
+          lesson.id === lessonId
+            ? { ...lesson, isCompleted: true }
+            : lesson
+        )
+      }))
+    }));
   }
 
   /**
@@ -414,6 +481,51 @@ export class LearningService {
   }
 
   // Private helper methods
+
+  private getCourseProgress(courseId: string) {
+    const url = `/api/v1/student/progress/courses/${courseId}/completed-ids`;
+    return this.api.get<any>(url).pipe(
+      tap(res => {
+        console.log('[LearningService] Raw course progress response:', res);
+      }),
+      map(res => {
+        // Extract completedLessonIds from either direct response or data wrapper
+        const completedLessonIds =
+          res?.data?.completedLessonIds ??
+          res?.completedLessonIds ??
+          [];
+
+        console.log('[LearningService] Extracted completedLessonIds:', completedLessonIds);
+        return { completedLessonIds };
+      })
+    );
+  }
+  
+
+
+
+  private mergeProgressIntoSections(sections: Section[], progress: any): Section[] {
+    if (!progress?.completedLessonIds || !Array.isArray(progress.completedLessonIds)) {
+      console.log('[LearningService] No progress data to merge');
+      return sections;
+    }
+
+    const completedSet = new Set(progress.completedLessonIds);
+
+    console.log('[LearningService] Merging progress into sections:', {
+      completedLessonIds: progress.completedLessonIds,
+      sectionsCount: sections.length
+    });
+
+    return sections.map(section => ({
+      ...section,
+      lessons: section.lessons.map(lesson => ({
+        ...lesson,
+        isCompleted: completedSet.has(lesson.id)
+      }))
+    }));
+  }
+
 
   private mapSections(data: CourseContentSection[]): Section[] {
     return data

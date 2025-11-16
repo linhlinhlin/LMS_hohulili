@@ -87,7 +87,7 @@ export class LessonContentComponent {
   onMarkComplete(): void {
     this.markComplete.emit();
   }
-
+  
   // Get lesson type label in Vietnamese
   getLessonTypeLabel(): string {
     const labels: Record<string, string> = {

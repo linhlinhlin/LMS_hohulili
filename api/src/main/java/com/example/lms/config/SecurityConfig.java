@@ -65,8 +65,13 @@ public class SecurityConfig {
                         // Teacher endpoints
                         .requestMatchers("/api/teacher/**", "/api/v1/teacher/**").hasAnyRole("ADMIN", "TEACHER")
                         
-                        // Student endpoints  
-                        .requestMatchers("/api/student/**", "/api/v1/student/**").hasAnyRole("ADMIN", "TEACHER", "STUDENT")
+                        // Student endpoints
+                        // .requestMatchers("/api/student/**", "/api/v1/student/**").hasAnyRole("ADMIN", "TEACHER", "STUDENT")
+                        .requestMatchers("/api/v1/student/**").hasRole("STUDENT")
+                        .requestMatchers("/api/student/**").hasRole("STUDENT")
+
+                        // Specific student progress endpoints - ensure STUDENT role access
+                        //.requestMatchers(HttpMethod.GET, "/api/v1/student/progress/courses/*/completed-ids").hasAnyRole("ADMIN", "TEACHER", "STUDENT")
                         
                         // Assignment management
                         .requestMatchers("/api/v1/assignments/**").hasAnyRole("ADMIN", "TEACHER", "STUDENT")
