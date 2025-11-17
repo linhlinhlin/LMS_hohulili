@@ -7,6 +7,7 @@ import com.example.lms.dto.response.CompletedLessonIdsResponse;
 import com.example.lms.entity.*;
 import com.example.lms.service.LessonProgressDomainService;
 import com.example.lms.service.LessonService;
+import com.example.lms.repository.CourseRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -19,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -39,6 +41,7 @@ public class StudentProgressController {
 
     private final LessonProgressDomainService progressDomainService;
     private final LessonService lessonService;
+    private final CourseRepository courseRepository;
 
     /**
      * Mark a lesson as completed
@@ -225,6 +228,8 @@ public class StudentProgressController {
 
     /**
      * Get next lesson to continue learning
+     *
+     * FIX: Lấy bài học tiếp theo đúng khóa học thay vì bị cached từ khóa học khác
      */
     @GetMapping("/courses/{courseId}/next-lesson")
     @Operation(summary = "Lấy bài học tiếp theo cần học",
@@ -234,11 +239,32 @@ public class StudentProgressController {
             @AuthenticationPrincipal User student
     ) {
         try {
-            // Create course entity for domain service
-            Course course = new Course();
-            course.setId(courseId);
+            // FIX: Load complete course with sections and lessons (eager loading)
+            // Điều này quan trọng để tránh lazy loading và đảm bảo có đủ dữ liệu
+            Course course = courseRepository.findByIdWithSectionsAndLessons(courseId)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học với ID: " + courseId));
 
-            // Get next lesson through domain service
+            // Validate enrollment trước khi tính toán tiến độ
+            boolean isEnrolled = courseRepository.existsByEnrolledStudentAndCourse(
+                student.getId(), courseId);
+            if (!isEnrolled) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(ApiResponse.error("Học viên không đăng ký khóa học này"));
+            }
+
+            // Initialize collections nếu null để tránh NullPointerException
+            if (course.getSections() == null) {
+                course.setSections(java.util.Collections.emptySet());
+            } else {
+                // Đảm bảo lessons collection cũng được initialized
+                course.getSections().forEach(section -> {
+                    if (section.getLessons() == null) {
+                        section.setLessons(java.util.Collections.emptyList());
+                    }
+                });
+            }
+
+            // Get next lesson through domain service với course đầy đủ
             UUID nextLessonId = progressDomainService.getNextLessonToContinue(student, course);
 
             return ResponseEntity.ok(ApiResponse.success(nextLessonId, "Bài học tiếp theo"));

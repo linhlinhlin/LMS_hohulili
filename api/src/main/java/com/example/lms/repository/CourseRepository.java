@@ -74,4 +74,13 @@ public interface CourseRepository extends JpaRepository<Course, UUID> {
      */
     @Query("SELECT CASE WHEN COUNT(es) > 0 THEN true ELSE false END FROM Course c JOIN c.enrolledStudents es WHERE c.id = :courseId AND es.id = :studentId")
     boolean existsByEnrolledStudentAndCourse(@Param("studentId") UUID studentId, @Param("courseId") UUID courseId);
+    
+    /**
+     * Find course by ID with sections and lessons (eager loading for progress calculation)
+     */
+    @Query("SELECT DISTINCT c FROM Course c " +
+           "LEFT JOIN FETCH c.sections s " +
+           "LEFT JOIN FETCH s.lessons l " +
+           "WHERE c.id = :courseId")
+    Optional<Course> findByIdWithSectionsAndLessons(@Param("courseId") UUID courseId);
 }
