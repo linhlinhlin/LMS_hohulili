@@ -215,7 +215,17 @@ interface BulkImportProgress {
         </div>
 
         <!-- Users Table - Coursera Style -->
-        <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <div class="bg-white rounded-lg border border-gray-200 overflow-hidden relative">
+          <!-- Deletion Loading Overlay -->
+          @if (isDeletingUser()) {
+            <div class="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10">
+              <div class="text-center">
+                <div class="inline-block w-12 h-12 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin"></div>
+                <p class="mt-4 text-sm text-gray-600 font-medium">Đang xử lý...</p>
+              </div>
+            </div>
+          }
+          
           @if (isLoadingUsers()) {
             <div class="p-12 text-center">
               <div class="inline-block">
@@ -306,7 +316,7 @@ interface BulkImportProgress {
                           </button>
                           <button (click)="deleteUser(user.id)"
                                   class="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                                  title="Xóa vĩnh viễn (không thể khôi phục)">
+                                  title="Vô hiệu hóa tài khoản">
                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                               <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
                             </svg>
@@ -839,6 +849,7 @@ export class UserManagementComponent implements OnInit {
 
   // Computed properties
   isLoadingUsers = signal(false);
+  isDeletingUser = signal(false);
   
   totalUsers = this.adminService.totalUsers;
   totalTeachers = this.adminService.totalTeachers;
@@ -1117,24 +1128,30 @@ export class UserManagementComponent implements OnInit {
   }
 
   deleteUser(userId: string): void {
-    if (!confirm('⚠️ BẠN CÓ CHẮC CHẮN MUỐN XÓA NGƯỜI DÙNG NÀY?\n\nHành động này sẽ:\n• Xóa vĩnh viễn tài khoản khỏi hệ thống\n• Không thể khôi phục lại\n• Xóa tất cả dữ liệu liên quan\n\nNếu bạn chỉ muốn tạm thời vô hiệu hóa, hãy sử dụng nút "Khóa tài khoản" thay thế.')) {
+    if (!confirm('Bạn có chắc chắn muốn vô hiệu hóa người dùng này?')) {
       return;
     }
 
-    // Double confirmation for safety
-    if (!confirm('XÁC NHẬN LẦN CUỐI: Bạn thực sự muốn XÓA VĨNH VIỄN người dùng này?')) {
-      return;
-    }
+    this.isDeletingUser.set(true);
 
     this.adminService.deleteUser(userId).subscribe({
       next: (response) => {
-        console.log('User deleted permanently:', response);
-        this.loadUsers(this.currentPage());
-        alert('✅ Người dùng đã được xóa vĩnh viễn khỏi hệ thống!');
+        const currentPageInfo = this.pagination();
+        const currentFilteredCount = this.filteredUsers().length;
+        
+        let targetPage = this.currentPage();
+        if (currentFilteredCount === 1 && currentPageInfo && currentPageInfo.page > 1) {
+          targetPage = currentPageInfo.page - 1;
+        }
+        
+        this.loadUsers(targetPage);
+        this.isDeletingUser.set(false);
+        alert('Người dùng đã được vô hiệu hóa');
       },
       error: (error) => {
-        console.error('Error deleting user:', error);
-        alert('❌ Không thể xóa người dùng. Vui lòng thử lại hoặc liên hệ quản trị viên.');
+        console.error('Error disabling user:', error);
+        this.isDeletingUser.set(false);
+        alert('Không thể vô hiệu hóa người dùng. Vui lòng thử lại.');
       }
     });
   }

@@ -355,8 +355,7 @@ export class AdminService {
         
         const user = this.mapBackendUserToAdminUser(response.data);
         
-        // Refresh users list
-        this.getUsers().subscribe();
+        // ✅ No auto-refresh - let component handle it with correct params
         
         return {
           message: response.message || 'User created successfully',
@@ -381,8 +380,7 @@ export class AdminService {
         
         const user = this.mapBackendUserToAdminUser(response.data);
         
-        // Refresh users list
-        this.getUsers().subscribe();
+        // ✅ No auto-refresh - let component handle it with correct params
         
         return {
           message: response.message || 'User updated successfully',
@@ -405,8 +403,7 @@ export class AdminService {
       map(response => {
         console.log('[ADMIN SERVICE] ✅ User deleted successfully');
         
-        // Refresh users list
-        this.getUsers().subscribe();
+        // ✅ No auto-refresh - let component handle it with correct params
         
         return {
           message: response.message || 'User deleted successfully'
@@ -430,8 +427,7 @@ export class AdminService {
         
         const user = this.mapBackendUserToAdminUser(response.data);
         
-        // Refresh users list
-        this.getUsers().subscribe();
+        // ✅ No auto-refresh - let component handle it with correct params
         
         return {
           message: response.message || 'User status toggled successfully',
@@ -454,8 +450,7 @@ export class AdminService {
     return this.apiClient.postWithResponse(ADMIN_ENDPOINTS.BULK_IMPORT_USERS, formData).pipe(
       map(response => {
         console.log('[ADMIN SERVICE] ✅ Bulk import completed:', response);
-        // Refresh users list after import
-        this.getUsers().subscribe();
+        // ✅ No auto-refresh - let component handle it with correct params
         return response;
       }),
       catchError(error => {
