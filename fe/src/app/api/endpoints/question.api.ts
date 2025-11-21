@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { ApiClient } from '../client/api-client';
+import { map } from 'rxjs/operators';
 
 export interface QuestionOption {
   id: string;
@@ -67,7 +68,7 @@ export class QuestionApi {
     if (status) params.status = status;
     if (difficulty) params.difficulty = difficulty;
     if (tags) params.tags = tags;
-    
+
     return this.apiClient.get<Question[]>('/api/v1/questions', { params });
   }
 
@@ -78,7 +79,20 @@ export class QuestionApi {
   getMyQuestions(status?: string) {
     const params: any = {};
     if (status) params.status = status;
-    return this.apiClient.get<Question[]>('/api/v1/questions/my-questions', { params });
+    return this.apiClient.get<{ success: boolean; data: Question[]; message?: string }>('/api/v1/questions/my-questions', { params })
+      .pipe(
+        map((response: any) => {
+          console.log('📦 getMyQuestions raw response:', response);
+          // Backend returns ApiResponse<List<QuestionDTO>>
+          // Format: { success: true, data: [...], message: "..." }
+          if (response && response.data) {
+            console.log('✅ Extracted questions:', response.data);
+            return response.data;
+          }
+          console.warn('⚠️ No data in response, returning empty array');
+          return [];
+        })
+      );
   }
 
   createQuestion(request: CreateQuestionRequest) {
@@ -97,7 +111,7 @@ export class QuestionApi {
   getQuestionsByCourse(courseId: string, status?: string) {
     const params: any = {};
     if (status) params.status = status;
-    return this.apiClient.get<{success: boolean; data: Question[]; message?: string}>(`/api/v1/questions/course/${courseId}`, { params });
+    return this.apiClient.get<{ success: boolean; data: Question[]; message?: string }>(`/api/v1/questions/course/${courseId}`, { params });
   }
 
   // NEW: Get my questions in a specific course

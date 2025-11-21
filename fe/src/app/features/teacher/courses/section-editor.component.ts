@@ -1077,18 +1077,18 @@ export class SectionEditorComponent implements OnDestroy {
   // File attachments signals
   attachmentUploadProgress = signal<UploadProgress | null>(null);
   attachmentUploadSuccess = signal<string>('');
-  
+
   // PDF upload for current lesson signals
   currentLessonUploadProgress = signal<UploadProgress | null>(null);
   currentLessonUploadSuccess = signal<string>('');
-  
+
   // Edit attachments signals
   editAttachmentUploadProgress = signal<UploadProgress | null>(null);
   editAttachmentUploadSuccess = signal<string>('');
-  
+
   // Show/hide create lesson form
   showCreateForm = signal<boolean>(false);
-  
+
   // Store recently created quiz ID for Quiz Bank navigation
   lastCreatedQuizId = signal<string | null>(null);
   lastCreatedQuizTitle = signal<string>('');
@@ -1096,23 +1096,23 @@ export class SectionEditorComponent implements OnDestroy {
   // Quiz viewer data
   currentViewingQuizId = signal<string | null>(null);
   quizQuestions = signal<any[]>([]);
-  
+
   // Quiz preview data
   showQuizPreview = signal<boolean>(false);
   previewQuizId = signal<string | null>(null);
   previewQuizTitle = signal<string>('');
   previewQuestions = signal<any[]>([]);
-  
+
   // Course questions data
   courseQuestions = signal<Question[]>([]);
   courseQuestionsError = signal<string>('');
-  
+
   // Selected questions for bulk addition
   selectedQuestionIds = signal<Set<string>>(new Set());
-  
+
   // Temporary storage for attachments before lesson creation
   tempAttachments: File[] = [];
-  
+
   // Attachment viewer state
   expandedAttachment: number | null = null;
 
@@ -1163,7 +1163,7 @@ export class SectionEditorComponent implements OnDestroy {
   constructor() {
     // Set initial validation for LECTURE (default type)
     this.createForm.get('content')?.setValidators([Validators.required]);
-    
+
     const sectionId = this.route.snapshot.paramMap.get('sectionId')!;
     // Resolve courseId to support back navigation
     this.courseId = this.route.snapshot.paramMap.get('id')
@@ -1179,7 +1179,7 @@ export class SectionEditorComponent implements OnDestroy {
     this.createForm.get('lessonType')?.valueChanges.subscribe(lessonType => {
       const contentControl = this.createForm.get('content');
       const assignmentDescriptionControl = this.createForm.get('assignmentDescription');
-      
+
       if (lessonType === 'LECTURE') {
         // Content is required for LECTURE
         contentControl?.setValidators([Validators.required]);
@@ -1197,7 +1197,7 @@ export class SectionEditorComponent implements OnDestroy {
         contentControl?.clearValidators();
         assignmentDescriptionControl?.clearValidators();
       }
-      
+
       contentControl?.updateValueAndValidity();
       assignmentDescriptionControl?.updateValueAndValidity();
     });
@@ -1302,7 +1302,7 @@ export class SectionEditorComponent implements OnDestroy {
 
               if (createdQuiz) {
                 this.lessons.update(list => [...list, lesson]);
-                
+
                 // Save quiz ID and title for Quiz Bank navigation
                 this.lastCreatedQuizId.set(createdQuiz.id || lesson.id);
                 this.lastCreatedQuizTitle.set(lesson.title);
@@ -1324,7 +1324,7 @@ export class SectionEditorComponent implements OnDestroy {
 
                 // Close the form after successful creation
                 this.showCreateForm.set(false);
-                
+
                 // Show success message
                 this.opError.set('');
                 alert(`✅ Đã tạo bài trắc nghiệm "${lesson.title}" thành công!\n\nQuiz ID: ${createdQuiz.id}\n\n💡 Click nút "➕ Thêm/Chọn câu hỏi từ Quiz Bank" để thêm câu hỏi cho quiz này.`);
@@ -1430,9 +1430,9 @@ export class SectionEditorComponent implements OnDestroy {
       raw: l?.videoUrl,
       hasValid: this.hasValidVideoUrl(l)
     });
-    
+
     this.selected.set(l);
-    
+
     // Only setup video embed if video URL exists and is valid
     if (this.hasValidVideoUrl(l)) {
       const url = l.videoUrl.trim();
@@ -1449,7 +1449,7 @@ export class SectionEditorComponent implements OnDestroy {
       this._sanitizedEmbed.set(null);
       console.log('❌ No valid video URL, clearing embed');
     }
-    
+
     // Load attachments for this lesson - THIS IS CRITICAL!
     console.log('📎 Loading attachments for lesson:', l.id);
     this.loadLessonAttachments(l.id);
@@ -1480,13 +1480,13 @@ export class SectionEditorComponent implements OnDestroy {
     if (!url || typeof url !== 'string' || url.trim().length === 0) {
       return false;
     }
-    
+
     // Additional check for common invalid values
     const cleanUrl = url.trim().toLowerCase();
     if (cleanUrl === 'null' || cleanUrl === 'undefined' || cleanUrl === '') {
       return false;
     }
-    
+
     // Try to create URL to validate format
     try {
       new URL(url.trim());
@@ -1511,7 +1511,7 @@ export class SectionEditorComponent implements OnDestroy {
         const idx = parts.findIndex(p => p === 'embed' || p === 'shorts' || p === 'watch');
         if (idx >= 0 && parts[idx + 1]) return `https://www.youtube.com/embed/${parts[idx + 1]}`;
       }
-    } catch {}
+    } catch { }
     return url; // fallback
   }
 
@@ -1519,18 +1519,18 @@ export class SectionEditorComponent implements OnDestroy {
   onDocumentUpload(event: Event) {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
-    
+
     if (!file) return;
-    
+
     this.processDocumentUpload(file, this.createForm);
   }
 
   onDocumentUploadEdit(event: Event) {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
-    
+
     if (!file) return;
-    
+
     this.processDocumentUpload(file, this.editForm);
   }
 
@@ -1538,9 +1538,9 @@ export class SectionEditorComponent implements OnDestroy {
   onInstructionsDocumentUpload(event: Event) {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
-    
+
     if (!file) return;
-    
+
     this.processInstructionsDocumentUpload(file);
   }
 
@@ -1548,7 +1548,7 @@ export class SectionEditorComponent implements OnDestroy {
   onEditAttachmentsUpload(event: Event) {
     const input = event.target as HTMLInputElement;
     const files = input.files;
-    
+
     if (!files || files.length === 0) return;
 
     const lesson = this.getCurrentLessonForEdit();
@@ -1592,11 +1592,11 @@ export class SectionEditorComponent implements OnDestroy {
           // Upload completed
           this.editAttachmentUploadProgress.set(null);
           this.editAttachmentUploadSuccess.set(`Đã thêm: ${file.name}`);
-          
+
           // Reload attachments for this lesson
           console.log('🔄 Reloading attachments after edit upload...');
           this.loadLessonAttachments(lessonId);
-          
+
           // Clear success message after 3 seconds
           setTimeout(() => {
             this.editAttachmentUploadSuccess.set('');
@@ -1606,7 +1606,7 @@ export class SectionEditorComponent implements OnDestroy {
       error: (error) => {
         console.error('📤 Edit upload error:', error);
         this.editAttachmentUploadProgress.set(null);
-        
+
         let errorMsg = `Lỗi upload: ${file.name}`;
         if (error?.status === 403) {
           errorMsg += ' - Không có quyền upload';
@@ -1615,7 +1615,7 @@ export class SectionEditorComponent implements OnDestroy {
         } else {
           errorMsg += ` - ${error?.message || 'Lỗi không xác định'}`;
         }
-        
+
         this.opError.set(errorMsg);
       }
     });
@@ -1670,8 +1670,8 @@ export class SectionEditorComponent implements OnDestroy {
           const response = result as DocumentUploadResponse;
           if (response.success) {
             // Update form content
-            targetForm.patchValue({ 
-              content: response.content 
+            targetForm.patchValue({
+              content: response.content
             });
             this.uploadSuccess.set(response.filename);
             this.uploadProgress.set(null);
@@ -1714,8 +1714,8 @@ export class SectionEditorComponent implements OnDestroy {
           const response = result as DocumentUploadResponse;
           if (response.success) {
             // Update assignment instructions field specifically
-            this.createForm.patchValue({ 
-              assignmentInstructions: response.content 
+            this.createForm.patchValue({
+              assignmentInstructions: response.content
             });
             this.uploadSuccess.set(`Đã điền hướng dẫn từ: ${response.filename}`);
             this.uploadProgress.set(null);
@@ -1815,7 +1815,7 @@ export class SectionEditorComponent implements OnDestroy {
     // Navigate to Quiz Bank in same tab with quiz context if available
     const quizId = this.lastCreatedQuizId();
     const quizTitle = this.lastCreatedQuizTitle();
-    
+
     if (quizId && quizTitle) {
       // Pass quiz context via URL query params
       this.router.navigate(['/teacher/quiz/quiz-bank'], {
@@ -1834,15 +1834,15 @@ export class SectionEditorComponent implements OnDestroy {
   async loadQuizQuestions(quizId: string): Promise<void> {
     try {
       this.currentViewingQuizId.set(quizId);
-      
+
       // Fetch real questions from API
       const response = await firstValueFrom(this.quizApi.getQuizQuestions(quizId));
-      
+
       // Handle ApiResponse wrapper
       const questions = Array.isArray(response) ? response : (response as any).data || [];
-      
+
       console.log('📊 Loaded quiz questions:', questions.length, 'questions');
-      
+
       // Transform to display format
       this.quizQuestions.set(questions.map((q: any) => ({
         id: q.id,
@@ -1855,7 +1855,7 @@ export class SectionEditorComponent implements OnDestroy {
           content: opt.content
         }))
       })));
-      
+
     } catch (error) {
       console.error('Error loading quiz questions:', error);
       this.quizQuestions.set([]);
@@ -1865,14 +1865,14 @@ export class SectionEditorComponent implements OnDestroy {
   async previewQuiz(quizId: string, quizTitle: string) {
     try {
       console.log('🔍 Preview Quiz - ID:', quizId, 'Title:', quizTitle);
-      
+
       // Load quiz questions first to validate
       const response = await firstValueFrom(this.quizApi.getQuizQuestions(quizId));
       console.log('🔍 Preview Quiz - API Response:', response);
-      
+
       const questions = Array.isArray(response) ? response : (response as any).data || [];
       console.log('🔍 Preview Quiz - Questions:', questions);
-      
+
       if (questions.length === 0) {
         alert('Quiz này chưa có câu hỏi nào. Vui lòng thêm câu hỏi trước khi xem trước.');
         return;
@@ -1880,7 +1880,7 @@ export class SectionEditorComponent implements OnDestroy {
 
       // Navigate to quiz preview page
       this.router.navigate(['/teacher/quiz/preview', quizId]);
-      
+
     } catch (error) {
       console.error('❌ Error loading quiz for preview:', error);
       alert('Không thể tải quiz để xem trước: ' + (error as any).message);
@@ -1896,7 +1896,7 @@ export class SectionEditorComponent implements OnDestroy {
 
   selectPreviewAnswer(questionId: string, selectedKey: string) {
     const questions = this.previewQuestions();
-    const updatedQuestions = questions.map(q => 
+    const updatedQuestions = questions.map(q =>
       q.id === questionId ? { ...q, selectedAnswer: selectedKey } : q
     );
     this.previewQuestions.set(updatedQuestions);
@@ -1955,7 +1955,7 @@ export class SectionEditorComponent implements OnDestroy {
             // Upload completed for this file
             completedUploads++;
             const overallProgress = Math.round((completedUploads / totalUploads) * 100);
-            
+
             if (completedUploads === totalUploads) {
               // All uploads completed
               this.attachmentUploadProgress.set(null);
@@ -1977,7 +1977,7 @@ export class SectionEditorComponent implements OnDestroy {
             message: error?.message,
             details: error?.error
           });
-          
+
           let errorMsg = `Lỗi upload ${file.name}`;
           if (error?.status === 403) {
             errorMsg += ': Không có quyền. Vui lòng đăng nhập với tài khoản TEACHER.';
@@ -1986,7 +1986,7 @@ export class SectionEditorComponent implements OnDestroy {
           } else {
             errorMsg += `: ${error?.message || 'Lỗi không xác định'}`;
           }
-          
+
           this.opError.set(errorMsg);
           this.attachmentUploadProgress.set(null);
         }
@@ -2032,29 +2032,29 @@ export class SectionEditorComponent implements OnDestroy {
 
   isOfficeFile(fileName: string): boolean {
     const ext = fileName.toLowerCase();
-    return ext.endsWith('.doc') || ext.endsWith('.docx') || 
-           ext.endsWith('.xls') || ext.endsWith('.xlsx') ||
-           ext.endsWith('.ppt') || ext.endsWith('.pptx');
+    return ext.endsWith('.doc') || ext.endsWith('.docx') ||
+      ext.endsWith('.xls') || ext.endsWith('.xlsx') ||
+      ext.endsWith('.ppt') || ext.endsWith('.pptx');
   }
 
   isImageFile(fileName: string): boolean {
     const ext = fileName.toLowerCase();
-    return ext.endsWith('.jpg') || ext.endsWith('.jpeg') || 
-           ext.endsWith('.png') || ext.endsWith('.gif') || 
-           ext.endsWith('.bmp') || ext.endsWith('.webp');
+    return ext.endsWith('.jpg') || ext.endsWith('.jpeg') ||
+      ext.endsWith('.png') || ext.endsWith('.gif') ||
+      ext.endsWith('.bmp') || ext.endsWith('.webp');
   }
 
   isVideoFile(fileName: string): boolean {
     const ext = fileName.toLowerCase();
-    return ext.endsWith('.mp4') || ext.endsWith('.avi') || 
-           ext.endsWith('.mov') || ext.endsWith('.wmv') || 
-           ext.endsWith('.webm');
+    return ext.endsWith('.mp4') || ext.endsWith('.avi') ||
+      ext.endsWith('.mov') || ext.endsWith('.wmv') ||
+      ext.endsWith('.webm');
   }
 
   isAudioFile(fileName: string): boolean {
     const ext = fileName.toLowerCase();
-    return ext.endsWith('.mp3') || ext.endsWith('.wav') || 
-           ext.endsWith('.aac') || ext.endsWith('.ogg');
+    return ext.endsWith('.mp3') || ext.endsWith('.wav') ||
+      ext.endsWith('.aac') || ext.endsWith('.ogg');
   }
 
   getFileTypeClass(fileName: string): string {
@@ -2154,13 +2154,13 @@ export class SectionEditorComponent implements OnDestroy {
   toggleQuestionSelection(questionId: string): void {
     const currentSelection = this.selectedQuestionIds();
     const newSelection = new Set(currentSelection);
-    
+
     if (newSelection.has(questionId)) {
       newSelection.delete(questionId);
     } else {
       newSelection.add(questionId);
     }
-    
+
     this.selectedQuestionIds.set(newSelection);
   }
 
@@ -2184,7 +2184,7 @@ export class SectionEditorComponent implements OnDestroy {
   // Add selected questions to quiz (bulk operation)
   async addSelectedQuestionsToQuiz(quizId: string): Promise<void> {
     const selectedIds = Array.from(this.selectedQuestionIds());
-    
+
     if (selectedIds.length === 0) {
       alert('Vui lòng chọn ít nhất một câu hỏi để thêm vào quiz.');
       return;
@@ -2192,44 +2192,44 @@ export class SectionEditorComponent implements OnDestroy {
 
     try {
       console.log('🔄 Adding selected questions to quiz:', selectedIds.length, 'questions');
-      
+
       // Get current quiz to know existing questions
       const currentQuiz = await firstValueFrom(
         this.quizApi.getQuizByLessonId(quizId)
       );
-      
+
       const existingQuestionIds = currentQuiz.questionIds ?
         currentQuiz.questionIds.split(',').filter((id: string) => id.trim()) : [];
-      
+
       // Filter out already selected questions
       const newQuestionIds = selectedIds.filter(id => !existingQuestionIds.includes(id));
-      
+
       if (newQuestionIds.length === 0) {
         alert('Tất cả câu hỏi đã chọn đã có trong quiz rồi!');
         return;
       }
-      
+
       // Combine existing and new question IDs
       const updatedQuestionIds = [...existingQuestionIds, ...newQuestionIds];
-      
+
       // Update quiz questions
       await firstValueFrom(
         this.quizApi.updateQuizQuestions(quizId, {
           questionIds: updatedQuestionIds
         })
       );
-      
+
       // Clear selection after successful addition
       this.clearQuestionSelection();
-      
+
       // Refresh quiz questions display
       await this.loadQuizQuestions(quizId);
-      
+
       // Show success message
       const totalQuestions = updatedQuestionIds.length;
       const addedCount = newQuestionIds.length;
       alert(`✅ Đã thêm ${addedCount} câu hỏi vào quiz thành công!\n\nQuiz hiện có tổng cộng ${totalQuestions} câu hỏi.`);
-      
+
       console.log('✅ Successfully added selected questions to quiz. Total questions:', totalQuestions);
     } catch (error: any) {
       console.error('❌ Error adding selected questions to quiz:', error);
@@ -2251,7 +2251,7 @@ export class SectionEditorComponent implements OnDestroy {
 
   private loadLessonAttachments(lessonId: string) {
     console.log('📎 loadLessonAttachments called for lesson:', lessonId);
-    
+
     this.lessonAttachmentApi.getAttachments(lessonId).subscribe({
       next: (attachments) => {
         console.log('✅ Attachments loaded:', attachments);
@@ -2259,7 +2259,7 @@ export class SectionEditorComponent implements OnDestroy {
           count: attachments?.length || 0,
           attachments: attachments
         });
-        
+
         // Update the selected lesson with attachments
         this.selected.update(lesson => {
           if (lesson && lesson.id === lessonId) {
@@ -2269,10 +2269,10 @@ export class SectionEditorComponent implements OnDestroy {
           }
           return lesson;
         });
-        
+
         // Also update the lesson in the lessons list for future reference
-        this.lessons.update(lessonList => 
-          lessonList.map(l => 
+        this.lessons.update(lessonList =>
+          lessonList.map(l =>
             l.id === lessonId ? { ...l, attachments } : l
           )
         );
@@ -2329,11 +2329,11 @@ export class SectionEditorComponent implements OnDestroy {
     if (lesson.lessonType !== 'ASSIGNMENT' || !lesson.assignment) {
       return 'Không áp dụng';
     }
-    
+
     const assignment = lesson.assignment;
     const now = new Date();
     const dueDate = assignment.dueDate ? new Date(assignment.dueDate) : null;
-    
+
     switch (assignment.status) {
       case 'DRAFT':
         return 'Đang soạn thảo';
@@ -2353,7 +2353,7 @@ export class SectionEditorComponent implements OnDestroy {
     if (lesson.lessonType !== 'ASSIGNMENT' || !lesson.assignment?.dueDate) {
       return null;
     }
-    
+
     const dueDate = new Date(lesson.assignment.dueDate);
     return dueDate.toLocaleString('vi-VN', {
       year: 'numeric',
@@ -2368,7 +2368,7 @@ export class SectionEditorComponent implements OnDestroy {
     if (lesson.lessonType !== 'ASSIGNMENT' || !lesson.assignment?.maxScore) {
       return null;
     }
-    
+
     return lesson.assignment.maxScore;
   }
 
@@ -2377,21 +2377,21 @@ export class SectionEditorComponent implements OnDestroy {
     if (lesson.lessonType !== 'ASSIGNMENT' || !lesson.assignment) {
       return '0';
     }
-    
+
     const submissionCount = lesson.assignment.submissionCount || 0;
     const totalStudents = lesson.assignment.totalStudents || 0;
-    
+
     return `${submissionCount}/${totalStudents}`;
   }
 
   // Assignment management methods
   viewAssignmentSubmissions(lesson: any): void {
     if (lesson.lessonType !== 'ASSIGNMENT') return;
-    
+
     // TODO: Navigate to assignment submissions page
     // this.router.navigate(['/teacher/assignments', lesson.assignment.id, 'submissions']);
     console.log('Viewing submissions for assignment:', lesson.assignment?.id);
-    
+
     // For now, show an alert with placeholder info
     alert(`Xem bài nộp cho bài tập: ${lesson.title}\n\nTính năng này sẽ được phát triển trong phase tiếp theo.`);
   }
@@ -2400,17 +2400,17 @@ export class SectionEditorComponent implements OnDestroy {
   async loadQuestionsByCourse(courseId: string): Promise<void> {
     try {
       this.courseQuestionsError.set('');
-      
+
       console.log('🔍 Loading questions for course:', courseId);
-      
+
       const response = await firstValueFrom(
         this.questionApi.getQuestionsByCourse(courseId, 'ACTIVE')
       );
-      
+
       console.log('📦 API Response:', response);
       console.log('📦 Response type:', typeof response);
       console.log('📦 Response.data:', (response as any).data);
-      
+
       // Backend trả về {data: Question[], pagination: null, message: null}
       if (response && (response as any).data) {
         this.courseQuestions.set((response as any).data);
@@ -2431,45 +2431,45 @@ export class SectionEditorComponent implements OnDestroy {
   async addQuestionToQuiz(questionId: string, quizId: string): Promise<void> {
     try {
       console.log('🔍 Adding question', questionId, 'to quiz', quizId);
-      
+
       // Get current quiz to know existing questions
       const currentQuiz = await firstValueFrom(
         this.quizApi.getQuizByLessonId(quizId)
       ) as any;
-      
+
       const existingQuestionIds = currentQuiz.questionIds ?
         currentQuiz.questionIds.split(',').filter((id: string) => id.trim()) : [];
-      
+
       // Check if question already exists
       if (existingQuestionIds.includes(questionId)) {
         alert('Câu hỏi này đã được thêm vào quiz rồi!');
         return;
       }
-      
+
       // Add new question ID
       const updatedQuestionIds = [...existingQuestionIds, questionId];
-      
+
       // Update quiz questions
       await firstValueFrom(
         this.quizApi.updateQuizQuestions(quizId, {
           questionIds: updatedQuestionIds
         })
       );
-      
+
       // If question was in selected set, remove it
       this.selectedQuestionIds.update(selected => {
         const newSelected = new Set(selected);
         newSelected.delete(questionId);
         return newSelected;
       });
-      
+
       // Refresh quiz questions display
       await this.loadQuizQuestions(quizId);
-      
+
       // Show success message
       const questionCount = updatedQuestionIds.length;
       alert(`✅ Đã thêm câu hỏi vào quiz thành công!\n\nQuiz hiện có ${questionCount} câu hỏi.`);
-      
+
       console.log('✅ Successfully added question to quiz. Total questions:', questionCount);
     } catch (error: any) {
       console.error('❌ Error adding question to quiz:', error);
@@ -2479,9 +2479,9 @@ export class SectionEditorComponent implements OnDestroy {
 
   toggleAssignmentStatus(lesson: any): void {
     if (lesson.lessonType !== 'ASSIGNMENT' || !lesson.assignment) return;
-    
+
     const newStatus = lesson.assignment.status === 'PUBLISHED' ? 'CLOSED' : 'PUBLISHED';
-    
+
     // TODO: Call API to update assignment status
     // this.lessonApi.updateAssignmentStatus(lesson.assignment.id, newStatus).subscribe({
     //   next: () => {
@@ -2489,7 +2489,7 @@ export class SectionEditorComponent implements OnDestroy {
     //   },
     //   error: (err) => this.opError.set(err?.message || 'Cập nhật trạng thái thất bại')
     // });
-    
+
     // For now, update locally
     lesson.assignment.status = newStatus;
     console.log('Assignment status updated:', newStatus);
@@ -2497,10 +2497,10 @@ export class SectionEditorComponent implements OnDestroy {
 
   editAssignment(lesson: any): void {
     if (lesson.lessonType !== 'ASSIGNMENT') return;
-    
+
     // TODO: Open assignment edit modal or navigate to edit page
     console.log('Edit assignment:', lesson.assignment?.id);
-    
+
     // For now, show an alert
     alert(`Chỉnh sửa bài tập: ${lesson.title}\n\nTính năng này sẽ được phát triển trong phase tiếp theo.`);
   }
