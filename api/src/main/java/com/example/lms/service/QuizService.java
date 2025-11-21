@@ -27,6 +27,7 @@ public class QuizService {
     private final QuestionRepository questionRepository;
     private final QuestionService questionService;
     private final QuizQuestionRepository quizQuestionRepository;
+    private final LessonProgressDomainService progressDomainService;
     private final ObjectMapper objectMapper;
     
     @PersistenceContext
@@ -262,6 +263,21 @@ public class QuizService {
         attempt.setIsPassed(score >= attempt.getQuiz().getPassingScore());
         attempt.setStatus(QuizAttempt.Status.SUBMITTED);
         attempt.setEndTime(Instant.now());
+        // NEW: Auto-update StudentLessonProgress if quiz passed
+        if (Boolean.TRUE.equals(attempt.getIsPassed())) {
+            Lesson lesson = attempt.getQuiz().getLesson();
+            User student = attempt.getStudent();
+            
+            try {
+                progressDomainService.completeLesson(student, lesson);
+                System.out.printf("✅ Quiz completed and progress updated - Student: %s, Lesson: %s, Score: %.1f%n", 
+                        student.getId(), lesson.getId(), score);
+            } catch (Exception e) {
+                System.err.printf("❌ Failed to update progress after quiz completion - Student: %s, Lesson: %s, Error: %s%n", 
+                        student.getId(), lesson.getId(), e.getMessage());
+                // Don't throw exception, let the quiz submission succeed
+            }
+        }
 
         return attemptRepository.save(attempt);
     }

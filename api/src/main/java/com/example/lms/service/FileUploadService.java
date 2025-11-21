@@ -84,6 +84,42 @@ public class FileUploadService {
         }
     }
 
+            }
+
+            // Save file
+            Path filePath = targetPath.resolve(fileName);
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+            // Generate file URL
+            String fileUrl = baseUrl + "/api/v1/files/" + subDir + "/" + fileName;
+
+            return com.example.lms.controller.FileUploadController.FileUploadResponse.builder()
+                    .fileName(fileName)
+                    .originalFileName(originalFileName)
+                    .fileUrl(fileUrl)
+                    .fileSize(file.getSize())
+                    .contentType(file.getContentType())
+                    .uploadedAt(LocalDateTime.now())
+                    .build();
+
+        } catch (IOException e) {
+            throw new RuntimeException("Lỗi khi upload file: " + e.getMessage(), e);
+        }
+    }
+            return com.example.lms.controller.FileUploadController.FileUploadResponse.builder()
+                    .fileName(fileName)
+                    .originalFileName(originalFileName)
+                    .fileUrl(fileUrl)
+                    .fileSize(file.getSize())
+                    .contentType(file.getContentType())
+                    .uploadedAt(LocalDateTime.now())
+                    .build();
+
+        } catch (IOException e) {
+            throw new RuntimeException("Lỗi khi upload file: " + e.getMessage(), e);
+        }
+    }
+
     public com.example.lms.controller.FileUploadController.SignedUrlResponse generateSignedUrl(
             User currentUser,
             com.example.lms.controller.FileUploadController.GenerateSignedUrlRequest request) {
