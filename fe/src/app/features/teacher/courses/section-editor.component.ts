@@ -810,46 +810,17 @@ import { firstValueFrom } from 'rxjs';
           <!-- Quiz Configuration Section -->
           <div *ngIf="isQuizType" class="border-2 border-dashed border-purple-300 rounded-lg p-6 bg-purple-50 space-y-4">
             <div class="flex items-start gap-3">
-              <span class="text-3xl">❓</span>
+              <span class="text-3xl">🚀</span>
               <div class="flex-1">
-                <div class="text-base font-semibold text-purple-800 mb-4">Cấu hình trắc nghiệm</div>
-                
-                <div class="bg-white rounded-lg p-4 mb-4">
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Thời gian làm bài (phút):</label>
-                  <input type="number" formControlName="quizTimeLimit" class="w-full md:w-48 border-2 border-gray-300 px-4 py-3 text-base focus:border-purple-500 focus:outline-none" placeholder="30" min="1" />
-                </div>
-
-                <div class="bg-white rounded-lg p-4 mb-4">
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Điểm tối đa:</label>
-                  <input type="number" formControlName="quizMaxScore" class="w-full md:w-48 border-2 border-gray-300 px-4 py-3 text-base focus:border-purple-500 focus:outline-none" placeholder="100" min="1" />
-                </div>
-
-                <div class="bg-white rounded-lg p-4 mb-4">
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Số lần làm bài tối đa:</label>
-                  <input type="number" formControlName="quizMaxAttempts" class="w-full md:w-48 border-2 border-gray-300 px-4 py-3 text-base focus:border-purple-500 focus:outline-none" placeholder="1" min="1" />
-                </div>
-
-                <div class="bg-yellow-100 border-l-4 border-yellow-500 p-4 mt-4">
-                  <div class="flex items-start gap-2">
-                    <span class="text-yellow-700 text-base">⚠️</span>
-                    <div class="text-sm text-yellow-700">
-                      <strong>Lưu ý:</strong> Sau khi tạo bài trắc nghiệm, bạn cần vào <strong>Quiz Bank</strong> để thêm câu hỏi cho quiz này.
-                      <br />Hoặc có thể link quiz này với các câu hỏi đã có sẵn trong Question Bank.
-                    </div>
-                  </div>
-                </div>
-
-                <div class="bg-blue-50 border-2 border-blue-300 rounded-lg p-4 mt-4">
-                  <div class="text-sm text-blue-800 mb-3">
-                    <strong>💡 Gợi ý:</strong> Sau khi tạo quiz, bạn cần thêm câu hỏi từ Quiz Bank.
-                  </div>
-                  <button type="button"
-                          (click)="openQuizBankInNewTab()"
-                          class="inline-flex items-center gap-2 px-5 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors">
-                    <span class="text-lg">➕</span>
-                    <span>Thêm/Chọn câu hỏi từ Quiz Bank</span>
-                  </button>
-                </div>
+                <div class="text-base font-semibold text-purple-800 mb-2">Thiết lập bài trắc nghiệm</div>
+                <p class="text-sm text-purple-700 mb-4">
+                  Sau khi tạo bài học, bạn sẽ được chuyển đến trang thiết lập chi tiết để:
+                </p>
+                <ul class="list-disc list-inside text-sm text-purple-700 space-y-1 ml-2">
+                  <li>Cấu hình thời gian, điểm số, số lần làm bài.</li>
+                  <li>Chọn câu hỏi từ ngân hàng câu hỏi.</li>
+                  <li>Xem trước bài kiểm tra.</li>
+                </ul>
               </div>
             </div>
           </div>
@@ -1269,78 +1240,37 @@ export class SectionEditorComponent implements OnDestroy {
         error: (err) => this.opError.set(err?.message || 'Tạo bài tập thất bại')
       });
     } else if (lessonType === 'QUIZ') {
-      // Create quiz lesson with proper backend integration
+      // Create quiz lesson and redirect to new wizard
       const lessonPayload: CreateLessonRequest = {
         title: this.createForm.value.title ?? '',
         lessonType: 'QUIZ',
-        quizTimeLimit: Number(this.createForm.value.quizTimeLimit) || 30,
-        quizMaxScore: Number(this.createForm.value.quizMaxScore) || 100,
-        quizMaxAttempts: Number(this.createForm.value.quizMaxAttempts) || 1
+        // Default values, will be configured in wizard
+        quizTimeLimit: 30,
+        quizMaxScore: 100,
+        quizMaxAttempts: 1
       };
 
-      // First create the lesson
+      // Create the lesson first
       this.lessonApi.createLesson(sectionId, lessonPayload).subscribe({
-        next: async (lessonRes) => {
+        next: (lessonRes) => {
           const lesson = lessonRes?.data;
           if (lesson) {
-            try {
-              // Create corresponding Quiz entity using Backend Quiz API
-              const quizPayload = {
-                questionIds: [], // Empty array initially
-                timeLimitMinutes: Number(this.createForm.value.quizTimeLimit) || 30,
-                maxAttempts: Number(this.createForm.value.quizMaxAttempts) || 1,
-                passingScore: Number(this.createForm.value.quizMaxScore) || 100,
-                shuffleQuestions: false,
-                shuffleOptions: false,
-                showResultsImmediately: true,
-                showCorrectAnswers: true
-              };
+            // Redirect to new Quiz Wizard
+            this.router.navigate(['/teacher/quiz/create/lesson', lesson.id]);
 
-              // Create Quiz entity
-              const quizResponse = await firstValueFrom(this.quizApi.createQuiz(lesson.id, quizPayload));
-              const createdQuiz = quizResponse as any;
-
-              if (createdQuiz) {
-                this.lessons.update(list => [...list, lesson]);
-
-                // Save quiz ID and title for Quiz Bank navigation
-                this.lastCreatedQuizId.set(createdQuiz.id || lesson.id);
-                this.lastCreatedQuizTitle.set(lesson.title);
-
-                this.createForm.reset({
-                  title: '',
-                  lessonType: 'LECTURE',
-                  content: '',
-                  videoUrl: '',
-                  assignmentTitle: '',
-                  assignmentDescription: '',
-                  assignmentInstructions: '',
-                  dueDate: '',
-                  maxScore: 100,
-                  quizTimeLimit: 30,
-                  quizMaxScore: 100,
-                  quizMaxAttempts: 1
-                });
-
-                // Close the form after successful creation
-                this.showCreateForm.set(false);
-
-                // Show success message
-                this.opError.set('');
-                alert(`✅ Đã tạo bài trắc nghiệm "${lesson.title}" thành công!\n\nQuiz ID: ${createdQuiz.id}\n\n💡 Click nút "➕ Thêm/Chọn câu hỏi từ Quiz Bank" để thêm câu hỏi cho quiz này.`);
-              } else {
-                // Lesson created but Quiz creation failed
-                this.lessons.update(list => [...list, lesson]);
-                this.opError.set('');
-                alert(`⚠️ Đã tạo lesson "${lesson.title}" nhưng không thể tạo Quiz entity. Vui lòng kiểm tra logs.`);
-              }
-            } catch (quizError) {
-              console.error('Quiz creation error:', quizError);
-              // Still add the lesson even if quiz creation failed
-              this.lessons.update(list => [...list, lesson]);
-              this.opError.set('');
-              alert(`⚠️ Đã tạo lesson "${lesson.title}" nhưng lỗi khi tạo Quiz entity: ${(quizError as any)?.message || 'Lỗi không xác định'}`);
-            }
+            // Close form and reset
+            this.showCreateForm.set(false);
+            this.createForm.reset({
+              title: '',
+              lessonType: 'LECTURE',
+              content: '',
+              videoUrl: '',
+              assignmentTitle: '',
+              assignmentDescription: '',
+              assignmentInstructions: '',
+              dueDate: '',
+              maxScore: 100
+            });
           }
         },
         error: (err) => this.opError.set(err?.message || 'Tạo bài trắc nghiệm thất bại')

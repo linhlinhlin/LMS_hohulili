@@ -27,10 +27,10 @@ public class TestUserCreationController {
         String username = request.getOrDefault("username", "testadmin");
         String password = request.getOrDefault("password", "Test@123");
         String email = request.getOrDefault("email", "testadmin@lms.com");
-        
+
         // Delete existing user if any
         userRepository.findByUsername(username).ifPresent(userRepository::delete);
-        
+
         // Create new user
         User user = User.builder()
                 .username(username)
@@ -42,12 +42,12 @@ public class TestUserCreationController {
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
-        
+
         User savedUser = userRepository.save(user);
-        
+
         // Test password verification
         boolean passwordMatches = passwordEncoder.matches(password, savedUser.getPassword());
-        
+
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("username", savedUser.getUsername());
@@ -57,7 +57,46 @@ public class TestUserCreationController {
         response.put("password_hash", savedUser.getPassword());
         response.put("password_verified", passwordMatches);
         response.put("message", "User created successfully. You can now login with username: " + username + " and password: " + password);
-        
+
+        return response;
+    }
+
+    @PostMapping("/create-teacher")
+    public Map<String, Object> createTestTeacher(@RequestBody Map<String, String> request) {
+        String username = request.getOrDefault("username", "testteacher");
+        String password = request.getOrDefault("password", "Test@123");
+        String email = request.getOrDefault("email", "testteacher@lms.com");
+
+        // Delete existing user if any
+        userRepository.findByUsername(username).ifPresent(userRepository::delete);
+
+        // Create new user
+        User user = User.builder()
+                .username(username)
+                .email(email)
+                .password(passwordEncoder.encode(password))
+                .fullName("Test Teacher")
+                .role(User.Role.TEACHER)
+                .enabled(true)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        User savedUser = userRepository.save(user);
+
+        // Test password verification
+        boolean passwordMatches = passwordEncoder.matches(password, savedUser.getPassword());
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("username", savedUser.getUsername());
+        response.put("email", savedUser.getEmail());
+        response.put("role", savedUser.getRole().name());
+        response.put("password_used", password);
+        response.put("password_hash", savedUser.getPassword());
+        response.put("password_verified", passwordMatches);
+        response.put("message", "Teacher user created successfully. You can now login with username: " + username + " and password: " + password);
+
         return response;
     }
     

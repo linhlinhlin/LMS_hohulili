@@ -72,6 +72,17 @@ public class Question {
     @Column(name = "updated_at")
     private Instant updatedAt;
 
+    // ============ DOMAIN METHODS ============
+
+    /**
+     * Check if this question belongs to a specific course
+     * @param courseId the course ID to check
+     * @return true if question belongs to the course
+     */
+    public boolean belongsToCourse(UUID courseId) {
+        return this.course != null && this.course.getId().equals(courseId);
+    }
+
     public enum Difficulty {
         EASY, MEDIUM, HARD
     }

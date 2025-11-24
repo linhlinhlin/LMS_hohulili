@@ -105,9 +105,116 @@ export interface QuestionStatistic {
   correctRate: number;
 }
 
+// ============================================
+// V2 API - DDD Approach (NEW)
+// ============================================
+
+// ========== REQUEST DTOs ==========
+
+export interface CreateLessonQuizRequest {
+  title: string;
+  description?: string;
+  timeLimitMinutes?: number;
+  maxAttempts: number;
+  passingScore: number;
+  shuffleQuestions: boolean;
+  shuffleOptions: boolean;
+  showResultsImmediately: boolean;
+  showCorrectAnswers: boolean;
+  questionIds: string[];
+  publishImmediately: boolean;
+}
+
+export interface CreateAssignmentQuizRequest {
+  title: string;
+  description?: string;
+  timeLimitMinutes?: number;
+  maxAttempts: number;
+  passingScore: number;
+  shuffleQuestions: boolean;
+  shuffleOptions: boolean;
+  showResultsImmediately: boolean;
+  showCorrectAnswers: boolean;
+  startDate?: string;  // Only for Assignment
+  endDate?: string;    // Only for Assignment
+  questionIds: string[];
+  publishImmediately: boolean;
+}
+
+export interface AssignQuizRequest {
+  studentIds: string[];
+  dueDate?: string;
+}
+
+// ========== RESPONSE DTOs (Type-Safe with Union Types) ==========
+
+// Base Interface
+interface BaseQuizResponse {
+  id: string;
+  title: string;
+  description?: string;
+  type: 'LESSON_QUIZ' | 'ASSIGNMENT';
+  timeLimitMinutes?: number;
+  maxAttempts: number;
+  passingScore: number;
+  shuffleQuestions: boolean;
+  shuffleOptions: boolean;
+  showResultsImmediately: boolean;
+  showCorrectAnswers: boolean;
+  questionCount: number;
+  createdBy: string;
+  createdByName: string;
+  publishedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Lesson Quiz Response (lessonId is mandatory)
+export interface LessonQuizResponse extends BaseQuizResponse {
+  type: 'LESSON_QUIZ';
+  lessonId: string;
+  lessonTitle: string;
+  courseId: string;
+  courseTitle: string;
+}
+
+// Assignment Quiz Response (courseId, dates are specific)
+export interface AssignmentQuizResponse extends BaseQuizResponse {
+  type: 'ASSIGNMENT';
+  courseId: string;
+  courseTitle: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+// Union Type for type-safe handling
+export type QuizResponseV2 = LessonQuizResponse | AssignmentQuizResponse;
+
+export interface QuizAssignmentResponse {
+  id: string;
+  quizId: string;
+  quizTitle: string;
+  questionCount: number;
+  studentId: string;
+  studentName: string;
+  studentEmail: string;
+  status: 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'OVERDUE';
+  assignedAt: string;
+  dueDate?: string;
+  completedAt?: string;
+  attemptCount: number;
+  maxAttempts: number;
+  bestScore?: number;
+  isPassed?: boolean;
+}
+
 @Injectable({ providedIn: 'root' })
 export class QuizApi {
   private readonly apiClient = inject(ApiClient);
+
+  // ============================================
+  // V1 API Methods (Legacy - Backward Compatible)
+  // ============================================
 
   // Create quiz for lesson
   createQuiz(lessonId: string, request: CreateQuizRequest) {
@@ -167,5 +274,69 @@ export class QuizApi {
   // Add question to existing quiz
   addQuestionToQuiz(lessonId: string, questionId: string) {
     return this.apiClient.post<QuizResponse>(`/api/v1/quizzes/lessons/${lessonId}/questions/add`, { questionId });
+  }
+
+  // ============================================
+  // V2 API Methods - DDD Approach
+  // ============================================
+
+  /**
+   * Create lesson-bound quiz (v2 API)
+   * @param lessonId - Lesson ID
+   * @param request - Quiz creation request
+   * @returns Observable of LessonQuizResponse
+   */
+  createLessonQuizV2(lessonId: string, request: CreateLessonQuizRequest): Observable<LessonQuizResponse> {
+    return this.apiClient.post<LessonQuizResponse>(
+      `/api/v2/quizzes/lessons/${lessonId}`,
+      request
+    );
+  }
+
+  /**
+   * Create assignment quiz (v2 API)
+   * @param courseId - Course ID
+   * @param request - Quiz creation request
+   * @returns Observable of AssignmentQuizResponse
+   */
+  createAssignmentQuizV2(courseId: string, request: CreateAssignmentQuizRequest): Observable<AssignmentQuizResponse> {
+    return this.apiClient.post<AssignmentQuizResponse>(
+      `/api/v2/quizzes/courses/${courseId}`,
+      request
+    );
+  }
+
+  /**
+   * Assign quiz to students
+   * @param quizId - Quiz ID
+   * @param request - Assignment request with student IDs and due date
+   * @returns Observable of QuizAssignmentResponse array
+   */
+  assignQuizToStudents(quizId: string, request: AssignQuizRequest): Observable<QuizAssignmentResponse[]> {
+    return this.apiClient.post<QuizAssignmentResponse[]>(
+      `/api/v1/quizzes/${quizId}/assignments`,
+      request
+    );
+  }
+
+  /**
+   * Get quiz assignments for a quiz
+   * @param quizId - Quiz ID
+   * @returns Observable of QuizAssignmentResponse array
+   */
+  getQuizAssignments(quizId: string): Observable<QuizAssignmentResponse[]> {
+    return this.apiClient.get<QuizAssignmentResponse[]>(
+      `/api/v1/quizzes/${quizId}/assignments`
+    );
+  }
+
+  /**
+   * Get all assignment quizzes for teacher
+   * @returns Observable of AssignmentQuizResponse array
+   */
+  getTeacherAssignments(): Observable<AssignmentQuizResponse[]> {
+    return this.apiClient.get<AssignmentQuizResponse[]>(
+      `/api/v2/quizzes/assignments`
+    );
   }
 }
