@@ -26,6 +26,7 @@ public class Lesson {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "section_id", nullable = false)
+    @JsonIgnore
     private Section section;
 
     @Column(nullable = false)
@@ -62,6 +63,10 @@ public class Lesson {
     @Builder.Default
     @JsonIgnore
     private List<LessonAttachment> attachments = new java.util.ArrayList<>();
+
+    @OneToOne(mappedBy = "lesson", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private Quiz quiz;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

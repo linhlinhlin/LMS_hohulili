@@ -1,25 +1,16 @@
 export interface ApiResponse<T> {
-  data?: T;
-  message?: string;
-  pagination?: {
-    page: number;
-    limit: number;
-    totalItems: number;
-    totalPages: number;
-  };
-}
-
-export interface PaginatedResponse<T> extends ApiResponse<T[]> {
-  pagination: {
-    page: number;
-    limit: number;
-    totalItems: number;
-    totalPages: number;
-  };
-}
-
-export interface ApiError {
+  success: boolean;
   message: string;
-  code?: string;
-  details?: any;
+  data: T;
+  pagination?: PaginationInfo;
+  timestamp: string;
+}
+
+export interface PaginationInfo {
+  totalItems: number;
+  totalPages: number;
+  page: number;
+  limit: number;
+  first: boolean;
+  last: boolean;
 }

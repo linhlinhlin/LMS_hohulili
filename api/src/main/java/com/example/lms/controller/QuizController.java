@@ -15,6 +15,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -99,14 +100,22 @@ public class QuizController {
         try {
             System.out.println("🔍 DEBUG: Getting questions for lesson: " + lessonId);
             
-            // Check if quiz exists for this lesson
-            Quiz quiz = quizService.getQuizByLessonId(lessonId);
-            System.out.println("🔍 DEBUG: Found quiz: " + quiz.getId());
-            
-            List<Question> questions = quizService.getQuizQuestions(lessonId);
-            System.out.println("🔍 DEBUG: Retrieved " + questions.size() + " questions");
-            
-            return ResponseEntity.ok(ApiResponse.success(questions));
+            // Check if quiz exists for this lesson - return empty list if not
+            try {
+                Quiz quiz = quizService.getQuizByLessonId(lessonId);
+                System.out.println("🔍 DEBUG: Found quiz: " + quiz.getId());
+                
+                List<Question> questions = quizService.getQuizQuestions(lessonId);
+                System.out.println("🔍 DEBUG: Retrieved " + questions.size() + " questions");
+                
+                return ResponseEntity.ok(ApiResponse.success(questions));
+            } catch (RuntimeException e) {
+                if (e.getMessage() != null && e.getMessage().contains("Quiz not found")) {
+                    System.out.println("⚠️ Quiz not found for lesson: " + lessonId + ". Returning empty list.");
+                    return ResponseEntity.ok(ApiResponse.success(new ArrayList<>()));
+                }
+                throw e;
+            }
         } catch (RuntimeException e) {
             System.err.println("❌ Get quiz questions failed: " + e.getMessage());
             e.printStackTrace();
@@ -313,17 +322,56 @@ public class QuizController {
 
     @PostMapping("/lessons/{lessonId}/questions/add")
     @Operation(summary = "Thêm câu hỏi vào quiz", description = "Thêm một câu hỏi vào quiz hiện tại")
-    public ResponseEntity<ApiResponse<Quiz>> addQuestionToQuiz(
+    public ResponseEntity<?> addQuestionToQuiz(
             @PathVariable UUID lessonId,
-            @RequestBody AddQuestionToQuizRequest request,
+            @RequestBody(required = false) AddQuestionToQuizRequest request,
             @AuthenticationPrincipal User currentUser
     ) {
         try {
-            // Validate lesson access first
-            lessonService.getLessonById(lessonId, currentUser);
+            System.out.println("========================================");
+            System.out.println("🔍 addQuestionToQuiz endpoint called");
+            System.out.println("   lessonId: " + lessonId);
+            System.out.println("   request object: " + request);
+            System.out.println("   questionId from request: " + (request != null ? request.getQuestionId() : "REQUEST IS NULL"));
+            System.out.println("   currentUser: " + (currentUser != null ? currentUser.getId() + " (" + currentUser.getEmail() + ")" : "null"));
+            System.out.println("========================================");
             
-            Quiz quiz = quizService.addQuestionToQuiz(lessonId, request.getQuestionId());
-            return ResponseEntity.ok(ApiResponse.success(quiz, "Đã thêm câu hỏi vào quiz"));
+            if (request == null) {
+                System.err.println("❌ Request body is null! Check Content-Type header.");
+                return ResponseEntity.badRequest().body(ApiResponse.error("Request body is required. Make sure Content-Type is application/json"));
+            }
+            
+            if (request.getQuestionId() == null || request.getQuestionId().isEmpty()) {
+                System.err.println("❌ questionId is null or empty!");
+                return ResponseEntity.badRequest().body(ApiResponse.error("questionId is required"));
+            }
+            
+            UUID questionUUID;
+            try {
+                questionUUID = request.getQuestionIdAsUUID();
+                System.out.println("✅ Parsed questionId: " + questionUUID);
+            } catch (IllegalArgumentException e) {
+                System.err.println("❌ Invalid questionId format: " + request.getQuestionId());
+                return ResponseEntity.badRequest().body(ApiResponse.error("Invalid questionId format: " + request.getQuestionId()));
+            }
+            
+            // Validate lesson access first
+            System.out.println("🔍 Validating lesson access...");
+            lessonService.getLessonById(lessonId, currentUser);
+            System.out.println("✅ Lesson access validated");
+            
+            System.out.println("🔍 Adding question to quiz...");
+            Quiz quiz = quizService.addQuestionToQuiz(lessonId, questionUUID);
+            System.out.println("✅ Question added to quiz: " + quiz.getId());
+            
+            // Return simple response to avoid serialization issues
+            Map<String, Object> response = new HashMap<>();
+            response.put("quizId", quiz.getId());
+            response.put("message", "Đã thêm câu hỏi vào quiz");
+            response.put("questionCount", quizService.getQuizQuestionCount(quiz.getId()));
+            
+            System.out.println("✅ Returning success response");
+            return ResponseEntity.ok(ApiResponse.success(response, "Đã thêm câu hỏi vào quiz"));
         } catch (RuntimeException e) {
             System.err.println("❌ Add question to quiz failed: " + e.getMessage());
             e.printStackTrace();
@@ -332,10 +380,22 @@ public class QuizController {
     }
 
     public static class AddQuestionToQuizRequest {
-        private UUID questionId;
+        @com.fasterxml.jackson.annotation.JsonProperty("questionId")
+        private String questionId; // Accept as String, parse to UUID in controller
 
-        public UUID getQuestionId() { return questionId; }
-        public void setQuestionId(UUID questionId) { this.questionId = questionId; }
+        public AddQuestionToQuizRequest() {} // Default constructor for JSON deserialization
+        
+        public String getQuestionId() { return questionId; }
+        public void setQuestionId(String questionId) { this.questionId = questionId; }
+        
+        public UUID getQuestionIdAsUUID() {
+            return questionId != null ? UUID.fromString(questionId) : null;
+        }
+        
+        @Override
+        public String toString() {
+            return "AddQuestionToQuizRequest{questionId=" + questionId + "}";
+        }
     }
 
     @DeleteMapping("/lessons/{lessonId}/questions/{questionId}")
@@ -372,6 +432,50 @@ public class QuizController {
             return ResponseEntity.ok(ApiResponse.success("Đã xóa quiz thành công", "Đã xóa quiz và tất cả câu hỏi"));
         } catch (RuntimeException e) {
             System.err.println("❌ Delete quiz failed: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @PutMapping("/{quizId}/settings")
+    @Operation(summary = "Cập nhật cấu hình quiz", description = "Giảng viên cập nhật settings của quiz")
+    public ResponseEntity<ApiResponse<Quiz>> updateQuizSettings(
+            @PathVariable UUID quizId,
+            @AuthenticationPrincipal User currentUser,
+            @RequestBody com.example.lms.dto.UpdateQuizSettingsRequest request
+    ) {
+        try {
+            Quiz quiz = quizService.updateQuizSettings(
+                    quizId,
+                    request.getTitle(),
+                    request.getTimeLimitMinutes(),
+                    request.getMaxAttempts(),
+                    request.getPassingScore(),
+                    request.getShuffleQuestions(),
+                    request.getShuffleOptions(),
+                    request.getShowResultsImmediately(),
+                    request.getShowCorrectAnswers()
+            );
+            return ResponseEntity.ok(ApiResponse.success(quiz));
+        } catch (RuntimeException e) {
+            System.err.println("❌ Update quiz settings failed: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/admin/cleanup-duplicates")
+    @Operation(summary = "Cleanup duplicate quizzes", description = "Admin endpoint to clean up duplicate quizzes for the same lesson")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> cleanupDuplicateQuizzes(
+            @AuthenticationPrincipal User currentUser
+    ) {
+        try {
+            System.out.println("🧹 Cleanup duplicate quizzes requested by user: " + currentUser.getId());
+            Map<String, Object> result = quizService.cleanupDuplicateQuizzes();
+            System.out.println("✅ Cleanup completed: " + result);
+            return ResponseEntity.ok(ApiResponse.success(result, "Cleanup completed"));
+        } catch (RuntimeException e) {
+            System.err.println("❌ Cleanup duplicate quizzes failed: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }

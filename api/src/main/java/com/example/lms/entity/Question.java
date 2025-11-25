@@ -45,11 +45,18 @@ public class Question {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private User createdBy;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "course_id")
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private Course course;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "package_id")
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private Package packageEntity;
 
     @Column(name = "usage_count", nullable = false)
     @Builder.Default
@@ -71,6 +78,17 @@ public class Question {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private Instant updatedAt;
+
+    // ============ DOMAIN METHODS ============
+
+    /**
+     * Check if this question belongs to a specific course
+     * @param courseId the course ID to check
+     * @return true if question belongs to the course
+     */
+    public boolean belongsToCourse(UUID courseId) {
+        return this.course != null && this.course.getId().equals(courseId);
+    }
 
     public enum Difficulty {
         EASY, MEDIUM, HARD

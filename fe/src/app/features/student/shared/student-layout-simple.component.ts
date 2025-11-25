@@ -13,7 +13,7 @@ import { UserRole } from '../../../shared/types/user.types';
   encapsulation: ViewEncapsulation.None,
   template: `
     <!-- Modern gradient background -->
-    <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50 flex flex-col">
+    <div class="min-h-screen flex flex-col">
       <!-- Desktop Sidebar - Full Height -->
       <div class="hidden md:flex md:w-72 md:flex-col md:fixed md:inset-y-0 md:z-40"
            *ngIf="!shouldHideSidebar()">
@@ -86,9 +86,7 @@ import { UserRole } from '../../../shared/types/user.types';
 
         <!-- Page content with modern spacing -->
         <main class="flex-1 overflow-auto bg-transparent">
-          <div class="py-6 px-4 sm:px-6 lg:px-8">
-            <router-outlet></router-outlet>
-          </div>
+          <router-outlet></router-outlet>
         </main>
 
         <!-- Mobile Bottom Navigation Bar - Like Udemy/Coursera -->
@@ -108,8 +106,8 @@ import { UserRole } from '../../../shared/types/user.types';
               <span class="text-xs font-medium">Dashboard</span>
             </a>
 
-            <!-- Courses -->
-            <a routerLink="/student/courses"
+            <!-- My Courses -->
+            <a routerLink="/student/my-courses"
                routerLinkActive="text-emerald-600"
                class="flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 min-w-0 flex-1">
               <div class="w-6 h-6 mb-1">
@@ -207,15 +205,17 @@ export class StudentLayoutSimpleComponent implements OnInit, OnDestroy {
 
   private handleRouteChange(url: string) {
     const isInLearningInterface = url.includes('/student/learn/course/');
+    const isInCourseDetail = url.match(/\/student\/course\/[^\/]+$/); // Match /student/course/:id but not /student/courses
+    const shouldHide = isInLearningInterface || isInCourseDetail;
     const isCurrentlyHidden = this.sidebarHidden();
 
-    // Auto-hide sidebar when entering learning interface
-    if (isInLearningInterface && !isCurrentlyHidden) {
+    // Auto-hide sidebar when entering learning interface or course detail
+    if (shouldHide && !isCurrentlyHidden) {
       this.sidebarHidden.set(true);
       this.saveSidebarState(true);
     }
-    // Auto-show sidebar when leaving learning interface
-    else if (!isInLearningInterface && isCurrentlyHidden) {
+    // Auto-show sidebar when leaving learning interface and course detail
+    else if (!shouldHide && isCurrentlyHidden) {
       this.sidebarHidden.set(false);
       this.saveSidebarState(false);
     }

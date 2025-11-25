@@ -56,4 +56,53 @@ public interface CourseRepository extends JpaRepository<Course, UUID> {
     long countByTeacherAndStatusIn(User teacher, List<Course.CourseStatus> statuses);
     
     long countByCreatedAtAfter(Instant createdAt);
+    
+    /**
+     * Find all enrolled students in a course with pagination
+     */
+    @Query("SELECT es FROM Course c JOIN c.enrolledStudents es WHERE c.id = :courseId ORDER BY es.fullName ASC")
+    Page<User> findEnrolledStudents(@Param("courseId") UUID courseId, Pageable pageable);
+    
+    /**
+     * Find enrolled students by search term (fullName or email)
+     */
+    @Query("SELECT es FROM Course c JOIN c.enrolledStudents es WHERE c.id = :courseId AND (LOWER(es.fullName) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(es.email) LIKE LOWER(CONCAT('%', :search, '%'))) ORDER BY es.fullName ASC")
+    Page<User> searchEnrolledStudents(@Param("courseId") UUID courseId, @Param("search") String search, Pageable pageable);
+
+    /**
+     * Check if a student is enrolled in a course
+     */
+    @Query("SELECT CASE WHEN COUNT(es) > 0 THEN true ELSE false END FROM Course c JOIN c.enrolledStudents es WHERE c.id = :courseId AND es.id = :studentId")
+    boolean existsByEnrolledStudentAndCourse(@Param("studentId") UUID studentId, @Param("courseId") UUID courseId);
+    
+    /**
+     * Find course by ID with sections and lessons (eager loading for progress calculation)
+     */
+    @Query("SELECT DISTINCT c FROM Course c " +
+           "LEFT JOIN FETCH c.sections s " +
+           "LEFT JOIN FETCH s.lessons l " +
+           "WHERE c.id = :courseId")
+    Optional<Course> findByIdWithSectionsAndLessons(@Param("courseId") UUID courseId);
+    
+    /**
+     * Check if student is enrolled in any of teacher's courses
+     */
+    @Query("SELECT CASE WHEN COUNT(c) > 0 THEN true ELSE false END " +
+           "FROM Course c " +
+           "JOIN c.enrolledStudents s " +
+           "WHERE c.teacher.id = :teacherId " +
+           "AND s.id = :studentId")
+    boolean existsStudentInTeacherCourses(
+        @Param("teacherId") UUID teacherId, 
+        @Param("studentId") UUID studentId
+    );
+    
+    /**
+     * Find specific course by teacher ID and course ID
+     */
+    @Query("SELECT c FROM Course c WHERE c.teacher.id = :teacherId AND c.id = :courseId")
+    Optional<Course> findByTeacherIdAndCourseId(
+        @Param("teacherId") UUID teacherId,
+        @Param("courseId") UUID courseId
+    );
 }

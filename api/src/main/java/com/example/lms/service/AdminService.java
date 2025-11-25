@@ -71,7 +71,7 @@ public class AdminService {
         return courseRepository.findByStatus(Course.CourseStatus.PENDING, pageable);
     }
 
-    public Course reviewCourse(UUID courseId, com.example.lms.controller.AdminController.ReviewCourseRequest request) {
+    public Course reviewCourse(UUID courseId, com.example.lms.controller.AdminController.ReviewCourseRequest request, User reviewer) {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học với ID: " + courseId));
         
@@ -85,8 +85,10 @@ public class AdminService {
             course.setStatus(Course.CourseStatus.REJECTED);
         }
 
-        // Note: Course entity doesn't have reviewComment and reviewedAt fields yet
-        // These would need to be added to the Course entity
+        // Set review information
+        course.setReviewComment(request.getComment());
+        course.setReviewedAt(Instant.now());
+        course.setReviewedBy(reviewer);
         
         return courseRepository.save(course);
     }
@@ -174,7 +176,8 @@ public class AdminService {
         com.example.lms.controller.AdminController.ReviewCourseRequest request = 
             new com.example.lms.controller.AdminController.ReviewCourseRequest();
         request.setApproved(true);
-        reviewCourse(courseId, request);
+        request.setComment("Khóa học đã được duyệt");
+        reviewCourse(courseId, request, currentUser);
     }
 
     public void rejectCourse(UUID courseId, User currentUser, com.example.lms.controller.AdminController.RejectCourseRequest request) {
@@ -182,7 +185,7 @@ public class AdminService {
             new com.example.lms.controller.AdminController.ReviewCourseRequest();
         reviewRequest.setApproved(false);
         reviewRequest.setComment(request.getReason());
-        reviewCourse(courseId, reviewRequest);
+        reviewCourse(courseId, reviewRequest, currentUser);
     }
 
     public Map<String, Object> getSystemAnalytics() {

@@ -3,6 +3,8 @@ package com.example.lms.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -13,6 +15,7 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class QuizQuestion {
 
     @Id
@@ -21,6 +24,7 @@ public class QuizQuestion {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "quiz_id", nullable = false)
+    @JsonIgnore
     private Quiz quiz;
 
     @ManyToOne(fetch = FetchType.LAZY)

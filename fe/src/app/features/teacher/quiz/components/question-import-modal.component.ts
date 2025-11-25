@@ -1,0 +1,279 @@
+import { Component, EventEmitter, Input, Output, signal, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { QuestionApi, QuestionImportResult } from '../../../../api/endpoints/question.api';
+import { firstValueFrom } from 'rxjs';
+
+@Component({
+  selector: 'app-question-import-modal',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  template: `
+    <div *ngIf="isOpen()" class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
+      <!-- Backdrop -->
+      <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" (click)="close()"></div>
+
+      <!-- Modal Container -->
+      <div class="flex items-center justify-center min-h-screen p-4">
+        <!-- Modal Content -->
+        <div class="relative z-10 bg-white rounded-xl text-left overflow-hidden shadow-xl transform transition-all w-full max-w-2xl">
+          <!-- Header -->
+          <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
+            <div class="flex items-center justify-between">
+              <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                </svg>
+                Import câu hỏi từ file
+              </h3>
+              <button (click)="close()" class="text-white hover:text-gray-200">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Body -->
+          <div class="p-6 space-y-6">
+            <!-- File Type Selection -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-3">Loại file</label>
+              <div class="flex gap-4">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="fileType" value="excel" [(ngModel)]="fileType" 
+                         class="w-4 h-4 text-blue-600">
+                  <span class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-green-600" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M12.9,14.5L15.8,19H14L12,15.6L10,19H8.2L11.1,14.5L8.2,10H10L12,13.4L14,10H15.8L12.9,14.5Z"/>
+                    </svg>
+                    Excel (.xlsx)
+                  </span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer opacity-50">
+                  <input type="radio" name="fileType" value="word" [(ngModel)]="fileType" disabled
+                         class="w-4 h-4 text-blue-600">
+                  <span class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-blue-600" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M9.5,11.5L11,17H12L13.5,11.5H15L12.75,19H11.25L9,11.5H9.5Z"/>
+                    </svg>
+                    Word (.docx) - Sắp có
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Difficulty Selection -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Độ khó mặc định</label>
+              <select [(ngModel)]="difficulty" 
+                      class="w-full border-2 border-gray-300 rounded-lg px-4 py-2.5 focus:border-blue-500 focus:outline-none">
+                <option value="EASY">🟢 Dễ</option>
+                <option value="MEDIUM">🟡 Trung bình</option>
+                <option value="HARD">🔴 Khó</option>
+              </select>
+              <p class="mt-1 text-sm text-gray-500">Tất cả câu hỏi import sẽ có độ khó này</p>
+            </div>
+
+            <!-- File Upload -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Chọn file</label>
+              <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors"
+                   [class.border-blue-500]="selectedFile"
+                   [class.bg-blue-50]="selectedFile">
+                <input type="file" #fileInput (change)="onFileSelected($event)" 
+                       accept=".xlsx,.xls" class="hidden">
+                
+                <div *ngIf="!selectedFile" (click)="fileInput.click()" class="cursor-pointer">
+                  <svg class="w-12 h-12 mx-auto text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                  </svg>
+                  <p class="text-gray-600 mb-1">Click để chọn file hoặc kéo thả vào đây</p>
+                  <p class="text-sm text-gray-400">Hỗ trợ: .xlsx, .xls</p>
+                </div>
+                
+                <div *ngIf="selectedFile" class="flex items-center justify-center gap-3">
+                  <svg class="w-8 h-8 text-green-600" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M12.9,14.5L15.8,19H14L12,15.6L10,19H8.2L11.1,14.5L8.2,10H10L12,13.4L14,10H15.8L12.9,14.5Z"/>
+                  </svg>
+                  <div class="text-left">
+                    <p class="font-medium text-gray-900">{{ selectedFile.name }}</p>
+                    <p class="text-sm text-gray-500">{{ formatFileSize(selectedFile.size) }}</p>
+                  </div>
+                  <button (click)="clearFile(); $event.stopPropagation()" 
+                          class="ml-2 p-1 text-gray-400 hover:text-red-500">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Template Download -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-blue-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                </svg>
+                <div class="flex-1">
+                  <h4 class="font-medium text-blue-900 mb-1">Định dạng file Excel</h4>
+                  <p class="text-sm text-blue-700 mb-2">File cần có các cột theo thứ tự:</p>
+                  <div class="bg-white rounded p-2 text-xs font-mono text-gray-700 overflow-x-auto">
+                    Câu hỏi | Đáp án A | Đáp án B | Đáp án C | Đáp án D | Đáp án đúng
+                  </div>
+                  <p class="text-xs text-blue-600 mt-2">* Đáp án đúng: A, B, C hoặc D</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Import Result -->
+            <div *ngIf="importResult()" class="rounded-lg p-4"
+                 [class.bg-green-50]="importResult()!.successCount > 0 && importResult()!.failedCount === 0"
+                 [class.border-green-200]="importResult()!.successCount > 0 && importResult()!.failedCount === 0"
+                 [class.bg-yellow-50]="importResult()!.failedCount > 0"
+                 [class.border-yellow-200]="importResult()!.failedCount > 0"
+                 [class.border]="true">
+              <div class="flex items-start gap-3">
+                <svg *ngIf="importResult()!.failedCount === 0" class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                </svg>
+                <svg *ngIf="importResult()!.failedCount > 0" class="w-5 h-5 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                </svg>
+                <div class="flex-1">
+                  <h4 class="font-medium" 
+                      [class.text-green-900]="importResult()!.failedCount === 0"
+                      [class.text-yellow-900]="importResult()!.failedCount > 0">
+                    {{ importResult()!.message }}
+                  </h4>
+                  <div class="mt-2 flex gap-4 text-sm">
+                    <span class="text-green-700">✅ {{ importResult()!.successCount }} thành công</span>
+                    <span *ngIf="importResult()!.failedCount > 0" class="text-red-700">❌ {{ importResult()!.failedCount }} thất bại</span>
+                  </div>
+                  <div *ngIf="importResult()!.errors.length > 0" class="mt-2 text-sm text-red-700">
+                    <p class="font-medium mb-1">Lỗi:</p>
+                    <ul class="list-disc list-inside space-y-1 max-h-32 overflow-y-auto">
+                      <li *ngFor="let error of importResult()!.errors">{{ error }}</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Error Message -->
+            <div *ngIf="errorMessage()" class="bg-red-50 border border-red-200 rounded-lg p-4">
+              <div class="flex items-center gap-2 text-red-700">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                </svg>
+                <span>{{ errorMessage() }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div class="bg-gray-50 px-6 py-4 flex items-center justify-end gap-3">
+            <button (click)="close()" type="button"
+                    class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors">
+              {{ importResult() ? 'Đóng' : 'Hủy' }}
+            </button>
+            <button *ngIf="!importResult()" (click)="import()" type="button" 
+                    [disabled]="isImporting() || !selectedFile"
+                    class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2">
+              <svg *ngIf="isImporting()" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span>{{ isImporting() ? 'Đang import...' : 'Import' }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `
+})
+export class QuestionImportModalComponent {
+  private questionApi = inject(QuestionApi);
+
+  @Input() packageId: string | null = null;
+  @Output() imported = new EventEmitter<QuestionImportResult>();
+  @Output() closed = new EventEmitter<void>();
+
+  isOpen = signal(false);
+  isImporting = signal(false);
+  errorMessage = signal<string | null>(null);
+  importResult = signal<QuestionImportResult | null>(null);
+
+  fileType = 'excel';
+  difficulty: 'EASY' | 'MEDIUM' | 'HARD' = 'MEDIUM';
+  selectedFile: File | null = null;
+
+  open() {
+    this.isOpen.set(true);
+    this.reset();
+  }
+
+  close() {
+    this.isOpen.set(false);
+    this.closed.emit();
+  }
+
+  reset() {
+    this.selectedFile = null;
+    this.errorMessage.set(null);
+    this.importResult.set(null);
+    this.difficulty = 'MEDIUM';
+  }
+
+  onFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      this.selectedFile = input.files[0];
+      this.errorMessage.set(null);
+    }
+  }
+
+  clearFile() {
+    this.selectedFile = null;
+  }
+
+  formatFileSize(bytes: number): string {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  async import() {
+    if (!this.selectedFile || !this.packageId) {
+      this.errorMessage.set('Vui lòng chọn file và gói câu hỏi');
+      return;
+    }
+
+    this.isImporting.set(true);
+    this.errorMessage.set(null);
+
+    try {
+      console.log('📥 Starting import...');
+      console.log('   - File:', this.selectedFile.name);
+      console.log('   - Package:', this.packageId);
+      console.log('   - Difficulty:', this.difficulty);
+
+      const result = await firstValueFrom(
+        this.questionApi.importFromExcel(this.selectedFile, this.packageId, this.difficulty)
+      );
+
+      console.log('✅ Import result:', result);
+      this.importResult.set(result);
+      
+      if (result.successCount > 0) {
+        this.imported.emit(result);
+      }
+    } catch (error: any) {
+      console.error('❌ Import failed:', error);
+      this.errorMessage.set(error.message || 'Import thất bại. Vui lòng thử lại.');
+    } finally {
+      this.isImporting.set(false);
+    }
+  }
+}

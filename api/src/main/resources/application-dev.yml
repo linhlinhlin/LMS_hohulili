@@ -3,9 +3,22 @@ spring:
     activate:
       on-profile: dev
   datasource:
-    url: jdbc:postgresql://localhost:5432/lms
-    username: lms
-    password: lms
+    # DB online
+    url: jdbc:postgresql://aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres
+    username: postgres.rljldvpboqapokzecfff
+    password: ho_hu_li_li_
+    driver-class-name: org.postgresql.Driver
+
+    # DB local: 
+    # url: jdbc:postgresql://localhost:5432/lms
+    # username: lms
+    # password: lms
+
+    hikari:
+      maximum-pool-size: 2
+      minimum-idle: 1
+      connection-timeout: 20000
+      idle-timeout: 300000
   jpa:
     hibernate:
       ddl-auto: update
@@ -16,7 +29,6 @@ spring:
     open-in-view: true
   flyway:
     enabled: true
-    locations: classpath:db/migration
 
 server:
   port: 8088

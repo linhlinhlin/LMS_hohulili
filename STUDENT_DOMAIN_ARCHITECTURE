@@ -1,0 +1,799 @@
+# STUDENT_DOMAIN_ARCHITECTURE_DOCUMENTATION.md
+
+# Student Domain Architecture Documentation
+*Maritime LMS - Domain-Driven Design Implementation Guide*
+
+## Table of Contents
+1. [Domain Overview](#domain-overview)
+2. [Aggregate Roots](#aggregate-roots)
+3. [Entities](#entities)
+4. [Value Objects](#value-objects)
+5. [Domain Services](#domain-services)
+6. [Repository Interfaces](#repository-interfaces)
+7. [Business Rules](#business-rules)
+8. [API Endpoints](#api-endpoints)
+9. [Database Schema](#database-schema)
+10. [Implementation Examples](#implementation-examples)
+
+---
+
+## 1. Domain Overview
+
+### 1.1 Domain Context
+The Student domain manages all aspects related to student learning within the maritime LMS system, including:
+- Student enrollment in courses
+- Learning progress tracking
+- Lesson completion management
+- Course progression logic
+
+### 1.2 Bounded Context
+**Student Learning Context** - Focuses on the student's learning journey and progress tracking.
+
+### 1.3 Ubiquitous Language
+
+**Core Terms:**
+- **Student** - Maritime learner enrolled in courses
+- **Course** - Maritime training program with structured content
+- **Lesson** - Individual learning unit within a course
+- **Progress** - Student's advancement through course content
+- **Enrollment** - Student's registration in a course
+- **Completion** - Achievement of learning objectives
+
+---
+
+## 2. Aggregate Roots
+
+### 2.1 Student Aggregate Root
+
+```java
+/**
+ * Aggregate Root: Student
+ * Manages student identity, enrollment, and learning state
+ */
+@Entity
+@Table(name = "students")
+@DiscriminatorColumn(name = "student_type")
+public class Student {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+    
+    @Column(nullable = false)
+    private String username;
+    
+    @Column(nullable = false)
+    private String email;
+    
+    @Column(nullable = false)
+    private String fullName;
+    
+    @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<Enrollment> enrollments = new HashSet<>();
+    
+    @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<LearningProgress> learningProgress = new HashSet<>();
+    
+    // Domain Methods
+    public void enrollIn(Course course) {
+        // Business logic for enrollment
+    }
+    
+    public boolean isEnrolledIn(UUID courseId) {
+        // Check enrollment status
+    }
+    
+    public LessonProgress getLessonProgress(UUID lessonId) {
+        // Get specific lesson progress
+    }
+    
+    public CourseProgress getCourseProgress(UUID courseId) {
+        // Calculate course progress
+    }
+}
+```
+
+### 2.2 Course Aggregate Root
+
+```java
+/**
+ * Aggregate Root: Course
+ * Manages course structure, content, and completion criteria
+ */
+@Entity
+@Table(name = "courses")
+public class Course {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+    
+    @Column(unique = true, nullable = false)
+    private CourseCode code;
+    
+    @Column(nullable = false)
+    private String title;
+    
+    @Column(columnDefinition = "TEXT")
+    private String description;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "teacher_id")
+    private Teacher teacher;
+    
+    @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<Section> sections = new HashSet<>();
+    
+    @OneToMany(mappedBy = "course")
+    private Set<Enrollment> enrollments = new HashSet<>();
+    
+    // Domain Methods
+    public boolean hasLesson(UUID lessonId) {
+        // Check if course contains specific lesson
+    }
+    
+    public List<Lesson> getOrderedLessons() {
+        // Get lessons in proper sequence
+    }
+    
+    public boolean isCompletedBy(Student student) {
+        // Check if student has completed all requirements
+    }
+}
+```
+
+### 2.3 Learning Progress Aggregate Root
+
+```java
+/**
+ * Aggregate Root: Learning Progress
+ * Manages student's learning state across courses and lessons
+ */
+@Entity
+@Table(name = "learning_progress")
+public class LearningProgress {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "student_id")
+    private Student student;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "course_id")
+    private Course course;
+    
+    @Enumerated(EnumType.STRING)
+    private ProgressStatus status;
+    
+    @Column(name = "completion_percentage")
+    private ProgressPercentage completionPercentage;
+    
+    @OneToMany(mappedBy = "progress", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<LessonProgress> lessonProgress = new HashSet<>();
+    
+    @Column(name = "started_at")
+    private Instant startedAt;
+    
+    @Column(name = "completed_at")
+    private Instant completedAt;
+    
+    // Domain Methods
+    public void markLessonComplete(UUID lessonId) {
+        // Update lesson completion status
+    }
+    
+    public ProgressPercentage calculateCompletion() {
+        // Calculate overall progress percentage
+    }
+    
+    public boolean isCompleted() {
+        // Check if all lessons are completed
+    }
+}
+```
+
+---
+
+## 3. Entities
+
+### 3.1 Enrollment Entity
+
+```java
+/**
+ * Entity: Enrollment
+ * Represents student's registration in a course
+ */
+@Entity
+@Table(name = "enrollments")
+public class Enrollment {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "student_id")
+    private Student student;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "course_id")
+    private Course course;
+    
+    @Enumerated(EnumType.STRING)
+    private EnrollmentStatus status;
+    
+    @Column(name = "enrolled_at")
+    private Instant enrolledAt;
+    
+    @Column(name = "completed_at")
+    private Instant completedAt;
+    
+    @Column(name = "certificate_issued_at")
+    private Instant certificateIssuedAt;
+    
+    // Domain Methods
+    public void activate() {
+        this.status = EnrollmentStatus.ACTIVE;
+    }
+    
+    public void complete() {
+        this.status = EnrollmentStatus.COMPLETED;
+        this.completedAt = Instant.now();
+    }
+    
+    public void issueCertificate() {
+        this.certificateIssuedAt = Instant.now();
+    }
+    
+    public enum EnrollmentStatus {
+        PENDING,    // Awaiting approval
+        ACTIVE,     // Currently enrolled
+        SUSPENDED,  // Temporarily suspended
+        COMPLETED,  // Successfully completed
+        CANCELLED   // Enrollment cancelled
+    }
+}
+```
+
+### 3.2 Lesson Progress Entity
+
+```java
+/**
+ * Entity: Lesson Progress
+ * Tracks individual lesson completion for a student
+ */
+@Entity
+@Table(name = "lesson_progress")
+public class LessonProgress {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "student_id")
+    private Student student;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lesson_id")
+    private Lesson lesson;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "learning_progress_id")
+    private LearningProgress progress;
+    
+    @Enumerated(EnumType.STRING)
+    private LessonStatus status;
+    
+    @Column(name = "started_at")
+    private Instant startedAt;
+    
+    @Column(name = "completed_at")
+    private Instant completedAt;
+    
+    @Column(name = "time_spent_minutes")
+    private TimeSpent timeSpentMinutes;
+    
+    @Column(name = "score")
+    private Score score;
+    
+    // Domain Methods
+    public void start() {
+        this.status = LessonStatus.IN_PROGRESS;
+        this.startedAt = Instant.now();
+    }
+    
+    public void complete() {
+        this.status = LessonStatus.COMPLETED;
+        this.completedAt = Instant.now();
+    }
+    
+    public boolean isCompleted() {
+        return this.status == LessonStatus.COMPLETED;
+    }
+    
+    public enum LessonStatus {
+        NOT_STARTED,  // Lesson not yet started
+        IN_PROGRESS,  // Currently studying
+        COMPLETED,    // Successfully completed
+        SKIPPED       // Intentionally skipped
+    }
+}
+```
+
+---
+
+## 4. Value Objects
+
+### 4.1 Course Code
+
+```java
+/**
+ * Value Object: Course Code
+ * Ensures course codes follow maritime standards
+ */
+@Embeddable
+@EqualsAndHashCode
+public class CourseCode {
+    @Column(name = "code", length = 20)
+    private final String value;
+    
+    private CourseCode(String value) {
+        validate(value);
+        this.value = value.toUpperCase();
+    }
+    
+    public static CourseCode of(String code) {
+        return new CourseCode(code);
+    }
+    
+    private void validate(String code) {
+        if (code == null || code.trim().isEmpty()) {
+            throw new IllegalArgumentException("Course code cannot be empty");
+        }
+        if (code.length() > 20) {
+            throw new IllegalArgumentException("Course code cannot exceed 20 characters");
+        }
+        if (!code.matches("^[A-Z0-9-]+$")) {
+            throw new IllegalArgumentException("Course code must contain only uppercase letters, numbers, and hyphens");
+        }
+    }
+    
+    @Override
+    public String toString() {
+        return value;
+    }
+}
+```
+
+### 4.2 Progress Percentage
+
+```java
+/**
+ * Value Object: Progress Percentage
+ * Ensures progress values are within valid range
+ */
+@Embeddable
+@EqualsAndHashCode
+public class ProgressPercentage {
+    @Column(name = "progress_percentage")
+    private final BigDecimal value;
+    
+    private ProgressPercentage(BigDecimal value) {
+        validate(value);
+        this.value = value.setScale(2, RoundingMode.HALF_UP);
+    }
+    
+    public static ProgressPercentage of(BigDecimal value) {
+        return new ProgressPercentage(value);
+    }
+    
+    public static ProgressPercentage zero() {
+        return new ProgressPercentage(BigDecimal.ZERO);
+    }
+    
+    public static ProgressPercentage hundred() {
+        return new ProgressPercentage(BigDecimal.valueOf(100));
+    }
+    
+    private void validate(BigDecimal value) {
+        if (value == null) {
+            throw new IllegalArgumentException("Progress percentage cannot be null");
+        }
+        if (value.compareTo(BigDecimal.ZERO) < 0 || value.compareTo(BigDecimal.valueOf(100)) > 0) {
+            throw new IllegalArgumentException("Progress percentage must be between 0 and 100");
+        }
+    }
+    
+    public boolean isCompleted() {
+        return this.value.compareTo(BigDecimal.valueOf(100)) >= 0;
+    }
+    
+    public boolean isInProgress() {
+        return this.value.compareTo(BigDecimal.ZERO) > 0 && 
+               this.value.compareTo(BigDecimal.valueOf(100)) < 0;
+    }
+    
+    @Override
+    public String toString() {
+        return value.toString() + "%";
+    }
+}
+```
+
+---
+
+## 5. Domain Services
+
+### 5.1 Student Enrollment Service
+
+```java
+/**
+ * Domain Service: Student Enrollment
+ * Handles cross-aggregate business rules for enrollment
+ */
+@Service
+@Transactional(readOnly = true)
+public class StudentEnrollmentDomainService {
+    
+    /**
+     * Enrolls a student in a course
+     * Validates business rules across Student and Course aggregates
+     */
+    public Enrollment enrollStudent(Student student, Course course) {
+        // Business Rules Validation
+        validateEnrollmentPrerequisites(student, course);
+        validateCapacityLimits(course);
+        validateScheduleConflicts(student, course);
+        
+        // Create enrollment
+        Enrollment enrollment = Enrollment.builder()
+                .student(student)
+                .course(course)
+                .status(EnrollmentStatus.ACTIVE)
+                .enrolledAt(Instant.now())
+                .build();
+        
+        // Update aggregates
+        student.addEnrollment(enrollment);
+        course.addEnrollment(enrollment);
+        
+        return enrollment;
+    }
+    
+    /**
+     * Checks if student can enroll in course
+     */
+    public boolean canEnroll(Student student, Course course) {
+        return !student.isEnrolledIn(course.getId()) &&
+               course.hasCapacity() &&
+               course.isAvailableForEnrollment() &&
+               validatePrerequisites(student, course);
+    }
+    
+    /**
+     * Calculates enrollment deadline for course
+     */
+    public Instant calculateEnrollmentDeadline(Course course) {
+        Instant courseStartDate = course.getStartDate();
+        Duration enrollmentWindow = Duration.ofDays(30); // 30 days before course
+        
+        return courseStartDate.minus(enrollmentWindow);
+    }
+    
+    private void validateEnrollmentPrerequisites(Student student, Course course) {
+        // Check if student meets prerequisites
+        List<Course> prerequisites = course.getPrerequisites();
+        for (Course prerequisite : prerequisites) {
+            if (!student.hasCompleted(prerequisite)) {
+                throw new BusinessRuleViolation(
+                    String.format("Student must complete prerequisite course: %s", prerequisite.getTitle())
+                );
+            }
+        }
+    }
+    
+    private void validateCapacityLimits(Course course) {
+        if (!course.hasCapacity()) {
+            throw new BusinessRuleViolation("Course has reached maximum capacity");
+        }
+    }
+    
+    private void validateScheduleConflicts(Student student, Course course) {
+        // Check for schedule conflicts with other enrolled courses
+        List<Enrollment> conflictingEnrollments = student.getEnrollments().stream()
+                .filter(enrollment -> enrollment.getStatus() == EnrollmentStatus.ACTIVE)
+                .filter(enrollment -> hasScheduleConflict(enrollment.getCourse(), course))
+                .collect(Collectors.toList());
+                
+        if (!conflictingEnrollments.isEmpty()) {
+            throw new BusinessRuleViolation("Schedule conflict detected with another enrolled course");
+        }
+    }
+    
+    private boolean hasScheduleConflict(Course course1, Course course2) {
+        // Implementation for schedule conflict detection
+        return false; // Simplified for example
+    }
+}
+```
+
+---
+
+## 6. Repository Interfaces
+
+### 6.1 Student Repository
+
+```java
+/**
+ * Repository: Student
+ * Data access for Student aggregate
+ */
+@Repository
+public interface StudentRepository extends JpaRepository<Student, UUID> {
+    
+    Optional<Student> findByEmail(Email email);
+    
+    Optional<Student> findByUsername(String username);
+    
+    @Query("SELECT s FROM Student s LEFT JOIN FETCH s.enrollments WHERE s.id = :id")
+    Optional<Student> findByIdWithEnrollments(@Param("id") UUID id);
+    
+    @Query("SELECT s FROM Student s LEFT JOIN FETCH s.learningProgress WHERE s.id = :id")
+    Optional<Student> findByIdWithLearningProgress(@Param("id") UUID id);
+    
+    @Query("SELECT s FROM Student s WHERE s.email IN :emails")
+    List<Student> findByEmails(@Param("emails") List<Email> emails);
+    
+    @Query("SELECT COUNT(s) FROM Student s WHERE s.createdAt >= :fromDate")
+    long countEnrolledSince(@Param("fromDate") Instant fromDate);
+    
+    @Query("SELECT s FROM Student s JOIN s.enrollments e WHERE e.course.id = :courseId")
+    List<Student> findEnrolledInCourse(@Param("courseId") UUID courseId);
+    
+    boolean existsByEmail(Email email);
+    
+    boolean existsByUsername(String username);
+}
+```
+
+### 6.2 Course Repository
+
+```java
+/**
+ * Repository: Course
+ * Data access for Course aggregate
+ */
+@Repository
+public interface CourseRepository extends JpaRepository<Course, UUID> {
+    
+    Optional<Course> findByCode(CourseCode code);
+    
+    @Query("SELECT c FROM Course c LEFT JOIN FETCH c.sections s LEFT JOIN FETCH s.lessons WHERE c.id = :id")
+    Optional<Course> findByIdWithContent(@Param("id") UUID id);
+    
+    @Query("SELECT c FROM Course c LEFT JOIN FETCH c.sections s LEFT JOIN FETCH s.lessons WHERE c.id = :id")
+    Optional<Course> findByIdWithSectionsAndLessons(@Param("id") UUID id);
+    
+    @Query("SELECT c FROM Course c WHERE c.status = :status")
+    List<Course> findByStatus(@Param("status") CourseStatus status);
+    
+    @Query("SELECT c FROM Course c WHERE c.teacher.id = :teacherId")
+    List<Course> findByTeacher(@Param("teacherId") UUID teacherId);
+    
+    @Query("SELECT c FROM Course c JOIN c.enrollments e WHERE e.student.id = :studentId")
+    List<Course> findEnrolledCourses(@Param("studentId") UUID studentId);
+    
+    @Query("SELECT COUNT(c) FROM Course c WHERE c.status = :status AND c.createdAt >= :fromDate")
+    long countByStatusAndCreatedAfter(@Param("status") CourseStatus status, @Param("fromDate") Instant fromDate);
+    
+    boolean existsByCode(CourseCode code);
+}
+```
+
+---
+
+## 7. Business Rules
+
+### 7.1 Enrollment Business Rules
+
+```java
+/**
+ * Business Rules: Enrollment
+ * Defines all enrollment-related business constraints
+ */
+public class EnrollmentBusinessRules {
+    
+    /**
+     * Rule: Student can only enroll in approved courses
+     */
+    public static void validateCourseStatus(Course course) {
+        if (course.getStatus() != CourseStatus.APPROVED) {
+            throw new BusinessRuleViolation("Can only enroll in approved courses");
+        }
+    }
+    
+    /**
+     * Rule: Student must meet course prerequisites
+     */
+    public static void validatePrerequisites(Student student, Course course) {
+        List<Course> prerequisites = course.getPrerequisites();
+        for (Course prerequisite : prerequisites) {
+            if (!student.hasCompleted(prerequisite)) {
+                throw new BusinessRuleViolation(
+                    String.format("Prerequisite course '%s' must be completed first", 
+                                prerequisite.getTitle())
+                );
+            }
+        }
+    }
+    
+    /**
+     * Rule: Course must have available capacity
+     */
+    public static void validateCapacity(Course course) {
+        int currentEnrollment = course.getActiveEnrollmentCount();
+        int maxCapacity = course.getMaxCapacity();
+        
+        if (currentEnrollment >= maxCapacity) {
+            throw new BusinessRuleViolation("Course has reached maximum capacity");
+        }
+    }
+    
+    /**
+     * Rule: Student cannot be enrolled in the same course twice
+     */
+    public static void validateDuplicateEnrollment(Student student, Course course) {
+        if (student.isEnrolledIn(course.getId())) {
+            throw new BusinessRuleViolation("Student is already enrolled in this course");
+        }
+    }
+    
+    /**
+     * Rule: Enrollment deadline must not have passed
+     */
+    public static void validateEnrollmentDeadline(Course course) {
+        Instant deadline = course.getEnrollmentDeadline();
+        if (deadline != null && Instant.now().isAfter(deadline)) {
+            throw new BusinessRuleViolation("Enrollment deadline has passed");
+        }
+    }
+}
+```
+
+---
+
+## 8. API Endpoints
+
+### 8.1 Student Progress Endpoints
+
+```java
+/**
+ * REST Controller: Student Progress
+ * Handles all student progress-related operations
+ */
+@RestController
+@RequestMapping("/api/v1/students/{studentId}/progress")
+@Tag(name = "Student Progress", description = "Student learning progress management")
+public class StudentProgressController {
+    
+    /**
+     * GET /api/v1/students/{studentId}/progress/courses/{courseId}
+     * Get comprehensive progress for a student in a specific course
+     */
+    @GetMapping("/courses/{courseId}")
+    @Operation(summary = "Get course progress", 
+               description = "Returns comprehensive progress information for a student in a course")
+    public ResponseEntity<ApiResponse<CourseProgressDto>> getCourseProgress(
+            @PathVariable UUID studentId,
+            @PathVariable UUID courseId) {
+        
+        CourseProgressDto progress = progressService.getCourseProgress(studentId, courseId);
+        return ResponseEntity.ok(ApiResponse.success(progress));
+    }
+    
+    /**
+     * GET /api/v1/students/{studentId}/progress/courses/{courseId}/next-lesson
+     * Get the next lesson a student should continue with
+     */
+    @GetMapping("/courses/{courseId}/next-lesson")
+    @Operation(summary = "Get next lesson", 
+               description = "Returns the next lesson the student should continue with")
+    public ResponseEntity<ApiResponse<NextLessonDto>> getNextLesson(
+            @PathVariable UUID studentId,
+            @PathVariable UUID courseId) {
+        
+        NextLessonDto nextLesson = progressService.getNextLesson(studentId, courseId);
+        return ResponseEntity.ok(ApiResponse.success(nextLesson));
+    }
+    
+    /**
+     * POST /api/v1/students/{studentId}/progress/lessons/{lessonId}/complete
+     * Mark a lesson as completed
+     */
+    @PostMapping("/lessons/{lessonId}/complete")
+    @Operation(summary = "Complete lesson", 
+               description = "Marks a lesson as completed for the student")
+    public ResponseEntity<ApiResponse<LessonProgressDto>> completeLesson(
+            @PathVariable UUID studentId,
+            @PathVariable UUID lessonId,
+            @RequestBody @Valid CompleteLessonRequest request) {
+        
+        LessonProgressDto progress = progressService.completeLesson(studentId, lessonId, request);
+        return ResponseEntity.ok(ApiResponse.success(progress, "Lesson completed successfully"));
+    }
+}
+```
+
+---
+
+## 9. Implementation Examples
+
+### 9.1 Student Enrollment Use Case
+
+```java
+/**
+ * Application Service: Enroll Student Use Case
+ * Orchestrates the enrollment process across multiple aggregates
+ */
+@Service
+@Transactional
+public class EnrollStudentUseCase {
+    
+    private final StudentRepository studentRepository;
+    private final CourseRepository courseRepository;
+    private final EnrollmentRepository enrollmentRepository;
+    private final StudentEnrollmentDomainService enrollmentService;
+    private final DomainEventPublisher eventPublisher;
+    
+    public EnrollmentDto execute(UUID studentId, UUID courseId) {
+        // Load aggregates
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new DomainException("Student not found"));
+        
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new DomainException("Course not found"));
+        
+        // Use domain service for business logic
+        Enrollment enrollment = enrollmentService.enrollStudent(student, course);
+        
+        // Persist changes
+        studentRepository.save(student);
+        courseRepository.save(course);
+        Enrollment savedEnrollment = enrollmentRepository.save(enrollment);
+        
+        // Publish domain event
+        eventPublisher.publish(new StudentEnrolledEvent(
+            studentId, courseId, Instant.now()
+        ));
+        
+        // Return DTO
+        return EnrollmentDto.from(savedEnrollment);
+    }
+}
+```
+
+---
+
+## Conclusion
+
+This documentation provides a comprehensive blueprint for implementing a robust Student domain following Domain-Driven Design principles. The architecture emphasizes:
+
+1. **Clear Aggregate Boundaries** - Separate aggregates for Student, Course, and Learning Progress
+2. **Rich Domain Models** - Entities with meaningful business behavior
+3. **Business Rule Enforcement** - Validation at the domain level
+4. **Event-Driven Architecture** - Domain events for cross-aggregate communication
+5. **Repository Pattern** - Clean data access abstractions
+6. **Application Services** - Use case orchestration
+
+This implementation will provide a solid foundation for the maritime LMS system, ensuring maintainability, scalability, and domain alignment while fixing the identified "continue learning" bug.
+
+**Next Steps:**
+1. Implement the bug fixes identified in the analysis report
+2. Apply DDD refactoring following this documentation
+3. Add comprehensive testing for all business rules
+4. Implement monitoring and observability
+5. Consider CQRS for read-optimized views
+
+---
+*Document Version: 1.0*  
+*Last Updated: 2025-11-16*  
+*Author: Backend Architecture Expert*

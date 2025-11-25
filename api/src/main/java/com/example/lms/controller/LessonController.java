@@ -1,12 +1,14 @@
 package com.example.lms.controller;
 
 import com.example.lms.dto.ApiResponse;
+import com.example.lms.dto.response.LessonProgressResponse;
 import com.example.lms.entity.Assignment;
 import com.example.lms.entity.Lesson;
 import com.example.lms.entity.LessonAssignment;
 import com.example.lms.entity.LessonAttachment;
 import com.example.lms.entity.User;
 import com.example.lms.service.AssignmentService;
+import com.example.lms.service.LessonProgressDomainService;
 import com.example.lms.service.LessonService;
 import java.util.List;
 import io.swagger.v3.oas.annotations.Operation;
@@ -33,6 +35,7 @@ public class LessonController {
 
     private final LessonService lessonService;
     private final AssignmentService assignmentService;
+    private final LessonProgressDomainService progressDomainService;
 
     @PostMapping("/{sectionId}/lessons")
     @Operation(summary = "Tạo bài học mới", description = "Giảng viên tạo bài học mới trong section")
@@ -104,7 +107,7 @@ public class LessonController {
     ) {
         try {
             Lesson lesson = lessonService.getLessonById(lessonId, currentUser);
-            LessonDetail lessonDetail = convertToLessonDetail(lesson);
+            LessonDetail lessonDetail = convertToLessonDetail(lesson, currentUser);
 
             return ResponseEntity.ok(ApiResponse.success(lessonDetail));
     } catch (RuntimeException e) {
@@ -177,7 +180,11 @@ public class LessonController {
 
     // Helper method
     private LessonDetail convertToLessonDetail(Lesson lesson) {
-        return LessonDetail.builder()
+        return convertToLessonDetail(lesson, null);
+    }
+
+    private LessonDetail convertToLessonDetail(Lesson lesson, User currentUser) {
+        LessonDetail.LessonDetailBuilder builder = LessonDetail.builder()
                 .id(lesson.getId())
                 .title(lesson.getTitle())
                 .description(lesson.getDescription())
@@ -195,8 +202,28 @@ public class LessonController {
                 .courseId(lesson.getSection().getCourse().getId())
                 .courseTitle(lesson.getSection().getCourse().getTitle())
                 .createdAt(lesson.getCreatedAt())
-                .updatedAt(lesson.getUpdatedAt())
-                .build();
+                .updatedAt(lesson.getUpdatedAt());
+
+        // Add progress information for students
+        if (currentUser != null && currentUser.getRole() == User.Role.STUDENT) {
+            try {
+                var progressOpt = progressDomainService.getLessonProgress(currentUser, lesson);
+                if (progressOpt.isPresent()) {
+                    var progress = progressOpt.get();
+                    builder.isCompleted(progress.isCompleted());
+                    builder.progressStatus(progress.getStatus().name());
+                } else {
+                    builder.isCompleted(false);
+                    builder.progressStatus("NOT_STARTED");
+                }
+            } catch (Exception e) {
+                // If progress lookup fails, default to not completed
+                builder.isCompleted(false);
+                builder.progressStatus("NOT_STARTED");
+            }
+        }
+
+        return builder.build();
     }
 
     private AttachmentDetail convertToAttachmentDetail(LessonAttachment attachment) {
@@ -230,6 +257,8 @@ public class LessonController {
         private String courseTitle;
         private Instant createdAt;
         private Instant updatedAt;
+        private boolean isCompleted;
+        private String progressStatus;
 
         public static LessonDetailBuilder builder() {
             return new LessonDetailBuilder();
@@ -251,6 +280,8 @@ public class LessonController {
             private String courseTitle;
             private Instant createdAt;
             private Instant updatedAt;
+            private boolean isCompleted;
+            private String progressStatus;
 
             public LessonDetailBuilder id(UUID id) { this.id = id; return this; }
             public LessonDetailBuilder title(String title) { this.title = title; return this; }
@@ -267,6 +298,8 @@ public class LessonController {
             public LessonDetailBuilder courseTitle(String courseTitle) { this.courseTitle = courseTitle; return this; }
             public LessonDetailBuilder createdAt(Instant createdAt) { this.createdAt = createdAt; return this; }
             public LessonDetailBuilder updatedAt(Instant updatedAt) { this.updatedAt = updatedAt; return this; }
+            public LessonDetailBuilder isCompleted(boolean isCompleted) { this.isCompleted = isCompleted; return this; }
+            public LessonDetailBuilder progressStatus(String progressStatus) { this.progressStatus = progressStatus; return this; }
 
             public LessonDetail build() {
                 LessonDetail lesson = new LessonDetail();
@@ -285,6 +318,8 @@ public class LessonController {
                 lesson.courseTitle = this.courseTitle;
                 lesson.createdAt = this.createdAt;
                 lesson.updatedAt = this.updatedAt;
+                lesson.isCompleted = this.isCompleted;
+                lesson.progressStatus = this.progressStatus;
                 return lesson;
             }
         }
@@ -305,6 +340,8 @@ public class LessonController {
         public Instant getCreatedAt() { return createdAt; }
         public Instant getUpdatedAt() { return updatedAt; }
         public List<AttachmentDetail> getAttachments() { return attachments; }
+        public boolean isCompleted() { return isCompleted; }
+        public String getProgressStatus() { return progressStatus; }
     }
 
     public static class AttachmentDetail {

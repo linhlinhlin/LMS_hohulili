@@ -30,7 +30,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "enrolledCourses"})
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "enrolledCourses", "authorities", "accountNonExpired", "accountNonLocked", "credentialsNonExpired"})
 public class User implements UserDetails {
     
     @Id
@@ -50,6 +50,7 @@ public class User implements UserDetails {
     @Column(nullable = false)
     @NotBlank(message = "Mật khẩu không được để trống")
     @Size(min = 6, message = "Mật khẩu phải có ít nhất 6 ký tự")
+    @JsonIgnore
     private String password;
     
     @Column(nullable = false)
@@ -95,7 +96,19 @@ public class User implements UserDetails {
     // UserDetails implementation
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
+        // Lấy tên role từ enum, ví dụ: STUDENT, TEACHER, ADMIN
+        String roleName = role != null ? role.name() : null;
+
+        if (roleName == null) {
+            // Không có role thì không có quyền nào
+            return List.of();
+        }
+
+        // Spring Security mong đợi format "ROLE_STUDENT" khi bạn dùng hasRole("STUDENT")
+        if (!roleName.startsWith("ROLE_")) {
+            roleName = "ROLE_" + roleName;
+        }
+        return List.of(new SimpleGrantedAuthority(roleName));
     }
     
     @Override

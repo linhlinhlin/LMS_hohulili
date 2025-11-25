@@ -2,9 +2,11 @@ package com.example.lms.controller;
 
 import com.example.lms.dto.ApiResponse;
 import com.example.lms.dto.QuestionDTO;
+import com.example.lms.dto.QuestionImportResultDTO;
 import com.example.lms.entity.Question;
 import com.example.lms.entity.User;
 import com.example.lms.service.QuestionService;
+import com.example.lms.service.QuestionImportService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -14,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
@@ -27,6 +30,7 @@ import java.util.stream.Collectors;
 public class QuestionController {
 
     private final QuestionService questionService;
+    private final QuestionImportService questionImportService;
 
     @PostMapping
     @PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
@@ -41,6 +45,7 @@ public class QuestionController {
             System.out.println("   - Username: " + currentUser.getUsername());
             System.out.println("   - Role: " + currentUser.getRole().name());
             System.out.println("   - Course ID: " + request.getCourseId());
+            System.out.println("   - Package ID: " + request.getPackageId());
             
             Question question = questionService.createQuestion(
                     currentUser,
@@ -49,7 +54,8 @@ public class QuestionController {
                     request.getOptions(),
                     request.getDifficulty(),
                     request.getTags(),
-                    request.getCourseId()  // Add courseId parameter
+                    request.getCourseId(),  // Add courseId parameter
+                    request.getPackageId()  // Add packageId parameter
             );
             System.out.println("✅ Question created successfully: " + question.getId());
             
@@ -309,6 +315,7 @@ public class QuestionController {
         private Question.Difficulty difficulty;
         private String tags;
         private UUID courseId;  // Add courseId field
+        private UUID packageId;  // Add packageId field
 
         // Getters and setters
         public String getContent() { return content; }
@@ -323,6 +330,8 @@ public class QuestionController {
         public void setTags(String tags) { this.tags = tags; }
         public UUID getCourseId() { return courseId; }
         public void setCourseId(UUID courseId) { this.courseId = courseId; }
+        public UUID getPackageId() { return packageId; }
+        public void setPackageId(UUID packageId) { this.packageId = packageId; }
     }
 
     public static class UpdateQuestionRequest {
@@ -346,5 +355,52 @@ public class QuestionController {
         public void setTags(String tags) { this.tags = tags; }
         public Question.Status getStatus() { return status; }
         public void setStatus(Question.Status status) { this.status = status; }
+    }
+
+    // ==================== IMPORT ENDPOINTS ====================
+
+    @PostMapping("/import/excel")
+    @PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
+    @Operation(summary = "Import câu hỏi từ file Excel", 
+               description = "Upload file Excel để import nhiều câu hỏi cùng lúc. Format: Câu hỏi | Đáp án A | Đáp án B | Đáp án C | Đáp án D | Đáp án đúng")
+    public ResponseEntity<ApiResponse<QuestionImportResultDTO>> importFromExcel(
+            @AuthenticationPrincipal User currentUser,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("packageId") UUID packageId,
+            @RequestParam(value = "difficulty", defaultValue = "MEDIUM") Question.Difficulty difficulty
+    ) {
+        try {
+            System.out.println("📥 Import Excel - User: " + currentUser.getUsername());
+            System.out.println("   - Package ID: " + packageId);
+            System.out.println("   - Difficulty: " + difficulty);
+            System.out.println("   - File: " + file.getOriginalFilename() + " (" + file.getSize() + " bytes)");
+            
+            // Validate file type
+            String filename = file.getOriginalFilename();
+            if (filename == null || (!filename.endsWith(".xlsx") && !filename.endsWith(".xls"))) {
+                return ResponseEntity.badRequest().body(
+                    ApiResponse.error("File phải có định dạng Excel (.xlsx hoặc .xls)")
+                );
+            }
+            
+            QuestionImportService.ImportResult result = 
+                questionImportService.importFromExcel(file, packageId, difficulty, currentUser);
+            
+            QuestionImportResultDTO dto = QuestionImportResultDTO.success(
+                result.successCount, 
+                result.failedCount, 
+                result.errors
+            );
+            
+            System.out.println("✅ Import completed: " + result.successCount + " success, " + result.failedCount + " failed");
+            
+            return ResponseEntity.ok(ApiResponse.success(dto));
+        } catch (Exception e) {
+            System.err.println("❌ Import failed: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(
+                ApiResponse.error("Import thất bại: " + e.getMessage())
+            );
+        }
     }
 }

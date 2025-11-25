@@ -68,8 +68,8 @@ import { SmartBreadcrumbsComponent } from "../navigation/smart-breadcrumbs.compo
           <div class="flex items-center space-x-4 bg-gray-50 rounded-xl p-2 hover:bg-gray-100 transition-colors duration-200 cursor-pointer group"
                (click)="toggleUserMenu()">
             <div class="relative">
-              <img [src]="currentUser()?.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face'" 
-                   [alt]="userName()" 
+              <img [src]="currentUser()?.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face'"
+                   [alt]="userName()"
                    class="w-10 h-10 rounded-xl object-cover border-2 border-blue-200 shadow-sm group-hover:scale-105 transition-transform duration-200">
               <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
             </div>
@@ -107,7 +107,7 @@ import { SmartBreadcrumbsComponent } from "../navigation/smart-breadcrumbs.compo
       <div class="absolute right-4 top-16 z-50 w-64 bg-white rounded-lg shadow-lg border border-gray-200">
         <div class="p-4 border-b border-gray-200">
           <div class="flex items-center space-x-3">
-            <img [src]="currentUser()?.avatar || '/assets/default-avatar.png'" 
+            <img [src]="currentUser()?.avatar || '/assets/default-avatar.png'"
                  [alt]="userName()"
                  class="w-10 h-10 rounded-full">
             <div>

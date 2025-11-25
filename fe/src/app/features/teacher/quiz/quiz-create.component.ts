@@ -1,384 +1,298 @@
+import { Component, signal, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
-import { Router, ActivatedRoute } from '@angular/router';
-import { QuizApi } from '../../../api/endpoints/quiz.api';
+import { FormsModule } from '@angular/forms';
+import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { QuestionApi, Question } from '../../../api/endpoints/question.api';
-import { CreateQuizRequest } from '../../../api/endpoints/quiz.api';
+import { QuizApi } from '../../../api/endpoints/quiz.api';
+import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-quiz-create',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   template: `
-    <div class="min-h-screen bg-gray-50 p-6">
-      <div class="max-w-4xl mx-auto">
-        <!-- Header -->
-        <div class="mb-8">
-          <h1 class="text-3xl font-bold text-gray-900 mb-2">Tạo Quiz Mới</h1>
-          <p class="text-gray-600">Tạo một bài quiz trắc nghiệm cho học sinh</p>
-        </div>
-
-        <!-- Loading State -->
-        <div *ngIf="isLoading" class="flex justify-center items-center py-12">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <span class="ml-2 text-gray-600">Đang tải...</span>
-        </div>
-
-        <!-- Quiz Creation Form -->
-        <form *ngIf="!isLoading" [formGroup]="quizForm" (ngSubmit)="onSubmit()" class="space-y-6">
-          <!-- Basic Information -->
-          <div class="bg-white rounded-lg shadow p-6">
-            <h2 class="text-xl font-semibold mb-4 text-gray-800">Thông tin cơ bản</h2>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <!-- Title -->
-              <div>
-                <label for="title" class="block text-sm font-medium text-gray-700 mb-2">
-                  Tiêu đề quiz *
-                </label>
-                <input
-                  id="title"
-                  type="text"
-                  formControlName="title"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Nhập tiêu đề quiz"
-                >
-                <div *ngIf="quizForm.get('title')?.invalid && quizForm.get('title')?.touched"
-                     class="text-red-500 text-sm mt-1">
-                  Tiêu đề là bắt buộc
-                </div>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    
+    <div class="relative flex h-auto min-h-screen w-full flex-col bg-gray-50">
+      <div class="flex h-full w-full">
+        <main class="flex-1 p-8 overflow-y-auto">
+          <div class="mx-auto max-w-6xl">
+            <div class="flex flex-wrap justify-between gap-3 mb-8">
+              <div class="flex flex-col gap-2">
+                <p class="text-gray-900 text-4xl font-black leading-tight tracking-tight">Tạo bài kiểm tra</p>
+                <p class="text-gray-600 text-base font-normal leading-normal">Tạo bài kiểm tra mới theo từng bước.</p>
               </div>
-  
-              <!-- Passing Score -->
-              <div>
-                <label for="passingScore" class="block text-sm font-medium text-gray-700 mb-2">
-                  Điểm đỗ (%)
-                </label>
-                <input
-                  id="passingScore"
-                  type="number"
-                  formControlName="passingScore"
-                  min="0"
-                  max="100"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="70"
-                >
-              </div>
-            </div>
-  
-            <!-- Description -->
-            <div class="mt-4">
-              <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
-                Mô tả
-              </label>
-              <textarea
-                id="description"
-                formControlName="description"
-                rows="3"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Mô tả chi tiết về quiz này"
-              ></textarea>
-            </div>
-  
-            <!-- Time Limit -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-              <div>
-                <label for="timeLimitMinutes" class="block text-sm font-medium text-gray-700 mb-2">
-                  Thời gian làm bài (phút)
-                </label>
-                <input
-                  id="timeLimitMinutes"
-                  type="number"
-                  formControlName="timeLimitMinutes"
-                  min="5"
-                  max="120"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="30"
-                >
-              </div>
-  
-              <div>
-                <label for="maxAttempts" class="block text-sm font-medium text-gray-700 mb-2">
-                  Số lần làm tối đa
-                </label>
-                <input
-                  id="maxAttempts"
-                  type="number"
-                  formControlName="maxAttempts"
-                  min="1"
-                  max="10"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="1"
-                >
-              </div>
-            </div>
-  
-            <!-- Quiz Settings -->
-            <div class="space-y-4 mt-4">
-              <div class="flex items-center">
-                <input
-                  id="showCorrectAnswers"
-                  type="checkbox"
-                  formControlName="showCorrectAnswers"
-                  class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                >
-                <label for="showCorrectAnswers" class="ml-2 block text-sm text-gray-700">
-                  Hiển thị đáp án đúng sau khi làm xong
-                </label>
-              </div>
-  
-              <div class="flex items-center">
-                <input
-                  id="shuffleQuestions"
-                  type="checkbox"
-                  formControlName="shuffleQuestions"
-                  class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                >
-                <label for="shuffleQuestions" class="ml-2 block text-sm text-gray-700">
-                  Xáo trộn thứ tự câu hỏi
-                </label>
-              </div>
-  
-              <div class="flex items-center">
-                <input
-                  id="shuffleOptions"
-                  type="checkbox"
-                  formControlName="shuffleOptions"
-                  class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                >
-                <label for="shuffleOptions" class="ml-2 block text-sm text-gray-700">
-                  Xáo trộn thứ tự đáp án
-                </label>
-              </div>
-  
-              <div class="flex items-center">
-                <input
-                  id="showResultsImmediately"
-                  type="checkbox"
-                  formControlName="showResultsImmediately"
-                  class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                >
-                <label for="showResultsImmediately" class="ml-2 block text-sm text-gray-700">
-                  Hiển thị kết quả ngay lập tức
-                </label>
-              </div>
-            </div>
-          </div>
-
-          <!-- Question Selection -->
-          <div class="bg-white rounded-lg shadow p-6">
-            <h2 class="text-xl font-semibold mb-4 text-gray-800">Chọn câu hỏi</h2>
-            
-            <!-- Search Questions -->
-            <div class="mb-4">
-              <input
-                type="text"
-                [(ngModel)]="questionSearchTerm"
-                (ngModelChange)="onQuestionSearch()"
-                placeholder="Tìm kiếm câu hỏi..."
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
             </div>
 
-            <!-- Questions List -->
-            <div class="space-y-2 max-h-96 overflow-y-auto">
-              <div *ngFor="let question of filteredQuestions" 
-                   class="flex items-center p-3 border rounded-lg hover:bg-gray-50"
-                   [class.border-blue-500]="isQuestionSelected(question.id)">
-                <input
-                  type="checkbox"
-                  [checked]="isQuestionSelected(question.id)"
-                  (change)="onQuestionToggle(question.id, $event)"
-                  class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mr-3"
-                >
-                <div class="flex-1">
-                  <div class="font-medium text-gray-800">{{ question.content }}</div>
-                  <div class="text-sm text-gray-500">
-                    {{ question.tags || 'No tags' }} - {{ getDifficultyText(question.difficulty) }}
+            <div class="flex border-b border-gray-200">
+              <a routerLink="/teacher/quiz/quiz-bank"
+                 class="px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent">
+                Ngân hàng câu hỏi
+              </a>
+              <a routerLink="/teacher/quiz/create"
+                 class="px-4 py-3 text-sm font-semibold border-b-2 border-blue-600 text-blue-600">
+                Tạo bài kiểm tra
+              </a>
+            </div>
+
+            <div class="bg-white p-8 rounded-xl border border-gray-200 shadow-sm">
+              <div class="space-y-6">
+                <!-- Progress Bar -->
+                <div class="flex flex-col gap-3 mb-8">
+                  <div class="flex gap-6 justify-between">
+                    <p class="text-gray-900 text-base font-medium leading-normal">Bước {{ currentStep() }} trên 3: {{ getStepTitle() }}</p>
+                  </div>
+                  <div class="rounded-full bg-gray-200">
+                    <div class="h-2 rounded-full bg-blue-600 transition-all duration-300" [style.width.%]="(currentStep() / 3) * 100"></div>
                   </div>
                 </div>
-                <div class="text-xs text-gray-400">
-                  {{ question.usageCount || 0 }} lần sử dụng
+
+                <!-- Step 1: General Info -->
+                <div *ngIf="currentStep() === 1" class="space-y-6">
+                  <h2 class="text-xl font-bold text-gray-900">Thông tin chung</h2>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <label class="flex flex-col col-span-2">
+                      <p class="text-gray-900 text-base font-medium leading-normal pb-2">Tên bài kiểm tra</p>
+                      <input [(ngModel)]="quizForm.title"
+                             class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-gray-900 focus:outline-0 focus:ring-2 focus:ring-blue-500 border border-gray-300 bg-white h-14 placeholder:text-gray-500 p-[15px] text-base font-normal leading-normal"
+                             placeholder="VD: Kiểm tra giữa kỳ môn Luật Hàng hải" />
+                    </label>
+                    <label class="flex flex-col col-span-2">
+                      <p class="text-gray-900 text-base font-medium leading-normal pb-2">Mô tả</p>
+                      <textarea [(ngModel)]="quizForm.description"
+                                class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-gray-900 focus:outline-0 focus:ring-2 focus:ring-blue-500 border border-gray-300 bg-white min-h-36 placeholder:text-gray-500 p-[15px] text-base font-normal leading-normal"
+                                placeholder="Cung cấp mô tả ngắn gọn về bài kiểm tra cho học viên."></textarea>
+                    </label>
+                    <label class="flex flex-col col-span-1">
+                      <p class="text-gray-900 text-base font-medium leading-normal pb-2">Thời gian làm bài (phút)</p>
+                      <input [(ngModel)]="quizForm.timeLimit"
+                             type="number"
+                             class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-gray-900 focus:outline-0 focus:ring-2 focus:ring-blue-500 border border-gray-300 bg-white h-14 placeholder:text-gray-500 p-[15px] text-base font-normal leading-normal"
+                             placeholder="VD: 60" />
+                    </label>
+                    <label class="flex flex-col col-span-1">
+                      <p class="text-gray-900 text-base font-medium leading-normal pb-2">Số câu hỏi dự kiến</p>
+                      <input [(ngModel)]="quizForm.questionCount"
+                             type="number"
+                             class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-gray-900 focus:outline-0 focus:ring-2 focus:ring-blue-500 border border-gray-300 bg-white h-14 placeholder:text-gray-500 p-[15px] text-base font-normal leading-normal"
+                             placeholder="VD: 20" />
+                    </label>
+                  </div>
+                </div>
+
+                <!-- Step 2: Select Questions -->
+                <div *ngIf="currentStep() === 2" class="space-y-6">
+                  <h2 class="text-xl font-bold text-gray-900">Chọn câu hỏi</h2>
+                  <p class="text-gray-600">Chọn câu hỏi từ ngân hàng câu hỏi của bạn để thêm vào bài kiểm tra.</p>
+                  
+                  <div class="flex flex-col gap-4">
+                      <div class="flex justify-between items-center">
+                          <input type="text" [(ngModel)]="searchTerm" (ngModelChange)="filterQuestions()" 
+                                 placeholder="Tìm kiếm câu hỏi..." 
+                                 class="px-4 py-2 border border-gray-300 rounded-lg w-full max-w-md focus:ring-blue-500 focus:border-blue-500">
+                          <div class="text-sm text-gray-600">
+                              Đã chọn: <span class="font-bold text-blue-600">{{ quizForm.selectedQuestions.length }}</span> câu
+                          </div>
+                      </div>
+
+                      <div class="overflow-x-auto border border-gray-200 rounded-lg max-h-[500px] overflow-y-auto">
+                          <table class="w-full text-left text-sm">
+                              <thead class="bg-gray-50 text-gray-600 sticky top-0 z-10">
+                                  <tr>
+                                      <th class="p-3 font-semibold w-10">
+                                          <!-- Select All Checkbox could go here -->
+                                      </th>
+                                      <th class="p-3 font-semibold">Nội dung</th>
+                                      <th class="p-3 font-semibold">Chủ đề</th>
+                                      <th class="p-3 font-semibold">Độ khó</th>
+                                  </tr>
+                              </thead>
+                              <tbody class="divide-y divide-gray-200 bg-white">
+                                  <tr *ngFor="let question of filteredQuestions()" class="hover:bg-gray-50 cursor-pointer" (click)="toggleQuestion(question.id)">
+                                      <td class="p-3">
+                                          <input type="checkbox" 
+                                                 [checked]="isQuestionSelected(question.id)"
+                                                 (click)="$event.stopPropagation(); toggleQuestion(question.id)"
+                                                 class="w-4 h-4 text-blue-600 border-gray-300 rounded" />
+                                      </td>
+                                      <td class="p-3 text-gray-800">{{ question.content }}</td>
+                                      <td class="p-3 text-gray-600">{{ question.tags || '---' }}</td>
+                                      <td class="p-3">
+                                          <span class="inline-flex px-2.5 py-1 text-xs font-medium rounded-full" 
+                                                [ngClass]="{'bg-yellow-100 text-yellow-800': question.difficulty === 'EASY', 
+                                                           'bg-orange-100 text-orange-800': question.difficulty === 'MEDIUM', 
+                                                           'bg-red-100 text-red-800': question.difficulty === 'HARD'}">
+                                              {{ getDifficultyLabel(question.difficulty) }}
+                                          </span>
+                                      </td>
+                                  </tr>
+                              </tbody>
+                          </table>
+                      </div>
+                  </div>
+                </div>
+
+                <!-- Step 3: Review & Publish -->
+                <div *ngIf="currentStep() === 3" class="space-y-6">
+                  <h2 class="text-xl font-bold text-gray-900">Xem lại và xuất bản</h2>
+                  <div class="bg-gray-50 p-6 rounded-lg space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                      <div>
+                        <p class="text-sm text-gray-600">Tên bài kiểm tra</p>
+                        <p class="font-medium text-gray-900">{{ quizForm.title || 'Chưa nhập' }}</p>
+                      </div>
+                      <div>
+                        <p class="text-sm text-gray-600">Thời gian</p>
+                        <p class="font-medium text-gray-900">{{ quizForm.timeLimit || 0 }} phút</p>
+                      </div>
+                      <div>
+                        <p class="text-sm text-gray-600">Số câu hỏi</p>
+                        <p class="font-medium text-gray-900">{{ quizForm.selectedQuestions.length }} câu</p>
+                      </div>
+                      <div>
+                        <p class="text-sm text-gray-600">Trạng thái</p>
+                        <p class="font-medium text-gray-900">Nháp</p>
+                      </div>
+                    </div>
+                    <div class="col-span-2">
+                      <p class="text-sm text-gray-600 mb-2">Mô tả</p>
+                      <p class="text-gray-900">{{ quizForm.description || 'Chưa có mô tả' }}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex justify-end gap-4 pt-6 border-t border-gray-200">
+                  <button (click)="handleCancel()"
+                          class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-gray-200 text-gray-800 text-sm font-bold leading-normal hover:bg-gray-300">
+                    <span class="truncate">{{ currentStep() === 1 ? 'Hủy bỏ' : 'Quay lại' }}</span>
+                  </button>
+                  <button (click)="handleNext()"
+                          class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-blue-600 text-white text-sm font-bold leading-normal hover:bg-blue-700">
+                    <span class="truncate">{{ currentStep() === 3 ? 'Xuất bản' : 'Tiếp tục' }}</span>
+                  </button>
                 </div>
               </div>
             </div>
-
-            <!-- Selected Questions Summary -->
-            <div class="mt-4 p-3 bg-blue-50 rounded-lg">
-              <div class="text-sm text-blue-800">
-                Đã chọn <span class="font-semibold">{{ selectedQuestionIds.size }}</span> câu hỏi
-                <span class="ml-2">Tổng điểm: {{ getTotalPoints() }} điểm</span>
-              </div>
-            </div>
           </div>
-
-          <!-- Actions -->
-          <div class="flex justify-end space-x-4">
-            <button
-              type="button"
-              (click)="onCancel()"
-              class="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500"
-            >
-              Hủy
-            </button>
-            <button
-              type="submit"
-              [disabled]="quizForm.invalid || selectedQuestionIds.size === 0"
-              class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Tạo Quiz
-            </button>
-          </div>
-        </form>
+        </main>
       </div>
     </div>
-  `
+  `,
+  styles: [`
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+  `]
 })
 export class QuizCreateComponent implements OnInit {
-  quizForm: FormGroup;
-  isLoading = false;
-  questions: Question[] = [];
-  filteredQuestions: Question[] = [];
-  selectedQuestionIds: Set<string> = new Set();
-  questionSearchTerm = '';
-  lessonId: string | null = null;
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+  private questionApi = inject(QuestionApi);
+  private quizApi = inject(QuizApi);
 
-  constructor(
-    private fb: FormBuilder,
-    private router: Router,
-    private route: ActivatedRoute,
-    private quizApi: QuizApi,
-    private questionApi: QuestionApi
-  ) {
-    this.quizForm = this.fb.group({
-      title: ['', Validators.required],
-      description: [''],
-      timeLimitMinutes: [30, [Validators.min(5), Validators.max(120)]],
-      maxAttempts: [1, [Validators.min(1), Validators.max(10)]],
-      passingScore: [70, [Validators.min(0), Validators.max(100)]],
-      shuffleQuestions: [false],
-      shuffleOptions: [false],
-      showCorrectAnswers: [true],
-      showResultsImmediately: [true]
-    });
+  currentStep = signal<number>(1);
+  questions = signal<Question[]>([]);
+  filteredQuestions = signal<Question[]>([]);
+  searchTerm = '';
+
+  quizForm = {
+    title: '',
+    description: '',
+    timeLimit: 60,
+    questionCount: 20,
+    selectedQuestions: [] as string[]
+  };
+
+  async ngOnInit() {
+    await this.loadQuestions();
   }
 
-  ngOnInit(): void {
-    this.lessonId = this.route.snapshot.paramMap.get('lessonId');
-    this.loadQuestions();
-  }
-
-  loadQuestions(): void {
-    this.isLoading = true;
-    this.questionApi.getQuestions().subscribe({
-      next: (questions) => {
-        this.questions = questions;
-        this.filteredQuestions = [...this.questions];
-      },
-      error: (error) => {
-        console.error('Failed to load questions:', error);
-      },
-      complete: () => {
-        this.isLoading = false;
+  async loadQuestions() {
+    try {
+      const questionsRes = await firstValueFrom(this.questionApi.getMyQuestions());
+      if (questionsRes) {
+        this.questions.set(questionsRes);
+        this.filteredQuestions.set(questionsRes);
       }
-    });
+    } catch (error) {
+      console.error('Error loading questions:', error);
+    }
   }
 
-  onQuestionSearch(): void {
-    if (!this.questionSearchTerm.trim()) {
-      this.filteredQuestions = [...this.questions];
+  filterQuestions() {
+    if (!this.searchTerm) {
+      this.filteredQuestions.set(this.questions());
+      return;
+    }
+    const term = this.searchTerm.toLowerCase();
+    const filtered = this.questions().filter(q =>
+      q.content.toLowerCase().includes(term) ||
+      (q.tags && q.tags.toLowerCase().includes(term))
+    );
+    this.filteredQuestions.set(filtered);
+  }
+
+  toggleQuestion(questionId: string) {
+    const index = this.quizForm.selectedQuestions.indexOf(questionId);
+    if (index > -1) {
+      this.quizForm.selectedQuestions.splice(index, 1);
     } else {
-      const term = this.questionSearchTerm.toLowerCase();
-      this.filteredQuestions = this.questions.filter(q =>
-        q.content.toLowerCase().includes(term) ||
-        q.tags.toLowerCase().includes(term)
-      );
+      this.quizForm.selectedQuestions.push(questionId);
     }
   }
 
   isQuestionSelected(questionId: string): boolean {
-    return this.selectedQuestionIds.has(questionId);
+    return this.quizForm.selectedQuestions.includes(questionId);
   }
 
-  onQuestionToggle(questionId: string, event: Event): void {
-    const checked = (event.target as HTMLInputElement).checked;
-    if (checked) {
-      this.selectedQuestionIds.add(questionId);
-    } else {
-      this.selectedQuestionIds.delete(questionId);
+  getDifficultyLabel(difficulty: string): string {
+    switch (difficulty) {
+      case 'EASY': return 'Dễ';
+      case 'MEDIUM': return 'Trung bình';
+      case 'HARD': return 'Khó';
+      default: return 'Không xác định';
     }
   }
 
-  getDifficultyText(difficulty: string): string {
-    const map: { [key: string]: string } = {
-      'EASY': 'Dễ',
-      'MEDIUM': 'Trung bình',
-      'HARD': 'Khó'
-    };
-    return map[difficulty] || difficulty;
-  }
-
-  getTotalPoints(): number {
-    return this.selectedQuestionIds.size;
-  }
-
-  onSubmit(): void {
-    if (this.quizForm.invalid || this.selectedQuestionIds.size === 0) {
-      console.log('❌ Form validation failed:', {
-        formInvalid: this.quizForm.invalid,
-        noQuestions: this.selectedQuestionIds.size === 0,
-        lessonId: this.lessonId
-      });
-      return;
+  getStepTitle(): string {
+    switch (this.currentStep()) {
+      case 1: return 'Thông tin chung';
+      case 2: return 'Chọn câu hỏi';
+      case 3: return 'Xem lại và xuất bản';
+      default: return '';
     }
-
-    // For now, create a demo lessonId if none provided
-    const targetLessonId = this.lessonId || 'demo-lesson-001';
-    console.log('🎯 Creating quiz with lessonId:', targetLessonId);
-
-    this.isLoading = true;
-    const formValue = this.quizForm.value;
-    const request: CreateQuizRequest = {
-      questionIds: Array.from(this.selectedQuestionIds),
-      timeLimitMinutes: formValue.timeLimitMinutes,
-      maxAttempts: formValue.maxAttempts,
-      passingScore: formValue.passingScore,
-      shuffleQuestions: formValue.shuffleQuestions,
-      shuffleOptions: formValue.shuffleOptions,
-      showCorrectAnswers: formValue.showCorrectAnswers,
-      showResultsImmediately: formValue.showResultsImmediately
-    };
-
-    this.quizApi.createQuiz(targetLessonId, request).subscribe({
-      next: () => {
-        console.log('✅ Quiz created successfully');
-        // Navigate back to quiz bank
-        const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
-        if (returnUrl) {
-          this.router.navigateByUrl(returnUrl);
-        } else {
-          this.router.navigate(['/teacher/quiz/quiz-bank']);
-        }
-      },
-      error: (error) => {
-        console.error('Failed to create quiz:', error);
-        this.isLoading = false;
-      },
-      complete: () => {
-        this.isLoading = false;
-      }
-    });
   }
 
-  onCancel(): void {
-    console.log('❌ Quiz creation cancelled');
-    // Navigate back to quiz bank
-    const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
-    if (returnUrl) {
-      this.router.navigateByUrl(returnUrl);
+  handleNext() {
+    if (this.currentStep() < 3) {
+      this.currentStep.set(this.currentStep() + 1);
     } else {
+      // Publish quiz
+      this.publishQuiz();
+    }
+  }
+
+  handleCancel() {
+    if (this.currentStep() === 1) {
       this.router.navigate(['/teacher/quiz/quiz-bank']);
+    } else {
+      this.currentStep.set(this.currentStep() - 1);
+    }
+  }
+
+  async publishQuiz() {
+    try {
+      console.log('Publishing quiz:', this.quizForm);
+      // TODO: Call API to create quiz
+      // const lessonId = '...'; // Need lesson ID context
+      // await firstValueFrom(this.quizApi.createQuiz(lessonId, ...));
+
+      alert('✅ Bài kiểm tra đã được tạo thành công! (Demo)');
+      this.router.navigate(['/teacher/quiz/quiz-bank']);
+    } catch (error: any) {
+      console.error('Error publishing quiz:', error);
+      alert('Lỗi khi tạo bài kiểm tra: ' + (error?.message || 'Lỗi không xác định'));
     }
   }
 }

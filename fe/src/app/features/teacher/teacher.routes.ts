@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 import { teacherGuard } from '../../core/guards/role.guard';
-import { quizRoutes } from './quiz/quiz.routes';
+import { quizRoutes, quizStandaloneRoutes } from './quiz/quiz.routes';
 
 /**
  * Teacher Routes Configuration
@@ -12,6 +12,10 @@ import { quizRoutes } from './quiz/quiz.routes';
  * - Proper lazy loading cho performance
  */
 export const teacherRoutes: Routes = [
+  // Standalone routes (không có sidebar) - phải đặt TRƯỚC layout routes
+  ...quizStandaloneRoutes,
+  
+  // Layout routes (có sidebar)
   {
     path: '',
     loadComponent: () => import('./shared/teacher-layout-simple.component').then(m => m.TeacherLayoutSimpleComponent),
@@ -48,14 +52,9 @@ export const teacherRoutes: Routes = [
         title: 'Chỉnh sửa khóa học'
       },
       {
-        path: 'courses/:id/sections',
-        loadComponent: () => import('./courses/section-list.component').then(m => m.SectionListComponent),
-        title: 'Danh sách chương'
-      },
-      {
-        path: 'courses/:id/sections/:sectionId',
+        path: 'courses/:courseId/sections/:sectionId',
         loadComponent: () => import('./courses/section-editor.component').then(m => m.SectionEditorComponent),
-        title: 'Chỉnh sửa chương'
+        title: 'Quản lý bài học'
       },
       
       // Assignment Management Routes
@@ -99,6 +98,7 @@ export const teacherRoutes: Routes = [
 
       // Quiz Management Routes
       ...quizRoutes,
+
       
       // Analytics Routes
       {
@@ -134,12 +134,7 @@ export const teacherRoutes: Routes = [
         title: 'Chỉnh sửa Rubric'
       },
       
-      // Notifications Routes
-      {
-        path: 'notifications',
-        loadComponent: () => import('./notifications/teacher-notifications.component').then(m => m.TeacherNotificationsComponent),
-        title: 'Thông báo'
-      }
+      
     ]
   }
 ];

@@ -41,11 +41,13 @@
     "@angular/router": "^20.3.0",
     "@angular/service-worker": "^20.3.0",
     "@angular/ssr": "^20.3.1",
+    "chart.js": "^4.5.1",
     "express": "^5.1.0",
     "gsap": "^3.13.0",
     "lucide-angular": "^0.544.0",
     "rxjs": "~7.8.0",
-    "tslib": "^2.3.0"
+    "tslib": "^2.3.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@angular/build": "^20.3.1",
@@ -56,7 +58,9 @@
     "@types/express": "^5.0.1",
     "@types/jasmine": "~5.1.0",
     "@types/node": "^20.17.19",
+    "@types/xlsx": "^0.0.35",
     "autoprefixer": "^10.4.21",
+    "baseline-browser-mapping": "^2.8.28",
     "jasmine-core": "~5.9.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",

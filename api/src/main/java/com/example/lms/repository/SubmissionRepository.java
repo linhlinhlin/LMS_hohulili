@@ -23,4 +23,16 @@ public interface SubmissionRepository extends JpaRepository<Submission, UUID> {
     List<Submission> findByAssignmentIdAndTeacherId(@Param("assignmentId") UUID assignmentId, @Param("teacherId") UUID teacherId);
     
     boolean existsByAssignmentIdAndStudentId(UUID assignmentId, UUID studentId);
+    
+    /**
+     * Calculate average score for student across multiple courses
+     */
+    @Query("SELECT AVG(s.score) FROM Submission s " +
+           "WHERE s.student.id = :studentId " +
+           "AND s.assignment.course.id IN :courseIds " +
+           "AND s.score IS NOT NULL")
+    Double calculateAverageScoreByStudentAndCourses(
+        @Param("studentId") UUID studentId, 
+        @Param("courseIds") List<UUID> courseIds
+    );
 }

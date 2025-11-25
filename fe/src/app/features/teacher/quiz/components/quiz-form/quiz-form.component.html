@@ -1,0 +1,274 @@
+<div class="quiz-form-container">
+  <!-- Progress Indicator -->
+  <div class="progress-steps">
+    <div class="step" [class.active]="currentStep() === 1" [class.completed]="currentStep() > 1">
+      <div class="step-number">1</div>
+      <div class="step-label">Thông tin cơ bản</div>
+    </div>
+    <div class="step-divider"></div>
+    <div class="step" [class.active]="currentStep() === 2" [class.completed]="currentStep() > 2">
+      <div class="step-number">2</div>
+      <div class="step-label">Chọn câu hỏi</div>
+    </div>
+    <div class="step-divider"></div>
+    <div class="step" [class.active]="currentStep() === 3">
+      <div class="step-number">3</div>
+      <div class="step-label">Xác nhận</div>
+    </div>
+  </div>
+
+  <form [formGroup]="quizForm" (ngSubmit)="submit()">
+    <!-- Step 1: Basic Information -->
+    <div class="form-step" *ngIf="currentStep() === 1">
+      <h3>Thông tin cơ bản</h3>
+
+      <div class="form-group">
+        <label for="title">Tiêu đề <span class="required">*</span></label>
+        <input
+          type="text"
+          id="title"
+          formControlName="title"
+          class="form-control"
+          placeholder="Nhập tiêu đề bài kiểm tra"
+          [class.is-invalid]="titleControl?.invalid && titleControl?.touched"
+        />
+        <div class="invalid-feedback" *ngIf="titleControl?.invalid && titleControl?.touched">
+          <span *ngIf="titleControl?.errors?.['required']">Tiêu đề là bắt buộc</span>
+          <span *ngIf="titleControl?.errors?.['maxlength']">Tiêu đề không được quá 255 ký tự</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="description">Mô tả</label>
+        <textarea
+          id="description"
+          formControlName="description"
+          class="form-control"
+          rows="3"
+          placeholder="Nhập mô tả (tùy chọn)"
+        ></textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="timeLimitMinutes">Thời gian làm bài (phút)</label>
+          <input
+            type="number"
+            id="timeLimitMinutes"
+            formControlName="timeLimitMinutes"
+            class="form-control"
+            placeholder="Không giới hạn"
+            min="1"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="maxAttempts">Số lần làm tối đa <span class="required">*</span></label>
+          <input
+            type="number"
+            id="maxAttempts"
+            formControlName="maxAttempts"
+            class="form-control"
+            min="1"
+            max="10"
+            [class.is-invalid]="maxAttemptsControl?.invalid && maxAttemptsControl?.touched"
+          />
+          <div class="invalid-feedback" *ngIf="maxAttemptsControl?.invalid && maxAttemptsControl?.touched">
+            Từ 1 đến 10 lần
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="passingScore">Điểm đạt (%) <span class="required">*</span></label>
+          <input
+            type="number"
+            id="passingScore"
+            formControlName="passingScore"
+            class="form-control"
+            min="0"
+            max="100"
+            [class.is-invalid]="passingScoreControl?.invalid && passingScoreControl?.touched"
+          />
+          <div class="invalid-feedback" *ngIf="passingScoreControl?.invalid && passingScoreControl?.touched">
+            Từ 0 đến 100%
+          </div>
+        </div>
+      </div>
+
+      <!-- Date fields (only for Assignment) -->
+      <div class="form-row" *ngIf="config.showDates">
+        <div class="form-group">
+          <label for="startDate">Ngày bắt đầu</label>
+          <input
+            type="datetime-local"
+            id="startDate"
+            formControlName="startDate"
+            class="form-control"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="endDate">Ngày kết thúc</label>
+          <input
+            type="datetime-local"
+            id="endDate"
+            formControlName="endDate"
+            class="form-control"
+            [class.is-invalid]="quizForm.errors?.['dateRangeInvalid'] && endDateControl?.touched"
+          />
+          <div class="invalid-feedback" *ngIf="quizForm.errors?.['dateRangeInvalid']">
+            Ngày kết thúc phải sau ngày bắt đầu
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <h4>Cài đặt</h4>
+        
+        <div class="checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" formControlName="shuffleQuestions" />
+            <span>Xáo trộn câu hỏi</span>
+          </label>
+
+          <label class="checkbox-label">
+            <input type="checkbox" formControlName="shuffleOptions" />
+            <span>Xáo trộn đáp án</span>
+          </label>
+
+          <label class="checkbox-label">
+            <input type="checkbox" formControlName="showResultsImmediately" />
+            <span>Hiển thị kết quả ngay</span>
+          </label>
+
+          <label class="checkbox-label">
+            <input type="checkbox" formControlName="showCorrectAnswers" />
+            <span>Hiển thị đáp án đúng</span>
+          </label>
+
+          <label class="checkbox-label">
+            <input type="checkbox" formControlName="publishImmediately" />
+            <span>Xuất bản ngay</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Question Selection -->
+    <div class="form-step" *ngIf="currentStep() === 2">
+      <h3>Chọn câu hỏi</h3>
+      
+      <app-question-selector
+        [questions]="questions"
+        [selectedIds]="selectedQuestionIds()"
+        (selectionChange)="onQuestionsSelected($event)"
+      ></app-question-selector>
+
+      <div class="alert alert-warning" *ngIf="selectedQuestionIds().length === 0">
+        <i class="fas fa-exclamation-triangle"></i>
+        Vui lòng chọn ít nhất 1 câu hỏi
+      </div>
+
+      <div class="selected-count" *ngIf="selectedQuestionIds().length > 0">
+        Đã chọn: <strong>{{ selectedQuestionIds().length }}</strong> câu hỏi
+      </div>
+    </div>
+
+    <!-- Step 3: Review -->
+    <div class="form-step" *ngIf="currentStep() === 3">
+      <h3>Xác nhận thông tin</h3>
+
+      <div class="review-section">
+        <h4>Thông tin cơ bản</h4>
+        <div class="review-item">
+          <span class="label">Tiêu đề:</span>
+          <span class="value">{{ quizForm.get('title')?.value }}</span>
+        </div>
+        <div class="review-item" *ngIf="quizForm.get('description')?.value">
+          <span class="label">Mô tả:</span>
+          <span class="value">{{ quizForm.get('description')?.value }}</span>
+        </div>
+        <div class="review-item">
+          <span class="label">Thời gian:</span>
+          <span class="value">
+            {{ quizForm.get('timeLimitMinutes')?.value || 'Không giới hạn' }}
+            <span *ngIf="quizForm.get('timeLimitMinutes')?.value">phút</span>
+          </span>
+        </div>
+        <div class="review-item">
+          <span class="label">Số lần làm:</span>
+          <span class="value">{{ quizForm.get('maxAttempts')?.value }} lần</span>
+        </div>
+        <div class="review-item">
+          <span class="label">Điểm đạt:</span>
+          <span class="value">{{ quizForm.get('passingScore')?.value }}%</span>
+        </div>
+
+        <div class="review-item" *ngIf="config.showDates && quizForm.get('startDate')?.value">
+          <span class="label">Thời gian:</span>
+          <span class="value">
+            {{ quizForm.get('startDate')?.value | date:'dd/MM/yyyy HH:mm' }} 
+            - 
+            {{ quizForm.get('endDate')?.value | date:'dd/MM/yyyy HH:mm' }}
+          </span>
+        </div>
+      </div>
+
+      <div class="review-section">
+        <h4>Câu hỏi</h4>
+        <div class="review-item">
+          <span class="label">Số lượng:</span>
+          <span class="value">{{ selectedQuestionIds().length }} câu hỏi</span>
+        </div>
+      </div>
+
+      <div class="review-section">
+        <h4>Cài đặt</h4>
+        <div class="settings-list">
+          <span class="badge" *ngIf="quizForm.get('shuffleQuestions')?.value">Xáo trộn câu hỏi</span>
+          <span class="badge" *ngIf="quizForm.get('shuffleOptions')?.value">Xáo trộn đáp án</span>
+          <span class="badge" *ngIf="quizForm.get('showResultsImmediately')?.value">Hiển thị kết quả ngay</span>
+          <span class="badge" *ngIf="quizForm.get('showCorrectAnswers')?.value">Hiển thị đáp án đúng</span>
+          <span class="badge badge-primary" *ngIf="quizForm.get('publishImmediately')?.value">Xuất bản ngay</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="form-actions">
+      <button type="button" class="btn btn-secondary" (click)="cancel()">
+        Hủy
+      </button>
+
+      <div class="action-right">
+        <button
+          type="button"
+          class="btn btn-outline"
+          (click)="prevStep()"
+          *ngIf="currentStep() > 1"
+        >
+          <i class="fas fa-arrow-left"></i> Quay lại
+        </button>
+
+        <button
+          type="button"
+          class="btn btn-primary"
+          (click)="nextStep()"
+          *ngIf="currentStep() < 3"
+          [disabled]="currentStep() === 1 && !isStep1Valid || currentStep() === 2 && !isStep2Valid"
+        >
+          Tiếp theo <i class="fas fa-arrow-right"></i>
+        </button>
+
+        <button
+          type="submit"
+          class="btn btn-success"
+          *ngIf="currentStep() === 3"
+          [disabled]="!canSubmit"
+        >
+          <i class="fas fa-check"></i> Hoàn thành
+        </button>
+      </div>
+    </div>
+  </form>
+</div>

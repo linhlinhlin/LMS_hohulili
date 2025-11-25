@@ -133,12 +133,59 @@ public class UserController {
         }
     }
 
+    @GetMapping("/list/all")
+    @Operation(summary = "Lấy tất cả người dùng", description = "Admin lấy danh sách tất cả người dùng không phân trang (dành cho dropdown, etc.)")
+    public ResponseEntity<ApiResponse<java.util.List<UserSummary>>> getAllUsers() {
+        try {
+            java.util.List<User> users = userService.getAllUsers();
+            java.util.List<UserSummary> userSummaries = users.stream()
+                    .map(user -> UserSummary.builder()
+                            .id(user.getId())
+                            .username(user.getUsername())
+                            .email(user.getEmail())
+                            .fullName(user.getFullName())
+                            .role(user.getRole().name())
+                            .enabled(user.getEnabled())
+                            .createdAt(user.getCreatedAt())
+                            .build())
+                    .collect(java.util.stream.Collectors.toList());
+            
+            return ResponseEntity.ok(ApiResponse.success(userSummaries));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Lỗi khi lấy danh sách người dùng: " + e.getMessage()));
+        }
+    }
+
     @DeleteMapping("/{userId}")
     @Operation(summary = "Vô hiệu hóa người dùng", description = "Admin vô hiệu hóa tài khoản người dùng")
     public ResponseEntity<ApiResponse<String>> deleteUser(@PathVariable UUID userId) {
         try {
             userService.disableUser(userId);
             return ResponseEntity.ok(ApiResponse.success("Người dùng đã được vô hiệu hóa"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @PatchMapping("/{userId}/toggle-status")
+    @Operation(summary = "Thay đổi trạng thái người dùng", description = "Kích hoạt hoặc vô hiệu hóa tài khoản")
+    public ResponseEntity<ApiResponse<UserDetail>> toggleUserStatus(@PathVariable UUID userId) {
+        try {
+            User updatedUser = userService.toggleUserStatus(userId);
+            
+            UserDetail userDetail = UserDetail.builder()
+                    .id(updatedUser.getId())
+                    .username(updatedUser.getUsername())
+                    .email(updatedUser.getEmail())
+                    .fullName(updatedUser.getFullName())
+                    .role(updatedUser.getRole().name())
+                    .enabled(updatedUser.getEnabled())
+                    .createdAt(updatedUser.getCreatedAt())
+                    .updatedAt(updatedUser.getUpdatedAt())
+                    .build();
+            
+            return ResponseEntity.ok(ApiResponse.success(userDetail));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }

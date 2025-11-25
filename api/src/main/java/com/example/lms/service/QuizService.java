@@ -27,6 +27,7 @@ public class QuizService {
     private final QuestionRepository questionRepository;
     private final QuestionService questionService;
     private final QuizQuestionRepository quizQuestionRepository;
+    private final LessonProgressDomainService progressDomainService;
     private final ObjectMapper objectMapper;
     
     @PersistenceContext
@@ -38,13 +39,17 @@ public class QuizService {
                           Boolean shuffleOptions, Boolean showResultsImmediately,
                           Boolean showCorrectAnswers, Instant startDate, Instant endDate) {
         try {
-            String questionIdsJson = questionIds != null && !questionIds.isEmpty() 
-                    ? objectMapper.writeValueAsString(questionIds) 
-                    : null;
+            System.out.println("🔍 DEBUG createQuiz - Lesson: " + lesson.getId());
+            System.out.println("🔍 DEBUG createQuiz - questionIds: " + questionIds);
+            System.out.println("🔍 DEBUG createQuiz - questionIds size: " + (questionIds != null ? questionIds.size() : "null"));
+            
+            // Get creator from course teacher
+            UUID creatorId = lesson.getSection().getCourse().getTeacher().getId();
             
             Quiz quiz = Quiz.builder()
                     .lesson(lesson)
-                    .questionIds(questionIdsJson)
+                    .title(lesson.getTitle()) // Set title from lesson to satisfy NOT NULL constraint
+                    .createdBy(creatorId) // Set created_by from course teacher
                     .timeLimitMinutes(timeLimitMinutes)
                     .maxAttempts(maxAttempts != null ? maxAttempts : 1)
                     .passingScore(passingScore != null ? passingScore : 60)
@@ -56,29 +61,56 @@ public class QuizService {
                     .endDate(endDate)
                     .build();
 
-            return quizRepository.save(quiz);
+            Quiz savedQuiz = quizRepository.save(quiz);
+            
+            // Add questions to quiz_questions table (the proper way)
+            if (questionIds != null && !questionIds.isEmpty()) {
+                System.out.println("📝 Adding " + questionIds.size() + " questions to quiz " + savedQuiz.getId());
+                for (int i = 0; i < questionIds.size(); i++) {
+                    UUID questionId = questionIds.get(i);
+                    Question question = questionRepository.findById(questionId)
+                            .orElse(null);
+                    
+                    if (question != null) {
+                        QuizQuestion quizQuestion = QuizQuestion.builder()
+                                .quiz(savedQuiz)
+                                .question(question)
+                                .displayOrder(i + 1)
+                                .build();
+                        quizQuestionRepository.save(quizQuestion);
+                    } else {
+                        System.err.println("⚠️ Question not found: " + questionId);
+                    }
+                }
+                System.out.println("✅ Added questions to quiz_questions table");
+            }
+            
+            return savedQuiz;
         } catch (Exception e) {
             throw new RuntimeException("Failed to create quiz", e);
         }
     }
 
     public Quiz getQuizByLessonId(UUID lessonId) {
-        // First check if there are multiple quizzes
+        // Always use findFirstByLessonIdOrderByCreatedAtDesc to handle potential duplicate quizzes
+        // This ensures we always get the most recent quiz if there are duplicates
         List<Quiz> allQuizzes = quizRepository.findAllByLessonId(lessonId);
         if (allQuizzes.size() > 1) {
             System.err.println("⚠️ WARNING: Found " + allQuizzes.size() + " quizzes for lesson " + lessonId + ". Using the most recent one.");
-            // Return the most recent one
-            return quizRepository.findFirstByLessonIdOrderByCreatedAtDesc(lessonId)
-                    .orElseThrow(() -> new RuntimeException("Quiz not found for lesson"));
         }
         
-        return quizRepository.findByLessonId(lessonId)
-                .orElseThrow(() -> new RuntimeException("Quiz not found for lesson"));
+        return quizRepository.findFirstByLessonIdOrderByCreatedAtDesc(lessonId)
+                .orElseThrow(() -> new RuntimeException("Quiz not found for lesson: " + lessonId));
     }
 
+    @Transactional(readOnly = true)
     public List<Question> getQuizQuestions(UUID lessonId) {
+        System.out.println("🔍 getQuizQuestions called for lessonId: " + lessonId);
         Quiz quiz = getQuizByLessonId(lessonId);
-        return getQuizQuestions(quiz);
+        System.out.println("🔍 Found quiz: " + quiz.getId());
+        List<Question> questions = getQuizQuestions(quiz);
+        System.out.println("🔍 Returning " + questions.size() + " questions");
+        return questions;
     }
 
     @Transactional
@@ -179,7 +211,14 @@ public class QuizService {
         System.out.println("🔍 DEBUG: Found " + quizQuestions.size() + " quiz-question relationships in table");
         
         List<Question> questions = quizQuestions.stream()
-                .map(QuizQuestion::getQuestion)
+                .map(qq -> {
+                    Question q = qq.getQuestion();
+                    // Force load options to avoid lazy loading issues
+                    if (q.getOptions() != null) {
+                        q.getOptions().size(); // Force initialization
+                    }
+                    return q;
+                })
                 .collect(Collectors.toList());
                 
         System.out.println("🔍 DEBUG: Returning " + questions.size() + " questions from QuizQuestion table");
@@ -262,6 +301,21 @@ public class QuizService {
         attempt.setIsPassed(score >= attempt.getQuiz().getPassingScore());
         attempt.setStatus(QuizAttempt.Status.SUBMITTED);
         attempt.setEndTime(Instant.now());
+        // NEW: Auto-update StudentLessonProgress if quiz passed
+        if (Boolean.TRUE.equals(attempt.getIsPassed())) {
+            Lesson lesson = attempt.getQuiz().getLesson();
+            User student = attempt.getStudent();
+            
+            try {
+                progressDomainService.completeLesson(student, lesson);
+                System.out.printf("✅ Quiz completed and progress updated - Student: %s, Lesson: %s, Score: %.1f%n", 
+                        student.getId(), lesson.getId(), score);
+            } catch (Exception e) {
+                System.err.printf("❌ Failed to update progress after quiz completion - Student: %s, Lesson: %s, Error: %s%n", 
+                        student.getId(), lesson.getId(), e.getMessage());
+                // Don't throw exception, let the quiz submission succeed
+            }
+        }
 
         return attemptRepository.save(attempt);
     }
@@ -516,10 +570,26 @@ public class QuizService {
     @Transactional
     public Quiz addQuestionToQuiz(UUID lessonId, UUID questionId) {
         try {
-            Quiz quiz = quizRepository.findByLessonId(lessonId)
-                    .orElseThrow(() -> new RuntimeException("Quiz not found for lesson"));
+            System.out.println("🔍 addQuestionToQuiz called - lessonId: " + lessonId + ", questionId: " + questionId);
             
-            System.out.println("🔍 Adding question " + questionId + " to quiz " + quiz.getId());
+            // Try to find existing quiz, or create one if not exists
+            // Use findFirstByLessonIdOrderByCreatedAtDesc to handle duplicate quizzes
+            Quiz quiz = quizRepository.findFirstByLessonIdOrderByCreatedAtDesc(lessonId).orElse(null);
+            
+            if (quiz == null) {
+                System.out.println("⚠️ Quiz not found for lesson: " + lessonId + ". Creating new quiz...");
+                // Need to get lesson to create quiz
+                Lesson lesson = entityManager.find(Lesson.class, lessonId);
+                if (lesson == null) {
+                    throw new RuntimeException("Lesson not found: " + lessonId);
+                }
+                
+                // Create quiz with default settings
+                quiz = createQuiz(lesson, null, 30, 1, 60, false, false, true, true, null, null);
+                System.out.println("✅ Created new quiz: " + quiz.getId() + " for lesson: " + lessonId);
+            }
+            
+            System.out.println("🔍 Using quiz: " + quiz.getId() + " for lesson: " + lessonId);
             
             // Check if question already exists in this quiz
             boolean exists = quizQuestionRepository.findByQuizIdAndQuestionId(quiz.getId(), questionId).isPresent();
@@ -549,15 +619,20 @@ public class QuizService {
             
             return quiz;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to add question to quiz", e);
+            System.err.println("❌ Exception in addQuestionToQuiz: " + e.getClass().getName() + " - " + e.getMessage());
+            e.printStackTrace();
+            if (e instanceof RuntimeException) {
+                throw (RuntimeException) e;
+            }
+            throw new RuntimeException("Failed to add question to quiz: " + e.getMessage(), e);
         }
     }
 
     @Transactional
     public Quiz removeQuestionFromQuiz(UUID lessonId, UUID questionId) {
         try {
-            Quiz quiz = quizRepository.findByLessonId(lessonId)
-                    .orElseThrow(() -> new RuntimeException("Quiz not found for lesson"));
+            // Use getQuizByLessonId to handle duplicate quizzes
+            Quiz quiz = getQuizByLessonId(lessonId);
             
             System.out.println("🔍 DEBUG - Removing question " + questionId + " from quiz " + quiz.getId());
             
@@ -582,8 +657,8 @@ public class QuizService {
     @Transactional
     public void deleteQuizWithAllQuestions(UUID lessonId) {
         try {
-            Quiz quiz = quizRepository.findByLessonId(lessonId)
-                    .orElseThrow(() -> new RuntimeException("Quiz not found for lesson"));
+            // Use getQuizByLessonId to handle duplicate quizzes
+            Quiz quiz = getQuizByLessonId(lessonId);
             
             System.out.println("🔍 DEBUG - Deleting quiz " + quiz.getId() + " with all questions");
             
@@ -598,5 +673,109 @@ public class QuizService {
         } catch (Exception e) {
             throw new RuntimeException("Failed to delete quiz", e);
         }
+    }
+
+    /**
+     * Update quiz settings
+     */
+    @Transactional
+    public Quiz updateQuizSettings(UUID quizId, String title, Integer timeLimitMinutes,
+                                   Integer maxAttempts, Integer passingScore,
+                                   Boolean shuffleQuestions, Boolean shuffleOptions,
+                                   Boolean showResultsImmediately, Boolean showCorrectAnswers) {
+        Quiz quiz = quizRepository.findById(quizId)
+                .orElseThrow(() -> new RuntimeException("Quiz not found: " + quizId));
+
+        // Update fields if provided
+        if (title != null && !title.trim().isEmpty()) {
+            quiz.setTitle(title);
+        }
+        if (timeLimitMinutes != null) {
+            quiz.setTimeLimitMinutes(timeLimitMinutes);
+        }
+        if (maxAttempts != null) {
+            quiz.setMaxAttempts(maxAttempts);
+        }
+        if (passingScore != null) {
+            quiz.setPassingScore(passingScore);
+        }
+        if (shuffleQuestions != null) {
+            quiz.setShuffleQuestions(shuffleQuestions);
+        }
+        if (shuffleOptions != null) {
+            quiz.setShuffleOptions(shuffleOptions);
+        }
+        if (showResultsImmediately != null) {
+            quiz.setShowResultsImmediately(showResultsImmediately);
+        }
+        if (showCorrectAnswers != null) {
+            quiz.setShowCorrectAnswers(showCorrectAnswers);
+        }
+
+        return quizRepository.save(quiz);
+    }
+
+    /**
+     * Get the count of questions in a quiz
+     */
+    public long getQuizQuestionCount(UUID quizId) {
+        return quizQuestionRepository.countByQuizId(quizId);
+    }
+
+    /**
+     * Clean up duplicate quizzes - keep only the most recent one for each lesson
+     */
+    @Transactional
+    public Map<String, Object> cleanupDuplicateQuizzes() {
+        Map<String, Object> result = new HashMap<>();
+        List<Map<String, Object>> duplicatesFound = new ArrayList<>();
+        int totalDeleted = 0;
+
+        // Find all lessons with multiple quizzes
+        List<Quiz> allQuizzes = quizRepository.findAll();
+        Map<UUID, List<Quiz>> quizzesByLesson = allQuizzes.stream()
+                .collect(Collectors.groupingBy(q -> q.getLesson().getId()));
+
+        for (Map.Entry<UUID, List<Quiz>> entry : quizzesByLesson.entrySet()) {
+            List<Quiz> quizzes = entry.getValue();
+            if (quizzes.size() > 1) {
+                UUID lessonId = entry.getKey();
+                
+                // Sort by created_at DESC to keep the most recent
+                quizzes.sort((a, b) -> {
+                    if (a.getCreatedAt() == null && b.getCreatedAt() == null) return 0;
+                    if (a.getCreatedAt() == null) return 1;
+                    if (b.getCreatedAt() == null) return -1;
+                    return b.getCreatedAt().compareTo(a.getCreatedAt());
+                });
+
+                Quiz keepQuiz = quizzes.get(0); // Most recent
+                List<Quiz> deleteQuizzes = quizzes.subList(1, quizzes.size());
+
+                Map<String, Object> duplicateInfo = new HashMap<>();
+                duplicateInfo.put("lessonId", lessonId);
+                duplicateInfo.put("totalQuizzes", quizzes.size());
+                duplicateInfo.put("keptQuizId", keepQuiz.getId());
+                duplicateInfo.put("deletedQuizIds", deleteQuizzes.stream().map(Quiz::getId).collect(Collectors.toList()));
+
+                // Delete the older quizzes
+                for (Quiz deleteQuiz : deleteQuizzes) {
+                    // Delete quiz questions first
+                    quizQuestionRepository.deleteByQuizId(deleteQuiz.getId());
+                    // Delete the quiz
+                    quizRepository.delete(deleteQuiz);
+                    totalDeleted++;
+                }
+
+                duplicatesFound.add(duplicateInfo);
+                System.out.println("✅ Cleaned up " + deleteQuizzes.size() + " duplicate quizzes for lesson: " + lessonId);
+            }
+        }
+
+        result.put("duplicatesFound", duplicatesFound.size());
+        result.put("totalQuizzesDeleted", totalDeleted);
+        result.put("details", duplicatesFound);
+
+        return result;
     }
 }

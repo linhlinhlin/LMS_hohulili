@@ -246,4 +246,14 @@ public class CourseService {
         
         return response;
     }
+    
+    /**
+     * Get list of enrolled students in a course with pagination and search
+     */
+    public Page<User> getCourseStudents(UUID courseId, Pageable pageable, String search) {
+        if (search != null && !search.trim().isEmpty()) {
+            return courseRepository.searchEnrolledStudents(courseId, search.trim(), pageable);
+        }
+        return courseRepository.findEnrolledStudents(courseId, pageable);
+    }
 }

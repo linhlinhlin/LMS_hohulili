@@ -2,7 +2,7 @@ import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, V
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { AdminService, AdminCourse } from '../../infrastructure/services/admin.service';
+import { AdminService, AdminCourseSummary } from '../../infrastructure/services/admin.service';
 import { LoadingComponent } from '../../../../shared/components/loading/loading.component';
 
 @Component({
@@ -10,14 +10,14 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
   imports: [CommonModule, RouterModule, FormsModule, LoadingComponent],
   encapsulation: ViewEncapsulation.None,
   template: `
-    <!-- Loading State -->
-    <app-loading 
+    <!-- Loading State - Temporarily disabled -->
+    <!-- <app-loading 
       [show]="adminService.isLoading()" 
       text="Đang tải dữ liệu khóa học..."
       subtext="Vui lòng chờ trong giây lát"
       variant="overlay"
       color="red">
-    </app-loading>
+    </app-loading> -->
 
     <div class="bg-gradient-to-br from-slate-50 via-red-50 to-pink-100 min-h-screen">
       <div class="max-w-7xl mx-auto px-6 py-8">
@@ -25,7 +25,13 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
         <div class="mb-8">
           <div class="flex items-center justify-between">
             <div>
-              <h1 class="text-3xl font-bold text-gray-900 mb-2">📚 Quản lý khóa học hệ thống</h1>
+              <h1 class="text-3xl font-bold text-gray-900 mb-2">
+                <svg class="w-8 h-8 inline-block mr-2 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
+                  <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
+                </svg>
+                Quản lý khóa học hệ thống
+              </h1>
               <p class="text-gray-600">Phê duyệt và quản lý tất cả khóa học trong hệ thống</p>
             </div>
             <div class="flex items-center space-x-4">
@@ -172,7 +178,7 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
                 </div>
                 <div class="absolute bottom-4 left-4">
                   <span class="px-3 py-1 text-xs font-medium bg-white bg-opacity-90 rounded-full">
-                    {{ getLevelText(course.level) }}
+                    {{ getLevelText(course.level || 'unknown') }}
                   </span>
                 </div>
               </div>
@@ -188,12 +194,11 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
 
                 <!-- Instructor Info -->
                 <div class="flex items-center mb-4">
-                  <img [src]="course.instructor.avatar" 
-                       [alt]="course.instructor.name"
+                  <img src="/assets/images/default-avatar.png" [alt]="course.teacherName"
                        class="w-8 h-8 rounded-full mr-3">
                   <div>
-                    <div class="text-sm font-medium text-gray-900">{{ course.instructor.name }}</div>
-                    <div class="text-xs text-gray-500">{{ course.instructor.email }}</div>
+                    <div class="text-sm font-medium text-gray-900">{{ course.teacherName }}</div>
+                    <div class="text-xs text-gray-500">{{ course.teacherEmail }}</div>
                   </div>
                 </div>
 
@@ -203,7 +208,7 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
                     <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 8v1h1.5a.5.5 0 01.5.5v9a.5.5 0 01-.5.5h-13a.5.5 0 01-.5-.5v-9a.5.5 0 01.5-.5H8v-1a5 5 0 00-5 5v1h9.93z"></path>
                     </svg>
-                    {{ course.students }} học viên
+                    {{ course.enrolledCount }} học viên
                   </div>
                   <div class="flex items-center">
                     <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -215,8 +220,8 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
 
                 <!-- Course Price -->
                 <div class="flex items-center justify-between mb-4">
-                  <span class="text-2xl font-bold text-red-600">{{ formatCurrency(course.price) }}</span>
-                  <span class="text-sm text-gray-500">{{ formatCurrency(course.revenue) }} doanh thu</span>
+                  <span class="text-2xl font-bold text-red-600">{{ course.price ? formatCurrency(course.price) : '0' }}</span>
+                  <span class="text-sm text-gray-500">{{ course.revenue ? formatCurrency(course.revenue) : '0' }} doanh thu</span>
                 </div>
 
                 <!-- Course Actions -->
@@ -245,9 +250,9 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
                 <!-- Submission Info -->
                 <div class="mt-4 pt-4 border-t border-gray-200">
                   <div class="text-xs text-gray-500">
-                    <div>Nộp lúc: {{ formatDate(course.submittedAt) }}</div>
+                    <div>Nộp lúc: {{ course.submittedAt ? formatDate(course.submittedAt) : '' }}</div>
                     @if (course.approvedAt) {
-                      <div>Phê duyệt: {{ formatDate(course.approvedAt) }}</div>
+                      <div>Phê duyệt: {{ formatDate(course.approvedAt!) }}</div>
                     }
                     @if (course.rejectionReason) {
                       <div class="text-red-500">Lý do từ chối: {{ course.rejectionReason }}</div>
@@ -297,7 +302,7 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
                       <strong>{{ selectedCourse()?.title }}</strong>
                     </div>
                     <div class="text-sm text-gray-500">
-                      Giảng viên: {{ selectedCourse()?.instructor?.name || 'Không xác định' }}
+                      Giảng viên: {{ selectedCourse()?.teacherName || 'Không xác định' }}
                     </div>
                   </div>
                   
@@ -316,7 +321,7 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
             
             <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
               <button (click)="rejectCourse()"
-                      [disabled]="!rejectionReason"
+                      [disabled]="!rejectionReason()"
                       class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed">
                 Từ chối khóa học
               </button>
@@ -338,59 +343,117 @@ export class CourseManagementComponent implements OnInit {
   // Filter states
   searchQuery = signal('');
   statusFilter = signal('');
+  // Data signals
+  courses = signal<AdminCourseSummary[]>([]);
+  isLoading = signal(true);
   categoryFilter = signal('');
 
   // Modal state
   showRejectModal = signal(false);
-  selectedCourse = signal<AdminCourse | null>(null);
+  selectedCourse = signal<AdminCourseSummary | null>(null);
   rejectionReason = signal('');
 
   // Computed properties
-  totalCourses = computed(() => this.adminService.courses().length);
-  pendingCourses = computed(() => this.adminService.pendingCourses());
-  approvedCourses = computed(() => this.adminService.approvedCourses());
-  totalRevenue = computed(() => this.adminService.totalRevenue());
+  totalCourses = computed(() => {
+    const courses = this.courses();
+    return Array.isArray(courses) ? courses.length : 0;
+  });
+  
+  pendingCourses = computed(() => {
+    const courses = this.courses();
+    return Array.isArray(courses) ? courses.filter(c => c.status === 'pending' || c.status === 'PENDING').length : 0;
+  });
+  
+  approvedCourses = computed(() => {
+    const courses = this.courses();
+    return Array.isArray(courses) ? courses.filter(c => c.status === 'approved' || c.status === 'APPROVED').length : 0;
+  });
+  
+  totalRevenue = computed(() => {
+    const courses = this.courses();
+    if (!Array.isArray(courses)) return 0;
+    return courses.reduce((sum, c) => sum + (c.revenue || 0), 0);
+  });
 
   filteredCourses = computed(() => {
-    let courses = this.adminService.courses();
+    const courses = this.courses();
+    
+    // Safety check: ensure courses is an array
+    if (!Array.isArray(courses)) {
+      console.warn('[CourseManagement] courses is not an array:', courses);
+      return [];
+    }
+    
+    let filtered = [...courses];
     
     // Filter by search query
     if (this.searchQuery()) {
       const query = this.searchQuery().toLowerCase();
-      courses = courses.filter(course => 
-        course.title.toLowerCase().includes(query) ||
-        course.description.toLowerCase().includes(query) ||
-        course.shortDescription.toLowerCase().includes(query) ||
-        course.instructor.name.toLowerCase().includes(query)
+      filtered = filtered.filter((course: AdminCourseSummary) => 
+        course.title?.toLowerCase().includes(query) ||
+        course.teacherName?.toLowerCase().includes(query)
       );
     }
     
     // Filter by status
     if (this.statusFilter()) {
-      courses = courses.filter(course => course.status === this.statusFilter());
+      const status = this.statusFilter().toUpperCase();
+      filtered = filtered.filter((course: AdminCourseSummary) => 
+        course.status?.toUpperCase() === status
+      );
     }
     
     // Filter by category
     if (this.categoryFilter()) {
-      courses = courses.filter(course => course.category === this.categoryFilter());
+      filtered = filtered.filter((course: AdminCourseSummary) => 
+        course.category?.toLowerCase() === this.categoryFilter().toLowerCase()
+      );
     }
     
-    return courses;
+    return filtered;
   });
 
   ngOnInit(): void {
     this.loadCourses();
   }
 
-  async loadCourses(): Promise<void> {
-    await this.adminService.getCourses();
+  private loadCourses(): void {
+    console.log('[CourseManagement] Loading courses...');
+    this.isLoading.set(true);
+    
+    this.adminService.getAllCourses().subscribe({
+      next: (response) => {
+        console.log('[CourseManagement] Courses loaded:', response);
+        
+        // Ensure we have an array
+        const coursesData = Array.isArray(response.data) ? response.data : [];
+        console.log('[CourseManagement] Setting courses:', coursesData.length, 'items');
+        
+        this.courses.set(coursesData);
+        this.isLoading.set(false);
+      },
+      error: (error) => {
+        console.error('[CourseManagement] Error loading courses:', error);
+        this.courses.set([]); // Set empty array on error
+        this.isLoading.set(false);
+        alert('Không thể tải danh sách khóa học. Vui lòng thử lại.');
+      }
+    });
   }
 
-  async approveCourse(courseId: string): Promise<void> {
-    await this.adminService.approveCourse(courseId);
+  approveCourse(courseId: string): void {
+    this.adminService.approveCourse(courseId).subscribe({
+      next: () => {
+        // Reload courses after approval
+        this.loadCourses();
+      },
+      error: (error) => {
+        console.error('Error approving course:', error);
+      }
+    });
   }
 
-  openRejectModal(course: AdminCourse): void {
+  openRejectModal(course: AdminCourseSummary): void {
     this.selectedCourse.set(course);
     this.showRejectModal.set(true);
     this.rejectionReason.set('');
@@ -402,10 +465,17 @@ export class CourseManagementComponent implements OnInit {
     this.rejectionReason.set('');
   }
 
-  async rejectCourse(): Promise<void> {
+  rejectCourse(): void {
     if (this.selectedCourse() && this.rejectionReason()) {
-      await this.adminService.rejectCourse(this.selectedCourse()!.id, this.rejectionReason());
-      this.closeRejectModal();
+      this.adminService.rejectCourse(this.selectedCourse()!.id, this.rejectionReason()).subscribe({
+        next: () => {
+          this.closeRejectModal();
+          this.loadCourses();
+        },
+        error: (error) => {
+          console.error('Error rejecting course:', error);
+        }
+      });
     }
   }
 
@@ -419,7 +489,7 @@ export class CourseManagementComponent implements OnInit {
     window.open(`/teacher/courses/${courseId}/edit`, '_blank');
   }
 
-  formatDate(date: Date): string {
+  formatDate(date: string | Date): string {
     return new Date(date).toLocaleDateString('vi-VN', {
       day: '2-digit',
       month: '2-digit',

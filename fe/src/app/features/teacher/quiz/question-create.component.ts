@@ -212,6 +212,7 @@ export class QuestionCreateComponent implements OnInit {
   questionForm: FormGroup;
   isLoading = false;
   courseId: string | null = null;
+  packageId: string | null = null;
 
   constructor(
     private fb: FormBuilder,
@@ -234,11 +235,14 @@ export class QuestionCreateComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    // Get courseId from route parameters
+    // Get packageId from query parameters (priority)
+    this.packageId = this.route.snapshot.queryParamMap.get('packageId');
+    
+    // Get courseId from route parameters (fallback for backward compatibility)
     this.courseId = this.route.snapshot.paramMap.get('courseId') || 
                     this.route.snapshot.queryParamMap.get('courseId');
     
-    console.log('🔍 Question Create - courseId:', this.courseId);
+    console.log('🔍 Question Create - packageId:', this.packageId, 'courseId:', this.courseId);
     
     // Auto-set correct option to 'A' initially
     this.setCorrectOption('A');
@@ -319,7 +323,8 @@ export class QuestionCreateComponent implements OnInit {
       options: optionsList,
       difficulty: formValue.difficulty,
       tags: formValue.tags,
-      courseId: this.courseId || undefined  // Add courseId if available
+      courseId: this.courseId || undefined,  // Add courseId if available
+      packageId: this.packageId || undefined  // Add packageId if available
     };
 
     console.log('🔍 Creating question with request:', request);

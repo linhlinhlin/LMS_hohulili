@@ -31,20 +31,22 @@ export const studentRoutes: Routes = [
       // Dashboard - Trang chủ học viên
       {
         path: 'dashboard',
-        loadComponent: () => import('./dashboard/enhanced-student-dashboard.component').then(m => m.EnhancedStudentDashboardComponent),
+        loadComponent: () => import('./dashboard/student-dashboard.component').then(m => m.StudentDashboardComponent),
         title: 'Dashboard - Học viên'
       },
       
-      // Course Management Routes
+      // My Courses - Khóa học của tôi (detailed list with modules)
       {
-        path: 'courses',
-        children: [
-          {
-            path: '',
-            loadComponent: () => import('../courses/my-courses.component').then(m => m.MyCoursesComponent),
-            title: 'Khóa học của tôi'
-          }
-        ]
+        path: 'my-courses',
+        loadComponent: () => import('./student-my-courses.component').then(m => m.StudentMyCoursesComponent),
+        title: 'Khóa học của tôi'
+      },
+      
+      // Course Detail - Chi tiết khóa học
+      {
+        path: 'course/:id',
+        loadComponent: () => import('./pages/course-detail.component').then(m => m.CourseDetailComponent),
+        title: 'Chi tiết khóa học'
       },
       
       // Assignment Routes
@@ -74,21 +76,7 @@ export const studentRoutes: Routes = [
       path: 'learn',
       loadChildren: () => import('../learning/learning.routes').then(m => m.learningRoutes)
     },
-    {
-      path: 'courses',
-      children: [
-        {
-          path: '',
-          loadComponent: () => import('../learning/components/course-selection-clean.component').then(c => c.CourseSelectionComponent),
-          title: 'Chọn khóa học'
-        },
-        {
-          path: ':courseId/lessons/:lessonId',
-          loadComponent: () => import('./components/student-lesson-viewer.component').then(c => c.StudentLessonViewerComponent),
-          title: 'Xem bài học'
-        }
-      ]
-    },      // Quiz Routes
+      // Quiz Routes
       {
         path: 'quiz',
         children: [

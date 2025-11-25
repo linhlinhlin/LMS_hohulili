@@ -1,0 +1,117 @@
+<div class="lesson-content-wrapper">
+  <!-- Video Player - Coursera Style -->
+  @if (lesson.videoUrl) {
+    <div class="video-section">
+      <div class="video-container">
+        @if (isYouTubeVideo()) {
+          <!-- YouTube Embed -->
+          <div class="video-wrapper">
+            <iframe
+              [src]="getYouTubeEmbedUrl()"
+              frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen
+              class="video-iframe">
+            </iframe>
+          </div>
+        } @else {
+          <!-- HTML5 Video Player -->
+          <div class="video-wrapper">
+            <video
+              [src]="lesson.videoUrl"
+              [poster]="lesson.thumbnail"
+              controls
+              controlsList="nodownload"
+              class="video-player"
+              (play)="onVideoPlay()"
+              (pause)="onVideoPause()"
+              (ended)="onVideoEnd()"
+              (timeupdate)="onVideoTimeUpdate($event)"
+              (error)="onVideoError($event)">
+              Trình duyệt của bạn không hỗ trợ video.
+            </video>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- Content Area - Constrained Width -->
+  <div class="content-container">
+    <!-- Lesson Header -->
+    <div class="lesson-header">
+      <h1 class="lesson-title">{{ lesson.title }}</h1>
+      @if (lesson.description) {
+        <p class="lesson-description">{{ lesson.description }}</p>
+      }
+      <div class="lesson-meta">
+        @if (lesson.durationMinutes && lesson.durationMinutes > 0) {
+          <span class="meta-item">
+            <i class="icon-clock"></i>
+            {{ lesson.durationMinutes }} phút
+          </span>
+        }
+        @if (lesson.lessonType) {
+          <span class="meta-item lesson-type">
+            <i class="icon-book"></i>
+            {{ getLessonTypeLabel() }}
+          </span>
+        }
+      </div>
+    </div>
+
+    <!-- HTML Content -->
+    @if (lesson.content) {
+      <div class="html-content" [innerHTML]="getSafeHtmlContent()"></div>
+    }
+
+    <!-- Attachments Section -->
+    @if (lesson.attachments && lesson.attachments.length > 0) {
+      <div class="attachments-section">
+        <h3 class="section-title">
+          <i class="icon-paperclip"></i>
+          Tài liệu đính kèm ({{ lesson.attachments.length }})
+        </h3>
+        <div class="attachments-list">
+          @for (attachment of lesson.attachments; track attachment.id) {
+            <div class="attachment-item">
+              <div class="attachment-icon">
+                <i class="icon-file"></i>
+              </div>
+              <div class="attachment-info">
+                <span class="attachment-name">{{ attachment.originalFileName }}</span>
+                @if (attachment.fileSize) {
+                  <span class="attachment-size">{{ formatFileSize(attachment.fileSize) }}</span>
+                }
+              </div>
+              <a 
+                [href]="attachment.fileUrl" 
+                download
+                class="attachment-download"
+                target="_blank"
+                rel="noopener noreferrer">
+                <i class="icon-download"></i>
+                Tải xuống
+              </a>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Mark Complete Button -->
+    @if (!isCompleted) {
+      <div class="complete-section">
+        <button class="btn-mark-complete" (click)="onMarkComplete()">
+          <i class="icon-check-circle"></i>
+          Đánh dấu hoàn thành
+        </button>
+      </div>
+    } @else {
+      <div class="completed-badge">
+        <i class="icon-check-circle"></i>
+        <span>Đã hoàn thành</span>
+      </div>
+    }
+  </div>
+</div>

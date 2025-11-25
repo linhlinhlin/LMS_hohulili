@@ -191,8 +191,9 @@ type LessonAttachment = ApiLessonAttachment;
                       </button>
                       
                       @if (!lesson.isCompleted) {
-                        <button 
-                          (click)="markAsCompleted()"
+                        <button
+                          type="button"
+                          (click)="onCompleteButtonClick()"
                           class="px-6 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors">
                           Đánh dấu hoàn thành
                         </button>
@@ -290,7 +291,7 @@ type LessonAttachment = ApiLessonAttachment;
 
                             <!-- Fallback options -->
                             <div class="border rounded-lg overflow-hidden mt-4">
-                              <div class="bg-red-100 p-3 font-medium text-red-800">❌ Fallback Options</div>
+                              <div class="bg-red-100 p-3 font-medium text-red-800">Fallback Options</div>
                               <div class="p-6 text-center bg-gray-50">
                                 <div class="space-x-3">
                                   <a [href]="attachment.fileUrl" target="_blank"
@@ -413,7 +414,22 @@ export class StudentLessonViewerComponent implements OnInit {
     return currentIndex > 0;
   });
 
+  constructor(
+    // các inject cũ
+  ) {
+    console.log(
+      '%c[StudentLessonViewerComponent] CONSTRUCTOR',
+      'color: white; background: purple; padding: 2px 4px;'
+    );
+  }
   ngOnInit() {
+    console.log(
+      '%c[StudentLessonViewerComponent] CONSTRUCTOR',
+      'color: white; background: purple; padding: 2px 4px;'
+    );
+
+
+
     // Get route parameters
     const courseId = this.route.snapshot.paramMap.get('courseId');
     const lessonId = this.route.snapshot.paramMap.get('lessonId');
@@ -442,9 +458,9 @@ export class StudentLessonViewerComponent implements OnInit {
       try {
         const attachmentResponse = await firstValueFrom(this.lessonAttachmentApi.getAttachments(lessonId));
         attachments = attachmentResponse || [];
-        console.log('✅ StudentLessonViewer: Attachments loaded', attachments.length);
+        console.log('[SUCCESS] StudentLessonViewer: Attachments loaded', attachments.length);
       } catch (attachmentError) {
-        console.warn('⚠️ StudentLessonViewer: Could not load attachments', attachmentError);
+        console.warn('[WARNING] StudentLessonViewer: Could not load attachments', attachmentError);
         attachments = [];
       }
 
@@ -465,10 +481,10 @@ export class StudentLessonViewerComponent implements OnInit {
         lastModified: lessonData.updatedAt || lessonData.createdAt
       });
 
-      console.log('✅ StudentLessonViewer: Lesson loaded successfully', this._currentLesson());
+      console.log('[SUCCESS] StudentLessonViewer: Lesson loaded successfully', this._currentLesson());
     } catch (error: any) {
       const errorMessage = error?.message || 'Không thể tải bài học';
-      console.error('❌ StudentLessonViewer: Error loading lesson:', error);
+      console.error('[ERROR] StudentLessonViewer: Error loading lesson:', error);
       this._error.set(errorMessage);
       this.errorService.handleApiError(error, 'lesson-viewer');
     } finally {
@@ -622,15 +638,75 @@ export class StudentLessonViewerComponent implements OnInit {
     }
   }
 
-  markAsCompleted(): void {
+  async markAsCompleted(): Promise<void> {
+    console.log('[DEBUG] markAsCompleted: ENTERED METHOD');
+
     const lesson = this._currentLesson();
-    if (lesson) {
+    if (!lesson) {
+      console.log('[DEBUG] markAsCompleted: No lesson found in current state');
+      return;
+    }
+
+    console.log('[DEBUG] markAsCompleted: Starting for lesson:', lesson.id);
+
+    // 🔍 DEBUG: Check token before API call
+    const token = localStorage.getItem('lms_access_token');
+    console.log('[DEBUG] markAsCompleted: Token check:', {
+      tokenExists: !!token,
+      tokenLength: token?.length,
+      tokenPrefix: token?.substring(0, 20) + '...'
+    });
+
+    // 🔍 DEBUG: Decode JWT to check payload
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        console.log('[DEBUG] markAsCompleted: JWT Payload:', {
+          sub: payload.sub,
+          roles: payload.roles || payload.authorities,
+          exp: new Date(payload.exp * 1000).toISOString(),
+          isExpired: payload.exp * 1000 < Date.now()
+        });
+      } catch (decodeError) {
+        console.error('[ERROR] markAsCompleted: Cannot decode JWT:', decodeError);
+      }
+    }
+
+    try {
+      console.log('[DEBUG] markAsCompleted: BEFORE API CALL - about to call lessonApi.markLessonComplete');
+
+      // Gọi API backend để lưu progress
+      const apiResult = await firstValueFrom(this.lessonApi.markLessonComplete(lesson.id));
+
+      console.log('[DEBUG] markAsCompleted: API call successful, response:', apiResult);
+
+      // Cập nhật local state sau khi API thành công
       const updatedLesson = { ...lesson, isCompleted: true };
       this._currentLesson.set(updatedLesson);
-      console.log('✅ Lesson marked as completed:', lesson.id);
-      
-      // In production, call API to update completion status
-      // this.lessonApi.markLessonComplete(lesson.id).subscribe();
+
+      console.log('[SUCCESS] markAsCompleted: Lesson marked as completed in database:', lesson.id);
+    } catch (error: any) {
+      console.error('[ERROR] markAsCompleted: Failed to mark lesson as completed:', error);
+      console.error('[ERROR] markAsCompleted: Error details:', {
+        status: error?.status,
+        statusText: error?.statusText,
+        message: error?.message,
+        url: error?.url,
+        error: error?.error
+      });
+
+      // 🔍 DEBUG: Check if it's a 403 error
+      if (error?.status === 403) {
+        console.error('[ERROR] markAsCompleted: 403 Forbidden - Check token and roles');
+        console.error('[ERROR] markAsCompleted: Current localStorage keys:', Object.keys(localStorage));
+        console.error('[ERROR] markAsCompleted: All localStorage values:', Object.keys(localStorage).map(key => ({
+          key,
+          value: localStorage.getItem(key)?.substring(0, 50) + '...'
+        })));
+      }
+
+      // Có thể hiển thị toast error cho user
+      this._error.set('Không thể cập nhật trạng thái hoàn thành. Vui lòng thử lại.');
     }
   }
 
@@ -640,5 +716,10 @@ export class StudentLessonViewerComponent implements OnInit {
 
   onVideoError(): void {
   console.error('Video failed to load');
+  }
+
+  onCompleteButtonClick(): void {
+    console.log('BUTTON CLICKED DIRECTLY - calling markAsCompleted');
+    this.markAsCompleted();
   }
 }

@@ -40,61 +40,6 @@ import { CreateCourseRequest, CourseSummary } from '../../../api/types/course.ty
           <span class="text-red-600" *ngIf="errorMsg()">{{ errorMsg() }}</span>
         </div>
       </form>
-
-      <!-- LMS-style: Existing courses to use as template -->
-      <div class="bg-white shadow">
-        <div class="p-4 flex flex-wrap items-center justify-between gap-3">
-          <h2 class="text-xl font-semibold text-gray-900">Khóa học của tôi</h2>
-          <div class="flex items-center gap-2">
-            <input class="border px-3 py-2 w-64" placeholder="Tìm theo mã hoặc tên" [(ngModel)]="keyword" />
-            <button class="px-4 py-2 border" (click)="applyFilters()">Lọc</button>
-          </div>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-              <tr>
-                <th class="px-6 py-4 text-left text-sm md:text-base font-semibold text-gray-600 uppercase tracking-wider">Mã</th>
-                <th class="px-6 py-4 text-left text-sm md:text-base font-semibold text-gray-600 uppercase tracking-wider">Tên</th>
-                <th class="px-6 py-4"></th>
-              </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-              <tr *ngFor="let c of paged()">
-                <td class="px-6 py-5 whitespace-nowrap font-mono text-base md:text-lg text-gray-900">{{ c.code }}</td>
-                <td class="px-6 py-5 whitespace-nowrap text-base md:text-lg text-gray-900">{{ c.title }}</td>
-                <td class="px-6 py-5 whitespace-nowrap text-right">
-                  <button class="px-3 py-1 border text-sm disabled:opacity-50" [disabled]="prefillingId() === c.id" (click)="prefillFrom(c.id)">
-                    {{ prefillingId() === c.id ? 'Đang nạp...' : 'Dùng làm mẫu' }}
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="p-6 text-gray-500" *ngIf="!loadingCourses() && filtered().length === 0">Không có khóa học.</div>
-        <div class="p-6 text-gray-500" *ngIf="loadingCourses()">Đang tải...</div>
-        <div class="p-6 text-red-600" *ngIf="errorCourses()">{{ errorCourses() }}</div>
-
-        <!-- Pagination Controls -->
-        <div class="p-4 flex flex-wrap items-center justify-between gap-3 border-t">
-          <div class="flex items-center gap-2">
-            <span class="text-sm text-gray-600">Hiển thị</span>
-            <select class="border px-2 py-1" [ngModel]="pageSize()" (ngModelChange)="onPageSizeChange($event)">
-              <option [ngValue]="5">5</option>
-              <option [ngValue]="10">10</option>
-              <option [ngValue]="20">20</option>
-            </select>
-            <span class="text-sm text-gray-600">mỗi trang</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <button class="px-3 py-1 border disabled:opacity-50" [disabled]="pageIndex() <= 1" (click)="prevPage()">Trước</button>
-            <span class="text-sm text-gray-700">Trang {{ pageIndex() }} / {{ totalPages() }}</span>
-            <button class="px-3 py-1 border disabled:opacity-50" [disabled]="pageIndex() >= totalPages()" (click)="nextPage()">Sau</button>
-          </div>
-          <div class="text-sm text-gray-600">Tổng: {{ total() }}</div>
-        </div>
-      </div>
     </div>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -109,7 +54,6 @@ export class CourseCreationComponent {
   errorMsg = signal<string>('');
 
   // Existing courses (LMS-style section)
-  loadingCourses = signal<boolean>(true);
   errorCourses = signal<string>('');
   courses = signal<CourseSummary[]>([]);
   filtered = signal<CourseSummary[]>([]);
@@ -150,8 +94,7 @@ export class CourseCreationComponent {
         this.filtered.set(data);
         this.pageIndex.set(1);
       },
-      error: (err) => this.errorCourses.set(err?.message || 'Không tải được danh sách khóa học'),
-      complete: () => this.loadingCourses.set(false)
+      error: (err) => this.errorCourses.set(err?.message || 'Không tải được danh sách khóa học')
     });
   }
 

@@ -6,7 +6,7 @@ import javax.crypto.SecretKey;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
-
+import org.springframework.security.core.GrantedAuthority;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -36,7 +36,16 @@ public class JwtService {
     }
 
     public String generateToken(UserDetails userDetails) {
-        return generateToken(new HashMap<>(), userDetails);
+        Map<String, Object> extraClaims = new HashMap<>();
+        // Lấy danh sách role từ authorities
+        var roles = userDetails.getAuthorities()
+                .stream()
+                .map(GrantedAuthority::getAuthority) // ví dụ: "ROLE_STUDENT"
+                .toList(); // nếu project bạn chưa dùng Java 16+, dùng Collectors.toList()
+
+        extraClaims.put("roles", roles);
+
+        return generateToken(extraClaims, userDetails);
     }
 
     public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {

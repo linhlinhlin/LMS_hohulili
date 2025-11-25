@@ -1,4 +1,5 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import { ApiClient } from '../../../../api/client/api-client';
 import { TeacherCourse, TeacherStudent, TeacherAssignment } from '../../types/teacher.types';
 
@@ -32,17 +33,37 @@ export class TeacherService {
   readonly activeCourses = computed(() =>
     this._courses().filter(course => course.status === 'active')
   );
+  readonly draftCourses = computed(() =>
+    this._courses().filter(course => course.status === 'draft')
+  );
+  readonly archivedCourses = computed(() =>
+    this._courses().filter(course => course.status === 'archived')
+  );
   readonly totalRevenue = computed(() =>
     this._courses().reduce((sum, course) => sum + (course.revenue || 0), 0)
   );
+  readonly averageRating = computed(() => {
+    const coursesWithRating = this._courses().filter(c => c.rating > 0);
+    if (coursesWithRating.length === 0) return 0;
+    return coursesWithRating.reduce((sum, c) => sum + c.rating, 0) / coursesWithRating.length;
+  });
+  readonly pendingAssignments = computed(() =>
+    this._assignments().filter(a => a.status === 'pending')
+  );
+  readonly completionRate = computed(() => {
+    const students = this._students();
+    if (students.length === 0) return 0;
+    return students.reduce((sum, s) => sum + s.progress, 0) / students.length;
+  });
 
   constructor() {
-    // Initialize with mock data for development
-    this.initializeMockData();
+    // ✅ FIXED: Removed constructor initialization to avoid race condition
+    // Component's ngOnInit() will explicitly call loadMyCourses()
+    // This ensures signal state is ready before async data load begins
   }
 
   private initializeMockData(): void {
-    // Mock courses data
+    // Fallback mock data when API fails
     const mockCourses: TeacherCourse[] = [
       {
         id: '1',
@@ -82,7 +103,12 @@ export class TeacherService {
       }
     ];
 
-    // Mock students data
+    this._courses.set(mockCourses);
+    this.initializeMockStudentsAndAssignments();
+  }
+
+  private initializeMockStudentsAndAssignments(): void {
+    // Mock students data (until backend provides API)
     const mockStudents: TeacherStudent[] = [
       {
         id: '1',
@@ -122,14 +148,15 @@ export class TeacherService {
       }
     ];
 
-    // Mock assignments data
+    // Mock assignments data (until backend provides API)
     const mockAssignments: TeacherAssignment[] = [
       {
         id: '1',
         title: 'Safety Procedures Quiz',
         courseId: '1',
+        courseTitle: 'Maritime Safety Fundamentals',
         description: 'Test knowledge of maritime safety procedures',
-        dueDate: '2024-09-20',
+        dueDate: '2024-11-20',
         status: 'pending',
         submissions: 35,
         totalStudents: 45,
@@ -141,8 +168,9 @@ export class TeacherService {
         id: '2',
         title: 'Navigation Project',
         courseId: '2',
+        courseTitle: 'Navigation Systems Advanced',
         description: 'Practical navigation exercise',
-        dueDate: '2024-09-25',
+        dueDate: '2024-11-25',
         status: 'submitted',
         submissions: 28,
         totalStudents: 32,
@@ -152,28 +180,59 @@ export class TeacherService {
       }
     ];
 
-    this._courses.set(mockCourses);
     this._students.set(mockStudents);
     this._assignments.set(mockAssignments);
   }
 
-  // API Methods (to be implemented with real backend)
-  async getCourses(): Promise<TeacherCourse[]> {
+  // API Methods - Real Backend Integration
+  async loadMyCourses(page: number = 1, limit: number = 100): Promise<void> {
     this._isLoading.set(true);
     this._error.set(null);
 
     try {
-      // TODO: Replace with real API call
-      // const response = await this.apiClient.get<TeacherCourse[]>('/api/v1/teacher/courses');
-      // this._courses.set(response);
-      await this.simulateApiCall();
-      return this._courses();
+      // Call real API: GET /api/v1/courses/my-courses
+      const response = await firstValueFrom(
+        this.apiClient.get<any>(`/api/v1/courses/my-courses?page=${page}&limit=${limit}`)
+      );
+      
+      // Backend returns: { success: true, data: { content: [...], pageable: {...} } }
+      const apiData = response.data || response;
+      const coursesData = apiData.content || [];
+      
+      // Map backend response to TeacherCourse format
+      const courses: TeacherCourse[] = coursesData.map((course: any) => ({
+        id: course.id,
+        title: course.title,
+        description: course.description,
+        category: 'General', // Backend doesn't provide category yet
+        status: 'active', // Assume active for now
+        enrolledStudents: course.enrolledCount || 0,
+        rating: 0, // Backend doesn't provide rating yet
+        revenue: 0, // Backend doesn't provide revenue yet
+        createdAt: course.createdAt,
+        updatedAt: course.updatedAt,
+        // Additional fields from backend
+        sectionCount: course.sectionCount,
+        lessonCount: course.lessonCount
+      }));
+
+      this._courses.set(courses);
+      
+      // Initialize mock data for students and assignments (until backend provides these)
+      this.initializeMockStudentsAndAssignments();
     } catch (error) {
+      console.error('Failed to load courses:', error);
       this._error.set('Failed to load courses');
-      throw error;
+      // Fallback to mock data on error
+      this.initializeMockData();
     } finally {
       this._isLoading.set(false);
     }
+  }
+
+  async getCourses(): Promise<TeacherCourse[]> {
+    await this.loadMyCourses();
+    return this._courses();
   }
 
   async getStudents(): Promise<TeacherStudent[]> {
@@ -217,6 +276,9 @@ export class TeacherService {
     this._error.set(null);
 
     try {
+      // Validate course data
+      this.validateCourseData(course);
+
       // TODO: Replace with real API call
       // const response = await this.apiClient.post<TeacherCourse>('/api/v1/teacher/courses', course);
       await this.simulateApiCall();
@@ -232,6 +294,7 @@ export class TeacherService {
       return newCourse;
     } catch (error) {
       this._error.set('Failed to create course');
+      this.handleError(error, 'Tạo khóa học thất bại');
       throw error;
     } finally {
       this._isLoading.set(false);
@@ -368,15 +431,151 @@ export class TeacherService {
     return this._courses().find(course => course.id === courseId);
   }
 
-  getStudentById(studentId: string): TeacherStudent | undefined {
-    return this._students().find(student => student.id === studentId);
-  }
-
   getAssignmentsByCourse(courseId: string): TeacherAssignment[] {
     return this._assignments().filter(assignment => assignment.courseId === courseId);
   }
 
   getStudentsByCourse(courseId: string): TeacherStudent[] {
     return this._students().filter(student => student.enrolledCourses.includes(courseId));
+  }
+
+  // Student Management Methods
+  async getStudentById(studentId: string): Promise<TeacherStudent | null> {
+    this._isLoading.set(true);
+    try {
+      // TODO: Replace with real API call
+      await this.simulateApiCall();
+      return this._students().find(student => student.id === studentId) || null;
+    } finally {
+      this._isLoading.set(false);
+    }
+  }
+
+  async updateStudent(studentId: string, updates: Partial<TeacherStudent>): Promise<TeacherStudent> {
+    this._isLoading.set(true);
+    this._error.set(null);
+
+    try {
+      // TODO: Replace with real API call
+      await this.simulateApiCall();
+
+      this._students.update(students =>
+        students.map(student =>
+          student.id === studentId ? { ...student, ...updates } : student
+        )
+      );
+
+      const updatedStudent = this._students().find(student => student.id === studentId);
+      if (!updatedStudent) throw new Error('Student not found');
+
+      return updatedStudent;
+    } catch (error) {
+      this._error.set('Failed to update student');
+      throw error;
+    } finally {
+      this._isLoading.set(false);
+    }
+  }
+
+  // Analytics Methods
+  async getAnalytics(): Promise<any> {
+    this._isLoading.set(true);
+    try {
+      // TODO: Replace with real API call
+      await this.simulateApiCall();
+
+      const analytics = {
+        totalCourses: this.totalCourses(),
+        totalStudents: this.totalStudents(),
+        totalAssignments: this._assignments().length,
+        totalRevenue: this.totalRevenue(),
+        averageRating: this.averageRating(),
+        completionRate: this.completionRate(),
+        activeStudents: this._students().filter(s => {
+          const lastActive = new Date(s.lastActive);
+          const weekAgo = new Date();
+          weekAgo.setDate(weekAgo.getDate() - 7);
+          return lastActive > weekAgo;
+        }).length,
+        pendingGrading: this.pendingAssignments().length,
+        monthlyRevenue: this.calculateMonthlyRevenue(),
+        coursePerformance: this._courses().map(course => ({
+          courseId: course.id,
+          courseTitle: course.title,
+          students: course.enrolledStudents,
+          completionRate: Math.random() * 100, // TODO: Calculate from real data
+          averageGrade: Math.random() * 10, // TODO: Calculate from real data
+          revenue: course.revenue || 0
+        }))
+      };
+
+      return analytics;
+    } finally {
+      this._isLoading.set(false);
+    }
+  }
+
+  private calculateMonthlyRevenue(): number {
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+
+    return this._courses().reduce((sum, course) => {
+      const courseDate = new Date(course.createdAt);
+      if (courseDate.getMonth() === currentMonth && courseDate.getFullYear() === currentYear) {
+        return sum + (course.revenue || 0);
+      }
+      return sum;
+    }, 0);
+  }
+
+  // Validation Methods
+  private validateCourseData(courseData: Partial<TeacherCourse>): void {
+    const requiredFields = ['title', 'description', 'category'];
+    const missingFields = requiredFields.filter(field => !courseData[field as keyof TeacherCourse]);
+
+    if (missingFields.length > 0) {
+      throw new Error(`Thiếu thông tin bắt buộc: ${missingFields.join(', ')}`);
+    }
+
+    if (courseData.title && courseData.title.length < 3) {
+      throw new Error('Tiêu đề khóa học phải có ít nhất 3 ký tự');
+    }
+
+    if (courseData.description && courseData.description.length < 10) {
+      throw new Error('Mô tả khóa học phải có ít nhất 10 ký tự');
+    }
+  }
+
+  // Error Handling
+  private handleError(error: any, context: string): void {
+    console.error(`TeacherService Error [${context}]:`, error);
+
+    if (error instanceof Error) {
+      // Already a proper error with message
+      return;
+    }
+
+    // Handle HTTP errors if needed
+    if (error?.status) {
+      switch (error.status) {
+        case 400:
+          this._error.set('Dữ liệu không hợp lệ. Vui lòng kiểm tra lại.');
+          break;
+        case 401:
+          this._error.set('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+          break;
+        case 403:
+          this._error.set('Bạn không có quyền thực hiện hành động này.');
+          break;
+        case 404:
+          this._error.set('Không tìm thấy dữ liệu.');
+          break;
+        case 500:
+          this._error.set('Lỗi máy chủ. Vui lòng thử lại sau.');
+          break;
+        default:
+          this._error.set('Có lỗi xảy ra. Vui lòng thử lại.');
+      }
+    }
   }
 }

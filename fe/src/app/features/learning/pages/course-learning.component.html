@@ -1,0 +1,232 @@
+<div class="learning-container">
+  
+  <!-- Mobile Sidebar Overlay -->
+  @if (isMobileView() && showMobileSidebar()) {
+    <div class="mobile-overlay" (click)="closeMobileSidebar()"></div>
+  }
+
+  <!-- Sidebar -->
+  <aside 
+    class="learning-sidebar" 
+    [class.collapsed]="sidebarCollapsed()"
+    [class.mobile-visible]="showMobileSidebar()">
+    
+    <!-- Sidebar Header -->
+    <div class="sidebar-header">
+      <div class="course-info">
+        <button 
+          class="back-button"
+          (click)="goBack()"
+          aria-label="Quay lại khóa học">
+          <i class="icon-arrow-left"></i>
+        </button>
+        <div class="course-title-wrapper">
+          <h2 class="course-title">{{ course()?.title || 'Đang tải...' }}</h2>
+          @if (progressPercentage() > 0) {
+            <div class="progress-text">{{ progressPercentage() }}% hoàn thành</div>
+          }
+        </div>
+      </div>
+      @if (!isMobileView()) {
+        <button 
+          class="collapse-btn" 
+          (click)="toggleSidebar()"
+          [attr.aria-label]="sidebarCollapsed() ? 'Mở rộng' : 'Thu gọn'">
+          <i [class]="sidebarCollapsed() ? 'icon-chevron-right' : 'icon-chevron-left'"></i>
+        </button>
+      }
+    </div>
+
+    <!-- Search Box -->
+    <div class="search-box">
+      <i class="icon-search search-icon"></i>
+      <input 
+        type="text"
+        placeholder="Tìm kiếm bài học..."
+        [value]="searchQuery()"
+        (input)="onSearchChange($any($event.target).value)"
+        class="search-input">
+      @if (searchQuery()) {
+        <button class="clear-search" (click)="clearSearch()" aria-label="Xóa tìm kiếm">
+          <i class="icon-x"></i>
+        </button>
+      }
+    </div>
+
+    <!-- Lesson List -->
+    <div class="lesson-list">
+      @if (isLoadingCourse()) {
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <p>Đang tải nội dung khóa học...</p>
+        </div>
+      } @else if (courseError()) {
+        <div class="error-state">
+          <i class="icon-alert-circle"></i>
+          <p>{{ courseError() }}</p>
+        </div>
+      } @else if (filteredSections().length === 0) {
+        <div class="empty-state">
+          <i class="icon-search"></i>
+          <p>Không tìm thấy bài học</p>
+        </div>
+      } @else {
+        @for (section of filteredSections(); track section.id) {
+          <div class="section-accordion">
+            <!-- Section Header - Clickable to expand/collapse -->
+            <button 
+              class="section-header"
+              [class.expanded]="isSectionExpanded(section.id)"
+              (click)="toggleSection(section.id)"
+              [attr.aria-expanded]="isSectionExpanded(section.id)"
+              [attr.aria-label]="section.title + ', ' + section.lessons.length + ' bài học'">
+              <div class="section-info">
+                <h3 class="section-title">{{ section.title }}</h3>
+                <span class="section-count">{{ section.lessons.length }} bài học</span>
+              </div>
+              <svg 
+                class="chevron-icon" 
+                [class.rotated]="isSectionExpanded(section.id)"
+                width="20" 
+                height="20" 
+                viewBox="0 0 20 20" 
+                fill="none">
+                <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+
+            <!-- Section Content - Collapsible -->
+            @if (isSectionExpanded(section.id)) {
+              <div class="section-content">
+                <ul class="lesson-items">
+                  @for (lesson of section.lessons; track lesson.id) {
+                    <li>
+                      <button
+                        class="lesson-item"
+                        [class.active]="currentLesson()?.id === lesson.id"
+                        [class.completed]="learningService.isLessonCompleted(lesson.id)()"
+                        (click)="onLessonSelect(lesson.id)"
+                        [attr.aria-label]="lesson.title + ', ' + (learningService.isLessonCompleted(lesson.id)() ? 'Đã hoàn thành' : 'Chưa hoàn thành') + (lesson.duration > 0 ? ', ' + lesson.duration + ' phút' : '')">
+                        <div class="lesson-status">
+                          @if (learningService.isLessonCompleted(lesson.id)()) {
+                            <svg class="status-icon completed" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                              <circle cx="10" cy="10" r="10" fill="currentColor"/>
+                              <path d="M6 10l3 3 5-6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                          } @else {
+                            <svg class="status-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                              <circle cx="10" cy="10" r="9" stroke="currentColor" stroke-width="2"/>
+                            </svg>
+                          }
+                        </div>
+                        <div class="lesson-content">
+                          <div class="lesson-title">{{ lesson.title }}</div>
+                          @if (lesson.duration > 0) {
+                            <div class="lesson-meta">
+                              <span class="lesson-type">{{ getLessonTypeLabel(lesson.lessonType) }}</span>
+                              <span class="lesson-duration">{{ lesson.duration }} phút</span>
+                            </div>
+                          }
+                        </div>
+                      </button>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+          </div>
+        }
+      }
+    </div>
+  </aside>
+
+  <!-- Main Content Area -->
+  <main class="main-content">
+    
+    <!-- Mobile Menu Button -->
+    @if (isMobileView()) {
+      <button class="mobile-menu-btn" (click)="toggleSidebar()" aria-label="Mở menu">
+        <i class="icon-menu"></i>
+      </button>
+    }
+
+    <!-- Sidebar Toggle Button (when collapsed on desktop) -->
+    @if (!isMobileView() && sidebarCollapsed()) {
+      <button class="sidebar-toggle-btn" (click)="toggleSidebar()" aria-label="Mở menu khóa học">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <line x1="9" y1="3" x2="9" y2="21"/>
+        </svg>
+      </button>
+    }
+
+    <!-- Content Area -->
+    <div class="content-area">
+      @if (isLoadingLesson()) {
+        <div class="loading-overlay">
+          <div class="spinner large"></div>
+          <p>Đang tải bài học...</p>
+        </div>
+      } @else if (lessonError()) {
+        <div class="error-container">
+          <i class="icon-alert-circle"></i>
+          <h3>Lỗi tải bài học</h3>
+          <p>{{ lessonError() }}</p>
+          <button class="btn-primary" (click)="loadCourseFromRoute()">
+            Thử lại
+          </button>
+        </div>
+      } @else if (currentLesson()) {
+        <!-- Lesson Content Component -->
+        <app-lesson-content
+          [lesson]="currentLesson()!"
+          [isCompleted]="learningService.isLessonCompleted(currentLesson()!.id)()"
+          (markComplete)="onMarkComplete()"
+          (videoStateChange)="onVideoStateChange($event)"
+          (videoEnded)="onVideoEnded()">
+        </app-lesson-content>
+      } @else {
+        <div class="no-lesson-selected">
+          <i class="icon-book-open"></i>
+          <h3>Chọn bài học để bắt đầu</h3>
+          <p>Chọn một bài học từ danh sách bên trái</p>
+        </div>
+      }
+    </div>
+
+    <!-- Navigation Buttons -->
+    @if (currentLesson()) {
+      <div class="lesson-navigation">
+        <button 
+          class="nav-btn prev"
+          [disabled]="!canGoPrevious()"
+          (click)="previousLesson()"
+          aria-label="Bài học trước">
+          <i class="icon-chevron-left"></i>
+          <span>Bài trước</span>
+        </button>
+
+        <button 
+          class="btn-complete"
+          [class.completed]="learningService.isLessonCompleted(currentLesson()!.id)()"
+          (click)="onMarkComplete()">
+          @if (learningService.isLessonCompleted(currentLesson()!.id)()) {
+            <i class="icon-check"></i>
+            <span>Đã hoàn thành</span>
+          } @else {
+            <span>Đánh dấu hoàn thành</span>
+          }
+        </button>
+
+        <button 
+          class="nav-btn next"
+          [disabled]="!canGoNext()"
+          (click)="nextLesson()"
+          aria-label="Bài học tiếp theo">
+          <span>Bài tiếp theo</span>
+          <i class="icon-chevron-right"></i>
+        </button>
+      </div>
+    }
+  </main>
+</div>

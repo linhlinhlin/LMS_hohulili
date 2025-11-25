@@ -1,0 +1,135 @@
+<div class="students-list-container">
+  <!-- Search Bar -->
+  <div class="search-bar">
+    <div class="search-wrapper">
+      <app-icon name="magnifying-glass" size="sm" class="search-icon" />
+      <input 
+        class="search-input" 
+        placeholder="Tìm kiếm theo tên hoặc email..."
+        [(ngModel)]="searchTerm"
+        (input)="onSearch()" />
+      @if (searchTerm) {
+        <button class="clear-search" (click)="clearSearch()">
+          <app-icon name="x-mark" size="xs" />
+        </button>
+      }
+    </div>
+    <div class="results-count">
+      <strong>{{ totalStudents() }}</strong> học viên
+    </div>
+  </div>
+
+  <!-- Students Table -->
+  @if (!loading() && students().length > 0) {
+    <div class="table-container">
+      <table class="students-table">
+        <thead>
+          <tr>
+            <th>Học viên</th>
+            <th class="text-center">Tiến độ</th>
+            <th class="text-center">Bài học</th>
+            <th class="text-center">Trạng thái</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (student of students(); track student.id) {
+            <tr>
+              <td>
+                <div class="student-info">
+                  <div class="student-avatar">
+                    {{ getInitials(student.fullName) }}
+                  </div>
+                  <div class="student-details">
+                    <div class="student-name">{{ student.fullName }}</div>
+                    <div class="student-email">{{ student.email }}</div>
+                  </div>
+                </div>
+              </td>
+              <td class="text-center">
+                <div class="progress-cell">
+                  <span class="progress-text">{{ student.progressPercentage }}%</span>
+                  <app-progress-bar 
+                    [progress]="student.progressPercentage" 
+                    [thin]="true" 
+                  />
+                </div>
+              </td>
+              <td class="text-center">
+                <span class="lessons-count">
+                  {{ student.lessonsCompleted }}/{{ student.totalLessons }}
+                </span>
+              </td>
+              <td class="text-center">
+                <app-badge 
+                  [variant]="getStatusVariant(student.status)" 
+                  size="sm">
+                  {{ getStatusLabel(student.status) }}
+                </app-badge>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination-bar">
+      <div class="page-size-selector">
+        <span>Hiển thị</span>
+        <select [(ngModel)]="pageSize" (change)="onPageSizeChange()">
+          <option [value]="10">10</option>
+          <option [value]="20">20</option>
+          <option [value]="50">50</option>
+        </select>
+        <span>mỗi trang</span>
+      </div>
+      
+      <div class="page-navigation">
+        <app-button 
+          variant="ghost" 
+          size="sm"
+          [disabled]="isFirstPage()"
+          (clicked)="prevPage()">
+          Trước
+        </app-button>
+        <span class="page-info">Trang {{ currentPage() + 1 }} / {{ totalPages() }}</span>
+        <app-button 
+          variant="ghost" 
+          size="sm"
+          [disabled]="isLastPage()"
+          (clicked)="nextPage()">
+          Sau
+        </app-button>
+      </div>
+    </div>
+  }
+
+  <!-- Empty State -->
+  @if (!loading() && students().length === 0) {
+    <div class="empty-state">
+      <app-icon name="users" size="xl" />
+      <h3>Chưa có học viên nào</h3>
+      <p>{{ searchTerm ? 'Không tìm thấy học viên phù hợp' : 'Chưa có học viên đăng ký khóa học này' }}</p>
+    </div>
+  }
+
+  <!-- Loading State -->
+  @if (loading()) {
+    <div class="loading-state">
+      <app-icon name="arrow-path" size="xl" class="spin" />
+      <p>Đang tải danh sách học viên...</p>
+    </div>
+  }
+
+  <!-- Error State -->
+  @if (error()) {
+    <div class="error-state">
+      <app-icon name="exclamation-circle" size="xl" />
+      <p>{{ error() }}</p>
+      <app-button variant="ghost" (clicked)="loadStudents()">
+        <app-icon name="arrow-path" size="sm" />
+        Thử lại
+      </app-button>
+    </div>
+  }
+</div>

@@ -1,61 +1,100 @@
-import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
-import { inject } from '@angular/core';
-import { Router } from '@angular/router';
-import { catchError, throwError } from 'rxjs';
+import { Injectable, inject } from '@angular/core';
+import { HttpInterceptor, HttpRequest, HttpHandler, HttpEvent, HttpHandlerFn } from '@angular/common/http';
+import { Observable, throwError } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { AuthService } from '../../core/services/auth.service';
 
-export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  const authService = inject(AuthService);
-  const router = inject(Router);
+@Injectable()
+export class AuthInterceptor implements HttpInterceptor {
+  constructor(private authService: AuthService) {}
 
-  // Add authorization header if user is authenticated
-  let authReq = req;
-
-  const isAuthEndpoint = req.url.includes('/api/v1/auth/');
-
-  // Do NOT attach Authorization header for auth endpoints (login/register/refresh/logout)
-  // Attach token if available, regardless of whether currentUser state is hydrated yet.
-  if (!isAuthEndpoint) {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-    console.log('🔍 Auth Interceptor Debug:', {
-      url: req.url,
-      isAuthEndpoint,
-      tokenExists: !!token,
-      tokenPreview: token ? token.substring(0, 20) + '...' : 'NO_TOKEN'
-    });
+  intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+    // Add authorization header
+    const token = this.authService.getToken();
     if (token) {
-      authReq = req.clone({
+      request = request.clone({
         setHeaders: {
           Authorization: `Bearer ${token}`
         }
       });
-      console.log('✅ Authorization header added to request');
-    } else {
-      console.log('❌ No token found - request will be sent without Authorization header');
     }
+
+    return next.handle(request).pipe(
+      catchError((error) => {
+        if (error.status === 401) {
+          // Token expired or invalid
+          this.authService.logout();
+          // Redirect to login page
+          window.location.href = '/login';
+        }
+        return throwError(error);
+      })
+    );
+  }
+}
+
+export const authInterceptor = (req: HttpRequest<any>, next: HttpHandlerFn): Observable<HttpEvent<any>> => {
+  const authService = inject(AuthService);
+
+  // 🔍 DEBUG: Try multiple token keys
+  let token = authService.getToken(); // Primary: lms_access_token
+
+  if (!token) {
+    // Fallback: check other possible keys
+    token = localStorage.getItem('token') ||
+            localStorage.getItem('access_token') ||
+            localStorage.getItem('auth_token');
   }
 
-  return next(authReq).pipe(
-    catchError((error: HttpErrorResponse) => {
-      if (error.status === 401 && !isAuthEndpoint) {
-        // Token expired or invalid
-        authService.logout();
-        router.navigate(['/auth/login']);
-      } else if (error.status === 403 && !isAuthEndpoint) {
-        // Permission denied - redirect based on user role
-        const userRole = authService.userRole();
-        if (userRole === 'student') {
-          // Students should be redirected to courses to enroll
-          router.navigate(['/courses']);
-        } else if (userRole === 'teacher') {
-          // Teachers should go to teacher dashboard
-          router.navigate(['/teacher']);
-        } else {
-          // Unknown role, go to home
-          router.navigate(['/']);
-        }
+  console.log('🔗 AuthInterceptor: Processing request to:', req.url);
+  console.log('🔗 AuthInterceptor: Token exists:', !!token);
+  console.log('🔗 AuthInterceptor: Token source:', token ? 'found' : 'NOT FOUND');
+
+  if (token) {
+    console.log('🔗 AuthInterceptor: Adding Authorization header, token length:', token.length);
+
+    // 🔍 DEBUG: Decode JWT payload for student endpoints
+    if (req.url.includes('/student/')) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        console.log('🔗 AuthInterceptor: JWT Payload for student endpoint:', {
+          sub: payload.sub,
+          roles: payload.roles || payload.authorities,
+          exp: new Date(payload.exp * 1000).toISOString(),
+          isExpired: payload.exp * 1000 < Date.now()
+        });
+      } catch (decodeError) {
+        console.error('🔗 AuthInterceptor: Cannot decode JWT:', decodeError);
       }
-      return throwError(() => error);
+    }
+
+    req = req.clone({
+      setHeaders: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+    console.log('🔗 AuthInterceptor: Request cloned with Authorization header');
+  } else {
+    console.log('🔗 AuthInterceptor: ⚠️  NO TOKEN FOUND - Request will be sent WITHOUT Authorization header');
+    console.log('🔗 AuthInterceptor: Available localStorage keys:', Object.keys(localStorage));
+  }
+
+  return next(req).pipe(
+    catchError((error) => {
+      console.log('🔗 AuthInterceptor: Error response status:', error.status);
+
+      // 🔍 DEBUG: Log 403 errors for student endpoints
+      if (error.status === 403 && req.url.includes('/student/')) {
+        console.error('🔗 AuthInterceptor: 403 Forbidden on student endpoint:', req.url);
+        console.error('🔗 AuthInterceptor: Check token validity and user roles');
+      }
+
+      if (error.status === 401) {
+        console.log('🔗 AuthInterceptor: 401 Unauthorized - Logging out and redirecting to login');
+        authService.logout();
+        window.location.href = '/login';
+      }
+      return throwError(error);
     })
   );
 };

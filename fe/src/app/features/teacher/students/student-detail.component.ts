@@ -12,25 +12,19 @@ import { StudentApi, StudentDetail, StudentCourseProgress, StudentAssignmentSumm
       <!-- Header -->
       <div class="flex items-center justify-between">
         <h1 class="text-2xl font-bold text-gray-900">
-          {{ loading() ? 'Đang tải...' : student()?.name ? 'Học viên: ' + student()!.name : 'Chi tiết học viên' }}
+          {{ student()?.name ? 'Học viên: ' + student()!.name : 'Chi tiết học viên' }}
         </h1>
         <a routerLink="/teacher/students" class="text-sm text-gray-600 underline">Quay lại danh sách</a>
       </div>
 
       <!-- Error State -->
-      <div class="bg-red-50 border border-red-200 rounded-lg p-4" *ngIf="error() && !loading()">
+      <div class="bg-red-50 border border-red-200 rounded-lg p-4" *ngIf="error()">
         <p class="text-red-600">{{ error() }}</p>
                 <button (click)="onReload()" class="mt-2 text-blue-600 underline text-sm">Tải lại</button>
       </div>
 
-      <!-- Loading State -->
-      <div class="bg-white rounded-lg shadow p-6 text-center" *ngIf="loading()">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-        <p class="text-gray-600">Đang tải thông tin học viên...</p>
-      </div>
-
       <!-- Student Info -->
-      <div class="bg-white rounded-lg shadow p-6" *ngIf="student() && !loading()">
+      <div class="bg-white rounded-lg shadow p-6" *ngIf="student()">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div class="col-span-1 flex items-center gap-4">
             <div class="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center text-xl font-bold">
@@ -89,7 +83,7 @@ import { StudentApi, StudentDetail, StudentCourseProgress, StudentAssignmentSumm
       </div>
 
       <!-- Course Progress -->
-      <div class="bg-white rounded-lg shadow p-6" *ngIf="student() && !loading()">
+      <div class="bg-white rounded-lg shadow p-6" *ngIf="student()">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Tiến độ khóa học</h3>
         <div class="space-y-4" *ngIf="courseProgress().length > 0; else noCourses">
           <div *ngFor="let course of courseProgress()" class="border rounded-lg p-4">
@@ -124,7 +118,7 @@ import { StudentApi, StudentDetail, StudentCourseProgress, StudentAssignmentSumm
       </div>
 
       <!-- Assignment Submissions -->
-      <div class="bg-white rounded-lg shadow p-6" *ngIf="student() && !loading()">
+      <div class="bg-white rounded-lg shadow p-6" *ngIf="student()">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Bài tập đã nộp</h3>
         <div class="space-y-3" *ngIf="assignments().length > 0; else noAssignments">
           <div *ngFor="let assignment of assignments()" class="flex items-center justify-between p-3 border rounded-lg">
@@ -171,7 +165,6 @@ export class StudentDetailComponent {
   student = signal<StudentDetail | null>(null);
   courseProgress = signal<StudentCourseProgress[]>([]);
   assignments = signal<StudentAssignmentSummary[]>([]);
-  loading = signal(true);
   error = signal('');
 
   constructor() {
@@ -184,7 +177,6 @@ export class StudentDetailComponent {
       return;
     }
 
-    this.loading.set(true);
     this.error.set('');
 
     this.studentApi.getStudentDetail(this.studentId).subscribe({
@@ -264,9 +256,6 @@ export class StudentDetailComponent {
       error: (error) => {
         console.error('Error loading student detail:', error);
         this.error.set('Không thể tải thông tin học viên');
-      },
-      complete: () => {
-        this.loading.set(false);
       }
     });
   }

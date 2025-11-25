@@ -1,558 +1,577 @@
-import { Component, ChangeDetectionStrategy, inject, signal, OnInit } from '@angular/core';
+import { Component, signal, OnInit, inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, Validators, FormsModule } from '@angular/forms';
-import { Router, ActivatedRoute } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { Router, ActivatedRoute, RouterLink } from '@angular/router';
+import { QuestionApi, Question, QuestionImportResult } from '../../../api/endpoints/question.api';
+import { PackageApi, PackageDTO, CreatePackageRequest } from '../../../api/endpoints/package.api';
 import { QuizApi } from '../../../api/endpoints/quiz.api';
-import { QuestionApi, Question, QuestionOption } from '../../../api/endpoints/question.api';
-import { AuthService } from '../../../core/services/auth.service';
-import { ErrorHandlingService } from '../../../shared/services/error-handling.service';
-import { UserRole } from '../../../shared/types/user.types';
 import { firstValueFrom } from 'rxjs';
-
-interface Quiz {
-  id: string;
-  lesson: any;
-  questionIds: string;
-  timeLimitMinutes: number;
-  maxAttempts: number;
-  passingScore: number;
-  shuffleQuestions: boolean;
-  shuffleOptions: boolean;
-  showResultsImmediately: boolean;
-  showCorrectAnswers: boolean;
-  startDate?: string;
-  endDate?: string;
-}
+import { QuestionImportModalComponent } from './components/question-import-modal.component';
 
 @Component({
   selector: 'app-quiz-bank',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink, QuestionImportModalComponent],
   template: `
-    <div class="max-w-7xl mx-auto p-6">
-      <!-- Permission Check Loading State -->
-      <div *ngIf="isCheckingPermissions()" class="text-center py-12">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-        <p class="text-gray-600">Đang kiểm tra quyền truy cập...</p>
-      </div>
-
-      <!-- No Permission State -->
-      <div *ngIf="!hasPermission() && !isCheckingPermissions()" class="text-center py-12">
-        <svg class="w-16 h-16 mx-auto mb-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-        </svg>
-        <h3 class="text-lg font-medium mb-2 text-gray-900">Không có quyền truy cập</h3>
-        <p class="text-gray-600 mb-4">Tính năng này chỉ dành cho giảng viên.</p>
-        <button (click)="navigateToCourses()"
-                class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
-          📚 Xem khóa học
-        </button>
-      </div>
-
-      <!-- Main Content - Only show if user has permission -->
-      <div *ngIf="hasPermission() && !isCheckingPermissions()">
-        <!-- Header -->
-        <div class="flex items-center justify-between mb-6">
-          <div>
-            <h1 class="text-3xl font-bold text-gray-900">🏦 Quiz Bank</h1>
-            <p class="text-gray-600 mt-2">Quản lý ngân hàng câu hỏi và tạo quiz</p>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    
+    <div class="relative flex h-auto min-h-screen w-full flex-col bg-gray-50">
+      <!-- Add to Quiz Mode Banner -->
+      <div *ngIf="addToQuizLessonId" class="bg-green-600 text-white px-4 py-3">
+        <div class="mx-auto max-w-7xl flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <span class="material-symbols-outlined">add_circle</span>
+            <span class="font-medium">Chế độ thêm câu hỏi vào Quiz</span>
+            <span class="text-green-200">- Chọn câu hỏi và nhấn "Thêm vào Quiz"</span>
           </div>
-          <div class="flex gap-3">
-            <button (click)="createNewQuiz()"
-                    class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium">
-              ➕ Tạo Quiz Mới
-            </button>
-            <button (click)="createNewQuestion()"
-                    class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
-              ❓ Thêm Câu Hỏi
-            </button>
-            <button (click)="testApiAccess()"
-                    class="px-6 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 font-medium">
-              🔧 Test API
-            </button>
-          </div>
-        </div>
-
-      <!-- Quiz Context Alert -->
-      <div *ngIf="currentQuizId" 
-           class="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6">
-        <div class="flex items-center justify-between">
-          <div>
-            <h3 class="font-semibold text-purple-800">🎯 Đang thêm câu hỏi cho quiz:</h3>
-            <p class="text-purple-700">{{ currentQuizTitle }}</p>
-          </div>
-          <button (click)="clearQuizContext()" 
-                  class="px-3 py-1 bg-purple-200 text-purple-800 rounded hover:bg-purple-300 text-sm">
-            ✕ Đóng
+          <button *ngIf="returnUrl" (click)="goBack()" 
+                  class="px-3 py-1 bg-white text-green-600 rounded text-sm font-medium hover:bg-green-50">
+            ← Quay lại
           </button>
         </div>
       </div>
 
-      <!-- Main Content Tabs -->
-      <div class="bg-white rounded-lg shadow">
-        <!-- Tab Headers -->
-        <div class="border-b border-gray-200">
-          <nav class="-mb-px flex">
-            <button (click)="activeTab.set('quizzes')"
-                    [class.border-purple-500]="activeTab() === 'quizzes'"
-                    [class.text-purple-600]="activeTab() === 'quizzes'"
-                    class="whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm">
-              📋 Quản lý Quiz ({{ quizzes().length }})
-            </button>
-            <button (click)="activeTab.set('questions')"
-                    [class.border-purple-500]="activeTab() === 'questions'"
-                    [class.text-purple-600]="activeTab() === 'questions'"
-                    class="whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm">
-              ❓ Ngân hàng câu hỏi ({{ questions().length }})
-            </button>
-          </nav>
-        </div>
-
-        <!-- Tab Content -->
-        <div class="p-6">
-          <!-- Quiz Management Tab -->
-          <div *ngIf="activeTab() === 'quizzes'" class="space-y-6">
-            <!-- Quiz List -->
-            <div *ngIf="quizzes().length > 0" class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              <div *ngFor="let quiz of quizzes()" 
-                   class="bg-gray-50 border rounded-lg p-6 hover:shadow-md transition-shadow">
-                <div class="flex items-start justify-between mb-4">
-                  <h3 class="font-semibold text-lg text-gray-900">{{ quiz.lesson?.title || 'Quiz không có tiêu đề' }}</h3>
-                  <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">
-                    Đã xuất bản
-                  </span>
-                </div>
-                
-                <p class="text-gray-600 text-sm mb-4 line-clamp-2">{{ quiz.lesson?.description || 'Chưa có mô tả' }}</p>
-                
-                <div class="grid grid-cols-2 gap-4 mb-4 text-sm">
-                  <div class="text-center">
-                    <div class="font-semibold text-purple-600">{{ quiz.timeLimitMinutes }}</div>
-                    <div class="text-gray-500">Phút</div>
-                  </div>
-                  <div class="text-center">
-                    <div class="font-semibold text-green-600">{{ quiz.passingScore }}%</div>
-                    <div class="text-gray-500">Điểm đỗ</div>
-                  </div>
-                </div>
-                
-                <div class="flex gap-2">
-                  <button (click)="editQuiz(quiz)" 
-                          class="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">
-                    ✏️ Sửa
-                  </button>
-                  <button (click)="addQuestionsToQuiz(quiz)" 
-                          class="flex-1 px-3 py-2 bg-purple-600 text-white text-sm rounded hover:bg-purple-700">
-                    ➕ Câu hỏi
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <!-- Empty State -->
-            <div *ngIf="quizzes().length === 0" 
-                 class="text-center py-12 text-gray-500">
-              <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-              </svg>
-              <h3 class="text-lg font-medium mb-2">Chưa có quiz nào</h3>
-              <p class="mb-4">Tạo quiz đầu tiên để bắt đầu</p>
-              <button (click)="createNewQuiz()" 
-                      class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium">
-                ➕ Tạo Quiz Mới
-              </button>
+      <main class="flex-1 p-8 overflow-y-auto">
+        <div class="mx-auto max-w-7xl">
+          <!-- Header -->
+          <div class="flex flex-wrap justify-between items-start gap-4 mb-6">
+            <div class="flex flex-col gap-2">
+              <p class="text-gray-900 text-4xl font-black leading-tight tracking-tight">Bài kiểm tra</p>
+              <p class="text-gray-600 text-base font-normal leading-normal">Quản lý ngân hàng câu hỏi và tạo các bài kiểm tra mới.</p>
             </div>
           </div>
 
-          <!-- Question Bank Tab -->
-          <div *ngIf="activeTab() === 'questions'" class="space-y-6">
-            <!-- Question Filters -->
-            <div class="bg-gray-50 rounded-lg p-4">
-              <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Tìm kiếm</label>
-                  <input type="text" 
-                         [(ngModel)]="questionFilters.search" 
-                         (ngModelChange)="filterQuestions()"
-                         placeholder="Nội dung câu hỏi..."
-                         class="w-full px-3 py-2 border rounded-lg">
+          <!-- Tabs -->
+          <div class="flex border-b border-gray-200 mb-6">
+            <a routerLink="/teacher/quiz/quiz-bank"
+               class="px-4 py-3 text-sm font-semibold border-b-2 border-blue-600 text-blue-600">
+              Ngân hàng câu hỏi
+            </a>
+            <a routerLink="/teacher/quiz/create"
+               class="px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent">
+              Tạo bài kiểm tra
+            </a>
+          </div>
+
+          <!-- Main Content Card -->
+          <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
+            <!-- Toolbar -->
+            <div class="p-6 border-b border-gray-200">
+              <div class="flex flex-wrap gap-4 items-center justify-between">
+                <!-- Left: Package selector -->
+                <div class="flex items-center gap-3 flex-1 min-w-0">
+                  <div class="relative flex-1 max-w-md">
+                    <select 
+                      [(ngModel)]="selectedPackageId" 
+                      (ngModelChange)="onPackageChange()"
+                      class="w-full h-11 pl-10 pr-10 rounded-lg border-2 border-gray-300 bg-white text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer hover:border-gray-400 transition-colors">
+                      <option value="">Chọn gói câu hỏi...</option>
+                      <option *ngFor="let pkg of packages()" [value]="pkg.id">
+                        {{ pkg.name }} ({{ pkg.questionCount }} câu)
+                      </option>
+                    </select>
+                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">folder</span>
+                    <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">expand_more</span>
+                  </div>
+                  
+                  <button (click)="showCreatePackageModal = true" 
+                          class="flex items-center gap-2 h-11 px-4 rounded-lg border-2 border-blue-600 text-blue-600 text-sm font-semibold hover:bg-blue-50 transition-colors whitespace-nowrap">
+                    <span class="material-symbols-outlined text-base">add</span>
+                    <span>Tạo gói</span>
+                  </button>
+                  
+                  <button *ngIf="selectedPackage() && !selectedPackage()!.name.includes('Chưa phân loại')" 
+                          (click)="showManagePackageMenu = !showManagePackageMenu"
+                          class="flex items-center gap-1 h-11 px-3 rounded-lg border-2 border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors">
+                    <span class="material-symbols-outlined text-base">more_vert</span>
+                  </button>
+                  
+                  <!-- Package menu dropdown -->
+                  <div *ngIf="showManagePackageMenu && selectedPackage()" 
+                       class="absolute mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10"
+                       style="top: 180px;">
+                    <button (click)="deleteCurrentPackage(); showManagePackageMenu = false"
+                            class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2">
+                      <span class="material-symbols-outlined text-base">delete</span>
+                      <span>Xóa gói này</span>
+                    </button>
+                  </div>
                 </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Độ khó</label>
-                  <select [(ngModel)]="questionFilters.difficulty"
-                          (ngModelChange)="filterQuestions()"
-                          class="w-full px-3 py-2 border rounded-lg">
-                    <option value="">Tất cả</option>
-                    <option value="EASY">Dễ</option>
-                    <option value="MEDIUM">Trung bình</option>
-                    <option value="HARD">Khó</option>
-                  </select>
+
+                <!-- Right: Action buttons -->
+                <div class="flex items-center gap-2">
+                  <!-- Import button -->
+                  <button (click)="openImportModal()" 
+                          [disabled]="!selectedPackage()"
+                          class="flex items-center justify-center gap-2 h-11 px-4 rounded-lg border-2 border-green-600 text-green-600 text-sm font-semibold hover:bg-green-50 disabled:border-gray-300 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors whitespace-nowrap">
+                    <span class="material-symbols-outlined text-base">upload_file</span>
+                    <span>Import file</span>
+                  </button>
+                  
+                  <!-- Add question button -->
+                  <button (click)="createNewQuestion()" 
+                          [disabled]="!selectedPackage()"
+                          class="flex items-center justify-center gap-2 h-11 px-5 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors whitespace-nowrap">
+                    <span class="material-symbols-outlined text-base">add</span>
+                    <span>Thêm câu hỏi</span>
+                  </button>
                 </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Tags</label>
-                  <input type="text"
-                         [(ngModel)]="questionFilters.tags"
-                         (ngModelChange)="filterQuestions()"
-                         placeholder="Tags..."
-                         class="w-full px-3 py-2 border rounded-lg">
+              </div>
+
+              <!-- Package info -->
+              <div *ngIf="selectedPackage()" class="mt-4 flex flex-wrap items-center gap-3 text-sm">
+                <div class="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg">
+                  <span class="material-symbols-outlined text-base">quiz</span>
+                  <span class="font-medium">{{ selectedPackage()!.questionCount }} câu hỏi</span>
                 </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Trạng thái</label>
-                  <select [(ngModel)]="questionFilters.status"
-                          (ngModelChange)="filterQuestions()"
-                          class="w-full px-3 py-2 border rounded-lg">
-                    <option value="">Tất cả</option>
-                    <option value="ACTIVE">Hoạt động</option>
-                    <option value="DRAFT">Nháp</option>
-                    <option value="INACTIVE">Không hoạt động</option>
-                  </select>
+                <div *ngIf="selectedPackage()!.subject" class="flex items-center gap-2 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg">
+                  <span class="material-symbols-outlined text-base">book</span>
+                  <span>{{ selectedPackage()!.subject }}</span>
                 </div>
+                <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg"
+                     [class]="selectedPackage()!.visibility === 'PUBLIC' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600'">
+                  <span class="material-symbols-outlined text-base">{{ selectedPackage()!.visibility === 'PUBLIC' ? 'public' : 'lock' }}</span>
+                  <span>{{ selectedPackage()!.visibility === 'PUBLIC' ? 'Công khai' : 'Riêng tư' }}</span>
+                </div>
+                <p *ngIf="selectedPackage()!.description" class="text-gray-600 ml-2">{{ selectedPackage()!.description }}</p>
               </div>
             </div>
 
-            <!-- Question List -->
-            <div *ngIf="filteredQuestions().length > 0" class="space-y-4">
-              <div *ngFor="let question of filteredQuestions()" 
-                   class="border rounded-lg p-4 hover:shadow-sm">
-                <div class="flex items-start justify-between mb-3">
-                  <div class="flex-1">
-                    <div class="flex items-center gap-2 mb-2">
-                      <span class="text-xs px-2 py-1 rounded-full font-medium"
-                            [class]="getDifficultyClass(question.difficulty)">
+            <!-- Filters -->
+            <div *ngIf="selectedPackage()" class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div class="relative md:col-span-2">
+                  <input type="text" 
+                         [(ngModel)]="filters.search" 
+                         (ngModelChange)="filterQuestions()" 
+                         class="w-full h-10 px-4 pl-10 rounded-lg border border-gray-300 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                         placeholder="Tìm kiếm câu hỏi..." />
+                  <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
+                </div>
+                <select [(ngModel)]="filters.difficulty" 
+                        (ngModelChange)="filterQuestions()" 
+                        class="h-10 px-4 rounded-lg border border-gray-300 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                  <option value="">Tất cả độ khó</option>
+                  <option value="EASY">Dễ</option>
+                  <option value="MEDIUM">Trung bình</option>
+                  <option value="HARD">Khó</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Empty state -->
+            <div *ngIf="!selectedPackage()" class="p-16 text-center">
+              <span class="material-symbols-outlined text-gray-300" style="font-size: 80px;">folder_open</span>
+              <p class="text-gray-500 text-lg mt-4 mb-2">Chọn một gói câu hỏi để bắt đầu</p>
+              <p class="text-gray-400 text-sm mb-6">Hoặc tạo gói mới để tổ chức câu hỏi của bạn</p>
+              <button (click)="showCreatePackageModal = true" 
+                      class="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">
+                <span class="material-symbols-outlined text-base">add</span>
+                <span>Tạo gói đầu tiên</span>
+              </button>
+            </div>
+
+            <!-- Questions table -->
+            <div *ngIf="selectedPackage()" class="overflow-x-auto">
+              <table class="w-full text-left text-sm">
+                <thead class="bg-gray-50 text-gray-600 border-b border-gray-200">
+                  <tr>
+                    <th class="p-4 font-semibold">
+                      <input type="checkbox" 
+                             [checked]="isAllSelected()"
+                             (change)="toggleSelectAll()"
+                             class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500" />
+                    </th>
+                    <th class="p-4 font-semibold">Nội dung câu hỏi</th>
+                    <th class="p-4 font-semibold">Chủ đề</th>
+                    <th class="p-4 font-semibold">Độ khó</th>
+                    <th class="p-4 font-semibold">Ngày tạo</th>
+                    <th class="p-4 font-semibold text-right">Hành động</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                  <tr *ngFor="let question of filteredQuestions()" class="hover:bg-gray-50 transition-colors">
+                    <td class="p-4">
+                      <input type="checkbox" 
+                             [checked]="isQuestionSelected(question.id)"
+                             (change)="toggleQuestionSelection(question.id)"
+                             class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500" />
+                    </td>
+                    <td class="p-4 text-gray-800 max-w-xl">
+                      <div class="line-clamp-2">{{ question.content }}</div>
+                    </td>
+                    <td class="p-4 text-gray-600">
+                      <span class="inline-flex px-2.5 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-700">
+                        {{ question.tags || 'Chưa phân loại' }}
+                      </span>
+                    </td>
+                    <td class="p-4">
+                      <span class="inline-flex px-2.5 py-1 text-xs font-medium rounded-full" 
+                            [ngClass]="{
+                              'bg-green-100 text-green-800': question.difficulty === 'EASY', 
+                              'bg-yellow-100 text-yellow-800': question.difficulty === 'MEDIUM', 
+                              'bg-red-100 text-red-800': question.difficulty === 'HARD'
+                            }">
                         {{ getDifficultyLabel(question.difficulty) }}
                       </span>
-                      <span class="text-xs text-gray-500">ID: {{ question.id }}</span>
-                      <span class="text-xs text-gray-500">Status: {{ getStatusLabel(question.status) }}</span>
-                      <span class="text-xs text-gray-500">Sử dụng: {{ question.usageCount || 0 }} lần</span>
-                    </div>
-                    <h4 class="font-medium text-gray-900 mb-2">{{ question.content }}</h4>
-                  </div>
-                  <div class="flex gap-2 ml-4">
-                    <button (click)="editQuestion(question)" 
-                            class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">
-                      ✏️ Sửa
-                    </button>
-                    <button *ngIf="currentQuizId" 
-                            (click)="addQuestionToCurrentQuiz(question)" 
-                            class="px-3 py-1 bg-purple-600 text-white text-sm rounded hover:bg-purple-700">
-                      ➕ Thêm vào Quiz
-                    </button>
-                  </div>
-                </div>
+                    </td>
+                    <td class="p-4 text-gray-600 whitespace-nowrap">{{ question.createdAt | date:'dd/MM/yyyy' }}</td>
+                    <td class="p-4 text-right">
+                      <div class="flex justify-end gap-1">
+                        <button (click)="editQuestion(question)" 
+                                class="p-2 rounded-lg hover:bg-blue-50 transition-colors" 
+                                title="Sửa">
+                          <span class="material-symbols-outlined text-lg text-blue-600">edit</span>
+                        </button>
+                        <button (click)="deleteQuestion(question)" 
+                                class="p-2 rounded-lg hover:bg-red-50 transition-colors" 
+                                title="Xóa">
+                          <span class="material-symbols-outlined text-lg text-red-600">delete</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr *ngIf="filteredQuestions().length === 0">
+                    <td colspan="6" class="p-12 text-center">
+                      <div class="flex flex-col items-center gap-3">
+                        <span class="material-symbols-outlined text-gray-300" style="font-size: 56px;">quiz</span>
+                        <p class="text-gray-500 text-base">Không tìm thấy câu hỏi nào</p>
+                        <button (click)="createNewQuestion()" 
+                                class="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">
+                          Tạo câu hỏi đầu tiên
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
 
-                <!-- Question Options -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mb-3">
-                  <div *ngFor="let option of question.options" 
-                       class="flex items-center gap-2 p-2 rounded"
-                       [class.bg-green-50]="option.optionKey === question.correctOption"
-                       [class.border-green-200]="option.optionKey === question.correctOption"
-                       [class.border]="true">
-                   <div class="w-6 h-6 rounded flex items-center justify-center text-xs font-semibold"
-                        [class.bg-green-500]="option.optionKey === question.correctOption"
-                        [class.text-white]="option.optionKey === question.correctOption"
-                        [class.bg-gray-400]="option.optionKey !== question.correctOption"
-                        [class.text-white]="option.optionKey !== question.correctOption">
-                     {{ option.optionKey }}
-                   </div>
-                   <span class="text-sm flex-1">{{ option.content }}</span>
-                   <svg *ngIf="option.optionKey === question.correctOption"
-                        class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                     <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                   </svg>
-                  </div>
-                </div>
-
-                <!-- Question Tags -->
-                <div class="flex flex-wrap gap-1">
-                  <span *ngFor="let tag of question.tags.split(',')" 
-                        class="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">
-                    #{{ tag.trim() }}
+            <!-- Bulk actions bar -->
+            <div *ngIf="selectedQuestions().length > 0" 
+                 class="sticky bottom-0 p-4 bg-blue-50 border-t-2 border-blue-200 rounded-b-xl">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 text-white text-sm font-bold">
+                    {{ selectedQuestions().length }}
                   </span>
+                  <span class="text-sm font-medium text-blue-900">
+                    câu hỏi đã chọn
+                  </span>
+                </div>
+                <div class="flex gap-2">
+                  <!-- Add to Quiz button - only show when in addToQuiz mode -->
+                  <button *ngIf="addToQuizLessonId" 
+                          (click)="addSelectedToQuiz()"
+                          [disabled]="addingToQuiz()"
+                          class="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-bold transition-colors disabled:opacity-50">
+                    <span class="material-symbols-outlined text-base">add_circle</span>
+                    <span>{{ addingToQuiz() ? 'Đang thêm...' : 'Thêm vào Quiz' }}</span>
+                  </button>
+                  <button (click)="showMoveModal = true" 
+                          class="flex items-center gap-2 px-4 py-2 bg-white border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 text-sm font-medium transition-colors">
+                    <span class="material-symbols-outlined text-base">drive_file_move</span>
+                    <span>Di chuyển</span>
+                  </button>
+                  <button (click)="clearSelection()" 
+                          class="flex items-center gap-2 px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors">
+                    <span class="material-symbols-outlined text-base">close</span>
+                    <span>Bỏ chọn</span>
+                  </button>
                 </div>
               </div>
             </div>
-
-            <!-- Empty Questions State -->
-            <div *ngIf="filteredQuestions().length === 0" 
-                 class="text-center py-12 text-gray-500">
-              <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-              <h3 class="text-lg font-medium mb-2">Không tìm thấy câu hỏi</h3>
-              <p class="mb-4">Thử thay đổi bộ lọc hoặc tạo câu hỏi mới</p>
-              <button (click)="createNewQuestion()" 
-                      class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
-                ❓ Tạo Câu Hỏi Mới
-              </button>
-            </div>
           </div>
         </div>
-      </div>
+      </main>
+    </div>
 
-      <!-- Loading State -->
-      <div *ngIf="loading()"
-           class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white rounded-lg p-6 text-center">
-          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p class="text-gray-700">{{ loadingMessage() }}</p>
+    <!-- Modal: Create Package -->
+    <div *ngIf="showCreatePackageModal" 
+         class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" 
+         (click)="showCreatePackageModal = false">
+      <div class="bg-white rounded-xl p-6 w-full max-w-lg shadow-2xl" (click)="$event.stopPropagation()">
+        <div class="flex items-center justify-between mb-6">
+          <h3 class="text-2xl font-bold text-gray-900">Tạo gói câu hỏi mới</h3>
+          <button (click)="showCreatePackageModal = false" class="p-1 hover:bg-gray-100 rounded-lg">
+            <span class="material-symbols-outlined text-gray-400">close</span>
+          </button>
         </div>
-      </div>
-
-      <!-- Error State -->
-      <div *ngIf="error() && !isCheckingPermissions()"
-           class="fixed bottom-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded z-50">
-        {{ error() }}
-        <button (click)="error.set('')" class="ml-2">✕</button>
+        
+        <form (ngSubmit)="createPackage()" class="space-y-4">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Tên gói <span class="text-red-500">*</span></label>
+            <input type="text" 
+                   [(ngModel)]="newPackage.name" 
+                   name="name" 
+                   required 
+                   class="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                   placeholder="VD: Luật Hàng hải - Chương 1" />
+          </div>
+          
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Mô tả</label>
+            <textarea [(ngModel)]="newPackage.description" 
+                      name="description" 
+                      rows="3" 
+                      class="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                      placeholder="Mô tả ngắn gọn về gói câu hỏi"></textarea>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Môn học</label>
+            <input type="text" 
+                   [(ngModel)]="newPackage.subject" 
+                   name="subject" 
+                   class="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                   placeholder="VD: Luật Hàng hải" />
+          </div>
+          
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Hiển thị</label>
+            <select [(ngModel)]="newPackage.visibility" 
+                    name="visibility" 
+                    class="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+              <option value="PRIVATE">🔒 Riêng tư (chỉ mình tôi)</option>
+              <option value="PUBLIC">🌐 Công khai (mọi người xem được)</option>
+            </select>
+          </div>
+          
+          <div class="flex gap-3 pt-4">
+            <button type="button" 
+                    (click)="showCreatePackageModal = false" 
+                    class="flex-1 px-4 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors">
+              Hủy
+            </button>
+            <button type="submit" 
+                    class="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors">
+              Tạo gói
+            </button>
+          </div>
+        </form>
       </div>
     </div>
+
+    <!-- Modal: Move Questions -->
+    <div *ngIf="showMoveModal" 
+         class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" 
+         (click)="showMoveModal = false">
+      <div class="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl" (click)="$event.stopPropagation()">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-xl font-bold text-gray-900">Di chuyển câu hỏi</h3>
+          <button (click)="showMoveModal = false" class="p-1 hover:bg-gray-100 rounded-lg">
+            <span class="material-symbols-outlined text-gray-400">close</span>
+          </button>
+        </div>
+        
+        <p class="text-sm text-gray-600 mb-4">
+          Chọn gói đích để di chuyển <span class="font-semibold text-blue-600">{{ selectedQuestions().length }}</span> câu hỏi
+        </p>
+        
+        <div class="space-y-2 max-h-96 overflow-y-auto mb-4">
+          <button 
+            *ngFor="let pkg of packages()"
+            [disabled]="pkg.id === selectedPackage()?.id"
+            (click)="moveQuestionsToPackage(pkg.id)"
+            class="w-full text-left p-4 rounded-lg border-2 transition-all"
+            [class]="pkg.id === selectedPackage()?.id 
+              ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-50' 
+              : 'border-gray-200 hover:border-blue-500 hover:bg-blue-50'">
+            <div class="flex items-center justify-between">
+              <div class="flex-1 min-w-0">
+                <div class="font-semibold text-sm text-gray-900 truncate">{{ pkg.name }}</div>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="text-xs text-gray-500">{{ pkg.questionCount }} câu hỏi</span>
+                  <span *ngIf="pkg.subject" class="text-xs text-gray-400">• {{ pkg.subject }}</span>
+                </div>
+              </div>
+              <span *ngIf="pkg.id !== selectedPackage()?.id" class="material-symbols-outlined text-gray-400">arrow_forward</span>
+            </div>
+          </button>
+        </div>
+        
+        <button (click)="showMoveModal = false" 
+                class="w-full px-4 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors">
+          Đóng
+        </button>
+      </div>
+    </div>
+
+    <!-- Import Modal -->
+    <app-question-import-modal
+      [packageId]="selectedPackageId"
+      (imported)="onQuestionsImported($event)"
+      (closed)="onImportModalClosed()">
+    </app-question-import-modal>
   `,
-  changeDetection: ChangeDetectionStrategy.OnPush
+  styles: [`
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    .line-clamp-2 {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+  `]
 })
 export class QuizBankComponent implements OnInit {
+  @ViewChild(QuestionImportModalComponent) importModal!: QuestionImportModalComponent;
 
-  private fb = inject(FormBuilder);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
-  private authService = inject(AuthService);
-  private errorService = inject(ErrorHandlingService);
-  private quizApi = inject(QuizApi);
   private questionApi = inject(QuestionApi);
+  private packageApi = inject(PackageApi);
+  private quizApi = inject(QuizApi);
 
-  // Component state
-  activeTab = signal<'quizzes' | 'questions'>('quizzes');
-  loading = signal<boolean>(false);
-  loadingMessage = signal<string>('');
-  error = signal<string>('');
-  hasPermission = signal<boolean>(false);
-  isCheckingPermissions = signal<boolean>(true);
-
-  // Data
-  quizzes = signal<any[]>([]);
+  packages = signal<PackageDTO[]>([]);
+  selectedPackageId = '';
+  selectedPackage = signal<PackageDTO | null>(null);
   questions = signal<Question[]>([]);
   filteredQuestions = signal<Question[]>([]);
+  selectedQuestions = signal<string[]>([]);
 
-  // Quiz context from URL params
-  currentQuizId: string | null = null;
-  currentQuizTitle: string = '';
-  courseId: string | null = null;  // Add courseId context
+  showCreatePackageModal = false;
+  showMoveModal = false;
+  showManagePackageMenu = false;
 
-  // Question filters
-  questionFilters = {
-    search: '',
-    difficulty: '',
-    status: '',
-    tags: ''
+  // Add to Quiz mode
+  addToQuizLessonId: string | null = null;
+  returnUrl: string | null = null;
+  addingToQuiz = signal<boolean>(false);
+
+  newPackage: CreatePackageRequest = {
+    name: '',
+    description: '',
+    subject: '',
+    visibility: 'PRIVATE'
   };
 
-  constructor() {
-    // Check for quiz context from navigation
+  filters = {
+    search: '',
+    difficulty: ''
+  };
+
+  async ngOnInit() {
+    // Check for addToQuiz query param
     this.route.queryParams.subscribe(params => {
-      if (params['quizId']) {
-        this.currentQuizId = params['quizId'];
-        this.currentQuizTitle = params['quizTitle'] || '';
-        
-        // Switch to questions tab when adding to quiz
-        this.activeTab.set('questions');
-      }
+      this.addToQuizLessonId = params['addToQuiz'] || null;
+      this.returnUrl = params['returnUrl'] || null;
       
-      // Check for refresh request - only load data if user has permission
-      if (params['refresh'] === 'true' && this.hasPermission()) {
-        this.activeTab.set('questions'); // Switch to questions tab after creating
-        this.loadData(); // Reload data only if permission granted
+      if (this.addToQuizLessonId) {
+        console.log('📝 Add to Quiz mode - Lesson ID:', this.addToQuizLessonId);
       }
     });
+    
+    await this.loadPackages();
   }
 
-  async ngOnInit(): Promise<void> {
-    console.log('🔍 Quiz Bank ngOnInit - Current user role:', this.authService.userRole());
-    console.log('🔍 Quiz Bank ngOnInit - Is authenticated:', this.authService.isAuthenticated());
-    console.log('🔍 Quiz Bank ngOnInit - Current user:', this.authService.user());
-    
-    // Get context from URL params
-    this.currentQuizId = this.route.snapshot.queryParamMap.get('quizId');
-    this.currentQuizTitle = this.route.snapshot.queryParamMap.get('quizTitle') || '';
-    this.courseId = this.route.snapshot.queryParamMap.get('courseId');
-    
-    console.log('🔍 Quiz Bank context:', {
-      quizId: this.currentQuizId,
-      quizTitle: this.currentQuizTitle,
-      courseId: this.courseId
-    });
-    
-    // Check permissions first and set flag immediately
-    await this.checkPermissions();
-  }
-
-  private async checkPermissions(): Promise<void> {
-    this.isCheckingPermissions.set(true);
-    
+  async loadPackages() {
     try {
-      // Check if user is authenticated
-      if (!this.authService.isAuthenticated()) {
-        console.log('❌ User not authenticated - DEBUG MODE: not redirecting');
-        this.hasPermission.set(false);
-        this.errorService.addError({
-          message: 'Bạn cần đăng nhập để truy cập tính năng này.',
-          type: 'error',
-          context: 'authentication'
-        });
-        // DEBUG MODE: this.router.navigate(['/auth/login']);
-        return;
-      }
-
-      // Check if user has teacher role
-      const userRole = this.authService.userRole();
-      console.log('🔍 User role:', userRole);
-      console.log('🔍 UserRole constants - TEACHER:', UserRole.TEACHER, 'ADMIN:', UserRole.ADMIN);
+      const packages = await firstValueFrom(this.packageApi.getMyPackages());
+      this.packages.set(packages);
       
-      if (userRole !== UserRole.TEACHER && userRole !== UserRole.ADMIN) {
-        console.log('❌ User does not have required role:', userRole);
-        console.log('🔍 Expected roles:', [UserRole.TEACHER, UserRole.ADMIN]);
-        this.hasPermission.set(false);
-        this.errorService.addError({
-          message: `Tính năng này chỉ dành cho giảng viên. Role hiện tại: ${userRole}`,
-          type: 'error',
-          context: 'authorization'
-        });
-        return;
+      // Auto-select first package if available
+      if (packages.length > 0 && !this.selectedPackageId) {
+        this.selectedPackageId = packages[0].id;
+        await this.onPackageChange();
       }
-
-      // User has proper permissions
-      console.log('✅ User has required permissions - loading data');
-      this.hasPermission.set(true);
-      await this.loadData();
-      
     } catch (error) {
-      console.error('Permission check error:', error);
-      this.hasPermission.set(false);
-    } finally {
-      this.isCheckingPermissions.set(false);
+      console.error('Error loading packages:', error);
     }
   }
 
-  async loadData(): Promise<void> {
-    // Safety check - only load data if user has permission
-    if (!this.hasPermission()) {
-      console.log('🚫 loadData blocked - user does not have permission');
-      return;
+  async onPackageChange() {
+    const pkg = this.packages().find(p => p.id === this.selectedPackageId);
+    if (pkg) {
+      this.selectedPackage.set(pkg);
+      this.clearSelection();
+      await this.loadQuestionsInPackage(pkg.id);
+    } else {
+      this.selectedPackage.set(null);
+      this.questions.set([]);
+      this.filteredQuestions.set([]);
     }
+    this.showManagePackageMenu = false;
+  }
 
-    if (!this.authService.isAuthenticated()) {
-      console.log('🚫 loadData blocked - user not authenticated');
-      return;
-    }
-
+  async loadQuestionsInPackage(packageId: string) {
     try {
-      this.loading.set(true);
-      this.loadingMessage.set('Đang tải dữ liệu...');
-
-      console.log('🔄 loadData - About to call getMyQuestions API (teacher-specific)');
-      console.log('🔄 loadData - Current user role:', this.authService.userRole());
-      console.log('🔄 loadData - Is authenticated:', this.authService.isAuthenticated());
-      console.log('🔄 loadData - Has permission:', this.hasPermission());
-      
-      // Add JWT token debugging
-      const token = localStorage.getItem('access_token');
-      if (token) {
-        try {
-          const payload = JSON.parse(atob(token.split('.')[1]));
-          console.log('🔍 JWT Token Debug:', {
-            tokenExists: true,
-            tokenLength: token.length,
-            tokenPreview: token.substring(0, 20) + '...',
-            roles: payload.roles,
-            authorities: payload.authorities,
-            username: payload.sub,
-            exp: new Date(payload.exp * 1000),
-            iat: new Date(payload.iat * 1000),
-            isExpired: payload.exp * 1000 < Date.now()
-          });
-        } catch (e) {
-          console.log('🚨 JWT Token Parse Error:', e);
-        }
-      } else {
-        console.log('🚨 No JWT token found in localStorage!');
-        console.log('🔍 All localStorage keys:', Object.keys(localStorage));
-      }
-
-      // Load questions from Question API - Use getMyQuestions for teacher-specific questions
-      const questionsRes = await firstValueFrom(this.questionApi.getMyQuestions());
-      
-      if (questionsRes) {
-        this.questions.set(questionsRes);
-        this.filteredQuestions.set(questionsRes);
-      }
-
-      // Load quizzes from teacher API
-      const quizzesRes = await firstValueFrom(this.quizApi.getTeacherQuizzes());
-      
-      if (quizzesRes) {
-        this.quizzes.set(quizzesRes);
-      }
-
-    } catch (error: any) {
-      console.error('Error loading data:', error);
-      
-      // Enhanced error handling for specific scenarios
-      let errorMessage = 'Lỗi khi tải dữ liệu: ';
-      
-      if (error?.status === 403) {
-        const backendMessage = error?.error?.message || error?.original?.error?.message || '';
-        if (backendMessage.includes('Bạn không có quyền truy cập tính năng này')) {
-          errorMessage += 'Bạn không có quyền truy cập tính năng này. Vui lòng đăng ký khóa học để xem nội dung.';
-        } else {
-          errorMessage += 'Bạn không có quyền truy cập vào ngân hàng câu hỏi. Vui lòng liên hệ quản trị viên để được cấp quyền giảng viên.';
-        }
-        
-        // Set permission to false and navigate away on 403 errors
-        this.hasPermission.set(false);
-        console.log('🔍 DEBUG: 403 error - not redirecting for debugging');
-        // TEMPORARILY DISABLED: this.router.navigate(['/courses']);
-      } else if (error?.status === 401) {
-        errorMessage += 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
-        console.log('🔍 DEBUG: 401 error - not redirecting for debugging');
-        // DEBUG MODE: this.router.navigate(['/auth/login']);
-      } else {
-        errorMessage += (error?.error?.message || error?.message || 'Lỗi không xác định');
-      }
-      
-      this.error.set(errorMessage);
-    } finally {
-      this.loading.set(false);
+      const questions = await firstValueFrom(this.packageApi.getQuestionsInPackage(packageId));
+      this.questions.set(questions);
+      this.filteredQuestions.set(questions);
+    } catch (error) {
+      console.error('Error loading questions:', error);
+      this.questions.set([]);
+      this.filteredQuestions.set([]);
     }
   }
 
-  filterQuestions(): void {
+  filterQuestions() {
     let filtered = [...this.questions()];
-
-    if (this.questionFilters.search) {
-      const search = this.questionFilters.search.toLowerCase();
+    
+    if (this.filters.search) {
+      const search = this.filters.search.toLowerCase();
       filtered = filtered.filter(q => q.content.toLowerCase().includes(search));
     }
-
-    if (this.questionFilters.difficulty) {
-      filtered = filtered.filter(q => q.difficulty === this.questionFilters.difficulty);
+    
+    if (this.filters.difficulty) {
+      filtered = filtered.filter(q => q.difficulty === this.filters.difficulty);
     }
-
-    if (this.questionFilters.status) {
-      filtered = filtered.filter(q => q.status === this.questionFilters.status);
-    }
-
-    if (this.questionFilters.tags) {
-      const tags = this.questionFilters.tags.toLowerCase();
-      filtered = filtered.filter(q => q.tags?.toLowerCase().includes(tags));
-    }
-
+    
     this.filteredQuestions.set(filtered);
   }
 
-  getDifficultyClass(difficulty: string): string {
-    switch (difficulty) {
-      case 'EASY': return 'bg-green-100 text-green-700';
-      case 'MEDIUM': return 'bg-yellow-100 text-yellow-700';
-      case 'HARD': return 'bg-red-100 text-red-700';
-      default: return 'bg-gray-100 text-gray-700';
+  async createPackage() {
+    if (!this.newPackage.name.trim()) {
+      alert('Vui lòng nhập tên gói!');
+      return;
+    }
+
+    try {
+      const created = await firstValueFrom(this.packageApi.createPackage(this.newPackage));
+      alert('✅ Đã tạo gói câu hỏi thành công!');
+      this.showCreatePackageModal = false;
+      this.newPackage = {
+        name: '',
+        description: '',
+        subject: '',
+        visibility: 'PRIVATE'
+      };
+      await this.loadPackages();
+      
+      // Auto-select the newly created package
+      if (created && created.id) {
+        this.selectedPackageId = created.id;
+        await this.onPackageChange();
+      }
+    } catch (error: any) {
+      console.error('Error creating package:', error);
+      alert('Lỗi khi tạo gói: ' + (error?.message || 'Lỗi không xác định'));
+    }
+  }
+
+  async deleteCurrentPackage() {
+    const pkg = this.selectedPackage();
+    if (!pkg) return;
+    
+    const confirmed = confirm(`Bạn có chắc chắn muốn xóa gói "${pkg.name}"?\n\nCác câu hỏi trong gói sẽ được chuyển về gói "Chưa phân loại".`);
+    if (!confirmed) return;
+
+    try {
+      await firstValueFrom(this.packageApi.deletePackage(pkg.id));
+      alert('✅ Đã xóa gói thành công!');
+      
+      this.selectedPackageId = '';
+      this.selectedPackage.set(null);
+      this.questions.set([]);
+      this.filteredQuestions.set([]);
+      
+      await this.loadPackages();
+    } catch (error: any) {
+      console.error('Error deleting package:', error);
+      alert('Lỗi khi xóa gói: ' + (error?.message || 'Lỗi không xác định'));
     }
   }
 
@@ -565,142 +584,182 @@ export class QuizBankComponent implements OnInit {
     }
   }
 
-  getStatusLabel(status: string): string {
-    switch (status) {
-      case 'ACTIVE': return 'Hoạt động';
-      case 'DRAFT': return 'Nháp';
-      case 'INACTIVE': return 'Không hoạt động';
-      default: return 'Không xác định';
+  createNewQuestion() {
+    if (!this.selectedPackage()) {
+      alert('Vui lòng chọn một gói câu hỏi trước!');
+      return;
     }
-  }
-
-  getQuizStatusClass(status: string): string {
-    switch (status) {
-      case 'DRAFT': return 'bg-gray-100 text-gray-700';
-      case 'PUBLISHED': return 'bg-green-100 text-green-700';
-      default: return 'bg-gray-100 text-gray-700';
-    }
-  }
-
-  createNewQuiz(): void {
-    console.log('🎯 Creating new quiz...');
-    // Navigate to quiz creation page - path will be /teacher/quiz/create
-    this.router.navigate(['/teacher/quiz/create'], {
-      queryParams: {
-        returnUrl: this.router.url
-      }
-    });
-  }
-
-  editQuiz(quiz: Quiz): void {
-    console.log('🔧 Editing quiz:', quiz);
-    this.router.navigate(['/teacher/quiz', quiz.id, 'edit'], {
-      queryParams: { returnUrl: this.router.url }
-    });
-  }
-
-  addQuestionsToQuiz(quiz: Quiz): void {
-    console.log('🔧 Adding questions to quiz:', quiz);
-    const quizId = quiz.lesson?.id || quiz.id;
-    const quizTitle = quiz.lesson?.title || 'Quiz';
-    this.router.navigate(['/teacher/quiz/quiz-bank'], {
-      queryParams: {
-        quizId: quizId,
-        quizTitle: quizTitle,
-        returnUrl: this.router.url
-      }
-    });
-  }
-
-  createNewQuestion(): void {
-    console.log('❓ Creating new question...');
-    // Navigate to question creation page with courseId if available
-    const queryParams: any = {
-      returnUrl: this.router.url
-    };
-    
-    if (this.courseId) {
-      queryParams.courseId = this.courseId;
-      console.log('🔍 Passing courseId to question-create:', this.courseId);
-    }
-    
     this.router.navigate(['/teacher/quiz/question/create'], {
-      queryParams
+      queryParams: { packageId: this.selectedPackage()!.id }
     });
   }
 
-  editQuestion(question: Question): void {
-    console.log('🔧 Editing question:', question);
-    this.router.navigate(['/teacher/quiz/question', question.id, 'edit'], {
-      queryParams: {
-        returnUrl: this.router.url
-      }
-    });
+  editQuestion(question: Question) {
+    this.router.navigate(['/teacher/quiz/question', question.id, 'edit']);
   }
 
-  async addQuestionToCurrentQuiz(question: Question): Promise<void> {
-    if (!this.currentQuizId) return;
+  async deleteQuestion(question: Question) {
+    const confirmed = confirm(`Bạn có chắc chắn muốn xóa câu hỏi:\n\n"${question.content}"\n\nHành động này không thể hoàn tác!`);
+    if (!confirmed) return;
     
-    // Check permissions before making API calls
-    if (!this.hasPermission() || !this.authService.isAuthenticated()) {
-      this.errorService.addError({
-        message: 'Bạn không có quyền thực hiện hành động này.',
-        type: 'error',
-        context: 'authorization'
-      });
+    try {
+      await firstValueFrom(this.questionApi.deleteQuestion(question.id));
+      alert('✅ Đã xóa câu hỏi thành công!');
+      
+      if (this.selectedPackage()) {
+        await this.loadQuestionsInPackage(this.selectedPackage()!.id);
+        await this.loadPackages(); // Refresh package counts
+      }
+    } catch (error: any) {
+      console.error('Error deleting question:', error);
+      alert('Lỗi khi xóa câu hỏi: ' + (error?.message || 'Lỗi không xác định'));
+    }
+  }
+
+  // Selection methods
+  toggleQuestionSelection(questionId: string) {
+    const selected = this.selectedQuestions();
+    if (selected.includes(questionId)) {
+      this.selectedQuestions.set(selected.filter(id => id !== questionId));
+    } else {
+      this.selectedQuestions.set([...selected, questionId]);
+    }
+  }
+
+  isQuestionSelected(questionId: string): boolean {
+    return this.selectedQuestions().includes(questionId);
+  }
+
+  toggleSelectAll() {
+    if (this.isAllSelected()) {
+      this.clearSelection();
+    } else {
+      this.selectedQuestions.set(this.filteredQuestions().map(q => q.id));
+    }
+  }
+
+  isAllSelected(): boolean {
+    const filtered = this.filteredQuestions();
+    return filtered.length > 0 && this.selectedQuestions().length === filtered.length;
+  }
+
+  clearSelection() {
+    this.selectedQuestions.set([]);
+  }
+
+  // Add selected questions to quiz
+  async addSelectedToQuiz() {
+    if (!this.addToQuizLessonId) {
+      alert('Không tìm thấy Quiz để thêm câu hỏi');
       return;
     }
 
+    const selectedIds = this.selectedQuestions();
+    if (selectedIds.length === 0) {
+      alert('Vui lòng chọn ít nhất một câu hỏi');
+      return;
+    }
+
+    this.addingToQuiz.set(true);
+
     try {
-      this.loading.set(true);
-      this.loadingMessage.set('Đang thêm câu hỏi vào quiz...');
-      
-      await firstValueFrom(this.quizApi.addQuestionToQuiz(this.currentQuizId, question.id));
-      
-      alert(`Đã thêm câu hỏi "${question.content.substring(0, 50)}..." vào quiz "${this.currentQuizTitle}"`);
-      
-      // Reload quizzes to reflect changes
-      await this.loadData();
+      let addedCount = 0;
+      let skippedCount = 0;
+
+      // Add each question using the API
+      for (const questionId of selectedIds) {
+        try {
+          console.log('🔄 Adding question to quiz - lessonId:', this.addToQuizLessonId, 'questionId:', questionId);
+          const result = await firstValueFrom(this.quizApi.addQuestionToQuiz(this.addToQuizLessonId!, questionId));
+          console.log('✅ Add question result:', result);
+          addedCount++;
+        } catch (error: any) {
+          console.error('❌ Error adding question:', questionId, error);
+          // Question might already exist
+          if (error?.error?.message?.includes('đã tồn tại')) {
+            skippedCount++;
+          } else {
+            console.error('Full error:', JSON.stringify(error, null, 2));
+          }
+        }
+      }
+
+      // Show result
+      if (addedCount > 0) {
+        let msg = `✅ Đã thêm ${addedCount} câu hỏi vào Quiz!`;
+        if (skippedCount > 0) {
+          msg += `\n⚠️ ${skippedCount} câu đã có sẵn trong Quiz.`;
+        }
+        alert(msg);
+      } else if (skippedCount > 0) {
+        alert('⚠️ Tất cả câu hỏi đã có trong Quiz rồi!');
+      }
+
+      this.clearSelection();
+
+      // Navigate back if returnUrl is provided
+      if (this.returnUrl) {
+        this.router.navigateByUrl(this.returnUrl);
+      }
     } catch (error: any) {
-      console.error('Error adding question to quiz:', error);
-      this.error.set('Lỗi khi thêm câu hỏi vào quiz: ' + (error?.error?.message || error?.message || 'Lỗi không xác định'));
+      console.error('Error adding questions to quiz:', error);
+      alert('❌ Lỗi khi thêm câu hỏi: ' + (error?.message || 'Lỗi không xác định'));
     } finally {
-      this.loading.set(false);
+      this.addingToQuiz.set(false);
     }
   }
 
-  clearQuizContext(): void {
-    this.currentQuizId = null;
-    this.currentQuizTitle = '';
-    
-    this.router.navigate(['/teacher/quiz/quiz-bank'], {
-      queryParams: {}
-    });
+  // Navigate back to return URL
+  goBack() {
+    if (this.returnUrl) {
+      this.router.navigateByUrl(this.returnUrl);
+    }
   }
 
-  async testApiAccess(): Promise<void> {
-    console.log('🧪 === TESTING API ACCESS ===');
-    console.log('🧪 Current user role:', this.authService.userRole());
-    console.log('🧪 Is authenticated:', this.authService.isAuthenticated());
-    console.log('🧪 User data:', this.authService.user());
-    
+  async moveQuestionsToPackage(targetPackageId: string) {
     try {
-      console.log('🧪 Testing /api/v1/questions endpoint...');
-      const allQuestions = await firstValueFrom(this.questionApi.getQuestions());
-      console.log('✅ getQuestions() successful:', allQuestions?.length || 0, 'questions');
+      await firstValueFrom(this.packageApi.moveQuestionsToPackage({
+        questionIds: this.selectedQuestions(),
+        targetPackageId
+      }));
       
-      console.log('🧪 Testing /api/v1/questions/my-questions endpoint...');
-      const myQuestions = await firstValueFrom(this.questionApi.getMyQuestions());
-      console.log('✅ getMyQuestions() successful:', myQuestions?.length || 0, 'questions');
+      alert('✅ Đã di chuyển câu hỏi thành công!');
+      this.showMoveModal = false;
+      this.clearSelection();
       
-      alert(`✅ API Test thành công!\n- getQuestions(): ${allQuestions?.length || 0} câu hỏi\n- getMyQuestions(): ${myQuestions?.length || 0} câu hỏi`);
+      if (this.selectedPackage()) {
+        await this.loadQuestionsInPackage(this.selectedPackage()!.id);
+      }
+      await this.loadPackages(); // Refresh package counts
     } catch (error: any) {
-      console.error('❌ API Test failed:', error);
-      alert(`❌ API Test thất bại:\n${error?.error?.message || error?.message || 'Lỗi không xác định'}`);
+      console.error('Error moving questions:', error);
+      alert('Lỗi khi di chuyển câu hỏi: ' + (error?.message || 'Lỗi không xác định'));
     }
   }
 
-  navigateToCourses(): void {
-    this.router.navigate(['/courses']);
+  // ==================== IMPORT METHODS ====================
+
+  openImportModal() {
+    if (!this.selectedPackageId) {
+      alert('Vui lòng chọn gói câu hỏi trước khi import');
+      return;
+    }
+    if (this.importModal) {
+      this.importModal.open();
+    }
+  }
+
+  async onQuestionsImported(result: QuestionImportResult) {
+    console.log('✅ Questions imported:', result);
+    // Reload questions in current package
+    if (this.selectedPackage()) {
+      await this.loadQuestionsInPackage(this.selectedPackage()!.id);
+    }
+    // Refresh package counts
+    await this.loadPackages();
+  }
+
+  onImportModalClosed() {
+    console.log('Import modal closed');
   }
 }
