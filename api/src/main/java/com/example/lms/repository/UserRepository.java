@@ -61,4 +61,41 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     @Transactional
     @Query(value = "INSERT INTO course_enrollments (student_id, course_id) VALUES (:studentId, :courseId) ON CONFLICT DO NOTHING", nativeQuery = true)
     void addCourseEnrollment(@Param("studentId") UUID studentId, @Param("courseId") UUID courseId);
+    
+    /**
+     * Get students enrolled in teacher's courses with server-side pagination
+     * Uses efficient JOIN to avoid N+1 queries
+     * NOTE: Search temporarily disabled due to Supabase schema issues
+     */
+    @Query("""
+        SELECT DISTINCT u FROM User u
+        JOIN u.enrolledCourses c
+        WHERE c.teacher.id = :teacherId
+        AND (:courseId IS NULL OR c.id = :courseId)
+        AND (:status IS NULL OR u.enabled = :enabled)
+        ORDER BY u.id ASC
+    """)
+    Page<User> findStudentsByTeacherCourses(
+        @Param("teacherId") UUID teacherId,
+        @Param("courseId") UUID courseId,
+        @Param("status") String status,
+        @Param("enabled") Boolean enabled,
+        @Param("search") String search,
+        Pageable pageable
+    );
+    
+    /**
+     * Check if student is enrolled in any of teacher's courses
+     */
+    @Query("""
+        SELECT CASE WHEN COUNT(c) > 0 THEN true ELSE false END
+        FROM User u
+        JOIN u.enrolledCourses c
+        WHERE u.id = :studentId 
+        AND c.teacher.id = :teacherId
+    """)
+    boolean existsStudentInTeacherCourses(
+        @Param("teacherId") UUID teacherId,
+        @Param("studentId") UUID studentId
+    );
 }

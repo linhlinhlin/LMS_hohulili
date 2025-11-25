@@ -117,4 +117,65 @@ public interface StudentLessonProgressRepository extends JpaRepository<StudentLe
      */
     @Query("SELECT p FROM StudentLessonProgress p WHERE p.lesson.id IN :lessonIds AND p.student = :student")
     List<StudentLessonProgress> findByLessonIdsAndStudent(@Param("lessonIds") List<UUID> lessonIds, @Param("student") User student);
+    
+    /**
+     * Count completed lessons for student in a course (by IDs)
+     */
+    @Query("SELECT COUNT(p) FROM StudentLessonProgress p " +
+           "JOIN p.lesson l " +
+           "JOIN l.section s " +
+           "WHERE p.student.id = :studentId " +
+           "AND s.course.id = :courseId " +
+           "AND p.status = 'COMPLETED'")
+    int countCompletedLessonsByCourse(
+        @Param("studentId") UUID studentId, 
+        @Param("courseId") UUID courseId
+    );
+    
+    /**
+     * Batch query: Get progress summary for multiple students in teacher's courses
+     * Returns: studentId, courseId, completedLessons, totalLessons
+     */
+    @Query(value = """
+        SELECT 
+            u.id as student_id,
+            c.id as course_id,
+            COUNT(CASE WHEN slp.status = 'COMPLETED' THEN 1 END) as completed_lessons,
+            COUNT(l.id) as total_lessons,
+            MAX(slp.last_accessed) as last_accessed
+        FROM users u
+        JOIN course_enrollments ce ON ce.student_id = u.id
+        JOIN courses c ON c.id = ce.course_id
+        JOIN sections s ON s.course_id = c.id
+        JOIN lessons l ON l.section_id = s.id
+        LEFT JOIN student_lesson_progress slp ON slp.student_id = u.id AND slp.lesson_id = l.id
+        WHERE c.teacher_id = :teacherId
+        AND (:courseId IS NULL OR c.id = :courseId)
+        AND u.id IN :studentIds
+        GROUP BY u.id, c.id
+    """, nativeQuery = true)
+    List<Object[]> getProgressSummaryForStudents(
+        @Param("teacherId") UUID teacherId,
+        @Param("courseId") UUID courseId,
+        @Param("studentIds") List<UUID> studentIds
+    );
+    
+    /**
+     * Get enrollment info with last accessed for students
+     */
+    @Query(value = """
+        SELECT 
+            ce.student_id,
+            ce.course_id,
+            ce.enrolled_at,
+            ce.last_accessed as enrollment_last_accessed,
+            ce.status as enrollment_status
+        FROM course_enrollments ce
+        WHERE ce.student_id IN :studentIds
+        AND (:courseId IS NULL OR ce.course_id = :courseId)
+    """, nativeQuery = true)
+    List<Object[]> getEnrollmentInfo(
+        @Param("studentIds") List<UUID> studentIds,
+        @Param("courseId") UUID courseId
+    );
 }

@@ -26,6 +26,7 @@ public class Section {
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "course_id", nullable = false)
+    @JsonIgnore
     private Course course;
     
     @Column(nullable = false)

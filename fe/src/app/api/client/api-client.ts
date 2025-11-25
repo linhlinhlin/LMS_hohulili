@@ -34,9 +34,21 @@ export class ApiClient {
 
   // Generic POST request
   post<T>(endpoint: string, data: any, options?: any): Observable<T> {
-    return this.http.post(`${this.baseUrl}${endpoint}`, data, options).pipe(
-      map(response => response as T),
-      catchError(this.handleError)
+    const fullUrl = `${this.baseUrl}${endpoint}`;
+    console.log('[API CLIENT] 🌐 POST Request:', fullUrl);
+    console.log('[API CLIENT] 📦 Data:', JSON.stringify(data));
+    
+    return this.http.post(fullUrl, data, options).pipe(
+      map(response => {
+        console.log('[API CLIENT] ✅ POST Response for', endpoint, ':', response);
+        return response as T;
+      }),
+      catchError((error) => {
+        console.error('[API CLIENT] ❌ POST Error for', endpoint, ':', error);
+        console.error('[API CLIENT] ❌ Error status:', error.status);
+        console.error('[API CLIENT] ❌ Error body:', error.error);
+        return this.handleError(error);
+      })
     );
   }
 

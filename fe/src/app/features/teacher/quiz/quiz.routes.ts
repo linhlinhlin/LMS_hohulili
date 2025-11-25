@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { teacherGuard } from '../../../core/guards/role.guard';
 
+// Routes nằm trong layout (có sidebar)
 export const quizRoutes: Routes = [
   {
     path: 'quiz',
@@ -45,13 +46,18 @@ export const quizRoutes: Routes = [
         loadComponent: () => import('./question-edit.component').then(m => m.QuestionEditComponent),
         canActivate: [teacherGuard],
         title: 'Chỉnh sửa Câu Hỏi'
-      },
-      {
-        path: 'preview/:lessonId',
-        loadComponent: () => import('./quiz-preview.component').then(m => m.QuizPreviewComponent),
-        canActivate: [teacherGuard],
-        title: 'Xem trước bài kiểm tra'
       }
+      // Note: preview route moved to standalone routes (no sidebar)
     ]
+  }
+];
+
+// Routes độc lập (không có sidebar) - dùng cho quiz taking experience
+export const quizStandaloneRoutes: Routes = [
+  {
+    path: 'quiz/preview/:lessonId',
+    loadComponent: () => import('./quiz-preview.component').then(m => m.QuizPreviewComponent),
+    canActivate: [teacherGuard],
+    title: 'Xem trước bài kiểm tra'
   }
 ];

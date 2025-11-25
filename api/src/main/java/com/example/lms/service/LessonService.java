@@ -132,13 +132,24 @@ public class LessonService {
     }
 
     public Lesson getLessonById(UUID lessonId, User currentUser) {
+        System.out.println("🔍 getLessonById called - lessonId: " + lessonId + ", userId: " + currentUser.getId());
+        
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài học với ID: " + lessonId));
         
         // Check if user has access (is teacher or enrolled student)
         Course course = lesson.getSection().getCourse();
-        boolean hasAccess = course.getTeacher().getId().equals(currentUser.getId()) ||
+        UUID teacherId = course.getTeacher().getId();
+        UUID userId = currentUser.getId();
+        
+        System.out.println("🔍 Course teacher: " + teacherId);
+        System.out.println("🔍 Current user: " + userId);
+        System.out.println("🔍 Is teacher: " + teacherId.equals(userId));
+        
+        boolean hasAccess = teacherId.equals(userId) ||
                           course.getEnrolledStudents().contains(currentUser);
+        
+        System.out.println("🔍 Has access: " + hasAccess);
         
         if (!hasAccess) {
             throw new RuntimeException("Bạn không có quyền truy cập bài học này");

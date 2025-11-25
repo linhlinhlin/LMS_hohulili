@@ -4,6 +4,7 @@ import { Question } from './question.api';
 import { Observable } from 'rxjs';
 
 export interface CreateQuizRequest {
+  title?: string; // Optional title for quiz
   questionIds: string[];
   timeLimitMinutes?: number;
   maxAttempts?: number;
@@ -27,6 +28,7 @@ export interface SubmitAttemptRequest {
 export interface QuizResponse {
   id: string;
   lessonId: string;
+  title?: string;
   questionIds: string;
   timeLimitMinutes: number;
   maxAttempts: number;
@@ -166,6 +168,32 @@ export class QuizApi {
 
   // Add question to existing quiz
   addQuestionToQuiz(lessonId: string, questionId: string) {
-    return this.apiClient.post<QuizResponse>(`/api/v1/quizzes/lessons/${lessonId}/questions/add`, { questionId });
+    const requestBody = { questionId: questionId };
+    console.log('🔍 addQuestionToQuiz API call:');
+    console.log('   lessonId:', lessonId);
+    console.log('   questionId:', questionId);
+    console.log('   requestBody:', JSON.stringify(requestBody));
+    console.log('   requestBody type:', typeof requestBody);
+    console.log('   questionId type:', typeof questionId);
+    return this.apiClient.post<QuizResponse>(`/api/v1/quizzes/lessons/${lessonId}/questions/add`, requestBody);
+  }
+
+  // Update quiz settings
+  updateQuizSettings(quizId: string, settings: {
+    title?: string;
+    timeLimitMinutes?: number | null;
+    maxAttempts?: number;
+    passingScore?: number;
+    shuffleQuestions?: boolean;
+    shuffleOptions?: boolean;
+    showResultsImmediately?: boolean;
+    showCorrectAnswers?: boolean;
+  }) {
+    return this.apiClient.put<QuizResponse>(`/api/v1/quizzes/${quizId}/settings`, settings);
+  }
+
+  // Remove question from quiz
+  removeQuestionFromQuiz(lessonId: string, questionId: string) {
+    return this.apiClient.delete<{ message: string }>(`/api/v1/quizzes/lessons/${lessonId}/questions/${questionId}`);
   }
 }

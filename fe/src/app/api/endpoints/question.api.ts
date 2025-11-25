@@ -44,6 +44,7 @@ export interface CreateQuestionRequest {
   difficulty: 'EASY' | 'MEDIUM' | 'HARD';
   tags: string;
   courseId?: string;  // Optional courseId
+  packageId?: string;  // Optional packageId
 }
 
 export interface UpdateQuestionRequest {
@@ -120,4 +121,23 @@ export class QuestionApi {
     if (status) params.status = status;
     return this.apiClient.get<Question[]>(`/api/v1/questions/course/${courseId}/user`, { params });
   }
+
+  // Import questions from Excel file
+  importFromExcel(file: File, packageId: string, difficulty: 'EASY' | 'MEDIUM' | 'HARD') {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('packageId', packageId);
+    formData.append('difficulty', difficulty);
+    
+    return this.apiClient.post<QuestionImportResult>('/api/v1/questions/import/excel', formData);
+  }
+}
+
+// Import result interface
+export interface QuestionImportResult {
+  successCount: number;
+  failedCount: number;
+  totalProcessed: number;
+  errors: string[];
+  message: string;
 }

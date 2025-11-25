@@ -87,7 +87,18 @@ export class StudentApi {
     status?: string;
     search?: string;
   }) {
-    return this.api.getWithResponse<any>('/api/v1/teacher/students', { params }).pipe(
+    // Clean params - remove undefined values
+    const cleanParams: any = {};
+    
+    if (params) {
+      if (params.page !== undefined) cleanParams.page = params.page;
+      if (params.limit !== undefined) cleanParams.size = params.limit; // Backend uses 'size' not 'limit'
+      if (params.courseId) cleanParams.courseId = params.courseId;
+      if (params.status) cleanParams.status = params.status;
+      if (params.search) cleanParams.search = params.search;
+    }
+    
+    return this.api.getWithResponse<any>('/api/v1/teacher/students', { params: cleanParams }).pipe(
       map((res: ApiResponse<any>) => {
         const content: StudentSummary[] = res?.data?.content ?? [];
         return {

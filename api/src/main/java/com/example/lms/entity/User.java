@@ -30,7 +30,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "enrolledCourses"})
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "enrolledCourses", "authorities", "accountNonExpired", "accountNonLocked", "credentialsNonExpired"})
 public class User implements UserDetails {
     
     @Id
@@ -50,6 +50,7 @@ public class User implements UserDetails {
     @Column(nullable = false)
     @NotBlank(message = "Mật khẩu không được để trống")
     @Size(min = 6, message = "Mật khẩu phải có ít nhất 6 ký tự")
+    @JsonIgnore
     private String password;
     
     @Column(nullable = false)

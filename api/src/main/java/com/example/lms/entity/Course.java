@@ -51,6 +51,7 @@ public class Course {
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "teacher_id", nullable = false)
+    @JsonIgnoreProperties({"password", "authorities", "accountNonExpired", "accountNonLocked", "credentialsNonExpired", "enrolledCourses"})
     private User teacher;
     
     @ManyToMany(mappedBy = "enrolledCourses", fetch = FetchType.LAZY)
@@ -85,6 +86,7 @@ public class Course {
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reviewed_by_id")
+    @JsonIgnoreProperties({"password", "authorities", "accountNonExpired", "accountNonLocked", "credentialsNonExpired", "enrolledCourses"})
     private User reviewedBy;
     
     // Constructor for creation

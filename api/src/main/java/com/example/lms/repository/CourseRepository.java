@@ -83,4 +83,26 @@ public interface CourseRepository extends JpaRepository<Course, UUID> {
            "LEFT JOIN FETCH s.lessons l " +
            "WHERE c.id = :courseId")
     Optional<Course> findByIdWithSectionsAndLessons(@Param("courseId") UUID courseId);
+    
+    /**
+     * Check if student is enrolled in any of teacher's courses
+     */
+    @Query("SELECT CASE WHEN COUNT(c) > 0 THEN true ELSE false END " +
+           "FROM Course c " +
+           "JOIN c.enrolledStudents s " +
+           "WHERE c.teacher.id = :teacherId " +
+           "AND s.id = :studentId")
+    boolean existsStudentInTeacherCourses(
+        @Param("teacherId") UUID teacherId, 
+        @Param("studentId") UUID studentId
+    );
+    
+    /**
+     * Find specific course by teacher ID and course ID
+     */
+    @Query("SELECT c FROM Course c WHERE c.teacher.id = :teacherId AND c.id = :courseId")
+    Optional<Course> findByTeacherIdAndCourseId(
+        @Param("teacherId") UUID teacherId,
+        @Param("courseId") UUID courseId
+    );
 }

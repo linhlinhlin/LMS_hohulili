@@ -305,10 +305,18 @@ export class QuestionEditComponent implements OnInit {
       this.options.removeAt(0);
     }
 
-    // Add options from question
-    question.options.forEach(option => {
-      this.options.push(this.createOptionGroup(option.optionKey, option.content));
-    });
+    // Add options from question (with null check)
+    if (question.options && Array.isArray(question.options)) {
+      question.options.forEach(option => {
+        this.options.push(this.createOptionGroup(option.optionKey, option.content));
+      });
+    } else {
+      // If no options, create default empty options A, B, C, D
+      console.warn('Question has no options, creating defaults');
+      ['A', 'B', 'C', 'D'].forEach(key => {
+        this.options.push(this.createOptionGroup(key, ''));
+      });
+    }
 
     // Update form values
     this.questionForm.patchValue({

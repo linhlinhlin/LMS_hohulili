@@ -20,6 +20,8 @@ spring:
     properties:
       hibernate:
         format_sql: true
+  flyway:
+    enabled: false  # Disable Flyway to avoid migration issues
 
 management:
   endpoints:

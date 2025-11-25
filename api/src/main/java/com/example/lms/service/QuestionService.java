@@ -26,9 +26,21 @@ public class QuestionService {
     @Transactional
     public Question createQuestion(User creator, String content, String correctOption,
                                  List<String> options, Question.Difficulty difficulty, String tags, UUID courseId) {
+        return createQuestion(creator, content, correctOption, options, difficulty, tags, courseId, null);
+    }
+
+    @Transactional
+    public Question createQuestion(User creator, String content, String correctOption,
+                                 List<String> options, Question.Difficulty difficulty, String tags, 
+                                 UUID courseId, UUID packageId) {
         com.example.lms.entity.Course course = null;
         if (courseId != null) {
             course = com.example.lms.entity.Course.builder().id(courseId).build();
+        }
+        
+        com.example.lms.entity.Package packageEntity = null;
+        if (packageId != null) {
+            packageEntity = com.example.lms.entity.Package.builder().id(packageId).build();
         }
         
         Question question = Question.builder()
@@ -39,6 +51,7 @@ public class QuestionService {
                 .status(Question.Status.ACTIVE)  // Default to ACTIVE instead of DRAFT
                 .createdBy(creator)
                 .course(course)
+                .packageEntity(packageEntity)
                 .build();
 
         // Create options
@@ -67,9 +80,15 @@ public class QuestionService {
         return questionRepository.findByStatus(Question.Status.ACTIVE);
     }
 
+    @Transactional(readOnly = true)
     public Question getQuestionById(UUID id) {
-        return questionRepository.findById(id)
+        Question question = questionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Question not found"));
+        // Force load options to avoid lazy loading issues
+        if (question.getOptions() != null) {
+            question.getOptions().size();
+        }
+        return question;
     }
 
     @Transactional

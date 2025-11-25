@@ -17,11 +17,11 @@ import { CourseSummary } from '../../../api/types/course.types';
       <div class="bg-white rounded-xl shadow">
         <div class="p-4 flex flex-wrap gap-3 items-center">
           <input class="border rounded-lg px-3 py-2 w-64" placeholder="Tìm theo tên/email" [(ngModel)]="keyword" />
-          <select class="border rounded-lg px-3 py-2" [(ngModel)]="selectedCourse">
+          <select class="border rounded-lg px-3 py-2" [(ngModel)]="selectedCourse" (ngModelChange)="onCourseChange()">
             <option value="">Tất cả khóa học</option>
             <option *ngFor="let course of courses()" [value]="course.id">{{ course.title }}</option>
           </select>
-          <select class="border rounded-lg px-3 py-2" [(ngModel)]="status">
+          <select class="border rounded-lg px-3 py-2" [(ngModel)]="status" (ngModelChange)="onStatusChange()">
             <option value="">Tất cả trạng thái</option>
             <option value="active">Đang học</option>
             <option value="inactive">Không hoạt động</option>
@@ -44,14 +44,26 @@ import { CourseSummary } from '../../../api/types/course.types';
             </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
               
-              <tr *ngIf="error()">
+              <tr *ngIf="loading()">
+                <td colspan="6" class="px-6 py-12 text-center text-gray-600">
+                  <div class="flex items-center justify-center gap-2">
+                    <svg class="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Đang tải danh sách học viên...</span>
+                  </div>
+                </td>
+              </tr>
+              
+              <tr *ngIf="!loading() && error()">
                 <td colspan="6" class="px-6 py-12 text-center text-red-600">
                   {{ error() }}
-                              <button (click)="onReload()" class="ml-2 text-blue-600 underline text-sm">Tải lại</button>
+                  <button (click)="onReload()" class="ml-2 text-blue-600 underline text-sm">Tải lại</button>
                 </td>
               </tr>
 
-              <tr *ngIf="!error() && paged().length === 0">
+              <tr *ngIf="!loading() && !error() && paged().length === 0">
                 <td colspan="6" class="px-6 py-12 text-center text-gray-500">
                   Không tìm thấy học viên nào.
                 </td>
@@ -129,24 +141,16 @@ export class StudentManagementComponent {
   students = signal<StudentSummary[]>([]);
   courses = signal<CourseSummary[]>([]);
   error = signal('');
+  loading = signal(false); // Loading state
   
   pageIndex = signal(1);
   pageSize = signal(10);
+  totalElements = signal(0); // Total from server
   
-  filtered = computed(() => {
-    const kw = this.keyword.trim().toLowerCase();
-    return this.students().filter(s => 
-      (!this.status || s.status === this.status) &&
-      (!kw || s.name.toLowerCase().includes(kw) || s.email.toLowerCase().includes(kw))
-    );
-  });
-  
-  paged = computed(() => {
-    const start = (this.pageIndex() - 1) * this.pageSize();
-    return this.filtered().slice(start, start + this.pageSize());
-  });
+  // No more client-side filtering! Server handles everything
+  paged = computed(() => this.students()); // Students are already paginated from server
 
-  total = computed(() => this.filtered().length);
+  total = computed(() => this.totalElements());
   totalPages = computed(() => Math.max(1, Math.ceil(this.total() / this.pageSize())));
 
   constructor() {
@@ -172,74 +176,92 @@ export class StudentManagementComponent {
   }
 
   private loadStudents() {
-    const params = {
-      page: 1,
-      limit: 1000, // Get all for client-side filtering
-      courseId: this.selectedCourse || undefined,
-      status: this.status || undefined,
-      search: this.keyword || undefined
+    this.loading.set(true);
+    this.error.set('');
+    
+    // Build params object with REAL pagination
+    const params: any = {
+      page: this.pageIndex() - 1, // Backend uses 0-indexed pages
+      size: this.pageSize() // Real page size, not 1000!
     };
+    
+    // Only add optional params if they have values
+    if (this.selectedCourse) {
+      params.courseId = this.selectedCourse;
+    }
+    
+    if (this.status) {
+      params.status = this.status;
+    }
+    
+    if (this.keyword && this.keyword.trim()) {
+      params.search = this.keyword.trim();
+    }
+
+    console.log('Loading students with params:', params);
+    const startTime = Date.now();
 
     this.studentApi.getTeacherStudents(params).subscribe({
       next: (response) => {
+        const loadTime = Date.now() - startTime;
+        console.log(`Students loaded in ${loadTime}ms`);
+        
         if (response.data) {
-          this.students.set(response.data);
+          // Map backend response to frontend format
+          const mappedStudents = response.data.map((s: any) => ({
+            id: s.id,
+            name: s.fullName,
+            email: s.email,
+            enrolledAt: s.enrolledAt,
+            lastAccessed: s.lastAccessed,
+            progress: s.progressPercentage || 0,
+            averageGrade: s.averageGrade || 0,
+            status: s.status || 'active',
+            completedCourses: s.completedCourses || 0,
+            totalCourses: s.totalCourses || 0
+          }));
+          this.students.set(mappedStudents);
+          
+          // Update pagination info from server response
+          if (response.pagination) {
+            this.totalElements.set(response.pagination.totalItems || 0);
+          }
         } else {
-          // Mock data for development
-          this.students.set([
-            {
-              id: '1',
-              name: 'Nguyễn Văn An',
-              email: 'nguyenvanan@email.com',
-              enrolledAt: '2025-09-01T00:00:00Z',
-              lastAccessed: '2025-10-13T10:30:00Z',
-              progress: 75,
-              averageGrade: 8.5,
-              status: 'active',
-              completedCourses: 2,
-              totalCourses: 3
-            },
-            {
-              id: '2',
-              name: 'Trần Thị Bình',
-              email: 'tranthibinh@email.com',
-              enrolledAt: '2025-08-15T00:00:00Z',
-              lastAccessed: '2025-10-12T14:20:00Z',
-              progress: 90,
-              averageGrade: 9.2,
-              status: 'active',
-              completedCourses: 3,
-              totalCourses: 4
-            },
-            {
-              id: '3',
-              name: 'Lê Văn Cường',
-              email: 'levancuong@email.com',
-              enrolledAt: '2025-09-10T00:00:00Z',
-              lastAccessed: '2025-10-01T16:45:00Z',
-              progress: 45,
-              averageGrade: 6.8,
-              status: 'inactive',
-              completedCourses: 1,
-              totalCourses: 2
-            }
-          ]);
+          this.students.set([]);
+          this.totalElements.set(0);
         }
+        
+        this.loading.set(false);
       },
       error: (error) => {
-        console.error('Error loading students:', error);
-        this.error.set('Không thể tải danh sách học viên');
+        const loadTime = Date.now() - startTime;
+        console.error(`Error loading students after ${loadTime}ms:`, error);
+        this.error.set('Không thể tải danh sách học viên. Vui lòng thử lại.');
+        this.students.set([]);
+        this.totalElements.set(0);
+        this.loading.set(false);
       }
     });
   }
 
   applyFilters() {
     this.pageIndex.set(1);
-    // Note: filtering is handled by computed() in real-time
+    this.loadStudents(); // Reload with new filters from server
+  }
+
+  onCourseChange() {
+    this.pageIndex.set(1);
+    this.loadStudents(); // Auto reload when course changes
+  }
+
+  onStatusChange() {
+    this.pageIndex.set(1);
+    this.loadStudents(); // Auto reload when status changes
   }
 
   goToPage(n: number) { 
-    this.pageIndex.set(Math.min(Math.max(1, n), this.totalPages())); 
+    this.pageIndex.set(Math.min(Math.max(1, n), this.totalPages()));
+    this.loadStudents(); // Reload from server with new page
   }
   
   nextPage() { 

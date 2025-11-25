@@ -29,6 +29,12 @@ public class Quiz {
     @JsonIgnore
     private Lesson lesson;
 
+    @Column(name = "title", nullable = false)
+    private String title; // Quiz title (usually same as lesson title)
+
+    @Column(name = "created_by")
+    private UUID createdBy; // User who created this quiz
+
     @Column(name = "time_limit_minutes")
     private Integer timeLimitMinutes; // null means no limit
 

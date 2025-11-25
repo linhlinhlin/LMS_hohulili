@@ -45,11 +45,18 @@ public class Question {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private User createdBy;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "course_id")
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private Course course;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "package_id")
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private Package packageEntity;
 
     @Column(name = "usage_count", nullable = false)
     @Builder.Default

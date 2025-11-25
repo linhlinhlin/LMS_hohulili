@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 import { teacherGuard } from '../../core/guards/role.guard';
-import { quizRoutes } from './quiz/quiz.routes';
+import { quizRoutes, quizStandaloneRoutes } from './quiz/quiz.routes';
 
 /**
  * Teacher Routes Configuration
@@ -12,6 +12,10 @@ import { quizRoutes } from './quiz/quiz.routes';
  * - Proper lazy loading cho performance
  */
 export const teacherRoutes: Routes = [
+  // Standalone routes (không có sidebar) - phải đặt TRƯỚC layout routes
+  ...quizStandaloneRoutes,
+  
+  // Layout routes (có sidebar)
   {
     path: '',
     loadComponent: () => import('./shared/teacher-layout-simple.component').then(m => m.TeacherLayoutSimpleComponent),
