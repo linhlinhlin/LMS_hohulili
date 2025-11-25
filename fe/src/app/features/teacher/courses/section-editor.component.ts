@@ -1020,6 +1020,7 @@ import { QuizEditModalComponent } from './components/quiz-edit-modal.component';
             </textarea>
           </div>
 
+<<<<<<< HEAD
           <!-- Quiz Configuration Section - Simplified -->
           <div *ngIf="isQuizType" class="border-2 border-purple-300 rounded-xl bg-gradient-to-br from-purple-50 to-indigo-50 overflow-hidden">
             <!-- Header -->
@@ -1164,6 +1165,22 @@ import { QuizEditModalComponent } from './components/quiz-edit-modal.component';
                     </svg>
                   </button>
                 </div>
+=======
+          <!-- Quiz Configuration Section -->
+          <div *ngIf="isQuizType" class="border-2 border-dashed border-purple-300 rounded-lg p-6 bg-purple-50 space-y-4">
+            <div class="flex items-start gap-3">
+              <span class="text-3xl">🚀</span>
+              <div class="flex-1">
+                <div class="text-base font-semibold text-purple-800 mb-2">Thiết lập bài trắc nghiệm</div>
+                <p class="text-sm text-purple-700 mb-4">
+                  Sau khi tạo bài học, bạn sẽ được chuyển đến trang thiết lập chi tiết để:
+                </p>
+                <ul class="list-disc list-inside text-sm text-purple-700 space-y-1 ml-2">
+                  <li>Cấu hình thời gian, điểm số, số lần làm bài.</li>
+                  <li>Chọn câu hỏi từ ngân hàng câu hỏi.</li>
+                  <li>Xem trước bài kiểm tra.</li>
+                </ul>
+>>>>>>> 9ca6de4b665424150c4b065bf0ee346fc8478961
               </div>
             </div>
           </div>
@@ -1206,7 +1223,7 @@ import { QuizEditModalComponent } from './components/quiz-edit-modal.component';
               }
             </button>
           </div>
-        </form>
+        </div>
       </div>
 
       <!-- Edit Lesson Panel - Professional Style -->
@@ -1779,12 +1796,13 @@ export class SectionEditorComponent implements OnDestroy {
       const lessonPayload: CreateLessonRequest = {
         title: this.createForm.value.title ?? '',
         lessonType: 'QUIZ',
-        quizTimeLimit: Number(this.createForm.value.quizTimeLimit) || 30,
-        quizMaxScore: Number(this.createForm.value.quizMaxScore) || 100,
-        quizMaxAttempts: Number(this.createForm.value.quizMaxAttempts) || 1
+        // Default values, will be configured in wizard
+        quizTimeLimit: 30,
+        quizMaxScore: 100,
+        quizMaxAttempts: 1
       };
 
-      // First create the lesson
+      // Create the lesson first
       this.lessonApi.createLesson(sectionId, lessonPayload).subscribe({
         next: async (lessonRes) => {
           const lesson = lessonRes?.data;

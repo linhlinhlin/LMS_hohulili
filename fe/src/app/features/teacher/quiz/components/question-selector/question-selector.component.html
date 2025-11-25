@@ -1,0 +1,76 @@
+<div class="question-selector">
+    <!-- Toolbar -->
+    <div class="selector-toolbar">
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="Tìm kiếm câu hỏi..." [ngModel]="searchTerm()"
+                (ngModelChange)="searchTerm.set($event)" class="search-input" />
+        </div>
+
+        <div class="filter-group">
+            <select [ngModel]="filterDifficulty()" (ngModelChange)="filterDifficulty.set($event)" class="filter-select">
+                <option value="all">Tất cả độ khó</option>
+                <option value="EASY">Dễ</option>
+                <option value="MEDIUM">Trung bình</option>
+                <option value="HARD">Khó</option>
+            </select>
+
+            <button type="button" class="btn-clear" (click)="clearFilters()"
+                *ngIf="searchTerm() || filterDifficulty() !== 'all'">
+                <i class="fas fa-times"></i> Xóa bộ lọc
+            </button>
+        </div>
+
+        <div class="bulk-actions">
+            <button type="button" class="btn-link" (click)="selectAll()" [disabled]="filteredQuestions().length === 0">
+                Chọn tất cả
+            </button>
+            <span class="separator">|</span>
+            <button type="button" class="btn-link" (click)="deselectAll()" [disabled]="selectedIds.length === 0">
+                Bỏ chọn tất cả
+            </button>
+        </div>
+    </div>
+
+    <!-- Question List -->
+    <div class="question-list">
+        <div *ngFor="let question of filteredQuestions()" class="question-item"
+            [class.selected]="isSelected(question.id)" (click)="toggleQuestion(question.id)">
+            <div class="question-checkbox">
+                <input type="checkbox" [checked]="isSelected(question.id)" (click)="$event.stopPropagation()"
+                    (change)="toggleQuestion(question.id)" />
+            </div>
+
+            <div class="question-content">
+                <div class="question-text" [innerHTML]="question.content"></div>
+
+                <div class="question-meta">
+                    <span class="difficulty-badge" [ngClass]="getDifficultyClass(question.difficulty)">
+                        {{ getDifficultyLabel(question.difficulty) }}
+                    </span>
+
+                    <span class="tag" *ngFor="let tag of question.tags">
+                        {{ tag }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div class="empty-state" *ngIf="filteredQuestions().length === 0">
+            <i class="fas fa-inbox"></i>
+            <p *ngIf="questions.length === 0">Chưa có câu hỏi nào</p>
+            <p *ngIf="questions.length > 0">Không tìm thấy câu hỏi phù hợp</p>
+            <button type="button" class="btn-secondary" (click)="clearFilters()"
+                *ngIf="searchTerm() || filterDifficulty() !== 'all'">
+                Xóa bộ lọc
+            </button>
+        </div>
+    </div>
+
+    <!-- Selection Summary -->
+    <div class="selection-summary" *ngIf="selectedIds.length > 0">
+        <i class="fas fa-check-circle"></i>
+        Đã chọn <strong>{{ selectedIds.length }}</strong> câu hỏi
+    </div>
+</div>

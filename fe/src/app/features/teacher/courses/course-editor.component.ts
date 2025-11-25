@@ -24,26 +24,6 @@ import { SectionApi } from '../../../api/client/section.api';
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Tên khóa học</label>
             <input formControlName="title" type="text" class="w-full border px-3 py-2" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Mô tả</label>
-            <textarea formControlName="description" rows="8" class="w-full border px-3 py-2 min-h-[180px]"></textarea>
-          </div>
-
-          <div class="flex items-center gap-3">
-            <button type="submit" [disabled]="form.invalid || saving()" class="px-4 py-2 bg-blue-600 text-white disabled:opacity-50">
-              Lưu thay đổi
-            </button>
-            <button type="button" (click)="onPublish()" [disabled]="publishing()" class="px-4 py-2 bg-green-600 text-white disabled:opacity-50">
-              Xuất bản
-            </button>
-            <span class="text-green-700">{{ success() }}</span>
-            <span class="text-red-600">{{ error() }}</span>
-          </div>
-        </form>
-      </div>
-
-      <!-- Course Content Management - Dropdown -->
       <details class="mt-8" *ngIf="course() as c" open>
         <summary class="px-4 py-3 cursor-pointer hover:bg-gray-50 flex items-center gap-2 font-bold text-lg">
           <span>▶</span>
@@ -374,13 +354,13 @@ export class CourseEditorComponent {
     this.assignError.set('');
     this.assignSuccess.set('');
     this.assigning.set(true);
-    
+
     if (!this.assign.email?.trim()) {
       this.assignError.set('Vui lòng nhập email sinh viên');
       this.assigning.set(false);
       return;
     }
-    
+
     const payload = { email: this.assign.email.trim() };
     this.api.enrollStudentAsTeacher(c.id, payload).subscribe({
       next: () => {
@@ -404,13 +384,13 @@ export class CourseEditorComponent {
         this.bulkError.set('Vui lòng chọn file Excel (.xlsx hoặc .xls)');
         return;
       }
-      
+
       // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         this.bulkError.set('File quá lớn. Vui lòng chọn file nhỏ hơn 5MB');
         return;
       }
-      
+
       this.selectedFile.set(file);
       this.bulkError.set('');
       this.bulkResult.set(null);

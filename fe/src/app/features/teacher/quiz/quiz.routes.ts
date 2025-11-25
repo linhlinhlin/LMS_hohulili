@@ -17,18 +17,36 @@ export const quizRoutes: Routes = [
         canActivate: [teacherGuard],
         title: 'Quiz Bank - Quản lý ngân hàng câu hỏi'
       },
+      // Legacy Create Route (can be deprecated or redirected)
       {
         path: 'create',
         loadComponent: () => import('./quiz-create.component').then(m => m.QuizCreateComponent),
         canActivate: [teacherGuard],
         title: 'Tạo Quiz Mới'
       },
+      // NEW: Lesson Quiz Create (Smart Component)
       {
-        path: 'create/:lessonId',
-        loadComponent: () => import('./quiz-create.component').then(m => m.QuizCreateComponent),
+        path: 'create/lesson/:lessonId',
+        loadComponent: () => import('./containers/lesson-quiz-create/lesson-quiz-create.component')
+          .then(m => m.LessonQuizCreateComponent),
         canActivate: [teacherGuard],
         title: 'Tạo Quiz cho Lesson'
       },
+      // NEW: Assignment Quiz Create (Smart Component)
+      {
+        path: 'create/assignment/:courseId',
+        loadComponent: () => import('./containers/assignment-quiz-create/assignment-quiz-create.component')
+          .then(m => m.AssignmentQuizCreateComponent),
+        canActivate: [teacherGuard],
+        title: 'Tạo Bài Tập về Nhà'
+      },
+      // Assignment Management Routes (Placeholder for future implementation)
+      // {
+      //   path: 'assignments/:quizId/assign',
+      //   loadComponent: () => import('./quiz-assign-students.component').then(m => m.QuizAssignStudentsComponent), // To be created
+      //   canActivate: [teacherGuard],
+      //   title: 'Giao Bài cho Học Viên'
+      // },
       {
         path: ':quizId/edit',
         loadComponent: () => import('./quiz-edit.component').then(m => m.QuizEditComponent),

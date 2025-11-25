@@ -27,6 +27,12 @@ public class QuizAttempt {
     @JsonIgnore
     private Quiz quiz;
 
+    // NEW: Assignment relationship (nullable for backward compatibility)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assignment_id")
+    @JsonIgnore
+    private QuizAssignment assignment;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "student_id", nullable = false)
     @JsonIgnore
