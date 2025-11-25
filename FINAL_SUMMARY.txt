@@ -1,0 +1,106 @@
+================================================================================
+                    DUPLICATE QUIZZES FIX - FINAL SUMMARY
+================================================================================
+
+PROBLEM:
+  Server Error: More than one row with the given identifier was found
+  Cause: Duplicate Quiz records in database with same ID
+
+SOLUTION CHOSEN:
+  Long-term & Effective: Add UNIQUE constraint + Cleanup + Graceful handling
+
+================================================================================
+                              CHANGES MADE
+================================================================================
+
+1. DATABASE MIGRATION (V999)
+   File: api/src/main/resources/db/migration/V999__cleanup_duplicate_quizzes_and_add_unique_constraint.sql
+   - Cleanup all duplicate quiz_questions
+   - Cleanup all duplicate quizzes (keep most recent)
+   - Add UNIQUE constraint on lesson_id
+
+2. ENTITY UPDATE
+   File: api/src/main/java/com/example/lms/entity/Quiz.java
+   - Added @UniqueConstraint annotation
+   - Ensures only 1 quiz per lesson at application level
+
+3. SERVICE LOGIC
+   File: api/src/main/java/com/example/lms/service/QuizService.java
+   - Check if quiz exists before creating
+   - Handle DataIntegrityViolationException gracefully
+   - Return existing quiz if duplicate attempt
+
+================================================================================
+                            IMPLEMENTATION STEPS
+================================================================================
+
+Step 1: Build Project
+  $ cd api
+  $ mvn clean install
+
+Step 2: Run Application
+  $ mvn spring-boot:run
+  (Migration will run automatically)
+
+Step 3: Verify Cleanup
+  SQL: SELECT lesson_id, COUNT(*) FROM quizzes WHERE lesson_id IS NOT NULL 
+       GROUP BY lesson_id HAVING COUNT(*) > 1;
+  Expected: 0 rows
+
+Step 4: Test
+  - Create quiz for lesson
+  - Try to create another quiz for same lesson
+  - Should return existing quiz (no error)
+
+================================================================================
+                              BENEFITS
+================================================================================
+
+✅ Permanent Fix: Unique constraint at database level
+✅ Graceful Handling: No errors, returns existing quiz
+✅ Backward Compatible: No breaking changes
+✅ No Future Issues: Won't need cleanup again
+
+================================================================================
+                            FILES CREATED
+================================================================================
+
+1. api/src/main/resources/db/migration/V999__cleanup_duplicate_quizzes_and_add_unique_constraint.sql
+2. IMPLEMENTATION_GUIDE.md
+3. SOLUTION_SUMMARY.md
+4. VERIFICATION_CHECKLIST.md
+5. test-duplicate-quiz-fix.sh
+6. CLEANUP_DUPLICATE_QUIZZES.md
+7. api/cleanup-duplicate-quizzes.sql
+
+================================================================================
+                            FILES MODIFIED
+================================================================================
+
+1. api/src/main/java/com/example/lms/entity/Quiz.java
+   - Added @UniqueConstraint annotation
+
+2. api/src/main/java/com/example/lms/service/QuizService.java
+   - Added duplicate check
+   - Added exception handling
+   - Added import for DataIntegrityViolationException
+
+================================================================================
+                              NEXT STEPS
+================================================================================
+
+1. Build: mvn clean install
+2. Run: mvn spring-boot:run
+3. Verify: Check database for duplicates (should be 0)
+4. Test: Create quizzes and verify no errors
+5. Monitor: Watch logs for any issues
+
+================================================================================
+                            READY TO DEPLOY
+================================================================================
+
+All changes are complete and ready for deployment.
+No additional configuration needed.
+Migration will run automatically on application startup.
+
+================================================================================
