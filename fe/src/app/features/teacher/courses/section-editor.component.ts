@@ -1,6 +1,7 @@
 import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, signal, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink, NavigationEnd } from '@angular/router';
+import { filter, Subscription } from 'rxjs';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { LessonApi } from '../../../api/client/lesson.api';
 import { ReactiveFormsModule, FormBuilder, Validators, FormsModule } from '@angular/forms';
@@ -388,84 +389,21 @@ import { QuizEditModalComponent } from './components/quiz-edit-modal.component';
 
                 <!-- Empty State -->
                 <div *ngIf="!quizQuestionsLoading() && quizQuestions().length === 0" class="p-8">
-                  <div class="text-center mb-6">
+                  <div class="text-center">
                     <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                       <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                       </svg>
                     </div>
                     <h4 class="text-lg font-medium text-gray-900 mb-1">Chưa có câu hỏi</h4>
-                    <p class="text-gray-500 text-sm">Thêm câu hỏi từ ngân hàng câu hỏi để bắt đầu</p>
-                  </div>
-                  
-                  <!-- Quick Add from Package -->
-                  <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Thêm nhanh từ gói câu hỏi</label>
-                    <div class="flex items-center gap-3">
-                      <select [(ngModel)]="inlinePackageId" 
-                              [ngModelOptions]="{standalone: true}"
-                              (ngModelChange)="onInlinePackageChange($event)"
-                              class="flex-1 border border-gray-300 rounded-lg px-3 py-2 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        <option value="">Chọn gói câu hỏi...</option>
-                        <option *ngFor="let pkg of quizPackages()" [value]="pkg.id">
-                          {{ pkg.name }} ({{ pkg.questionCount }} câu)
-                        </option>
-                      </select>
-                      <button (click)="loadQuizPackages()" 
-                              class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                              title="Làm mới danh sách">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                        </svg>
-                      </button>
-                    </div>
-                    
-                    <!-- Questions from selected package -->
-                    <div *ngIf="inlinePackageQuestions().length > 0" class="mt-4">
-                      <div class="flex items-center justify-between mb-2">
-                        <span class="text-sm text-gray-600">{{ inlinePackageQuestions().length }} câu hỏi có sẵn</span>
-                        <button (click)="selectAllInlineQuestions()" class="text-xs text-blue-600 hover:text-blue-700">
-                          {{ selectedInlineQuestions().length === inlinePackageQuestions().length ? 'Bỏ chọn tất cả' : 'Chọn tất cả' }}
-                        </button>
-                      </div>
-                      <div class="max-h-64 overflow-y-auto bg-white rounded-lg border border-gray-200">
-                        <div *ngFor="let q of inlinePackageQuestions(); let i = index" 
-                             class="flex items-center gap-3 px-4 py-3 border-b border-gray-100 last:border-b-0 hover:bg-blue-50 cursor-pointer transition-colors"
-                             (click)="toggleInlineQuestion(q.id)">
-                          <input type="checkbox" 
-                                 [checked]="isInlineQuestionSelected(q.id)"
-                                 (click)="$event.stopPropagation()"
-                                 (change)="toggleInlineQuestion(q.id)"
-                                 class="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500">
-                          <span class="flex-1 text-sm text-gray-900">{{ i + 1 }}. {{ q.content }}</span>
-                          <span class="px-2 py-1 rounded text-xs font-medium"
-                                [class.bg-green-100]="q.difficulty === 'EASY'"
-                                [class.text-green-700]="q.difficulty === 'EASY'"
-                                [class.bg-yellow-100]="q.difficulty === 'MEDIUM'"
-                                [class.text-yellow-700]="q.difficulty === 'MEDIUM'"
-                                [class.bg-red-100]="q.difficulty === 'HARD'"
-                                [class.text-red-700]="q.difficulty === 'HARD'">
-                            {{ q.difficulty === 'EASY' ? 'Dễ' : q.difficulty === 'MEDIUM' ? 'Trung bình' : 'Khó' }}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <!-- Add button -->
-                    <div *ngIf="selectedInlineQuestions().length > 0" class="mt-4 flex items-center justify-between">
-                      <span class="text-sm text-gray-600">Đã chọn {{ selectedInlineQuestions().length }} câu hỏi</span>
-                      <button (click)="addInlineQuestionsToQuiz(s.id)"
-                              [disabled]="addingInlineQuestions()"
-                              class="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2">
-                        <svg *ngIf="!addingInlineQuestions()" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                        </svg>
-                        <svg *ngIf="addingInlineQuestions()" class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                        </svg>
-                        {{ addingInlineQuestions() ? 'Đang thêm...' : 'Thêm vào Quiz' }}
-                      </button>
-                    </div>
+                    <p class="text-gray-500 text-sm mb-4">Thêm câu hỏi từ ngân hàng câu hỏi để bắt đầu</p>
+                    <button (click)="openAddQuestionsModal(s.id)"
+                            class="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                      </svg>
+                      Thêm câu hỏi
+                    </button>
                   </div>
                 </div>
 
@@ -532,47 +470,6 @@ import { QuizEditModalComponent } from './components/quiz-edit-modal.component';
                           </svg>
                         </button>
                       </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Footer with inline add -->
-                <div *ngIf="quizQuestions().length > 0" class="border-t">
-                  <!-- Quick add section -->
-                  <div class="px-3 py-2 bg-purple-50">
-                    <div class="flex items-center gap-2">
-                      <select [(ngModel)]="inlinePackageId" 
-                              [ngModelOptions]="{standalone: true}"
-                              (ngModelChange)="onInlinePackageChange($event)"
-                              class="flex-1 text-xs border border-gray-300 rounded px-2 py-1 bg-white">
-                        <option value="">-- Thêm từ gói --</option>
-                        <option *ngFor="let pkg of quizPackages()" [value]="pkg.id">
-                          {{ pkg.name }} ({{ pkg.questionCount }})
-                        </option>
-                      </select>
-                      <span class="text-xs text-gray-500">{{ quizQuestions().length }} câu</span>
-                    </div>
-                    
-                    <!-- Inline questions selection -->
-                    <div *ngIf="inlinePackageQuestions().length > 0" class="mt-2 max-h-32 overflow-y-auto bg-white rounded border border-gray-200">
-                      <div *ngFor="let q of inlinePackageQuestions(); let i = index" 
-                           class="flex items-center gap-2 px-2 py-1 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 cursor-pointer text-xs"
-                           (click)="toggleInlineQuestion(q.id)">
-                        <input type="checkbox" 
-                               [checked]="isInlineQuestionSelected(q.id)"
-                               (click)="$event.stopPropagation()"
-                               (change)="toggleInlineQuestion(q.id)"
-                               class="w-3 h-3 text-purple-600 rounded">
-                        <span class="flex-1 truncate">{{ q.content }}</span>
-                      </div>
-                    </div>
-                    
-                    <div *ngIf="selectedInlineQuestions().length > 0" class="mt-2 flex justify-end">
-                      <button (click)="addInlineQuestionsToQuiz(s.id)"
-                              [disabled]="addingInlineQuestions()"
-                              class="text-xs bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700 disabled:opacity-50">
-                        {{ addingInlineQuestions() ? 'Đang thêm...' : '➕ Thêm ' + selectedInlineQuestions().length + ' câu' }}
-                      </button>
                     </div>
                   </div>
                 </div>
@@ -1582,6 +1479,9 @@ export class SectionEditorComponent implements OnDestroy {
   lastCreatedQuizId = signal<string | null>(null);
   lastCreatedQuizTitle = signal<string>('');
 
+  // Router subscription for detecting navigation back
+  private routerSubscription: Subscription | null = null;
+
   // Quiz viewer data
   currentViewingQuizId = signal<string | null>(null);
   quizQuestions = signal<any[]>([]);
@@ -1683,6 +1583,17 @@ export class SectionEditorComponent implements OnDestroy {
     this.lessonApi.listBySection(this.sectionId).subscribe({
       next: (res) => this.lessons.set(res?.data || []),
       error: (err) => this.error.set(err?.message || 'Không tải được danh sách bài học')
+    });
+
+    // Subscribe to router events to reload quiz questions when navigating back
+    this.routerSubscription = this.router.events.pipe(
+      filter(event => event instanceof NavigationEnd)
+    ).subscribe(() => {
+      // If we have a quiz being viewed, reload its questions
+      const currentQuizId = this.currentViewingQuizId();
+      if (currentQuizId) {
+        this.loadQuizQuestions(currentQuizId);
+      }
     });
 
     // Watch lesson type changes and update field validation
@@ -1935,6 +1846,9 @@ export class SectionEditorComponent implements OnDestroy {
   startAddNew() {
     this.showCreateForm.set(true);
     this.createForm.reset();
+    // Close view form when opening create form
+    this.selected.set(null);
+    this.currentViewingQuizId.set(null);
   }
 
   cancelEdit() { this.editingId.set(null); }
@@ -2531,6 +2445,12 @@ export class SectionEditorComponent implements OnDestroy {
     }
   }
 
+  clearInlinePackageSelection() {
+    this.inlinePackageId = '';
+    this.inlinePackageQuestions.set([]);
+    this.selectedInlineQuestions.set([]);
+  }
+
   toggleInlineQuestion(questionId: string) {
     const current = this.selectedInlineQuestions();
     if (current.includes(questionId)) {
@@ -2752,6 +2672,9 @@ export class SectionEditorComponent implements OnDestroy {
     // Reset form when opening
     if (this.showCreateForm()) {
       this.resetForm();
+      // Close view form when opening create form
+      this.selected.set(null);
+      this.currentViewingQuizId.set(null);
     }
   }
 
@@ -2973,6 +2896,8 @@ export class SectionEditorComponent implements OnDestroy {
   ngOnDestroy(): void {
     // Clean up any timeouts
     this.clearHeaderTimeout();
+    // Clean up router subscription
+    this.routerSubscription?.unsubscribe();
   }
 
   openPdfFullscreen(attachment: any) {

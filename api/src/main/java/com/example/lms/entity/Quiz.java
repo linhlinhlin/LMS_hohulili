@@ -58,29 +58,36 @@ public class Quiz {
     @Column(name = "published_at")
     private Instant publishedAt;
 
+    @Setter
     @Column(name = "time_limit_minutes")
     private Integer timeLimitMinutes; // null means no limit
 
+    @Setter
     @Column(name = "max_attempts", nullable = false)
     @Builder.Default
     private Integer maxAttempts = 1;
 
+    @Setter
     @Column(name = "passing_score", nullable = false)
     @Builder.Default
     private Integer passingScore = 60; // percentage
 
+    @Setter
     @Column(name = "shuffle_questions", nullable = false)
     @Builder.Default
     private Boolean shuffleQuestions = false;
 
+    @Setter
     @Column(name = "shuffle_options", nullable = false)
     @Builder.Default
     private Boolean shuffleOptions = false;
 
+    @Setter
     @Column(name = "show_results_immediately", nullable = false)
     @Builder.Default
     private Boolean showResultsImmediately = true;
 
+    @Setter
     @Column(name = "show_correct_answers", nullable = false)
     @Builder.Default
     private Boolean showCorrectAnswers = false;

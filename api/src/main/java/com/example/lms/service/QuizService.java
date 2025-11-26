@@ -28,6 +28,7 @@ public class QuizService {
     private final QuestionService questionService;
     private final QuizQuestionRepository quizQuestionRepository;
     private final LessonProgressDomainService progressDomainService;
+    private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
     
     @PersistenceContext
@@ -44,12 +45,12 @@ public class QuizService {
             System.out.println("🔍 DEBUG createQuiz - questionIds size: " + (questionIds != null ? questionIds.size() : "null"));
             
             // Get creator from course teacher
-            UUID creatorId = lesson.getSection().getCourse().getTeacher().getId();
+            User creator = lesson.getSection().getCourse().getTeacher();
             
             Quiz quiz = Quiz.builder()
                     .lesson(lesson)
                     .title(lesson.getTitle()) // Set title from lesson to satisfy NOT NULL constraint
-                    .createdBy(creatorId) // Set created_by from course teacher
+                    .createdBy(creator) // Set created_by from course teacher
                     .timeLimitMinutes(timeLimitMinutes)
                     .maxAttempts(maxAttempts != null ? maxAttempts : 1)
                     .passingScore(passingScore != null ? passingScore : 60)
