@@ -290,6 +290,42 @@ public class CourseController {
         }
     }
 
+    @GetMapping("/{courseId}/available-students")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @Operation(summary = "Lấy danh sách học viên chưa đăng ký khóa học", description = "Giáo viên/Admin lấy danh sách học viên có thể gán vào khóa học (chưa enrolled)")
+    public ResponseEntity<ApiResponse<Page<AvailableStudentDTO>>> getAvailableStudents(
+            @PathVariable UUID courseId,
+            @Parameter(description = "Số trang (bắt đầu từ 0)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Số lượng item trên mỗi trang") @RequestParam(defaultValue = "50") int size,
+            @Parameter(description = "Tìm kiếm theo tên hoặc email") @RequestParam(required = false) String search,
+            @AuthenticationPrincipal User currentUser
+    ) {
+        try {
+            Course course = courseService.getCourseById(courseId);
+            if (course == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(ApiResponse.error("Khóa học không tồn tại"));
+            }
+
+            // Authorization is handled by @PreAuthorize - any TEACHER or ADMIN can view available students
+            // This allows teachers to enroll students even if they're not the course owner
+
+            Pageable pageable = PageRequest.of(page, size);
+            Page<User> students = courseService.getAvailableStudentsForEnrollment(courseId, pageable, search);
+
+            Page<AvailableStudentDTO> result = students.map(student -> AvailableStudentDTO.builder()
+                    .id(student.getId())
+                    .fullName(student.getFullName())
+                    .email(student.getEmail())
+                    .build());
+
+            return ResponseEntity.ok(ApiResponse.success(result));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
     @GetMapping("/{courseId}/students")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @SecurityRequirement(name = "Bearer Authentication")
@@ -309,12 +345,7 @@ public class CourseController {
                         .body(ApiResponse.error("Khóa học không tồn tại"));
             }
 
-            // Verify authorization - only course teacher or admin can view students
-            if (currentUser.getRole() != User.Role.ADMIN && 
-                !course.getTeacher().getId().equals(currentUser.getId())) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(ApiResponse.error("Bạn không có quyền xem danh sách học viên của khóa học này"));
-            }
+            // Authorization is handled by @PreAuthorize - any TEACHER or ADMIN can view enrolled students
 
             Pageable pageable = PageRequest.of(page, size);
             Page<User> students = courseService.getCourseStudents(courseId, pageable, search);
@@ -682,5 +713,38 @@ public class CourseController {
 
         public String getEmail() { return email; }
         public void setEmail(String email) { this.email = email; }
+    }
+    
+    // DTO for available students (not enrolled in course)
+    public static class AvailableStudentDTO {
+        private UUID id;
+        private String fullName;
+        private String email;
+
+        public static AvailableStudentDTOBuilder builder() {
+            return new AvailableStudentDTOBuilder();
+        }
+
+        public static class AvailableStudentDTOBuilder {
+            private UUID id;
+            private String fullName;
+            private String email;
+
+            public AvailableStudentDTOBuilder id(UUID id) { this.id = id; return this; }
+            public AvailableStudentDTOBuilder fullName(String fullName) { this.fullName = fullName; return this; }
+            public AvailableStudentDTOBuilder email(String email) { this.email = email; return this; }
+
+            public AvailableStudentDTO build() {
+                AvailableStudentDTO dto = new AvailableStudentDTO();
+                dto.id = this.id;
+                dto.fullName = this.fullName;
+                dto.email = this.email;
+                return dto;
+            }
+        }
+
+        public UUID getId() { return id; }
+        public String getFullName() { return fullName; }
+        public String getEmail() { return email; }
     }
 }

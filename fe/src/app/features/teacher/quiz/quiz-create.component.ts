@@ -16,7 +16,7 @@ import { firstValueFrom } from 'rxjs';
     <div class="relative flex h-auto min-h-screen w-full flex-col bg-gray-50">
       <div class="flex h-full w-full">
         <main class="flex-1 p-8 overflow-y-auto">
-          <div class="mx-auto max-w-6xl">
+          <div class="mx-auto max-w-9xl">
             <div class="flex flex-wrap justify-between gap-3 mb-8">
               <div class="flex flex-col gap-2">
                 <p class="text-gray-900 text-4xl font-black leading-tight tracking-tight">Tạo bài kiểm tra</p>

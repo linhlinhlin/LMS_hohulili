@@ -28,6 +28,7 @@ public class QuizService {
     private final QuestionService questionService;
     private final QuizQuestionRepository quizQuestionRepository;
     private final LessonProgressDomainService progressDomainService;
+    private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
     
     @PersistenceContext

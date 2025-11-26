@@ -253,8 +253,8 @@ interface QuizMetadata {
 export class QuizCreationModalComponent {
   @Input() courseId: string = '';
   @Input() sectionId: string = '';
-  @Output() quizCreated = new EventEmitter<void>();
-  @Output() modalClosed = new EventEmitter<void>();
+  @Output() quizCreated = new EventEmitter<string>();
+  @Output() closed = new EventEmitter<void>();
 
   private packageApi = inject(PackageApi);
   private quizApi = inject(QuizApi);
@@ -304,7 +304,7 @@ export class QuizCreationModalComponent {
   close() {
     this.isOpen.set(false);
     this.showValidation.set(false);
-    this.modalClosed.emit();
+    this.closed.emit();
   }
 
   resetForm() {
@@ -410,26 +410,49 @@ export class QuizCreationModalComponent {
       const lessonId = lessonResponse.data.id;
       console.log('✅ Lesson created with ID:', lessonId);
 
-      // Step 2: Create quiz for the lesson
-      const quizPayload = {
-        title: this.quizTitle(), // Add title for database constraint
-        questionIds: Array.from(this.selectedQuestionIds()),
-        timeLimitMinutes: this.quizTimeLimit(),
-        passingScore: this.quizPassingScore(),
-        maxAttempts: 1,
-        shuffleQuestions: false,
-        shuffleOptions: false,
-        showResultsImmediately: true,
-        showCorrectAnswers: true
-      };
+      // Step 2: Check if quiz already exists, then create or update
+      try {
+        // Try to get existing quiz first
+        const existingQuizResponse = await firstValueFrom(
+          this.quizApi.getQuizByLessonId(lessonId)
+        );
+        
+        // Quiz exists, update questions
+        console.log('📝 Quiz already exists, updating questions...');
+        await firstValueFrom(
+          this.quizApi.updateQuizQuestions(lessonId, {
+            questionIds: Array.from(this.selectedQuestionIds())
+          })
+        );
+        console.log('✅ Quiz updated successfully with', this.selectedQuestionIds().size, 'questions');
+        
+      } catch (getQuizError: any) {
+        // Quiz doesn't exist (404), create new one
+        if (getQuizError?.status === 404 || getQuizError?.error?.message?.includes('not found')) {
+          const quizPayload = {
+            title: this.quizTitle(), // Add title for database constraint
+            questionIds: Array.from(this.selectedQuestionIds()),
+            timeLimitMinutes: this.quizTimeLimit(),
+            passingScore: this.quizPassingScore(),
+            maxAttempts: 1,
+            shuffleQuestions: false,
+            shuffleOptions: false,
+            showResultsImmediately: true,
+            showCorrectAnswers: true
+          };
 
-      console.log('🎯 Creating quiz for lesson...', quizPayload);
-      await firstValueFrom(
-        this.quizApi.createQuiz(lessonId, quizPayload)
-      );
+          console.log('🎯 Creating new quiz for lesson...', quizPayload);
+          await firstValueFrom(
+            this.quizApi.createQuiz(lessonId, quizPayload)
+          );
+          console.log('✅ Quiz created successfully with', this.selectedQuestionIds().size, 'questions');
+        } else {
+          // Other error, rethrow
+          throw getQuizError;
+        }
+      }
       
-      console.log('✅ Quiz created successfully with', this.selectedQuestionIds().size, 'questions');
-      this.quizCreated.emit();
+      this.quizCreated.emit(lessonId);
       this.close();
     } catch (error: any) {
       console.error('❌ Error creating quiz:', error);

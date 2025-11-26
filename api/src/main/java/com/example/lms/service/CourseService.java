@@ -256,4 +256,18 @@ public class CourseService {
         }
         return courseRepository.findEnrolledStudents(courseId, pageable);
     }
+    
+    /**
+     * Get list of students NOT enrolled in a specific course
+     * Used for enrollment dropdown in teacher course edit page
+     */
+    public Page<User> getAvailableStudentsForEnrollment(UUID courseId, Pageable pageable, String search) {
+        // Verify course exists
+        getCourseById(courseId);
+        
+        if (search != null && !search.trim().isEmpty()) {
+            return userRepository.findStudentsNotEnrolledInCourseWithSearch(courseId, search.trim(), pageable);
+        }
+        return userRepository.findStudentsNotEnrolledInCourse(courseId, pageable);
+    }
 }
