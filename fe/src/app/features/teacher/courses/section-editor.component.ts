@@ -289,14 +289,31 @@ import { QuizCreationModalComponent } from './components/quiz-creation-modal.com
         </div>
       </div>
 
-      <!-- Video viewer -->
-      <div class="bg-white border shadow p-6 mt-6" *ngIf="selected() as s">
-        <div class="flex items-center justify-between mb-3">
-          <div class="font-semibold">Xem bài học: {{ s.title }}</div>
-          <div class="inline-flex items-center gap-2">
-            <button class="px-3 py-1 border rounded" (click)="closeViewer()">Đóng</button>
+      <!-- Lesson Viewer -->
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 mt-6 overflow-hidden" *ngIf="selected() as s">
+        <!-- Header -->
+        <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+              <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-lg font-semibold text-gray-900">{{ s.title }}</h3>
+              <p class="text-sm text-gray-500">Xem chi tiết bài học</p>
+            </div>
           </div>
+          <button (click)="closeViewer()" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
         </div>
+
+        <!-- Content -->
+        <div class="p-6">
         <div class="text-sm text-gray-600 mb-3" *ngIf="s.description">{{ s.description }}</div>
         
         <!-- Video Section - Only show if video URL exists and is valid -->
@@ -706,6 +723,7 @@ import { QuizCreationModalComponent } from './components/quiz-creation-modal.com
               </div>
             </div>
           </div>
+        </div>
         </div>
       </div>
 
@@ -2115,6 +2133,11 @@ export class SectionEditorComponent implements OnDestroy {
   }
 
   startEdit(l: any) {
+    // Close viewer if open (only show one at a time)
+    this.selected.set(null);
+    this._sanitizedEmbed.set(null);
+    this.expandedAttachment = null;
+    
     this.editingId.set(l.id);
     this.editForm.patchValue({ title: l.title || '', content: l.content || '', videoUrl: l.videoUrl || '' });
     
@@ -2254,6 +2277,9 @@ export class SectionEditorComponent implements OnDestroy {
       hasValid: this.hasValidVideoUrl(l)
     });
 
+    // Close edit panel if open (only show one at a time)
+    this.editingId.set(null);
+    
     this.selected.set(l);
 
     // Only setup video embed if video URL exists and is valid
@@ -2986,9 +3012,10 @@ export class SectionEditorComponent implements OnDestroy {
     // Reset form when opening
     if (this.showCreateForm()) {
       this.resetForm();
-      // Close view form when opening create form
+      // Close view form and edit form when opening create form (only show one at a time)
       this.selected.set(null);
       this.currentViewingQuizId.set(null);
+      this.editingId.set(null);
     }
   }
 
