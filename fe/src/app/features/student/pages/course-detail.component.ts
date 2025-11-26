@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { CourseApi } from '../../../api/client/course.api';
 import { CourseContentSection } from '../../../api/types/course.types';
+import { QuizApi } from '../../../api/endpoints/quiz.api';
+import { catchError, of } from 'rxjs';
 
 interface CourseDetail {
   id: string;
@@ -29,6 +31,7 @@ interface Lesson {
   orderIndex: number;
   durationMinutes?: number;
   isCompleted?: boolean;
+  hasQuiz?: boolean;
 }
 
 @Component({
@@ -42,6 +45,7 @@ export class CourseDetailComponent implements OnInit {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private courseApi = inject(CourseApi);
+  private quizApi = inject(QuizApi);
 
   // State
   isLoading = signal(false);
@@ -122,12 +126,20 @@ export class CourseDetailComponent implements OnInit {
                 description: lesson.description || '',
                 orderIndex: lesson.orderIndex ?? 0,
                 durationMinutes: 0, // TODO: Get from API
-                isCompleted: false // TODO: Get from progress tracking
+                isCompleted: false, // TODO: Get from progress tracking
+                hasQuiz: false // Will be updated by checkLessonQuiz
               }))
           }));
 
         this.sections.set(mappedSections);
-        
+
+        // Check for quizzes for each lesson
+        mappedSections.forEach(section => {
+          section.lessons.forEach(lesson => {
+            this.checkLessonQuiz(lesson.id);
+          });
+        });
+
         // Expand first section by default
         if (mappedSections.length > 0) {
           this.expandedSections.update(set => {
@@ -220,5 +232,39 @@ export class CourseDetailComponent implements OnInit {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+  }
+
+  checkLessonQuiz(lessonId: string): void {
+    this.quizApi.getQuizByLessonId(lessonId)
+      .pipe(
+        catchError((error) => {
+          console.log(`No quiz found for lesson ${lessonId}`, error);
+          return of(null);
+        })
+      )
+      .subscribe(response => {
+        console.log(`Quiz check for lesson ${lessonId}:`, response);
+
+        // Check if quiz exists
+        if (response && response.id) {
+          console.log(`✅ Quiz found for lesson ${lessonId}`, response);
+          // Update the lesson to mark it has a quiz
+          this.sections.update(sections => {
+            return sections.map(section => ({
+              ...section,
+              lessons: section.lessons.map(lesson =>
+                lesson.id === lessonId ? { ...lesson, hasQuiz: true } : lesson
+              )
+            }));
+          });
+        } else {
+          console.log(`❌ No quiz for lesson ${lessonId}`);
+        }
+      });
+  }
+
+  goToQuiz(lessonId: string, lessonTitle: string): void {
+    // Navigate to quiz attempt with lesson ID
+    this.router.navigate(['/student/quiz/take', lessonId]);
   }
 }

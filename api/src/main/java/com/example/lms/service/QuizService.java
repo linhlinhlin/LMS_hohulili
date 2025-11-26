@@ -870,7 +870,7 @@ public class QuizService {
             Question question = Question.builder()
                     .content(data[0])
                     .difficulty(Question.Difficulty.MEDIUM)
-                    .status(Question.Status.PUBLISHED)
+                    .status(Question.Status.ACTIVE)
                     .correctOption(data[5])
                     .createdBy(teacher)
                     .course(lesson.getSection().getCourse())

@@ -3,8 +3,9 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { LearningService } from '../services/learning.service';
 import { LessonContentComponent } from '../components/lesson-content/lesson-content.component';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, catchError, of } from 'rxjs';
 import { LessonApi } from '../../../api/client/lesson.api';
+import { QuizApi } from '../../../api/endpoints/quiz.api';
 
 /**
  * Course Learning Component
@@ -25,15 +26,19 @@ export class CourseLearningComponent implements OnInit {
   private route = inject(ActivatedRoute);
   protected learningService = inject(LearningService);
   private lessonApi = inject(LessonApi);
+  private quizApi = inject(QuizApi);
 
   // Local UI state
   sidebarCollapsed = signal(false);
   searchQuery = signal('');
   isMobileView = signal(false);
   showMobileSidebar = signal(false);
-  
+
   // Section collapse state - track which sections are expanded
   expandedSections = signal<Set<string>>(new Set<string>());
+
+  // Quiz availability - track which lessons have quizzes
+  lessonsWithQuiz = signal<Set<string>>(new Set<string>());
 
   // Computed from service
   course = this.learningService.course;
@@ -66,7 +71,7 @@ export class CourseLearningComponent implements OnInit {
   ngOnInit(): void {
     this.checkMobileView();
     this.loadCourseFromRoute();
-    
+
     // Expand first section by default
     const firstSection = this.sections()[0];
     if (firstSection) {
@@ -76,6 +81,9 @@ export class CourseLearningComponent implements OnInit {
         return newExpanded;
       });
     }
+
+    // Check for quizzes for all lessons
+    this.checkAllLessonsForQuizzes();
   }
 
   @HostListener('window:resize')
@@ -163,7 +171,7 @@ export class CourseLearningComponent implements OnInit {
     if (lesson) {
       this.learningService.selectLesson(lesson);
       this.closeMobileSidebar();
-      
+
       // Update URL
       const courseId = this.course()?.id;
       if (courseId) {
@@ -199,85 +207,85 @@ export class CourseLearningComponent implements OnInit {
 
   // Progress
   async onMarkComplete(): Promise<void> {
-  // Lấy lesson hiện tại từ signal currentLesson()
-  const lesson = this.currentLesson();
-  if (!lesson) {
-    console.log('[CourseLearning] onMarkComplete: no current lesson');
-    return;
-  }
-
-  // Nếu đã completed rồi thì không gọi API nữa
-  try {
-    const alreadyCompleted = this.learningService
-      .isLessonCompleted(lesson.id)();
-    if (alreadyCompleted) {
-      console.log('[CourseLearning] onMarkComplete: lesson already completed');
+    // Lấy lesson hiện tại từ signal currentLesson()
+    const lesson = this.currentLesson();
+    if (!lesson) {
+      console.log('[CourseLearning] onMarkComplete: no current lesson');
       return;
     }
-  } catch {
-    // Nếu lỡ isLessonCompleted lỗi / chưa có thì bỏ qua check này
-  }
 
-  console.log('[CourseLearning] onMarkComplete: START, lessonId =', lesson.id);
-
-  // 🔍 DEBUG: Check token
-  const token = localStorage.getItem('lms_access_token');
-  console.log('[CourseLearning] Token check:', {
-    tokenExists: !!token,
-    tokenLength: token?.length,
-    tokenPrefix: token?.substring(0, 20) + '...'
-  });
-
-  if (token) {
+    // Nếu đã completed rồi thì không gọi API nữa
     try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      console.log('[CourseLearning] JWT Payload:', {
-        sub: payload.sub,
-        roles: payload.roles || payload.authorities,
-        exp: new Date(payload.exp * 1000).toISOString(),
-        isExpired: payload.exp * 1000 < Date.now()
-      });
-    } catch (e) {
-      console.error('[CourseLearning] Cannot decode JWT:', e);
+      const alreadyCompleted = this.learningService
+        .isLessonCompleted(lesson.id)();
+      if (alreadyCompleted) {
+        console.log('[CourseLearning] onMarkComplete: lesson already completed');
+        return;
+      }
+    } catch {
+      // Nếu lỡ isLessonCompleted lỗi / chưa có thì bỏ qua check này
     }
-  }
 
-  try {
-    console.log('[CourseLearning] BEFORE API CALL');
+    console.log('[CourseLearning] onMarkComplete: START, lessonId =', lesson.id);
 
-    const apiResult = await firstValueFrom(
-      this.lessonApi.markLessonComplete(lesson.id)
-    );
-
-    console.log('[CourseLearning] API call successful, response:', apiResult);
-
-    // ✅ Cập nhật state phía FE qua service chung
-    this.learningService.markCurrentLessonComplete();
-
-    // (tuỳ bạn) có thể expand section hiện tại để user thấy rõ
-    this.expandCurrentLessonSection();
-
-    console.log('[CourseLearning] Lesson marked as completed in UI:', lesson.id);
-  } catch (error: any) {
-    console.error('[CourseLearning] Failed to mark lesson as completed:', error);
-    console.error('[CourseLearning] Error details:', {
-      status: error?.status,
-      statusText: error?.statusText,
-      message: error?.message,
-      url: error?.url,
-      error: error?.error
+    // 🔍 DEBUG: Check token
+    const token = localStorage.getItem('lms_access_token');
+    console.log('[CourseLearning] Token check:', {
+      tokenExists: !!token,
+      tokenLength: token?.length,
+      tokenPrefix: token?.substring(0, 20) + '...'
     });
 
-    if (error?.status === 403) {
-      console.error('[CourseLearning] 403 Forbidden - Check token and roles');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        console.log('[CourseLearning] JWT Payload:', {
+          sub: payload.sub,
+          roles: payload.roles || payload.authorities,
+          exp: new Date(payload.exp * 1000).toISOString(),
+          isExpired: payload.exp * 1000 < Date.now()
+        });
+      } catch (e) {
+        console.error('[CourseLearning] Cannot decode JWT:', e);
+      }
     }
 
-    // Ở CourseLearningComponent không có _error, nên bạn có thể:
-    // - dùng 1 signal error riêng
-    // - hoặc tạm thời chỉ alert:
-    alert('Không thể cập nhật trạng thái hoàn thành. Vui lòng thử lại.');
+    try {
+      console.log('[CourseLearning] BEFORE API CALL');
+
+      const apiResult = await firstValueFrom(
+        this.lessonApi.markLessonComplete(lesson.id)
+      );
+
+      console.log('[CourseLearning] API call successful, response:', apiResult);
+
+      // ✅ Cập nhật state phía FE qua service chung
+      this.learningService.markCurrentLessonComplete();
+
+      // (tuỳ bạn) có thể expand section hiện tại để user thấy rõ
+      this.expandCurrentLessonSection();
+
+      console.log('[CourseLearning] Lesson marked as completed in UI:', lesson.id);
+    } catch (error: any) {
+      console.error('[CourseLearning] Failed to mark lesson as completed:', error);
+      console.error('[CourseLearning] Error details:', {
+        status: error?.status,
+        statusText: error?.statusText,
+        message: error?.message,
+        url: error?.url,
+        error: error?.error
+      });
+
+      if (error?.status === 403) {
+        console.error('[CourseLearning] 403 Forbidden - Check token and roles');
+      }
+
+      // Ở CourseLearningComponent không có _error, nên bạn có thể:
+      // - dùng 1 signal error riêng
+      // - hoặc tạm thời chỉ alert:
+      alert('Không thể cập nhật trạng thái hoàn thành. Vui lòng thử lại.');
+    }
   }
-}
 
   // Video events
   onVideoStateChange(state: any): void {
@@ -287,7 +295,7 @@ export class CourseLearningComponent implements OnInit {
   onVideoEnded(): void {
     console.log('Video ended');
     this.learningService.markCurrentLessonComplete();
-    
+
     // Auto-advance to next lesson if available
     if (this.canGoNext()) {
       setTimeout(() => {
@@ -375,5 +383,41 @@ export class CourseLearningComponent implements OnInit {
         }
         break;
     }
+  }
+
+  // Quiz functionality
+  checkAllLessonsForQuizzes(): void {
+    const allLessons = this.learningService.allLessons();
+    allLessons.forEach(lesson => {
+      // Only check for quiz if lesson type is QUIZ
+      if (lesson.lessonType === 'QUIZ') {
+        this.checkLessonQuiz(lesson.id);
+      }
+    });
+  }
+
+  checkLessonQuiz(lessonId: string): void {
+    this.quizApi.getQuizByLessonId(lessonId)
+      .pipe(
+        catchError(() => of(null))
+      )
+      .subscribe(response => {
+        if (response && response.id) {
+          this.lessonsWithQuiz.update(lessons => {
+            const newSet = new Set(lessons);
+            newSet.add(lessonId);
+            return newSet;
+          });
+        }
+      });
+  }
+
+  hasQuiz(lessonId: string): boolean {
+    return this.lessonsWithQuiz().has(lessonId);
+  }
+
+  goToQuiz(lessonId: string, event: Event): void {
+    event.stopPropagation(); // Prevent lesson selection
+    this.router.navigate(['/student/quiz/take', lessonId]);
   }
 }

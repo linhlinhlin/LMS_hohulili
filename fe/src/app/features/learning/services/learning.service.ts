@@ -329,7 +329,7 @@ export class LearningService {
           id: data.id,
           title: data.title,
           description: data.description || '',
-          lessonType: getLessonTypeFromTitle(data.title),
+          lessonType: (data.lessonType as any) || getLessonTypeFromTitle(data.title),
           duration: data.durationMinutes || 0,
           orderIndex: 0, // Will be set from section data
           content: data.content || '',
@@ -342,6 +342,13 @@ export class LearningService {
           courseTitle: data.courseTitle || '',
           durationMinutes: data.durationMinutes
         };
+        
+        console.log('[LearningService] Loaded lesson:', {
+          id: lessonDetail.id,
+          title: lessonDetail.title,
+          lessonType: lessonDetail.lessonType,
+          backendLessonType: data.lessonType
+        });
 
         // Cache the lesson
         this.lessonCache.set(lessonId, lessonDetail);
@@ -541,7 +548,7 @@ export class LearningService {
             id: lesson.id,
             title: lesson.title,
             description: lesson.description || '',
-            lessonType: getLessonTypeFromTitle(lesson.title),
+            lessonType: (lesson as any).lessonType || getLessonTypeFromTitle(lesson.title),
             duration: 0, // Will be loaded when lesson is selected
             orderIndex: lesson.orderIndex || idx
           }))

@@ -43,7 +43,7 @@ export interface LessonSummary {
   id: string;
   title: string;
   description: string;
-  lessonType: LessonType;
+  lessonType?: LessonType;
   duration: number; // in minutes
   orderIndex: number;
   isCompleted?: boolean; // Added for progress tracking
