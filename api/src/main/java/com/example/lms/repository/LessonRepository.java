@@ -19,4 +19,6 @@ public interface LessonRepository extends JpaRepository<Lesson, UUID> {
 
     @Query("SELECT l FROM Lesson l WHERE l.section.course.id = :courseId ORDER BY l.orderIndex ASC")
     java.util.List<Lesson> findByCourseIdOrderByOrderIndexAsc(@Param("courseId") UUID courseId);
+
+    long countBySectionId(UUID sectionId);
 }

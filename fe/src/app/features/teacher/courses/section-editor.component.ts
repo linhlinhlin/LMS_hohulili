@@ -976,9 +976,8 @@ import { QuizEditModalComponent } from './components/quiz-edit-modal.component';
                 <div class="mb-4">
                   <label class="block text-sm font-medium text-gray-700 mb-2">Chọn gói câu hỏi:</label>
                   <div class="flex gap-2">
-                    <select [(ngModel)]="quizPackageId" 
-                            [ngModelOptions]="{standalone: true}"
-                            (ngModelChange)="onQuizPackageChange($event)"
+                    <select [value]="quizPackageId" 
+                            (change)="onQuizPackageChange($any($event.target).value)"
                             class="flex-1 border-2 border-gray-200 rounded-lg px-4 py-2.5 text-base focus:border-purple-500 focus:outline-none bg-white">
                       <option value="">-- Chọn gói câu hỏi --</option>
                       <option *ngFor="let pkg of quizPackages()" [value]="pkg.id">
@@ -1576,9 +1575,9 @@ export class SectionEditorComponent implements OnDestroy {
 
     this.sectionId = this.route.snapshot.paramMap.get('sectionId')!;
     // Resolve courseId to support back navigation
-    this.courseId = this.route.snapshot.paramMap.get('id')
-      || this.route.parent?.snapshot.paramMap.get('id')
-      || this.route.parent?.parent?.snapshot.paramMap.get('id')
+    this.courseId = this.route.snapshot.paramMap.get('courseId')
+      || this.route.parent?.snapshot.paramMap.get('courseId')
+      || this.route.parent?.parent?.snapshot.paramMap.get('courseId')
       || '';
     this.lessonApi.listBySection(this.sectionId).subscribe({
       next: (res) => this.lessons.set(res?.data || []),
