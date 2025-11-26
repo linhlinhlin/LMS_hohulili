@@ -367,4 +367,28 @@ export class QuizApi {
       `/api/v2/quizzes/assignments`
     );
   }
+
+  /**
+   * Auto-populate quiz with available questions
+   * @param lessonId - Lesson ID
+   * @returns Observable of result
+   */
+  autoPopulateQuizQuestions(lessonId: string) {
+    return this.apiClient.post<any>(
+      `/api/v1/quizzes/lessons/${lessonId}/auto-populate-questions`,
+      {}
+    );
+  }
+
+  /**
+   * Create sample questions for quiz
+   * @param lessonId - Lesson ID
+   * @returns Observable of result
+   */
+  createSampleQuestions(lessonId: string) {
+    return this.apiClient.post<any>(
+      `/api/v1/quizzes/lessons/${lessonId}/create-sample-questions`,
+      {}
+    );
+  }
 }

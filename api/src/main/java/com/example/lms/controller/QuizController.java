@@ -320,6 +320,69 @@ public class QuizController {
         }
     }
 
+    @GetMapping("/available-questions")
+    @Operation(summary = "Lấy danh sách câu hỏi có sẵn", description = "Lấy tất cả câu hỏi có sẵn để thêm vào quiz")
+    public ResponseEntity<ApiResponse<List<Question>>> getAvailableQuestions(
+            @AuthenticationPrincipal User currentUser
+    ) {
+        try {
+            System.out.println("🔍 Getting available questions for teacher: " + currentUser.getId());
+            List<Question> questions = quizService.getAvailableQuestions(currentUser.getId());
+            System.out.println("📊 Found " + questions.size() + " available questions");
+            return ResponseEntity.ok(ApiResponse.success(questions));
+        } catch (RuntimeException e) {
+            System.err.println("❌ Get available questions failed: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/lessons/{lessonId}/auto-populate-questions")
+    @Operation(summary = "Tự động thêm câu hỏi mẫu vào quiz", description = "Thêm các câu hỏi mẫu vào quiz để test")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> autoPopulateQuizQuestions(
+            @PathVariable UUID lessonId,
+            @AuthenticationPrincipal User currentUser
+    ) {
+        try {
+            System.out.println("🔍 Auto-populating quiz questions for lesson: " + lessonId);
+            
+            // Validate lesson access first
+            lessonService.getLessonById(lessonId, currentUser);
+            
+            Map<String, Object> result = quizService.autoPopulateQuizQuestions(lessonId, currentUser.getId());
+            System.out.println("✅ Auto-populated quiz questions: " + result);
+            
+            return ResponseEntity.ok(ApiResponse.success(result, "Đã thêm câu hỏi vào quiz"));
+        } catch (RuntimeException e) {
+            System.err.println("❌ Auto-populate quiz questions failed: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/lessons/{lessonId}/create-sample-questions")
+    @Operation(summary = "Tạo câu hỏi mẫu", description = "Tạo một số câu hỏi mẫu cho quiz")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> createSampleQuestions(
+            @PathVariable UUID lessonId,
+            @AuthenticationPrincipal User currentUser
+    ) {
+        try {
+            System.out.println("🔍 Creating sample questions for lesson: " + lessonId);
+            
+            // Validate lesson access first
+            Lesson lesson = lessonService.getLessonById(lessonId, currentUser);
+            
+            Map<String, Object> result = quizService.createSampleQuestions(lesson, currentUser);
+            System.out.println("✅ Created sample questions: " + result);
+            
+            return ResponseEntity.ok(ApiResponse.success(result, "Đã tạo câu hỏi mẫu"));
+        } catch (RuntimeException e) {
+            System.err.println("❌ Create sample questions failed: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
     @PostMapping("/lessons/{lessonId}/questions/add")
     @Operation(summary = "Thêm câu hỏi vào quiz", description = "Thêm một câu hỏi vào quiz hiện tại")
     public ResponseEntity<?> addQuestionToQuiz(

@@ -779,4 +779,147 @@ public class QuizService {
 
         return result;
     }
+
+    /**
+     * Get all available questions for a teacher to add to quiz
+     */
+    public List<Question> getAvailableQuestions(UUID teacherId) {
+        System.out.println("🔍 Getting available questions for teacher: " + teacherId);
+        
+        // Get all questions created by this teacher
+        List<Question> questions = questionRepository.findByCreatedById(teacherId);
+        
+        System.out.println("📊 Found " + questions.size() + " questions created by teacher");
+        
+        return questions;
+    }
+
+    /**
+     * Auto-populate quiz with available questions from teacher
+     */
+    @Transactional
+    public Map<String, Object> autoPopulateQuizQuestions(UUID lessonId, UUID teacherId) {
+        System.out.println("🔍 Auto-populating quiz for lesson: " + lessonId + " by teacher: " + teacherId);
+        
+        Quiz quiz = getQuizByLessonId(lessonId);
+        
+        // Get available questions from teacher
+        List<Question> availableQuestions = getAvailableQuestions(teacherId);
+        
+        System.out.println("📊 Found " + availableQuestions.size() + " available questions");
+        
+        if (availableQuestions.isEmpty()) {
+            System.out.println("⚠️ No available questions found for teacher");
+            Map<String, Object> result = new HashMap<>();
+            result.put("quizId", quiz.getId());
+            result.put("lessonId", lessonId);
+            result.put("addedCount", 0);
+            result.put("message", "Không có câu hỏi nào để thêm");
+            return result;
+        }
+        
+        // Add all available questions to quiz
+        int addedCount = 0;
+        for (int i = 0; i < availableQuestions.size(); i++) {
+            Question question = availableQuestions.get(i);
+            
+            // Check if question already exists in this quiz
+            boolean exists = quizQuestionRepository.findByQuizIdAndQuestionId(quiz.getId(), question.getId()).isPresent();
+            if (!exists) {
+                QuizQuestion quizQuestion = QuizQuestion.builder()
+                        .quiz(quiz)
+                        .question(question)
+                        .displayOrder(i + 1)
+                        .build();
+                quizQuestionRepository.save(quizQuestion);
+                addedCount++;
+            }
+        }
+        
+        System.out.println("✅ Added " + addedCount + " questions to quiz");
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("quizId", quiz.getId());
+        result.put("lessonId", lessonId);
+        result.put("addedCount", addedCount);
+        result.put("totalQuestions", quizQuestionRepository.countByQuizId(quiz.getId()));
+        result.put("message", "Đã thêm " + addedCount + " câu hỏi vào quiz");
+        
+        return result;
+    }
+
+    /**
+     * Create sample questions for a lesson
+     */
+    @Transactional
+    public Map<String, Object> createSampleQuestions(Lesson lesson, User teacher) {
+        System.out.println("🔍 Creating sample questions for lesson: " + lesson.getId());
+        
+        List<Question> createdQuestions = new ArrayList<>();
+        
+        // Create 5 sample questions
+        String[][] sampleData = {
+            {"Câu hỏi 1: Đây là câu hỏi mẫu đầu tiên", "A", "B", "C", "D", "A"},
+            {"Câu hỏi 2: Đây là câu hỏi mẫu thứ hai", "Đúng", "Sai", "Không chắc", "Khác", "A"},
+            {"Câu hỏi 3: Đây là câu hỏi mẫu thứ ba", "Tùy chọn 1", "Tùy chọn 2", "Tùy chọn 3", "Tùy chọn 4", "B"},
+            {"Câu hỏi 4: Đây là câu hỏi mẫu thứ tư", "Lựa chọn A", "Lựa chọn B", "Lựa chọn C", "Lựa chọn D", "C"},
+            {"Câu hỏi 5: Đây là câu hỏi mẫu thứ năm", "Phương án 1", "Phương án 2", "Phương án 3", "Phương án 4", "D"}
+        };
+        
+        for (String[] data : sampleData) {
+            Question question = Question.builder()
+                    .content(data[0])
+                    .difficulty(Question.Difficulty.MEDIUM)
+                    .status(Question.Status.PUBLISHED)
+                    .correctOption(data[5])
+                    .createdBy(teacher)
+                    .course(lesson.getSection().getCourse())
+                    .build();
+            
+            // Create options
+            List<QuestionOption> options = new ArrayList<>();
+            String[] optionKeys = {"A", "B", "C", "D"};
+            for (int i = 0; i < 4; i++) {
+                QuestionOption option = QuestionOption.builder()
+                        .question(question)
+                        .optionKey(optionKeys[i])
+                        .content(data[i + 1])
+                        .displayOrder(i + 1)
+                        .build();
+                options.add(option);
+            }
+            question.setOptions(options);
+            
+            Question savedQuestion = questionRepository.save(question);
+            createdQuestions.add(savedQuestion);
+            System.out.println("✅ Created sample question: " + savedQuestion.getId());
+        }
+        
+        // Add all created questions to quiz
+        Quiz quiz = getQuizByLessonId(lesson.getId());
+        int addedCount = 0;
+        for (int i = 0; i < createdQuestions.size(); i++) {
+            Question question = createdQuestions.get(i);
+            
+            QuizQuestion quizQuestion = QuizQuestion.builder()
+                    .quiz(quiz)
+                    .question(question)
+                    .displayOrder(i + 1)
+                    .build();
+            quizQuestionRepository.save(quizQuestion);
+            addedCount++;
+        }
+        
+        System.out.println("✅ Added " + addedCount + " sample questions to quiz");
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("quizId", quiz.getId());
+        result.put("lessonId", lesson.getId());
+        result.put("createdCount", createdQuestions.size());
+        result.put("addedCount", addedCount);
+        result.put("totalQuestions", quizQuestionRepository.countByQuizId(quiz.getId()));
+        result.put("message", "Đã tạo " + createdQuestions.size() + " câu hỏi mẫu");
+        
+        return result;
+    }
 }
