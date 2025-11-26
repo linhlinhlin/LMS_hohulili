@@ -1,41 +1,4 @@
 <div class="lesson-content-wrapper">
-  <!-- Video Player - Coursera Style -->
-  @if (lesson.videoUrl) {
-    <div class="video-section">
-      <div class="video-container">
-        @if (isYouTubeVideo()) {
-          <!-- YouTube Embed -->
-          <div class="video-wrapper">
-            <iframe
-              [src]="getYouTubeEmbedUrl()"
-              frameborder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowfullscreen
-              class="video-iframe">
-            </iframe>
-          </div>
-        } @else {
-          <!-- HTML5 Video Player -->
-          <div class="video-wrapper">
-            <video
-              [src]="lesson.videoUrl"
-              [poster]="lesson.thumbnail"
-              controls
-              controlsList="nodownload"
-              class="video-player"
-              (play)="onVideoPlay()"
-              (pause)="onVideoPause()"
-              (ended)="onVideoEnd()"
-              (timeupdate)="onVideoTimeUpdate($event)"
-              (error)="onVideoError($event)">
-              Trình duyệt của bạn không hỗ trợ video.
-            </video>
-          </div>
-        }
-      </div>
-    </div>
-  }
-
   <!-- Content Area - Constrained Width -->
   <div class="content-container">
     <!-- Lesson Header -->
@@ -59,6 +22,43 @@
         }
       </div>
     </div>
+
+    <!-- Video Player - Coursera Style -->
+    @if (lesson.videoUrl) {
+      <div class="video-section">
+        <div class="video-container">
+          @if (isYouTubeVideo()) {
+            <!-- YouTube Embed -->
+            <div class="video-wrapper">
+              <iframe
+                [src]="getYouTubeEmbedUrl()"
+                frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowfullscreen
+                class="video-iframe">
+              </iframe>
+            </div>
+          } @else {
+            <!-- HTML5 Video Player -->
+            <div class="video-wrapper">
+              <video
+                [src]="lesson.videoUrl"
+                [poster]="lesson.thumbnail"
+                controls
+                controlsList="nodownload"
+                class="video-player"
+                (play)="onVideoPlay()"
+                (pause)="onVideoPause()"
+                (ended)="onVideoEnd()"
+                (timeupdate)="onVideoTimeUpdate($event)"
+                (error)="onVideoError($event)">
+                Trình duyệt của bạn không hỗ trợ video.
+              </video>
+            </div>
+          }
+        </div>
+      </div>
+    }
 
     <!-- HTML Content -->
     @if (lesson.content) {
@@ -96,6 +96,19 @@
             </div>
           }
         </div>
+      </div>
+    }
+
+    <!-- Quiz Button - Show for QUIZ type lessons or if hasQuiz is true -->
+    @if (hasQuiz || lesson.lessonType === LessonType.QUIZ) {
+      <div style="margin: 2rem 0; padding: 1.5rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; text-align: center;">
+        <p style="color: white; margin: 0 0 1rem 0; font-weight: 600;">Bạn muốn kiểm tra kiến thức?</p>
+        <button (click)="onGoToQuiz()" style="display: inline-flex; align-items: center; gap: 0.75rem; padding: 1rem 2rem; background: white; color: #667eea; border: none; border-radius: 8px; font-size: 1.125rem; font-weight: 600; cursor: pointer; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); transition: all 0.3s;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+          </svg>
+          Làm bài trắc nghiệm
+        </button>
       </div>
     }
 

@@ -691,3 +691,47 @@
     }
   }
 }
+
+// Quiz Button Styles
+.lesson-item-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  
+  .lesson-item {
+    flex: 1;
+  }
+  
+  .quiz-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.5rem 0.75rem;
+    background: #0056D2;
+    color: white;
+    border: none;
+    border-radius: 0.375rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+    
+    svg {
+      width: 16px;
+      height: 16px;
+    }
+    
+    &:hover {
+      background: #004BB8;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0, 86, 210, 0.3);
+    }
+    
+    &:active {
+      transform: translateY(0);
+    }
+  }
+}

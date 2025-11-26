@@ -48,21 +48,7 @@ export const learningRoutes: Routes = [
     loadComponent: () => import('./components/bookmark-system.component').then(m => m.BookmarkSystemComponent),
     title: 'Bookmarks - LMS Maritime'
   },
-  {
-    path: 'quiz',
-    loadComponent: () => import('./quiz/presentation/components/quiz-list.component').then(m => m.QuizListComponent),
-    title: 'Danh sách Quiz - LMS Maritime'
-  },
-  {
-    path: 'quiz/attempt/:id',
-    loadComponent: () => import('./quiz/presentation/components/quiz-attempt.component').then(m => m.QuizAttemptComponent),
-    title: 'Làm Quiz - LMS Maritime'
-  },
-  {
-    path: 'quiz/result',
-    loadComponent: () => import('./quiz/presentation/components/quiz-result.component').then(m => m.QuizResultComponent),
-    title: 'Kết quả Quiz - LMS Maritime'
-  },
+
   {
     path: 'learning-paths',
     loadComponent: () => import('./components/personalized-learning-paths.component').then(m => m.PersonalizedLearningPathsComponent),

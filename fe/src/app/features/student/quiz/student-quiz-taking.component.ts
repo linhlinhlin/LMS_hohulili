@@ -25,6 +25,13 @@ interface QuizQuestion {
     .animate-scale-in {
       animation: scale-in 0.3s ease-out;
     }
+    :host ::ng-deep .sidebar-container,
+    :host ::ng-deep .sidebar-student,
+    :host ::ng-deep aside,
+    :host ::ng-deep [class*="sidebar"],
+    :host ::ng-deep [class*="nav-sidebar"] {
+      display: none !important;
+    }
   `]
 })
 export class StudentQuizTakingComponent implements OnInit, OnDestroy {
