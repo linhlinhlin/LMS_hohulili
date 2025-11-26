@@ -57,6 +57,9 @@ import { QuestionImportModalComponent } from './components/question-import-modal
           <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
             <!-- Toolbar -->
             <div class="p-6 border-b border-gray-200">
+              <!-- Label row -->
+              <label class="block text-sm font-medium text-gray-700 mb-2">Chọn gói câu hỏi</label>
+              
               <div class="flex flex-wrap gap-4 items-center justify-between">
                 <!-- Left: Package selector -->
                 <div class="flex items-center gap-3 flex-1 min-w-0">
