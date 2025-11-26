@@ -32,6 +32,7 @@ public class SectionRestController {
 
     private final SectionRepository sectionRepository;
     private final SectionService sectionService;
+    private final com.example.lms.repository.LessonRepository lessonRepository;
 
     @GetMapping
     @Operation(summary = "Danh sách sections", description = "Liệt kê sections theo courseId (bắt buộc)")
@@ -115,12 +116,14 @@ public class SectionRestController {
     }
 
     private SectionItem toItem(Section s) {
+        long lessonsCount = lessonRepository.countBySectionId(s.getId());
         return SectionItem.builder()
                 .id(s.getId())
                 .title(s.getTitle())
                 .description(s.getDescription())
                 .orderIndex(s.getOrderIndex())
                 .courseId(s.getCourse().getId())
+                .lessonsCount((int) lessonsCount)
                 .createdAt(s.getCreatedAt())
                 .updatedAt(s.getUpdatedAt())
                 .build();
@@ -151,6 +154,7 @@ public class SectionRestController {
         private String description;
         private Integer orderIndex;
         private UUID courseId;
+        private int lessonsCount;
         private Instant createdAt;
         private Instant updatedAt;
     }
