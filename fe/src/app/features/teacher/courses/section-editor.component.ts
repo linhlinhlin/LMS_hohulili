@@ -1,7 +1,7 @@
-import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, signal, OnDestroy, ViewChild } from '@angular/core';
+import { Component, ChangeDetectionStrategy, ChangeDetectorRef, ViewEncapsulation, inject, signal, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink, NavigationEnd } from '@angular/router';
-import { filter, Subscription } from 'rxjs';
+import { filter, Subscription, take } from 'rxjs';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { LessonApi } from '../../../api/client/lesson.api';
 import { ReactiveFormsModule, FormBuilder, Validators, FormsModule } from '@angular/forms';
@@ -14,14 +14,123 @@ import { QuestionApi, Question } from '../../../api/endpoints/question.api';
 import { PackageApi } from '../../../api/endpoints/package.api';
 import { firstValueFrom } from 'rxjs';
 import { QuizEditModalComponent } from './components/quiz-edit-modal.component';
+import { QuizCreationModalComponent } from './components/quiz-creation-modal.component';
 
 @Component({
   selector: 'app-section-editor',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink, QuizEditModalComponent],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink, QuizEditModalComponent, QuizCreationModalComponent],
   encapsulation: ViewEncapsulation.None,
+  styles: [`
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes slideUp {
+      from { 
+        opacity: 0;
+        transform: translateY(16px) scale(0.96);
+      }
+      to { 
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+    @keyframes slideInRight {
+      from {
+        opacity: 0;
+        transform: translateX(100px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+    .animate-fadeIn {
+      animation: fadeIn 0.15s ease-out;
+    }
+    .animate-slideUp {
+      animation: slideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .animate-slideInRight {
+      animation: slideInRight 0.3s ease-out;
+    }
+  `],
   template: `
   <div class="min-h-screen bg-gray-50">
+    
+    <!-- Delete Confirmation Modal - Minimalist Design -->
+    @if (showDeleteModal()) {
+      <div class="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fadeIn">
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-black/20 backdrop-blur-sm" (click)="cancelDelete()"></div>
+        
+        <!-- Modal -->
+        <div class="relative bg-white rounded-2xl shadow-xl max-w-sm w-full animate-slideUp">
+          <!-- Content -->
+          <div class="p-6 text-center">
+            <!-- Icon -->
+            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-red-50 flex items-center justify-center">
+              <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+              </svg>
+            </div>
+            
+            <!-- Title -->
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">
+              Xóa bài học?
+            </h3>
+            
+            <!-- Message -->
+            <p class="text-gray-600 text-sm mb-6">
+              Bạn có chắc muốn xóa "<span class="font-medium text-gray-900">{{ lessonToDelete()?.title }}</span>"? 
+              <span class="text-red-600">Hành động này không thể hoàn tác.</span>
+            </p>
+            
+            <!-- Actions -->
+            <div class="flex gap-3">
+              <button type="button" 
+                      (click)="cancelDelete()"
+                      [disabled]="isDeleting()"
+                      class="flex-1 px-4 py-2.5 text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors font-medium disabled:opacity-50">
+                Hủy
+              </button>
+              <button type="button" 
+                      (click)="executeDelete()"
+                      [disabled]="isDeleting()"
+                      class="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors font-medium disabled:opacity-50 flex items-center justify-center gap-2">
+                @if (isDeleting()) {
+                  <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                } @else {
+                  Xóa
+                }
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+    
+    <!-- Success Toast -->
+    @if (showSuccessToast()) {
+      <div class="fixed top-6 right-6 z-50 animate-slideInRight">
+        <div class="bg-white border border-green-200 text-gray-900 px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 min-w-[280px]">
+          <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+          </div>
+          <div>
+            <p class="font-medium text-sm">Đã xóa bài học</p>
+            <p class="text-xs text-gray-500">Thao tác hoàn tất thành công</p>
+          </div>
+        </div>
+      </div>
+    }
+
     <div class="max-w-7xl mx-auto p-6">
       <!-- Header -->
       <div class="mb-8">
@@ -161,7 +270,8 @@ import { QuizEditModalComponent } from './components/quiz-edit-modal.component';
                     </button>
                     
                     <!-- Delete button - for all lesson types -->
-                    <button (click)="confirmDeleteLesson(l)"
+                    <button (click)="confirmDeleteLesson(l); $event.stopPropagation()"
+                            type="button"
                             class="px-3 py-1.5 text-sm bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors flex items-center gap-1.5 border border-red-200">
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -917,168 +1027,239 @@ import { QuizEditModalComponent } from './components/quiz-edit-modal.component';
             </textarea>
           </div>
 
-<<<<<<< HEAD
-          <!-- Quiz Configuration Section - Simplified -->
-          <div *ngIf="isQuizType" class="border-2 border-purple-300 rounded-xl bg-gradient-to-br from-purple-50 to-indigo-50 overflow-hidden">
-            <!-- Header -->
-            <div class="bg-gradient-to-r from-purple-600 to-indigo-600 px-5 py-3">
-              <h3 class="text-white font-semibold flex items-center gap-2">
-                <span class="text-xl">🎯</span>
-                Cấu hình bài trắc nghiệm
-              </h3>
+          <!-- Quiz Configuration Section - Consistent with Create Form -->
+          <div *ngIf="isQuizType" class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <!-- Header - Matching Create Form Style -->
+            <div class="px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700 flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                  <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="text-lg font-semibold text-white">⚙️ Cấu hình bài trắc nghiệm</h3>
+                  <p class="text-sm text-blue-100">Thiết lập thời gian, điểm số và chọn câu hỏi</p>
+                </div>
+              </div>
             </div>
-            
-            <div class="p-5 space-y-5">
-              <!-- Basic Settings Grid -->
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="bg-white rounded-lg p-4 shadow-sm">
-                  <label class="block text-sm font-medium text-gray-700 mb-2">
-                    <span class="text-purple-600">⏱️</span> Thời gian (phút)
-                  </label>
-                  <input type="number" formControlName="quizTimeLimit" 
-                         class="w-full border-2 border-gray-200 rounded-lg px-4 py-2.5 text-base focus:border-purple-500 focus:ring-2 focus:ring-purple-200 focus:outline-none transition-all" 
-                         placeholder="30" min="1" />
-                  <p class="text-xs text-gray-500 mt-1">Để trống = không giới hạn</p>
-                </div>
 
-                <div class="bg-white rounded-lg p-4 shadow-sm">
-                  <label class="block text-sm font-medium text-gray-700 mb-2">
-                    <span class="text-green-600">🎯</span> Điểm tối đa
-                  </label>
-                  <input type="number" formControlName="quizMaxScore" 
-                         class="w-full border-2 border-gray-200 rounded-lg px-4 py-2.5 text-base focus:border-purple-500 focus:ring-2 focus:ring-purple-200 focus:outline-none transition-all" 
-                         placeholder="100" min="1" />
-                </div>
+            <!-- Form Content - Matching Create Form Spacing -->
+            <form class="p-6 space-y-6">
 
-                <div class="bg-white rounded-lg p-4 shadow-sm">
-                  <label class="block text-sm font-medium text-gray-700 mb-2">
-                    <span class="text-orange-600">🔄</span> Số lần làm tối đa
-                  </label>
-                  <input type="number" formControlName="quizMaxAttempts" 
-                         class="w-full border-2 border-gray-200 rounded-lg px-4 py-2.5 text-base focus:border-purple-500 focus:ring-2 focus:ring-purple-200 focus:outline-none transition-all" 
-                         placeholder="1" min="1" />
+            <!-- Quiz Settings Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <!-- Time Limit -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  Thời gian làm bài (phút)
+                </label>
+                <input type="number"
+                       formControlName="quizTimeLimit"
+                       min="1"
+                       max="180"
+                       placeholder="30"
+                       [class.border-red-300]="createForm.get('quizTimeLimit')?.invalid && createForm.get('quizTimeLimit')?.touched"
+                       class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900" />
+                <p *ngIf="createForm.get('quizTimeLimit')?.invalid && createForm.get('quizTimeLimit')?.touched"
+                   class="text-xs text-red-600 mt-1">
+                  ⚠️ Thời gian phải từ 1-180 phút
+                </p>
+                <p *ngIf="!createForm.get('quizTimeLimit')?.invalid || !createForm.get('quizTimeLimit')?.touched"
+                   class="text-xs text-gray-500 mt-1">
+                  Từ 1-180 phút (mặc định: 30)
+                </p>
+              </div>
+
+              <!-- Passing Score -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  Điểm tối thiểu để đạt (%)
+                </label>
+                <input type="number"
+                       formControlName="quizMaxScore"
+                       min="0"
+                       max="100"
+                       placeholder="60"
+                       [class.border-red-300]="createForm.get('quizMaxScore')?.invalid && createForm.get('quizMaxScore')?.touched"
+                       class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900" />
+                <p *ngIf="createForm.get('quizMaxScore')?.invalid && createForm.get('quizMaxScore')?.touched"
+                   class="text-xs text-red-600 mt-1">
+                  ⚠️ Điểm phải từ 0-100%
+                </p>
+                <p *ngIf="!createForm.get('quizMaxScore')?.invalid || !createForm.get('quizMaxScore')?.touched"
+                   class="text-xs text-gray-500 mt-1">
+                  Từ 0-100% (mặc định: 60)
+                </p>
+              </div>
+
+              <!-- Max Attempts -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                  </svg>
+                  Số lần làm tối đa
+                </label>
+                <input type="number"
+                       formControlName="quizMaxAttempts"
+                       min="1"
+                       max="10"
+                       placeholder="1"
+                       [class.border-red-300]="createForm.get('quizMaxAttempts')?.invalid && createForm.get('quizMaxAttempts')?.touched"
+                       class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900" />
+                <p *ngIf="createForm.get('quizMaxAttempts')?.invalid && createForm.get('quizMaxAttempts')?.touched"
+                   class="text-xs text-red-600 mt-1">
+                  ⚠️ Số lần làm phải từ 1-10
+                </p>
+                <p *ngIf="!createForm.get('quizMaxAttempts')?.invalid || !createForm.get('quizMaxAttempts')?.touched"
+                   class="text-xs text-gray-500 mt-1">
+                  Từ 1-10 lần (mặc định: 1)
+                </p>
+              </div>
+            </div>
+
+            <!-- Question Selection Section -->
+            <div class="border-t border-gray-200 pt-6">
+              <div class="flex items-center gap-3 mb-4">
+                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <div>
+                  <h5 class="text-base font-medium text-gray-900">Chọn câu hỏi (tùy chọn)</h5>
+                  <p class="text-sm text-gray-600">Bạn có thể thêm câu hỏi sau khi tạo quiz</p>
                 </div>
               </div>
 
-              <!-- Question Selection Section -->
-              <div class="bg-white rounded-xl p-5 shadow-sm border border-purple-100">
-                <div class="flex items-center justify-between mb-4">
-                  <h4 class="font-semibold text-gray-900 flex items-center gap-2">
-                    <span class="text-xl">📦</span>
-                    Chọn câu hỏi từ Quiz Bank
-                  </h4>
-                  <span class="text-sm text-purple-600 font-medium bg-purple-100 px-3 py-1 rounded-full">
-                    {{ selectedQuizQuestions().length }} câu đã chọn
-                  </span>
-                </div>
+              <!-- Package Selector -->
+              <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                  </svg>
+                  Chọn gói câu hỏi
+                </label>
+                <select [(ngModel)]="quizPackageId"
+                        (change)="loadQuizPackageQuestions()"
+                        [ngModelOptions]="{standalone: true}"
+                        style="position: relative; z-index: 10;"
+                        class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 cursor-pointer">
+                  <option [value]="''" [disabled]="true">{{ quizPackages().length === 0 ? '-- Đang tải gói câu hỏi... --' : '-- Chọn gói câu hỏi (' + quizPackages().length + ' gói) --' }}</option>
+                  @for (pkg of quizPackages(); track pkg.id) {
+                    <option [value]="pkg.id">
+                      {{ pkg.name }} ({{ pkg.questionCount || 0 }} câu)
+                    </option>
+                  }
+                </select>
+                <p class="text-xs text-gray-500 mt-1">Chọn gói để xem danh sách câu hỏi</p>
+              </div>
 
-                <!-- Package Selector -->
-                <div class="mb-4">
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Chọn gói câu hỏi:</label>
-                  <div class="flex gap-2">
-                    <select [value]="quizPackageId" 
-                            (change)="onQuizPackageChange($any($event.target).value)"
-                            class="flex-1 border-2 border-gray-200 rounded-lg px-4 py-2.5 text-base focus:border-purple-500 focus:outline-none bg-white">
-                      <option value="">-- Chọn gói câu hỏi --</option>
-                      <option *ngFor="let pkg of quizPackages()" [value]="pkg.id">
-                        {{ pkg.name }} ({{ pkg.questionCount }} câu)
-                      </option>
-                    </select>
-                    <button type="button" (click)="loadQuizPackages()" 
-                            class="px-3 py-2 border-2 border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                            title="Làm mới">
-                      🔄
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Questions List -->
-                <div *ngIf="quizPackageQuestions().length > 0" class="border border-gray-200 rounded-lg overflow-hidden">
-                  <div class="bg-gray-50 px-4 py-2 border-b border-gray-200 flex justify-between items-center">
-                    <span class="text-sm font-medium text-gray-700">
-                      {{ quizPackageQuestions().length }} câu hỏi có sẵn
-                    </span>
-                    <div class="flex gap-2">
-                      <button type="button" (click)="selectAllQuizQuestions()" 
-                              class="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200">
-                        Chọn tất cả
-                      </button>
-                      <button type="button" (click)="clearQuizQuestionSelection()" 
-                              class="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">
-                        Bỏ chọn
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <div class="max-h-48 overflow-y-auto">
-                    <div *ngFor="let q of quizPackageQuestions(); let i = index" 
-                         class="flex items-start gap-3 px-4 py-3 border-b border-gray-100 last:border-b-0 hover:bg-purple-50 cursor-pointer transition-colors"
-                         (click)="toggleQuizQuestion(q.id)">
-                      <input type="checkbox" 
-                             [checked]="isQuizQuestionSelected(q.id)"
-                             (click)="$event.stopPropagation()"
-                             (change)="toggleQuizQuestion(q.id)"
-                             class="mt-1 w-4 h-4 text-purple-600 rounded focus:ring-purple-500">
-                      <div class="flex-1 min-w-0">
-                        <p class="text-sm text-gray-900 line-clamp-2">{{ i + 1 }}. {{ q.content }}</p>
-                        <div class="flex gap-2 mt-1">
-                          <span class="text-xs px-2 py-0.5 rounded-full"
-                                [class]="q.difficulty === 'EASY' ? 'bg-green-100 text-green-700' : 
-                                         q.difficulty === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' : 
-                                         'bg-red-100 text-red-700'">
-                            {{ q.difficulty === 'EASY' ? 'Dễ' : q.difficulty === 'MEDIUM' ? 'TB' : 'Khó' }}
-                          </span>
-                        </div>
+              <!-- Question List with Checkboxes -->
+              @if (quizPackageQuestions().length > 0) {
+                <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                  <!-- Header with Select All/Deselect All -->
+                  <div class="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center gap-3">
+                        <span class="text-sm font-medium text-gray-900">Danh sách câu hỏi</span>
+                        <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
+                          {{ quizPackageQuestions().length }} câu
+                        </span>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <button type="button"
+                                (click)="selectAllQuizQuestions()"
+                                class="px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors border border-blue-200">
+                          <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                          </svg>
+                          Chọn tất cả
+                        </button>
+                        <button type="button"
+                                (click)="clearQuizQuestionSelection()"
+                                [disabled]="selectedQuizQuestions().size === 0"
+                                class="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                          <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                          </svg>
+                          Bỏ chọn tất cả
+                        </button>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <!-- Empty State -->
-                <div *ngIf="quizPackageId && quizPackageQuestions().length === 0" 
-                     class="text-center py-8 text-gray-500">
-                  <span class="text-4xl mb-2 block">📭</span>
-                  <p>Gói này chưa có câu hỏi nào</p>
+                  <!-- Questions List -->
+                  <div class="max-h-96 overflow-y-auto p-4 space-y-3">
+                    @for (q of quizPackageQuestions(); track q.id) {
+                      <label class="flex items-start gap-3 p-3 rounded-lg border border-gray-200 hover:border-blue-200 hover:bg-blue-50 cursor-pointer transition-all"
+                             [class.border-blue-500]="selectedQuizQuestions().has(q.id)"
+                             [class.bg-blue-50]="selectedQuizQuestions().has(q.id)">
+                        <input type="checkbox"
+                               [checked]="selectedQuizQuestions().has(q.id)"
+                               (change)="toggleQuizQuestionSelection(q.id)"
+                               class="mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
+                        <div class="flex-1 min-w-0">
+                          <p class="text-sm text-gray-900 mb-2 leading-relaxed">{{ q.content }}</p>
+                          <div class="flex items-center gap-2">
+                            <span class="text-xs px-2 py-0.5 rounded-full font-medium"
+                                  [class.bg-green-100]="q.difficulty === 'EASY'"
+                                  [class.text-green-700]="q.difficulty === 'EASY'"
+                                  [class.bg-yellow-100]="q.difficulty === 'MEDIUM'"
+                                  [class.text-yellow-700]="q.difficulty === 'MEDIUM'"
+                                  [class.bg-red-100]="q.difficulty === 'HARD'"
+                                  [class.text-red-700]="q.difficulty === 'HARD'">
+                              {{ q.difficulty === 'EASY' ? 'Dễ' : q.difficulty === 'MEDIUM' ? 'TB' : 'Khó' }}
+                            </span>
+                            @if (q.tags) {
+                              <span class="text-xs text-gray-500">{{ q.tags }}</span>
+                            }
+                          </div>
+                        </div>
+                      </label>
+                    }
+                  </div>
                 </div>
+              }
 
-                <!-- No Package Selected -->
-                <div *ngIf="!quizPackageId" class="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
-                  <span class="text-4xl mb-2 block">📦</span>
-                  <p class="text-gray-600 mb-2">Chọn gói câu hỏi để bắt đầu</p>
-                  <p class="text-sm text-gray-400">Hoặc tạo gói mới trong Quiz Bank</p>
+              <!-- Selected Questions Summary -->
+              @if (selectedQuizQuestions().size > 0) {
+                <div class="mt-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-4 border border-green-200 shadow-sm">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                      </svg>
+                    </div>
+                    <div class="flex-1">
+                      <p class="text-sm font-semibold text-green-900">
+                        Đã chọn {{ selectedQuizQuestions().size }} / {{ quizPackageQuestions().length }} câu hỏi
+                      </p>
+                      <p class="text-xs text-green-700 mt-0.5">
+                        Sẵn sàng tạo bài trắc nghiệm với các câu hỏi đã chọn
+                      </p>
+                    </div>
+                  </div>
                 </div>
+              }
 
-                <!-- Quick Link to Quiz Bank -->
-                <div class="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
-                  <p class="text-sm text-gray-500">
-                    💡 Cần thêm câu hỏi mới?
-                  </p>
-                  <button type="button" (click)="openQuizBankInNewTab()"
-                          class="text-sm text-purple-600 hover:text-purple-700 font-medium flex items-center gap-1">
-                    Mở Quiz Bank
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
-                    </svg>
-                  </button>
+              <!-- Empty State -->
+              @if (quizPackageId && quizPackageQuestions().length === 0) {
+                <div class="text-center py-8 bg-white rounded-lg border-2 border-dashed border-gray-300">
+                  <svg class="w-12 h-12 mx-auto text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                  </svg>
+                  <p class="text-sm text-gray-600">Gói này chưa có câu hỏi</p>
                 </div>
-=======
-          <!-- Quiz Configuration Section -->
-          <div *ngIf="isQuizType" class="border-2 border-dashed border-purple-300 rounded-lg p-6 bg-purple-50 space-y-4">
-            <div class="flex items-start gap-3">
-              <span class="text-3xl">🚀</span>
-              <div class="flex-1">
-                <div class="text-base font-semibold text-purple-800 mb-2">Thiết lập bài trắc nghiệm</div>
-                <p class="text-sm text-purple-700 mb-4">
-                  Sau khi tạo bài học, bạn sẽ được chuyển đến trang thiết lập chi tiết để:
-                </p>
-                <ul class="list-disc list-inside text-sm text-purple-700 space-y-1 ml-2">
-                  <li>Cấu hình thời gian, điểm số, số lần làm bài.</li>
-                  <li>Chọn câu hỏi từ ngân hàng câu hỏi.</li>
-                  <li>Xem trước bài kiểm tra.</li>
-                </ul>
->>>>>>> 9ca6de4b665424150c4b065bf0ee346fc8478961
-              </div>
+              }
             </div>
+          </form>
           </div>
 
           <!-- Error Message -->
@@ -1119,7 +1300,7 @@ import { QuizEditModalComponent } from './components/quiz-edit-modal.component';
               }
             </button>
           </div>
-        </div>
+        </form>
       </div>
 
       <!-- Edit Lesson Panel - Professional Style -->
@@ -1278,7 +1459,6 @@ import { QuizEditModalComponent } from './components/quiz-edit-modal.component';
           </div>
         </form>
       </div>
-    </div>
 
     <!-- Quiz Preview Modal -->
     @if (showQuizPreview()) {
@@ -1365,63 +1545,126 @@ import { QuizEditModalComponent } from './components/quiz-edit-modal.component';
       </div>
     }
 
-    <!-- Delete Confirmation Modal -->
-    @if (showDeleteModal()) {
-      <div class="fixed inset-0 z-50 flex items-center justify-center" aria-labelledby="delete-modal-title" role="dialog" aria-modal="true">
-        <!-- Backdrop -->
-        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" (click)="cancelDelete()"></div>
-        
-        <!-- Modal Panel -->
-        <div class="relative z-10 bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:max-w-lg sm:w-full mx-4">
-            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-              <div class="sm:flex sm:items-start">
-                <!-- Warning Icon -->
-                <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
-                  <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+    <!-- Inline Add Questions Modal -->
+    @if (showInlineAddQuestionsModal()) {
+      <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+          <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" (click)="closeInlineAddQuestionsModal()"></div>
+
+          <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
+              <div class="flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-white">Thêm câu hỏi vào Quiz</h3>
+                <button (click)="closeInlineAddQuestionsModal()" class="text-white/80 hover:text-white">
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                   </svg>
-                </div>
-                <!-- Content -->
-                <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                  <h3 class="text-lg leading-6 font-medium text-gray-900" id="delete-modal-title">
-                    Xóa {{ lessonToDelete()?.lessonType === 'QUIZ' ? 'bài trắc nghiệm' : lessonToDelete()?.lessonType === 'ASSIGNMENT' ? 'bài tập' : 'bài học' }}
-                  </h3>
-                  <div class="mt-2">
-                    <p class="text-sm text-gray-500">
-                      Bạn có chắc muốn xóa <span class="font-semibold text-gray-700">"{{ lessonToDelete()?.title }}"</span>?
-                    </p>
-                    <p class="text-sm text-red-600 mt-2">
-                      ⚠️ {{ getDeleteWarningMessage() }}
-                    </p>
-                  </div>
-                </div>
+                </button>
               </div>
+              <p class="text-blue-100 text-sm mt-1">Chọn gói câu hỏi và các câu hỏi muốn thêm</p>
             </div>
-            <!-- Actions -->
-            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-2">
-              <button type="button" 
-                      (click)="executeDelete()"
-                      [disabled]="isDeleting()"
-                      class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed">
-                @if (isDeleting()) {
-                  <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Đang xóa...
+
+            <!-- Content -->
+            <div class="bg-white px-6 py-6 max-h-96 overflow-y-auto">
+              <!-- Package Selector -->
+              <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Chọn gói câu hỏi</label>
+                <select [(ngModel)]="inlinePackageId"
+                        (change)="onInlinePackageChange(inlinePackageId)"
+                        class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                  <option value="">-- Chọn gói câu hỏi --</option>
+                  @for (pkg of quizPackages(); track pkg.id) {
+                    <option [value]="pkg.id">{{ pkg.name }} ({{ pkg.questionCount || 0 }} câu)</option>
+                  }
+                </select>
+              </div>
+
+              <!-- Questions List -->
+              @if (inlinePackageQuestions().length > 0) {
+                <div class="space-y-3">
+                  <div class="flex items-center justify-between mb-3">
+                    <span class="text-sm font-medium text-gray-900">Danh sách câu hỏi</span>
+                    <div class="flex items-center gap-2">
+                      <button type="button"
+                              (click)="selectAllInlineQuestions()"
+                              class="px-3 py-1 text-xs text-blue-600 bg-blue-50 rounded hover:bg-blue-100">
+                        Chọn tất cả
+                      </button>
+                      <button type="button"
+                              (click)="clearInlineQuestionSelection()"
+                              class="px-3 py-1 text-xs text-gray-600 bg-gray-50 rounded hover:bg-gray-100">
+                        Bỏ chọn
+                      </button>
+                    </div>
+                  </div>
+
+                  @for (q of inlinePackageQuestions(); track q.id) {
+                    <label class="flex items-start gap-3 p-3 rounded-lg border border-gray-200 hover:border-blue-200 hover:bg-blue-50 cursor-pointer transition-all"
+                           [class.border-blue-500]="selectedInlineQuestions().includes(q.id)"
+                           [class.bg-blue-50]="selectedInlineQuestions().includes(q.id)">
+                      <input type="checkbox"
+                             [checked]="selectedInlineQuestions().includes(q.id)"
+                             (change)="toggleInlineQuestionSelection(q.id)"
+                             class="mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
+                      <div class="flex-1 min-w-0">
+                        <p class="text-sm text-gray-900 mb-2">{{ q.content }}</p>
+                        <div class="flex items-center gap-2">
+                          <span class="text-xs px-2 py-0.5 rounded-full font-medium"
+                                [class.bg-green-100]="q.difficulty === 'EASY'"
+                                [class.text-green-700]="q.difficulty === 'EASY'"
+                                [class.bg-yellow-100]="q.difficulty === 'MEDIUM'"
+                                [class.text-yellow-700]="q.difficulty === 'MEDIUM'"
+                                [class.bg-red-100]="q.difficulty === 'HARD'"
+                                [class.text-red-700]="q.difficulty === 'HARD'">
+                            {{ q.difficulty === 'EASY' ? 'Dễ' : q.difficulty === 'MEDIUM' ? 'TB' : 'Khó' }}
+                          </span>
+                        </div>
+                      </div>
+                    </label>
+                  }
+                </div>
+              }
+
+              @if (inlinePackageId && inlinePackageQuestions().length === 0) {
+                <div class="text-center py-8 text-gray-500">
+                  <p>Gói này chưa có câu hỏi</p>
+                </div>
+              }
+            </div>
+
+            <!-- Footer -->
+            <div class="bg-gray-50 px-6 py-4 flex justify-between items-center border-t">
+              <div class="text-sm text-gray-600">
+                @if (selectedInlineQuestions().length > 0) {
+                  <span class="font-medium text-blue-600">Đã chọn {{ selectedInlineQuestions().length }} câu hỏi</span>
                 } @else {
-                  Xóa
+                  <span>Chưa chọn câu hỏi nào</span>
                 }
-              </button>
-              <button type="button" 
-                      (click)="cancelDelete()"
-                      [disabled]="isDeleting()"
-                      class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:w-auto sm:text-sm disabled:opacity-50">
-                Hủy
-              </button>
+              </div>
+              <div class="flex gap-3">
+                <button (click)="closeInlineAddQuestionsModal()" 
+                        class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                  Hủy
+                </button>
+                <button (click)="addInlineQuestionsToQuiz(inlineAddQuizLessonId()!)"
+                        [disabled]="selectedInlineQuestions().length === 0 || addingInlineQuestions()"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                  @if (addingInlineQuestions()) {
+                    <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Đang thêm...
+                  } @else {
+                    Thêm câu hỏi
+                  }
+                </button>
+              </div>
             </div>
           </div>
         </div>
+      </div>
     }
 
     <!-- Quiz Edit Modal -->
@@ -1429,12 +1672,21 @@ import { QuizEditModalComponent } from './components/quiz-edit-modal.component';
       (saved)="onQuizSettingsSaved()"
       (closed)="onQuizEditModalClosed()">
     </app-quiz-edit-modal>
+
+    <!-- Quiz Creation Modal -->
+    <app-quiz-creation-modal
+      [courseId]="courseId"
+      [sectionId]="sectionId"
+      (quizCreated)="onQuizCreated($event)"
+      (closed)="onQuizCreationModalClosed()">
+    </app-quiz-creation-modal>
   `,
-  changeDetection: ChangeDetectionStrategy.OnPush
+  // changeDetection: ChangeDetectionStrategy.OnPush  // Temporarily disabled for debugging
 })
 export class SectionEditorComponent implements OnDestroy {
 
   @ViewChild(QuizEditModalComponent) quizEditModal!: QuizEditModalComponent;
+  @ViewChild(QuizCreationModalComponent) quizCreationModal!: QuizCreationModalComponent;
 
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -1445,6 +1697,7 @@ export class SectionEditorComponent implements OnDestroy {
   private documentService = inject(DocumentService);
   private quizApi = inject(QuizApi);
   private questionApi = inject(QuestionApi);
+  private packageApi = inject(PackageApi);
 
   courseId: string = '';
   sectionId: string = '';
@@ -1503,7 +1756,7 @@ export class SectionEditorComponent implements OnDestroy {
   quizPackages = signal<any[]>([]);
   quizPackageId = '';
   quizPackageQuestions = signal<any[]>([]);
-  selectedQuizQuestions = signal<string[]>([]);
+  selectedQuizQuestions = signal<Set<string>>(new Set());
 
   // Inline add questions to existing quiz
   inlinePackageId = '';
@@ -1526,6 +1779,7 @@ export class SectionEditorComponent implements OnDestroy {
   showDeleteModal = signal<boolean>(false);
   lessonToDelete = signal<any>(null);
   isDeleting = signal<boolean>(false);
+  showSuccessToast = signal<boolean>(false);
 
   // Create lesson state - prevent double-click
   isCreating = signal<boolean>(false);
@@ -1702,14 +1956,14 @@ export class SectionEditorComponent implements OnDestroy {
       // Get selected question IDs
       const selectedQuestionIds = this.selectedQuizQuestions();
       
-      // Create quiz lesson with proper backend integration
+      // Create quiz lesson with configuration from form
       const lessonPayload: CreateLessonRequest = {
         title: this.createForm.value.title ?? '',
         lessonType: 'QUIZ',
-        // Default values, will be configured in wizard
-        quizTimeLimit: 30,
-        quizMaxScore: 100,
-        quizMaxAttempts: 1
+        // Use values from form, with defaults if empty
+        quizTimeLimit: Number(this.createForm.value.quizTimeLimit) || 30,
+        quizMaxScore: Number(this.createForm.value.quizMaxScore) || 60,
+        quizMaxAttempts: Number(this.createForm.value.quizMaxAttempts) || 1
       };
 
       // Create the lesson first
@@ -1718,21 +1972,41 @@ export class SectionEditorComponent implements OnDestroy {
           const lesson = lessonRes?.data;
           if (lesson) {
             try {
-              // Create corresponding Quiz entity using Backend Quiz API
-              const quizPayload = {
-                questionIds: selectedQuestionIds, // Use selected questions
-                timeLimitMinutes: Number(this.createForm.value.quizTimeLimit) || 30,
-                maxAttempts: Number(this.createForm.value.quizMaxAttempts) || 1,
-                passingScore: Number(this.createForm.value.quizMaxScore) || 100,
-                shuffleQuestions: false,
-                shuffleOptions: false,
-                showResultsImmediately: true,
-                showCorrectAnswers: true
-              };
+              // Check if quiz already exists for this lesson
+              let createdQuiz: any = null;
+              
+              try {
+                // Try to get existing quiz
+                const existingQuizResponse = await firstValueFrom(this.quizApi.getQuizByLessonId(lesson.id));
+                createdQuiz = existingQuizResponse as any;
+                
+                // If quiz exists, update it with new questions
+                if (createdQuiz && Array.from(selectedQuestionIds).length > 0) {
+                  await firstValueFrom(this.quizApi.updateQuizQuestions(lesson.id, { questionIds: Array.from(selectedQuestionIds) }));
+                  console.log('✅ Updated existing quiz with new questions');
+                }
+              } catch (getQuizError: any) {
+                // Quiz doesn't exist yet, create it
+                if (getQuizError?.status === 404 || getQuizError?.message?.includes('not found')) {
+                  const quizPayload = {
+                    questionIds: Array.from(selectedQuestionIds), // Use selected questions
+                    timeLimitMinutes: Number(this.createForm.value.quizTimeLimit) || 30,
+                    maxAttempts: Number(this.createForm.value.quizMaxAttempts) || 1,
+                    passingScore: Number(this.createForm.value.quizMaxScore) || 100,
+                    shuffleQuestions: false,
+                    shuffleOptions: false,
+                    showResultsImmediately: true,
+                    showCorrectAnswers: true
+                  };
 
-              // Create Quiz entity
-              const quizResponse = await firstValueFrom(this.quizApi.createQuiz(lesson.id, quizPayload));
-              const createdQuiz = quizResponse as any;
+                  // Create Quiz entity
+                  const quizResponse = await firstValueFrom(this.quizApi.createQuiz(lesson.id, quizPayload));
+                  createdQuiz = quizResponse as any;
+                  console.log('✅ Created new quiz');
+                } else {
+                  throw getQuizError;
+                }
+              }
 
               if (createdQuiz) {
                 this.lessons.update(list => [...list, lesson]);
@@ -1760,14 +2034,14 @@ export class SectionEditorComponent implements OnDestroy {
                 // Reset quiz selection state
                 this.quizPackageId = '';
                 this.quizPackageQuestions.set([]);
-                this.selectedQuizQuestions.set([]);
+                this.selectedQuizQuestions.set(new Set());
 
                 // Close the form after successful creation
                 this.showCreateForm.set(false);
 
                 // Show success message
                 this.opError.set('');
-                const questionCount = selectedQuestionIds.length;
+                const questionCount = Array.from(selectedQuestionIds).length;
                 alert(`✅ Đã tạo bài trắc nghiệm "${lesson.title}" thành công!\n\n📝 ${questionCount} câu hỏi đã được thêm vào quiz.`);
               } else {
                 // Lesson created but Quiz creation failed
@@ -1840,6 +2114,14 @@ export class SectionEditorComponent implements OnDestroy {
   startEdit(l: any) {
     this.editingId.set(l.id);
     this.editForm.patchValue({ title: l.title || '', content: l.content || '', videoUrl: l.videoUrl || '' });
+    
+    // Scroll to edit form after a short delay to ensure it's rendered
+    setTimeout(() => {
+      const editPanel = document.querySelector('[class*="Edit Lesson Panel"]')?.parentElement;
+      if (editPanel) {
+        editPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
   }
 
   startAddNew() {
@@ -1876,29 +2158,45 @@ export class SectionEditorComponent implements OnDestroy {
   }
 
   // Confirm delete with proper message based on lesson type
+  private cdr = inject(ChangeDetectorRef);
+
   confirmDeleteLesson(lesson: any) {
     this.lessonToDelete.set(lesson);
     this.showDeleteModal.set(true);
   }
 
-  // Cancel delete
   cancelDelete() {
     this.showDeleteModal.set(false);
+    this.isDeleting.set(false);
     this.lessonToDelete.set(null);
   }
 
-  // Execute delete
   executeDelete() {
     const lesson = this.lessonToDelete();
     if (!lesson) return;
     
+    const id = lesson.id;
     this.isDeleting.set(true);
-    this.lessonApi.deleteLesson(lesson.id).subscribe({
+    
+    this.lessonApi.deleteLesson(id).pipe(
+      take(1)
+    ).subscribe({
       next: () => {
-        this.lessons.update(list => list.filter(i => i.id !== lesson.id));
+        // Remove from list
+        this.lessons.update(list => list.filter(i => i.id !== id));
+        
+        // Close modal
         this.showDeleteModal.set(false);
         this.lessonToDelete.set(null);
         this.isDeleting.set(false);
+        
+        // Show success toast
+        this.showSuccessToast.set(true);
+        
+        // Auto hide toast after 3 seconds
+        setTimeout(() => {
+          this.showSuccessToast.set(false);
+        }, 3000);
       },
       error: (err) => {
         this.opError.set(err?.message || 'Xóa bài học thất bại');
@@ -2366,23 +2664,40 @@ export class SectionEditorComponent implements OnDestroy {
   }
 
   // ==================== QUIZ PACKAGE SELECTION METHODS ====================
-  
-  private packageApi = inject(PackageApi);
 
   async loadQuizPackages() {
     try {
       const packages = await firstValueFrom(this.packageApi.getMyPackages());
       this.quizPackages.set(packages || []);
       console.log('📦 Loaded packages:', packages?.length || 0);
+      console.log('📦 Package details:', packages);
     } catch (error) {
       console.error('Failed to load packages:', error);
       this.quizPackages.set([]);
     }
   }
 
+  async loadQuizPackageQuestions() {
+    if (!this.quizPackageId) {
+      this.quizPackageQuestions.set([]);
+      return;
+    }
+
+    try {
+      const questions = await firstValueFrom(this.packageApi.getQuestionsInPackage(this.quizPackageId));
+      const questionList = Array.isArray(questions) ? questions : [];
+      this.quizPackageQuestions.set(questionList);
+      console.log('📝 Loaded questions for package:', questionList.length);
+    } catch (error) {
+      console.error('Failed to load package questions:', error);
+      this.quizPackageQuestions.set([]);
+    }
+  }
+
+
   async onQuizPackageChange(packageId: string) {
     this.quizPackageId = packageId;
-    this.selectedQuizQuestions.set([]);
+    this.selectedQuizQuestions.set(new Set());
     
     if (!packageId) {
       this.quizPackageQuestions.set([]);
@@ -2398,28 +2713,6 @@ export class SectionEditorComponent implements OnDestroy {
       console.error('Failed to load package questions:', error);
       this.quizPackageQuestions.set([]);
     }
-  }
-
-  toggleQuizQuestion(questionId: string) {
-    const current = this.selectedQuizQuestions();
-    if (current.includes(questionId)) {
-      this.selectedQuizQuestions.set(current.filter(id => id !== questionId));
-    } else {
-      this.selectedQuizQuestions.set([...current, questionId]);
-    }
-  }
-
-  isQuizQuestionSelected(questionId: string): boolean {
-    return this.selectedQuizQuestions().includes(questionId);
-  }
-
-  selectAllQuizQuestions() {
-    const allIds = this.quizPackageQuestions().map(q => q.id);
-    this.selectedQuizQuestions.set(allIds);
-  }
-
-  clearQuizQuestionSelection() {
-    this.selectedQuizQuestions.set([]);
   }
 
   // ==================== INLINE ADD QUESTIONS TO EXISTING QUIZ ====================
@@ -2457,6 +2750,14 @@ export class SectionEditorComponent implements OnDestroy {
     } else {
       this.selectedInlineQuestions.set([...current, questionId]);
     }
+  }
+
+  toggleInlineQuestionSelection(questionId: string) {
+    this.toggleInlineQuestion(questionId);
+  }
+
+  clearInlineQuestionSelection() {
+    this.selectedInlineQuestions.set([]);
   }
 
   isInlineQuestionSelected(questionId: string): boolean {
@@ -2517,6 +2818,8 @@ export class SectionEditorComponent implements OnDestroy {
           msg += ` (${skippedCount} câu đã có sẵn)`;
         }
         alert(msg);
+        // Close modal after success
+        this.closeInlineAddQuestionsModal();
       } else if (skippedCount > 0) {
         alert('⚠️ Tất cả câu hỏi đã có trong Quiz rồi!');
       } else {
@@ -2576,17 +2879,26 @@ export class SectionEditorComponent implements OnDestroy {
   }
 
   // Open modal to add questions from Quiz Bank
+  showInlineAddQuestionsModal = signal<boolean>(false);
+  inlineAddQuizLessonId = signal<string | null>(null);
+
   openAddQuestionsModal(lessonId: string) {
-    // Load packages first, then show selection
+    // Load packages first, then show inline modal
     this.loadQuizPackages();
-    this.currentViewingQuizId.set(lessonId);
-    // For now, navigate to Quiz Bank with context
-    this.router.navigate(['/teacher/quiz/quiz-bank'], {
-      queryParams: {
-        addToQuiz: lessonId,
-        returnUrl: this.router.url
-      }
-    });
+    this.inlineAddQuizLessonId.set(lessonId);
+    this.showInlineAddQuestionsModal.set(true);
+    // Reset selection
+    this.inlinePackageId = '';
+    this.inlinePackageQuestions.set([]);
+    this.selectedInlineQuestions.set([]);
+  }
+
+  closeInlineAddQuestionsModal() {
+    this.showInlineAddQuestionsModal.set(false);
+    this.inlineAddQuizLessonId.set(null);
+    this.inlinePackageId = '';
+    this.inlinePackageQuestions.set([]);
+    this.selectedInlineQuestions.set([]);
   }
 
   // Remove question from quiz
@@ -2963,6 +3275,30 @@ export class SectionEditorComponent implements OnDestroy {
     return this.selectedQuestionIds().has(questionId);
   }
 
+  // Quiz question selection methods for inline form
+
+  selectAllQuizQuestions(): void {
+    const allQuestionIds = this.quizPackageQuestions().map(q => q.id);
+    this.selectedQuizQuestions.set(new Set(allQuestionIds));
+  }
+
+  clearQuizQuestionSelection(): void {
+    this.selectedQuizQuestions.set(new Set());
+  }
+
+  toggleQuizQuestionSelection(questionId: string): void {
+    const currentSelection = this.selectedQuizQuestions();
+    const newSelection = new Set(currentSelection);
+
+    if (newSelection.has(questionId)) {
+      newSelection.delete(questionId);
+    } else {
+      newSelection.add(questionId);
+    }
+
+    this.selectedQuizQuestions.set(newSelection);
+  }
+
   // Add selected questions to quiz (bulk operation) - Uses QuizQuestion table
   async addSelectedQuestionsToQuiz(lessonId: string): Promise<void> {
     const selectedIds = Array.from(this.selectedQuestionIds());
@@ -3263,5 +3599,25 @@ export class SectionEditorComponent implements OnDestroy {
 
     // For now, show an alert
     alert(`Chỉnh sửa bài tập: ${lesson.title}\n\nTính năng này sẽ được phát triển trong phase tiếp theo.`);
+  }
+
+  // Quiz Creation Modal Methods (DEPRECATED - using inline form now)
+  openQuizCreationModal() {
+    console.log('🚀 Opening quiz creation modal');
+    if (this.quizCreationModal) {
+      this.quizCreationModal.open();
+    }
+  }
+
+  onQuizCreated(lessonId: string) {
+    console.log('✅ Quiz created successfully, lesson ID:', lessonId);
+    // Reload lessons to show the new quiz
+    this.refreshLessons();
+    // Navigate to quiz preview/edit page
+    this.router.navigate(['/teacher/quiz/preview', lessonId]);
+  }
+
+  onQuizCreationModalClosed() {
+    console.log('Quiz creation modal closed');
   }
 }
