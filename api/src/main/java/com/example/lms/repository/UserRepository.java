@@ -98,4 +98,39 @@ public interface UserRepository extends JpaRepository<User, UUID> {
         @Param("teacherId") UUID teacherId,
         @Param("studentId") UUID studentId
     );
+    
+    /**
+     * Find all students NOT enrolled in a specific course
+     * Used for enrollment dropdown in teacher course edit page
+     */
+    @Query("""
+        SELECT u FROM User u 
+        WHERE u.role = 'STUDENT' 
+        AND u.enabled = true
+        AND u.id NOT IN (
+            SELECT es.id FROM Course c JOIN c.enrolledStudents es WHERE c.id = :courseId
+        )
+        ORDER BY u.fullName ASC
+    """)
+    Page<User> findStudentsNotEnrolledInCourse(@Param("courseId") UUID courseId, Pageable pageable);
+    
+    /**
+     * Find students NOT enrolled in course with search filter
+     */
+    @Query("""
+        SELECT u FROM User u 
+        WHERE u.role = 'STUDENT' 
+        AND u.enabled = true
+        AND u.id NOT IN (
+            SELECT es.id FROM Course c JOIN c.enrolledStudents es WHERE c.id = :courseId
+        )
+        AND (LOWER(u.fullName) LIKE LOWER(CONCAT('%', :search, '%')) 
+             OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%')))
+        ORDER BY u.fullName ASC
+    """)
+    Page<User> findStudentsNotEnrolledInCourseWithSearch(
+        @Param("courseId") UUID courseId, 
+        @Param("search") String search, 
+        Pageable pageable
+    );
 }
