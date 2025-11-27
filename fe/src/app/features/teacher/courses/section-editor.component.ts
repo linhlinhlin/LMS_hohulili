@@ -55,6 +55,22 @@ import { QuizCreationModalComponent } from './components/quiz-creation-modal.com
     .animate-slideInRight {
       animation: slideInRight 0.3s ease-out;
     }
+    
+    /* Custom Scrollbar for Question List - Blue Theme */
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #eff6ff;
+      border-radius: 10px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #3b82f6;
+      border-radius: 10px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #2563eb;
+    }
   `],
   template: `
   <div class="min-h-screen bg-gray-50">
@@ -1048,156 +1064,239 @@ import { QuizCreationModalComponent } from './components/quiz-creation-modal.com
             </textarea>
           </div>
 
-          <!-- Quiz Configuration Section - Consistent with Create Form -->
-          <div *ngIf="isQuizType" class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-            <!-- Header - Matching Create Form Style -->
-            <div class="px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700 flex items-center justify-between">
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                  <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                  </svg>
+          <!-- Quiz Configuration Section - Blue Theme -->
+          <div *ngIf="isQuizType" class="space-y-6">
+            
+            <!-- Quiz Settings Card with Blue Header -->
+            <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+              <!-- Blue Gradient Header -->
+              <div class="px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                  </div>
+                  <div class="flex-1">
+                    <h3 class="text-lg font-bold text-white">
+                      Cấu hình bài trắc nghiệm
+                    </h3>
+                    <p class="text-sm text-blue-100 mt-0.5">Thiết lập thời gian, điểm số và chọn câu hỏi</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 class="text-lg font-semibold text-white">⚙️ Cấu hình bài trắc nghiệm</h3>
-                  <p class="text-sm text-blue-100">Thiết lập thời gian, điểm số và chọn câu hỏi</p>
+              </div>
+
+              <!-- Settings Grid with Blue Theme -->
+              <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                  
+                  <!-- Time Limit Card -->
+                  <div class="group">
+                    <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border-2 border-blue-200 hover:border-blue-400 transition-all duration-200 hover:shadow-md">
+                      <div class="flex items-start gap-2.5 mb-3">
+                        <div class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                          </svg>
+                        </div>
+                        <div class="flex-1">
+                          <label class="block text-sm font-semibold text-gray-900 mb-0.5">
+                            Thời gian làm bài
+                          </label>
+                          <p class="text-xs text-gray-600">Giới hạn thời gian</p>
+                        </div>
+                      </div>
+                      
+                      <div class="relative">
+                        <input type="number"
+                               formControlName="quizTimeLimit"
+                               min="1"
+                               max="180"
+                               placeholder="30"
+                               [class.border-red-300]="createForm.get('quizTimeLimit')?.invalid && createForm.get('quizTimeLimit')?.touched"
+                               [class.border-blue-200]="!createForm.get('quizTimeLimit')?.invalid || !createForm.get('quizTimeLimit')?.touched"
+                               class="w-full border-2 rounded-lg px-3 py-2.5 text-base font-medium text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all" />
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-gray-500">phút</span>
+                      </div>
+                      
+                      <div class="mt-2">
+                        <p *ngIf="createForm.get('quizTimeLimit')?.invalid && createForm.get('quizTimeLimit')?.touched"
+                           class="text-xs text-red-600 font-medium">
+                          Từ 1-180 phút
+                        </p>
+                        <p *ngIf="!createForm.get('quizTimeLimit')?.invalid || !createForm.get('quizTimeLimit')?.touched"
+                           class="text-xs text-blue-600">
+                           Khuyến nghị: 30-60 phút
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Passing Score Card -->
+                  <div class="group">
+                    <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border-2 border-blue-200 hover:border-blue-400 transition-all duration-200 hover:shadow-md">
+                      <div class="flex items-start gap-2.5 mb-3">
+                        <div class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                          </svg>
+                        </div>
+                        <div class="flex-1">
+                          <label class="block text-sm font-semibold text-gray-900 mb-0.5">
+                            Điểm đạt yêu cầu
+                          </label>
+                          <p class="text-xs text-gray-600">Điểm tối thiểu</p>
+                        </div>
+                      </div>
+                      
+                      <div class="relative">
+                        <input type="number"
+                               formControlName="quizMaxScore"
+                               min="0"
+                               max="100"
+                               placeholder="60"
+                               [class.border-red-300]="createForm.get('quizMaxScore')?.invalid && createForm.get('quizMaxScore')?.touched"
+                               [class.border-blue-200]="!createForm.get('quizMaxScore')?.invalid || !createForm.get('quizMaxScore')?.touched"
+                               class="w-full border-2 rounded-lg px-3 py-2.5 text-base font-medium text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all" />
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-gray-500">%</span>
+                      </div>
+                      
+                      <div class="mt-2">
+                        <p *ngIf="createForm.get('quizMaxScore')?.invalid && createForm.get('quizMaxScore')?.touched"
+                           class="text-xs text-red-600 font-medium">
+                          Từ 0-100%
+                        </p>
+                        <p *ngIf="!createForm.get('quizMaxScore')?.invalid || !createForm.get('quizMaxScore')?.touched"
+                           class="text-xs text-blue-600">
+                           Khuyến nghị: 60-70%
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Max Attempts Card -->
+                  <div class="group">
+                    <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border-2 border-blue-200 hover:border-blue-400 transition-all duration-200 hover:shadow-md">
+                      <div class="flex items-start gap-2.5 mb-3">
+                        <div class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                          </svg>
+                        </div>
+                        <div class="flex-1">
+                          <label class="block text-sm font-semibold text-gray-900 mb-0.5">
+                            Số lần làm bài
+                          </label>
+                          <p class="text-xs text-gray-600">Giới hạn số lần</p>
+                        </div>
+                      </div>
+                      
+                      <div class="relative">
+                        <input type="number"
+                               formControlName="quizMaxAttempts"
+                               min="1"
+                               max="10"
+                               placeholder="1"
+                               [class.border-red-300]="createForm.get('quizMaxAttempts')?.invalid && createForm.get('quizMaxAttempts')?.touched"
+                               [class.border-blue-200]="!createForm.get('quizMaxAttempts')?.invalid || !createForm.get('quizMaxAttempts')?.touched"
+                               class="w-full border-2 rounded-lg px-3 py-2.5 text-base font-medium text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all" />
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-gray-500">lần</span>
+                      </div>
+                      
+                      <div class="mt-2">
+                        <p *ngIf="createForm.get('quizMaxAttempts')?.invalid && createForm.get('quizMaxAttempts')?.touched"
+                           class="text-xs text-red-600 font-medium">
+                          Từ 1-10 lần
+                        </p>
+                        <p *ngIf="!createForm.get('quizMaxAttempts')?.invalid || !createForm.get('quizMaxAttempts')?.touched"
+                           class="text-xs text-blue-600">
+                           Khuyến nghị: 1-3 lần
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
                 </div>
               </div>
             </div>
 
-            <!-- Form Content - Matching Create Form Spacing -->
-            <form class="p-6 space-y-6">
-
-            <!-- Quiz Settings Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <!-- Time Limit -->
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">
-                  <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                  </svg>
-                  Thời gian làm bài (phút)
-                </label>
-                <input type="number"
-                       formControlName="quizTimeLimit"
-                       min="1"
-                       max="180"
-                       placeholder="30"
-                       [class.border-red-300]="createForm.get('quizTimeLimit')?.invalid && createForm.get('quizTimeLimit')?.touched"
-                       class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900" />
-                <p *ngIf="createForm.get('quizTimeLimit')?.invalid && createForm.get('quizTimeLimit')?.touched"
-                   class="text-xs text-red-600 mt-1">
-                  ⚠️ Thời gian phải từ 1-180 phút
-                </p>
-                <p *ngIf="!createForm.get('quizTimeLimit')?.invalid || !createForm.get('quizTimeLimit')?.touched"
-                   class="text-xs text-gray-500 mt-1">
-                  Từ 1-180 phút (mặc định: 30)
-                </p>
-              </div>
-
-              <!-- Passing Score -->
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">
-                  <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                  </svg>
-                  Điểm tối thiểu để đạt (%)
-                </label>
-                <input type="number"
-                       formControlName="quizMaxScore"
-                       min="0"
-                       max="100"
-                       placeholder="60"
-                       [class.border-red-300]="createForm.get('quizMaxScore')?.invalid && createForm.get('quizMaxScore')?.touched"
-                       class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900" />
-                <p *ngIf="createForm.get('quizMaxScore')?.invalid && createForm.get('quizMaxScore')?.touched"
-                   class="text-xs text-red-600 mt-1">
-                  ⚠️ Điểm phải từ 0-100%
-                </p>
-                <p *ngIf="!createForm.get('quizMaxScore')?.invalid || !createForm.get('quizMaxScore')?.touched"
-                   class="text-xs text-gray-500 mt-1">
-                  Từ 0-100% (mặc định: 60)
-                </p>
-              </div>
-
-              <!-- Max Attempts -->
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">
-                  <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                  </svg>
-                  Số lần làm tối đa
-                </label>
-                <input type="number"
-                       formControlName="quizMaxAttempts"
-                       min="1"
-                       max="10"
-                       placeholder="1"
-                       [class.border-red-300]="createForm.get('quizMaxAttempts')?.invalid && createForm.get('quizMaxAttempts')?.touched"
-                       class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900" />
-                <p *ngIf="createForm.get('quizMaxAttempts')?.invalid && createForm.get('quizMaxAttempts')?.touched"
-                   class="text-xs text-red-600 mt-1">
-                  ⚠️ Số lần làm phải từ 1-10
-                </p>
-                <p *ngIf="!createForm.get('quizMaxAttempts')?.invalid || !createForm.get('quizMaxAttempts')?.touched"
-                   class="text-xs text-gray-500 mt-1">
-                  Từ 1-10 lần (mặc định: 1)
-                </p>
-              </div>
-            </div>
-
-            <!-- Question Selection Section -->
-            <div class="border-t border-gray-200 pt-6">
-              <div class="flex items-center gap-3 mb-4">
-                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                <div>
-                  <h5 class="text-base font-medium text-gray-900">Chọn câu hỏi (tùy chọn)</h5>
-                  <p class="text-sm text-gray-600">Bạn có thể thêm câu hỏi sau khi tạo quiz</p>
+            <!-- Question Selection Section - Blue Theme -->
+            <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+              <!-- Section Header -->
+              <div class="px-6 py-3.5 bg-gradient-to-r from-blue-50 to-blue-100 border-b border-blue-200">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                  </div>
+                  <div class="flex-1">
+                    <h5 class="text-base font-semibold text-gray-900 flex items-center gap-2">
+                      Chọn câu hỏi cho quiz
+                      <span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">Tùy chọn</span>
+                    </h5>
+                    <p class="text-xs text-gray-600 mt-0.5">Bạn có thể thêm câu hỏi ngay hoặc sau khi tạo quiz</p>
+                  </div>
                 </div>
               </div>
 
-              <!-- Package Selector -->
-              <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">
-                  <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
-                  </svg>
-                  Chọn gói câu hỏi
-                </label>
-                <select [(ngModel)]="quizPackageId"
-                        (change)="loadQuizPackageQuestions()"
-                        [ngModelOptions]="{standalone: true}"
-                        style="position: relative; z-index: 10;"
-                        class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 cursor-pointer">
-                  <option [value]="''" [disabled]="true">{{ quizPackages().length === 0 ? '-- Đang tải gói câu hỏi... --' : '-- Chọn gói câu hỏi (' + quizPackages().length + ' gói) --' }}</option>
-                  @for (pkg of quizPackages(); track pkg.id) {
-                    <option [value]="pkg.id">
-                      {{ pkg.name }} ({{ pkg.questionCount || 0 }} câu)
-                    </option>
-                  }
-                </select>
-                <p class="text-xs text-gray-500 mt-1">Chọn gói để xem danh sách câu hỏi</p>
-              </div>
+              <div class="p-5 space-y-4">
+                <!-- Package Selector -->
+                <div>
+                  <label class="block text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                    </svg>
+                    Chọn gói câu hỏi
+                  </label>
+                  <div class="relative">
+                    <select [(ngModel)]="quizPackageId"
+                            (change)="loadQuizPackageQuestions()"
+                            [ngModelOptions]="{standalone: true}"
+                            class="w-full border-2 border-blue-200 rounded-lg px-4 py-2.5 pr-10 text-sm font-medium text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white cursor-pointer hover:border-blue-300 transition-all appearance-none">
+                      <option [value]="''" [disabled]="true">
+                        {{ quizPackages().length === 0 ? 'Đang tải gói câu hỏi...' : 'Chọn gói câu hỏi (' + quizPackages().length + ' gói)' }}
+                      </option>
+                      @for (pkg of quizPackages(); track pkg.id) {
+                        <option [value]="pkg.id">
+                          {{ pkg.name }} ({{ pkg.questionCount || 0 }} câu)
+                        </option>
+                      }
+                    </select>
+                    <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                      <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="mt-1.5 flex items-center gap-1.5 text-xs text-blue-600">
+                    <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span>Chọn gói để xem danh sách câu hỏi</span>
+                  </div>
+                </div>
 
-              <!-- Question List with Checkboxes -->
+              <!-- Question List - Blue Theme -->
               @if (quizPackageQuestions().length > 0) {
-                <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg border-2 border-blue-200 overflow-hidden">
                   <!-- Header with Select All/Deselect All -->
-                  <div class="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                  <div class="px-4 py-3 bg-white/90 backdrop-blur-sm border-b border-blue-200">
                     <div class="flex items-center justify-between">
-                      <div class="flex items-center gap-3">
-                        <span class="text-sm font-medium text-gray-900">Danh sách câu hỏi</span>
-                        <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
+                      <div class="flex items-center gap-2.5">
+                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                        </svg>
+                        <span class="text-sm font-semibold text-gray-900">Danh sách câu hỏi</span>
+                        <span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full font-semibold">
                           {{ quizPackageQuestions().length }} câu
                         </span>
                       </div>
                       <div class="flex items-center gap-2">
                         <button type="button"
                                 (click)="selectAllQuizQuestions()"
-                                class="px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors border border-blue-200">
+                                class="px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-all">
                           <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                           </svg>
@@ -1206,30 +1305,46 @@ import { QuizCreationModalComponent } from './components/quiz-creation-modal.com
                         <button type="button"
                                 (click)="clearQuizQuestionSelection()"
                                 [disabled]="selectedQuizQuestions().size === 0"
-                                class="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                                class="px-3 py-1.5 text-xs font-semibold text-gray-700 bg-white rounded-lg hover:bg-gray-50 transition-all border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
                           <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                           </svg>
-                          Bỏ chọn tất cả
+                          Bỏ chọn
                         </button>
                       </div>
                     </div>
                   </div>
 
-                  <!-- Questions List -->
-                  <div class="max-h-96 overflow-y-auto p-4 space-y-3">
-                    @for (q of quizPackageQuestions(); track q.id) {
-                      <label class="flex items-start gap-3 p-3 rounded-lg border border-gray-200 hover:border-blue-200 hover:bg-blue-50 cursor-pointer transition-all"
+                  <!-- Questions List with Scroll -->
+                  <div class="max-h-[400px] overflow-y-auto p-4 space-y-2.5 custom-scrollbar">
+                    @for (q of quizPackageQuestions(); track q.id; let idx = $index) {
+                      <label class="group flex items-start gap-3 p-3 rounded-lg border-2 bg-white hover:bg-blue-50 cursor-pointer transition-all duration-150"
                              [class.border-blue-500]="selectedQuizQuestions().has(q.id)"
-                             [class.bg-blue-50]="selectedQuizQuestions().has(q.id)">
-                        <input type="checkbox"
-                               [checked]="selectedQuizQuestions().has(q.id)"
-                               (change)="toggleQuizQuestionSelection(q.id)"
-                               class="mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
+                             [class.bg-blue-50]="selectedQuizQuestions().has(q.id)"
+                             [class.border-gray-200]="!selectedQuizQuestions().has(q.id)">
+                        
+                        <!-- Checkbox with Number Badge -->
+                        <div class="flex-shrink-0 flex flex-col items-center gap-1.5">
+                          <div class="w-6 h-6 rounded-md flex items-center justify-center font-semibold text-xs transition-all"
+                               [class.bg-blue-500]="selectedQuizQuestions().has(q.id)"
+                               [class.text-white]="selectedQuizQuestions().has(q.id)"
+                               [class.bg-gray-100]="!selectedQuizQuestions().has(q.id)"
+                               [class.text-gray-600]="!selectedQuizQuestions().has(q.id)">
+                            {{ idx + 1 }}
+                          </div>
+                          <input type="checkbox"
+                                 [checked]="selectedQuizQuestions().has(q.id)"
+                                 (change)="toggleQuizQuestionSelection(q.id)"
+                                 class="w-4 h-4 text-blue-600 border-2 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer" />
+                        </div>
+                        
+                        <!-- Question Content -->
                         <div class="flex-1 min-w-0">
-                          <p class="text-sm text-gray-900 mb-2 leading-relaxed">{{ q.content }}</p>
-                          <div class="flex items-center gap-2">
-                            <span class="text-xs px-2 py-0.5 rounded-full font-medium"
+                          <p class="text-sm font-medium text-gray-900 mb-2 leading-relaxed">{{ q.content }}</p>
+                          
+                          <!-- Tags and Difficulty -->
+                          <div class="flex items-center gap-2 flex-wrap">
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold"
                                   [class.bg-green-100]="q.difficulty === 'EASY'"
                                   [class.text-green-700]="q.difficulty === 'EASY'"
                                   [class.bg-yellow-100]="q.difficulty === 'MEDIUM'"
@@ -1239,9 +1354,22 @@ import { QuizCreationModalComponent } from './components/quiz-creation-modal.com
                               {{ q.difficulty === 'EASY' ? 'Dễ' : q.difficulty === 'MEDIUM' ? 'TB' : 'Khó' }}
                             </span>
                             @if (q.tags) {
-                              <span class="text-xs text-gray-500">{{ q.tags }}</span>
+                              <span class="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">
+                                {{ q.tags }}
+                              </span>
                             }
                           </div>
+                        </div>
+
+                        <!-- Selection Indicator -->
+                        <div class="flex-shrink-0">
+                          @if (selectedQuizQuestions().has(q.id)) {
+                            <div class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                              <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                              </svg>
+                            </div>
+                          }
                         </div>
                       </label>
                     }
@@ -1249,22 +1377,28 @@ import { QuizCreationModalComponent } from './components/quiz-creation-modal.com
                 </div>
               }
 
-              <!-- Selected Questions Summary -->
+              <!-- Selected Questions Summary - Blue Theme -->
               @if (selectedQuizQuestions().size > 0) {
-                <div class="mt-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-4 border border-green-200 shadow-sm">
+                <div class="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-4 border-2 border-blue-300">
                   <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                    <div class="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
                       </svg>
                     </div>
                     <div class="flex-1">
-                      <p class="text-sm font-semibold text-green-900">
+                      <p class="text-sm font-semibold text-blue-900">
                         Đã chọn {{ selectedQuizQuestions().size }} / {{ quizPackageQuestions().length }} câu hỏi
                       </p>
-                      <p class="text-xs text-green-700 mt-0.5">
+                      <p class="text-xs text-blue-700 mt-0.5">
                         Sẵn sàng tạo bài trắc nghiệm với các câu hỏi đã chọn
                       </p>
+                    </div>
+                    <div class="flex-shrink-0 text-right">
+                      <div class="text-2xl font-bold text-blue-600">
+                        {{ selectedQuizQuestions().size }}
+                      </div>
+                      <div class="text-xs text-blue-600">câu</div>
                     </div>
                   </div>
                 </div>
@@ -1272,15 +1406,39 @@ import { QuizCreationModalComponent } from './components/quiz-creation-modal.com
 
               <!-- Empty State -->
               @if (quizPackageId && quizPackageQuestions().length === 0) {
-                <div class="text-center py-8 bg-white rounded-lg border-2 border-dashed border-gray-300">
-                  <svg class="w-12 h-12 mx-auto text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
-                  </svg>
-                  <p class="text-sm text-gray-600">Gói này chưa có câu hỏi</p>
+                <div class="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                  <div class="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                    </svg>
+                  </div>
+                  <p class="text-sm font-semibold text-gray-700 mb-1">Gói này chưa có câu hỏi</p>
+                  <p class="text-xs text-gray-500">Vui lòng chọn gói khác hoặc thêm câu hỏi vào gói này</p>
+                </div>
+              }
+              
+              <!-- Info Note when no package selected -->
+              @if (!quizPackageId) {
+                <div class="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                  <div class="flex items-start gap-2.5">
+                    <div class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                      </svg>
+                    </div>
+                    <div class="flex-1">
+                      <p class="text-sm font-semibold text-blue-900 mb-1.5">Mẹo tạo quiz hiệu quả</p>
+                      <ul class="text-xs text-blue-700 space-y-1 list-disc list-inside">
+                        <li>Chọn gói câu hỏi phù hợp với nội dung bài học</li>
+                        <li>Bạn có thể bỏ qua bước này và thêm câu hỏi sau</li>
+                        <li>Khuyến nghị: 10-20 câu hỏi cho mỗi quiz</li>
+                      </ul>
+                    </div>
+                  </div>
                 </div>
               }
             </div>
-          </form>
+          </div>
           </div>
 
           <!-- Error Message -->
@@ -1572,7 +1730,7 @@ import { QuizCreationModalComponent } from './components/quiz-creation-modal.com
         <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
           <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" (click)="closeInlineAddQuestionsModal()"></div>
 
-          <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full">
+          <div class="inline-block align-middle bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:max-w-3xl sm:w-full relative z-50">
             <!-- Header -->
             <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
               <div class="flex items-center justify-between">
@@ -2912,14 +3070,14 @@ export class SectionEditorComponent implements OnDestroy {
   inlineAddQuizLessonId = signal<string | null>(null);
 
   openAddQuestionsModal(lessonId: string) {
-    // Load packages first, then show inline modal
-    this.loadQuizPackages();
-    this.inlineAddQuizLessonId.set(lessonId);
-    this.showInlineAddQuestionsModal.set(true);
-    // Reset selection
-    this.inlinePackageId = '';
-    this.inlinePackageQuestions.set([]);
-    this.selectedInlineQuestions.set([]);
+    // Navigate to Quiz Bank with addToQuiz parameter
+    const returnUrl = this.router.url;
+    this.router.navigate(['/teacher/quiz/quiz-bank'], {
+      queryParams: {
+        addToQuiz: lessonId,
+        returnUrl: returnUrl
+      }
+    });
   }
 
   closeInlineAddQuestionsModal() {
