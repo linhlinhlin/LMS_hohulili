@@ -57,7 +57,7 @@ import { AuthService } from '../../../core/services/auth.service';
           <span class="font-medium">Bài tập</span>
         </a>
 
-        <!-- Quiz Bank -->
+        <!-- Ngân hàng câu hỏi -->
         <a routerLink="/teacher/quiz/quiz-bank" 
            routerLinkActive="bg-blue-100 text-blue-700"
            class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors">

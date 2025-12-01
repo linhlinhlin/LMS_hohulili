@@ -1,7 +1,7 @@
 import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { StudentApi, StudentSummary } from '../../../api/client/student.api';
 import { CourseApi } from '../../../api/client/course.api';
 import { CourseSummary } from '../../../api/types/course.types';
@@ -36,9 +36,9 @@ import { CourseSummary } from '../../../api/types/course.types';
               <tr>
                 <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Tên</th>
                 <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</th>
-                <th class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Tiến độ</th>
+                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Tiến độ</th>
                 <th class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Điểm</th>
-                <th class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Trạng thái</th>
+                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Trạng thái</th>
                 <th class="px-6 py-4"></th>
               </tr>
             </thead>
@@ -99,8 +99,26 @@ import { CourseSummary } from '../../../api/types/course.types';
                   </span>
                 </td>
                 <td class="px-6 py-5 whitespace-nowrap text-right text-base md:text-lg">
-                  <a [routerLink]="['/teacher/students', s.id]" class="text-indigo-600 hover:text-indigo-900 mr-4">Chi tiết</a>
-                  <button (click)="sendMessage(s.id)" class="text-blue-600 hover:text-blue-900">Nhắn tin</button>
+                  <a [routerLink]="['/teacher/students', s.id]" 
+                    class="px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:text-indigo-900 rounded-md transition-colors text-xs font-medium inline-flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    Chi tiết
+                  </a>
+                  <button (click)="sendMessage(s.id)"
+                    class="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-md transition-colors text-xs font-medium inline-flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                        d="M7 8h10M7 12h6m2 8l-4-4H7a3 3 0 01-3-3V7a3 3 0 013-3h10a3 3 0 013 3v6a3 3 0 01-3 3h-3l-4 4" />
+                    </svg>
+                    Nhắn tin
+                  </button>
+                  <!-- <a [routerLink]="['/teacher/students', s.id]" class="text-indigo-600 hover:text-indigo-900 mr-4">Chi tiết</a>
+                  <button (click)="sendMessage(s.id)" class="text-blue-600 hover:text-blue-900">Nhắn tin</button>-->
                 </td>
               </tr>
             </tbody>
@@ -133,6 +151,7 @@ import { CourseSummary } from '../../../api/types/course.types';
 export class StudentManagementComponent {
   private studentApi = inject(StudentApi);
   private courseApi = inject(CourseApi);
+  private router = inject(Router);
 
   keyword = '';
   status: '' | 'active' | 'inactive' | 'suspended' = '';
@@ -282,8 +301,8 @@ export class StudentManagementComponent {
   }
 
   sendMessage(studentId: string) {
-    // TODO: Open message modal or navigate to messaging interface
-    console.log('Send message to student:', studentId);
+    // Navigate to student detail page with messages tab
+    this.router.navigate(['/teacher/students', studentId], { queryParams: { tab: 'messages' } });
   }
 
   onReload() {

@@ -108,7 +108,7 @@ import { QuestionImportModalComponent } from './components/question-import-modal
                           [disabled]="!selectedPackage()"
                           class="flex items-center justify-center gap-2 h-11 px-4 rounded-lg border-2 border-green-600 text-green-600 text-sm font-semibold hover:bg-green-50 disabled:border-gray-300 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors whitespace-nowrap">
                     <span class="material-symbols-outlined text-base">upload_file</span>
-                    <span>Import file</span>
+                    <span>Tải file lên</span>
                   </button>
                   
                   <!-- Add question button -->

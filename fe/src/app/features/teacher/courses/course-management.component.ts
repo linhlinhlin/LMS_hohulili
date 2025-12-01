@@ -104,15 +104,7 @@ import { CourseSummary } from '../../../api/types/course.types';
                         </svg>
                         Sửa
                       </a>
-                      <button *ngIf="c.status !== 'APPROVED'"
-                              class="px-3 py-1.5 bg-green-50 text-green-600 hover:bg-green-100 rounded-md transition-colors text-xs font-medium disabled:opacity-50 inline-flex items-center gap-1"
-                              [disabled]="publishingId() === c.id"
-                              (click)="publish(c.id)">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                        </svg>
-                        Xuất bản
-                      </button>
+                      
                       <button class="px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-md transition-colors text-xs font-medium disabled:opacity-50 inline-flex items-center gap-1"
                               [disabled]="deletingId() === c.id"
                               (click)="deleteCourse(c.id, c.title)">
