@@ -127,7 +127,8 @@ export class CourseApi {
   getEnrolledStudents(courseId: string, params?: { page?: number; size?: number; search?: string }): Observable<ApiResponse<EnrolledStudent[]>> {
     return this.api.getWithResponse<any>(`/api/v1/courses/${courseId}/students`, { params }).pipe(
       map((res: ApiResponse<any>) => {
-        const content: EnrolledStudent[] = res?.data?.content ?? [];
+        // Backend returns List directly, not Page
+        const content: EnrolledStudent[] = res?.data?.content ?? res?.data ?? [];
         return {
           data: content,
           pagination: res?.pagination,

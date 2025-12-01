@@ -213,6 +213,12 @@ export class StudentDetailComponent {
   activeTab = signal<'assignments' | 'messages'>('assignments');
 
   constructor() {
+    // Check for tab query param
+    const tabParam = this.route.snapshot.queryParamMap.get('tab');
+    if (tabParam === 'messages') {
+      this.activeTab.set('messages');
+    }
+    
     this.loadStudent();
   }
 

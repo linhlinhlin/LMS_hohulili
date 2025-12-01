@@ -22,10 +22,8 @@ interface QuizQuestion {
       <div class="bg-white border-b border-gray-200 sticky top-0 z-20">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="flex items-center justify-between h-16">
-            <!-- Left: Back & Title -->
             <div class="flex items-center gap-4">
-              <button (click)="goBack()" 
-                      class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+              <button (click)="goBack()" class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                 </svg>
@@ -35,23 +33,18 @@ interface QuizQuestion {
                 <p class="text-xs text-gray-500">Chế độ xem trước</p>
               </div>
             </div>
-
-            <!-- Center: Timer -->
             <div class="hidden md:flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-lg">
               <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
               </svg>
               <span class="font-mono text-lg font-semibold text-blue-700">{{ formatTime(timeRemaining()) }}</span>
             </div>
-
-            <!-- Right: Progress & Submit -->
             <div class="flex items-center gap-4">
               <div class="hidden sm:block text-sm text-gray-600">
                 <span class="font-semibold text-blue-600">{{ answeredCount() }}</span> / {{ questions().length }} câu
               </div>
               @if (!showResults()) {
-                <button (click)="submitQuiz()" 
-                        class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
+                <button (click)="submitQuiz()" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
                   Nộp bài
                 </button>
               }
@@ -60,7 +53,6 @@ interface QuizQuestion {
         </div>
       </div>
 
-      <!-- Loading State -->
       @if (loading()) {
         <div class="flex items-center justify-center min-h-[60vh]">
           <div class="text-center">
@@ -70,7 +62,6 @@ interface QuizQuestion {
         </div>
       }
 
-      <!-- Error State -->
       @if (error()) {
         <div class="max-w-2xl mx-auto px-4 py-16">
           <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 text-center">
@@ -81,20 +72,16 @@ interface QuizQuestion {
             </div>
             <h3 class="text-lg font-semibold text-gray-900 mb-2">Không thể tải bài kiểm tra</h3>
             <p class="text-gray-600 mb-6">{{ error() }}</p>
-            <button (click)="goBack()" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-              Quay lại
-            </button>
+            <button (click)="goBack()" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Quay lại</button>
           </div>
         </div>
       }
 
-      <!-- Main Quiz Content -->
       @if (!loading() && !error() && questions().length > 0) {
-        <div class="flex">
-          <!-- Sidebar - Question Navigator -->
-          <div class="hidden lg:block w-72 bg-white border-r border-gray-200 min-h-[calc(100vh-64px)] sticky top-16">
+        <div class="min-h-screen bg-gray-50 pt-16 relative">
+          <!-- Sidebar -->
+          <div class="fixed top-16 left-0 hidden lg:block w-72 h-[calc(100vh-64px)] bg-white border-r border-gray-200 overflow-y-auto z-40">
             <div class="p-4">
-              <!-- Progress Circle -->
               <div class="flex items-center justify-center mb-6">
                 <div class="relative w-32 h-32">
                   <svg class="w-32 h-32 transform -rotate-90">
@@ -110,37 +97,34 @@ interface QuizQuestion {
                   </div>
                 </div>
               </div>
-
-              <!-- Question Grid -->
+              <div class="mb-4 text-center">
+                <span class="text-sm text-gray-600">Trang {{ currentPage() + 1 }} / {{ totalPages() }}</span>
+              </div>
               <div class="mb-4">
                 <h3 class="text-sm font-medium text-gray-700 mb-3">Danh sách câu hỏi</h3>
                 <div class="grid grid-cols-5 gap-2">
                   @for (q of questions(); track q.id; let i = $index) {
                     <button (click)="goToQuestion(i)"
                             class="w-10 h-10 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center"
-                            [class.bg-blue-600]="i === currentIndex() && !showResults()"
-                            [class.text-white]="i === currentIndex() && !showResults()"
-                            [class.ring-2]="i === currentIndex()"
-                            [class.ring-blue-600]="i === currentIndex()"
+                            [class.ring-2]="i >= currentPage() * QUESTIONS_PER_PAGE && i < (currentPage() + 1) * QUESTIONS_PER_PAGE"
+                            [class.ring-blue-400]="i >= currentPage() * QUESTIONS_PER_PAGE && i < (currentPage() + 1) * QUESTIONS_PER_PAGE"
                             [class.bg-green-100]="showResults() && answers()[q.id] === q.correctOption"
                             [class.text-green-700]="showResults() && answers()[q.id] === q.correctOption"
                             [class.bg-red-100]="showResults() && answers()[q.id] && answers()[q.id] !== q.correctOption"
                             [class.text-red-700]="showResults() && answers()[q.id] && answers()[q.id] !== q.correctOption"
-                            [class.bg-blue-100]="!showResults() && i !== currentIndex() && answers()[q.id]"
-                            [class.text-blue-700]="!showResults() && i !== currentIndex() && answers()[q.id]"
-                            [class.bg-gray-100]="!showResults() && i !== currentIndex() && !answers()[q.id]"
-                            [class.text-gray-600]="!showResults() && i !== currentIndex() && !answers()[q.id]">
+                            [class.bg-blue-100]="!showResults() && answers()[q.id]"
+                            [class.text-blue-700]="!showResults() && answers()[q.id]"
+                            [class.bg-gray-100]="!showResults() && !answers()[q.id]"
+                            [class.text-gray-600]="!showResults() && !answers()[q.id]">
                       {{ i + 1 }}
                     </button>
                   }
                 </div>
               </div>
-
-              <!-- Legend -->
               <div class="space-y-2 text-xs">
                 <div class="flex items-center gap-2">
-                  <div class="w-4 h-4 rounded bg-blue-600"></div>
-                  <span class="text-gray-600">Đang xem</span>
+                  <div class="w-4 h-4 rounded bg-blue-100 ring-2 ring-blue-400"></div>
+                  <span class="text-gray-600">Trang hiện tại</span>
                 </div>
                 <div class="flex items-center gap-2">
                   <div class="w-4 h-4 rounded bg-blue-100"></div>
@@ -155,112 +139,114 @@ interface QuizQuestion {
           </div>
 
           <!-- Main Content Area -->
-          <div class="flex-1 p-4 lg:p-8">
-            <div class="max-w-3xl mx-auto">
-              <!-- Question Card -->
-              <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mb-6">
-                <!-- Question Header -->
-                <div class="px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700 flex items-center justify-between">
-                  <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-                      <span class="text-white font-bold">{{ currentIndex() + 1 }}</span>
-                    </div>
-                    <div>
-                      <h2 class="text-white font-semibold">Câu hỏi {{ currentIndex() + 1 }}</h2>
-                      <p class="text-blue-100 text-sm">{{ questions().length }} câu hỏi</p>
-                    </div>
-                  </div>
-                  <span class="px-3 py-1 rounded-full text-xs font-medium"
-                        [class.bg-green-100]="currentQuestion()?.difficulty === 'EASY'"
-                        [class.text-green-800]="currentQuestion()?.difficulty === 'EASY'"
-                        [class.bg-yellow-100]="currentQuestion()?.difficulty === 'MEDIUM'"
-                        [class.text-yellow-800]="currentQuestion()?.difficulty === 'MEDIUM'"
-                        [class.bg-red-100]="currentQuestion()?.difficulty === 'HARD'"
-                        [class.text-red-800]="currentQuestion()?.difficulty === 'HARD'">
-                    {{ currentQuestion()?.difficulty === 'EASY' ? 'Dễ' : currentQuestion()?.difficulty === 'MEDIUM' ? 'Trung bình' : 'Khó' }}
-                  </span>
-                </div>
-
-                <!-- Question Content -->
-                <div class="p-6">
-                  <p class="text-lg text-gray-900 leading-relaxed mb-8">{{ currentQuestion()?.content }}</p>
-
-                  <!-- Options -->
-                  <div class="space-y-3">
-                    @for (opt of currentQuestion()?.options; track opt.key) {
-                      <button (click)="selectAnswer(currentQuestion()!.id, opt.key)"
-                              [disabled]="showResults()"
-                              class="w-full text-left p-4 rounded-xl border-2 transition-all duration-200 group"
-                              [class.border-blue-500]="answers()[currentQuestion()!.id] === opt.key && !showResults()"
-                              [class.bg-blue-50]="answers()[currentQuestion()!.id] === opt.key && !showResults()"
-                              [class.border-gray-200]="answers()[currentQuestion()!.id] !== opt.key && !showResults()"
-                              [class.hover:border-blue-300]="!showResults() && answers()[currentQuestion()!.id] !== opt.key"
-                              [class.hover:bg-gray-50]="!showResults() && answers()[currentQuestion()!.id] !== opt.key"
-                              [class.border-green-500]="showResults() && opt.key === currentQuestion()!.correctOption"
-                              [class.bg-green-50]="showResults() && opt.key === currentQuestion()!.correctOption"
-                              [class.border-red-400]="showResults() && answers()[currentQuestion()!.id] === opt.key && opt.key !== currentQuestion()!.correctOption"
-                              [class.bg-red-50]="showResults() && answers()[currentQuestion()!.id] === opt.key && opt.key !== currentQuestion()!.correctOption">
-                        <div class="flex items-center gap-4">
-                          <span class="w-10 h-10 rounded-xl flex items-center justify-center font-semibold text-sm transition-colors"
-                                [class.bg-blue-600]="answers()[currentQuestion()!.id] === opt.key && !showResults()"
-                                [class.text-white]="answers()[currentQuestion()!.id] === opt.key && !showResults()"
-                                [class.bg-gray-100]="answers()[currentQuestion()!.id] !== opt.key && !showResults()"
-                                [class.text-gray-600]="answers()[currentQuestion()!.id] !== opt.key && !showResults()"
-                                [class.group-hover:bg-blue-100]="!showResults() && answers()[currentQuestion()!.id] !== opt.key"
-                                [class.bg-green-600]="showResults() && opt.key === currentQuestion()!.correctOption"
-                                [class.text-white]="showResults() && opt.key === currentQuestion()!.correctOption"
-                                [class.bg-red-500]="showResults() && answers()[currentQuestion()!.id] === opt.key && opt.key !== currentQuestion()!.correctOption">
-                            {{ opt.key }}
-                          </span>
-                          <span class="flex-1 text-gray-700">{{ opt.content }}</span>
-                          @if (showResults() && opt.key === currentQuestion()!.correctOption) {
-                            <svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                            </svg>
-                          }
-                          @if (showResults() && answers()[currentQuestion()!.id] === opt.key && opt.key !== currentQuestion()!.correctOption) {
-                            <svg class="w-6 h-6 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
-                            </svg>
-                          }
-                        </div>
-                      </button>
-                    }
-                  </div>
-                </div>
+          <div class="flex-1 justify-center p-2 lg:p-4 ml-0 lg:ml-72">
+            <div class="w-full max-w-6xl">
+              <div class="mb-6 flex items-center justify-between">
+                <h2 class="text-xl font-semibold text-gray-900">
+                  Câu {{ currentPage() * QUESTIONS_PER_PAGE + 1 }} - {{ Math.min((currentPage() + 1) * QUESTIONS_PER_PAGE, questions().length) }}
+                </h2>
+                <span class="text-sm text-gray-500">Trang {{ currentPage() + 1 }} / {{ totalPages() }}</span>
               </div>
 
-              <!-- Navigation Buttons -->
-              <div class="flex items-center justify-between">
-                <button (click)="prevQuestion()" 
-                        [disabled]="currentIndex() === 0"
+              <div class="space-y-6">
+                @for (question of currentPageQuestions(); track question.id; let pageIdx = $index) {
+                  @let globalIdx = getQuestionIndex(pageIdx);
+                  <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700 flex items-center justify-between">
+                      <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                          <span class="text-white font-bold">{{ globalIdx + 1 }}</span>
+                        </div>
+                        <h3 class="text-white font-semibold">Câu hỏi {{ globalIdx + 1 }}</h3>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        @if (answers()[question.id]) {
+                          <span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full font-medium">Đã trả lời</span>
+                        }
+                        <span class="px-3 py-1 rounded-full text-xs font-medium"
+                              [class.bg-green-100]="question.difficulty === 'EASY'"
+                              [class.text-green-800]="question.difficulty === 'EASY'"
+                              [class.bg-yellow-100]="question.difficulty === 'MEDIUM'"
+                              [class.text-yellow-800]="question.difficulty === 'MEDIUM'"
+                              [class.bg-red-100]="question.difficulty === 'HARD'"
+                              [class.text-red-800]="question.difficulty === 'HARD'">
+                          {{ question.difficulty === 'EASY' ? 'Dễ' : question.difficulty === 'MEDIUM' ? 'Trung bình' : 'Khó' }}
+                        </span>
+                      </div>
+                    </div>
+                    <div class="p-6">
+                      <p class="text-lg text-gray-900 leading-relaxed mb-6">{{ question.content }}</p>
+                      <div class="space-y-3">
+                        @for (opt of question.options; track opt.key) {
+                          <button (click)="selectAnswer(question.id, opt.key)"
+                                  [disabled]="showResults()"
+                                  class="w-full text-left p-4 rounded-xl border-2 transition-all duration-200 group"
+                                  [class.border-blue-500]="answers()[question.id] === opt.key && !showResults()"
+                                  [class.bg-blue-50]="answers()[question.id] === opt.key && !showResults()"
+                                  [class.border-gray-200]="answers()[question.id] !== opt.key && !showResults()"
+                                  [class.hover:border-blue-300]="!showResults() && answers()[question.id] !== opt.key"
+                                  [class.hover:bg-gray-50]="!showResults() && answers()[question.id] !== opt.key"
+                                  [class.border-green-500]="showResults() && opt.key === question.correctOption"
+                                  [class.bg-green-50]="showResults() && opt.key === question.correctOption"
+                                  [class.border-red-400]="showResults() && answers()[question.id] === opt.key && opt.key !== question.correctOption"
+                                  [class.bg-red-50]="showResults() && answers()[question.id] === opt.key && opt.key !== question.correctOption">
+                            <div class="flex items-center gap-4">
+                              <span class="w-10 h-10 rounded-xl flex items-center justify-center font-semibold text-sm transition-colors"
+                                    [class.bg-blue-600]="answers()[question.id] === opt.key && !showResults()"
+                                    [class.text-white]="(answers()[question.id] === opt.key && !showResults()) || (showResults() && opt.key === question.correctOption)"
+                                    [class.bg-gray-100]="answers()[question.id] !== opt.key && !showResults()"
+                                    [class.text-gray-600]="answers()[question.id] !== opt.key && !showResults()"
+                                    [class.group-hover:bg-blue-100]="!showResults() && answers()[question.id] !== opt.key"
+                                    [class.bg-green-600]="showResults() && opt.key === question.correctOption"
+                                    [class.bg-red-500]="showResults() && answers()[question.id] === opt.key && opt.key !== question.correctOption">
+                                {{ opt.key }}
+                              </span>
+                              <span class="flex-1 text-gray-700">{{ opt.content }}</span>
+                              @if (showResults() && opt.key === question.correctOption) {
+                                <svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                </svg>
+                              }
+                              @if (showResults() && answers()[question.id] === opt.key && opt.key !== question.correctOption) {
+                                <svg class="w-6 h-6 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                                </svg>
+                              }
+                            </div>
+                          </button>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                }
+              </div>
+
+              <!-- Page Navigation -->
+              <div class="mt-8 flex items-center justify-between">
+                <button (click)="prevPage()" [disabled]="currentPage() === 0"
                         class="flex items-center gap-2 px-5 py-3 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                   </svg>
-                  Câu trước
+                  10 câu trước
                 </button>
-
-                <!-- Mobile Question Navigator -->
-                <div class="flex lg:hidden items-center gap-1 overflow-x-auto max-w-[200px] px-2">
-                  @for (q of questions(); track q.id; let i = $index) {
-                    <button (click)="goToQuestion(i)"
-                            class="flex-shrink-0 w-8 h-8 rounded-lg text-xs font-medium transition-colors"
-                            [class.bg-blue-600]="i === currentIndex()"
-                            [class.text-white]="i === currentIndex()"
-                            [class.bg-blue-100]="i !== currentIndex() && answers()[q.id]"
-                            [class.text-blue-700]="i !== currentIndex() && answers()[q.id]"
-                            [class.bg-gray-100]="i !== currentIndex() && !answers()[q.id]"
-                            [class.text-gray-600]="i !== currentIndex() && !answers()[q.id]">
+                <div class="flex items-center gap-2">
+                  @for (page of [].constructor(totalPages()); track $index; let i = $index) {
+                    <button (click)="goToPage(i)"
+                            class="w-10 h-10 rounded-lg text-sm font-medium transition-colors"
+                            [class.bg-blue-600]="i === currentPage()"
+                            [class.text-white]="i === currentPage()"
+                            [class.bg-gray-100]="i !== currentPage()"
+                            [class.text-gray-600]="i !== currentPage()"
+                            [class.hover:bg-gray-200]="i !== currentPage()">
                       {{ i + 1 }}
                     </button>
                   }
                 </div>
-
-                @if (currentIndex() < questions().length - 1) {
-                  <button (click)="nextQuestion()"
+                @if (currentPage() < totalPages() - 1) {
+                  <button (click)="nextPage()"
                           class="flex items-center gap-2 px-5 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors">
-                    Câu tiếp
+                    10 câu tiếp
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                     </svg>
@@ -288,10 +274,9 @@ interface QuizQuestion {
         </div>
 
         <!-- Results Modal -->
-        @if (showResults()) {
+        @if (showResults() && showResultsModal()) {
           <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
             <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-scale-in">
-              <!-- Result Header -->
               <div class="p-6 text-center" 
                    [class.bg-gradient-to-br]="true"
                    [class.from-green-500]="scorePercent() >= 80"
@@ -322,15 +307,11 @@ interface QuizQuestion {
                 </h2>
                 <p class="text-white/80">Bạn đã hoàn thành bài kiểm tra</p>
               </div>
-
-              <!-- Score Display -->
               <div class="p-6">
                 <div class="text-center mb-6">
                   <div class="text-5xl font-bold text-gray-900 mb-1">{{ scorePercent() }}%</div>
                   <p class="text-gray-500">Điểm số của bạn</p>
                 </div>
-
-                <!-- Stats Grid -->
                 <div class="grid grid-cols-3 gap-4 mb-6">
                   <div class="bg-green-50 rounded-xl p-4 text-center">
                     <div class="text-2xl font-bold text-green-600">{{ correctCount() }}</div>
@@ -345,8 +326,6 @@ interface QuizQuestion {
                     <div class="text-xs text-gray-700">Bỏ qua</div>
                   </div>
                 </div>
-
-                <!-- Time Spent -->
                 <div class="bg-blue-50 rounded-xl p-4 flex items-center justify-between mb-6">
                   <div class="flex items-center gap-3">
                     <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -356,15 +335,11 @@ interface QuizQuestion {
                   </div>
                   <span class="font-mono font-semibold text-blue-700">{{ formatTime(timeSpent()) }}</span>
                 </div>
-
-                <!-- Actions -->
                 <div class="flex gap-3">
-                  <button (click)="closeResults()" 
-                          class="flex-1 px-4 py-3 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium">
+                  <button (click)="closeResults()" class="flex-1 px-4 py-3 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium">
                     Xem lại đáp án
                   </button>
-                  <button (click)="resetQuiz()" 
-                          class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium">
+                  <button (click)="resetQuiz()" class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium">
                     Làm lại
                   </button>
                 </div>
@@ -375,7 +350,6 @@ interface QuizQuestion {
       }
     </div>
   `,
-
   styles: [`
     @keyframes scale-in {
       from { transform: scale(0.9); opacity: 0; }
@@ -386,10 +360,13 @@ interface QuizQuestion {
     }
   `]
 })
+
 export class QuizPreviewComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private quizApi = inject(QuizApi);
+  
+  Math = Math;
 
   lessonId = '';
   quizTitle = signal('Bài kiểm tra');
@@ -398,18 +375,30 @@ export class QuizPreviewComponent implements OnInit, OnDestroy {
   loading = signal(true);
   error = signal<string | null>(null);
   questions = signal<QuizQuestion[]>([]);
-  currentIndex = signal(0);
   answers = signal<Record<string, string>>({});
   showResults = signal(false);
   showResultsModal = signal(true);
 
-  // Timer
-  timeRemaining = signal(30 * 60); // 30 minutes default
+  readonly QUESTIONS_PER_PAGE = 10;
+  currentPage = signal(0);
+
+  timeRemaining = signal(30 * 60);
   timeSpent = signal(0);
   private timerInterval: any;
   private startTime = 0;
 
-  currentQuestion = computed(() => this.questions()[this.currentIndex()]);
+  totalPages = computed(() => Math.ceil(this.questions().length / this.QUESTIONS_PER_PAGE));
+  
+  currentPageQuestions = computed(() => {
+    const start = this.currentPage() * this.QUESTIONS_PER_PAGE;
+    const end = start + this.QUESTIONS_PER_PAGE;
+    return this.questions().slice(start, end);
+  });
+
+  getQuestionIndex(pageIndex: number): number {
+    return this.currentPage() * this.QUESTIONS_PER_PAGE + pageIndex;
+  }
+
   answeredCount = computed(() => Object.keys(this.answers()).length);
   
   correctCount = computed(() => {
@@ -435,7 +424,6 @@ export class QuizPreviewComponent implements OnInit, OnDestroy {
     this.lessonId = this.route.snapshot.paramMap.get('lessonId') || '';
     this.quizTitle.set(this.route.snapshot.queryParamMap.get('title') || 'Bài kiểm tra');
     this.returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') || '/teacher/courses';
-    
     this.loadQuiz();
   }
 
@@ -446,16 +434,13 @@ export class QuizPreviewComponent implements OnInit, OnDestroy {
   async loadQuiz() {
     this.loading.set(true);
     this.error.set(null);
-
     try {
       const response = await firstValueFrom(this.quizApi.getQuizQuestions(this.lessonId));
       const questions = Array.isArray(response) ? response : (response as any).data || [];
-
       if (questions.length === 0) {
         this.error.set('Bài kiểm tra này chưa có câu hỏi nào.');
         return;
       }
-
       this.questions.set(questions.map((q: any) => ({
         id: q.id,
         content: q.content,
@@ -466,9 +451,7 @@ export class QuizPreviewComponent implements OnInit, OnDestroy {
           content: opt.content
         })).sort((a: any, b: any) => a.key.localeCompare(b.key))
       })));
-
       this.startTimer();
-
     } catch (err: any) {
       console.error('Error loading quiz:', err);
       this.error.set(err?.message || 'Không thể tải bài kiểm tra');
@@ -482,7 +465,6 @@ export class QuizPreviewComponent implements OnInit, OnDestroy {
     this.timerInterval = setInterval(() => {
       this.timeRemaining.update(t => Math.max(0, t - 1));
       this.timeSpent.set(Math.floor((Date.now() - this.startTime) / 1000));
-      
       if (this.timeRemaining() === 0) {
         this.submitQuiz();
       }
@@ -507,20 +489,31 @@ export class QuizPreviewComponent implements OnInit, OnDestroy {
     this.answers.update(ans => ({ ...ans, [questionId]: optionKey }));
   }
 
-  prevQuestion() {
-    if (this.currentIndex() > 0) {
-      this.currentIndex.update(i => i - 1);
+  prevPage() {
+    if (this.currentPage() > 0) {
+      this.currentPage.update(p => p - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }
 
-  nextQuestion() {
-    if (this.currentIndex() < this.questions().length - 1) {
-      this.currentIndex.update(i => i + 1);
+  nextPage() {
+    if (this.currentPage() < this.totalPages() - 1) {
+      this.currentPage.update(p => p + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
+  goToPage(pageIndex: number) {
+    if (pageIndex >= 0 && pageIndex < this.totalPages()) {
+      this.currentPage.set(pageIndex);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }
 
   goToQuestion(index: number) {
-    this.currentIndex.set(index);
+    const page = Math.floor(index / this.QUESTIONS_PER_PAGE);
+    this.currentPage.set(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   submitQuiz() {
@@ -535,7 +528,7 @@ export class QuizPreviewComponent implements OnInit, OnDestroy {
 
   resetQuiz() {
     this.answers.set({});
-    this.currentIndex.set(0);
+    this.currentPage.set(0);
     this.showResults.set(false);
     this.showResultsModal.set(false);
     this.timeRemaining.set(30 * 60);
