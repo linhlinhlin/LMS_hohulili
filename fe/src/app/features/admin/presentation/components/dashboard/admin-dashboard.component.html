@@ -128,51 +128,55 @@
           <h2 class="section-title">Danh sách chờ duyệt</h2>
         </div>
         <div class="approvals-table">
-          <table>
-            <thead>
-              <tr>
-                <th>Tên</th>
-                <th>Loại</th>
-                <th>Ngày gửi</th>
-                <th>Hành động</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Lập trình Java cơ bản</td>
-                <td><span class="badge badge-course">Khóa học</span></td>
-                <td>13/11/2025</td>
-                <td>
-                  <div class="action-buttons">
-                    <button class="btn-approve">Duyệt</button>
-                    <button class="btn-reject">Từ chối</button>
-                  </div>
-                </td>
-              </tr>
-              <tr>
-                <td>Python cho người mới</td>
-                <td><span class="badge badge-course">Khóa học</span></td>
-                <td>12/11/2025</td>
-                <td>
-                  <div class="action-buttons">
-                    <button class="btn-approve">Duyệt</button>
-                    <button class="btn-reject">Từ chối</button>
-                  </div>
-                </td>
-              </tr>
-              <tr>
-                <td>Nguyễn Văn A</td>
-                <td><span class="badge badge-teacher">Giảng viên</span></td>
-                <td>11/11/2025</td>
-                <td>
-                  <div class="action-buttons">
-                    <button class="btn-approve">Duyệt</button>
-                    <button class="btn-reject">Từ chối</button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          @if (isLoadingPending()) {
+            <div class="loading-state">
+              <div class="spinner"></div>
+              <span>Đang tải...</span>
+            </div>
+          } @else {
+            <table>
+              <thead>
+                <tr>
+                  <th>Tên</th>
+                  <th>Loại</th>
+                  <th>Ngày gửi</th>
+                  <th>Hành động</th>
+                </tr>
+              </thead>
+              <tbody>
+                @if (pendingApprovals().length === 0) {
+                  <tr>
+                    <td colspan="4" class="empty-state">
+                      <div class="empty-content">
+                        <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <p>Không có khóa học nào đang chờ duyệt</p>
+                      </div>
+                    </td>
+                  </tr>
+                } @else {
+                  @for (approval of pendingApprovals(); track approval.id) {
+                    <tr>
+                      <td>{{ approval.name }}</td>
+                      <td>
+                        <span class="badge" [class.badge-course]="approval.type === 'course'" [class.badge-teacher]="approval.type === 'teacher'">
+                          {{ approval.type === 'course' ? 'Khóa học' : 'Giảng viên' }}
+                        </span>
+                      </td>
+                      <td>{{ formatDate(approval.submittedDate) }}</td>
+                      <td>
+                        <div class="action-buttons">
+                          <button class="btn-approve" (click)="approveCourse(approval.id)">Duyệt</button>
+                          <button class="btn-reject" (click)="rejectCourse(approval.id)">Từ chối</button>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                }
+              </tbody>
+            </table>
+          }
         </div>
       </div>
 

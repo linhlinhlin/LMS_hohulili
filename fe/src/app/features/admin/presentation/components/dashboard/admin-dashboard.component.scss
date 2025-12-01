@@ -465,3 +465,53 @@
 .animate-spin {
   animation: spin 1s linear infinite;
 }
+
+// ===== LOADING & EMPTY STATES =====
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  gap: 1rem;
+  color: #6b7280;
+  
+  .spinner {
+    width: 2rem;
+    height: 2rem;
+    border: 3px solid #e5e7eb;
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+}
+
+.empty-state {
+  padding: 3rem 1rem !important;
+  text-align: center;
+  
+  .empty-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    color: #9ca3af;
+    
+    .empty-icon {
+      width: 4rem;
+      height: 4rem;
+      color: #d1d5db;
+    }
+    
+    p {
+      margin: 0;
+      font-size: 0.95rem;
+      color: #6b7280;
+    }
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
