@@ -97,20 +97,46 @@ export class CourseApi {
     return this.api.getWithResponse<any>(`/api/v1/student/progress/courses/${courseId}/next-lesson`);
   }
 
-  /**
-   * Get enrolled students for a course
-   */
-  getEnrolledStudents(courseId: string): Observable<ApiResponse<any[]>> {
-    return this.api.getWithResponse<any>(`/api/v1/courses/${courseId}/students`).pipe(
+  // Get available students for enrollment (not yet enrolled in this course)
+  getAvailableStudents(courseId: string, params?: { page?: number; size?: number; search?: string }): Observable<ApiResponse<AvailableStudent[]>> {
+    return this.api.getWithResponse<any>(`/api/v1/courses/${courseId}/available-students`, { params }).pipe(
       map((res: ApiResponse<any>) => {
-        // Handle both array and paginated response
-        const content = Array.isArray(res?.data) ? res.data : (res?.data?.content ?? []);
+        const content: AvailableStudent[] = res?.data?.content ?? [];
         return {
           data: content,
           pagination: res?.pagination,
           message: res?.message
-        } as ApiResponse<any[]>;
+        } as ApiResponse<AvailableStudent[]>;
       })
     );
   }
+
+  // Get enrolled students in this course
+  getEnrolledStudents(courseId: string, params?: { page?: number; size?: number; search?: string }): Observable<ApiResponse<EnrolledStudent[]>> {
+    return this.api.getWithResponse<any>(`/api/v1/courses/${courseId}/students`, { params }).pipe(
+      map((res: ApiResponse<any>) => {
+        const content: EnrolledStudent[] = res?.data?.content ?? [];
+        return {
+          data: content,
+          pagination: res?.pagination,
+          message: res?.message
+        } as ApiResponse<EnrolledStudent[]>;
+      })
+    );
+  }
+}
+
+export interface AvailableStudent {
+  id: string;
+  fullName: string;
+  email: string;
+}
+
+export interface EnrolledStudent {
+  id: string;
+  fullName: string;
+  email: string;
+  enrolledAt?: string;
+  status?: string;
+  progressPercentage?: number;
 }

@@ -87,7 +87,7 @@ export const studentRoutes: Routes = [
           },
           {
             path: 'take/:id',
-            loadComponent: () => import('../learning/quiz/presentation/components/quiz-attempt.component').then(m => m.QuizAttemptComponent),
+            loadComponent: () => import('./quiz/student-quiz-taking.component').then(m => m.StudentQuizTakingComponent),
             title: 'Làm Quiz'
           },
           {

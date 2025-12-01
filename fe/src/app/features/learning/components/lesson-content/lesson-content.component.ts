@@ -1,7 +1,9 @@
 import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { Router } from '@angular/router';
 import { LessonDetail } from '../../models/learning.models';
+import { LessonType } from '../../models/lesson-types.enum';
 
 /**
  * Lesson Content Component
@@ -21,13 +23,19 @@ import { LessonDetail } from '../../models/learning.models';
 })
 export class LessonContentComponent {
   private sanitizer = inject(DomSanitizer);
+  private router = inject(Router);
+  
+  // Expose enum to template
+  LessonType = LessonType;
 
   @Input({ required: true }) lesson!: LessonDetail;
   @Input() isCompleted = false;
+  @Input() hasQuiz = false;
 
   @Output() markComplete = new EventEmitter<void>();
   @Output() videoStateChange = new EventEmitter<any>();
   @Output() videoEnded = new EventEmitter<void>();
+  @Output() goToQuiz = new EventEmitter<void>();
 
   // Check if video is YouTube
   isYouTubeVideo(): boolean {
@@ -88,6 +96,12 @@ export class LessonContentComponent {
     this.markComplete.emit();
   }
   
+  // Go to quiz
+  onGoToQuiz(): void {
+    console.log('🎯 Quiz button clicked!');
+    this.router.navigate(['/student/quiz/take', this.lesson.id]);
+  }
+  
   // Get lesson type label in Vietnamese
   getLessonTypeLabel(): string {
     const labels: Record<string, string> = {
@@ -97,7 +111,7 @@ export class LessonContentComponent {
       'ASSIGNMENT': 'Bài tập',
       'LAB': 'Thực hành'
     };
-    return labels[this.lesson?.lessonType] || 'Bài học';
+    return labels[this.lesson.lessonType as string] || 'Bài học';
   }
 
   // Format file size

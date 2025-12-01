@@ -190,26 +190,39 @@
                 @if (isSectionExpanded(section.id)) {
                   <div class="lessons-list">
                     @for (lesson of section.lessons; track lesson.id; let lessonIndex = $index) {
-                      <button 
-                        (click)="goToLesson(lesson.id)"
-                        class="lesson-item"
-                        [class.completed]="lesson.isCompleted">
-                        <div class="lesson-status">
-                          @if (lesson.isCompleted) {
-                            <svg class="status-icon completed" fill="currentColor" viewBox="0 0 20 20">
-                              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                      <div class="lesson-item-wrapper">
+                        <button 
+                          (click)="goToLesson(lesson.id)"
+                          class="lesson-item"
+                          [class.completed]="lesson.isCompleted">
+                          <div class="lesson-status">
+                            @if (lesson.isCompleted) {
+                              <svg class="status-icon completed" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                              </svg>
+                            } @else {
+                              <div class="status-icon pending"></div>
+                            }
+                          </div>
+                          <div class="lesson-content">
+                            <span class="lesson-title">{{ lesson.title }}</span>
+                            @if (lesson.durationMinutes) {
+                              <span class="lesson-duration">{{ lesson.durationMinutes }} phút</span>
+                            }
+                          </div>
+                        </button>
+                        @if (lesson.hasQuiz) {
+                          <button 
+                            (click)="goToQuiz(lesson.id, lesson.title)"
+                            class="quiz-button"
+                            title="Làm bài trắc nghiệm">
+                            <svg class="quiz-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
                             </svg>
-                          } @else {
-                            <div class="status-icon pending"></div>
-                          }
-                        </div>
-                        <div class="lesson-content">
-                          <span class="lesson-title">{{ lesson.title }}</span>
-                          @if (lesson.durationMinutes) {
-                            <span class="lesson-duration">{{ lesson.durationMinutes }} phút</span>
-                          }
-                        </div>
-                      </button>
+                            <span>Làm bài</span>
+                          </button>
+                        }
+                      </div>
                     }
                   </div>
                 }

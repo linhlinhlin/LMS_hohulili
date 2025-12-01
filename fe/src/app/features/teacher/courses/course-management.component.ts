@@ -19,32 +19,29 @@ import { CourseSummary } from '../../../api/types/course.types';
         </div>
 
         <!-- Search & Filter Card -->
-        <div class="bg-white rounded shadow p-6 mb-6">
-          <div class="flex gap-3 items-center">
-            <div class="flex-1">
-              <input class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base" 
+        <div class="bg-white rounded-lg shadow mb-6">
+          <div class="p-4 flex gap-3 items-center">
+            <div class="flex-1 relative">
+              <svg class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+              </svg>
+              <input class="w-full border border-gray-200 rounded-lg pl-10 pr-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-gray-50" 
                      placeholder="Tìm kiếm theo mã hoặc tên khóa học..." 
                      [(ngModel)]="keyword"
                      (keyup.enter)="applyFilters()" />
             </div>
-            <select class="border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base min-w-[180px]" 
-                    [(ngModel)]="status">
+            <select class="border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-gray-50 min-w-[160px]" 
+                    [(ngModel)]="status"
+                    (ngModelChange)="applyFilters()">
               <option value="">Tất cả trạng thái</option>
               <option value="APPROVED">Đã xuất bản</option>
               <option value="PENDING">Chờ duyệt</option>
               <option value="DRAFT">Nháp</option>
             </select>
-            <button class="px-6 py-2.5 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors font-medium text-base flex items-center gap-2" 
-                    (click)="applyFilters()">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
-              </svg>
-              Lọc
-            </button>
             <a routerLink="/teacher/course-creation" 
-               class="px-6 py-2.5 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors font-medium text-base flex items-center gap-2">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+               class="px-5 py-2.5 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors font-medium text-sm flex items-center gap-2 whitespace-nowrap">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
               </svg>
               Tạo khóa học
             </a>
@@ -52,85 +49,83 @@ import { CourseSummary } from '../../../api/types/course.types';
         </div>
 
         <!-- Courses Table Card -->
-        <div class="bg-white rounded shadow">
-          <table class="min-w-full">
-          <thead class="bg-gray-50 border-b border-gray-200">
-            <tr>
-              <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Mã khóa học</th>
-              <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Tên khóa học</th>
-              <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Trạng thái</th>
-              <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Học viên</th>
-              <th class="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Thao tác</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-200">
-            <tr *ngFor="let c of paged(); trackBy: trackById" class="hover:bg-blue-50 transition-colors">
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span class="text-sm font-semibold text-gray-900">{{ c.code }}</span>
-              </td>
-              <td class="px-6 py-4">
-                <div class="text-sm font-medium text-gray-900">{{ c.title }}</div>
-                <div class="text-xs text-gray-500 mt-1" *ngIf="c.description">{{ c.description.substring(0, 60) }}{{ c.description.length > 60 ? '...' : '' }}</div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span *ngIf="c.status === 'APPROVED'" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
-                  <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                  </svg>
-                  Đã xuất bản
-                </span>
-                <span *ngIf="c.status === 'PENDING'" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
-                  <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
-                  </svg>
-                  Chờ duyệt
-                </span>
-                <span *ngIf="c.status === 'DRAFT'" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
-                  <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"></path>
-                  </svg>
-                  Nháp
-                </span>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="flex items-center text-sm text-gray-900">
-                  <svg class="w-4 h-4 text-blue-500 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path>
-                  </svg>
-                  <span class="font-medium">{{ c.enrolledCount || 0 }}</span>
-                </div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-right">
-                <div class="inline-flex gap-2">
-                  <a [routerLink]="['/teacher/courses', c.id, 'edit']" 
-                     class="px-4 py-2 bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 rounded-lg transition-colors text-sm font-medium flex items-center gap-1.5">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                    </svg>
-                    Sửa
-                  </a>
-                  <button *ngIf="c.status !== 'APPROVED'"
-                          class="px-4 py-2 bg-green-50 text-green-600 border border-green-200 hover:bg-green-100 rounded-lg transition-colors text-sm font-medium disabled:opacity-50 flex items-center gap-1.5"
-                          [disabled]="publishingId() === c.id"
-                          (click)="publish(c.id)">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                    </svg>
-                    Xuất bản
-                  </button>
-                  <button class="px-4 py-2 bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 rounded-lg transition-colors text-sm font-medium disabled:opacity-50 flex items-center gap-1.5"
-                          [disabled]="deletingId() === c.id"
-                          (click)="deleteCourse(c.id, c.title)">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                    </svg>
-                    Xóa
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+          <div class="bg-white rounded-lg shadow overflow-hidden">
+            <table class="min-w-full">
+              <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-16">STT</th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Tên khóa học</th>
+                  <th class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-64">Trạng thái</th>
+                  <th class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-28">Học viên</th>
+                  <th class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-64">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100">
+                <tr *ngFor="let c of paged(); let i = index; trackBy: trackById" class="hover:bg-blue-50/50 transition-colors">
+                  <td class="px-6 py-4 text-sm text-gray-500 font-medium text-center">
+                    {{ (pageIndex() - 1) * pageSize() + i + 1 }}
+                  </td>
+                  <td class="px-6 py-4">
+                    <div class="flex items-start gap-3">
+                      <div class="min-w-0">
+                        <div class="text-sm font-semibold text-gray-900 truncate">{{ c.title }}</div>
+                        <div class="text-xs text-gray-500 mt-0.5" *ngIf="c.description">{{ c.description.substring(0, 80) }}{{ c.description.length > 80 ? '...' : '' }}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 text-center">
+                    <span *ngIf="c.status === 'APPROVED'" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                      <span class="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5"></span>
+                      Đã xuất bản
+                    </span>
+                    <span *ngIf="c.status === 'PENDING'" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                      <span class="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5"></span>
+                      Chờ duyệt
+                    </span>
+                    <span *ngIf="c.status === 'DRAFT'" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                      <span class="w-1.5 h-1.5 rounded-full bg-gray-400 mr-1.5"></span>
+                      Nháp
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 text-center">
+                    <div class="inline-flex items-center gap-1.5 text-sm text-gray-700 w-full">
+                      <svg class="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path>
+                      </svg>
+                      <span class="font-semibold ml-auto">{{ c.enrolledCount || 0 }}</span>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4">
+                    <div class="flex items-center justify-center gap-2">
+                      <a [routerLink]="['/teacher/courses', c.id, 'edit']" 
+                        class="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-md transition-colors text-xs font-medium inline-flex items-center gap-1">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                        </svg>
+                        Sửa
+                      </a>
+                      <button *ngIf="c.status !== 'APPROVED'"
+                              class="px-3 py-1.5 bg-green-50 text-green-600 hover:bg-green-100 rounded-md transition-colors text-xs font-medium disabled:opacity-50 inline-flex items-center gap-1"
+                              [disabled]="publishingId() === c.id"
+                              (click)="publish(c.id)">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        Xuất bản
+                      </button>
+                      <button class="px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-md transition-colors text-xs font-medium disabled:opacity-50 inline-flex items-center gap-1"
+                              [disabled]="deletingId() === c.id"
+                              (click)="deleteCourse(c.id, c.title)">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                        Xóa
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
         
         <!-- Empty State -->
         <div *ngIf="paged().length === 0 && !error()" class="text-center py-12">

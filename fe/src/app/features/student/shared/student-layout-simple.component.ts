@@ -240,15 +240,16 @@ export class StudentLayoutSimpleComponent implements OnInit, OnDestroy {
   private handleRouteChange(url: string) {
     const isInLearningInterface = url.includes('/student/learn/course/');
     const isInCourseDetail = url.match(/\/student\/course\/[^\/]+$/); // Match /student/course/:id but not /student/courses
-    const shouldHide = isInLearningInterface || isInCourseDetail;
+    const isInQuiz = url.includes('/student/quiz/take/'); // Hide sidebar when taking quiz
+    const shouldHide = isInLearningInterface || isInCourseDetail || isInQuiz;
     const isCurrentlyHidden = this.sidebarHidden();
 
-    // Auto-hide sidebar when entering learning interface or course detail
+    // Auto-hide sidebar when entering learning interface, course detail, or quiz
     if (shouldHide && !isCurrentlyHidden) {
       this.sidebarHidden.set(true);
       this.saveSidebarState(true);
     }
-    // Auto-show sidebar when leaving learning interface and course detail
+    // Auto-show sidebar when leaving learning interface, course detail, and quiz
     else if (!shouldHide && isCurrentlyHidden) {
       this.sidebarHidden.set(false);
       this.saveSidebarState(false);
