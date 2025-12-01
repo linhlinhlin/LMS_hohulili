@@ -1,14 +1,17 @@
-import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, signal } from '@angular/core';
+import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { SidebarComponent } from '../../../shared/components/navigation/sidebar.component';
 import { teacherSidebarConfig } from '../../../shared/components/navigation/sidebar.config';
+import { NotificationBellComponent } from '../../../shared/components/notification-bell.component';
+import { NotificationService } from '../../../core/services/notification.service';
+import { ChatWidgetComponent } from '../../ai-chat/presentation/components/chat-widget/chat-widget.component';
 
 @Component({
   selector: 'app-teacher-layout-simple',
   standalone: true,
-  imports: [CommonModule, RouterModule, RouterOutlet, SidebarComponent],
+  imports: [CommonModule, RouterModule, RouterOutlet, SidebarComponent, NotificationBellComponent, ChatWidgetComponent],
   encapsulation: ViewEncapsulation.None,
   template: `
     <!-- Modern gradient background for teacher portal -->
@@ -58,6 +61,9 @@ import { teacherSidebarConfig } from '../../../shared/components/navigation/side
 
               <!-- Modern user menu -->
               <div class="flex items-center space-x-3">
+                <!-- Notification Bell -->
+                <app-notification-bell></app-notification-bell>
+
                 <!-- User avatar and info -->
                 <div class="flex items-center space-x-2">
                   <div class="w-8 h-8 bg-gradient-to-br from-indigo-500 to-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
@@ -87,14 +93,24 @@ import { teacherSidebarConfig } from '../../../shared/components/navigation/side
           <router-outlet></router-outlet>
         </main>
       </div>
+
+      <!-- AI Chat Widget -->
+      <app-chat-widget />
     </div>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class TeacherLayoutSimpleComponent {
+export class TeacherLayoutSimpleComponent implements OnInit {
   protected authService = inject(AuthService);
+  private notificationService = inject(NotificationService);
   protected isMobileSidebarOpen = signal(false);
   protected teacherSidebarConfig = teacherSidebarConfig;
+
+  ngOnInit(): void {
+    // Initialize notification service with current user ID
+    const userId = this.authService.currentUser()?.id || 'teacher-1';
+    this.notificationService.initialize(userId);
+  }
 
   toggleMobileSidebar(): void {
     this.isMobileSidebarOpen.update(open => !open);

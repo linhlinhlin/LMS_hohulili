@@ -30,4 +30,28 @@ public interface AssignmentRepository extends JpaRepository<Assignment, UUID> {
     
     @Query("SELECT COUNT(a) FROM Assignment a WHERE a.course.id = :courseId")
     long countByCourseId(@Param("courseId") UUID courseId);
+    
+    /**
+     * Find assignments by course with eager loading of course, enrolledStudents and submissions
+     * Used for teacher assignment summary to avoid LazyInitializationException
+     */
+    @Query("SELECT DISTINCT a FROM Assignment a " +
+           "LEFT JOIN FETCH a.course c " +
+           "LEFT JOIN FETCH c.enrolledStudents " +
+           "LEFT JOIN FETCH a.submissions " +
+           "WHERE a.course = :course " +
+           "ORDER BY a.createdAt ASC")
+    List<Assignment> findByCourseWithDetails(@Param("course") Course course);
+    
+    /**
+     * Find all assignments for courses taught by a specific teacher
+     * with eager loading for summary display
+     */
+    @Query("SELECT DISTINCT a FROM Assignment a " +
+           "LEFT JOIN FETCH a.course c " +
+           "LEFT JOIN FETCH c.enrolledStudents " +
+           "LEFT JOIN FETCH a.submissions " +
+           "WHERE c.teacher.id = :teacherId " +
+           "ORDER BY a.createdAt DESC")
+    List<Assignment> findByTeacherIdWithDetails(@Param("teacherId") UUID teacherId);
 }

@@ -1,21 +1,35 @@
-import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, signal, OnInit } from '@angular/core';
+import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, signal, OnInit, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { LessonApi } from '../../../api/client/lesson.api';
+import { AssignmentApi, SubmissionSummary, SubmissionGrade } from '../../../api/client/assignment.api';
+import { isLateSubmission, formatLateDuration, LateSubmissionResult } from './utils/submission-utils';
+import { validateGrade } from './utils/assignment-validators';
 
-interface AssignmentSubmission {
-  id: string;
-  studentId: string;
-  studentName: string;
-  studentEmail: string;
-  submittedAt: string;
-  content: string;
+/** Helper to extract numeric score from grade */
+function getGradeScore(grade: number | SubmissionGrade | undefined): number | undefined {
+  if (grade === undefined || grade === null) return undefined;
+  if (typeof grade === 'number') return grade;
+  return grade.score;
+}
+
+interface AssignmentSubmission extends SubmissionSummary {
+  content?: string;
   fileUrl?: string;
   fileName?: string;
-  grade?: number;
-  feedback?: string;
-  status: 'PENDING' | 'GRADED' | 'LATE' | 'RETURNED';
+  attachments?: AttachmentInfo[];
+}
+
+interface AttachmentInfo {
+  id: string;
+  fileName: string;
+  fileUrl: string;
+  mimeType?: string;
+  metadata?: {
+    scale?: string;
+    coordinates?: { latitude: number; longitude: number };
+    captureDate?: string;
+  };
 }
 
 interface AssignmentDetail {
@@ -28,11 +42,19 @@ interface AssignmentDetail {
   status: string;
   submissionCount: number;
   totalStudents: number;
+  courseTitle?: string;
 }
 
+/**
+ * Assignment Submissions Component
+ * 
+ * Manages student submissions for an assignment with grading capabilities.
+ * Features: late submission detection, inline preview, grading modal.
+ * 
+ * @requirements 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7
+ */
 @Component({
   selector: 'app-assignment-submissions',
-  standalone: true,
   imports: [CommonModule, RouterLink, ReactiveFormsModule],
   encapsulation: ViewEncapsulation.None,
   template: `
@@ -41,347 +63,432 @@ interface AssignmentDetail {
       <div class="flex items-center justify-between mb-6">
         <div>
           <h1 class="text-2xl font-bold text-gray-900">Quản lý bài nộp</h1>
-          <p class="text-gray-600 mt-1" *ngIf="assignment()">{{ assignment()!.title }}</p>
+          @if (assignment()) {
+            <p class="text-gray-600 mt-1">{{ assignment()!.title }}</p>
+            <p class="text-sm text-gray-500">{{ assignment()!.courseTitle }}</p>
+          }
         </div>
-        <a class="px-4 py-2 border rounded hover:bg-gray-50 transition-colors flex items-center gap-2" 
-           [routerLink]="['/teacher/courses', courseId, 'sections', sectionId]">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-          </svg>
-          Quay lại bài học
-        </a>
+        <div class="flex items-center gap-3">
+          <button (click)="exportSubmissions()" 
+                  class="px-4 py-2 border rounded-lg text-gray-600 hover:bg-gray-50 flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            Xuất Excel
+          </button>
+          <a routerLink="/teacher/assignments" class="px-4 py-2 border rounded-lg hover:bg-gray-50 flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
+            Quay lại
+          </a>
+        </div>
       </div>
 
-      <!-- Assignment Info Card -->
-      <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6" *ngIf="assignment() as a">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div class="text-center">
-            <div class="text-2xl font-bold text-blue-600">{{ a.submissionCount }}/{{ a.totalStudents }}</div>
-            <div class="text-sm text-blue-500">Đã nộp</div>
+      <!-- Stats Cards -->
+      @if (assignment(); as a) {
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+          <div class="bg-white rounded-xl shadow-sm border p-4 text-center">
+            <div class="text-2xl font-bold text-blue-600">{{ a.submissionCount }}</div>
+            <div class="text-sm text-gray-500">Đã nộp</div>
           </div>
-          <div class="text-center">
-            <div class="text-2xl font-bold text-green-600">{{ a.maxScore }}</div>
-            <div class="text-sm text-green-500">Điểm tối đa</div>
+          <div class="bg-white rounded-xl shadow-sm border p-4 text-center">
+            <div class="text-2xl font-bold text-gray-600">{{ a.totalStudents - a.submissionCount }}</div>
+            <div class="text-sm text-gray-500">Chưa nộp</div>
           </div>
-          <div class="text-center" *ngIf="a.dueDate">
-            <div class="text-lg font-bold text-orange-600">{{ formatDate(a.dueDate) }}</div>
-            <div class="text-sm text-orange-500">Hạn nộp</div>
+          <div class="bg-white rounded-xl shadow-sm border p-4 text-center">
+            <div class="text-2xl font-bold text-green-600">{{ gradedCount() }}</div>
+            <div class="text-sm text-gray-500">Đã chấm</div>
           </div>
-          <div class="text-center">
-            <div class="text-lg font-bold" [class]="getStatusClass(a.status)">{{ getStatusText(a.status) }}</div>
-            <div class="text-sm text-gray-500">Trạng thái</div>
+          <div class="bg-white rounded-xl shadow-sm border p-4 text-center">
+            <div class="text-2xl font-bold text-orange-600">{{ pendingCount() }}</div>
+            <div class="text-sm text-gray-500">Chờ chấm</div>
+          </div>
+          <div class="bg-white rounded-xl shadow-sm border p-4 text-center">
+            <div class="text-2xl font-bold text-red-600">{{ lateCount() }}</div>
+            <div class="text-sm text-gray-500">Nộp muộn</div>
           </div>
         </div>
-      </div>
+
+        <!-- Assignment Info -->
+        <div class="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-xl p-6 mb-6">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <span class="text-sm text-indigo-600 font-medium">Điểm tối đa</span>
+              <div class="text-xl font-bold text-gray-900">{{ a.maxScore }} điểm</div>
+            </div>
+            <div>
+              <span class="text-sm text-indigo-600 font-medium">Hạn nộp</span>
+              <div class="text-xl font-bold text-gray-900">
+                {{ a.dueDate ? formatDate(a.dueDate) : 'Không giới hạn' }}
+              </div>
+            </div>
+            <div>
+              <span class="text-sm text-indigo-600 font-medium">Trạng thái</span>
+              <div class="text-xl font-bold" [class]="getStatusClass(a.status)">{{ getStatusText(a.status) }}</div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Loading -->
+      @if (loading()) {
+        <div class="bg-white rounded-xl shadow-sm border p-8 text-center">
+          <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-indigo-500 border-t-transparent"></div>
+          <p class="mt-2 text-gray-500">Đang tải danh sách bài nộp...</p>
+        </div>
+      }
 
       <!-- Submissions Table -->
-      <div class="bg-white rounded-lg shadow overflow-hidden">
-        <div class="px-6 py-4 border-b">
-          <h2 class="text-lg font-semibold text-gray-900">Danh sách bài nộp ({{ submissions().length }})</h2>
-        </div>
+      @if (!loading()) {
+        <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+          <div class="px-6 py-4 border-b flex items-center justify-between">
+            <h2 class="text-lg font-semibold text-gray-900">Danh sách bài nộp ({{ submissions().length }})</h2>
+            <div class="flex items-center gap-2">
+              <select class="border rounded-lg px-3 py-1 text-sm" [value]="filterStatus()" (change)="onFilterChange($event)">
+                <option value="">Tất cả</option>
+                <option value="PENDING">Chờ chấm</option>
+                <option value="GRADED">Đã chấm</option>
+                <option value="LATE">Nộp muộn</option>
+              </select>
+            </div>
+          </div>
 
-        <div *ngIf="loading()" class="p-8 text-center text-gray-500">
-          Đang tải danh sách bài nộp...
+          @if (filteredSubmissions().length === 0) {
+            <div class="p-8 text-center text-gray-500">
+              @if (submissions().length === 0) {
+                Chưa có bài nộp nào.
+              } @else {
+                Không có bài nộp phù hợp với bộ lọc.
+              }
+            </div>
+          } @else {
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Học viên</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thời gian nộp</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">File đính kèm</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Điểm</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                  @for (submission of filteredSubmissions(); track submission.id) {
+                    <tr class="hover:bg-gray-50">
+                      <td class="px-6 py-4">
+                        <div class="flex items-center gap-3">
+                          <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-medium">
+                            {{ getInitials(submission.studentName) }}
+                          </div>
+                          <div>
+                            <div class="font-medium text-gray-900">{{ submission.studentName }}</div>
+                            <div class="text-sm text-gray-500">{{ submission.studentEmail }}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="px-6 py-4">
+                        <div class="text-sm text-gray-900">{{ formatDate(submission.submittedAt || '') }}</div>
+                        @if (getSubmissionLateInfo(submission); as lateInfo) {
+                          <div class="text-xs" [class]="lateInfo.isLate ? 'text-red-500' : 'text-green-500'">
+                            {{ lateInfo.isLate ? formatLateDuration(lateInfo) : 'Đúng hạn' }}
+                          </div>
+                        }
+                      </td>
+                      <td class="px-6 py-4">
+                        @if (submission.attachments && submission.attachments.length > 0) {
+                          <div class="flex flex-wrap gap-1">
+                            @for (file of submission.attachments; track file.id) {
+                              <button (click)="previewFile(file)" 
+                                      class="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-600 rounded text-xs hover:bg-blue-100">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                </svg>
+                                {{ file.fileName }}
+                              </button>
+                            }
+                          </div>
+                        } @else {
+                          <span class="text-gray-400 text-sm">Không có file</span>
+                        }
+                      </td>
+                      <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs font-semibold rounded-full" [class]="getSubmissionStatusClass(submission.status)">
+                          {{ getSubmissionStatusText(submission.status) }}
+                        </span>
+                      </td>
+                      <td class="px-6 py-4">
+                        @if (getGradeScore(submission.grade) !== undefined) {
+                          <div class="font-medium text-gray-900">{{ getGradeScore(submission.grade) }}/{{ assignment()?.maxScore }}</div>
+                          <div class="text-xs text-gray-500">{{ getGradePercentage(getGradeScore(submission.grade)!) }}%</div>
+                        } @else {
+                          <span class="text-gray-400">Chưa chấm</span>
+                        }
+                      </td>
+                      <td class="px-6 py-4 text-right space-x-2">
+                        <button (click)="viewSubmission(submission)" class="text-blue-600 hover:text-blue-800 text-sm">
+                          Xem
+                        </button>
+                        <button (click)="gradeSubmission(submission)" 
+                                class="text-sm" 
+                                [class]="submission.status === 'graded' ? 'text-purple-600 hover:text-purple-800' : 'text-green-600 hover:text-green-800'">
+                          {{ submission.status === 'graded' ? 'Sửa điểm' : 'Chấm điểm' }}
+                        </button>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
         </div>
+      }
 
-        <div *ngIf="!loading() && submissions().length === 0" class="p-8 text-center text-gray-500">
-          Chưa có bài nộp nào.
+      <!-- File Preview Modal -->
+      @if (previewingFile()) {
+        <div class="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
+          <div class="bg-white rounded-xl max-w-5xl w-full max-h-[90vh] flex flex-col">
+            <div class="flex items-center justify-between p-4 border-b">
+              <div>
+                <h3 class="font-semibold text-gray-900">{{ previewingFile()!.fileName }}</h3>
+                @if (previewingFile()!.metadata) {
+                  <div class="text-xs text-gray-500 mt-1">
+                    @if (previewingFile()!.metadata?.scale) {
+                      <span class="mr-3">Tỉ lệ: {{ previewingFile()!.metadata?.scale }}</span>
+                    }
+                    @if (previewingFile()!.metadata?.captureDate) {
+                      <span>Ngày chụp: {{ previewingFile()!.metadata?.captureDate }}</span>
+                    }
+                  </div>
+                }
+              </div>
+              <div class="flex items-center gap-2">
+                <a [href]="previewingFile()!.fileUrl" target="_blank" download
+                   class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
+                  Tải xuống
+                </a>
+                <button (click)="closePreview()" class="p-1 text-gray-400 hover:text-gray-600">
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="flex-1 overflow-auto p-4 bg-gray-100">
+              @if (isImageFile(previewingFile()!.fileName)) {
+                <img [src]="previewingFile()!.fileUrl" [alt]="previewingFile()!.fileName" class="max-w-full mx-auto"/>
+              } @else if (isPdfFile(previewingFile()!.fileName)) {
+                <iframe [src]="previewingFile()!.fileUrl" class="w-full h-[70vh] border-0"></iframe>
+              } @else {
+                <div class="text-center py-8 text-gray-500">
+                  <p>Không thể xem trước file này.</p>
+                  <a [href]="previewingFile()!.fileUrl" target="_blank" download class="text-blue-600 hover:underline mt-2 inline-block">
+                    Tải xuống để xem
+                  </a>
+                </div>
+              }
+            </div>
+          </div>
         </div>
-
-        <div *ngIf="!loading() && submissions().length > 0" class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-              <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Học viên
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Thời gian nộp
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Trạng thái
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Điểm số
-                </th>
-                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Thao tác
-                </th>
-              </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-              <tr *ngFor="let submission of submissions()" class="hover:bg-gray-50">
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div>
-                    <div class="text-sm font-medium text-gray-900">{{ submission.studentName }}</div>
-                    <div class="text-sm text-gray-500">{{ submission.studentEmail }}</div>
-                  </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm text-gray-900">{{ formatDate(submission.submittedAt) }}</div>
-                  <div class="text-xs text-gray-500" [class]="getSubmissionTimingClass(submission)">
-                    {{ getSubmissionTiming(submission) }}
-                  </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
-                        [class]="getSubmissionStatusClass(submission.status)">
-                    {{ getSubmissionStatusText(submission.status) }}
-                  </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm font-medium" *ngIf="submission.grade !== undefined">
-                    {{ submission.grade }}/{{ assignment()?.maxScore }}
-                  </div>
-                  <div class="text-sm text-gray-500" *ngIf="submission.grade === undefined">
-                    Chưa chấm
-                  </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                  <button class="text-blue-600 hover:text-blue-900" (click)="viewSubmission(submission)">
-                    Xem
-                  </button>
-                  <button class="text-green-600 hover:text-green-900" (click)="gradeSubmission(submission)"
-                          *ngIf="submission.status !== 'GRADED'">
-                    Chấm điểm
-                  </button>
-                  <button class="text-purple-600 hover:text-purple-900" (click)="gradeSubmission(submission)"
-                          *ngIf="submission.status === 'GRADED'">
-                    Sửa điểm
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+      }
 
       <!-- Grading Modal -->
-      <div *ngIf="gradingSubmission()" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-          <div class="flex items-center justify-between p-6 border-b">
-            <h3 class="text-lg font-semibold">Chấm điểm bài nộp</h3>
-            <button (click)="closeGradingModal()" class="text-gray-400 hover:text-gray-600">
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-              </svg>
-            </button>
-          </div>
-
-          <div class="p-6 space-y-6" *ngIf="gradingSubmission() as submission">
-            <!-- Student Info -->
-            <div class="bg-gray-50 rounded-lg p-4">
-              <h4 class="font-medium text-gray-900 mb-2">Thông tin học viên</h4>
-              <p><strong>Tên:</strong> {{ submission.studentName }}</p>
-              <p><strong>Email:</strong> {{ submission.studentEmail }}</p>
-              <p><strong>Thời gian nộp:</strong> {{ formatDate(submission.submittedAt) }}</p>
+      @if (gradingSubmission()) {
+        <div class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div class="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between p-6 border-b">
+              <h3 class="text-lg font-semibold">Chấm điểm bài nộp</h3>
+              <button (click)="closeGradingModal()" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
             </div>
 
-            <!-- Submission Content -->
-            <div>
-              <h4 class="font-medium text-gray-900 mb-3">Nội dung bài nộp</h4>
-              <div class="bg-gray-50 rounded-lg p-4 whitespace-pre-line">
-                {{ submission.content || 'Không có nội dung văn bản.' }}
+            <div class="p-6 space-y-6">
+              <!-- Student Info -->
+              <div class="bg-gray-50 rounded-lg p-4">
+                <div class="flex items-center gap-4">
+                  <div class="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-lg">
+                    {{ getInitials(gradingSubmission()!.studentName) }}
+                  </div>
+                  <div>
+                    <div class="font-medium text-gray-900">{{ gradingSubmission()!.studentName }}</div>
+                    <div class="text-sm text-gray-500">{{ gradingSubmission()!.studentEmail }}</div>
+                    <div class="text-xs text-gray-400">Nộp lúc: {{ formatDate(gradingSubmission()!.submittedAt || '') }}</div>
+                  </div>
+                </div>
               </div>
-              <div *ngIf="submission.fileUrl" class="mt-3">
-                <a [href]="submission.fileUrl" target="_blank" 
-                   class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                  </svg>
-                  Tải xuống file: {{ submission.fileName }}
-                </a>
-              </div>
+
+              <!-- Submission Content -->
+              @if (gradingSubmission()!.content) {
+                <div>
+                  <h4 class="font-medium text-gray-900 mb-2">Nội dung bài nộp</h4>
+                  <div class="bg-gray-50 rounded-lg p-4 whitespace-pre-line text-sm">{{ gradingSubmission()!.content }}</div>
+                </div>
+              }
+
+              <!-- Grading Form -->
+              <form [formGroup]="gradingForm" class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Điểm số (0 - {{ assignment()?.maxScore }})
+                  </label>
+                  <input type="number" formControlName="grade" [min]="0" [max]="assignment()?.maxScore ?? 100"
+                         class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"/>
+                  @if (gradingForm.controls.grade.invalid && gradingForm.controls.grade.touched) {
+                    <p class="text-sm text-red-600 mt-1">Điểm phải từ 0 đến {{ assignment()?.maxScore }}</p>
+                  }
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Nhận xét</label>
+                  <textarea formControlName="feedback" rows="4" placeholder="Nhập nhận xét cho học viên..."
+                            class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"></textarea>
+                </div>
+                <div class="flex gap-3 pt-4">
+                  <button type="button" (click)="submitGrade()" [disabled]="gradingForm.invalid || savingGrade()"
+                          class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50">
+                    @if (savingGrade()) { Đang lưu... } @else { Lưu điểm }
+                  </button>
+                  <button type="button" (click)="closeGradingModal()" class="px-4 py-2 border rounded-lg hover:bg-gray-50">
+                    Hủy
+                  </button>
+                </div>
+              </form>
             </div>
-
-            <!-- Grading Form -->
-            <form [formGroup]="gradingForm" class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">
-                  Điểm số (0 - {{ assignment()?.maxScore }})
-                </label>
-                <input type="number" 
-                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                       formControlName="grade"
-                       [min]="0"
-                       [max]="assignment()?.maxScore ?? 100">
-              </div>
-              
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">
-                  Nhận xét
-                </label>
-                <textarea class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[120px]"
-                          formControlName="feedback"
-                          placeholder="Nhập nhận xét cho học viên..."></textarea>
-              </div>
-
-              <div class="flex gap-3">
-                <button type="button" (click)="submitGrade()" 
-                        [disabled]="gradingForm.invalid"
-                        class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50">
-                  Lưu điểm
-                </button>
-                <button type="button" (click)="closeGradingModal()"
-                        class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50">
-                  Hủy
-                </button>
-              </div>
-            </form>
           </div>
         </div>
-      </div>
+      }
     </div>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AssignmentSubmissionsComponent implements OnInit {
   private route = inject(ActivatedRoute);
-  private lessonApi = inject(LessonApi);
+  private assignmentApi = inject(AssignmentApi);
   private fb = inject(FormBuilder);
 
   // Route params
-  courseId = '';
-  sectionId = '';
   assignmentId = '';
 
-  // State
+  // State signals
   loading = signal(true);
+  savingGrade = signal(false);
   assignment = signal<AssignmentDetail | null>(null);
   submissions = signal<AssignmentSubmission[]>([]);
   gradingSubmission = signal<AssignmentSubmission | null>(null);
+  previewingFile = signal<AttachmentInfo | null>(null);
+  filterStatus = signal<string>('');
 
-  // Forms
+  // Computed
+  filteredSubmissions = computed(() => {
+    const status = this.filterStatus();
+    if (!status) return this.submissions();
+    return this.submissions().filter((s: AssignmentSubmission) => s.status.toUpperCase() === status);
+  });
+
+  gradedCount = computed(() => this.submissions().filter((s: AssignmentSubmission) => s.status === 'graded').length);
+  pendingCount = computed(() => this.submissions().filter((s: AssignmentSubmission) => s.status === 'pending' || s.status === 'submitted').length);
+  lateCount = computed(() => this.submissions().filter((s: AssignmentSubmission) => s.status === 'late').length);
+
+  // Form
   gradingForm = this.fb.group({
     grade: [0, [Validators.required, Validators.min(0)]],
     feedback: ['']
   });
 
   ngOnInit(): void {
-    this.courseId = this.route.snapshot.paramMap.get('courseId') || '';
-    this.sectionId = this.route.snapshot.paramMap.get('sectionId') || '';
-    this.assignmentId = this.route.snapshot.paramMap.get('assignmentId') || '';
-
-    this.loadAssignmentData();
-    this.loadSubmissions();
+    this.assignmentId = this.route.snapshot.paramMap.get('id') || this.route.snapshot.paramMap.get('assignmentId') || '';
+    this.loadData();
   }
 
-  loadAssignmentData(): void {
-    // TODO: Call API to load assignment details
-    // this.lessonApi.getAssignmentDetails(this.assignmentId).subscribe({
-    //   next: (res) => this.assignment.set(res.data),
-    //   error: (err) => console.error('Failed to load assignment:', err)
-    // });
-
-    // Mock data for now
+  private loadData(): void {
+    this.loading.set(true);
+    // Load mock data for now - replace with real API
     setTimeout(() => {
       this.assignment.set({
         id: this.assignmentId,
-        title: 'Bài tập 1: Phân tích hệ thống LMS',
-        description: 'Thực hiện phân tích và thiết kế hệ thống LMS theo yêu cầu đã cho.',
-        instructions: 'Sinh viên cần nộp báo cáo dạng PDF và source code dạng ZIP.',
-        dueDate: '2025-10-25T23:59:59',
+        title: 'Bài tập An toàn Hàng hải - Chương 1',
+        description: 'Phân tích các quy định SOLAS',
+        instructions: 'Nộp báo cáo PDF và bản đồ hàng hải',
+        dueDate: '2025-12-20T23:59:59Z',
         maxScore: 100,
         status: 'PUBLISHED',
-        submissionCount: 8,
-        totalStudents: 12
+        submissionCount: 3,
+        totalStudents: 5,
+        courseTitle: 'An toàn Hàng hải Cơ bản'
       });
-    }, 500);
-  }
-
-  loadSubmissions(): void {
-    // TODO: Call API to load submissions
-    // this.lessonApi.getAssignmentSubmissions(this.assignmentId).subscribe({
-    //   next: (res) => this.submissions.set(res.data),
-    //   error: (err) => console.error('Failed to load submissions:', err),
-    //   complete: () => this.loading.set(false)
-    // });
-
-    // Mock data for now
-    setTimeout(() => {
       this.submissions.set([
         {
-          id: '1',
-          studentId: 'student1',
-          studentName: 'Nguyễn Văn A',
-          studentEmail: 'nguyenvana@email.com',
-          submittedAt: '2025-10-20T14:30:00',
-          content: 'Tôi đã hoàn thành bài phân tích hệ thống LMS. Báo cáo bao gồm các phần: phân tích yêu cầu, thiết kế kiến trúc, và thiết kế cơ sở dữ liệu.',
-          fileUrl: '/uploads/assignments/baocao_lms.pdf',
-          fileName: 'baocao_lms.pdf',
-          grade: 85,
-          feedback: 'Bài làm tốt, phần phân tích rõ ràng. Cần cải thiện phần thiết kế UI.',
-          status: 'GRADED'
+          id: '1', studentId: 's1', studentName: 'Nguyễn Văn A', studentEmail: 'nva@email.com',
+          submittedAt: '2025-12-18T14:30:00Z', status: 'graded', grade: 85, feedback: 'Tốt',
+          content: 'Báo cáo phân tích SOLAS...', attachments: [
+            { id: 'f1', fileName: 'baocao.pdf', fileUrl: '/uploads/baocao.pdf', mimeType: 'application/pdf' }
+          ]
         },
         {
-          id: '2',
-          studentId: 'student2',
-          studentName: 'Trần Thị B',
-          studentEmail: 'tranthib@email.com',
-          submittedAt: '2025-10-22T16:45:00',
-          content: 'Báo cáo phân tích hệ thống LMS đã hoàn thành.',
-          fileUrl: '/uploads/assignments/assignment_lms.docx',
-          fileName: 'assignment_lms.docx',
-          status: 'PENDING'
+          id: '2', studentId: 's2', studentName: 'Trần Thị B', studentEmail: 'ttb@email.com',
+          submittedAt: '2025-12-21T10:00:00Z', status: 'late', content: 'Bài nộp muộn', attachments: []
+        },
+        {
+          id: '3', studentId: 's3', studentName: 'Lê Văn C', studentEmail: 'lvc@email.com',
+          submittedAt: '2025-12-19T16:00:00Z', status: 'pending', content: 'Đang chờ chấm', attachments: [
+            { id: 'f2', fileName: 'chart.png', fileUrl: '/uploads/chart.png', mimeType: 'image/png',
+              metadata: { scale: '1:50000', captureDate: '2025-12-01' } }
+          ]
         }
       ]);
       this.loading.set(false);
-    }, 800);
+    }, 500);
+  }
+
+  onFilterChange(event: Event): void {
+    this.filterStatus.set((event.target as HTMLSelectElement).value);
+  }
+
+  getSubmissionLateInfo(submission: AssignmentSubmission): LateSubmissionResult | null {
+    if (!submission.submittedAt || !this.assignment()?.dueDate) return null;
+    return isLateSubmission(submission.submittedAt, this.assignment()?.dueDate);
+  }
+
+  formatLateDuration(result: LateSubmissionResult): string {
+    return formatLateDuration(result);
   }
 
   viewSubmission(submission: AssignmentSubmission): void {
-    // TODO: Open detailed submission view
-    console.log('Viewing submission:', submission);
+    this.gradingSubmission.set(submission);
   }
 
   gradeSubmission(submission: AssignmentSubmission): void {
     this.gradingSubmission.set(submission);
-    this.gradingForm.patchValue({
-      grade: submission.grade || 0,
-      feedback: submission.feedback || ''
-    });
-
-    // Update max validator for grade based on assignment max score
+    const gradeValue = getGradeScore(submission.grade) || 0;
+    this.gradingForm.patchValue({ grade: gradeValue, feedback: submission.feedback || '' });
     const maxScore = this.assignment()?.maxScore || 100;
-    this.gradingForm.get('grade')?.setValidators([
-      Validators.required,
-      Validators.min(0),
-      Validators.max(maxScore)
-    ]);
+    this.gradingForm.get('grade')?.setValidators([Validators.required, Validators.min(0), Validators.max(maxScore)]);
   }
 
   submitGrade(): void {
     if (this.gradingForm.invalid) return;
-
     const submission = this.gradingSubmission();
     if (!submission) return;
 
     const grade = this.gradingForm.value.grade!;
     const feedback = this.gradingForm.value.feedback || '';
+    const validation = validateGrade(grade, this.assignment()?.maxScore || 100);
+    if (!validation.isValid) return;
 
-    // TODO: Call API to submit grade
-    // this.lessonApi.gradeSubmission(submission.id, { grade, feedback }).subscribe({
-    //   next: () => {
-    //     // Update local state
-    //     this.updateSubmissionGrade(submission.id, grade, feedback);
-    //     this.closeGradingModal();
-    //   },
-    //   error: (err) => console.error('Failed to submit grade:', err)
-    // });
-
-    // Mock update for now
-    this.updateSubmissionGrade(submission.id, grade, feedback);
-    this.closeGradingModal();
-  }
-
-  private updateSubmissionGrade(submissionId: string, grade: number, feedback: string): void {
-    this.submissions.update(list => 
-      list.map(s => 
-        s.id === submissionId 
-          ? { ...s, grade, feedback, status: 'GRADED' as const }
-          : s
-      )
-    );
+    this.savingGrade.set(true);
+    // Mock save - replace with API
+    setTimeout(() => {
+      this.submissions.update((list: AssignmentSubmission[]) => list.map((s: AssignmentSubmission) =>
+        s.id === submission.id ? { ...s, grade, feedback, status: 'graded' as const } : s
+      ));
+      this.savingGrade.set(false);
+      this.closeGradingModal();
+    }, 500);
   }
 
   closeGradingModal(): void {
@@ -389,74 +496,81 @@ export class AssignmentSubmissionsComponent implements OnInit {
     this.gradingForm.reset();
   }
 
-  // Helper methods
+  previewFile(file: AttachmentInfo): void {
+    this.previewingFile.set(file);
+  }
+
+  closePreview(): void {
+    this.previewingFile.set(null);
+  }
+
+  exportSubmissions(): void {
+    this.assignmentApi.exportSubmissions(this.assignmentId).subscribe({
+      next: (blob: Blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `submissions_${this.assignmentId}.xlsx`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+      },
+      error: (err: unknown) => console.error('Export failed:', err)
+    });
+  }
+
+  // Helpers
   formatDate(dateString: string): string {
+    if (!dateString) return '';
     return new Date(dateString).toLocaleString('vi-VN');
   }
 
+  getInitials(name: string): string {
+    return name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
+  }
+
+  getGradeScore(grade: number | SubmissionGrade | undefined): number | undefined {
+    return getGradeScore(grade);
+  }
+
+  getGradePercentage(grade: number): number {
+    const max = this.assignment()?.maxScore || 100;
+    return Math.round((grade / max) * 100);
+  }
+
+  isImageFile(fileName: string): boolean {
+    return /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName);
+  }
+
+  isPdfFile(fileName: string): boolean {
+    return /\.pdf$/i.test(fileName);
+  }
+
   getStatusClass(status: string): string {
-    switch (status) {
-      case 'PUBLISHED': return 'text-green-600';
-      case 'DRAFT': return 'text-yellow-600';
-      case 'CLOSED': return 'text-red-600';
-      default: return 'text-gray-600';
-    }
+    const classes: Record<string, string> = {
+      'PUBLISHED': 'text-green-600', 'DRAFT': 'text-yellow-600', 'CLOSED': 'text-gray-600'
+    };
+    return classes[status] || 'text-gray-600';
   }
 
   getStatusText(status: string): string {
-    switch (status) {
-      case 'PUBLISHED': return 'Đang mở';
-      case 'DRAFT': return 'Nháp';
-      case 'CLOSED': return 'Đã đóng';
-      default: return 'Không xác định';
-    }
+    const texts: Record<string, string> = {
+      'PUBLISHED': 'Đang mở', 'DRAFT': 'Nháp', 'CLOSED': 'Đã đóng'
+    };
+    return texts[status] || status;
   }
 
   getSubmissionStatusClass(status: string): string {
-    switch (status) {
-      case 'GRADED': return 'bg-green-100 text-green-800';
-      case 'PENDING': return 'bg-yellow-100 text-yellow-800';
-      case 'LATE': return 'bg-red-100 text-red-800';
-      case 'RETURNED': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
+    const classes: Record<string, string> = {
+      'graded': 'bg-green-100 text-green-800', 'pending': 'bg-yellow-100 text-yellow-800',
+      'submitted': 'bg-blue-100 text-blue-800', 'late': 'bg-red-100 text-red-800'
+    };
+    return classes[status] || 'bg-gray-100 text-gray-800';
   }
 
   getSubmissionStatusText(status: string): string {
-    switch (status) {
-      case 'GRADED': return 'Đã chấm';
-      case 'PENDING': return 'Chờ chấm';
-      case 'LATE': return 'Nộp muộn';
-      case 'RETURNED': return 'Đã trả';
-      default: return 'Không xác định';
-    }
-  }
-
-  getSubmissionTiming(submission: AssignmentSubmission): string {
-    const dueDate = this.assignment()?.dueDate;
-    if (!dueDate) return '';
-
-    const submittedAt = new Date(submission.submittedAt);
-    const due = new Date(dueDate);
-
-    if (submittedAt > due) {
-      const diff = submittedAt.getTime() - due.getTime();
-      const hours = Math.floor(diff / (1000 * 60 * 60));
-      return `Muộn ${hours} giờ`;
-    } else {
-      const diff = due.getTime() - submittedAt.getTime();
-      const hours = Math.floor(diff / (1000 * 60 * 60));
-      return `Sớm ${hours} giờ`;
-    }
-  }
-
-  getSubmissionTimingClass(submission: AssignmentSubmission): string {
-    const dueDate = this.assignment()?.dueDate;
-    if (!dueDate) return '';
-
-    const submittedAt = new Date(submission.submittedAt);
-    const due = new Date(dueDate);
-
-    return submittedAt > due ? 'text-red-500' : 'text-green-500';
+    const texts: Record<string, string> = {
+      'graded': 'Đã chấm', 'pending': 'Chờ chấm', 'submitted': 'Đã nộp', 'late': 'Nộp muộn'
+    };
+    return texts[status] || status;
   }
 }

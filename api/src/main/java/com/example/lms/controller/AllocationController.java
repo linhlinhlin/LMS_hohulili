@@ -1,0 +1,281 @@
+package com.example.lms.controller;
+
+import com.example.lms.dto.ApiResponse;
+import com.example.lms.entity.AssignmentAllocation;
+import com.example.lms.entity.User;
+import com.example.lms.service.AllocationService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+@RestController
+@RequestMapping("/api/v1")
+@RequiredArgsConstructor
+@Tag(name = "Assignment Allocation", description = "API quản lý phân phối bài tập cho học viên")
+@SecurityRequirement(name = "Bearer Authentication")
+public class AllocationController {
+
+    private final AllocationService allocationService;
+
+    @PostMapping("/assignments/{assignmentId}/allocation")
+    @Operation(summary = "Tạo/Cập nhật phân phối bài tập", description = "Giao bài tập cho tất cả hoặc một số học viên cụ thể")
+    public ResponseEntity<ApiResponse<AllocationResponse>> createOrUpdateAllocation(
+            @PathVariable UUID assignmentId,
+            @AuthenticationPrincipal User currentUser,
+            @Valid @RequestBody CreateAllocationRequest request
+    ) {
+        try {
+            AssignmentAllocation.DistributionType distributionType = 
+                    AssignmentAllocation.DistributionType.valueOf(request.getDistributionType());
+
+            AssignmentAllocation allocation = allocationService.createOrUpdateAllocation(
+                    assignmentId,
+                    distributionType,
+                    request.getStudentIds(),
+                    currentUser,
+                    request.getIsIndividual() != null && request.getIsIndividual()
+            );
+
+            AllocationResponse response = convertToResponse(allocation);
+            return ResponseEntity.ok(ApiResponse.success(response));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("Loại phân phối không hợp lệ: " + request.getDistributionType()));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @GetMapping("/assignments/{assignmentId}/allocation")
+    @Operation(summary = "Lấy thông tin phân phối bài tập", description = "Xem ai được giao bài tập này")
+    public ResponseEntity<ApiResponse<AllocationResponse>> getAllocation(
+            @PathVariable UUID assignmentId,
+            @AuthenticationPrincipal User currentUser
+    ) {
+        try {
+            AssignmentAllocation allocation = allocationService.getAllocation(assignmentId);
+            
+            if (allocation == null) {
+                // Trả về mặc định là ALL_STUDENTS nếu chưa có allocation
+                AllocationResponse defaultResponse = AllocationResponse.builder()
+                        .assignmentId(assignmentId)
+                        .distributionType("ALL_STUDENTS")
+                        .isIndividual(false)
+                        .studentIds(null)
+                        .build();
+                return ResponseEntity.ok(ApiResponse.success(defaultResponse));
+            }
+
+            AllocationResponse response = convertToResponse(allocation);
+            return ResponseEntity.ok(ApiResponse.success(response));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @GetMapping("/assignments/{assignmentId}/allocation/stats")
+    @Operation(summary = "Lấy thống kê phân phối", description = "Xem số lượng học viên được giao bài tập")
+    public ResponseEntity<ApiResponse<AllocationStatsResponse>> getAllocationStats(
+            @PathVariable UUID assignmentId,
+            @RequestParam(defaultValue = "0") int totalEnrolledStudents,
+            @AuthenticationPrincipal User currentUser
+    ) {
+        try {
+            AllocationService.AllocationStats stats = 
+                    allocationService.getAllocationStats(assignmentId, totalEnrolledStudents);
+
+            AllocationStatsResponse response = AllocationStatsResponse.builder()
+                    .totalAllocated(stats.totalAllocated())
+                    .distributionType(stats.distributionType())
+                    .isIndividual(stats.isIndividual())
+                    .build();
+
+            return ResponseEntity.ok(ApiResponse.success(response));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/assignments/{assignmentId}/allocation/individual")
+    @Operation(summary = "Giao bài tập riêng cho học viên", description = "Giao bài tập cho một học viên cụ thể với deadline riêng")
+    public ResponseEntity<ApiResponse<AllocationResponse>> assignIndividual(
+            @PathVariable UUID assignmentId,
+            @AuthenticationPrincipal User currentUser,
+            @Valid @RequestBody AssignIndividualRequest request
+    ) {
+        try {
+            LocalDateTime customDeadline = null;
+            if (request.getCustomDeadline() != null) {
+                customDeadline = LocalDateTime.ofInstant(request.getCustomDeadline(), ZoneId.systemDefault());
+            }
+
+            AssignmentAllocation allocation = allocationService.assignIndividual(
+                    assignmentId,
+                    request.getStudentId(),
+                    customDeadline,
+                    request.getNote(),
+                    currentUser
+            );
+
+            AllocationResponse response = convertToResponse(allocation);
+            return ResponseEntity.ok(ApiResponse.success(response));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/assignments/{assignmentId}/allocation/students/{studentId}")
+    @Operation(summary = "Xóa học viên khỏi danh sách được giao", description = "Bỏ giao bài tập cho một học viên")
+    public ResponseEntity<ApiResponse<String>> removeStudentFromAllocation(
+            @PathVariable UUID assignmentId,
+            @PathVariable UUID studentId,
+            @AuthenticationPrincipal User currentUser
+    ) {
+        try {
+            allocationService.removeStudentFromAllocation(assignmentId, studentId, currentUser);
+            return ResponseEntity.ok(ApiResponse.success("Đã xóa học viên khỏi danh sách được giao"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @PatchMapping("/assignments/{assignmentId}/allocation/students/{studentId}/deadline")
+    @Operation(summary = "Cập nhật deadline riêng cho học viên", description = "Gia hạn hoặc thay đổi deadline cho một học viên")
+    public ResponseEntity<ApiResponse<String>> updateStudentDeadline(
+            @PathVariable UUID assignmentId,
+            @PathVariable UUID studentId,
+            @AuthenticationPrincipal User currentUser,
+            @Valid @RequestBody UpdateDeadlineRequest request
+    ) {
+        try {
+            LocalDateTime newDeadline = LocalDateTime.ofInstant(request.getNewDeadline(), ZoneId.systemDefault());
+            allocationService.updateStudentDeadline(assignmentId, studentId, newDeadline, currentUser);
+            return ResponseEntity.ok(ApiResponse.success("Đã cập nhật deadline cho học viên"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @GetMapping("/students/{studentId}/allocated-assignments")
+    @Operation(summary = "Lấy danh sách bài tập được giao cho học viên", description = "Học viên xem các bài tập được giao")
+    public ResponseEntity<ApiResponse<List<UUID>>> getStudentAllocatedAssignments(
+            @PathVariable UUID studentId,
+            @RequestParam UUID courseId,
+            @AuthenticationPrincipal User currentUser
+    ) {
+        try {
+            // Kiểm tra quyền: chỉ học viên đó hoặc giáo viên mới được xem
+            // TODO: Add proper authorization check
+
+            List<UUID> assignmentIds = allocationService.getAssignmentsForStudent(studentId, courseId)
+                    .stream()
+                    .map(a -> a.getId())
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(ApiResponse.success(assignmentIds));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    // Helper method
+    private AllocationResponse convertToResponse(AssignmentAllocation allocation) {
+        List<AllocatedStudentInfo> studentInfos = null;
+        if (allocation.getDistributionType() == AssignmentAllocation.DistributionType.SPECIFIC_STUDENTS) {
+            studentInfos = allocation.getAllocatedStudents().stream()
+                    .map(as -> AllocatedStudentInfo.builder()
+                            .studentId(as.getStudent().getId())
+                            .studentName(as.getStudent().getFullName())
+                            .customDeadline(as.getCustomDeadline() != null ? 
+                                    as.getCustomDeadline().atZone(ZoneId.systemDefault()).toInstant() : null)
+                            .note(as.getNote())
+                            .assignedAt(as.getAssignedAt())
+                            .build())
+                    .collect(Collectors.toList());
+        }
+
+        return AllocationResponse.builder()
+                .id(allocation.getId())
+                .assignmentId(allocation.getAssignment().getId())
+                .distributionType(allocation.getDistributionType().name())
+                .isIndividual(allocation.getIsIndividual())
+                .studentIds(allocation.getAllocatedStudents().stream()
+                        .map(as -> as.getStudent().getId())
+                        .collect(Collectors.toList()))
+                .allocatedStudents(studentInfos)
+                .createdAt(allocation.getCreatedAt())
+                .build();
+    }
+
+    // DTOs
+    @lombok.Data
+    public static class CreateAllocationRequest {
+        @NotNull(message = "Loại phân phối không được để trống")
+        private String distributionType; // ALL_STUDENTS or SPECIFIC_STUDENTS
+        
+        private List<UUID> studentIds; // Required if distributionType = SPECIFIC_STUDENTS
+        private Boolean isIndividual;
+    }
+
+    @lombok.Data
+    public static class AssignIndividualRequest {
+        @NotNull(message = "ID học viên không được để trống")
+        private UUID studentId;
+        
+        private Instant customDeadline;
+        private String note;
+    }
+
+    @lombok.Data
+    public static class UpdateDeadlineRequest {
+        @NotNull(message = "Deadline mới không được để trống")
+        private Instant newDeadline;
+    }
+
+    @lombok.Data
+    @lombok.Builder
+    public static class AllocationResponse {
+        private UUID id;
+        private UUID assignmentId;
+        private String distributionType;
+        private Boolean isIndividual;
+        private List<UUID> studentIds;
+        private List<AllocatedStudentInfo> allocatedStudents;
+        private Instant createdAt;
+    }
+
+    @lombok.Data
+    @lombok.Builder
+    public static class AllocatedStudentInfo {
+        private UUID studentId;
+        private String studentName;
+        private Instant customDeadline;
+        private String note;
+        private Instant assignedAt;
+    }
+
+    @lombok.Data
+    @lombok.Builder
+    public static class AllocationStatsResponse {
+        private int totalAllocated;
+        private String distributionType;
+        private boolean isIndividual;
+    }
+}

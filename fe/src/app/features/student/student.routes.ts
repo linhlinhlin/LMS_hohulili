@@ -49,13 +49,13 @@ export const studentRoutes: Routes = [
         title: 'Chi tiết khóa học'
       },
       
-      // Assignment Routes
+      // Assignment Routes - Unified page for all student assignments
       {
         path: 'assignments',
         children: [
           {
             path: '',
-            loadComponent: () => import('../assignments/presentation/pages/assignment-list-page.component').then(m => m.AssignmentListPageComponent),
+            loadComponent: () => import('./assignments/student-assignments-page.component').then(m => m.StudentAssignmentsPageComponent),
             title: 'Bài tập của tôi'
           },
           {
@@ -117,6 +117,20 @@ export const studentRoutes: Routes = [
         path: 'forum',
         loadComponent: () => import('../communication/student-forum.component').then(m => m.StudentForumComponent),
         title: 'Diễn đàn'
+      },
+
+      // Messages Routes - Tin nhắn với giảng viên
+      {
+        path: 'messages',
+        loadChildren: () => import('./messages/messages.routes').then(m => m.MESSAGES_ROUTES),
+        title: 'Tin nhắn'
+      },
+
+      // AI Chat - Trợ lý AI Hàng Hải
+      {
+        path: 'ai-chat',
+        loadChildren: () => import('../ai-chat/ai-chat.routes').then(m => m.AI_CHAT_ROUTES),
+        title: 'Trợ lý AI Hàng Hải'
       },
       
     ]

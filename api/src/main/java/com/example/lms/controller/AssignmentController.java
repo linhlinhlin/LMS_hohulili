@@ -3,7 +3,9 @@ package com.example.lms.controller;
 import com.example.lms.dto.ApiResponse;
 import com.example.lms.entity.Assignment;
 import com.example.lms.entity.AssignmentSubmission;
+import com.example.lms.entity.Submission;
 import com.example.lms.entity.User;
+import com.example.lms.service.AllocationService;
 import com.example.lms.service.AssignmentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -37,6 +39,7 @@ import java.util.UUID;
 public class AssignmentController {
 
     private final AssignmentService assignmentService;
+    private final AllocationService allocationService;
 
     @GetMapping("/courses/{courseId}/assignments")
     @Operation(summary = "Lấy danh sách bài tập của khóa học", description = "Lấy tất cả bài tập trong một khóa học")
@@ -129,6 +132,29 @@ public class AssignmentController {
         }
     }
 
+    @GetMapping("/assignments/teacher-summary")
+    @Operation(summary = "Lấy tổng hợp bài tập của giảng viên", description = "Lấy tất cả bài tập của giảng viên từ tất cả khóa học")
+    public ResponseEntity<ApiResponse<List<TeacherAssignmentSummary>>> getTeacherAssignmentsSummary(
+            @AuthenticationPrincipal User currentUser,
+            @Parameter(description = "Số trang (bắt đầu từ 1)") @RequestParam(defaultValue = "1") int page,
+            @Parameter(description = "Số lượng item trên mỗi trang") @RequestParam(defaultValue = "50") int limit,
+            @Parameter(description = "Lọc theo courseId") @RequestParam(required = false) UUID courseId,
+            @Parameter(description = "Lọc theo status") @RequestParam(required = false) String status
+    ) {
+        try {
+            List<Assignment> assignments = assignmentService.getTeacherAssignments(currentUser, courseId, status);
+            
+            List<TeacherAssignmentSummary> summaries = assignments.stream()
+                .map(this::convertToTeacherAssignmentSummary)
+                .toList();
+            
+            return ResponseEntity.ok(ApiResponse.success(summaries));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Lỗi khi lấy danh sách bài tập: " + e.getMessage()));
+        }
+    }
+
     @GetMapping("/assignments/{assignmentId}/submissions")
     @Operation(summary = "Lấy danh sách bài nộp", description = "Giảng viên xem tất cả bài nộp của một bài tập")
     public ResponseEntity<ApiResponse<Page<SubmissionSummary>>> getSubmissionsByAssignment(
@@ -184,6 +210,23 @@ public class AssignmentController {
         }
     }
 
+    @GetMapping("/submissions/{submissionId}")
+    @Operation(summary = "Lấy chi tiết bài nộp", description = "Giảng viên xem chi tiết một bài nộp")
+    public ResponseEntity<ApiResponse<SubmissionDetail>> getSubmissionById(
+            @PathVariable UUID submissionId,
+            @AuthenticationPrincipal User currentUser
+    ) {
+        try {
+            AssignmentSubmission submission = assignmentService.getSubmissionById(submissionId, currentUser);
+            SubmissionDetail submissionDetail = convertToSubmissionDetail(submission);
+            
+            return ResponseEntity.ok(ApiResponse.success(submissionDetail));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error("Không tìm thấy bài nộp"));
+        }
+    }
+
     @PatchMapping("/submissions/{submissionId}/grade")
     @Operation(summary = "Chấm điểm bài nộp", description = "Giảng viên chấm điểm và phản hồi bài nộp")
     public ResponseEntity<ApiResponse<SubmissionDetail>> gradeSubmission(
@@ -218,6 +261,13 @@ public class AssignmentController {
     }
 
     private AssignmentDetail convertToAssignmentDetail(Assignment assignment) {
+        // Get allocated students count from AllocationService (query trực tiếp từ DB)
+        AllocationService.AllocationStats allocationStats = allocationService.getAllocationStatsForAssignment(
+            assignment.getId(), 
+            assignment.getCourse().getId()
+        );
+        int totalStudents = allocationStats.totalAllocated();
+        
         return AssignmentDetail.builder()
                 .id(assignment.getId())
                 .title(assignment.getTitle())
@@ -229,6 +279,7 @@ public class AssignmentController {
                 .courseId(assignment.getCourse().getId())
                 .courseTitle(assignment.getCourse().getTitle())
                 .submissionsCount(assignment.getSubmissions() != null ? assignment.getSubmissions().size() : 0)
+                .totalStudents(totalStudents)
                 .assignmentConfig(assignment.getAssignmentConfig())
                 .createdAt(assignment.getCreatedAt())
                 .updatedAt(assignment.getUpdatedAt())
@@ -240,6 +291,7 @@ public class AssignmentController {
                 .id(submission.getId())
                 .studentId(submission.getStudent().getId())
                 .studentName(submission.getStudent().getFullName())
+                .studentEmail(submission.getStudent().getEmail())
                 .score(submission.getScore())
                 .status(submission.getStatus().name())
                 .submittedAt(submission.getSubmittedAt())
@@ -263,6 +315,69 @@ public class AssignmentController {
                     submission.getSubmittedAt().atZone(java.time.ZoneId.systemDefault()).toInstant() : null)
                 .gradedAt(submission.getGradedAt() != null ? 
                     submission.getGradedAt().atZone(java.time.ZoneId.systemDefault()).toInstant() : null)
+                .build();
+    }
+
+    private TeacherAssignmentSummary convertToTeacherAssignmentSummary(Assignment assignment) {
+        int submissionsCount = assignment.getSubmissions() != null ? assignment.getSubmissions().size() : 0;
+        
+        // Get allocated students count from AllocationService (query trực tiếp từ DB)
+        AllocationService.AllocationStats allocationStats = allocationService.getAllocationStatsForAssignment(
+            assignment.getId(), 
+            assignment.getCourse().getId()
+        );
+        int totalStudents = allocationStats.totalAllocated();
+        
+        // Calculate graded and pending counts
+        int gradedCount = 0;
+        double totalScore = 0;
+        if (assignment.getSubmissions() != null) {
+            for (Submission sub : assignment.getSubmissions()) {
+                if (sub.getScore() != null) {
+                    gradedCount++;
+                    totalScore += sub.getScore().doubleValue();
+                }
+            }
+        }
+        int pendingCount = submissionsCount - gradedCount;
+        Double averageScore = gradedCount > 0 ? (totalScore / gradedCount) : null;
+        
+        // Use actual status from database, map to frontend expected values
+        String status;
+        switch (assignment.getStatus()) {
+            case DRAFT:
+                status = "pending"; // Frontend expects "pending" for drafts
+                break;
+            case CLOSED:
+                status = "closed";
+                break;
+            case PUBLISHED:
+            default:
+                // If published but past due date, mark as closed
+                if (assignment.getDueDate() != null && assignment.getDueDate().isBefore(java.time.LocalDateTime.now())) {
+                    status = "closed";
+                } else {
+                    status = "published";
+                }
+                break;
+        }
+        
+        return TeacherAssignmentSummary.builder()
+                .id(assignment.getId())
+                .title(assignment.getTitle())
+                .description(assignment.getDescription())
+                .dueDate(assignment.getDueDate() != null ? 
+                    assignment.getDueDate().atZone(java.time.ZoneId.systemDefault()).toInstant() : null)
+                .courseId(assignment.getCourse().getId())
+                .courseTitle(assignment.getCourse().getTitle())
+                .status(status)
+                .submissionsCount(submissionsCount)
+                .totalStudents(totalStudents)
+                .gradedCount(gradedCount)
+                .pendingCount(pendingCount)
+                .averageScore(averageScore)
+                .createdAt(assignment.getCreatedAt())
+                .updatedAt(assignment.getUpdatedAt())
                 .build();
     }
 
@@ -330,6 +445,94 @@ public class AssignmentController {
         public Instant getCreatedAt() { return createdAt; }
     }
 
+    public static class TeacherAssignmentSummary {
+        private UUID id;
+        private String title;
+        private String description;
+        private Instant dueDate;
+        private UUID courseId;
+        private String courseTitle;
+        private String status;
+        private int submissionsCount;
+        private int totalStudents;
+        private int gradedCount;
+        private int pendingCount;
+        private Double averageScore;
+        private Instant createdAt;
+        private Instant updatedAt;
+
+        public static TeacherAssignmentSummaryBuilder builder() {
+            return new TeacherAssignmentSummaryBuilder();
+        }
+
+        public static class TeacherAssignmentSummaryBuilder {
+            private UUID id;
+            private String title;
+            private String description;
+            private Instant dueDate;
+            private UUID courseId;
+            private String courseTitle;
+            private String status;
+            private int submissionsCount;
+            private int totalStudents;
+            private int gradedCount;
+            private int pendingCount;
+            private Double averageScore;
+            private Instant createdAt;
+            private Instant updatedAt;
+
+            public TeacherAssignmentSummaryBuilder id(UUID id) { this.id = id; return this; }
+            public TeacherAssignmentSummaryBuilder title(String title) { this.title = title; return this; }
+            public TeacherAssignmentSummaryBuilder description(String description) { this.description = description; return this; }
+            public TeacherAssignmentSummaryBuilder dueDate(Instant dueDate) { this.dueDate = dueDate; return this; }
+            public TeacherAssignmentSummaryBuilder courseId(UUID courseId) { this.courseId = courseId; return this; }
+            public TeacherAssignmentSummaryBuilder courseTitle(String courseTitle) { this.courseTitle = courseTitle; return this; }
+            public TeacherAssignmentSummaryBuilder status(String status) { this.status = status; return this; }
+            public TeacherAssignmentSummaryBuilder submissionsCount(int submissionsCount) { this.submissionsCount = submissionsCount; return this; }
+            public TeacherAssignmentSummaryBuilder totalStudents(int totalStudents) { this.totalStudents = totalStudents; return this; }
+            public TeacherAssignmentSummaryBuilder gradedCount(int gradedCount) { this.gradedCount = gradedCount; return this; }
+            public TeacherAssignmentSummaryBuilder pendingCount(int pendingCount) { this.pendingCount = pendingCount; return this; }
+            public TeacherAssignmentSummaryBuilder averageScore(Double averageScore) { this.averageScore = averageScore; return this; }
+            public TeacherAssignmentSummaryBuilder createdAt(Instant createdAt) { this.createdAt = createdAt; return this; }
+            public TeacherAssignmentSummaryBuilder updatedAt(Instant updatedAt) { this.updatedAt = updatedAt; return this; }
+
+            public TeacherAssignmentSummary build() {
+                TeacherAssignmentSummary summary = new TeacherAssignmentSummary();
+                summary.id = this.id;
+                summary.title = this.title;
+                summary.description = this.description;
+                summary.dueDate = this.dueDate;
+                summary.courseId = this.courseId;
+                summary.courseTitle = this.courseTitle;
+                summary.status = this.status;
+                summary.submissionsCount = this.submissionsCount;
+                summary.totalStudents = this.totalStudents;
+                summary.gradedCount = this.gradedCount;
+                summary.pendingCount = this.pendingCount;
+                summary.averageScore = this.averageScore;
+                summary.createdAt = this.createdAt;
+                summary.updatedAt = this.updatedAt;
+                return summary;
+            }
+        }
+
+        // Getters
+        public UUID getId() { return id; }
+        public String getTitle() { return title; }
+        public String getDescription() { return description; }
+        public Instant getDueDate() { return dueDate; }
+        public UUID getCourseId() { return courseId; }
+        public String getCourseTitle() { return courseTitle; }
+        public String getStatus() { return status; }
+        public int getSubmissionsCount() { return submissionsCount; }
+        public int getTotalStudents() { return totalStudents; }
+        public int getGradedCount() { return gradedCount; }
+        public int getPendingCount() { return pendingCount; }
+        public Double getAverageScore() { return averageScore; }
+        public Instant getCreatedAt() { return createdAt; }
+        public Instant getUpdatedAt() { return updatedAt; }
+    }
+
     public static class AssignmentDetail {
         private UUID id;
         private String title;
@@ -340,6 +543,7 @@ public class AssignmentController {
         private UUID courseId;
         private String courseTitle;
         private int submissionsCount;
+        private int totalStudents;
         private Object assignmentConfig;
         private Instant createdAt;
         private Instant updatedAt;
@@ -358,6 +562,7 @@ public class AssignmentController {
             private UUID courseId;
             private String courseTitle;
             private int submissionsCount;
+            private int totalStudents;
             private Object assignmentConfig;
             private Instant createdAt;
             private Instant updatedAt;
@@ -371,6 +576,7 @@ public class AssignmentController {
             public AssignmentDetailBuilder courseId(UUID courseId) { this.courseId = courseId; return this; }
             public AssignmentDetailBuilder courseTitle(String courseTitle) { this.courseTitle = courseTitle; return this; }
             public AssignmentDetailBuilder submissionsCount(int submissionsCount) { this.submissionsCount = submissionsCount; return this; }
+            public AssignmentDetailBuilder totalStudents(int totalStudents) { this.totalStudents = totalStudents; return this; }
             public AssignmentDetailBuilder assignmentConfig(Object assignmentConfig) { this.assignmentConfig = assignmentConfig; return this; }
             public AssignmentDetailBuilder createdAt(Instant createdAt) { this.createdAt = createdAt; return this; }
             public AssignmentDetailBuilder updatedAt(Instant updatedAt) { this.updatedAt = updatedAt; return this; }
@@ -386,6 +592,7 @@ public class AssignmentController {
                 assignment.courseId = this.courseId;
                 assignment.courseTitle = this.courseTitle;
                 assignment.submissionsCount = this.submissionsCount;
+                assignment.totalStudents = this.totalStudents;
                 assignment.assignmentConfig = this.assignmentConfig;
                 assignment.createdAt = this.createdAt;
                 assignment.updatedAt = this.updatedAt;
@@ -403,6 +610,7 @@ public class AssignmentController {
         public UUID getCourseId() { return courseId; }
         public String getCourseTitle() { return courseTitle; }
         public int getSubmissionsCount() { return submissionsCount; }
+        public int getTotalStudents() { return totalStudents; }
         public Object getAssignmentConfig() { return assignmentConfig; }
         public Instant getCreatedAt() { return createdAt; }
         public Instant getUpdatedAt() { return updatedAt; }
@@ -412,6 +620,7 @@ public class AssignmentController {
         private UUID id;
         private UUID studentId;
         private String studentName;
+        private String studentEmail;
         private BigDecimal score;
         private String status;
         private LocalDateTime submittedAt;
@@ -425,6 +634,7 @@ public class AssignmentController {
             private UUID id;
             private UUID studentId;
             private String studentName;
+            private String studentEmail;
             private BigDecimal score;
             private String status;
             private LocalDateTime submittedAt;
@@ -433,6 +643,7 @@ public class AssignmentController {
             public SubmissionSummaryBuilder id(UUID id) { this.id = id; return this; }
             public SubmissionSummaryBuilder studentId(UUID studentId) { this.studentId = studentId; return this; }
             public SubmissionSummaryBuilder studentName(String studentName) { this.studentName = studentName; return this; }
+            public SubmissionSummaryBuilder studentEmail(String studentEmail) { this.studentEmail = studentEmail; return this; }
             public SubmissionSummaryBuilder score(BigDecimal score) { this.score = score; return this; }
             public SubmissionSummaryBuilder status(String status) { this.status = status; return this; }
             public SubmissionSummaryBuilder submittedAt(LocalDateTime submittedAt) { this.submittedAt = submittedAt; return this; }
@@ -443,6 +654,7 @@ public class AssignmentController {
                 submission.id = this.id;
                 submission.studentId = this.studentId;
                 submission.studentName = this.studentName;
+                submission.studentEmail = this.studentEmail;
                 submission.score = this.score;
                 submission.status = this.status;
                 submission.submittedAt = this.submittedAt;
@@ -455,6 +667,7 @@ public class AssignmentController {
         public UUID getId() { return id; }
         public UUID getStudentId() { return studentId; }
         public String getStudentName() { return studentName; }
+        public String getStudentEmail() { return studentEmail; }
         public BigDecimal getScore() { return score; }
         public String getStatus() { return status; }
         public LocalDateTime getSubmittedAt() { return submittedAt; }

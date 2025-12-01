@@ -1,6 +1,7 @@
 package com.example.lms.entity;
 
 import jakarta.persistence.*;
+import jakarta.persistence.Convert;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -58,7 +59,7 @@ public class User implements UserDetails {
     private String fullName;
     
     @Column(nullable = false)
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = com.example.lms.entity.converter.UserRoleConverter.class)
     @Builder.Default
     private Role role = Role.STUDENT;
     

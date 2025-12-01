@@ -90,6 +90,9 @@ public class SecurityConfig {
                         // Question management (TEACHER/ADMIN only)
                         .requestMatchers("/api/v1/questions/**").hasAnyRole("ADMIN", "TEACHER")
                         
+                        // Messaging endpoints (TEACHER and STUDENT can message each other)
+                        .requestMatchers("/api/v1/messages/**").hasAnyRole("ADMIN", "TEACHER", "STUDENT")
+                        
                         // Section and lesson management
                         .requestMatchers("/api/v1/sections/**", "/api/v1/lessons/**").hasAnyRole("ADMIN", "TEACHER", "STUDENT")
                         

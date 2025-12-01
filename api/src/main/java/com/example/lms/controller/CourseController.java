@@ -264,6 +264,39 @@ public class CourseController {
         }
     }
 
+    @GetMapping("/{courseId}/students")
+    @PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @Operation(summary = "Lấy danh sách học viên của khóa học", description = "Giảng viên lấy danh sách học viên đã đăng ký khóa học")
+    public ResponseEntity<ApiResponse<List<EnrolledStudentInfo>>> getEnrolledStudents(
+            @PathVariable UUID courseId,
+            @AuthenticationPrincipal User currentUser
+    ) {
+        try {
+            Course course = courseService.getCourseById(courseId);
+            
+            // Check if user is the teacher of this course
+            if (!course.getTeacher().getId().equals(currentUser.getId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(ApiResponse.error("Bạn không có quyền xem danh sách học viên của khóa học này"));
+            }
+            
+            List<EnrolledStudentInfo> students = course.getEnrolledStudents().stream()
+                    .map(student -> EnrolledStudentInfo.builder()
+                            .id(student.getId())
+                            .fullName(student.getFullName())
+                            .email(student.getEmail())
+                            .enrolledAt(student.getCreatedAt())
+                            .build())
+                    .collect(Collectors.toList());
+            
+            return ResponseEntity.ok(ApiResponse.success(students));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
     @GetMapping("/{courseId}/content")
     @SecurityRequirement(name = "Bearer Authentication")
     @Operation(summary = "Lấy nội dung khóa học", description = "Lấy toàn bộ sections và lessons của khóa học")
@@ -290,53 +323,8 @@ public class CourseController {
         }
     }
 
-    @GetMapping("/{courseId}/students")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
-    @SecurityRequirement(name = "Bearer Authentication")
-    @Operation(summary = "Lấy danh sách học viên của khóa học", description = "Giáo viên/Admin lấy danh sách học viên đã đăng ký khóa học")
-    public ResponseEntity<ApiResponse<Page<com.example.lms.dto.response.StudentEnrollmentDetail>>> getCourseStudents(
-            @PathVariable UUID courseId,
-            @Parameter(description = "Số trang (bắt đầu từ 0)") @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "Số lượng item trên mỗi trang") @RequestParam(defaultValue = "20") int size,
-            @Parameter(description = "Tìm kiếm theo tên hoặc email") @RequestParam(required = false) String search,
-            @AuthenticationPrincipal User currentUser
-    ) {
-        try {
-            // Verify course exists
-            Course course = courseService.getCourseById(courseId);
-            if (course == null) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(ApiResponse.error("Khóa học không tồn tại"));
-            }
-
-            // Verify authorization - only course teacher or admin can view students
-            if (currentUser.getRole() != User.Role.ADMIN && 
-                !course.getTeacher().getId().equals(currentUser.getId())) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(ApiResponse.error("Bạn không có quyền xem danh sách học viên của khóa học này"));
-            }
-
-            Pageable pageable = PageRequest.of(page, size);
-            Page<User> students = courseService.getCourseStudents(courseId, pageable, search);
-
-            // Convert User entities to StudentEnrollmentDetail DTOs
-            Page<com.example.lms.dto.response.StudentEnrollmentDetail> studentDetails = 
-                students.map(student -> com.example.lms.dto.response.StudentEnrollmentDetail.builder()
-                        .id(student.getId().toString())
-                        .fullName(student.getFullName())
-                        .email(student.getEmail())
-                        .role(student.getRole().name())
-                        .status("ACTIVE")
-                        .progressPercentage(0)
-                        .lessonsCompleted(0)
-                        .totalLessons(0)
-                        .build());
-
-            return ResponseEntity.ok(ApiResponse.success(studentDetails));
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
-        }
-    }
+    // Note: getCourseStudents method removed - use getEnrolledStudents instead
+    // The getEnrolledStudents method at /{courseId}/students already provides student list functionality
 
     // Helper methods
     private CourseSummary convertToCourseSummary(Course course) {
@@ -682,5 +670,15 @@ public class CourseController {
 
         public String getEmail() { return email; }
         public void setEmail(String email) { this.email = email; }
+    }
+
+    // DTO for enrolled student info
+    @lombok.Data
+    @lombok.Builder
+    public static class EnrolledStudentInfo {
+        private UUID id;
+        private String fullName;
+        private String email;
+        private Instant enrolledAt;
     }
 }

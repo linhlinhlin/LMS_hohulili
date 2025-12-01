@@ -87,6 +87,13 @@ export const adminRoutes: Routes = [
         path: 'logs',
         loadComponent: () => import('./presentation/components/admin-analytics.component').then(m => m.AdminAnalyticsComponent),
         title: 'Nhật ký hệ thống'
+      },
+
+      // AI Chat - Trợ lý AI Hàng Hải
+      {
+        path: 'ai-chat',
+        loadChildren: () => import('../ai-chat/ai-chat.routes').then(m => m.AI_CHAT_ROUTES),
+        title: 'Trợ lý AI Hàng Hải'
       }
     ]
   }

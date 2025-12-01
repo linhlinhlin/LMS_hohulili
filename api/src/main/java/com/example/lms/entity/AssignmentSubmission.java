@@ -1,6 +1,7 @@
 package com.example.lms.entity;
 
 import jakarta.persistence.*;
+import jakarta.persistence.Convert;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -42,7 +43,7 @@ public class AssignmentSubmission {
     @Column(name = "graded_at")
     private LocalDateTime gradedAt;
 
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = com.example.lms.entity.converter.SubmissionStatusConverter.class)
     @Builder.Default
     private Status status = Status.SUBMITTED;
 

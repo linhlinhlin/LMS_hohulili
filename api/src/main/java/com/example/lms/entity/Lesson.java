@@ -1,6 +1,7 @@
 package com.example.lms.entity;
 
 import jakarta.persistence.*;
+import jakarta.persistence.Convert;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -50,7 +51,7 @@ public class Lesson {
     private Integer orderIndex = 0;
 
     @Column(name = "lesson_type")
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = com.example.lms.entity.converter.LessonTypeConverter.class)
     @Builder.Default
     private LessonType lessonType = LessonType.LECTURE;
 

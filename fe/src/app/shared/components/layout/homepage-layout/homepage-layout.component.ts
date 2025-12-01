@@ -2,10 +2,11 @@ import { Component, ViewEncapsulation, ChangeDetectionStrategy } from '@angular/
 import { RouterOutlet } from '@angular/router';
 import { PublicHeaderComponent } from '../public-header.component';
 import { FooterComponent } from '../footer/footer.component';
+import { ChatWidgetComponent } from '../../../../features/ai-chat/presentation/components/chat-widget/chat-widget.component';
 
 @Component({
   selector: 'app-homepage-layout',
-  imports: [RouterOutlet, PublicHeaderComponent, FooterComponent],
+  imports: [RouterOutlet, PublicHeaderComponent, FooterComponent, ChatWidgetComponent],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -18,6 +19,9 @@ import { FooterComponent } from '../footer/footer.component';
         <router-outlet></router-outlet>
       </main>
       <app-footer></app-footer>
+
+      <!-- AI Chat Widget for Guests -->
+      <app-chat-widget />
     </div>
   `,
 })

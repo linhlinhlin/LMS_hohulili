@@ -67,14 +67,43 @@ export interface SubmissionSummary {
   studentEmail: string;
   studentAvatar?: string;
   submittedAt?: string;
-  status: 'pending' | 'submitted' | 'graded' | 'late';
-  grade?: number;
+  gradedAt?: string;
+  status: 'pending' | 'submitted' | 'graded' | 'late' | 'PENDING' | 'SUBMITTED' | 'GRADED' | 'LATE_SUBMISSION';
+  grade?: number | SubmissionGrade;
+  score?: number; // Direct score from backend (BigDecimal)
   feedback?: string;
 }
 
-export interface SubmissionDetail extends SubmissionSummary {
+export interface SubmissionAttachment {
+  id: string;
+  fileName: string;
+  fileUrl: string;
+  mimeType?: string;
+  fileSize?: number;
+  metadata?: Record<string, unknown>;
+}
+
+export interface SubmissionGrade {
+  score: number;
+  maxScore: number;
+  percentage: number;
+  feedback?: string;
+  rubricGrades?: RubricGradeItem[];
+  gradedAt: string;
+  gradedBy: string;
+}
+
+export interface SubmissionDetail extends Omit<SubmissionSummary, 'grade'> {
   content?: string;
-  attachments?: string[];
+  attachments?: SubmissionAttachment[];
+  assignmentId?: string;
+  assignmentTitle?: string;
+  maxScore?: number;
+  dueDate?: string;
+  isLate?: boolean;
+  gradedAt?: string;
+  grade?: SubmissionGrade; // Override to only accept SubmissionGrade object
+  score?: number; // Direct score from backend (BigDecimal)
 }
 
 export interface CreateSubmissionRequest {
@@ -82,10 +111,18 @@ export interface CreateSubmissionRequest {
   attachments?: string[];
 }
 
+export interface RubricGradeItem {
+  criterionId: string;
+  levelId: string;
+  score: number;
+  comment?: string;
+}
+
 export interface GradeSubmissionRequest {
   score: number;
-  maxScore: number;
+  maxScore?: number;
   feedback?: string;
+  rubricGrades?: RubricGradeItem[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -156,11 +193,26 @@ export class AssignmentApi {
     return this.api.patchWithResponse<SubmissionDetail>(`/api/v1/submissions/${submissionId}/grade`, payload);
   }
 
+  // Get submission detail by ID (teacher)
+  getSubmissionById(submissionId: string) {
+    return this.api.getWithResponse<SubmissionDetail>(`/api/v1/submissions/${submissionId}`);
+  }
+
   // Export submissions as Excel (teacher)
   exportSubmissions(assignmentId: string): Observable<Blob> {
     return this.http.get(`/api/v1/assignments/${assignmentId}/submissions/export`, {
       responseType: 'blob'
     });
+  }
+
+  // Get submissions for grading (alias for getSubmissionsByAssignment with full details)
+  getSubmissions(assignmentId: string, params?: { page?: number; limit?: number; status?: string }) {
+    return this.api.getWithResponse<SubmissionDetail[]>(`/api/v1/assignments/${assignmentId}/submissions/details`, { params });
+  }
+
+  // Get all pending submissions across all assignments (for grading dashboard)
+  getPendingSubmissions(params?: { page?: number; limit?: number }) {
+    return this.api.getWithResponse<SubmissionDetail[]>(`/api/v1/submissions/pending`, { params });
   }
 
   // Get all teacher assignments (for management view)  

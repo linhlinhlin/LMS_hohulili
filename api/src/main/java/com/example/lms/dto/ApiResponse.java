@@ -34,7 +34,7 @@ public class ApiResponse<T> {
                 .build();
     }
     
-    public static <T> ApiResponse<org.springframework.data.domain.Page<T>> success(org.springframework.data.domain.Page<T> page) {
+    public static <T> ApiResponse<java.util.List<T>> successPage(org.springframework.data.domain.Page<T> page) {
         PaginationInfo paginationInfo = PaginationInfo.builder()
                 .page(page.getNumber() + 1) // Spring uses 0-based, we use 1-based
                 .limit(page.getSize())
@@ -42,8 +42,8 @@ public class ApiResponse<T> {
                 .totalPages(page.getTotalPages())
                 .build();
                 
-        return ApiResponse.<org.springframework.data.domain.Page<T>>builder()
-                .data(page)
+        return ApiResponse.<java.util.List<T>>builder()
+                .data(page.getContent())
                 .pagination(paginationInfo)
                 .build();
     }

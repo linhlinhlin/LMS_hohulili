@@ -27,15 +27,14 @@ export const studentSidebarConfig: SidebarConfig = {
       icon: 'M14.828 14.828a4 4 0 01-5.656 0M9 10h1.586a1 1 0 01.707.293l.707.707A1 1 0 0012.414 11H13m-3 3a1 1 0 100 2h6a1 1 0 100-2H9z'
     },
     {
-      label: 'Bài tập',
+      label: 'Bài tập của tôi',
       route: '/student/assignments',
-      icon: 'M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2',
-      badge: '2'
+      icon: 'M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4'
     },
     {
-      label: 'Quiz',
-      route: '/student/quiz',
-      icon: 'M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
+      label: 'Tin nhắn',
+      route: '/student/messages',
+      icon: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z'
     },
     {
       label: 'Thảo luận',
@@ -72,9 +71,21 @@ export const teacherSidebarConfig: SidebarConfig = {
   icon: 'M12 6l-8 4 8 4 8-4-8-4zm0 10l-8-4v6l8 4 8-4v-6l-8 4z'
     },
     {
-      label: 'Bài tập',
+      label: 'Bài tập & Chấm điểm',
       route: '/teacher/assignments',
-  icon: 'M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2H9zm0 0a2 2 0 002 2h2a2 2 0 002-2'
+      icon: 'M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2H9zm0 0a2 2 0 002 2h2a2 2 0 002-2',
+      children: [
+        {
+          label: 'Danh sách bài tập',
+          route: '/teacher/assignments',
+          icon: 'M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2H9zm0 0a2 2 0 002 2h2a2 2 0 002-2'
+        },
+        {
+          label: 'Thư viện Rubric',
+          route: '/teacher/assignments/rubrics',
+          icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2'
+        }
+      ]
     },
     {
       label: 'Học viên',
@@ -86,11 +97,7 @@ export const teacherSidebarConfig: SidebarConfig = {
       route: '/teacher/quiz/quiz-bank',
   icon: 'M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
     },
-    {
-      label: 'Chấm điểm',
-      route: '/teacher/grading',
-  icon: 'M5 13l4 4L19 7'
-    },
+
     {
       label: 'Phân tích',
       route: '/teacher/analytics',

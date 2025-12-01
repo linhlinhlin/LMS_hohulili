@@ -76,6 +76,12 @@ public interface CourseRepository extends JpaRepository<Course, UUID> {
     boolean existsByEnrolledStudentAndCourse(@Param("studentId") UUID studentId, @Param("courseId") UUID courseId);
     
     /**
+     * Count enrolled students in a course
+     */
+    @Query("SELECT COUNT(es) FROM Course c JOIN c.enrolledStudents es WHERE c.id = :courseId")
+    int countEnrolledStudents(@Param("courseId") UUID courseId);
+    
+    /**
      * Find course by ID with sections and lessons (eager loading for progress calculation)
      */
     @Query("SELECT DISTINCT c FROM Course c " +

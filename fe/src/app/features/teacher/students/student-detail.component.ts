@@ -1,11 +1,15 @@
-import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, signal } from '@angular/core';
+import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, signal, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { StudentApi, StudentDetail, StudentCourseProgress, StudentAssignmentSummary } from '../../../api/client/student.api';
+import { StudentAssignmentsComponent, StudentAssignment } from './student-assignments.component';
+import { AssignTaskModalComponent, AssignTaskRequest } from './assign-task-modal.component';
+import { MessagesTabComponent } from './messages-tab.component';
+import { DistributionService } from '../../../core/services/distribution.service';
 
 @Component({
   selector: 'app-student-detail',
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, StudentAssignmentsComponent, AssignTaskModalComponent, MessagesTabComponent],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="p-6 space-y-6">
@@ -117,48 +121,87 @@ import { StudentApi, StudentDetail, StudentCourseProgress, StudentAssignmentSumm
         </ng-template>
       </div>
 
-      <!-- Assignment Submissions -->
-      <div class="bg-white rounded-lg shadow p-6" *ngIf="student()">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Bài tập đã nộp</h3>
-        <div class="space-y-3" *ngIf="assignments().length > 0; else noAssignments">
-          <div *ngFor="let assignment of assignments()" class="flex items-center justify-between p-3 border rounded-lg">
-            <div>
-              <h5 class="font-medium text-gray-900">{{ assignment.assignmentTitle }}</h5>
-              <p class="text-sm text-gray-600">{{ assignment.courseTitle }}</p>
-              <p class="text-xs text-gray-500">
-                Hạn: {{ assignment.dueDate ? (assignment.dueDate | date:'dd/MM/yyyy HH:mm') : 'Không giới hạn' }}
-                <span *ngIf="assignment.submittedAt"> | Nộp: {{ assignment.submittedAt | date:'dd/MM/yyyy HH:mm' }}</span>
-              </p>
-            </div>
-            <div class="text-right">
-              <span class="px-2 py-1 text-xs font-semibold rounded-full"
-                    [class.bg-yellow-100]="assignment.status === 'pending'"
-                    [class.text-yellow-800]="assignment.status === 'pending'"
-                    [class.bg-blue-100]="assignment.status === 'submitted'"
-                    [class.text-blue-800]="assignment.status === 'submitted'"
-                    [class.bg-green-100]="assignment.status === 'graded'"
-                    [class.text-green-800]="assignment.status === 'graded'"
-                    [class.bg-red-100]="assignment.status === 'overdue'"
-                    [class.text-red-800]="assignment.status === 'overdue'">
-                {{ getAssignmentStatusText(assignment.status) }}
+      <!-- Tabs -->
+      <div class="bg-white rounded-lg shadow" *ngIf="student()">
+        <!-- Tab Headers -->
+        <div class="border-b">
+          <nav class="flex -mb-px">
+            <button
+              (click)="activeTab.set('assignments')"
+              class="px-6 py-4 text-sm font-medium border-b-2 transition-colors"
+              [class.border-blue-600]="activeTab() === 'assignments'"
+              [class.text-blue-600]="activeTab() === 'assignments'"
+              [class.border-transparent]="activeTab() !== 'assignments'"
+              [class.text-gray-500]="activeTab() !== 'assignments'"
+              [class.hover:text-gray-700]="activeTab() !== 'assignments'"
+            >
+              <span class="flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                Bài tập
               </span>
-              <div class="text-sm text-gray-600 mt-1" *ngIf="assignment.score !== undefined">
-                {{ assignment.score }}/{{ assignment.maxScore }}
-              </div>
-            </div>
-          </div>
+            </button>
+            <button
+              (click)="activeTab.set('messages')"
+              class="px-6 py-4 text-sm font-medium border-b-2 transition-colors"
+              [class.border-blue-600]="activeTab() === 'messages'"
+              [class.text-blue-600]="activeTab() === 'messages'"
+              [class.border-transparent]="activeTab() !== 'messages'"
+              [class.text-gray-500]="activeTab() !== 'messages'"
+              [class.hover:text-gray-700]="activeTab() !== 'messages'"
+            >
+              <span class="flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                </svg>
+                Tin nhắn
+              </span>
+            </button>
+          </nav>
         </div>
-        <ng-template #noAssignments>
-          <p class="text-gray-500 text-center py-8">Chưa có bài tập nào được nộp.</p>
-        </ng-template>
+
+        <!-- Tab Content -->
+        <div class="p-6">
+          @if (activeTab() === 'assignments') {
+            <app-student-assignments
+              #studentAssignments
+              [studentId]="studentId"
+              [studentName]="student()!.name"
+              (assignTask)="openAssignTaskModal()"
+              (removeAssignment)="onRemoveAssignment($event)"
+            ></app-student-assignments>
+          }
+
+          @if (activeTab() === 'messages') {
+            <app-messages-tab
+              [studentId]="studentId"
+              [studentName]="student()!.name"
+            ></app-messages-tab>
+          }
+        </div>
       </div>
     </div>
+
+    <!-- Assign Task Modal -->
+    @if (showAssignTaskModal()) {
+      <app-assign-task-modal
+        [studentId]="studentId"
+        [studentName]="student()!.name"
+        [studentCourseIds]="getStudentCourseIds()"
+        (confirm)="onAssignTaskConfirm($event)"
+        (cancel)="closeAssignTaskModal()"
+      ></app-assign-task-modal>
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class StudentDetailComponent {
   private route = inject(ActivatedRoute);
   private studentApi = inject(StudentApi);
+  private distributionService = inject(DistributionService);
+
+  @ViewChild('studentAssignments') studentAssignmentsRef!: StudentAssignmentsComponent;
 
   studentId = this.route.snapshot.paramMap.get('id') || '';
   
@@ -166,6 +209,8 @@ export class StudentDetailComponent {
   courseProgress = signal<StudentCourseProgress[]>([]);
   assignments = signal<StudentAssignmentSummary[]>([]);
   error = signal('');
+  showAssignTaskModal = signal(false);
+  activeTab = signal<'assignments' | 'messages'>('assignments');
 
   constructor() {
     this.loadStudent();
@@ -300,8 +345,8 @@ export class StudentDetailComponent {
   }
 
   sendMessage() {
-    // TODO: Implement messaging functionality
-    console.log('Send message to student:', this.studentId);
+    // Switch to messages tab
+    this.activeTab.set('messages');
   }
 
   exportReport() {
@@ -324,5 +369,59 @@ export class StudentDetailComponent {
 
   onReload() {
     this.loadStudent();
+  }
+
+  // Individual Assignment Methods
+  openAssignTaskModal(): void {
+    this.showAssignTaskModal.set(true);
+  }
+
+  closeAssignTaskModal(): void {
+    this.showAssignTaskModal.set(false);
+  }
+
+  onAssignTaskConfirm(request: AssignTaskRequest): void {
+    this.distributionService.assignIndividualTask(
+      request.assignmentId,
+      request.studentId,
+      request.customDeadline,
+      request.note
+    ).subscribe({
+      next: () => {
+        this.closeAssignTaskModal();
+        // Refresh the assignments list
+        if (this.studentAssignmentsRef) {
+          this.studentAssignmentsRef.refresh();
+        }
+        // Show success message (could use a toast service)
+        console.log('Assignment assigned successfully');
+      },
+      error: (error) => {
+        console.error('Error assigning task:', error);
+        // For development, still close modal and refresh
+        this.closeAssignTaskModal();
+        if (this.studentAssignmentsRef) {
+          this.studentAssignmentsRef.refresh();
+        }
+      }
+    });
+  }
+
+  onRemoveAssignment(assignment: StudentAssignment): void {
+    this.distributionService.removeIndividualAssignment(
+      assignment.assignmentId,
+      this.studentId
+    ).subscribe({
+      next: () => {
+        console.log('Assignment removed successfully');
+      },
+      error: (error) => {
+        console.error('Error removing assignment:', error);
+      }
+    });
+  }
+
+  getStudentCourseIds(): string[] {
+    return this.courseProgress().map(cp => cp.courseId);
   }
 }

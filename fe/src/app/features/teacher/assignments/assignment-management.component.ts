@@ -1,213 +1,395 @@
-import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, computed, signal } from '@angular/core';
+import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, computed, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AssignmentApi, AssignmentSummary } from '../../../api/client/assignment.api';
+import { 
+  filterAssignments, 
+  sortAssignments, 
+  paginateAssignments,
+  getPaginationInfo,
+  AssignmentSortColumn,
+  SortDirection,
+  AssignmentFilterCriteria
+} from './utils/assignment-list-utils';
 
+/**
+ * Assignment Management Component
+ * 
+ * Displays and manages the list of assignments for a teacher.
+ * Features: filtering, sorting, pagination, and quick actions.
+ * 
+ * @requirements 1.1, 1.2, 1.3, 1.4, 1.5
+ */
 @Component({
   selector: 'app-assignment-management',
   imports: [CommonModule, RouterModule, FormsModule],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="p-6 space-y-6">
+      <!-- Header -->
       <div class="flex items-center justify-between">
-        <h1 class="text-2xl font-bold text-gray-900">Bài tập</h1>
-        <a routerLink="/teacher/assignment-creation" class="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium">+ Tạo bài tập</a>
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900">Quản lý Bài tập</h1>
+          <p class="text-sm text-gray-500 mt-1">Tổng cộng {{ total() }} bài tập</p>
+        </div>
+        <a routerLink="/teacher/assignment-creation" 
+           class="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-colors">
+          + Tạo bài tập
+        </a>
       </div>
 
+      <!-- Filters -->
       <div class="bg-white rounded-xl shadow">
-        <div class="p-4 flex flex-wrap gap-3 items-center">
-          <input class="border rounded px-3 py-2 w-64" placeholder="Tìm theo tên hoặc mô tả" [(ngModel)]="keyword" />
-          <select class="border rounded px-3 py-2" [(ngModel)]="statusFilter">
+        <div class="p-4 flex flex-wrap gap-3 items-center border-b">
+          <div class="flex-1 min-w-[200px]">
+            <input 
+              class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" 
+              placeholder="Tìm theo tên hoặc mô tả..." 
+              [ngModel]="filterKeyword()"
+              (ngModelChange)="onKeywordChange($event)" />
+          </div>
+          <select 
+            class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500"
+            [ngModel]="filterStatus()"
+            (ngModelChange)="onStatusChange($event)">
             <option value="">Tất cả trạng thái</option>
             <option value="pending">Nháp</option>
             <option value="published">Đã xuất bản</option>
             <option value="closed">Đã đóng</option>
           </select>
-          <button class="px-4 py-2 border rounded" (click)="applyFilters()">Lọc</button>
+          <button 
+            class="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            (click)="resetFilters()">
+            Xóa bộ lọc
+          </button>
         </div>
-        <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
-            <tr>
-              <th (click)="setSort('title')" class="px-6 py-4 text-left text-sm md:text-base font-semibold text-gray-600 uppercase tracking-wider cursor-pointer">Tên <span class="text-xs" *ngIf="sortKey==='title'">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
-              <th (click)="setSort('courseTitle')" class="px-6 py-4 text-left text-sm md:text-base font-semibold text-gray-600 uppercase tracking-wider cursor-pointer">Khóa học <span class="text-xs" *ngIf="sortKey==='courseTitle'">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
-              <th (click)="setSort('dueDate')" class="px-6 py-4 text-left text-sm md:text-base font-semibold text-gray-600 uppercase tracking-wider cursor-pointer">Hạn <span class="text-xs" *ngIf="sortKey==='dueDate'">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
-              <th (click)="setSort('status')" class="px-6 py-4 text-left text-sm md:text-base font-semibold text-gray-600 uppercase tracking-wider cursor-pointer">Trạng thái <span class="text-xs" *ngIf="sortKey==='status'">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
-              <th (click)="setSort('submissionsCount')" class="px-6 py-4 text-left text-sm md:text-base font-semibold text-gray-600 uppercase tracking-wider cursor-pointer">Nộp <span class="text-xs" *ngIf="sortKey==='submissionsCount'">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
-              <th class="px-6 py-4"></th>
-            </tr>
-          </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
-            <tr *ngFor="let a of paged(); trackBy: trackById">
-              <td class="px-6 py-5 whitespace-nowrap text-base md:text-lg text-gray-900">{{ a.title }}</td>
-              <td class="px-6 py-5 whitespace-nowrap text-base md:text-lg text-gray-600">{{ a.courseTitle }}</td>
-              <td class="px-6 py-5 whitespace-nowrap text-base md:text-lg text-gray-600">
-                {{ a.dueDate ? (a.dueDate | date:'dd/MM/yyyy') : 'Không giới hạn' }}
-              </td>
-              <td class="px-6 py-5 whitespace-nowrap text-base md:text-lg">
-                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
-                      [class.bg-yellow-100]="a.status === 'pending'"
-                      [class.text-yellow-800]="a.status === 'pending'"
-                      [class.bg-green-100]="a.status === 'published'"
-                      [class.text-green-800]="a.status === 'published'"
-                      [class.bg-gray-100]="a.status === 'closed'"
-                      [class.text-gray-800]="a.status === 'closed'">
-                  {{ a.status === 'pending' ? 'Nháp' : a.status === 'published' ? 'Đã xuất bản' : 'Đã đóng' }}
-                </span>
-              </td>
-              <td class="px-6 py-5 whitespace-nowrap text-base md:text-lg text-gray-600">{{ a.submissionsCount }}/{{ a.totalStudents }}</td>
-              <td class="px-6 py-5 whitespace-nowrap text-right text-base md:text-lg">
-                <a [routerLink]="['/teacher/assignments', a.id, 'submissions']" class="text-blue-600 hover:text-blue-900 mr-4">Xem bài nộp</a>
-                <a [routerLink]="['/teacher/assignments', a.id, 'edit']" class="text-indigo-600 hover:text-indigo-900">Sửa</a>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        </div>
-        <div class="p-6 text-center text-red-600" *ngIf="error()">
-          {{ error() }}
-                    <button (click)="onReload()" class="ml-2 text-blue-600 underline text-sm">Tải lại</button>
-        </div>
-        <div class="p-6 text-gray-500" *ngIf="!error() && paged().length === 0">Chưa có bài tập.</div>
+
+        <!-- Loading State -->
+        @if (loading()) {
+          <div class="p-8 text-center">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-indigo-500 border-t-transparent"></div>
+            <p class="mt-2 text-gray-500">Đang tải danh sách bài tập...</p>
+          </div>
+        }
+
+        <!-- Error State -->
+        @if (error() && !loading()) {
+          <div class="p-6 text-center">
+            <div class="text-red-600 mb-2">{{ error() }}</div>
+            <button (click)="loadAssignments()" class="text-indigo-600 hover:text-indigo-800 underline text-sm">
+              Thử lại
+            </button>
+          </div>
+        }
+
+        <!-- Table -->
+        @if (!loading() && !error()) {
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th (click)="toggleSort('title')" 
+                      class="px-6 py-4 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors">
+                    <div class="flex items-center gap-1">
+                      Tên bài tập
+                      @if (sortColumn() === 'title') {
+                        <span class="text-indigo-600">{{ sortDirection() === 'asc' ? '▲' : '▼' }}</span>
+                      }
+                    </div>
+                  </th>
+                  <th (click)="toggleSort('courseTitle')" 
+                      class="px-6 py-4 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors">
+                    <div class="flex items-center gap-1">
+                      Khóa học
+                      @if (sortColumn() === 'courseTitle') {
+                        <span class="text-indigo-600">{{ sortDirection() === 'asc' ? '▲' : '▼' }}</span>
+                      }
+                    </div>
+                  </th>
+                  <th (click)="toggleSort('dueDate')" 
+                      class="px-6 py-4 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors">
+                    <div class="flex items-center gap-1">
+                      Hạn nộp
+                      @if (sortColumn() === 'dueDate') {
+                        <span class="text-indigo-600">{{ sortDirection() === 'asc' ? '▲' : '▼' }}</span>
+                      }
+                    </div>
+                  </th>
+                  <th (click)="toggleSort('status')" 
+                      class="px-6 py-4 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors">
+                    <div class="flex items-center gap-1">
+                      Trạng thái
+                      @if (sortColumn() === 'status') {
+                        <span class="text-indigo-600">{{ sortDirection() === 'asc' ? '▲' : '▼' }}</span>
+                      }
+                    </div>
+                  </th>
+                  <th (click)="toggleSort('submissionsCount')" 
+                      class="px-6 py-4 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors">
+                    <div class="flex items-center gap-1">
+                      Bài nộp
+                      @if (sortColumn() === 'submissionsCount') {
+                        <span class="text-indigo-600">{{ sortDirection() === 'asc' ? '▲' : '▼' }}</span>
+                      }
+                    </div>
+                  </th>
+                  <th class="px-6 py-4 text-right text-sm font-semibold text-gray-600 uppercase tracking-wider">
+                    Thao tác
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                @for (assignment of pagedAssignments(); track assignment.id) {
+                  <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-6 py-4">
+                      <div class="text-base font-medium text-gray-900">{{ assignment.title }}</div>
+                      @if (assignment.description) {
+                        <div class="text-sm text-gray-500 truncate max-w-xs">{{ assignment.description }}</div>
+                      }
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-base text-gray-600">
+                      {{ assignment.courseTitle }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-base text-gray-600">
+                      {{ assignment.dueDate ? (assignment.dueDate | date:'dd/MM/yyyy HH:mm') : 'Không giới hạn' }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full"
+                            [class]="getStatusClasses(assignment.status)">
+                        {{ getStatusLabel(assignment.status) }}
+                      </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="flex items-center gap-2">
+                        <span class="text-base text-gray-900 font-medium">{{ assignment.submissionsCount }}</span>
+                        <span class="text-gray-400">/</span>
+                        <span class="text-base text-gray-500">{{ assignment.totalStudents }}</span>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
+                      <a [routerLink]="['/teacher/assignments', assignment.id, 'submissions']" 
+                         class="text-blue-600 hover:text-blue-900 transition-colors">
+                        Xem bài nộp
+                      </a>
+                      <a [routerLink]="['/teacher/assignments', assignment.id, 'edit']" 
+                         class="text-indigo-600 hover:text-indigo-900 transition-colors">
+                        Sửa
+                      </a>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Empty State -->
+          @if (pagedAssignments().length === 0) {
+            <div class="p-8 text-center text-gray-500">
+              @if (hasActiveFilters()) {
+                <p>Không tìm thấy bài tập phù hợp với bộ lọc.</p>
+                <button (click)="resetFilters()" class="mt-2 text-indigo-600 hover:text-indigo-800 underline">
+                  Xóa bộ lọc
+                </button>
+              } @else {
+                <p>Chưa có bài tập nào.</p>
+                <a routerLink="/teacher/assignment-creation" class="mt-2 inline-block text-indigo-600 hover:text-indigo-800 underline">
+                  Tạo bài tập đầu tiên
+                </a>
+              }
+            </div>
+          }
+        }
       </div>
 
-      <!-- Pagination Controls -->
-      <div class="bg-white rounded-lg shadow p-4 flex flex-wrap items-center justify-between gap-3">
-        <div class="flex items-center gap-2">
-          <span class="text-sm text-gray-600">Hiển thị</span>
-          <select class="border rounded px-2 py-1" [ngModel]="pageSize()" (ngModelChange)="onPageSizeChange($event)">
-            <option [ngValue]="5">5</option>
-            <option [ngValue]="10">10</option>
-            <option [ngValue]="20">20</option>
-          </select>
-          <span class="text-sm text-gray-600">mỗi trang</span>
+      <!-- Pagination -->
+      @if (!loading() && !error() && total() > 0) {
+        <div class="bg-white rounded-lg shadow p-4 flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-2">
+            <span class="text-sm text-gray-600">Hiển thị</span>
+            <select 
+              class="border rounded px-2 py-1 focus:ring-2 focus:ring-indigo-500" 
+              [ngModel]="pageSize()" 
+              (ngModelChange)="onPageSizeChange($event)">
+              <option [ngValue]="5">5</option>
+              <option [ngValue]="10">10</option>
+              <option [ngValue]="20">20</option>
+              <option [ngValue]="50">50</option>
+            </select>
+            <span class="text-sm text-gray-600">mỗi trang</span>
+          </div>
+          
+          <div class="flex items-center gap-2">
+            <button 
+              class="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors" 
+              [disabled]="!paginationInfo().hasPreviousPage" 
+              (click)="goToPage(pageIndex() - 1)">
+              Trước
+            </button>
+            <span class="text-sm text-gray-700 px-2">
+              Trang {{ pageIndex() }} / {{ paginationInfo().totalPages }}
+            </span>
+            <button 
+              class="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors" 
+              [disabled]="!paginationInfo().hasNextPage" 
+              (click)="goToPage(pageIndex() + 1)">
+              Sau
+            </button>
+          </div>
+          
+          <div class="text-sm text-gray-600">
+            Hiển thị {{ paginationInfo().startIndex + 1 }}-{{ paginationInfo().endIndex + 1 }} trong {{ total() }} bài tập
+          </div>
         </div>
-        <div class="flex items-center gap-2">
-          <button class="px-3 py-1 border rounded disabled:opacity-50" [disabled]="pageIndex() <= 1" (click)="prevPage()">Trước</button>
-          <span class="text-sm text-gray-700">Trang {{ pageIndex() }} / {{ totalPages() }}</span>
-          <button class="px-3 py-1 border rounded disabled:opacity-50" [disabled]="pageIndex() >= totalPages()" (click)="nextPage()">Sau</button>
-        </div>
-        <div class="text-sm text-gray-600">Tổng: {{ total() }}</div>
-      </div>
+      }
     </div>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class AssignmentManagementComponent {
+export class AssignmentManagementComponent implements OnInit {
   private assignmentApi = inject(AssignmentApi);
   
-  pageIndex = signal(1);
-  pageSize = signal(10);
-  keyword = '';
-  statusFilter: '' | 'pending' | 'published' | 'closed' = '';
-  sortKey: 'title'|'courseTitle'|'dueDate'|'status'|'submissionsCount' = 'dueDate';
-  sortDir: 'asc'|'desc' = 'desc';
-  
+  // State signals
   assignments = signal<AssignmentSummary[]>([]);
+  loading = signal(false);
   error = signal('');
   
-  filtered = computed(() => this.assignments().filter(a =>
-    (!this.statusFilter || a.status === this.statusFilter) &&
-    (!this.keyword || a.title.toLowerCase().includes(this.keyword.toLowerCase()) || (a.description||'').toLowerCase().includes(this.keyword.toLowerCase()))
-  ));
+  // Filter signals
+  filterKeyword = signal('');
+  filterStatus = signal<'' | 'pending' | 'published' | 'closed'>('');
   
-  sorted = computed(() => [...this.filtered()].sort((a,b)=>{
-    const dir = this.sortDir === 'asc' ? 1 : -1;
-    const va: any = (a as any)[this.sortKey];
-    const vb: any = (b as any)[this.sortKey];
-    if (this.sortKey === 'dueDate') {
-      const dateA = va ? new Date(va).getTime() : 0;
-      const dateB = vb ? new Date(vb).getTime() : 0;
-      return (dateA > dateB ? 1 : dateA < dateB ? -1 : 0) * dir;
-    }
-    return (va > vb ? 1 : va < vb ? -1 : 0) * dir;
+  // Sort signals
+  sortColumn = signal<AssignmentSortColumn>('dueDate');
+  sortDirection = signal<SortDirection>('desc');
+  
+  // Pagination signals
+  pageIndex = signal(1);
+  pageSize = signal(10);
+
+  // Computed: Filter criteria
+  private filterCriteria = computed<AssignmentFilterCriteria>(() => ({
+    status: this.filterStatus() || undefined,
+    keyword: this.filterKeyword() || undefined
   }));
-  
-  paged = computed(() => {
-    const start = (this.pageIndex() - 1) * this.pageSize();
-    return this.sorted().slice(start, start + this.pageSize());
-  });
-  
-  total = computed(() => this.filtered().length);
-  totalPages = computed(() => Math.max(1, Math.ceil(this.total() / this.pageSize())));
 
-  constructor() {
+  // Computed: Filtered assignments
+  private filteredAssignments = computed(() => 
+    filterAssignments(this.assignments(), this.filterCriteria())
+  );
+
+  // Computed: Sorted assignments
+  private sortedAssignments = computed(() => 
+    sortAssignments(this.filteredAssignments(), {
+      column: this.sortColumn(),
+      direction: this.sortDirection()
+    })
+  );
+
+  // Computed: Paginated assignments
+  pagedAssignments = computed(() => 
+    paginateAssignments(this.sortedAssignments(), this.pageIndex(), this.pageSize())
+  );
+
+  // Computed: Total count
+  total = computed(() => this.filteredAssignments().length);
+
+  // Computed: Pagination info
+  paginationInfo = computed(() => 
+    getPaginationInfo(this.total(), this.pageIndex(), this.pageSize())
+  );
+
+  ngOnInit(): void {
     this.loadAssignments();
   }
 
-  private loadAssignments() {
+  /**
+   * Loads assignments from API
+   */
+  loadAssignments(): void {
+    this.loading.set(true);
     this.error.set('');
-    
-    // Temporarily load mock data until we integrate with CourseApi to get all assignments
-    // This should be replaced with proper API integration
-    const mockAssignments: AssignmentSummary[] = [
-      {
-        id: '1',
-        title: 'Bài tập về An toàn Hàng hải',
-        description: 'Viết báo cáo về các quy định SOLAS',
-        dueDate: '2025-10-20T23:59:59Z',
-        courseId: 'course-1',
-        courseTitle: 'An toàn Hàng hải Cơ bản',
-        status: 'published',
-        submissionsCount: 15,
-        totalStudents: 25,
-        createdAt: '2025-10-10T08:00:00Z',
-        updatedAt: '2025-10-12T10:30:00Z'
+
+    this.assignmentApi.getTeacherAssignments().subscribe({
+      next: (response: { data?: AssignmentSummary[] }) => {
+        this.assignments.set(response.data || []);
       },
-      {
-        id: '2',
-        title: 'Quiz về Điều hướng',
-        description: 'Kiểm tra kiến thức về radar và GPS',
-        dueDate: '2025-10-25T18:00:00Z',
-        courseId: 'course-2', 
-        courseTitle: 'Điều hướng Maritime',
-        status: 'pending',
-        submissionsCount: 0,
-        totalStudents: 18,
-        createdAt: '2025-10-13T14:20:00Z'
+      error: (err: unknown) => {
+        console.error('Error loading assignments:', err);
+        this.error.set('Không thể tải danh sách bài tập. Vui lòng thử lại.');
+        this.assignments.set([]);
+      },
+      complete: () => {
+        this.loading.set(false);
       }
-    ];
-    
-    this.assignments.set(mockAssignments);
+    });
   }
 
-  goToPage(n: number) { 
-    this.pageIndex.set(Math.min(Math.max(1, n), this.totalPages())); 
+  // Filter handlers
+  onKeywordChange(value: string): void {
+    this.filterKeyword.set(value);
+    this.pageIndex.set(1);
   }
-  
-  nextPage() { 
-    this.goToPage(this.pageIndex() + 1); 
+
+  onStatusChange(value: '' | 'pending' | 'published' | 'closed'): void {
+    this.filterStatus.set(value);
+    this.pageIndex.set(1);
   }
-  
-  prevPage() { 
-    this.goToPage(this.pageIndex() - 1); 
+
+  resetFilters(): void {
+    this.filterKeyword.set('');
+    this.filterStatus.set('');
+    this.pageIndex.set(1);
   }
-  
-  onPageSizeChange(v?: any) { 
-    if (v !== undefined) this.pageSize.set(Number(v)); 
-    this.goToPage(1); 
+
+  hasActiveFilters(): boolean {
+    return this.filterKeyword() !== '' || this.filterStatus() !== '';
   }
-  
-  applyFilters() { 
-    this.goToPage(1); 
-  }
-  
-  setSort(key: typeof this.sortKey) {
-    if (this.sortKey === key) { 
-      this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc'; 
-    } else { 
-      this.sortKey = key; 
-      this.sortDir = 'asc'; 
+
+  // Sort handler
+  toggleSort(column: AssignmentSortColumn): void {
+    if (this.sortColumn() === column) {
+      this.sortDirection.set(this.sortDirection() === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.sortColumn.set(column);
+      this.sortDirection.set('asc');
     }
-    this.goToPage(1);
+    this.pageIndex.set(1);
   }
 
-  trackById(_i: number, item: any) { 
-    return item.id; 
+  // Pagination handlers
+  onPageSizeChange(size: number): void {
+    this.pageSize.set(size);
+    this.pageIndex.set(1);
   }
 
-  onReload() {
-    this.loadAssignments();
+  goToPage(page: number): void {
+    const info = this.paginationInfo();
+    if (page >= 1 && page <= info.totalPages) {
+      this.pageIndex.set(page);
+    }
+  }
+
+  // UI helpers
+  getStatusLabel(status: string): string {
+    const labels: Record<string, string> = {
+      'pending': 'Nháp',
+      'published': 'Đã xuất bản',
+      'closed': 'Đã đóng',
+      'DRAFT': 'Nháp',
+      'PUBLISHED': 'Đã xuất bản',
+      'CLOSED': 'Đã đóng'
+    };
+    return labels[status] || status;
+  }
+
+  getStatusClasses(status: string): string {
+    const normalized = status.toLowerCase();
+    const classes: Record<string, string> = {
+      'pending': 'bg-yellow-100 text-yellow-800',
+      'draft': 'bg-yellow-100 text-yellow-800',
+      'published': 'bg-green-100 text-green-800',
+      'closed': 'bg-gray-100 text-gray-800'
+    };
+    return classes[normalized] || 'bg-gray-100 text-gray-800';
   }
 }

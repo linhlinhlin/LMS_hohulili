@@ -57,31 +57,22 @@ export const teacherRoutes: Routes = [
         title: 'Quản lý bài học'
       },
       
-      // Assignment Management Routes
+      // Assignment Hub Routes (Unified Assignment + Grading)
       {
         path: 'assignments',
-        loadComponent: () => import('./assignments/assignment-management.component').then(m => m.AssignmentManagementComponent),
-        title: 'Quản lý bài tập'
+        loadChildren: () => import('./assignment-hub/assignment-hub.routes').then(m => m.assignmentHubRoutes)
       },
+      
+      // Legacy routes (backward compatibility)
       {
         path: 'assignment-creation',
-        loadComponent: () => import('./assignments/assignment-creation.component').then(m => m.AssignmentCreationComponent),
-        title: 'Tạo bài tập mới'
-      },
-      {
-        path: 'assignments/:id/edit',
-        loadComponent: () => import('./assignments/assignment-editor.component').then(m => m.AssignmentEditorComponent),
-        title: 'Chỉnh sửa bài tập'
-      },
-      {
-        path: 'assignments/:id/submissions',
-        loadComponent: () => import('./assignments/assignment-submissions.component').then(m => m.AssignmentSubmissionsComponent),
-        title: 'Bài nộp của học viên'
+        redirectTo: 'assignments/create',
+        pathMatch: 'full'
       },
       {
         path: 'courses/:courseId/sections/:sectionId/assignments/:assignmentId/submissions',
         loadComponent: () => import('./assignments/assignment-submissions.component').then(m => m.AssignmentSubmissionsComponent),
-        title: 'Bài nộp của học viên'
+        title: 'Bai nop cua hoc vien'
       },
       
       // Student Management Routes
@@ -107,31 +98,38 @@ export const teacherRoutes: Routes = [
         title: 'Phân tích giảng dạy'
       },
       
-      // Grading System Routes
+      // Grading Routes (redirect to unified Assignment Hub)
       {
         path: 'grading',
-        loadComponent: () => import('./grading/advanced-grading-system.component').then(m => m.AdvancedGradingSystemComponent),
-        title: 'Hệ thống chấm điểm'
+        redirectTo: 'assignments',
+        pathMatch: 'full'
       },
       {
-        path: 'grading/:id',
-        loadComponent: () => import('./grading/assignment-grader.component').then(m => m.AssignmentGraderComponent),
-        title: 'Chấm điểm bài tập'
+        path: 'grading/speed-grader/:assignmentId',
+        redirectTo: 'assignments/:assignmentId/submissions',
+        pathMatch: 'full'
+      },
+      {
+        path: 'grading/speed-grader/:assignmentId/:submissionId',
+        redirectTo: 'assignments/:assignmentId/grade/:submissionId',
+        pathMatch: 'full'
+      },
+      {
+        path: 'grading/rubrics',
+        redirectTo: 'assignments/rubrics',
+        pathMatch: 'full'
       },
       {
         path: 'rubrics',
-        loadComponent: () => import('./grading/rubric-manager.component').then(m => m.RubricManagerComponent),
-        title: 'Quản lý Rubric'
+        redirectTo: 'assignments/rubrics',
+        pathMatch: 'full'
       },
+
+      // AI Chat - Trợ lý AI Hàng Hải
       {
-        path: 'rubrics/create',
-        loadComponent: () => import('./grading/rubric-creator.component').then(m => m.RubricCreatorComponent),
-        title: 'Tạo Rubric mới'
-      },
-      {
-        path: 'rubrics/:id/edit',
-        loadComponent: () => import('./grading/rubric-editor.component').then(m => m.RubricEditorComponent),
-        title: 'Chỉnh sửa Rubric'
+        path: 'ai-chat',
+        loadChildren: () => import('../ai-chat/ai-chat.routes').then(m => m.AI_CHAT_ROUTES),
+        title: 'Trợ lý AI Hàng Hải'
       },
       
       

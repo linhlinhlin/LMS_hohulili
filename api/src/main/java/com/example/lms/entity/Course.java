@@ -1,6 +1,7 @@
 package com.example.lms.entity;
 
 import jakarta.persistence.*;
+import jakarta.persistence.Convert;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
@@ -44,8 +45,8 @@ public class Course {
     @Column(columnDefinition = "TEXT")
     private String description;
     
-        @Column(nullable = false)
-    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Convert(converter = com.example.lms.entity.converter.CourseStatusConverter.class)
     @Builder.Default
     private CourseStatus status = CourseStatus.DRAFT;
     

@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
 import { AdminSidebarComponent } from '../../../../shared/components/navigation/admin-sidebar.component';
+import { ChatWidgetComponent } from '../../../ai-chat/presentation/components/chat-widget/chat-widget.component';
 
 @Component({
   selector: 'app-admin-layout-simple',
   standalone: true,
-  imports: [CommonModule, RouterModule, RouterOutlet, AdminSidebarComponent],
+  imports: [CommonModule, RouterModule, RouterOutlet, AdminSidebarComponent, ChatWidgetComponent],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="min-h-screen flex">
@@ -60,6 +61,9 @@ import { AdminSidebarComponent } from '../../../../shared/components/navigation/
           <router-outlet></router-outlet>
         </main>
       </div>
+
+      <!-- AI Chat Widget -->
+      <app-chat-widget />
     </div>
   `,
   styles: [`

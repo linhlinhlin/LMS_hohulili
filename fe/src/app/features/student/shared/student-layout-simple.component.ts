@@ -1,15 +1,18 @@
-import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, signal, computed, effect, OnInit, OnDestroy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, RouterOutlet, Router, NavigationEnd } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
-import { SidebarComponent } from '../../../shared/components/navigation/sidebar.component';
-import { studentSidebarConfig } from '../../../shared/components/navigation/sidebar.config';
-import { UserRole } from '../../../shared/types/user.types';
+import { SidebarComponent, SidebarConfig } from '../../../shared/components/navigation/sidebar.component';
+import { studentSidebarConfig as baseStudentSidebarConfig } from '../../../shared/components/navigation/sidebar.config';
+import { NotificationBellComponent } from '../../../shared/components/notification-bell.component';
+import { NotificationService } from '../../../core/services/notification.service';
+import { MessagingService } from '../../../core/services/messaging.service';
+import { ChatWidgetComponent } from '../../ai-chat/presentation/components/chat-widget/chat-widget.component';
 
 @Component({
   selector: 'app-student-layout-simple',
-  imports: [CommonModule, RouterModule, RouterOutlet, SidebarComponent],
+  imports: [CommonModule, RouterModule, RouterOutlet, SidebarComponent, NotificationBellComponent, ChatWidgetComponent],
   encapsulation: ViewEncapsulation.None,
   template: `
     <!-- Modern gradient background -->
@@ -17,7 +20,7 @@ import { UserRole } from '../../../shared/types/user.types';
       <!-- Desktop Sidebar - Full Height -->
       <div class="hidden md:flex md:w-72 md:flex-col md:fixed md:inset-y-0 md:z-40"
            *ngIf="!shouldHideSidebar()">
-        <app-sidebar [config]="studentSidebarConfig"></app-sidebar>
+        <app-sidebar [config]="studentSidebarConfig()"></app-sidebar>
       </div>
 
       <!-- Mobile sidebar overlay with backdrop blur -->
@@ -26,7 +29,7 @@ import { UserRole } from '../../../shared/types/user.types';
            (click)="toggleMobileSidebar()">
         <div class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
         <div class="fixed inset-y-0 left-0 w-72 bg-white/95 backdrop-blur-xl shadow-2xl border-r border-white/20">
-          <app-sidebar [config]="studentSidebarConfig"></app-sidebar>
+          <app-sidebar [config]="studentSidebarConfig()"></app-sidebar>
         </div>
       </div>
 
@@ -60,6 +63,9 @@ import { UserRole } from '../../../shared/types/user.types';
 
               <!-- Modern user menu -->
               <div class="flex items-center space-x-3">
+                <!-- Notification Bell -->
+                <app-notification-bell></app-notification-bell>
+
                 <!-- User avatar and info -->
                 <div class="flex items-center space-x-2">
                   <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
@@ -162,6 +168,9 @@ import { UserRole } from '../../../shared/types/user.types';
         <!-- Add bottom padding for mobile navigation -->
         <div *ngIf="!shouldHideSidebar()" class="h-20 md:hidden"></div>
       </div>
+
+      <!-- AI Chat Widget -->
+      <app-chat-widget />
     </div>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -169,8 +178,25 @@ import { UserRole } from '../../../shared/types/user.types';
 export class StudentLayoutSimpleComponent implements OnInit, OnDestroy {
   protected authService = inject(AuthService);
   private router = inject(Router);
+  private notificationService = inject(NotificationService);
+  private messagingService = inject(MessagingService);
   protected isMobileSidebarOpen = signal(false);
-  protected studentSidebarConfig = studentSidebarConfig;
+
+  // Dynamic sidebar config with unread messages badge
+  protected studentSidebarConfig = computed<SidebarConfig>(() => {
+    const unreadCount = this.messagingService.totalUnreadCount();
+    const config = { ...baseStudentSidebarConfig };
+    config.menuItems = config.menuItems.map(item => {
+      if (item.route === '/student/messages') {
+        return {
+          ...item,
+          badge: unreadCount > 0 ? (unreadCount > 99 ? '99+' : unreadCount.toString()) : undefined
+        };
+      }
+      return item;
+    });
+    return config;
+  });
 
   // Sidebar visibility state persisted in localStorage
   private sidebarHidden = signal<boolean>(false);
@@ -183,6 +209,14 @@ export class StudentLayoutSimpleComponent implements OnInit, OnDestroy {
   private routerSubscription?: Subscription;
 
   ngOnInit() {
+    // Initialize notification service with current user ID
+    const userId = this.authService.currentUser()?.id || 'student-1';
+    this.notificationService.initialize(userId);
+
+    // Initialize messaging service for unread count
+    this.messagingService.setCurrentUserId(userId);
+    this.messagingService.getConversations().subscribe();
+
     // Load sidebar state from localStorage on initialization
     this.loadSidebarState();
 

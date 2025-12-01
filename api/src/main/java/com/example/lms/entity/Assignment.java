@@ -1,6 +1,7 @@
 package com.example.lms.entity;
 
 import jakarta.persistence.*;
+import jakarta.persistence.Convert;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -47,7 +48,7 @@ public class Assignment {
     private BigDecimal maxScore = BigDecimal.valueOf(100.00);
     
     @Column(name = "assignment_type")
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = com.example.lms.entity.converter.AssignmentTypeConverter.class)
     @Builder.Default
     private AssignmentType assignmentType = AssignmentType.FILE_SUBMISSION;
     
@@ -56,7 +57,7 @@ public class Assignment {
     private Map<String, Object> assignmentConfig; // JSON object for type-specific config
     
     @Column(name = "status")
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = com.example.lms.entity.converter.AssignmentStatusConverter.class)
     @Builder.Default
     private AssignmentStatus status = AssignmentStatus.DRAFT;
     

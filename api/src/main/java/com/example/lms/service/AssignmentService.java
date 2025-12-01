@@ -10,6 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -35,9 +36,12 @@ public class AssignmentService {
             throw new RuntimeException("Bạn không có quyền tạo bài tập cho khóa học này");
         }
 
-        // Only allow creating assignments if course is in DRAFT or REJECTED status
-        if (course.getStatus() != Course.CourseStatus.DRAFT && course.getStatus() != Course.CourseStatus.REJECTED) {
-            throw new RuntimeException("Chỉ có thể tạo bài tập cho khóa học ở trạng thái bản nháp hoặc bị từ chối");
+        // Allow creating assignments for courses in DRAFT, REJECTED, or APPROVED status
+        // Teachers should be able to add assignments to active courses
+        // Only PENDING status is restricted (course is under review)
+        Course.CourseStatus status = course.getStatus();
+        if (status == Course.CourseStatus.PENDING) {
+            throw new RuntimeException("Không thể tạo bài tập cho khóa học đang chờ duyệt");
         }
 
         Assignment assignment = Assignment.builder()
@@ -63,10 +67,11 @@ public class AssignmentService {
             throw new RuntimeException("Bạn không có quyền chỉnh sửa bài tập này");
         }
 
-        // Only allow editing if course is in DRAFT or REJECTED status
+        // Allow editing assignments for courses in DRAFT, REJECTED, or APPROVED status
+        // Only PENDING status is restricted (course is under review)
         Course.CourseStatus courseStatus = assignment.getCourse().getStatus();
-        if (courseStatus != Course.CourseStatus.DRAFT && courseStatus != Course.CourseStatus.REJECTED) {
-            throw new RuntimeException("Chỉ có thể chỉnh sửa bài tập của khóa học ở trạng thái bản nháp hoặc bị từ chối");
+        if (courseStatus == Course.CourseStatus.PENDING) {
+            throw new RuntimeException("Không thể chỉnh sửa bài tập của khóa học đang chờ duyệt");
         }
 
         if (request.getTitle() != null) {
@@ -101,10 +106,11 @@ public class AssignmentService {
             throw new RuntimeException("Bạn không có quyền xóa bài tập này");
         }
 
-        // Only allow deleting if course is in DRAFT or REJECTED status
+        // Allow deleting assignments for courses in DRAFT, REJECTED, or APPROVED status
+        // Only PENDING status is restricted (course is under review)
         Course.CourseStatus courseStatus = assignment.getCourse().getStatus();
-        if (courseStatus != Course.CourseStatus.DRAFT && courseStatus != Course.CourseStatus.REJECTED) {
-            throw new RuntimeException("Chỉ có thể xóa bài tập của khóa học ở trạng thái bản nháp hoặc bị từ chối");
+        if (courseStatus == Course.CourseStatus.PENDING) {
+            throw new RuntimeException("Không thể xóa bài tập của khóa học đang chờ duyệt");
         }
 
         assignmentRepository.delete(assignment);
@@ -139,6 +145,42 @@ public class AssignmentService {
         }
 
         return assignmentRepository.findByCourseOrderByCreatedAtAsc(course);
+    }
+
+    /**
+     * Get all assignments for a teacher across all their courses
+     * Used for the teacher assignment management dashboard
+     * Uses eager loading to avoid LazyInitializationException
+     */
+    public List<Assignment> getTeacherAssignments(User currentUser, UUID courseId, String status) {
+        // Use the new query with eager loading to avoid lazy loading issues
+        List<Assignment> allAssignments = assignmentRepository.findByTeacherIdWithDetails(currentUser.getId());
+        
+        if (allAssignments.isEmpty()) {
+            return List.of();
+        }
+        
+        // If courseId is specified, filter to that course only
+        if (courseId != null) {
+            allAssignments = allAssignments.stream()
+                .filter(a -> a.getCourse().getId().equals(courseId))
+                .toList();
+        }
+        
+        // Filter by status if specified
+        if (status != null && !status.isEmpty()) {
+            allAssignments = allAssignments.stream()
+                .filter(a -> {
+                    String assignmentStatus = "published";
+                    if (a.getDueDate() != null && a.getDueDate().isBefore(java.time.LocalDateTime.now())) {
+                        assignmentStatus = "closed";
+                    }
+                    return assignmentStatus.equalsIgnoreCase(status);
+                })
+                .toList();
+        }
+        
+        return allAssignments;
     }
 
     public AssignmentSubmission submitAssignment(UUID assignmentId, User currentUser, com.example.lms.controller.AssignmentController.CreateSubmissionRequest request) {
@@ -186,23 +228,37 @@ public class AssignmentService {
     }
 
     public AssignmentSubmission gradeSubmission(UUID submissionId, User currentUser, com.example.lms.controller.AssignmentController.GradeSubmissionRequest request) {
+        // Validate current user
+        if (currentUser == null) {
+            throw new RuntimeException("Bạn cần đăng nhập để thực hiện chức năng này");
+        }
+        
         AssignmentSubmission submission = submissionRepository.findById(submissionId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài nộp với ID: " + submissionId));
         
         // Only teacher can grade submissions
-        if (!submission.getAssignment().getCourse().getTeacher().getId().equals(currentUser.getId())) {
+        User teacher = submission.getAssignment().getCourse().getTeacher();
+        if (teacher == null || !teacher.getId().equals(currentUser.getId())) {
             throw new RuntimeException("Bạn không có quyền chấm điểm bài nộp này");
         }
 
         // Validate score
+        BigDecimal maxScore = submission.getAssignment().getMaxScore();
+        if (maxScore == null) {
+            maxScore = new BigDecimal("100"); // Default max score
+        }
+        if (request.getScore() == null) {
+            throw new RuntimeException("Điểm số không được để trống");
+        }
         if (request.getScore().compareTo(java.math.BigDecimal.ZERO) < 0 || 
-            request.getScore().compareTo(submission.getAssignment().getMaxScore()) > 0) {
-            throw new RuntimeException("Điểm số phải từ 0 đến " + submission.getAssignment().getMaxScore());
+            request.getScore().compareTo(maxScore) > 0) {
+            throw new RuntimeException("Điểm số phải từ 0 đến " + maxScore);
         }
 
         submission.setScore(request.getScore());
         submission.setFeedback(request.getFeedback());
         submission.setGradedAt(LocalDateTime.now());
+        submission.setStatus(AssignmentSubmission.Status.GRADED);
 
         return submissionRepository.save(submission);
     }
@@ -219,6 +275,18 @@ public class AssignmentService {
 
         return submissionRepository.findByAssignmentAndStudent(assignment, currentUser)
                 .orElse(null);
+    }
+
+    public AssignmentSubmission getSubmissionById(UUID submissionId, User currentUser) {
+        AssignmentSubmission submission = submissionRepository.findById(submissionId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy bài nộp với ID: " + submissionId));
+        
+        // Only teacher of the course can view submission details
+        if (!submission.getAssignment().getCourse().getTeacher().getId().equals(currentUser.getId())) {
+            throw new RuntimeException("Bạn không có quyền xem bài nộp này");
+        }
+
+        return submission;
     }
 
     /**

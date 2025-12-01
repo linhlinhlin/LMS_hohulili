@@ -147,6 +147,13 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
 
+  // AI Chat for Guests (public route)
+  {
+    path: 'ai-chat',
+    loadChildren: () => import('./features/ai-chat/ai-chat.routes').then(m => m.AI_CHAT_ROUTES),
+    title: 'Trợ lý AI Hàng Hải'
+  },
+
   
   // ========================================
   // FALLBACK ROUTE

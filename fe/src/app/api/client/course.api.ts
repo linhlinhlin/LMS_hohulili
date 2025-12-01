@@ -96,4 +96,21 @@ export class CourseApi {
   getNextLesson(courseId: string) {
     return this.api.getWithResponse<any>(`/api/v1/student/progress/courses/${courseId}/next-lesson`);
   }
+
+  /**
+   * Get enrolled students for a course
+   */
+  getEnrolledStudents(courseId: string): Observable<ApiResponse<any[]>> {
+    return this.api.getWithResponse<any>(`/api/v1/courses/${courseId}/students`).pipe(
+      map((res: ApiResponse<any>) => {
+        // Handle both array and paginated response
+        const content = Array.isArray(res?.data) ? res.data : (res?.data?.content ?? []);
+        return {
+          data: content,
+          pagination: res?.pagination,
+          message: res?.message
+        } as ApiResponse<any[]>;
+      })
+    );
+  }
 }
