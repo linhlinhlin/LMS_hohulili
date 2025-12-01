@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<!-- saved from url=(0120)http://localhost:4200/teacher/courses/550e8400-e29b-41d4-a716-446655440003/sections/8b7b8107-f487-46e7-b678-e60336e5c34f -->
+<html lang="vi"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <script type="module" src="./Quản lý bài học_files/client"></script>
+
+  
+  <title>Quản lý bài học</title>
+  <!--<base href="/">--><base href=".">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <meta name="description" content="Hệ thống quản lý học tập chuyên về ngành hàng hải">
+  <meta name="keywords" content="LMS, hàng hải, học tập, thủy thủ, maritime">
+  <meta name="author" content="LMS Maritime Team">
+  
+  <!-- PWA Meta Tags -->
+  <meta name="theme-color" content="#3b82f6">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="LMS Maritime">
+  <meta name="msapplication-TileColor" content="#3b82f6">
+  <meta name="msapplication-config" content="/browserconfig.xml">
+  
+  <!-- Icons -->
+  <link rel="icon" type="image/x-icon" href="http://localhost:4200/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="http://localhost:4200/assets/icons/icon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="http://localhost:4200/assets/icons/icon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="http://localhost:4200/assets/icons/icon-180x180.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="http://localhost:4200/assets/icons/icon-152x152.png">
+  <link rel="apple-touch-icon" sizes="144x144" href="http://localhost:4200/assets/icons/icon-144x144.png">
+  <link rel="apple-touch-icon" sizes="120x120" href="http://localhost:4200/assets/icons/icon-120x120.png">
+  <link rel="apple-touch-icon" sizes="114x114" href="http://localhost:4200/assets/icons/icon-114x114.png">
+  <link rel="apple-touch-icon" sizes="76x76" href="http://localhost:4200/assets/icons/icon-76x76.png">
+  <link rel="apple-touch-icon" sizes="72x72" href="http://localhost:4200/assets/icons/icon-72x72.png">
+  <link rel="apple-touch-icon" sizes="60x60" href="http://localhost:4200/assets/icons/icon-60x60.png">
+  <link rel="apple-touch-icon" sizes="57x57" href="http://localhost:4200/assets/icons/icon-57x57.png">
+  
+  <!-- Manifest -->
+  <link rel="manifest" href="http://localhost:4200/manifest.webmanifest">
+
+  <!-- Preload critical resources -->
+  <link rel="preconnect" href="https://fonts.googleapis.com/">
+  <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
+  
+  <!-- Prevent FOUC with inline critical CSS -->
+  <style>
+    /* Prevent flash of unstyled content */
+    body { 
+      margin: 0; 
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      background-color: #FAFAFA;
+      color: #1F1F1F;
+    }
+    
+    /* Loading indicator */
+    .app-loading {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+    
+    .app-loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #E5E7EB;
+      border-top-color: #0056D2;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  
+/*# sourceMappingURL=data:application/json;base64,eyJmaWxlIjoiXHUwMDAwL2luZGV4Lmh0bWwiLCJtYXBwaW5ncyI6IjtJQUNJLHNDQUFzQztJQUN0QztNQUNFLFNBQVM7TUFDVCx5RkFBeUY7TUFDekYseUJBQXlCO01BQ3pCLGNBQWM7SUFDaEI7O0lBRUEsc0JBQXNCO0lBQ3RCO01BQ0UsZUFBZTtNQUNmLFFBQVE7TUFDUixTQUFTO01BQ1QsZ0NBQWdDO01BQ2hDLGtCQUFrQjtJQUNwQjs7SUFFQTtNQUNFLFdBQVc7TUFDWCxZQUFZO01BQ1oseUJBQXlCO01BQ3pCLHlCQUF5QjtNQUN6QixrQkFBa0I7TUFDbEIsb0NBQW9DO0lBQ3RDOztJQUVBO01BQ0UsS0FBSyx5QkFBeUIsRUFBRTtJQUNsQyIsIm5hbWVzIjpbXSwic291cmNlcyI6WyJDOi9Vc2Vycy9BZG1pbi9Eb3dubG9hZHMvZmUvXHUwMDAwL2luZGV4Lmh0bWwiXSwic291cmNlc0NvbnRlbnQiOlsiXG4gICAgLyogUHJldmVudCBmbGFzaCBvZiB1bnN0eWxlZCBjb250ZW50ICovXG4gICAgYm9keSB7IFxuICAgICAgbWFyZ2luOiAwOyBcbiAgICAgIGZvbnQtZmFtaWx5OiAnSW50ZXInLCAtYXBwbGUtc3lzdGVtLCBCbGlua01hY1N5c3RlbUZvbnQsICdTZWdvZSBVSScsICdSb2JvdG8nLCBzYW5zLXNlcmlmO1xuICAgICAgYmFja2dyb3VuZC1jb2xvcjogI0ZBRkFGQTtcbiAgICAgIGNvbG9yOiAjMUYxRjFGO1xuICAgIH1cbiAgICBcbiAgICAvKiBMb2FkaW5nIGluZGljYXRvciAqL1xuICAgIC5hcHAtbG9hZGluZyB7XG4gICAgICBwb3NpdGlvbjogZml4ZWQ7XG4gICAgICB0b3A6IDUwJTtcbiAgICAgIGxlZnQ6IDUwJTtcbiAgICAgIHRyYW5zZm9ybTogdHJhbnNsYXRlKC01MCUsIC01MCUpO1xuICAgICAgdGV4dC1hbGlnbjogY2VudGVyO1xuICAgIH1cbiAgICBcbiAgICAuYXBwLWxvYWRpbmctc3Bpbm5lciB7XG4gICAgICB3aWR0aDogNDBweDtcbiAgICAgIGhlaWdodDogNDBweDtcbiAgICAgIGJvcmRlcjogNHB4IHNvbGlkICNFNUU3RUI7XG4gICAgICBib3JkZXItdG9wLWNvbG9yOiAjMDA1NkQyO1xuICAgICAgYm9yZGVyLXJhZGl1czogNTAlO1xuICAgICAgYW5pbWF0aW9uOiBzcGluIDAuOHMgbGluZWFyIGluZmluaXRlO1xuICAgIH1cbiAgICBcbiAgICBAa2V5ZnJhbWVzIHNwaW4ge1xuICAgICAgdG8geyB0cmFuc2Zvcm06IHJvdGF0ZSgzNjBkZWcpOyB9XG4gICAgfVxuICAiXSwidmVyc2lvbiI6M30= */</style>
+  
+  <!-- Open Graph Meta Tags -->
+  <meta property="og:title" content="LMS Maritime - Hệ thống quản lý học tập">
+  <meta property="og:description" content="Hệ thống quản lý học tập chuyên về ngành hàng hải">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://lms-maritime.com">
+  <meta property="og:image" content="assets/images/og-image.png">
+  
+  <!-- Twitter Card Meta Tags -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="LMS Maritime - Hệ thống quản lý học tập">
+  <meta name="twitter:description" content="Hệ thống quản lý học tập chuyên về ngành hàng hải">
+  <meta name="twitter:image" content="assets/images/twitter-image.png">
+  <link href="./Quản lý bài học_files/css2" rel="stylesheet">
+  <link href="./Quản lý bài học_files/icon" rel="stylesheet">
+<link rel="stylesheet" href="./Quản lý bài học_files/styles.css"><style>/* angular:styles/component:scss;f1ad94cbfa8cf2598add183555bf82a0cadf416750ec07c12cb8c95a5ca24f17;C:/Users/Admin/Downloads/fe/src/app/shared/components/navigation/sidebar.component.ts */
+.sidebar-container {
+  background: white;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid rgba(229, 231, 235, 0.5);
+}
+.sidebar-header {
+  padding: 1.5rem;
+  background: white;
+  border-bottom: 1px solid rgba(229, 231, 235, 0.5);
+}
+.sidebar-logo {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+.sidebar-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #111827;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sidebar-subtitle {
+  font-size: 0.875rem;
+  color: #6b7280;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sidebar-progress-card {
+  margin-top: 1rem;
+  padding: 1rem;
+  background:
+    linear-gradient(
+      to right,
+      #eff6ff,
+      #e0e7ff);
+  border-radius: 0.5rem;
+  border: 1px solid #bfdbfe;
+}
+.progress-bar {
+  background:
+    linear-gradient(
+      to right,
+      #3b82f6,
+      #6366f1);
+  height: 0.5rem;
+  border-radius: 9999px;
+  transition: all 0.5s;
+}
+.sidebar-nav {
+  flex: 1;
+  padding: 1rem 0.75rem;
+  overflow-y: auto;
+}
+.sidebar-nav::-webkit-scrollbar {
+  display: none;
+}
+.sidebar-nav {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.nav-item-container {
+  margin-bottom: 0.25rem;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  padding: 0.625rem 0.75rem;
+  color: #374151;
+  border-radius: 0.5rem;
+  transition: all 0.2s;
+}
+.nav-item:hover {
+  background-color: #f9fafb;
+}
+.nav-item.active {
+  background-color: #eff6ff;
+  color: #1d4ed8;
+  border-right: 2px solid #3b82f6;
+}
+.nav-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-right: 0.75rem;
+  color: #9ca3af;
+  transition: transform 0.2s;
+}
+.nav-item:hover .nav-icon {
+  transform: scale(1.1);
+}
+.nav-label {
+  font-weight: 500;
+  font-size: 0.875rem;
+  flex: 1;
+}
+.nav-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+.sub-menu {
+  margin-left: 2rem;
+  margin-top: 0.5rem;
+}
+.sub-menu-item {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  color: #6b7280;
+  border-radius: 0.5rem;
+  transition: all 0.2s;
+}
+.sub-menu-item:hover {
+  background-color: #f3f4f6;
+  color: #111827;
+}
+.sub-icon {
+  width: 1rem;
+  height: 1rem;
+  margin-right: 0.5rem;
+  color: #9ca3af;
+}
+.sidebar-footer {
+  padding: 1rem;
+  border-top: 1px solid rgba(229, 231, 235, 0.5);
+}
+.logout-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0.625rem 0.75rem;
+  color: #dc2626;
+  border-radius: 0.5rem;
+  transition: all 0.2s;
+}
+.logout-btn:hover {
+  background-color: #fef2f2;
+}
+.logout-btn svg {
+  margin-right: 0.75rem;
+}
+.logout-btn span {
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+.sidebar-student .sidebar-logo {
+  background:
+    linear-gradient(
+      to bottom right,
+      #2563eb,
+      #4f46e5);
+}
+.sidebar-student .nav-item.active {
+  background-color: #eff6ff;
+  color: #1d4ed8;
+  border-right: 2px solid #3b82f6;
+}
+.sidebar-teacher .sidebar-logo {
+  background:
+    linear-gradient(
+      to bottom right,
+      #2563eb,
+      #4f46e5);
+}
+.sidebar-teacher .nav-item.active {
+  background-color: #eff6ff;
+  color: #1d4ed8;
+  border-right: 2px solid #3b82f6;
+}
+.sidebar-admin .sidebar-logo {
+  background:
+    linear-gradient(
+      to bottom right,
+      #dc2626,
+      #b91c1c);
+}
+.sidebar-admin .nav-item.active {
+  background-color: #fef2f2;
+  color: #b91c1c;
+  border-right: 2px solid #dc2626;
+}
+/*# sourceMappingURL=/sidebar.component.css.map */
+</style><style>
+
+.line-clamp-2[_ngcontent-ng-c78420814] {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+/*# sourceMappingURL=/notification-bell.component.css.map */</style></head>
+<body ngcm="" class="loaded">
+  <app-root ng-version="20.3.0"><router-outlet></router-outlet><app-teacher-layout-simple><div class="min-h-screen flex flex-col"><div class="hidden lg:flex lg:w-72 lg:flex-col lg:fixed lg:inset-y-0 lg:z-40"><app-sidebar><div class="sidebar-container sidebar-teacher"><div class="sidebar-header"><div class="flex items-center space-x-3"><div class="sidebar-logo sidebar-logo-teacher"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-6 h-6 text-white"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg></div><div class="flex-1 min-w-0"><h2 class="sidebar-title">Teacher Portal</h2><p class="sidebar-subtitle">Nguyễn Mai</p></div></div><!--container--></div><nav class="sidebar-nav"><div class="nav-item-container"><a routerlinkactive="active" class="nav-item" href="http://localhost:4200/teacher/dashboard"><div class="nav-icon flex items-center justify-center text-blue-500"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-full h-full"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0h6"></path></svg></div><span class="nav-label">Dashboard</span><!--container--></a><!--container--></div><div class="nav-item-container"><a routerlinkactive="active" class="nav-item active" href="http://localhost:4200/teacher/courses"><div class="nav-icon flex items-center justify-center text-blue-500"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-full h-full"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6l-8 4 8 4 8-4-8-4zm0 10l-8-4v6l8 4 8-4v-6l-8 4z"></path></svg></div><span class="nav-label">Khóa học</span><!--container--></a><!--container--></div><div class="nav-item-container"><a routerlinkactive="active" class="nav-item" href="http://localhost:4200/teacher/assignments"><div class="nav-icon flex items-center justify-center text-blue-500"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-full h-full"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2H9zm0 0a2 2 0 002 2h2a2 2 0 002-2"></path></svg></div><span class="nav-label">Bài tập &amp; Chấm điểm</span><!--container--></a><!--container--></div><div class="nav-item-container"><a routerlinkactive="active" class="nav-item" href="http://localhost:4200/teacher/students"><div class="nav-icon flex items-center justify-center text-blue-500"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-full h-full"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg></div><span class="nav-label">Học viên</span><!--container--></a><!--container--></div><div class="nav-item-container"><a routerlinkactive="active" class="nav-item" href="http://localhost:4200/teacher/quiz/quiz-bank"><div class="nav-icon flex items-center justify-center text-blue-500"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-full h-full"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div><span class="nav-label">Quiz Bank</span><!--container--></a><!--container--></div><div class="nav-item-container"><a routerlinkactive="active" class="nav-item" href="http://localhost:4200/teacher/analytics"><div class="nav-icon flex items-center justify-center text-blue-500"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-full h-full"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V9a2 2 0 00-2-2H5v12h4zm6 0V5h-4v14h4zm2 0h2V7h-2v12z"></path></svg></div><span class="nav-label">Phân tích</span><!--container--></a><!--container--></div><div class="nav-item-container"><a routerlinkactive="active" class="nav-item" href="http://localhost:4200/teacher/notifications"><div class="nav-icon flex items-center justify-center text-blue-500"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-full h-full"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0a3 3 0 11-6 0"></path></svg></div><span class="nav-label">Thông báo</span><!--container--></a><!--container--></div><!--container--></nav><div class="sidebar-footer"><button class="logout-btn"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg><span>Đăng xuất</span></button></div></div></app-sidebar></div><!--container--><div class="lg:pl-72 flex flex-col flex-1 min-h-0"><header class="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-gray-200/50 lg:hidden shadow-sm"><div class="px-4 sm:px-6 lg:px-8"><div class="flex justify-between items-center h-16"><div class="flex items-center space-x-3"><button class="p-2 rounded-xl text-gray-600 hover:text-gray-900 hover:bg-gray-100/80 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="h-5 w-5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"></path></svg></button><div class="flex items-center space-x-2"><div class="w-8 h-8 bg-gradient-to-br from-indigo-600 to-blue-600 rounded-lg flex items-center justify-center"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-5 h-5 text-white"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg></div><h1 class="text-lg font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent"> Teacher Portal </h1></div></div><div class="flex items-center space-x-3"><app-notification-bell _nghost-ng-c78420814=""><div _ngcontent-ng-c78420814="" class="relative"><button _ngcontent-ng-c78420814="" aria-label="Thông báo" class="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"><svg _ngcontent-ng-c78420814="" fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-6 h-6"><path _ngcontent-ng-c78420814="" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg><!--container--></button><!--container--></div></app-notification-bell><div class="flex items-center space-x-2"><div class="w-8 h-8 bg-gradient-to-br from-indigo-500 to-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium"> NM </div><div class="hidden sm:block"><p class="text-sm font-medium text-gray-900">Nguyễn Mai</p><p class="text-xs text-gray-500">Teacher</p></div></div><button class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-red-500/20"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-4 h-4 inline mr-1"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg> Logout </button></div></div></div></header><main class="flex-1 overflow-auto bg-transparent"><router-outlet></router-outlet><app-section-editor><div class="min-h-screen bg-gray-50"><div class="max-w-7xl mx-auto p-6"><div class="mb-8"><div class="flex items-center gap-2 text-sm text-gray-500 mb-2"><a class="hover:text-blue-600" href="http://localhost:4200/teacher/courses">Khóa học</a><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg><a class="hover:text-blue-600" href="http://localhost:4200/teacher/courses/550e8400-e29b-41d4-a716-446655440003/edit">Chi tiết khóa học</a><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg><span class="text-gray-900">Nội dung chương</span></div><div class="flex items-center justify-between"><div><h1 class="text-2xl font-bold text-gray-900">Nội dung chương</h1><p class="text-gray-500 mt-1">Quản lý bài học và bài trắc nghiệm</p></div><div class="flex items-center gap-3"><a class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2 shadow-sm" href="http://localhost:4200/teacher/courses/550e8400-e29b-41d4-a716-446655440003/edit"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg> Quay lại </a></div></div></div><div class="bg-white rounded-lg shadow-sm border border-gray-200"><div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between"><div class="flex items-center gap-3"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-5 h-5 text-gray-600"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg><span class="font-semibold text-gray-900">Danh sách bài học</span><span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">5 bài</span></div><button class="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg> Thêm nội dung mới </button></div><!--container--><!--container--><div><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-6 py-4 text-left text-sm md:text-base font-medium text-gray-600 uppercase tracking-wider">STT</th><th class="px-6 py-4 text-left text-sm md:text-base font-medium text-gray-600 uppercase tracking-wider">Tên bài học</th><th class="px-6 py-4 text-left text-sm md:text-base font-medium text-gray-600 uppercase tracking-wider">Loại</th><th class="px-6 py-4 text-left text-sm md:text-base font-medium text-gray-600 uppercase tracking-wider">Trạng thái</th><th class="px-6 py-4 text-right text-sm md:text-base font-medium text-gray-600 uppercase tracking-wider">Thao tác</th></tr></thead><tbody class="bg-white divide-y divide-gray-200"><tr class="hover:bg-gray-50 transition-colors"><td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"> 1 </td><td class="px-6 py-4"><div class="font-medium text-gray-900">Trắc nghiệm</div><!--container--></td><td class="px-6 py-4 whitespace-nowrap"><span class="inline-flex px-2 py-1 text-xs font-semibold leading-5 bg-purple-100 text-purple-800"><!--container--><!--container-->Trắc nghiệm<!--ng-container--><!--container--></span></td><td class="px-6 py-4 whitespace-nowrap"><span class="inline-flex px-2 py-1 text-xs font-semibold leading-5 bg-green-100 text-green-800"> Đã xuất bản </span></td><td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><div class="inline-flex items-center gap-2"><button class="px-3 py-1.5 text-sm bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors flex items-center gap-1.5 border border-blue-200"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg> Xem </button><button class="px-3 py-1.5 text-sm bg-purple-50 text-purple-600 rounded hover:bg-purple-100 transition-colors flex items-center gap-1.5 border border-purple-200"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Thử làm </button><!--container--><!--container--><button class="px-3 py-1.5 text-sm bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors flex items-center gap-1.5 border border-red-200"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg> Xóa </button></div></td></tr><tr class="hover:bg-gray-50 transition-colors"><td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"> 2 </td><td class="px-6 py-4"><div class="font-medium text-gray-900">An toàn Hàng Hải</div><!--container--></td><td class="px-6 py-4 whitespace-nowrap"><span class="inline-flex px-2 py-1 text-xs font-semibold leading-5 bg-blue-100 text-blue-800"><!--container-->Bài học<!--ng-container--><!--container--><!--container--></span></td><td class="px-6 py-4 whitespace-nowrap"><span class="inline-flex px-2 py-1 text-xs font-semibold leading-5 bg-green-100 text-green-800"> Đã xuất bản </span></td><td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><div class="inline-flex items-center gap-2"><button class="px-3 py-1.5 text-sm bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors flex items-center gap-1.5 border border-blue-200"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg> Xem </button><!--container--><button class="px-3 py-1.5 text-sm bg-gray-50 text-gray-600 rounded hover:bg-gray-100 transition-colors flex items-center gap-1.5 border border-gray-200"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg> Sửa </button><!--container--><button class="px-3 py-1.5 text-sm bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors flex items-center gap-1.5 border border-red-200"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg> Xóa </button></div></td></tr><tr class="hover:bg-gray-50 transition-colors"><td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"> 3 </td><td class="px-6 py-4"><div class="font-medium text-gray-900">hồng nè</div><!--container--></td><td class="px-6 py-4 whitespace-nowrap"><span class="inline-flex px-2 py-1 text-xs font-semibold leading-5 bg-purple-100 text-purple-800"><!--container--><!--container-->Trắc nghiệm<!--ng-container--><!--container--></span></td><td class="px-6 py-4 whitespace-nowrap"><span class="inline-flex px-2 py-1 text-xs font-semibold leading-5 bg-green-100 text-green-800"> Đã xuất bản </span></td><td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><div class="inline-flex items-center gap-2"><button class="px-3 py-1.5 text-sm bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors flex items-center gap-1.5 border border-blue-200"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg> Xem </button><button class="px-3 py-1.5 text-sm bg-purple-50 text-purple-600 rounded hover:bg-purple-100 transition-colors flex items-center gap-1.5 border border-purple-200"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Thử làm </button><!--container--><!--container--><button class="px-3 py-1.5 text-sm bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors flex items-center gap-1.5 border border-red-200"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg> Xóa </button></div></td></tr><tr class="hover:bg-gray-50 transition-colors"><td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"> 4 </td><td class="px-6 py-4"><div class="font-medium text-gray-900">55</div><!--container--></td><td class="px-6 py-4 whitespace-nowrap"><span class="inline-flex px-2 py-1 text-xs font-semibold leading-5 bg-purple-100 text-purple-800"><!--container--><!--container-->Trắc nghiệm<!--ng-container--><!--container--></span></td><td class="px-6 py-4 whitespace-nowrap"><span class="inline-flex px-2 py-1 text-xs font-semibold leading-5 bg-green-100 text-green-800"> Đã xuất bản </span></td><td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><div class="inline-flex items-center gap-2"><button class="px-3 py-1.5 text-sm bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors flex items-center gap-1.5 border border-blue-200"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg> Xem </button><button class="px-3 py-1.5 text-sm bg-purple-50 text-purple-600 rounded hover:bg-purple-100 transition-colors flex items-center gap-1.5 border border-purple-200"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Thử làm </button><!--container--><!--container--><button class="px-3 py-1.5 text-sm bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors flex items-center gap-1.5 border border-red-200"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg> Xóa </button></div></td></tr><tr class="hover:bg-gray-50 transition-colors"><td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"> 5 </td><td class="px-6 py-4"><div class="font-medium text-gray-900">123</div><!--container--></td><td class="px-6 py-4 whitespace-nowrap"><span class="inline-flex px-2 py-1 text-xs font-semibold leading-5 bg-purple-100 text-purple-800"><!--container--><!--container-->Trắc nghiệm<!--ng-container--><!--container--></span></td><td class="px-6 py-4 whitespace-nowrap"><span class="inline-flex px-2 py-1 text-xs font-semibold leading-5 bg-green-100 text-green-800"> Đã xuất bản </span></td><td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><div class="inline-flex items-center gap-2"><button class="px-3 py-1.5 text-sm bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors flex items-center gap-1.5 border border-blue-200"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg> Xem </button><button class="px-3 py-1.5 text-sm bg-purple-50 text-purple-600 rounded hover:bg-purple-100 transition-colors flex items-center gap-1.5 border border-purple-200"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Thử làm </button><!--container--><!--container--><button class="px-3 py-1.5 text-sm bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors flex items-center gap-1.5 border border-red-200"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg> Xóa </button></div></td></tr><!--container--></tbody></table></div><!--container--></div><!--container--><!--container--><div class="bg-white rounded-lg shadow-sm border border-gray-200 mt-6 overflow-hidden"><div class="px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700 flex items-center justify-between"><div class="flex items-center gap-3"><div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-5 h-5 text-white"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg></div><div><h3 class="text-lg font-semibold text-white">Thêm nội dung mới</h3><p class="text-sm text-blue-100">Tạo bài học, bài tập hoặc bài trắc nghiệm</p></div></div><button class="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><form novalidate="" class="p-6 space-y-6 ng-invalid ng-dirty ng-touched"><div class="grid grid-cols-1 md:grid-cols-3 gap-4"><div class="md:col-span-1"><label class="block text-sm font-medium text-gray-700 mb-2">Loại nội dung</label><select formcontrolname="lessonType" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white ng-dirty ng-valid ng-touched"><option value="LECTURE"> 📖 Bài giảng </option><option value="ASSIGNMENT"> 📋 Bài tập </option><option value="QUIZ"> ❓ Trắc nghiệm </option><!--container--></select></div><div class="md:col-span-2"><label class="block text-sm font-medium text-gray-700 mb-2">Tiêu đề</label><input formcontrolname="title" placeholder="Nhập tiêu đề bài học" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ng-untouched ng-pristine ng-invalid"></div></div><!--container--><!--container--><!--container--><!--container--><!--container--><!--container--> &lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD <div class="border-2 border-purple-300 rounded-xl bg-gradient-to-br from-purple-50 to-indigo-50 overflow-hidden"><div class="bg-gradient-to-r from-purple-600 to-indigo-600 px-5 py-3"><h3 class="text-white font-semibold flex items-center gap-2"><span class="text-xl">🎯</span> Cấu hình bài trắc nghiệm </h3></div><div class="p-5 space-y-5"><div class="grid grid-cols-1 md:grid-cols-3 gap-4"><div class="bg-white rounded-lg p-4 shadow-sm"><label class="block text-sm font-medium text-gray-700 mb-2"><span class="text-purple-600">⏱️</span> Thời gian (phút) </label><input type="number" formcontrolname="quizTimeLimit" placeholder="30" min="1" class="w-full border-2 border-gray-200 rounded-lg px-4 py-2.5 text-base focus:border-purple-500 focus:ring-2 focus:ring-purple-200 focus:outline-none transition-all ng-untouched ng-pristine ng-valid"><p class="text-xs text-gray-500 mt-1">Để trống = không giới hạn</p></div><div class="bg-white rounded-lg p-4 shadow-sm"><label class="block text-sm font-medium text-gray-700 mb-2"><span class="text-green-600">🎯</span> Điểm tối đa </label><input type="number" formcontrolname="quizMaxScore" placeholder="100" min="1" class="w-full border-2 border-gray-200 rounded-lg px-4 py-2.5 text-base focus:border-purple-500 focus:ring-2 focus:ring-purple-200 focus:outline-none transition-all ng-untouched ng-pristine ng-valid"></div><div class="bg-white rounded-lg p-4 shadow-sm"><label class="block text-sm font-medium text-gray-700 mb-2"><span class="text-orange-600">🔄</span> Số lần làm tối đa </label><input type="number" formcontrolname="quizMaxAttempts" placeholder="1" min="1" class="w-full border-2 border-gray-200 rounded-lg px-4 py-2.5 text-base focus:border-purple-500 focus:ring-2 focus:ring-purple-200 focus:outline-none transition-all ng-untouched ng-pristine ng-valid"></div></div><div class="bg-white rounded-xl p-5 shadow-sm border border-purple-100"><div class="flex items-center justify-between mb-4"><h4 class="font-semibold text-gray-900 flex items-center gap-2"><span class="text-xl">📦</span> Chọn câu hỏi từ Quiz Bank </h4><span class="text-sm text-purple-600 font-medium bg-purple-100 px-3 py-1 rounded-full"> 0 câu đã chọn </span></div><div class="mb-4"><label class="block text-sm font-medium text-gray-700 mb-2">Chọn gói câu hỏi:</label><div class="flex gap-2"><select class="flex-1 border-2 border-gray-200 rounded-lg px-4 py-2.5 text-base focus:border-purple-500 focus:outline-none bg-white"><option value="">-- Chọn gói câu hỏi --</option><option value="e44b2c4f-c517-4846-81cf-0a768d1409ff"> Luật Hàng Hải (2 câu) </option><option value="adc9f2d7-be53-4727-9cb1-88a88bb9a544"> Nguyễn Văn Admin (11 câu) </option><option value="5c880c72-4184-40dd-bfc8-6219f7a51d5c"> hehe (11 câu) </option><!--container--></select><button type="button" title="Làm mới" class="px-3 py-2 border-2 border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"> 🔄 </button></div></div><!--container--><!--container--><div class="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200"><span class="text-4xl mb-2 block">📦</span><p class="text-gray-600 mb-2">Chọn gói câu hỏi để bắt đầu</p><p class="text-sm text-gray-400">Hoặc tạo gói mới trong Quiz Bank</p></div><!--container--><div class="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between"><p class="text-sm text-gray-500"> 💡 Cần thêm câu hỏi mới? </p><button type="button" class="text-sm text-purple-600 hover:text-purple-700 font-medium flex items-center gap-1"> Mở Quiz Bank <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></button></div>
+======= <div class="border-2 border-dashed border-purple-300 rounded-lg p-6 bg-purple-50 space-y-4"><div class="flex items-start gap-3"><span class="text-3xl">🚀</span><div class="flex-1"><div class="text-base font-semibold text-purple-800 mb-2">Thiết lập bài trắc nghiệm</div><p class="text-sm text-purple-700 mb-4"> Sau khi tạo bài học, bạn sẽ được chuyển đến trang thiết lập chi tiết để: </p><ul class="list-disc list-inside text-sm text-purple-700 space-y-1 ml-2"><li>Cấu hình thời gian, điểm số, số lần làm bài.</li><li>Chọn câu hỏi từ ngân hàng câu hỏi.</li><li>Xem trước bài kiểm tra.</li></ul>
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; 9ca6de4b665424150c4b065bf0ee346fc8478961 </div></div></div><!--container--><!--container--><div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-200"><button type="button" class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"> Xóa form </button><button type="button" class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"> Hủy </button><button type="button" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2" disabled=""><!--container--><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg> Tạo bài trắc nghiệm <!--container--></button></div></div></div><!--container--></div><!--container--><!--container--><!--container--><app-quiz-edit-modal><!--container--></app-quiz-edit-modal></form></div><!--container--></div></div></app-section-editor><!--container--></main></div></div></app-teacher-layout-simple><!--container--></app-root>
+  <noscript>
+    <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+      <h1>JavaScript Required</h1>
+      <p>Vui lòng bật JavaScript để sử dụng ứng dụng LMS Maritime.</p>
+      <p>Please enable JavaScript to continue using this application.</p>
+    </div>
+  </noscript>
+<script src="./Quản lý bài học_files/main.js.download" type="module"></script>
+
+</body></html>

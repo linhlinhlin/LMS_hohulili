@@ -9,6 +9,7 @@ export const ADMIN_ENDPOINTS = {
   ALL_COURSES: '/api/v1/admin/courses/all',
   APPROVE_COURSE: (courseId: string) => `/api/v1/admin/courses/${courseId}/approve`,
   REJECT_COURSE: (courseId: string) => `/api/v1/admin/courses/${courseId}/reject`,
+  REVOKE_COURSE: (courseId: string) => `/api/v1/admin/courses/${courseId}/revoke`,
   DELETE_COURSE: (courseId: string) => `/api/v1/admin/courses/${courseId}`,
 
   // User Management

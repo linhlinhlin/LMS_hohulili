@@ -89,6 +89,18 @@ export class CourseApi {
     return this.api.delete<ApiResponse<string>>(COURSE_ENDPOINTS.BY_ID(id));
   }
 
+  submitForApproval(id: string) {
+    return this.api.postWithResponse<CourseDetail>(`/api/v1/courses/${id}/submit-for-approval`, {});
+  }
+
+  cancelApprovalRequest(id: string) {
+    return this.api.postWithResponse<CourseDetail>(`/api/v1/courses/${id}/cancel-approval`, {});
+  }
+
+  getReviewStatus(id: string) {
+    return this.api.getWithResponse<CourseReviewStatus>(`/api/v1/courses/${id}/review-status`);
+  }
+
   getCourseProgress(courseId: string) {
     return this.api.getWithResponse<any>(`/api/v1/student/progress/courses/${courseId}`);
   }
@@ -139,4 +151,12 @@ export interface EnrolledStudent {
   enrolledAt?: string;
   status?: string;
   progressPercentage?: number;
+}
+
+export interface CourseReviewStatus {
+  courseId: string;
+  status: string;
+  reviewComment?: string;
+  reviewedAt?: string;
+  reviewedByName?: string;
 }

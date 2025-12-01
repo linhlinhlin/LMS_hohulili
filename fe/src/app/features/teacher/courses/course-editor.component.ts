@@ -15,6 +15,23 @@ import { SectionApi } from '../../../api/client/section.api';
   <div class="max-w-9xl mx-auto p-6">
       <h1 class="text-2xl font-bold text-gray-900 mb-6">Chỉnh sửa khóa học</h1>
 
+      <!-- Review Feedback Alert for REJECTED courses -->
+      <div *ngIf="course()?.status === 'REJECTED' && reviewStatus()" class="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
+        <div class="flex items-start gap-3">
+          <svg class="w-6 h-6 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+          </svg>
+          <div class="flex-1">
+            <h3 class="text-red-800 font-semibold mb-1">Khóa học bị từ chối</h3>
+            <p class="text-red-700 text-sm mb-2">{{ reviewStatus()?.reviewComment }}</p>
+            <div class="text-xs text-red-600">
+              <span *ngIf="reviewStatus()?.reviewedByName">Người duyệt: {{ reviewStatus()?.reviewedByName }}</span>
+              <span *ngIf="reviewStatus()?.reviewedAt" class="ml-3">Thời gian: {{ reviewStatus()?.reviewedAt | date:'dd/MM/yyyy HH:mm' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="bg-white shadow rounded-lg overflow-hidden" *ngIf="course() as c">
         <div class="px-6 py-4 bg-gradient-to-r from-blue-50 to-white border-b">
           <div class="flex items-center gap-3">
@@ -338,6 +355,7 @@ export class CourseEditorComponent {
   publishing = signal(false);
   success = signal('');
   error = signal('');
+  reviewStatus = signal<any>(null);
 
   // Content state
   sections = signal<any[]>([]);
@@ -387,7 +405,36 @@ export class CourseEditorComponent {
         const c = res?.data as CourseDetail;
         this.course.set(c);
         if (c) {
+          // Check if course is PENDING - redirect back with error
+          if (c.status === 'PENDING') {
+            alert('Không thể chỉnh sửa khóa học đang chờ duyệt.\n\nVui lòng hủy yêu cầu phê duyệt trước khi chỉnh sửa.');
+            window.history.back();
+            return;
+          }
+
+          // Show warning if course is APPROVED
+          if (c.status === 'APPROVED') {
+            const confirmed = confirm('⚠️ CẢNH BÁO\n\nKhóa học này đã được duyệt và đang công khai.\n\nNếu bạn chỉnh sửa khóa học, nó sẽ cần được phê duyệt lại và sẽ chuyển về trạng thái "Chờ duyệt".\n\nBạn có chắc chắn muốn tiếp tục chỉnh sửa?');
+            if (!confirmed) {
+              window.history.back();
+              return;
+            }
+          }
+
           this.form.patchValue({ code: c.code, title: c.title, description: c.description });
+          
+          // Load review status if course is REJECTED
+          if (c.status === 'REJECTED') {
+            this.api.getReviewStatus(id).subscribe({
+              next: (res) => {
+                this.reviewStatus.set(res?.data);
+              },
+              error: (err) => {
+                console.error('Failed to load review status:', err);
+              }
+            });
+          }
+
           // Load sections using flat endpoint
           this.sectionApi.listSectionsFlat(id).subscribe({
             next: (sres) => {

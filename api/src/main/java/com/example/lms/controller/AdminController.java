@@ -87,6 +87,28 @@ public class AdminController {
         }
     }
 
+    @PatchMapping("/courses/{courseId}/revoke")
+    @Operation(summary = "Thu hồi khóa học đã duyệt", description = "Admin thu hồi khóa học đã được duyệt, chuyển về trạng thái DRAFT để teacher chỉnh sửa")
+    public ResponseEntity<ApiResponse<String>> revokeCourse(
+            @PathVariable UUID courseId,
+            @AuthenticationPrincipal User currentUser,
+            @Valid @RequestBody RevokeCourseRequest request
+    ) {
+        System.out.println("🔍 REVOKE ENDPOINT CALLED");
+        System.out.println("📋 Course ID: " + courseId);
+        System.out.println("👤 Current User: " + (currentUser != null ? currentUser.getEmail() : "NULL"));
+        System.out.println("🔑 User Role: " + (currentUser != null ? currentUser.getRole() : "NULL"));
+        System.out.println("📝 Reason: " + (request != null ? request.getReason() : "NULL"));
+        
+        try {
+            adminService.revokeCourse(courseId, request.getReason(), currentUser);
+            return ResponseEntity.ok(ApiResponse.success("Khóa học đã được thu hồi"));
+        } catch (RuntimeException e) {
+            System.err.println("❌ Error revoking course: " + e.getMessage());
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
     @GetMapping("/analytics")
     @Operation(summary = "Lấy dữ liệu phân tích hệ thống", description = "Admin lấy thống kê tổng quan toàn hệ thống")
     public ResponseEntity<ApiResponse<SystemAnalytics>> getSystemAnalytics() {
@@ -116,9 +138,9 @@ public class AdminController {
 
     @GetMapping("/courses/all")
     @Operation(summary = "Lấy tất cả khóa học", description = "Admin lấy danh sách tất cả khóa học trong hệ thống")
-    public ResponseEntity<ApiResponse<Page<AdminCourseSummary>>> getAllCourses(
+    public ResponseEntity<ApiResponse<java.util.List<AdminCourseSummary>>> getAllCourses(
             @Parameter(description = "Số trang (bắt đầu từ 1)") @RequestParam(defaultValue = "1") int page,
-            @Parameter(description = "Số lượng item trên mỗi trang") @RequestParam(defaultValue = "10") int limit,
+            @Parameter(description = "Số lượng item trên mỗi trang") @RequestParam(defaultValue = "100") int limit,
             @Parameter(description = "Lọc theo trạng thái") @RequestParam(required = false) String status,
             @Parameter(description = "Tìm kiếm theo tên khóa học") @RequestParam(required = false) String search
     ) {
@@ -128,12 +150,29 @@ public class AdminController {
                 status != null ? Course.CourseStatus.valueOf(status.toUpperCase()) : null, 
                 pageable);
             
-            Page<AdminCourseSummary> courseSummaries = courses.map(this::convertToAdminCourseSummary);
+            java.util.List<AdminCourseSummary> courseSummaries = courses.getContent().stream()
+                    .map(this::convertToAdminCourseSummary)
+                    .collect(java.util.stream.Collectors.toList());
             
             return ResponseEntity.ok(ApiResponse.success(courseSummaries));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.error("Lỗi khi lấy danh sách khóa học: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping("/courses/{courseId}/details")
+    @Operation(summary = "Lấy chi tiết khóa học để duyệt", description = "Admin xem chi tiết đầy đủ khóa học bao gồm sections, lessons và metadata")
+    public ResponseEntity<ApiResponse<AdminCourseDetail>> getCourseDetails(
+            @PathVariable UUID courseId
+    ) {
+        try {
+            Course course = adminService.getCourseById(courseId);
+            AdminCourseDetail courseDetail = convertToAdminCourseDetail(course);
+            return ResponseEntity.ok(ApiResponse.success(courseDetail));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error(e.getMessage()));
         }
     }
 
@@ -154,15 +193,58 @@ public class AdminController {
     }
 
     private AdminCourseSummary convertToAdminCourseSummary(Course course) {
+        int enrolledCount = 0;
+        try {
+            enrolledCount = course.getEnrolledStudents() != null ? course.getEnrolledStudents().size() : 0;
+        } catch (Exception ignored) {
+            // If lazy loading fails, default to 0
+        }
+        
         return AdminCourseSummary.builder()
                 .id(course.getId())
                 .code(course.getCode())
                 .title(course.getTitle())
                 .status(course.getStatus().name())
                 .teacherName(course.getTeacher().getFullName())
-                .enrolledCount(0) // TODO: Add count query for enrolled students
+                .enrolledCount(enrolledCount)
                 .sectionsCount(Math.toIntExact(sectionRepository.countByCourseId(course.getId())))
                 .assignmentsCount(Math.toIntExact(assignmentRepository.countByCourseId(course.getId())))
+                .createdAt(course.getCreatedAt())
+                .updatedAt(course.getUpdatedAt())
+                .build();
+    }
+
+    private AdminCourseDetail convertToAdminCourseDetail(Course course) {
+        int sectionsCount = 0;
+        int lessonsCount = 0;
+        try {
+            sectionsCount = course.getSections() != null ? course.getSections().size() : 0;
+            lessonsCount = course.getSections() != null ? 
+                course.getSections().stream()
+                    .mapToInt(section -> section.getLessons() != null ? section.getLessons().size() : 0)
+                    .sum() : 0;
+        } catch (Exception ignored) {}
+
+        int enrolledCount = 0;
+        try {
+            enrolledCount = course.getEnrolledStudents() != null ? course.getEnrolledStudents().size() : 0;
+        } catch (Exception ignored) {}
+
+        return AdminCourseDetail.builder()
+                .id(course.getId())
+                .code(course.getCode())
+                .title(course.getTitle())
+                .description(course.getDescription())
+                .status(course.getStatus().name())
+                .teacherId(course.getTeacher().getId())
+                .teacherName(course.getTeacher().getFullName())
+                .teacherEmail(course.getTeacher().getEmail())
+                .enrolledCount(enrolledCount)
+                .sectionsCount(sectionsCount)
+                .lessonsCount(lessonsCount)
+                .reviewComment(course.getReviewComment())
+                .reviewedAt(course.getReviewedAt())
+                .reviewedByName(course.getReviewedBy() != null ? course.getReviewedBy().getFullName() : null)
                 .createdAt(course.getCreatedAt())
                 .updatedAt(course.getUpdatedAt())
                 .build();
@@ -423,4 +505,116 @@ public class AdminController {
         public User.Role getRole() { return role; }
         public void setRole(User.Role role) { this.role = role; }
     }
+
+    public static class AdminCourseDetail {
+        private UUID id;
+        private String code;
+        private String title;
+        private String description;
+        private String status;
+        private UUID teacherId;
+        private String teacherName;
+        private String teacherEmail;
+        private int enrolledCount;
+        private int sectionsCount;
+        private int lessonsCount;
+        private String reviewComment;
+        private Instant reviewedAt;
+        private String reviewedByName;
+        private Instant createdAt;
+        private Instant updatedAt;
+
+        public static AdminCourseDetailBuilder builder() {
+            return new AdminCourseDetailBuilder();
+        }
+
+        public static class AdminCourseDetailBuilder {
+            private UUID id;
+            private String code;
+            private String title;
+            private String description;
+            private String status;
+            private UUID teacherId;
+            private String teacherName;
+            private String teacherEmail;
+            private int enrolledCount;
+            private int sectionsCount;
+            private int lessonsCount;
+            private String reviewComment;
+            private Instant reviewedAt;
+            private String reviewedByName;
+            private Instant createdAt;
+            private Instant updatedAt;
+
+            public AdminCourseDetailBuilder id(UUID id) { this.id = id; return this; }
+            public AdminCourseDetailBuilder code(String code) { this.code = code; return this; }
+            public AdminCourseDetailBuilder title(String title) { this.title = title; return this; }
+            public AdminCourseDetailBuilder description(String description) { this.description = description; return this; }
+            public AdminCourseDetailBuilder status(String status) { this.status = status; return this; }
+            public AdminCourseDetailBuilder teacherId(UUID teacherId) { this.teacherId = teacherId; return this; }
+            public AdminCourseDetailBuilder teacherName(String teacherName) { this.teacherName = teacherName; return this; }
+            public AdminCourseDetailBuilder teacherEmail(String teacherEmail) { this.teacherEmail = teacherEmail; return this; }
+            public AdminCourseDetailBuilder enrolledCount(int enrolledCount) { this.enrolledCount = enrolledCount; return this; }
+            public AdminCourseDetailBuilder sectionsCount(int sectionsCount) { this.sectionsCount = sectionsCount; return this; }
+            public AdminCourseDetailBuilder lessonsCount(int lessonsCount) { this.lessonsCount = lessonsCount; return this; }
+            public AdminCourseDetailBuilder reviewComment(String reviewComment) { this.reviewComment = reviewComment; return this; }
+            public AdminCourseDetailBuilder reviewedAt(Instant reviewedAt) { this.reviewedAt = reviewedAt; return this; }
+            public AdminCourseDetailBuilder reviewedByName(String reviewedByName) { this.reviewedByName = reviewedByName; return this; }
+            public AdminCourseDetailBuilder createdAt(Instant createdAt) { this.createdAt = createdAt; return this; }
+            public AdminCourseDetailBuilder updatedAt(Instant updatedAt) { this.updatedAt = updatedAt; return this; }
+
+            public AdminCourseDetail build() {
+                AdminCourseDetail detail = new AdminCourseDetail();
+                detail.id = this.id;
+                detail.code = this.code;
+                detail.title = this.title;
+                detail.description = this.description;
+                detail.status = this.status;
+                detail.teacherId = this.teacherId;
+                detail.teacherName = this.teacherName;
+                detail.teacherEmail = this.teacherEmail;
+                detail.enrolledCount = this.enrolledCount;
+                detail.sectionsCount = this.sectionsCount;
+                detail.lessonsCount = this.lessonsCount;
+                detail.reviewComment = this.reviewComment;
+                detail.reviewedAt = this.reviewedAt;
+                detail.reviewedByName = this.reviewedByName;
+                detail.createdAt = this.createdAt;
+                detail.updatedAt = this.updatedAt;
+                return detail;
+            }
+        }
+
+        // Getters
+        public UUID getId() { return id; }
+        public String getCode() { return code; }
+        public String getTitle() { return title; }
+        public String getDescription() { return description; }
+        public String getStatus() { return status; }
+        public UUID getTeacherId() { return teacherId; }
+        public String getTeacherName() { return teacherName; }
+        public String getTeacherEmail() { return teacherEmail; }
+        public int getEnrolledCount() { return enrolledCount; }
+        public int getSectionsCount() { return sectionsCount; }
+        public int getLessonsCount() { return lessonsCount; }
+        public String getReviewComment() { return reviewComment; }
+        public Instant getReviewedAt() { return reviewedAt; }
+        public String getReviewedByName() { return reviewedByName; }
+        public Instant getCreatedAt() { return createdAt; }
+        public Instant getUpdatedAt() { return updatedAt; }
+    }
 }
+ 
+   // DTO for revoking approved course
+    public static class RevokeCourseRequest {
+        @NotBlank(message = "Lý do thu hồi không được để trống")
+        private String reason;
+
+        public String getReason() {
+            return reason;
+        }
+
+        public void setReason(String reason) {
+            this.reason = reason;
+        }
+    }

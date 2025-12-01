@@ -75,18 +75,41 @@ public class AdminService {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học với ID: " + courseId));
         
-        if (course.getStatus() != Course.CourseStatus.PENDING) {
-            throw new RuntimeException("Chỉ có thể duyệt khóa học ở trạng thái chờ duyệt");
+        // Validate course status
+        // Allow approve only for PENDING courses
+        if (request.isApproved() && course.getStatus() != Course.CourseStatus.PENDING) {
+            throw new RuntimeException("Chỉ có thể duyệt khóa học ở trạng thái chờ duyệt. " +
+                "Trạng thái hiện tại: " + course.getStatus().getDisplayName());
+        }
+        
+        // Allow reject for PENDING or APPROVED courses (revoke approval)
+        if (!request.isApproved() && 
+            course.getStatus() != Course.CourseStatus.PENDING && 
+            course.getStatus() != Course.CourseStatus.APPROVED) {
+            throw new RuntimeException("Chỉ có thể từ chối khóa học ở trạng thái chờ duyệt hoặc đã duyệt. " +
+                "Trạng thái hiện tại: " + course.getStatus().getDisplayName());
+        }
+
+        // Validate rejection reason
+        if (!request.isApproved() && 
+            (request.getComment() == null || request.getComment().trim().isEmpty())) {
+            throw new RuntimeException("Vui lòng nhập lý do từ chối khóa học");
         }
 
         if (request.isApproved()) {
             course.setStatus(Course.CourseStatus.APPROVED);
+            // Set default approval comment if not provided
+            if (request.getComment() == null || request.getComment().trim().isEmpty()) {
+                course.setReviewComment("Khóa học đã được duyệt");
+            } else {
+                course.setReviewComment(request.getComment());
+            }
         } else {
             course.setStatus(Course.CourseStatus.REJECTED);
+            course.setReviewComment(request.getComment());
         }
 
         // Set review information
-        course.setReviewComment(request.getComment());
         course.setReviewedAt(Instant.now());
         course.setReviewedBy(reviewer);
         
@@ -172,24 +195,76 @@ public class AdminService {
         courseRepository.delete(course);
     }
 
-    public void approveCourse(UUID courseId, User currentUser) {
+    public Course revokeCourse(UUID courseId, String reason, User reviewer) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học với ID: " + courseId));
+        
+        // Only allow revoking APPROVED courses
+        if (course.getStatus() != Course.CourseStatus.APPROVED) {
+            throw new RuntimeException("Chỉ có thể thu hồi khóa học đã được duyệt. " +
+                "Trạng thái hiện tại: " + course.getStatus().getDisplayName());
+        }
+
+        // Validate revoke reason
+        if (reason == null || reason.trim().isEmpty()) {
+            throw new RuntimeException("Vui lòng nhập lý do thu hồi khóa học");
+        }
+
+        // Set course back to DRAFT so teacher can edit
+        course.setStatus(Course.CourseStatus.DRAFT);
+        course.setReviewComment(reason);
+        course.setReviewedAt(Instant.now());
+        course.setReviewedBy(reviewer);
+        
+        return courseRepository.save(course);
+    }
+
+    public Course approveCourse(UUID courseId, User currentUser) {
         com.example.lms.controller.AdminController.ReviewCourseRequest request = 
             new com.example.lms.controller.AdminController.ReviewCourseRequest();
         request.setApproved(true);
         request.setComment("Khóa học đã được duyệt");
-        reviewCourse(courseId, request, currentUser);
+        return reviewCourse(courseId, request, currentUser);
     }
 
-    public void rejectCourse(UUID courseId, User currentUser, com.example.lms.controller.AdminController.RejectCourseRequest request) {
+    public Course rejectCourse(UUID courseId, User currentUser, com.example.lms.controller.AdminController.RejectCourseRequest request) {
         com.example.lms.controller.AdminController.ReviewCourseRequest reviewRequest = 
             new com.example.lms.controller.AdminController.ReviewCourseRequest();
         reviewRequest.setApproved(false);
         reviewRequest.setComment(request.getReason());
-        reviewCourse(courseId, reviewRequest, currentUser);
+        return reviewCourse(courseId, reviewRequest, currentUser);
     }
 
     public Map<String, Object> getSystemAnalytics() {
         return getAnalytics(); // Use the existing getAnalytics method
     }
 
+    public Course getCourseById(UUID courseId) {
+        return courseRepository.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học với ID: " + courseId));
+    }
+
 }
+ 
+   public Course rejectCourse(UUID courseId, User reviewer, com.example.lms.controller.AdminController.RejectCourseRequest request) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học với ID: " + courseId));
+        
+        // Only allow rejecting PENDING courses
+        if (course.getStatus() != Course.CourseStatus.PENDING) {
+            throw new RuntimeException("Chỉ có thể từ chối khóa học ở trạng thái chờ duyệt. " +
+                "Trạng thái hiện tại: " + course.getStatus().getDisplayName());
+        }
+
+        // Validate rejection reason
+        if (request.getReason() == null || request.getReason().trim().isEmpty()) {
+            throw new RuntimeException("Vui lòng nhập lý do từ chối khóa học");
+        }
+
+        course.setStatus(Course.CourseStatus.REJECTED);
+        course.setReviewComment(request.getReason());
+        course.setReviewedAt(Instant.now());
+        course.setReviewedBy(reviewer);
+        
+        return courseRepository.save(course);
+    }

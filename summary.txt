@@ -1,0 +1,170 @@
+===========================================
+API DOCUMENTATION SUMMARY
+Maritime LMS Backend System
+===========================================
+
+📊 TỔNG QUAN HỆ THỐNG
+-------------------------------------------
+Backend Stack:
+- Spring Boot 3.5.6 + Java 21
+- PostgreSQL 16 (Supabase)
+- Spring Data JPA + Hibernate 6.6.29
+- JWT Authentication (24h expiry)
+- Spring Security 6.x với BCrypt
+
+Base URL: http://localhost:8088/api/v1
+Swagger UI: http://localhost:8088/swagger-ui/index.html
+
+📁 FILES CHÍNH CHỨA LOGIC
+-------------------------------------------
+Controllers:
+- api/src/main/java/com/example/lms/controller/CourseController.java
+- api/src/main/java/com/example/lms/controller/AdminController.java
+- api/src/main/java/com/example/lms/controller/UserController.java
+- api/src/main/java/com/example/lms/controller/AuthController.java
+- api/src/main/java/com/example/lms/controller/SectionController.java
+- api/src/main/java/com/example/lms/controller/LessonController.java
+
+Services:
+- api/src/main/java/com/example/lms/service/CourseService.java
+- api/src/main/java/com/example/lms/service/AdminService.java
+- api/src/main/java/com/example/lms/service/UserService.java
+- api/src/main/java/com/example/lms/service/AuthenticationService.java
+
+Repositories:
+- api/src/main/java/com/example/lms/repository/CourseRepository.java
+- api/src/main/java/com/example/lms/repository/UserRepository.java
+- api/src/main/java/com/example/lms/repository/SectionRepository.java
+- api/src/main/java/com/example/lms/repository/LessonRepository.java
+
+Entities:
+- api/src/main/java/com/example/lms/entity/Course.java
+- api/src/main/java/com/example/lms/entity/User.java
+- api/src/main/java/com/example/lms/entity/Section.java
+- api/src/main/java/com/example/lms/entity/Lesson.java
+
+📋 ENDPOINTS TÌM THẤY (Total: 28 endpoints)
+-------------------------------------------
+
+🔐 AUTHENTICATION (4 endpoints)
+- POST   /api/v1/auth/login
+- POST   /api/v1/auth/register
+- POST   /api/v1/auth/refresh
+- GET    /api/v1/auth/me
+
+📚 COURSE MANAGEMENT (12 endpoints)
+- GET    /api/v1/courses (public courses)
+- GET    /api/v1/courses/{courseId}
+- POST   /api/v1/courses
+- PUT    /api/v1/courses/{courseId}
+- DELETE /api/v1/courses/{courseId}
+- GET    /api/v1/courses/my-courses (teacher)
+- GET    /api/v1/courses/enrolled-courses (student)
+- GET    /api/v1/courses/{courseId}/content
+- GET    /api/v1/courses/{courseId}/students
+- POST   /api/v1/courses/{courseId}/enroll (student)
+- POST   /api/v1/courses/{courseId}/enrollments (teacher/admin)
+- POST   /api/v1/courses/{courseId}/bulk-enroll (Excel upload)
+- GET    /api/v1/courses/{courseId}/available-students
+- PATCH  /api/v1/courses/{courseId}/publish
+
+👥 USER MANAGEMENT (7 endpoints)
+- GET    /api/v1/users
+- GET    /api/v1/users/{userId}
+- POST   /api/v1/users
+- PUT    /api/v1/users/{userId}
+- DELETE /api/v1/users/{userId}
+- PATCH  /api/v1/users/{userId}/toggle-status
+- GET    /api/v1/users/list/all
+
+👨‍💼 ADMIN OPERATIONS (5 endpoints)
+- GET    /api/v1/admin/courses/all
+- GET    /api/v1/admin/courses/pending
+- PATCH  /api/v1/admin/courses/{courseId}/approve
+- PATCH  /api/v1/admin/courses/{courseId}/reject
+- DELETE /api/v1/admin/courses/{courseId}
+- GET    /api/v1/admin/analytics
+
+🎯 MISSING/RECOMMENDED ENDPOINTS
+-------------------------------------------
+1. GET /api/v1/admin/courses/{courseId}/enrollments
+   - Lấy danh sách enrollment của 1 khóa học với thông tin chi tiết
+   - Response: enrollment date, progress, last accessed
+
+2. DELETE /api/v1/admin/courses/{courseId}/enrollments/{studentId}
+   - Xóa enrollment của 1 học viên khỏi khóa học
+
+3. GET /api/v1/admin/users/{userId}/enrollments
+   - Lấy tất cả khóa học mà user đã đăng ký
+
+4. POST /api/v1/admin/courses/{courseId}/bulk-unenroll
+   - Xóa nhiều học viên khỏi khóa học cùng lúc
+
+5. GET /api/v1/admin/enrollments/stats
+   - Thống kê enrollment theo thời gian (monthly/weekly)
+
+6. PATCH /api/v1/admin/courses/{courseId}/status
+   - Thay đổi trạng thái khóa học trực tiếp (DRAFT/APPROVED/REJECTED)
+
+7. GET /api/v1/admin/courses/search
+   - Tìm kiếm nâng cao với nhiều filter (status, teacher, date range)
+
+📝 NOTES CHO FE ADMIN
+-------------------------------------------
+1. Tất cả API trả về format chuẩn:
+   {
+     "success": true/false,
+     "data": {...},
+     "message": "..."
+   }
+
+2. Pagination format:
+   {
+     "content": [...],
+     "totalElements": 100,
+     "totalPages": 10,
+     "size": 10,
+     "number": 0
+   }
+
+3. Course Status Values:
+   - DRAFT: Khóa học đang soạn thảo
+   - PENDING: Chờ admin duyệt
+   - APPROVED: Đã được duyệt, hiển thị công khai
+   - REJECTED: Bị từ chối
+
+4. User Roles:
+   - ADMIN: Toàn quyền
+   - TEACHER: Quản lý khóa học của mình
+   - STUDENT: Đăng ký và học
+
+5. JWT Token:
+   - Expires: 24 hours
+   - Refresh token: 7 days
+   - Header format: "Authorization: Bearer <token>"
+
+6. Error Codes:
+   - 400: Bad Request (validation error)
+   - 401: Unauthorized (missing/invalid token)
+   - 403: Forbidden (insufficient permissions)
+   - 404: Not Found
+   - 500: Internal Server Error
+
+📦 DELIVERABLES
+-------------------------------------------
+✅ apis-courses-admin.md - Tài liệu API đầy đủ
+✅ summary.txt - File này
+✅ Swagger UI available at: http://localhost:8088/swagger-ui/index.html
+
+🔗 NEXT STEPS FOR FE ADMIN
+-------------------------------------------
+1. Đọc apis-courses-admin.md để hiểu chi tiết từng API
+2. Test API qua Swagger UI hoặc Postman
+3. Implement các API call trong Angular service
+4. Báo cáo nếu cần thêm endpoint nào
+5. Kiểm tra response format và adjust FE model
+
+===========================================
+Generated: 2025-12-01
+Backend Version: v1.0.0
+===========================================

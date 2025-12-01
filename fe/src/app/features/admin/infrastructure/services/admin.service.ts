@@ -134,12 +134,14 @@ export interface AdminCourseSummary {
   teacherEmail?: string;
   enrolledCount: number;
   sectionsCount: number;
+  lessonsCount?: number;
   assignmentsCount: number;
   rating?: number;
   revenue?: number;
   submittedAt?: string;
   approvedAt?: string;
   rejectionReason?: string;
+  reviewComment?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -261,6 +263,18 @@ export class AdminService {
       })),
       catchError(error => {
         console.error('[ADMIN SERVICE] Error rejecting course:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  revokeCourse(courseId: string, reason: string): Observable<{ message: string }> {
+    return this.apiClient.patchWithResponse<string>(ADMIN_ENDPOINTS.REVOKE_COURSE(courseId), { reason }).pipe(
+      map(response => ({
+        message: response.message || 'Course revoked successfully'
+      })),
+      catchError(error => {
+        console.error('[ADMIN SERVICE] Error revoking course:', error);
         return throwError(() => error);
       })
     );

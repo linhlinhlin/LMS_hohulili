@@ -50,6 +50,11 @@ export const adminRoutes: Routes = [
             path: '',
             loadComponent: () => import('./presentation/components/course-management.component').then(m => m.CourseManagementComponent),
             title: 'Quản lý khóa học'
+          },
+          {
+            path: 'review',
+            loadComponent: () => import('./presentation/components/course-review.component').then(m => m.CourseReviewComponent),
+            title: 'Duyệt khóa học'
           }
         ]
       },
