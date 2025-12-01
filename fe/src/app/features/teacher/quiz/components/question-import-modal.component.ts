@@ -11,7 +11,7 @@ import { firstValueFrom } from 'rxjs';
   template: `
     <div *ngIf="isOpen()" class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
       <!-- Backdrop -->
-      <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" (click)="close()"></div>
+      <div class="fixed inset-0 bg-black/10 backdrop-blur-sm transition-opacity" (click)="close()"></div>
 
       <!-- Modal Container -->
       <div class="flex items-center justify-center min-h-screen p-4">
@@ -68,9 +68,9 @@ import { firstValueFrom } from 'rxjs';
               <label class="block text-sm font-medium text-gray-700 mb-2">Độ khó mặc định</label>
               <select [(ngModel)]="difficulty" 
                       class="w-full border-2 border-gray-300 rounded-lg px-4 py-2.5 focus:border-blue-500 focus:outline-none">
-                <option value="EASY">🟢 Dễ</option>
-                <option value="MEDIUM">🟡 Trung bình</option>
-                <option value="HARD">🔴 Khó</option>
+                <option value="EASY">Dễ</option>
+                <option value="MEDIUM">Trung bình</option>
+                <option value="HARD">Khó</option>
               </select>
               <p class="mt-1 text-sm text-gray-500">Tất cả câu hỏi import sẽ có độ khó này</p>
             </div>

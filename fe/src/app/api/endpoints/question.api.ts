@@ -74,7 +74,19 @@ export class QuestionApi {
   }
 
   getQuestionById(id: string) {
-    return this.apiClient.get<Question>(`/api/v1/questions/${id}`);
+    return this.apiClient.get<{ success: boolean; data: Question; message?: string }>(`/api/v1/questions/${id}`)
+      .pipe(
+        map((response: any) => {
+          console.log('📦 getQuestionById raw response:', response);
+          // Backend returns ApiResponse<QuestionDTO>
+          if (response && response.data) {
+            console.log('✅ Extracted question:', response.data);
+            return response.data as Question;
+          }
+          console.warn('⚠️ No data in response');
+          return response as Question;
+        })
+      );
   }
 
   getMyQuestions(status?: string) {

@@ -275,12 +275,6 @@ public class CourseController {
         try {
             Course course = courseService.getCourseById(courseId);
             
-            // Check if user is the teacher of this course
-            if (!course.getTeacher().getId().equals(currentUser.getId())) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(ApiResponse.error("Bạn không có quyền xem danh sách học viên của khóa học này"));
-            }
-            
             List<EnrolledStudentInfo> students = course.getEnrolledStudents().stream()
                     .map(student -> EnrolledStudentInfo.builder()
                             .id(student.getId())

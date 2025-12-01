@@ -34,11 +34,11 @@ import { CourseSummary } from '../../../api/types/course.types';
           <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
               <tr>
-                <th class="px-6 py-4 text-left text-sm md:text-base font-semibold text-gray-600 uppercase tracking-wider">Tên</th>
-                <th class="px-6 py-4 text-left text-sm md:text-base font-semibold text-gray-600 uppercase tracking-wider">Email</th>
-                <th class="px-6 py-4 text-left text-sm md:text-base font-semibold text-gray-600 uppercase tracking-wider">Tiến độ</th>
-                <th class="px-6 py-4 text-left text-sm md:text-base font-semibold text-gray-600 uppercase tracking-wider">Điểm</th>
-                <th class="px-6 py-4 text-left text-sm md:text-base font-semibold text-gray-600 uppercase tracking-wider">Trạng thái</th>
+                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Tên</th>
+                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</th>
+                <th class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Tiến độ</th>
+                <th class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Điểm</th>
+                <th class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Trạng thái</th>
                 <th class="px-6 py-4"></th>
               </tr>
             </thead>
@@ -70,9 +70,9 @@ import { CourseSummary } from '../../../api/types/course.types';
               </tr>
 
               <tr *ngFor="let s of paged(); trackBy: trackById">
-                <td class="px-6 py-5 whitespace-nowrap text-base md:text-lg font-medium text-gray-900">{{ s.name }}</td>
-                <td class="px-6 py-5 whitespace-nowrap text-base md:text-lg text-gray-600">{{ s.email }}</td>
-                <td class="px-6 py-5 whitespace-nowrap text-base md:text-lg text-gray-600">
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{{ s.name }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ s.email }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                   <div class="flex items-center">
                     <div class="w-16 bg-gray-200 rounded-full h-2 mr-2">
                       <div class="bg-blue-600 h-2 rounded-full" [style.width.%]="s.progress"></div>
@@ -80,7 +80,7 @@ import { CourseSummary } from '../../../api/types/course.types';
                     <span>{{ s.progress }}%</span>
                   </div>
                 </td>
-                <td class="px-6 py-5 whitespace-nowrap text-base md:text-lg text-gray-600">
+                <td class="px-6 py-5 whitespace-nowrap text-sm text-gray-600 text-center">
                   <span [class.text-green-600]="s.averageGrade >= 8" 
                         [class.text-yellow-600]="s.averageGrade >= 6 && s.averageGrade < 8"
                         [class.text-red-600]="s.averageGrade < 6">
