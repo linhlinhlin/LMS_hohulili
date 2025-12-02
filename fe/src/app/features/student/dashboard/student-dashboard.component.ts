@@ -100,9 +100,14 @@ export class StudentDashboardComponent implements OnInit {
     this.enrollmentService.loadEnrolledCourses(1, 20); // Load first 20 courses
   }
 
+  // Store course content (modules/lessons) loaded from API
+  private courseContents = signal<Map<string, Module[]>>(new Map());
+
   // Map enrolled courses to dashboard course format with modules
   courses = computed(() => {
     const expanded = this.expandedModules();
+    const contents = this.courseContents();
+    
     return this.enrolledCourses().map(course => ({
       id: course.id,
       title: course.title,
@@ -115,13 +120,41 @@ export class StudentDashboardComponent implements OnInit {
       estimatedCompletion: course.status === 'completed' ? 'Completed' : 'Đang học',
       showModules: expanded.has(course.id),
       nextItem: {
-        title: course.status === 'completed' ? 'Khóa học đã hoàn thành' : 'Tiếp tục học',
+        title: course.status === 'completed' ? 'Khóa học đã hoàn thành' : 'Tiếp theo: Bài học 1',
         type: course.status === 'completed' ? 'Certificate' : 'Video',
-        duration: course.status === 'completed' ? '' : '15 minutes'
+        duration: course.status === 'completed' ? '' : '(15 phút)'
       },
-      modules: [] as Module[] // Explicitly type as Module[] to avoid 'never[]'
+      modules: contents.get(course.id) || []
     }));
   });
+
+  // Load course content (modules/lessons) from API
+  private async loadCourseContent(courseId: string): Promise<void> {
+    try {
+      const response = await firstValueFrom(this.courseApi.getCourseContent(courseId));
+      const sections = response.data || [];
+      
+      // Transform API response to Module format
+      const modules: Module[] = sections.map((section: any) => ({
+        id: section.id,
+        title: section.title,
+        lessons: (section.lessons || []).map((lesson: any) => ({
+          id: lesson.id,
+          title: lesson.title,
+          completed: lesson.completed || false
+        }))
+      }));
+      
+      // Update courseContents map
+      this.courseContents.update(contents => {
+        const newMap = new Map(contents);
+        newMap.set(courseId, modules);
+        return newMap;
+      });
+    } catch (error) {
+      console.error(`Error loading content for course ${courseId}:`, error);
+    }
+  }
 
   // OLD MOCK DATA - REMOVED
   _oldMockCourses = signal<Course[]>([
@@ -339,12 +372,18 @@ export class StudentDashboardComponent implements OnInit {
   }
 
   toggleModules(courseId: string): void {
+    const isCurrentlyExpanded = this.expandedModules().has(courseId);
+    
     this.expandedModules.update(expanded => {
       const newSet = new Set(expanded);
-      if (newSet.has(courseId)) {
+      if (isCurrentlyExpanded) {
         newSet.delete(courseId);
       } else {
         newSet.add(courseId);
+        // Load course content if not already loaded
+        if (!this.courseContents().has(courseId)) {
+          this.loadCourseContent(courseId);
+        }
       }
       return newSet;
     });

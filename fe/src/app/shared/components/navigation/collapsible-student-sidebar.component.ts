@@ -251,54 +251,29 @@ export class CollapsibleStudentSidebarComponent {
       description: 'Trang chủ sinh viên'
     },
     {
-      label: 'Khóa học',
+      label: 'Khóa học của tôi',
       iconKey: 'university',
       route: '/student/courses',
       description: 'Quản lý khóa học'
     },
     {
-      label: 'Học tập',
-      iconKey: 'history',
-      route: '/student/learning',
-      description: 'Tiếp tục học tập'
-    },
-    {
-      label: 'Bài tập',
+      label: 'Bài tập của tôi',
       iconKey: 'list',
       route: '/student/assignments',
       badge: '3',
       description: 'Bài tập chờ làm'
     },
     {
-      label: 'Quiz',
-      iconKey: 'list',
-      route: '/student/quiz',
-      description: 'Kiểm tra kiến thức'
-    },
-    {
-      label: 'Thảo luận',
+      label: 'Tin nhắn',
       iconKey: 'user',
-      route: '/student/forum',
-      description: 'Diễn đàn học tập'
+      route: '/student/messages',
+      description: 'Tin nhắn và thông báo'
     },
     {
       label: 'Phân tích',
       iconKey: 'ship-wheel',
       route: '/student/analytics',
       description: 'Thống kê học tập'
-    },
-    {
-      label: 'Study Streaks',
-      iconKey: 'check-circle',
-      route: '/student/streaks',
-      badge: '7',
-      description: 'Chuỗi học tập'
-    },
-    {
-      label: 'Hồ sơ',
-      iconKey: 'user',
-      route: '/student/profile',
-      description: 'Thông tin cá nhân'
     }
   ]);
 

@@ -245,26 +245,3 @@ public class AdminService {
     }
 
 }
- 
-   public Course rejectCourse(UUID courseId, User reviewer, com.example.lms.controller.AdminController.RejectCourseRequest request) {
-        Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học với ID: " + courseId));
-        
-        // Only allow rejecting PENDING courses
-        if (course.getStatus() != Course.CourseStatus.PENDING) {
-            throw new RuntimeException("Chỉ có thể từ chối khóa học ở trạng thái chờ duyệt. " +
-                "Trạng thái hiện tại: " + course.getStatus().getDisplayName());
-        }
-
-        // Validate rejection reason
-        if (request.getReason() == null || request.getReason().trim().isEmpty()) {
-            throw new RuntimeException("Vui lòng nhập lý do từ chối khóa học");
-        }
-
-        course.setStatus(Course.CourseStatus.REJECTED);
-        course.setReviewComment(request.getReason());
-        course.setReviewedAt(Instant.now());
-        course.setReviewedBy(reviewer);
-        
-        return courseRepository.save(course);
-    }

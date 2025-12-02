@@ -183,53 +183,28 @@ export class StudentSidebarComponent {
       isActive: false
     },
     {
-      label: 'Khóa học',
-      icon: '',
+      label: 'Khóa học của tôi',
+      icon: '📚',
       route: '/student/courses',
       isActive: false
     },
     {
-      label: 'Học tập',
-      icon: '',
-      route: '/student/learning',
-      isActive: false
-    },
-    {
-      label: 'Bài tập',
-      icon: '',
+      label: 'Bài tập của tôi',
+      icon: '📋',
       route: '/student/assignments',
       badge: '3',
       isActive: false
     },
     {
-      label: 'Quiz',
-      icon: '',
-      route: '/student/quiz',
-      isActive: false
-    },
-    {
-      label: 'Thảo luận',
+      label: 'Tin nhắn',
       icon: '💬',
-      route: '/student/forum',
+      route: '/student/messages',
       isActive: false
     },
     {
       label: 'Phân tích',
       icon: '📊',
       route: '/student/analytics',
-      isActive: false
-    },
-    {
-      label: 'Study Streaks',
-      icon: '🔥',
-      route: '/student/streaks',
-      badge: '7',
-      isActive: false
-    },
-    {
-      label: 'Hồ sơ',
-      icon: '👤',
-      route: '/student/profile',
       isActive: false
     }
   ]);

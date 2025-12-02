@@ -325,9 +325,9 @@ export function getDeadlineUrgencyClass(daysUntilDue: number): string {
   
   switch (urgency) {
     case 'danger':
-      return 'text-red-600 font-medium';
+      return 'text-gray-900 font-medium';
     case 'warning':
-      return 'text-orange-600 font-medium';
+      return 'text-gray-900 font-medium';
     default:
       return 'text-gray-900';
   }

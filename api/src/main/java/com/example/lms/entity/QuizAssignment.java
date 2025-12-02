@@ -20,7 +20,7 @@ import java.util.UUID;
  */
 @Entity
 @Table(name = "quiz_assignments")
-@Getter
+@Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor

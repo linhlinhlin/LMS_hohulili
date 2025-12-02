@@ -101,13 +101,23 @@
 
     <!-- Quiz Button - Show for QUIZ type lessons or if hasQuiz is true -->
     @if (hasQuiz || lesson.lessonType === LessonType.QUIZ) {
-      <div style="margin: 2rem 0; padding: 1.5rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; text-align: center;">
-        <p style="color: white; margin: 0 0 1rem 0; font-weight: 600;">Bạn muốn kiểm tra kiến thức?</p>
-        <button (click)="onGoToQuiz()" style="display: inline-flex; align-items: center; gap: 0.75rem; padding: 1rem 2rem; background: white; color: #667eea; border: none; border-radius: 8px; font-size: 1.125rem; font-weight: 600; cursor: pointer; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); transition: all 0.3s;">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+      <div class="quiz-prompt-card">
+        <div class="quiz-prompt-content">
+          <div class="quiz-icon-wrapper">
+            <svg class="quiz-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 7h6m-6 4h6"></path>
+            </svg>
+          </div>
+          <div class="quiz-text">
+            <h3 class="quiz-title">Kiểm tra</h3>
+            <p class="quiz-description">Sẵn sàng kiểm tra kiến thức của bạn?</p>
+          </div>
+        </div>
+        <button (click)="onGoToQuiz()" class="btn-start-quiz">
+          <span>Làm bài trắc nghiệm</span>
+          <svg class="arrow-icon" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"></path>
           </svg>
-          Làm bài trắc nghiệm
         </button>
       </div>
     }

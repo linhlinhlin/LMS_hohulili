@@ -3,17 +3,16 @@
 /* ===== DASHBOARD CONTAINER ===== */
 .dashboard-container {
   display: grid;
-  grid-template-columns: 1fr 380px;
-  gap: 32px;
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 40px 48px;
+  grid-template-columns: 1fr 300px;
+  gap: 24px;
+  padding: 24px;
   background: #FAFAFA;
+  min-height: 100vh;
 
   @include mobile {
     grid-template-columns: 1fr;
-    padding: 24px 16px;
-    gap: 24px;
+    padding: 16px;
+    gap: 16px;
   }
 }
 
@@ -24,7 +23,7 @@
 
 /* Header */
 .dashboard-header {
-  margin-bottom: 32px;
+  margin-bottom: 24px;
 }
 
 .greeting {
@@ -78,7 +77,7 @@
 
 /* Courses Section */
 .courses-section {
-  margin-bottom: 40px;
+  margin-bottom: 24px;
 
   &:last-child {
     margin-bottom: 0;
@@ -89,7 +88,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .section-title {
@@ -161,11 +160,15 @@
   }
 }
 
-/* Courses List - Vertical Stack */
+/* Courses List - 2 Column Grid */
 .courses-list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 16px;
+
+  @media (max-width: 1200px) {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Course Card Wrapper - Coursera Style */
@@ -185,7 +188,7 @@
 
 /* Course Metadata Section */
 .course-metadata {
-  padding: 20px;
+  padding: 16px;
 }
 
 .partner-info {
@@ -280,7 +283,7 @@
 
 /* Next Item Expandable */
 .next-item-expandable {
-  padding: 16px 20px;
+  padding: 12px 16px;
   cursor: pointer;
   transition: background 0.2s ease;
 
@@ -404,7 +407,7 @@
 .action-buttons {
   display: flex;
   gap: 8px;
-  padding: 16px 20px;
+  padding: 12px 16px;
   border-top: 1px solid #F3F4F6;
 }
 
@@ -439,7 +442,7 @@
 }
 
 .widget {
-  padding: 24px;
+  padding: 16px;
   background: white;
   border: 1px solid #E5E7EB;
   border-radius: 12px;
