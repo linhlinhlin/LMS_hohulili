@@ -8,8 +8,8 @@ export const AI_CHAT_ROUTES: Routes = [
   {
     path: '',
     loadComponent: () =>
-      import('./presentation/pages/chat-page/chat-page.component').then(
-        (m) => m.ChatPageComponent
+      import('./presentation/pages/ai-chat-full-page/ai-chat-full-page.component').then(
+        (m) => m.AiChatFullPageComponent
       ),
     title: 'Trợ lý AI Hàng Hải',
   },

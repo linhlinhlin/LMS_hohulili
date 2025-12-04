@@ -4,6 +4,6 @@
 export {
   ChatApiClient,
   AI_CHAT_CONFIG,
-  type ApiError,
+  type ClientApiError,
   type RequestTiming,
 } from './chat-api.client';

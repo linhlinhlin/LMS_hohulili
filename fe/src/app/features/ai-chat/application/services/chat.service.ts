@@ -3,8 +3,8 @@
  * Manages messages, API communication, and state
  */
 import { Injectable, signal, computed, inject, effect } from '@angular/core';
-import { ChatMessage, ChatResponse } from '../../domain/types';
-import { ChatApiClient, ApiError } from '../../infrastructure/api/chat-api.client';
+import { ChatMessage, ChatData, SessionSummary } from '../../domain/types';
+import { ChatApiClient, ClientApiError } from '../../infrastructure/api/chat-api.client';
 import { ChatStorageRepository } from '../../infrastructure/repositories/chat-storage.repository';
 import { SessionManagementService } from './session-management.service';
 import {
@@ -44,10 +44,12 @@ export class ChatService {
 
   // State signals
   private readonly _messages = signal<ChatMessage[]>([]);
+  private readonly _sessions = signal<SessionSummary[]>([]); // New: Sessions list
   private readonly _isLoading = signal<boolean>(false);
   private readonly _isTyping = signal<boolean>(false);
   private readonly _error = signal<string | null>(null);
   private readonly _suggestedQuestions = signal<string[]>([]);
+  private readonly _loadingTime = signal<number>(0);
   private readonly _serviceState = signal<ChatServiceState>({
     isHealthy: true,
     isInitialized: false,
@@ -56,10 +58,12 @@ export class ChatService {
 
   // Public readonly signals
   readonly messages = this._messages.asReadonly();
+  readonly sessions = this._sessions.asReadonly(); // New: Expose sessions
   readonly isLoading = this._isLoading.asReadonly();
   readonly isTyping = this._isTyping.asReadonly();
   readonly error = this._error.asReadonly();
   readonly suggestedQuestions = this._suggestedQuestions.asReadonly();
+  readonly loadingTime = this._loadingTime.asReadonly();
   readonly serviceState = this._serviceState.asReadonly();
 
   // Computed signals
@@ -77,6 +81,7 @@ export class ChatService {
 
   // Track last failed message for retry
   private lastFailedMessage: string | null = null;
+  private loadingTimer: any = null;
 
   constructor() {
     // Auto-save messages when they change
@@ -84,6 +89,27 @@ export class ChatService {
       const messages = this._messages();
       if (messages.length > 0) {
         this.sessionService.saveSessionState(messages);
+      }
+    });
+
+    // React to user changes (login/logout) - reload data for new user
+    effect(() => {
+      const userId = this.sessionService.currentUserId();
+      const isInitialized = this.sessionService.isInitialized();
+      
+      if (isInitialized) {
+        console.log(`🔄 AI Chat: User changed to ${userId || 'anonymous'}, reloading data`);
+        // Clear current messages and reload for new user
+        this._messages.set([]);
+        this._sessions.set([]);
+        this._suggestedQuestions.set([]);
+        this._error.set(null);
+        
+        if (userId) {
+          // User is logged in - load their data
+          this.loadHistory();
+          this.loadSessions();
+        }
       }
     });
 
@@ -98,6 +124,9 @@ export class ChatService {
     // Load stored messages
     this.loadHistory();
 
+    // Load sessions list
+    this.loadSessions();
+
     // Check API health
     this.checkHealth();
 
@@ -108,6 +137,74 @@ export class ChatService {
   }
 
   /**
+   * Load all chat sessions
+   */
+  loadSessions(): void {
+    this.apiClient.getSessions().subscribe({
+      next: (response) => {
+        this._sessions.set(response.content);
+      },
+      error: (err) => {
+        console.error('Failed to load sessions', err);
+      }
+    });
+  }
+
+  /**
+   * Load a specific session
+   */
+  loadSession(sessionId: string): void {
+    this._isLoading.set(true);
+    this.apiClient.getSessionDetail(sessionId).subscribe({
+      next: (detail) => {
+        // Map DTO to Domain Entity
+        const messages: ChatMessage[] = detail.messages.map(msg => ({
+          id: msg.id,
+          content: msg.content,
+          sender: msg.senderType === 'USER' ? 'user' : 'ai',
+          timestamp: new Date(msg.createdAt),
+          status: 'sent',
+          metadata: {
+            sources: msg.sources
+          }
+        }));
+
+        this._messages.set(messages);
+        this.sessionService.setSessionId(sessionId);
+        this._isLoading.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load session detail', err);
+        this._error.set('Không thể tải nội dung cuộc trò chuyện');
+        this._isLoading.set(false);
+      }
+    });
+  }
+
+  /**
+   * Delete a session
+   */
+  deleteSession(sessionId: string): void {
+    if (confirm('Bạn có chắc chắn muốn xóa cuộc trò chuyện này?')) {
+      this.apiClient.deleteSession(sessionId).subscribe({
+        next: () => {
+          // Remove from list
+          this._sessions.update(sessions => sessions.filter(s => s.id !== sessionId));
+
+          // If current session is deleted, clear it
+          if (this.sessionService.getSessionState().sessionId === sessionId) {
+            this.startNewSession();
+          }
+        },
+        error: (err) => {
+          console.error('Failed to delete session', err);
+          this._error.set('Không thể xóa cuộc trò chuyện');
+        }
+      });
+    }
+  }
+
+  /**
    * Send a message to the AI
    */
   async sendMessage(content: string): Promise<void> {
@@ -115,6 +212,10 @@ export class ChatService {
 
     this._error.set(null);
     this._isLoading.set(true);
+    this._loadingTime.set(0);
+
+    // Start loading timer
+    this.startLoadingTimer();
 
     // Create and add user message
     const userMessage = createUserMessage(content);
@@ -131,17 +232,22 @@ export class ChatService {
     this._isTyping.set(true);
 
     // Get session state
-    const { sessionId, userId, role, context } =
-      this.sessionService.getSessionState();
+    const { sessionId, context } = this.sessionService.getSessionState();
 
-    // Send to API
+    // Send to API (Backend Proxy)
     this.apiClient
-      .sendChatMessage(userId, content, role, sessionId, context)
+      .sendChatMessage(content, sessionId, context)
       .subscribe({
-        next: (response: ChatResponse) => {
+        next: (response: ChatData) => {
+          // Update sessionId if new one is returned
+          if (!sessionId && response.sessionId) {
+            this.sessionService.setSessionId(response.sessionId);
+            // Reload sessions list to show the new one
+            this.loadSessions();
+          }
           this.handleSuccessResponse(response);
         },
-        error: (error: ApiError) => {
+        error: (error: ClientApiError) => {
           this.handleErrorResponse(error, content);
         },
       });
@@ -150,43 +256,43 @@ export class ChatService {
   /**
    * Handle successful API response
    */
-  private handleSuccessResponse(response: ChatResponse): void {
+  private handleSuccessResponse(response: ChatData): void {
+    this.stopLoadingTimer();
     this._isTyping.set(false);
     this._isLoading.set(false);
 
-    if (response.status === 'success' && response.data) {
-      // Create AI message
-      const aiMessage = createAiMessage(
-        response.data.answer,
-        response.data.sources,
-        response.metadata?.processing_time
-      );
+    // Create AI message
+    const aiMessage = createAiMessage(
+      response.answer,
+      response.sources,
+      response.metadata.processingTime
+    );
 
-      this._messages.update((msgs) => [...msgs, aiMessage]);
+    this._messages.update((msgs) => [...msgs, aiMessage]);
 
-      // Update suggested questions
-      if (response.data.suggested_questions?.length) {
-        this._suggestedQuestions.set(response.data.suggested_questions);
-      } else {
-        this._suggestedQuestions.set([]);
-      }
-
-      // Check for cold start
-      if (this.apiClient.wasLastRequestColdStart()) {
-        this._serviceState.update((state) => ({
-          ...state,
-          coldStartDetected: true,
-        }));
-      }
-
-      this.lastFailedMessage = null;
+    // Update suggested questions
+    if (response.suggestedQuestions?.length) {
+      this._suggestedQuestions.set(response.suggestedQuestions);
+    } else {
+      this._suggestedQuestions.set([]);
     }
+
+    // Check for cold start
+    if (this.apiClient.wasLastRequestColdStart()) {
+      this._serviceState.update((state) => ({
+        ...state,
+        coldStartDetected: true,
+      }));
+    }
+
+    this.lastFailedMessage = null;
   }
 
   /**
    * Handle API error response
    */
-  private handleErrorResponse(error: ApiError, originalMessage: string): void {
+  private handleErrorResponse(error: ClientApiError, originalMessage: string): void {
+    this.stopLoadingTimer();
     this._isTyping.set(false);
     this._isLoading.set(false);
 
@@ -209,7 +315,7 @@ export class ChatService {
     this.lastFailedMessage = originalMessage;
 
     // Update service state if needed
-    if (error.type === 'network' || error.type === 'server') {
+    if (error.type === 'network' || error.type === 'server' || error.type === 'ai_service_error' || error.type === 'service_unavailable') {
       this._serviceState.update((state) => ({
         ...state,
         isHealthy: false,
@@ -310,5 +416,25 @@ export class ChatService {
    */
   clearError(): void {
     this._error.set(null);
+  }
+
+  /**
+   * Start loading timer
+   */
+  private startLoadingTimer(): void {
+    this.stopLoadingTimer();
+    this.loadingTimer = setInterval(() => {
+      this._loadingTime.update((t) => t + 100);
+    }, 100);
+  }
+
+  /**
+   * Stop loading timer
+   */
+  private stopLoadingTimer(): void {
+    if (this.loadingTimer) {
+      clearInterval(this.loadingTimer);
+      this.loadingTimer = null;
+    }
   }
 }

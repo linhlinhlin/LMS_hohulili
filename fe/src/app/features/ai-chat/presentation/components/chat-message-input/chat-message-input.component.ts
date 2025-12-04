@@ -27,8 +27,11 @@ import { FormsModule } from '@angular/forms';
         [placeholder]="placeholder()"
         [(ngModel)]="messageText"
         (keydown.enter)="onEnterKey($event)"
+        (input)="onInput()"
         [disabled]="isLoading()"
         rows="1"
+        aria-label="Nhập tin nhắn"
+        [attr.aria-disabled]="isLoading()"
       ></textarea>
 
       <button
@@ -36,12 +39,16 @@ import { FormsModule } from '@angular/forms';
         [disabled]="!canSend()"
         (click)="onSend()"
         [title]="isLoading() ? 'Đang gửi...' : 'Gửi tin nhắn'"
+        aria-label="Gửi tin nhắn"
+        [attr.aria-disabled]="!canSend()"
       >
         @if (isLoading()) {
-          <svg class="loading-spinner" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle class="spinner-track" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"/>
-            <path class="spinner-head" d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-          </svg>
+          <div role="status" aria-label="Đang gửi">
+            <svg class="loading-spinner" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle class="spinner-track" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"/>
+              <path class="spinner-head" d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+            </svg>
+          </div>
         } @else {
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="send-icon">
             <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
@@ -173,11 +180,16 @@ export class ChatMessageInputComponent {
     }
   }
 
+  onInput(): void {
+    this.adjustTextareaHeight();
+  }
+
   onSend(): void {
     const text = this.messageText().trim();
     if (text && !this.isLoading()) {
       this.messageSent.emit(text);
       this.messageText.set('');
+      this.resetTextareaHeight();
       this.focusInput();
     }
   }
@@ -191,5 +203,21 @@ export class ChatMessageInputComponent {
 
   clearInput(): void {
     this.messageText.set('');
+    this.resetTextareaHeight();
+  }
+
+  private adjustTextareaHeight(): void {
+    const textarea = this.inputField()?.nativeElement;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+    }
+  }
+
+  private resetTextareaHeight(): void {
+    const textarea = this.inputField()?.nativeElement;
+    if (textarea) {
+      textarea.style.height = 'auto';
+    }
   }
 }

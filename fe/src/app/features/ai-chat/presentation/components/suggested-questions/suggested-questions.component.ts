@@ -52,11 +52,11 @@ import { CommonModule } from '@angular/common';
 
     .suggestion-chip {
       display: inline-block;
-      padding: 8px 14px;
+      padding: 8px 16px;
       font-size: 13px;
       color: #374151;
-      background: #f3f4f6;
-      border: 1px solid #e5e7eb;
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
       border-radius: 20px;
       cursor: pointer;
       transition: all 0.2s;
@@ -68,12 +68,14 @@ import { CommonModule } from '@angular/common';
     }
 
     .suggestion-chip:hover {
-      background: #e5e7eb;
-      border-color: #d1d5db;
+      background: #e0f2fe;
+      border-color: #7dd3fc;
+      transform: translateY(-1px);
     }
 
     .suggestion-chip:active {
-      transform: scale(0.98);
+      transform: translateY(0);
+      background: #bae6fd;
     }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush,

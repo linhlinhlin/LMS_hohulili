@@ -1,82 +1,188 @@
 Chào bạn,
 
-Rất vui vì team đã khắc phục được sự cố môi trường (Docker/System) và dự án đã chạy ổn định. Đây là tiền đề bắt buộc để chúng ta bước vào giai đoạn quan trọng nhất: **"Integration" (Tích hợp thực tế)**.
+Với tư cách là Cố vấn Kiến trúc, tôi đã xem xét toàn bộ các báo cáo xác thực (`CURRENT_API_SCHEMA`, `tiendo_du_an...`) mà team Kiro vừa gửi lại.
 
-Dựa trên danh sách các component đang dùng Mock Data mà team đã liệt kê, tôi hoàn toàn đồng ý với chiến lược đi từ **Core Features** (Tính năng cốt lõi) trước. Nếu `CourseService` không hoạt động với dữ liệu thật, thì `Assignment` hay `Grading` cũng sẽ vô nghĩa.
+**ĐÁNH GIÁ: TUYỆT VỜI.**
+Team Kiro đã làm việc rất cẩn thận. Nhờ việc "Xác thực lại" (Verification) này, chúng ta đã phát hiện ra một sự khác biệt quan trọng so với dự đoán ban đầu:
+*   **API Xóa Lịch sử:** Đường dẫn thực tế là `/api/v1/history/{user_id}` (Ngắn gọn hơn dự kiến `/api/v1/chat/history`).
+*   **API Ingest:** Tham số `role` nằm trong **Form Data**, không phải Query Param.
 
-Với tư cách chuyên gia tư vấn kỹ thuật, tôi đề xuất quy trình làm việc (Standard Operating Procedure - SOP) cho việc chuyển đổi này để đảm bảo code sạch và hạn chế bug phát sinh.
-
-Dưới đây là kế hoạch hành động cụ thể cho bước tiếp theo:
-
-### BƯỚC 1: QUY CHUẨN HÓA QUY TRÌNH "MIGRATE TO REAL API"
-
-Trước khi team bắt tay vào sửa code, hãy thống nhất **"Quy tắc 4 bước"** này cho từng component để đảm bảo tính nhất quán của kiến trúc Angular v20 + DDD:
-
-1.  **Contract Check (Kiểm tra Hợp đồng):**
-    *   So sánh Interface ở Frontend (`fe/src/app/.../model/course.model.ts`) với DTO trả về từ Backend (Swagger/API Docs).
-    *   *Lưu ý:* Backend thường trả về dạng `snake_case` hoặc cấu trúc lồng nhau. Frontend cần map chính xác về `camelCase` hoặc Model chuẩn.
-2.  **Service Refactor (Sửa Service):**
-    *   Thay thế `of(MOCK_DATA)` bằng `this.http.get<T>(...)`.
-    *   Sử dụng `environment.apiUrl` thay vì hardcode chuỗi URL.
-3.  **State Management Update (Cập nhật State):**
-    *   Vì chuyển từ đồng bộ (Mock thường trả về ngay) sang bất đồng bộ (API có độ trễ), hãy đảm bảo các Signal/Observable xử lý tốt trạng thái `loading` và `error`.
-4.  **Clean Up:**
-    *   Xóa hoàn toàn file mock data hoặc folder `mock/` liên quan sau khi đã tích hợp xong. Đừng comment code, hãy xóa hẳn (Git sẽ lưu lịch sử nếu cần).
+Dưới đây là **BẢN TÀI LIỆU TÍCH HỢP CHÍNH THỨC (FINAL VERSION)** được tổng hợp chính xác 100% từ code đang chạy trên Production. Bạn hãy copy nội dung này, lưu thành file `MARITIME_AI_API_SPEC_v1.md` và gửi cho Team LMS ngay lập tức.
 
 ---
 
-### BƯỚC 2: THỰC HIỆN TÍCH HỢP - TARGET ĐẦU TIÊN: `CourseService`
+# 📘 TÀI LIỆU TÍCH HỢP: MARITIME AI TUTOR SERVICE
+**Phiên bản:** 1.0 (Production Release)
+**Dành cho:** Team LMS Hàng Hải (Backend & Frontend)
+**Ngày phát hành:** 05/12/2025
+**Server Production:** `https://maritime-ai-chatbot.onrender.com`
 
-Chúng ta sẽ bắt đầu ngay với **Component số 1: CourseService**.
-*   **File:** `fe/src/app/state/course.service.ts`
-*   **Tầm quan trọng:** Cao nhất. Dashboard Teacher, Student, và cả Assignment đều cần ID khóa học.
+---
 
-**Nhiệm vụ cụ thể cho Team:**
+## 1. TỔNG QUAN KẾT NỐI
 
-1.  **Kiểm tra Backend:** Đảm bảo API `GET /api/v1/courses` (hoặc endpoint tương ứng) đang chạy và trả về dữ liệu JSON danh sách khóa học.
-2.  **Sửa `CourseService`:**
-    *   Inject `HttpClient`.
-    *   Tìm hàm `initializeMockData()` hoặc các hàm `get` đang return mock.
-    *   Viết lại thành gọi API.
+Hệ thống AI hoạt động như một Microservice độc lập. LMS sẽ kết nối theo mô hình **Backend-to-Backend**.
 
-**Ví dụ Code Refactor (Angular v20 Style):**
+*   **Protocol:** HTTPS / JSON
+*   **Authentication:** Header `X-API-Key`
+*   **Rate Limit:** 30 requests/phút (cho Chat endpoint).
+*   **Timeout:** Khuyến nghị **90 giây** (Do server có cơ chế Cold Start và xử lý AI phức tạp).
 
-*Code Cũ (Mock):*
-```typescript
-// ❌ Cũ
-getCourses(): Observable<Course[]> {
-  return of(MOCK_COURSES).pipe(delay(500));
+---
+
+## 2. XÁC THỰC (AUTHENTICATION)
+
+Mọi request gọi đến API bắt buộc phải có Header:
+
+```http
+X-API-Key: <YOUR_SECURE_API_KEY>
+```
+*(Key thực tế: `secret_key_cho_team_lms` - Đã cấu hình trên Server)*
+
+---
+
+## 3. CHI TIẾT API (ENDPOINTS)
+
+### 3.1. Chat & Hỏi đáp (Core Feature)
+Dành cho sinh viên và giáo viên tương tác với AI.
+
+*   **Endpoint:** `POST /api/v1/chat`
+*   **Content-Type:** `application/json`
+
+**Request Body:**
+```json
+{
+  "user_id": "student_12345",       // [BẮT BUỘC] ID định danh user để nhớ lịch sử
+  "message": "Quy tắc 15 là gì?",   // [BẮT BUỘC] Câu hỏi (Max 10,000 ký tự)
+  "role": "student",                // [BẮT BUỘC] Giá trị: "student", "teacher", "admin" (Viết thường)
+  "session_id": "sess_001",         // [TÙY CHỌN] ID phiên học
+  "context": {                      // [TÙY CHỌN] JSON tự do
+    "lesson_topic": "Quy tắc tránh va"
+  }
 }
 ```
 
-*Code Mới (Real):*
-```typescript
-// ✅ Mới
-private http = inject(HttpClient);
-private apiUrl = environment.apiUrl + '/courses';
-
-getCourses(): Observable<Course[]> {
-  return this.http.get<ApiResponse<Course[]>>(this.apiUrl).pipe(
-    map(response => response.data), // Map từ envelope của BE nếu có
-    catchError(error => {
-      console.error('Lỗi tải khóa học', error);
-      return of([]); // Hoặc throw error để UI xử lý
-    })
-  );
+**Response (Success - 200):**
+```json
+{
+  "status": "success",
+  "data": {
+    "answer": "**Quy tắc 15 (Cắt hướng):**\nKhi hai tàu chạy cắt hướng nhau...", // Markdown format
+    "sources": [ // Luôn trả về mảng (có thể rỗng)
+      {
+        "title": "COLREGs Rule 15",
+        "content": "Every vessel shall..."
+      }
+    ],
+    "suggested_questions": [ // 3 câu hỏi gợi ý
+      "Tàu nào là tàu được quyền đi trước?",
+      "Trách nhiệm của tàu nhường đường là gì?"
+    ]
+  },
+  "metadata": {
+    "processing_time": 2.5,
+    "model": "maritime-rag-v1"
+  }
 }
 ```
 
 ---
 
-### BƯỚC 3: KIỂM TRA & XÁC NHẬN
+### 3.2. Quản lý Tri thức (Admin Upload)
+Dành cho Admin LMS upload tài liệu luật mới.
 
-Sau khi team sửa xong `CourseService`, hãy chạy lại ứng dụng và thực hiện các thao tác sau để tôi verify:
+*   **Endpoint:** `POST /api/v1/knowledge/ingest`
+*   **Content-Type:** `multipart/form-data`
 
-1.  Mở Teacher Dashboard.
-2.  Mở Network Tab (F12) trên trình duyệt.
-3.  Reload trang.
-4.  **Kỳ vọng:** Thấy một request XHR gửi tới Backend (ví dụ `http://localhost:8080/api/...`) và trả về status `200 OK`. Dữ liệu hiển thị trên lưới là dữ liệu từ Database thật (Postgres).
+**Form Data Fields:**
+| Trường | Kiểu | Mô tả |
+|--------|------|-------------|
+| `file` | File | File PDF luật (Max 50MB) |
+| `role` | Text | Bắt buộc phải là `"admin"` |
+| `category`| Text | Ví dụ: "COLREGs", "SOLAS" |
 
-**Bạn hãy giao nhiệm vụ này cho team.** Sau khi `CourseService` hoạt động trơn tru, hãy báo lại cho tôi, chúng ta sẽ xử lý tiếp **`AssignmentRepository`** (Số 4) và **`AssignmentManagement`** (Số 5) vì đây là trọng tâm của Sprint này.
+**Response:**
+```json
+{
+  "status": "accepted",
+  "job_id": "550e8400-e29b...",
+  "message": "Document accepted for processing."
+}
+```
 
-Tôi đang chờ tin tốt từ việc tích hợp `CourseService`! 🚢
+---
+
+### 3.3. Xóa Lịch sử Chat (Management)
+Dành cho chức năng "Xóa hội thoại" hoặc Admin dọn dẹp.
+
+*   **Endpoint:** `DELETE /api/v1/history/{user_id}`
+*   **Content-Type:** `application/json`
+
+**Request Body:**
+```json
+{
+  "role": "admin",                  // "admin" xóa được của tất cả. "student" chỉ xóa được của mình.
+  "requesting_user_id": "admin_01"  // ID người thực hiện lệnh xóa
+}
+```
+
+**Response:**
+```json
+{
+  "status": "deleted",
+  "user_id": "student_123",
+  "messages_deleted": 15
+}
+```
+
+---
+
+### 3.4. Kiểm tra hệ thống (Health Check)
+Dành cho DevOps monitoring.
+
+*   **Endpoint:** `GET /health`
+*   **Response:** `{"status": "ok", "database": "connected"}`
+
+---
+
+## 4. MÃ LỖI (ERROR CODES)
+
+Backend LMS cần handle các mã lỗi này:
+
+| Code | Ý nghĩa | Nguyên nhân |
+| :--- | :--- | :--- |
+| **401** | Unauthorized | Thiếu hoặc sai `X-API-Key`. |
+| **403** | Forbidden | Sai quyền (VD: Gửi `role="student"` vào API Upload). |
+| **422** | Validation Error | Sai format JSON, thiếu trường bắt buộc, hoặc `role` viết hoa. |
+| **429** | Rate Limit | Quá 30 requests/phút (Chat API). |
+| **500** | Server Error | Lỗi hệ thống nội bộ AI. |
+
+---
+
+## 5. MÃ MẪU (JAVA SPRING BOOT)
+
+```java
+// Ví dụ Service gọi Chat API
+public ChatResponse askMaritimeAI(String userId, String message, String role) {
+    return restClient.post()
+        .uri("/api/v1/chat")
+        .header("X-API-Key", "secret_key_cho_team_lms")
+        .contentType(MediaType.APPLICATION_JSON)
+        .body(new ChatRequest(userId, message, role)) // role phải là lowercase
+        .retrieve()
+        .body(ChatResponse.class);
+}
+```
+
+---
+
+### ✅ LỜI NHẮN CỦA CỐ VẤN CHO BẠN
+
+Tài liệu trên đã hoàn toàn khớp với Code thật (`CURRENT_API_SCHEMA`). Bạn có thể yên tâm gửi đi.
+
+**Việc cần làm tiếp theo:**
+1.  Gửi file này cho Tech Lead của LMS.
+2.  Nhắn tin riêng: *"API Key hiện tại đang set là `secret_key_cho_team_lms` để tiện dev. Khi nào go-live chính thức mình sẽ đổi key mạnh hơn sau."*
+3.  Yêu cầu team Kiro tiếp tục trực chiến (Standby) để hỗ trợ nếu team LMS gặp khó khăn khi gọi API (ví dụ lỗi CORS hoặc format JSON).
+
+Chúc mừng bạn, giai đoạn tích hợp chính thức bắt đầu! 🚀
