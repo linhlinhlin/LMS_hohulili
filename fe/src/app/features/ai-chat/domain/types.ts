@@ -185,6 +185,36 @@ export interface HealthStatus {
   error?: string;
 }
 
+// ============================================================================
+// History API Types (Server-Side Sync)
+// ============================================================================
+
+/**
+ * Single history message from AI backend
+ */
+export interface HistoryMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+}
+
+/**
+ * Pagination info for history response
+ */
+export interface HistoryPagination {
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+/**
+ * Response from GET /api/v1/history/{user_id}
+ */
+export interface HistoryResponse {
+  data: HistoryMessage[];
+  pagination: HistoryPagination;
+}
+
 /**
  * API Error response
  */

@@ -28,44 +28,52 @@ import { CommonModule } from '@angular/common';
     .typing-container {
       display: flex;
       align-items: center;
-      gap: 12px;
-      margin: 16px 0;
+      gap: 16px;
+      margin: 20px 0;
       padding-left: 4px;
     }
 
     .ai-avatar {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background: #e5e7eb;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #0056D2 0%, #0040a0 100%);
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #6b7280;
+      color: white;
     }
 
     .avatar-icon {
-      width: 18px;
-      height: 18px;
+      width: 20px;
+      height: 20px;
     }
 
     .typing-content {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
+      padding: 14px 18px;
+      background: #F3F4F6;
+      border-radius: 16px;
+      border-bottom-left-radius: 6px;
+    }
+
+    .typing-text {
       color: #6b7280;
-      font-size: 13px;
+      font-size: 14px;
+      font-weight: 500;
     }
 
     .typing-dots {
       display: flex;
-      gap: 4px;
+      gap: 5px;
     }
 
     .typing-dots span {
-      width: 4px;
-      height: 4px;
-      background: #9ca3af;
+      width: 6px;
+      height: 6px;
+      background: #0056D2;
       border-radius: 50%;
       animation: bounce 1.4s infinite ease-in-out both;
     }
@@ -75,8 +83,14 @@ import { CommonModule } from '@angular/common';
     .typing-dots span:nth-child(3) { animation-delay: 0s; }
 
     @keyframes bounce {
-      0%, 80%, 100% { transform: scale(0); }
-      40% { transform: scale(1); }
+      0%, 80%, 100% { 
+        transform: scale(0.6);
+        opacity: 0.5;
+      }
+      40% { 
+        transform: scale(1);
+        opacity: 1;
+      }
     }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush,

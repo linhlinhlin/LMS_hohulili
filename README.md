@@ -9,93 +9,119 @@
 [![Java](https://img.shields.io/badge/Java-21-ed8b00?style=flat-square&logo=openjdk&logoColor=white)](https://openjdk.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169e1?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org)
-[![TailwindCSS](https://img.shields.io/badge/TailwindCSS-4.1-06b6d4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
 
 [![AI Powered](https://img.shields.io/badge/AI%20Powered-Gemini%202.5-4285f4?style=flat-square&logo=google&logoColor=white)](https://ai.google.dev)
 [![LangChain](https://img.shields.io/badge/LangChain-RAG-1c3c3c?style=flat-square&logo=chainlink&logoColor=white)](https://langchain.com)
 [![Neo4j](https://img.shields.io/badge/Neo4j-Knowledge%20Graph-008cc1?style=flat-square&logo=neo4j&logoColor=white)](https://neo4j.com)
 
-[![License](https://img.shields.io/badge/License-Proprietary-red?style=flat-square)](LICENSE)
-[![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen?style=flat-square)](/)
-[![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-brightgreen?style=flat-square)](/)
+[![Status](https://img.shields.io/badge/Status-In%20Development-yellow?style=flat-square)](/)]
 
 **AI-Powered Learning Management System for Maritime Education**
 
 *Comprehensive e-learning platform with intelligent tutoring, course management, and maritime knowledge base*
 
-[Features](#key-features) | [Quick Start](#getting-started) | [API Docs](#api-documentation) | [Architecture](#architecture)
+[Features](#key-features) | [Project Status](#project-status) | [Quick Start](#getting-started) | [Architecture](#architecture)
 
 </div>
 
 ---
 
-## Overview
+## 📊 Project Status (Updated: December 5, 2025)
 
-Maritime LMS is a full-stack educational platform designed for maritime training institutions. The system combines traditional LMS functionality with cutting-edge AI capabilities to deliver personalized learning experiences.
+### Implementation Progress
 
-### Why Maritime LMS?
-
-| Challenge | Our Solution |
-|-----------|--------------|
-| Complex maritime regulations | AI-powered knowledge retrieval from COLREGs, SOLAS, MARPOL |
-| Student engagement | Interactive AI tutor with personalized responses |
-| Assessment management | Coursera-style assignments with rubric grading |
-| Multi-role access | Dedicated interfaces for Students, Teachers, and Admins |
-
----
-
-## Key Features
-
-<table>
-<tr>
-<td width="50%">
-
-### Learning Management
-- Course creation and organization
-- Section and lesson management
-- File attachments (PDF, Video, Audio)
-- Progress tracking and analytics
-- Enrollment management
-
-</td>
-<td width="50%">
-
-### AI-Powered Tutoring
-- Intelligent Q&A with maritime knowledge
-- Role-based responses (Student/Teacher)
-- Source citations from regulations
-- Semantic memory for personalization
-- Multi-session conversation history
-
-</td>
-</tr>
-<tr>
-<td width="50%">
-
-### Assignment System
-- Multiple assignment types
-- Rubric-based grading
-- File submission support
-- Deadline management
-- Grade analytics
-
-</td>
-<td width="50%">
-
-### Administration
-- User management with RBAC
-- Knowledge base management
-- System analytics dashboard
-- PDF document ingestion
-- Chat history management
-
-</td>
-</tr>
-</table>
+| Module | Status | Completion | Notes |
+|--------|--------|------------|-------|
+| **Authentication** | ✅ Done | 100% | JWT, Role-based guards |
+| **Student Portal** | ✅ Done | 95% | Dashboard, courses, assignments, quiz |
+| **Teacher Portal** | ✅ Done | 90% | Course management, grading, quiz builder |
+| **Admin Portal** | 🟡 In Progress | 80% | Users, analytics, AI knowledge mgmt |
+| **AI Chatbot** | ✅ Done | 95% | Server-side sync, Notion AI-style UI |
+| **Assignment System** | ✅ Done | 90% | Rubric grading, file submissions |
+| **Quiz System** | ✅ Done | 85% | Multiple question types, auto-grading |
+| **Messaging** | 🟡 In Progress | 70% | Student-teacher communication |
 
 ---
 
-## Architecture
+## 🗂️ Detailed Feature Implementation
+
+### Frontend (Angular 20.3)
+
+#### Student Module (`/student`)
+| Page | Route | Status | Description |
+|------|-------|--------|-------------|
+| Dashboard | `/student/dashboard` | ✅ | Learning progress, enrolled courses, heatmap |
+| My Courses | `/student/my-courses` | ✅ | Course cards with progress tracking |
+| Course Detail | `/student/course/:id` | ✅ | Modules, lessons, enrollment |
+| Assignments | `/student/assignments` | ✅ | Assignment list, submission |
+| Assignment Work | `/student/assignments/:id/work` | ✅ | File upload, rubric view |
+| Quiz List | `/student/quiz` | ✅ | Available quizzes |
+| Quiz Taking | `/student/quiz/take/:id` | ✅ | Interactive quiz interface |
+| Learning | `/student/learn/*` | ✅ | Video/PDF viewer, progress |
+| Messages | `/student/messages` | ✅ | Teacher messaging |
+| AI Chat | `/student/ai-chat` | ✅ | Maritime AI assistant |
+| Analytics | `/student/analytics` | ✅ | Learning statistics |
+| Profile | `/student/profile` | ✅ | Personal information |
+
+#### Teacher Module (`/teacher`)
+| Page | Route | Status | Description |
+|------|-------|--------|-------------|
+| Dashboard | `/teacher/dashboard` | ✅ | Overview, course stats |
+| Course Management | `/teacher/courses` | ✅ | CRUD operations |
+| Course Creation | `/teacher/course-creation` | ✅ | New course wizard |
+| Course Editor | `/teacher/courses/:id/edit` | ✅ | Sections, lessons |
+| Section Editor | `/teacher/courses/:id/sections/:id` | ✅ | Lesson management |
+| Assignment Hub | `/teacher/assignments/*` | ✅ | Unified assignment management |
+| Grading | `/teacher/assignments/:id/grade` | ✅ | Speed grader, rubrics |
+| Quiz Management | `/teacher/quiz/*` | ✅ | Create, edit, analytics |
+| Student Management | `/teacher/students` | ✅ | Enrollment, progress |
+| Analytics | `/teacher/analytics` | ✅ | Teaching statistics |
+| AI Chat | `/teacher/ai-chat` | ✅ | Maritime AI assistant |
+
+#### Admin Module (`/admin`)
+| Page | Route | Status | Description |
+|------|-------|--------|-------------|
+| Dashboard | `/admin/dashboard` | ✅ | System overview |
+| User Management | `/admin/users` | ✅ | User CRUD, roles |
+| Course Management | `/admin/courses` | ✅ | All courses overview |
+| Course Review | `/admin/courses/review` | 🟡 | Approval workflow |
+| Analytics | `/admin/analytics` | ✅ | System metrics |
+| Settings | `/admin/settings` | 🟡 | System configuration |
+| AI Knowledge | `/admin/ai-knowledge` | ✅ | PDF upload, documents |
+| AI Chat | `/admin/ai-chat` | ✅ | Maritime AI assistant |
+| Logs | `/admin/logs` | 🔴 | Placeholder only |
+
+#### AI Chat Module
+| Component | File | Status | Description |
+|-----------|------|--------|-------------|
+| Full Page | `ai-chat-full-page.component.ts` | ✅ | Main container |
+| Main Area | `chat-main-area.component.ts` | ✅ | Welcome screen, messages |
+| Sidebar | `chat-sidebar.component.ts` | ✅ | Session history |
+| Message | `chat-message.component.ts` | ✅ | Message bubble, sources |
+| Input | `chat-message-input.component.ts` | ✅ | Auto-resize textarea |
+| Service | `chat.service.ts` | ✅ | Server-side history sync |
+
+### Backend (Spring Boot 3.5.6)
+
+#### API Controllers (30 total)
+| Controller | Endpoints | Status | Description |
+|------------|-----------|--------|-------------|
+| `AuthController` | 4 | ✅ | Login, register, refresh, profile |
+| `CourseController` | 15+ | ✅ | Course CRUD, enrollment |
+| `LessonController` | 10+ | ✅ | Lesson management |
+| `SectionController` | 8+ | ✅ | Section management |
+| `AssignmentController` | 12+ | ✅ | Assignment CRUD, submissions |
+| `QuizController` | 15+ | ✅ | Quiz management, attempts |
+| `AIChatController` | 5 | ✅ | Chat, sessions, health |
+| `AIAdminController` | 6 | ✅ | Knowledge upload, stats |
+| `UserController` | 8+ | ✅ | User management |
+| `MessageController` | 10+ | ✅ | Internal messaging |
+| `FileUploadController` | 5 | ✅ | File upload/serve |
+| `StudentProgressController` | 6 | ✅ | Progress tracking |
+
+---
+
+## 🏗️ Architecture
 
 ```
                               MARITIME LMS ARCHITECTURE
@@ -108,112 +134,50 @@ Maritime LMS is a full-stack educational platform designed for maritime training
 |                  |         |                  |         |                  |
 +--------+---------+         +--------+---------+         +--------+---------+
          |                            |                            |
-         |                            |                            |
          v                            v                            v
 +------------------+         +------------------+         +------------------+
-|   localStorage   |         |   PostgreSQL     |         |   Neo4j          |
-|   (Session Cache)|         |   (Supabase)     |         |   + pgvector     |
+|   Session State  |         |   PostgreSQL     |         |   Neo4j          |
+|   (Server-side)  |         |   (Supabase)     |         |   + pgvector     |
 +------------------+         +------------------+         +------------------+
 ```
 
-### Data Flow
+---
+
+## 📁 Project Structure
 
 ```
-User Request --> Angular Frontend --> Spring Boot API --> AI Service (if needed)
-                      |                     |                    |
-                      |                     v                    v
-                      |              PostgreSQL DB         Neo4j + Gemini
-                      |                     |                    |
-                      v                     v                    v
-              localStorage <-------- Response <----------- AI Response
+LMS_hohulili/
+├── api/                              # Backend (Java Spring Boot)
+│   └── src/main/java/com/example/lms/
+│       ├── controller/               # 30 REST Controllers
+│       ├── service/                  # Business Logic + AI Integration
+│       ├── entity/                   # JPA Entities
+│       ├── repository/               # Data Access
+│       └── dto/                      # Data Transfer Objects
+│
+├── fe/                               # Frontend (Angular 20.3)
+│   └── src/app/
+│       ├── core/                     # Guards, interceptors, services
+│       ├── shared/                   # 15+ reusable components
+│       └── features/
+│           ├── student/              # 25 components/pages
+│           ├── teacher/              # 85 components/pages
+│           ├── admin/                # 21 components/pages
+│           ├── ai-chat/              # 41 files (DDD architecture)
+│           ├── assignments/          # 29 components
+│           ├── learning/             # 59 components (quiz, viewer)
+│           └── courses/              # 33 components
+│
+├── Documents/                        # Documentation
+│   ├── ai/                           # AI Integration Specs
+│   └── chuyengia/                    # Expert Reviews
+│
+└── README.md                         # This file
 ```
 
 ---
 
-## Project Structure
-
-```
-LMS_hohulili/                         # Monorepo Root
-|
-+-- api/                              # Backend (Java Spring Boot)
-|   +-- src/main/java/com/example/lms/
-|   |   +-- controller/               # REST Controllers
-|   |   +-- service/                  # Business Logic
-|   |   |   +-- ai/                   # AI Integration Layer
-|   |   +-- entity/                   # JPA Entities
-|   |   +-- repository/               # Data Access
-|   |   +-- dto/                      # Data Transfer Objects
-|   |   +-- config/                   # Configuration
-|   +-- docker-compose.yml            # Local Database Setup
-|   +-- pom.xml                       # Maven Dependencies
-|
-+-- fe/                               # Frontend (Angular)
-|   +-- src/app/
-|   |   +-- core/                     # Core Services
-|   |   +-- shared/                   # Shared Components
-|   |   +-- features/
-|   |   |   +-- student/              # Student Module
-|   |   |   +-- teacher/              # Teacher Module
-|   |   |   +-- admin/                # Admin Module
-|   |   |   +-- ai-chat/              # AI Chat Feature
-|   |   |   +-- assignments/          # Assignment System
-|   +-- package.json                  # NPM Dependencies
-|
-+-- assets/                           # Static Assets
-|   +-- banner1.jpg                   # Project Banner
-|
-+-- Documents/                        # Documentation
-|   +-- ai/                           # AI Integration Specs
-|   +-- chuyengia/                    # Expert Reviews
-|
-+-- README.md                         # This File
-```
-
----
-
-## Tech Stack
-
-### Frontend
-
-| Technology | Version | Purpose |
-|------------|---------|---------|
-| Angular | 20.3.0 | Frontend Framework |
-| TypeScript | 5.9.2 | Programming Language |
-| TailwindCSS | 4.1.13 | Utility-First CSS |
-| Angular Material | 20.2.5 | UI Components |
-| RxJS | 7.8.0 | Reactive Programming |
-| Chart.js | 4.5.1 | Data Visualization |
-| fast-check | 4.3.0 | Property-Based Testing |
-| Playwright | 1.55.0 | E2E Testing |
-
-### Backend (LMS)
-
-| Technology | Version | Purpose |
-|------------|---------|---------|
-| Java | 21 | Programming Language |
-| Spring Boot | 3.5.6 | Application Framework |
-| Spring Security | 6.x | Authentication & Authorization |
-| Spring Data JPA | 3.x | Data Access Layer |
-| PostgreSQL | 16 | Primary Database |
-| JWT | 0.12.3 | Token Authentication |
-| Flyway | 10.x | Database Migration |
-| SpringDoc OpenAPI | 2.6.0 | API Documentation |
-
-### Backend (AI Service)
-
-| Technology | Version | Purpose |
-|------------|---------|---------|
-| Python | 3.11+ | Programming Language |
-| FastAPI | 0.109 | Web Framework |
-| LangChain | 0.1.9 | LLM Framework |
-| LangGraph | 0.0.24 | Agent Orchestration |
-| Neo4j | 5.28 | Knowledge Graph |
-| pgvector | - | Vector Similarity Search |
-| Google Gemini | 2.5 Flash | Large Language Model |
-
----
-
-## Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
 
@@ -223,7 +187,6 @@ LMS_hohulili/                         # Monorepo Root
 | Node.js | 22.x | [Download](https://nodejs.org) |
 | Docker | Latest | [Download](https://docker.com) |
 | Maven | 3.6+ | [Download](https://maven.apache.org) |
-| Git | Latest | [Download](https://git-scm.com) |
 
 ### Quick Start
 
@@ -258,10 +221,9 @@ npm start
 
 ---
 
-## API Documentation
+## 📡 API Endpoints Summary
 
 ### Authentication
-
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/v1/auth/register` | POST | User registration |
@@ -269,228 +231,60 @@ npm start
 | `/api/v1/auth/refresh` | POST | Refresh token |
 | `/api/v1/auth/profile` | GET | Get user profile |
 
-### Courses
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/v1/courses` | GET | List all courses |
-| `/api/v1/courses/{id}` | GET | Get course details |
-| `/api/v1/courses` | POST | Create course |
-| `/api/v1/courses/{id}/enroll` | POST | Enroll in course |
-
 ### AI Chat
-
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/v1/ai/chat` | POST | Send message to AI |
 | `/api/v1/ai/sessions` | GET | List chat sessions |
-| `/api/v1/ai/sessions/{id}` | GET | Get session messages |
+| `/api/v1/ai/history/{userId}` | GET | Load chat history (server-side) |
+| `/api/v1/ai/history/{userId}` | DELETE | Clear chat history |
 | `/api/v1/ai/health` | GET | AI service health |
 
 ### AI Admin (Admin Only)
-
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/v1/ai/admin/knowledge/upload` | POST | Upload PDF |
-| `/api/v1/ai/admin/knowledge/stats` | GET | Knowledge stats |
-| `/api/v1/ai/admin/history/{userId}` | DELETE | Delete chat history |
+| `/api/v1/ai/admin/knowledge/upload` | POST | Upload PDF document |
+| `/api/v1/ai/admin/knowledge/stats` | GET | Knowledge base stats |
+| `/api/v1/ai/admin/knowledge/documents` | GET | List all documents |
 
 ---
 
-## AI Integration
+## 🔄 Recent Changes (December 2025)
 
-### Chat Request
-
-```json
-{
-  "message": "Explain COLREGs Rule 15",
-  "sessionId": "uuid-xxx-xxx"
-}
-```
-
-### Chat Response
-
-```json
-{
-  "status": "success",
-  "data": {
-    "sessionId": "uuid-xxx-xxx",
-    "answer": "**Rule 15 (Crossing Situation):**\n...",
-    "sources": [
-      {"title": "COLREGs Rule 15", "content": "..."}
-    ],
-    "suggestedQuestions": [
-      "Which vessel must give way?",
-      "When does Rule 15 apply?"
-    ]
-  },
-  "metadata": {
-    "agentType": "rag",
-    "processingTime": 2.5
-  }
-}
-```
-
-### Session Isolation
-
-Each user has isolated chat sessions stored with user-specific keys:
-
-```
-localStorage keys:
-  ai_chat_session_{userId}
-  ai_chat_messages_{userId}
-  ai_chat_last_session_id_{userId}
-```
+| Date | Change | Files Modified |
+|------|--------|----------------|
+| Dec 5 | Server-side chat history sync | `chat.service.ts`, `chat-api.client.ts` |
+| Dec 5 | AI Chatbot UI/UX redesign (Notion AI style) | `chat-main-area.component.ts`, `chat-sidebar.component.ts` |
+| Dec 4 | Admin AI Knowledge management | `ai-knowledge/*` components |
+| Dec 4 | Session isolation security fix | `session-management.service.ts` |
+| Dec 3 | Quiz system completion | `quiz/*` components |
 
 ---
 
-## Development
+## 🛠️ Tech Stack
 
-### Running Tests
+### Frontend
+- **Angular 20.3** - Frontend framework with signals
+- **TailwindCSS** - Utility-first CSS
+- **RxJS** - Reactive programming
+- **Chart.js** - Data visualization
 
-```bash
-# Frontend Unit Tests
-cd fe && npm test
+### Backend
+- **Spring Boot 3.5.6** - Application framework
+- **Spring Security 6.x** - JWT authentication
+- **Spring Data JPA** - Data access
+- **PostgreSQL 16** - Primary database
+- **Flyway** - Database migrations
 
-# Frontend E2E Tests
-cd fe && npm run test:e2e
-
-# Backend Tests
-cd api && mvn test
-```
-
-### Code Quality
-
-```bash
-# Frontend Linting
-cd fe && npm run lint
-
-# Backend Build
-cd api && mvn clean package
-```
-
-### Environment Configuration
-
-**Backend** (`api/src/main/resources/application.yml`):
-```yaml
-spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5432/lms
-    username: lms
-    password: lms
-
-ai:
-  service:
-    url: https://maritime-ai-chatbot.onrender.com
-    api-key: ${AI_API_KEY}
-    timeout: 90
-```
-
-**Frontend** (`fe/src/environments/environment.ts`):
-```typescript
-export const environment = {
-  production: false,
-  apiUrl: 'http://localhost:8088/api/v1'
-};
-```
+### AI Service
+- **FastAPI** - Python web framework
+- **LangChain + LangGraph** - LLM orchestration
+- **Neo4j** - Knowledge graph
+- **Google Gemini 2.5** - Large language model
 
 ---
 
-## Deployment
-
-### Production Architecture
-
-```
-                    +------------------+
-                    |   Cloudflare     |
-                    |   (CDN + SSL)    |
-                    +--------+---------+
-                             |
-            +----------------+----------------+
-            |                                 |
-    +-------v-------+                 +-------v-------+
-    |   Frontend    |                 |   Backend     |
-    |   (Vercel)    |                 |   (Render)    |
-    +---------------+                 +-------+-------+
-                                              |
-                              +---------------+---------------+
-                              |                               |
-                      +-------v-------+               +-------v-------+
-                      |   PostgreSQL  |               |   AI Service  |
-                      |   (Supabase)  |               |   (Render)    |
-                      +---------------+               +---------------+
-```
-
-### Deployment Checklist
-
-- [ ] Configure production environment variables
-- [ ] Set up SSL certificates
-- [ ] Configure CORS for production domains
-- [ ] Set up database backups
-- [ ] Configure monitoring (Sentry, LogRocket)
-- [ ] Test all API endpoints
-- [ ] Verify AI service connectivity
-- [ ] Load testing
-
----
-
-## Documentation
-
-| Document | Description |
-|----------|-------------|
-| [AI Chat Spec](Documents/ai/FRONTEND_AI_CHAT_SPEC.md) | Frontend AI chat requirements |
-| [Session Isolation](Documents/ai/SESSION_ISOLATION_FIX.md) | User session isolation solution |
-| [Admin API Spec](Documents/AI_ADMIN_API_SPEC.md) | Admin knowledge management API |
-| [Implementation Report](Documents/chuyengia/IMPLEMENTATION_COMPLETE.md) | Implementation completion report |
-| [AI Backend Docs](Documents/chuyengia/README.md) | Maritime AI Service documentation |
-
----
-
-## Version History
-
-| Version | Date | Highlights |
-|---------|------|------------|
-| 1.0.0 | 2025-12-05 | Production release with AI integration |
-| 0.9.0 | 2025-12-04 | Session isolation security fix |
-| 0.8.0 | 2025-12-03 | Admin knowledge management APIs |
-| 0.7.0 | 2025-12-02 | Full-page AI chat interface |
-| 0.6.0 | 2025-12-01 | Assignment system enhancements |
-
----
-
-## Contributing
-
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-### Commit Convention
-
-```
-feat: Add new feature
-fix: Bug fix
-docs: Documentation update
-style: Code style changes
-refactor: Code refactoring
-test: Add tests
-chore: Maintenance tasks
-```
-
----
-
-## Support
-
-For technical support and questions:
-
-- Create an issue in the repository
-- Check [Swagger UI](http://localhost:8088/swagger-ui) for API documentation
-- Review [Documents](Documents/) folder for detailed specifications
-
----
-
-## License
+## 📄 License
 
 Proprietary software for Maritime Education.
 

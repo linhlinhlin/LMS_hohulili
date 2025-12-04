@@ -15,6 +15,7 @@ import {
   SessionsResponse,
   SessionDetail,
   HealthStatus,
+  HistoryResponse,
 } from '../../domain/types';
 
 /**
@@ -163,6 +164,34 @@ export class ChatApiClient {
       map((health: HealthStatus) => health.status === 'healthy'),
       catchError(() => of(false))
     );
+  }
+
+  /**
+   * Get chat history from server (Server-Side Sync)
+   * API: GET /api/v1/history/{user_id}
+   */
+  getChatHistory(userId: string, limit = 20, offset = 0): Observable<HistoryResponse> {
+    return this.http
+      .get<HistoryResponse>(
+        `${AI_CHAT_CONFIG.baseUrl}/history/${userId}`,
+        { params: new HttpParams().set('limit', limit).set('offset', offset) }
+      )
+      .pipe(
+        catchError((error) => this.handleError(error))
+      );
+  }
+
+  /**
+   * Delete all chat history for a user
+   * API: DELETE /api/v1/history/{user_id}
+   */
+  deleteChatHistory(userId: string): Observable<void> {
+    return this.http
+      .delete<void>(`${AI_CHAT_CONFIG.baseUrl}/history/${userId}`)
+      .pipe(
+        map(() => void 0),
+        catchError((error) => this.handleError(error))
+      );
   }
 
   /**

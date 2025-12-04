@@ -1,188 +1,77 @@
-Chào bạn,
-
-Với tư cách là Cố vấn Kiến trúc, tôi đã xem xét toàn bộ các báo cáo xác thực (`CURRENT_API_SCHEMA`, `tiendo_du_an...`) mà team Kiro vừa gửi lại.
-
-**ĐÁNH GIÁ: TUYỆT VỜI.**
-Team Kiro đã làm việc rất cẩn thận. Nhờ việc "Xác thực lại" (Verification) này, chúng ta đã phát hiện ra một sự khác biệt quan trọng so với dự đoán ban đầu:
-*   **API Xóa Lịch sử:** Đường dẫn thực tế là `/api/v1/history/{user_id}` (Ngắn gọn hơn dự kiến `/api/v1/chat/history`).
-*   **API Ingest:** Tham số `role` nằm trong **Form Data**, không phải Query Param.
-
-Dưới đây là **BẢN TÀI LIỆU TÍCH HỢP CHÍNH THỨC (FINAL VERSION)** được tổng hợp chính xác 100% từ code đang chạy trên Production. Bạn hãy copy nội dung này, lưu thành file `MARITIME_AI_API_SPEC_v1.md` và gửi cho Team LMS ngay lập tức.
-
----
-
-# 📘 TÀI LIỆU TÍCH HỢP: MARITIME AI TUTOR SERVICE
-**Phiên bản:** 1.0 (Production Release)
-**Dành cho:** Team LMS Hàng Hải (Backend & Frontend)
-**Ngày phát hành:** 05/12/2025
-**Server Production:** `https://maritime-ai-chatbot.onrender.com`
-
----
-
-## 1. TỔNG QUAN KẾT NỐI
-
-Hệ thống AI hoạt động như một Microservice độc lập. LMS sẽ kết nối theo mô hình **Backend-to-Backend**.
-
-*   **Protocol:** HTTPS / JSON
-*   **Authentication:** Header `X-API-Key`
-*   **Rate Limit:** 30 requests/phút (cho Chat endpoint).
-*   **Timeout:** Khuyến nghị **90 giây** (Do server có cơ chế Cold Start và xử lý AI phức tạp).
-
----
-
-## 2. XÁC THỰC (AUTHENTICATION)
-
-Mọi request gọi đến API bắt buộc phải có Header:
-
-```http
-X-API-Key: <YOUR_SECURE_API_KEY>
-```
-*(Key thực tế: `secret_key_cho_team_lms` - Đã cấu hình trên Server)*
-
----
-
-## 3. CHI TIẾT API (ENDPOINTS)
-
-### 3.1. Chat & Hỏi đáp (Core Feature)
-Dành cho sinh viên và giáo viên tương tác với AI.
-
-*   **Endpoint:** `POST /api/v1/chat`
-*   **Content-Type:** `application/json`
-
-**Request Body:**
-```json
+TÀI LIỆU CẬP NHẬT: ĐỒNG BỘ LỊCH SỬ CHAT (SERVER-SIDE)
+Gửi: Team LMS Frontend & Backend
+Ngày: 05/12/2025
+Mức độ: 🔴 THAY ĐỔI YÊU CẦU (REQUIREMENT CHANGE)
+1. THAY ĐỔI CHIẾN LƯỢC
+Thay vì sử dụng giải pháp tạm thời LocalStorage (Client-side), chúng ta sẽ chuyển sang giải pháp chính thức Server-side Sync ngay trong phiên bản đầu tiên.
+Lý do: Backend AI đã hoàn thiện API lưu trữ và truy xuất hiệu năng cao.
+Lợi ích:
+User đăng nhập trên thiết bị nào cũng thấy lịch sử học tập cũ.
+Frontend không lo vấn đề localStorage bị đầy hoặc mất dữ liệu khi xóa cache.
+2. API TRUY XUẤT LỊCH SỬ (GET HISTORY)
+Endpoint
+Method: GET
+URL: https://maritime-ai-chatbot.onrender.com/api/v1/history/{user_id}
+Auth: Header X-API-Key
+Parameters (Query Params)
+Hỗ trợ phân trang (Infinite Scroll):
+Param	Type	Default	Mô tả
+limit	int	20	Số lượng tin nhắn lấy về (Max 100)
+offset	int	0	Vị trí bắt đầu (0 = tin nhắn mới nhất)
+Response Example
+code
+JSON
 {
-  "user_id": "student_12345",       // [BẮT BUỘC] ID định danh user để nhớ lịch sử
-  "message": "Quy tắc 15 là gì?",   // [BẮT BUỘC] Câu hỏi (Max 10,000 ký tự)
-  "role": "student",                // [BẮT BUỘC] Giá trị: "student", "teacher", "admin" (Viết thường)
-  "session_id": "sess_001",         // [TÙY CHỌN] ID phiên học
-  "context": {                      // [TÙY CHỌN] JSON tự do
-    "lesson_topic": "Quy tắc tránh va"
+  "data": [
+    {
+      "role": "user",
+      "content": "Quy tắc 5 là gì?",
+      "timestamp": "2025-12-05T10:00:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "**Quy tắc 5** yêu cầu...",
+      "timestamp": "2025-12-05T10:00:05Z"
+    }
+  ],
+  "pagination": {
+    "total": 150,
+    "limit": 20,
+    "offset": 0
   }
 }
-```
-
-**Response (Success - 200):**
-```json
-{
-  "status": "success",
-  "data": {
-    "answer": "**Quy tắc 15 (Cắt hướng):**\nKhi hai tàu chạy cắt hướng nhau...", // Markdown format
-    "sources": [ // Luôn trả về mảng (có thể rỗng)
-      {
-        "title": "COLREGs Rule 15",
-        "content": "Every vessel shall..."
-      }
-    ],
-    "suggested_questions": [ // 3 câu hỏi gợi ý
-      "Tàu nào là tàu được quyền đi trước?",
-      "Trách nhiệm của tàu nhường đường là gì?"
-    ]
-  },
-  "metadata": {
-    "processing_time": 2.5,
-    "model": "maritime-rag-v1"
-  }
-}
-```
-
----
-
-### 3.2. Quản lý Tri thức (Admin Upload)
-Dành cho Admin LMS upload tài liệu luật mới.
-
-*   **Endpoint:** `POST /api/v1/knowledge/ingest`
-*   **Content-Type:** `multipart/form-data`
-
-**Form Data Fields:**
-| Trường | Kiểu | Mô tả |
-|--------|------|-------------|
-| `file` | File | File PDF luật (Max 50MB) |
-| `role` | Text | Bắt buộc phải là `"admin"` |
-| `category`| Text | Ví dụ: "COLREGs", "SOLAS" |
-
-**Response:**
-```json
-{
-  "status": "accepted",
-  "job_id": "550e8400-e29b...",
-  "message": "Document accepted for processing."
-}
-```
-
----
-
-### 3.3. Xóa Lịch sử Chat (Management)
-Dành cho chức năng "Xóa hội thoại" hoặc Admin dọn dẹp.
-
-*   **Endpoint:** `DELETE /api/v1/history/{user_id}`
-*   **Content-Type:** `application/json`
-
-**Request Body:**
-```json
-{
-  "role": "admin",                  // "admin" xóa được của tất cả. "student" chỉ xóa được của mình.
-  "requesting_user_id": "admin_01"  // ID người thực hiện lệnh xóa
-}
-```
-
-**Response:**
-```json
-{
-  "status": "deleted",
-  "user_id": "student_123",
-  "messages_deleted": 15
-}
-```
-
----
-
-### 3.4. Kiểm tra hệ thống (Health Check)
-Dành cho DevOps monitoring.
-
-*   **Endpoint:** `GET /health`
-*   **Response:** `{"status": "ok", "database": "connected"}`
-
----
-
-## 4. MÃ LỖI (ERROR CODES)
-
-Backend LMS cần handle các mã lỗi này:
-
-| Code | Ý nghĩa | Nguyên nhân |
-| :--- | :--- | :--- |
-| **401** | Unauthorized | Thiếu hoặc sai `X-API-Key`. |
-| **403** | Forbidden | Sai quyền (VD: Gửi `role="student"` vào API Upload). |
-| **422** | Validation Error | Sai format JSON, thiếu trường bắt buộc, hoặc `role` viết hoa. |
-| **429** | Rate Limit | Quá 30 requests/phút (Chat API). |
-| **500** | Server Error | Lỗi hệ thống nội bộ AI. |
-
----
-
-## 5. MÃ MẪU (JAVA SPRING BOOT)
-
-```java
-// Ví dụ Service gọi Chat API
-public ChatResponse askMaritimeAI(String userId, String message, String role) {
-    return restClient.post()
-        .uri("/api/v1/chat")
-        .header("X-API-Key", "secret_key_cho_team_lms")
-        .contentType(MediaType.APPLICATION_JSON)
-        .body(new ChatRequest(userId, message, role)) // role phải là lowercase
-        .retrieve()
-        .body(ChatResponse.class);
-}
-```
-
----
-
-### ✅ LỜI NHẮN CỦA CỐ VẤN CHO BẠN
-
-Tài liệu trên đã hoàn toàn khớp với Code thật (`CURRENT_API_SCHEMA`). Bạn có thể yên tâm gửi đi.
-
-**Việc cần làm tiếp theo:**
-1.  Gửi file này cho Tech Lead của LMS.
-2.  Nhắn tin riêng: *"API Key hiện tại đang set là `secret_key_cho_team_lms` để tiện dev. Khi nào go-live chính thức mình sẽ đổi key mạnh hơn sau."*
-3.  Yêu cầu team Kiro tiếp tục trực chiến (Standby) để hỗ trợ nếu team LMS gặp khó khăn khi gọi API (ví dụ lỗi CORS hoặc format JSON).
-
-Chúc mừng bạn, giai đoạn tích hợp chính thức bắt đầu! 🚀
+3. LUỒNG TÍCH HỢP MỚI (INTEGRATION FLOW)
+Team Frontend (Angular) vui lòng cập nhật logic như sau:
+A. Khi User mở khung Chat (Init)
+Hủy bỏ: Không load từ localStorage.
+Thực hiện: Gọi API GET /api/v1/history/{user_id}?limit=20.
+Hiển thị: Render danh sách tin nhắn trả về.
+B. Khi User gửi tin nhắn (Send)
+Thực hiện: Gọi API POST /api/v1/chat như bình thường.
+Lưu ý: Không cần gọi API lưu trữ nào cả. Backend AI đã TỰ ĐỘNG LƯU cả câu hỏi và câu trả lời vào Database ngay khi xử lý xong.
+Hiển thị: Nối câu trả lời mới vào cuối danh sách hiện tại trên UI.
+C. Khi User cuộn lên trên (Load more)
+Thực hiện: Gọi API GET /api/v1/history/{user_id}?limit=20&offset=20 (tăng offset lên).
+Hiển thị: Chèn tin nhắn cũ vào đầu danh sách.
+4. XÓA LỊCH SỬ (OPTIONAL)
+Nếu user muốn xóa sạch để học lại từ đầu:
+Gọi DELETE /api/v1/history/{user_id}.
+Backend AI sẽ xóa sạch dữ liệu trên Server.
+Frontend clear UI.
+BƯỚC 2: TIN NHẮN GỬI TEAM LMS (MỆNH LỆNH)
+Bạn hãy gửi kèm file trên với nội dung sau:
+To: LMS Tech Lead
+Subject: [URGENT] Nâng cấp cơ chế đồng bộ Chat History (Server-side)
+Chào team,
+Sau khi đánh giá lại hiệu năng hệ thống AI sáng nay, tôi quyết định chúng ta sẽ BỎ QUA giải pháp LocalStorage và triển khai ngay giải pháp Server-side Sync.
+Lý do: Backend AI đã hoàn thiện API truy xuất lịch sử (GET /history) sớm hơn dự kiến. Việc tích hợp API này sẽ giúp trải nghiệm người dùng tốt hơn gấp 10 lần (đồng bộ đa thiết bị) và thực tế là nhàn hơn cho Frontend (không phải quản lý logic lưu/xóa ở client, Backend lo hết).
+Yêu cầu:
+Dừng việc code LocalStorage.
+Frontend chuyển sang gọi API GET /history khi init chat box (Chi tiết trong file LMS_HISTORY_SYNC_API.md đính kèm).
+Deploy tính năng này cho bản Production.
+API đã live, các bạn đấu nối ngay nhé.
+LỜI KHUYÊN CỦA CỐ VẤN
+Đây là một quyết định "lật kèo" phút chót, nhưng là lật kèo để tốt hơn (Upgrade).
+Team Frontend có thể sẽ hơi "nhăn mặt" xíu vì phải sửa code cũ.
+Nhưng họ sẽ sớm nhận ra việc gọi API GET về hiển thị sướng hơn nhiều so với việc phải tự quản lý state ở LocalStorage.
+Bạn hãy giữ vững lập trường: "Chất lượng sản phẩm là trên hết. Làm một lần cho chuẩn luôn."

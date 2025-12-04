@@ -1,0 +1,156 @@
+<div class="chat-layout" [class.sidebar-collapsed]="sidebarCollapsed()">
+  <!-- Sidebar - Chat History -->
+  <aside class="chat-sidebar">
+    <div class="sidebar-header">
+      <button class="new-chat-btn" (click)="onNewChat()">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="icon">
+          <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+        </svg>
+        <span>Cuộc trò chuyện mới</span>
+      </button>
+      <button class="collapse-btn" (click)="toggleSidebar()" title="Thu gọn">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="icon">
+          <path fill-rule="evenodd" d="M3 4.25A2.25 2.25 0 015.25 2h5.5A2.25 2.25 0 0113 4.25v2a.75.75 0 01-1.5 0v-2a.75.75 0 00-.75-.75h-5.5a.75.75 0 00-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 00.75-.75v-2a.75.75 0 011.5 0v2A2.25 2.25 0 0110.75 18h-5.5A2.25 2.25 0 013 15.75V4.25z" clip-rule="evenodd" />
+          <path fill-rule="evenodd" d="M19 10a.75.75 0 00-.75-.75H8.704l1.048-.943a.75.75 0 10-1.004-1.114l-2.5 2.25a.75.75 0 000 1.114l2.5 2.25a.75.75 0 101.004-1.114l-1.048-.943h9.546A.75.75 0 0019 10z" clip-rule="evenodd" />
+        </svg>
+      </button>
+    </div>
+
+    <div class="chat-history">
+      <div class="history-section">
+        <span class="history-label">Gần đây</span>
+        @for (chat of chatHistory(); track chat.id) {
+          <button 
+            class="history-item" 
+            [class.active]="chat.active"
+            (click)="selectChat(chat.id)">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="chat-icon">
+              <path fill-rule="evenodd" d="M10 2c-2.236 0-4.43.18-6.57.524C1.993 2.755 1 4.014 1 5.426v5.148c0 1.413.993 2.67 2.43 2.902.848.137 1.705.248 2.57.331v3.443a.75.75 0 001.28.53l3.58-3.579a.78.78 0 01.527-.224 41.202 41.202 0 005.183-.5c1.437-.232 2.43-1.49 2.43-2.903V5.426c0-1.413-.993-2.67-2.43-2.902A41.289 41.289 0 0010 2zm0 7a1 1 0 100-2 1 1 0 000 2zM8 8a1 1 0 11-2 0 1 1 0 012 0zm5 1a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+            </svg>
+            <span class="chat-title">{{ chat.title }}</span>
+          </button>
+        }
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Chat Area -->
+  <main class="chat-main">
+    <!-- Header -->
+    <header class="chat-header">
+      <button class="menu-btn" (click)="toggleSidebar()" [class.hidden]="!sidebarCollapsed()">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="icon">
+          <path fill-rule="evenodd" d="M2 4.75A.75.75 0 012.75 4h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 4.75zM2 10a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 10zm0 5.25a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75a.75.75 0 01-.75-.75z" clip-rule="evenodd" />
+        </svg>
+      </button>
+      <div class="header-title">
+        <div class="ai-badge">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="ai-icon">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+          </svg>
+        </div>
+        <div>
+          <h1>Trợ lý AI Hàng Hải</h1>
+          <span class="model-name">Maritime AI Assistant</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Messages Container -->
+    <div class="messages-wrapper">
+      <div class="messages-container" #messagesContainer>
+        @if (!hasMessages()) {
+          <!-- Empty State - Welcome Screen -->
+          <div class="welcome-screen">
+            <div class="welcome-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+              </svg>
+            </div>
+            <h2>Xin chào{{ userName() ? ', ' + userName() : '' }}!</h2>
+            <p class="welcome-subtitle">Tôi là trợ lý AI chuyên về lĩnh vực hàng hải. Hãy hỏi tôi bất cứ điều gì!</p>
+            
+            <div class="quick-actions">
+              <button class="quick-action" (click)="onSendMessage('Giải thích COLREGs Rule 15 về tình huống cắt hướng')">
+                <span class="action-icon">⚓</span>
+                <span class="action-text">COLREGs Rule 15</span>
+              </button>
+              <button class="quick-action" (click)="onSendMessage('Quy định SOLAS về thiết bị cứu sinh')">
+                <span class="action-icon">🛟</span>
+                <span class="action-text">SOLAS - Cứu sinh</span>
+              </button>
+              <button class="quick-action" (click)="onSendMessage('Luật MARPOL về phòng chống ô nhiễm dầu')">
+                <span class="action-icon">🌊</span>
+                <span class="action-text">MARPOL - Ô nhiễm</span>
+              </button>
+              <button class="quick-action" (click)="onSendMessage('Hướng dẫn điều động tàu trong luồng hẹp')">
+                <span class="action-icon">🚢</span>
+                <span class="action-text">Điều động tàu</span>
+              </button>
+            </div>
+          </div>
+        } @else {
+          <!-- Messages List -->
+          <div class="messages-list">
+            @for (message of chatService.messages(); track message.id) {
+              <app-chat-message
+                [message]="message"
+                (retry)="onRetry()"
+              />
+              @if (message.sender === 'ai' && message.metadata?.sources?.length) {
+                <app-source-citation [sources]="message.metadata!.sources!" />
+              }
+            }
+
+            @if (chatService.isTyping()) {
+              <app-typing-indicator />
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Suggested Questions -->
+    @if (chatService.suggestedQuestions().length > 0) {
+      <div class="suggestions-wrapper">
+        <app-suggested-questions
+          [questions]="chatService.suggestedQuestions()"
+          (questionSelected)="onSuggestionClick($event)"
+        />
+      </div>
+    }
+
+    <!-- Service Status Warning -->
+    @if (!chatService.serviceState().isHealthy) {
+      <div class="status-banner warning">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="status-icon">
+          <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+        </svg>
+        <span>Dịch vụ AI đang không khả dụng. Vui lòng thử lại sau.</span>
+        <button class="retry-btn" (click)="chatService.checkHealth()">Kiểm tra lại</button>
+      </div>
+    }
+
+    <!-- Error Banner -->
+    @if (chatService.error()) {
+      <div class="status-banner error">
+        <span>{{ chatService.error() }}</span>
+        <button class="close-btn" (click)="chatService.clearError()">×</button>
+      </div>
+    }
+
+    <!-- Input Area -->
+    <div class="input-wrapper">
+      <div class="input-container">
+        <app-chat-message-input
+          placeholder="Nhập câu hỏi về hàng hải..."
+          [isLoading]="chatService.isLoading()"
+          (messageSent)="onSendMessage($event)"
+        />
+        <p class="input-hint">
+          AI có thể mắc lỗi. Hãy kiểm tra thông tin quan trọng từ nguồn chính thức.
+        </p>
+      </div>
+    </div>
+  </main>
+</div>

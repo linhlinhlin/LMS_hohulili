@@ -1,6 +1,8 @@
 /**
  * ChatService - Main service for chat functionality
  * Manages messages, API communication, and state
+ * 
+ * Session Isolation: Responses are only added to the session that initiated the request
  */
 import { Injectable, signal, computed, inject, effect } from '@angular/core';
 import { ChatMessage, ChatData, SessionSummary } from '../../domain/types';
@@ -34,6 +36,15 @@ interface ChatServiceState {
   coldStartDetected: boolean;
 }
 
+/**
+ * Pending request tracker to prevent race conditions when switching sessions
+ */
+interface PendingRequest {
+  sessionId: string | null;
+  userMessageId: string;
+  content: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -44,7 +55,7 @@ export class ChatService {
 
   // State signals
   private readonly _messages = signal<ChatMessage[]>([]);
-  private readonly _sessions = signal<SessionSummary[]>([]); // New: Sessions list
+  private readonly _sessions = signal<SessionSummary[]>([]);
   private readonly _isLoading = signal<boolean>(false);
   private readonly _isTyping = signal<boolean>(false);
   private readonly _error = signal<string | null>(null);
@@ -56,9 +67,12 @@ export class ChatService {
     coldStartDetected: false,
   });
 
+  // CRITICAL: Track pending request to handle session switching
+  private pendingRequest: PendingRequest | null = null;
+
   // Public readonly signals
   readonly messages = this._messages.asReadonly();
-  readonly sessions = this._sessions.asReadonly(); // New: Expose sessions
+  readonly sessions = this._sessions.asReadonly();
   readonly isLoading = this._isLoading.asReadonly();
   readonly isTyping = this._isTyping.asReadonly();
   readonly error = this._error.asReadonly();
@@ -96,15 +110,17 @@ export class ChatService {
     effect(() => {
       const userId = this.sessionService.currentUserId();
       const isInitialized = this.sessionService.isInitialized();
-      
+
       if (isInitialized) {
         console.log(`🔄 AI Chat: User changed to ${userId || 'anonymous'}, reloading data`);
+        // Cancel any pending request when user changes
+        this.cancelPendingRequest();
         // Clear current messages and reload for new user
         this._messages.set([]);
         this._sessions.set([]);
         this._suggestedQuestions.set([]);
         this._error.set(null);
-        
+
         if (userId) {
           // User is logged in - load their data
           this.loadHistory();
@@ -115,6 +131,19 @@ export class ChatService {
 
     // Initialize service
     this.initialize();
+  }
+
+  /**
+   * Cancel pending request when switching context
+   */
+  private cancelPendingRequest(): void {
+    if (this.pendingRequest) {
+      console.log('⚠️ Cancelling pending request due to context switch');
+      this.pendingRequest = null;
+      this._isLoading.set(false);
+      this._isTyping.set(false);
+      this.stopLoadingTimer();
+    }
   }
 
   /**
@@ -152,8 +181,15 @@ export class ChatService {
 
   /**
    * Load a specific session
+   * IMPORTANT: This cancels any pending request to prevent cross-session contamination
    */
   loadSession(sessionId: string): void {
+    // CRITICAL: Cancel any pending request before switching sessions
+    if (this.pendingRequest) {
+      console.log('⚠️ Switching session while request pending - cancelling old request');
+      this.cancelPendingRequest();
+    }
+
     this._isLoading.set(true);
     this.apiClient.getSessionDetail(sessionId).subscribe({
       next: (detail) => {
@@ -171,6 +207,8 @@ export class ChatService {
 
         this._messages.set(messages);
         this.sessionService.setSessionId(sessionId);
+        this._suggestedQuestions.set([]); // Clear suggestions when switching
+        this._error.set(null);
         this._isLoading.set(false);
       },
       error: (err) => {
@@ -185,27 +223,27 @@ export class ChatService {
    * Delete a session
    */
   deleteSession(sessionId: string): void {
-    if (confirm('Bạn có chắc chắn muốn xóa cuộc trò chuyện này?')) {
-      this.apiClient.deleteSession(sessionId).subscribe({
-        next: () => {
-          // Remove from list
-          this._sessions.update(sessions => sessions.filter(s => s.id !== sessionId));
+    this.apiClient.deleteSession(sessionId).subscribe({
+      next: () => {
+        // Remove from list
+        this._sessions.update(sessions => sessions.filter(s => s.id !== sessionId));
 
-          // If current session is deleted, clear it
-          if (this.sessionService.getSessionState().sessionId === sessionId) {
-            this.startNewSession();
-          }
-        },
-        error: (err) => {
-          console.error('Failed to delete session', err);
-          this._error.set('Không thể xóa cuộc trò chuyện');
+        // If current session is deleted, clear it
+        if (this.sessionService.getSessionState().sessionId === sessionId) {
+          this.startNewSession();
         }
-      });
-    }
+      },
+      error: (err) => {
+        console.error('Failed to delete session', err);
+        this._error.set('Không thể xóa cuộc trò chuyện');
+      }
+    });
   }
 
   /**
    * Send a message to the AI
+   * 
+   * Session Safety: Captures session ID at request time and validates on response
    */
   async sendMessage(content: string): Promise<void> {
     if (!content.trim() || this._isLoading()) return;
@@ -231,24 +269,90 @@ export class ChatService {
     // Show typing indicator
     this._isTyping.set(true);
 
-    // Get session state
+    // Get session state BEFORE the request
     const { sessionId, context } = this.sessionService.getSessionState();
+
+    // CRITICAL: Track this request with its session context
+    this.pendingRequest = {
+      sessionId: sessionId ?? null,
+      userMessageId: userMessage.id,
+      content: content
+    };
+
+    console.log(`📤 Sending message to session: ${sessionId || 'new'}`);
 
     // Send to API (Backend Proxy)
     this.apiClient
       .sendChatMessage(content, sessionId, context)
       .subscribe({
         next: (response: ChatData) => {
-          // Update sessionId if new one is returned
+          // CRITICAL: Verify this response belongs to the current session
+          const currentSessionId = this.sessionService.currentSessionId();
+          const requestSessionId = this.pendingRequest?.sessionId;
+
+          // Check if user switched sessions while waiting
+          if (this.pendingRequest && this.pendingRequest.sessionId !== currentSessionId) {
+            // Session changed - the response belongs to a different session
+            // We need to handle this carefully:
+            // 1. If this was a NEW session (sessionId was null), update if we're still on a new session
+            // 2. If sessionId changed, we should NOT add to current view
+
+            if (requestSessionId !== null && requestSessionId !== currentSessionId) {
+              console.log(`⚠️ Session mismatch! Request was for ${requestSessionId}, but current is ${currentSessionId}`);
+              console.log('   Response will be saved to server but not displayed');
+
+              // Clear pending request and loading state
+              this.pendingRequest = null;
+              this.stopLoadingTimer();
+              this._isTyping.set(false);
+              this._isLoading.set(false);
+
+              // Refresh sessions list to show the updated session
+              this.loadSessions();
+              return;
+            }
+          }
+
+          // Update sessionId if new one is returned (for new sessions)
           if (!sessionId && response.sessionId) {
             this.sessionService.setSessionId(response.sessionId);
-            // Reload sessions list to show the new one
-            this.loadSessions();
+
+            // IMMEDIATELY add new session to sidebar (ChatGPT-like UX)
+            const newSession: SessionSummary = {
+              id: response.sessionId,
+              title: content.substring(0, 50) + (content.length > 50 ? '...' : ''),
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              messageCount: 2 // user + AI
+            };
+
+            // Add to top of sessions list immediately
+            this._sessions.update(sessions => [newSession, ...sessions]);
+
+            // Also refresh from server to ensure consistency
+            setTimeout(() => this.loadSessions(), 500);
           }
+
+          // Clear pending request before handling response
+          this.pendingRequest = null;
           this.handleSuccessResponse(response);
         },
         error: (error: ClientApiError) => {
-          this.handleErrorResponse(error, content);
+          // Clear pending request on error too
+          const pendingSession = this.pendingRequest?.sessionId;
+          const currentSession = this.sessionService.currentSessionId();
+
+          // Only show error if still on same session
+          if (pendingSession === currentSession || (pendingSession === null && currentSession === null)) {
+            this.pendingRequest = null;
+            this.handleErrorResponse(error, content);
+          } else {
+            console.log('⚠️ Error occurred but session changed - suppressing error display');
+            this.pendingRequest = null;
+            this.stopLoadingTimer();
+            this._isTyping.set(false);
+            this._isLoading.set(false);
+          }
         },
       });
   }
@@ -347,32 +451,130 @@ export class ChatService {
     await this.sendMessage(messageToRetry);
   }
 
+  // Pagination state for infinite scroll
+  private historyOffset = 0;
+  private readonly HISTORY_LIMIT = 20;
+  private hasMoreHistory = true;
+  private isLoadingMoreHistory = false;
+
   /**
-   * Load chat history from storage
+   * Load chat history from server (Server-Side Sync)
    */
   loadHistory(): void {
-    const session = this.storage.loadSession();
-    if (session?.messages?.length) {
-      this._messages.set(session.messages);
+    const userId = this.sessionService.currentUserId();
+    if (!userId) {
+      console.log('No user ID, skipping history load');
+      return;
     }
+
+    // Reset pagination
+    this.historyOffset = 0;
+    this.hasMoreHistory = true;
+
+    this.apiClient.getChatHistory(userId, this.HISTORY_LIMIT, 0).subscribe({
+      next: (response) => {
+        // Map server response to ChatMessage format
+        const messages: ChatMessage[] = response.data.map((msg, index) => ({
+          id: `history-${Date.now()}-${index}`,
+          content: msg.content,
+          sender: msg.role === 'user' ? 'user' : 'ai' as const,
+          timestamp: new Date(msg.timestamp),
+          status: 'sent' as const,
+        }));
+
+        this._messages.set(messages);
+        this.historyOffset = response.data.length;
+        this.hasMoreHistory = response.data.length >= this.HISTORY_LIMIT;
+
+        console.log(`✅ Loaded ${messages.length} messages from server`);
+      },
+      error: (err) => {
+        console.error('Failed to load history from server', err);
+        // Fallback: Don't show error to user, just start fresh
+        this._messages.set([]);
+      }
+    });
   }
 
   /**
-   * Clear chat history
+   * Load more history messages (for infinite scroll)
+   */
+  loadMoreHistory(): void {
+    if (this.isLoadingMoreHistory || !this.hasMoreHistory) return;
+
+    const userId = this.sessionService.currentUserId();
+    if (!userId) return;
+
+    this.isLoadingMoreHistory = true;
+
+    this.apiClient.getChatHistory(userId, this.HISTORY_LIMIT, this.historyOffset).subscribe({
+      next: (response) => {
+        const olderMessages: ChatMessage[] = response.data.map((msg, index) => ({
+          id: `history-${Date.now()}-${this.historyOffset + index}`,
+          content: msg.content,
+          sender: msg.role === 'user' ? 'user' : 'ai' as const,
+          timestamp: new Date(msg.timestamp),
+          status: 'sent' as const,
+        }));
+
+        // Prepend older messages to the beginning
+        this._messages.update(msgs => [...olderMessages, ...msgs]);
+        this.historyOffset += response.data.length;
+        this.hasMoreHistory = response.data.length >= this.HISTORY_LIMIT;
+        this.isLoadingMoreHistory = false;
+
+        console.log(`✅ Loaded ${olderMessages.length} more messages`);
+      },
+      error: (err) => {
+        console.error('Failed to load more history', err);
+        this.isLoadingMoreHistory = false;
+      }
+    });
+  }
+
+  /**
+   * Check if more history can be loaded
+   */
+  canLoadMoreHistory(): boolean {
+    return this.hasMoreHistory && !this.isLoadingMoreHistory;
+  }
+
+  /**
+   * Clear chat history (Server-Side)
    */
   clearHistory(): void {
+    const userId = this.sessionService.currentUserId();
+
+    // Cancel any pending request
+    this.cancelPendingRequest();
+
     this._messages.set([]);
     this._suggestedQuestions.set([]);
     this._error.set(null);
     this.lastFailedMessage = null;
-    this.storage.clearSession();
+    this.historyOffset = 0;
+    this.hasMoreHistory = true;
+
+    // Clear from server if user is logged in
+    if (userId) {
+      this.apiClient.deleteChatHistory(userId).subscribe({
+        next: () => console.log('✅ History cleared from server'),
+        error: (err) => console.error('Failed to clear server history', err)
+      });
+    }
   }
 
   /**
    * Start a new chat session
    */
   startNewSession(): void {
-    this.clearHistory();
+    // Cancel any pending request
+    this.cancelPendingRequest();
+
+    this._messages.set([]);
+    this._suggestedQuestions.set([]);
+    this._error.set(null);
+    this.lastFailedMessage = null;
     this.sessionService.startNewSession();
   }
 
