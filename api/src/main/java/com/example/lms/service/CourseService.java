@@ -41,8 +41,8 @@ public class CourseService {
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .teacher(teacher)
-        // Immediately approve new courses (no admin approval flow)
-        .status(Course.CourseStatus.APPROVED)
+                // New courses start as DRAFT - teacher must submit for approval
+                .status(Course.CourseStatus.DRAFT)
                 .build();
 
         return courseRepository.save(course);
@@ -61,6 +61,21 @@ public class CourseService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học với ID: " + courseId));
     }
 
+    /**
+     * Get course by ID for public access (students)
+     * Only returns APPROVED courses
+     */
+    public Course getPublicCourseById(UUID courseId) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học với ID: " + courseId));
+        
+        if (course.getStatus() != Course.CourseStatus.APPROVED) {
+            throw new RuntimeException("Khóa học đang được kiểm duyệt hoặc chưa được công khai");
+        }
+        
+        return course;
+    }
+
     public Course updateCourse(UUID courseId, User currentUser, com.example.lms.controller.CourseController.UpdateCourseRequest request) {
         Course course = getCourseById(courseId);
         
@@ -69,7 +84,13 @@ public class CourseService {
             throw new RuntimeException("Bạn không có quyền chỉnh sửa khóa học này");
         }
 
-        // Allow editing regardless of current status (no approval workflow)
+        // Prevent editing PENDING courses
+        if (course.getStatus() == Course.CourseStatus.PENDING) {
+            throw new RuntimeException("Không thể chỉnh sửa khóa học đang chờ duyệt. Vui lòng hủy yêu cầu duyệt trước.");
+        }
+
+        // If course is APPROVED, editing will require re-approval
+        boolean wasApproved = course.getStatus() == Course.CourseStatus.APPROVED;
 
         if (request.getCode() != null && !request.getCode().equals(course.getCode())) {
             if (courseRepository.existsByCode(request.getCode())) {
@@ -86,21 +107,58 @@ public class CourseService {
             course.setDescription(request.getDescription());
         }
 
+        // If course was APPROVED and content changed, reset to PENDING for re-review
+        if (wasApproved) {
+            course.setStatus(Course.CourseStatus.PENDING);
+            // Clear previous review info
+            course.setReviewComment(null);
+            course.setReviewedAt(null);
+            course.setReviewedBy(null);
+        }
+
         return courseRepository.save(course);
     }
 
-    public void submitForApproval(UUID courseId, User currentUser) {
-        // No-op approval flow: ensure caller owns the course, then set to APPROVED if not already
+    public Course submitForApproval(UUID courseId, User currentUser) {
         Course course = getCourseById(courseId);
 
         if (!course.getTeacher().getId().equals(currentUser.getId())) {
             throw new RuntimeException("Bạn không có quyền thực hiện thao tác này cho khóa học này");
         }
 
-        if (course.getStatus() != Course.CourseStatus.APPROVED) {
-            course.setStatus(Course.CourseStatus.APPROVED);
-            courseRepository.save(course);
+        // Only allow submitting DRAFT or REJECTED courses for review
+        if (course.getStatus() == Course.CourseStatus.DRAFT || 
+            course.getStatus() == Course.CourseStatus.REJECTED) {
+            course.setStatus(Course.CourseStatus.PENDING);
+            // Clear previous review info when resubmitting
+            course.setReviewComment(null);
+            course.setReviewedAt(null);
+            course.setReviewedBy(null);
+            return courseRepository.save(course);
+        } else if (course.getStatus() == Course.CourseStatus.PENDING) {
+            throw new RuntimeException("Khóa học đang chờ admin duyệt");
+        } else if (course.getStatus() == Course.CourseStatus.APPROVED) {
+            throw new RuntimeException("Khóa học đã được duyệt");
         }
+        
+        throw new RuntimeException("Không thể gửi khóa học với trạng thái hiện tại");
+    }
+
+    public Course cancelApprovalRequest(UUID courseId, User currentUser) {
+        Course course = getCourseById(courseId);
+
+        if (!course.getTeacher().getId().equals(currentUser.getId())) {
+            throw new RuntimeException("Bạn không có quyền thực hiện thao tác này cho khóa học này");
+        }
+
+        // Only allow canceling PENDING courses
+        if (course.getStatus() != Course.CourseStatus.PENDING) {
+            throw new RuntimeException("Chỉ có thể hủy yêu cầu duyệt cho khóa học đang chờ duyệt");
+        }
+
+        // Change status back to DRAFT
+        course.setStatus(Course.CourseStatus.DRAFT);
+        return courseRepository.save(course);
     }
 
     public void deleteCourse(UUID courseId, User currentUser) {

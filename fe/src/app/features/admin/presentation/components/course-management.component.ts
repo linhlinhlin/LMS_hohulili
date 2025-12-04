@@ -226,7 +226,7 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
 
                 <!-- Course Actions -->
                 <div class="flex gap-2">
-                  @if (course.status === 'pending') {
+                  @if (course.status?.toUpperCase() === 'PENDING') {
                     <button (click)="approveCourse(course.id)"
                             class="flex-1 px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm font-medium">
                       Phê duyệt
@@ -234,6 +234,11 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
                     <button (click)="openRejectModal(course)"
                             class="flex-1 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-sm font-medium">
                       Từ chối
+                    </button>
+                  } @else if (course.status?.toUpperCase() === 'APPROVED') {
+                    <button (click)="viewCourse(course.id)"
+                            class="w-full px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium">
+                      Xem chi tiết
                     </button>
                   } @else {
                     <button (click)="viewCourse(course.id)"
@@ -280,11 +285,10 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
 
     <!-- Reject Course Modal -->
     @if (showRejectModal()) {
-      <div class="fixed inset-0 z-50 overflow-y-auto">
+      <div class="fixed inset-0 z-50 overflow-y-auto" (click)="closeRejectModal()">
         <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-          <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" (click)="closeRejectModal()"></div>
           
-          <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+          <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full" (click)="$event.stopPropagation()">
             <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
               <div class="sm:flex sm:items-start">
                 <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
@@ -334,6 +338,187 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
         </div>
       </div>
     }
+
+    <!-- Course Detail Modal -->
+    @if (showDetailModal()) {
+      <div class="fixed inset-0 z-50 overflow-y-auto" (click)="closeDetailModal()">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+          
+          <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full" (click)="$event.stopPropagation()">
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+              <!-- Header -->
+              <div class="flex items-start justify-between mb-6">
+                <div class="flex items-center">
+                  <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                    <svg class="h-6 w-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
+                      <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
+                    </svg>
+                  </div>
+                  <h3 class="ml-3 text-xl leading-6 font-bold text-gray-900">
+                    Chi tiết khóa học
+                  </h3>
+                </div>
+                <button (click)="closeDetailModal()" class="text-gray-400 hover:text-gray-500">
+                  <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                  </svg>
+                </button>
+              </div>
+
+              <!-- Content -->
+              <div class="max-h-[70vh] overflow-y-auto">
+                <!-- Course Thumbnail -->
+                @if (selectedCourse()?.thumbnail) {
+                  <div class="mb-6">
+                    <img [src]="selectedCourse()!.thumbnail" 
+                         [alt]="selectedCourse()!.title"
+                         class="w-full h-64 object-cover rounded-lg">
+                  </div>
+                }
+
+                <!-- Basic Info -->
+                <div class="mb-6">
+                  <h4 class="text-lg font-semibold text-gray-900 mb-3">📋 Thông tin cơ bản</h4>
+                  <div class="bg-gray-50 rounded-lg p-4 space-y-3">
+                    <div class="grid grid-cols-2 gap-4">
+                      <div>
+                        <span class="text-sm font-medium text-gray-500">Tiêu đề:</span>
+                        <p class="text-sm text-gray-900 mt-1">{{ selectedCourse()?.title }}</p>
+                      </div>
+                      <div>
+                        <span class="text-sm font-medium text-gray-500">Trạng thái:</span>
+                        <p class="text-sm mt-1">
+                          <span class="px-2 py-1 rounded-full text-xs font-medium" [class]="getStatusClass(selectedCourse()?.status || '')">
+                            {{ getStatusText(selectedCourse()?.status || '') }}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                    <div>
+                      <span class="text-sm font-medium text-gray-500">Mô tả:</span>
+                      <p class="text-sm text-gray-900 mt-1">{{ selectedCourse()?.shortDescription || 'Chưa có mô tả' }}</p>
+                    </div>
+                    <div class="grid grid-cols-3 gap-4">
+                      <div>
+                        <span class="text-sm font-medium text-gray-500">Giá:</span>
+                        <p class="text-sm text-gray-900 mt-1 font-semibold">{{ selectedCourse()?.price ? formatCurrency(selectedCourse()!.price!) : 'Miễn phí' }}</p>
+                      </div>
+                      <div>
+                        <span class="text-sm font-medium text-gray-500">Cấp độ:</span>
+                        <p class="text-sm text-gray-900 mt-1">{{ getLevelText(selectedCourse()?.level || 'unknown') }}</p>
+                      </div>
+                      <div>
+                        <span class="text-sm font-medium text-gray-500">Danh mục:</span>
+                        <p class="text-sm text-gray-900 mt-1">{{ selectedCourse()?.category || 'Chưa phân loại' }}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Teacher Info -->
+                <div class="mb-6">
+                  <h4 class="text-lg font-semibold text-gray-900 mb-3">👨‍🏫 Thông tin giảng viên</h4>
+                  <div class="bg-gray-50 rounded-lg p-4">
+                    <div class="flex items-center space-x-4">
+                      <img src="/assets/images/default-avatar.png" 
+                           [alt]="selectedCourse()?.teacherName"
+                           class="w-16 h-16 rounded-full">
+                      <div class="flex-1">
+                        <p class="text-sm font-semibold text-gray-900">{{ selectedCourse()?.teacherName }}</p>
+                        <p class="text-sm text-gray-500">{{ selectedCourse()?.teacherEmail }}</p>
+                        <div class="flex items-center mt-2 space-x-4 text-xs text-gray-500">
+                          <span>⭐ {{ selectedCourse()?.rating || 0 }}/5</span>
+                          <span>👥 {{ selectedCourse()?.enrolledCount || 0 }} học viên</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Course Content -->
+                <div class="mb-6">
+                  <h4 class="text-lg font-semibold text-gray-900 mb-3">📚 Nội dung khóa học</h4>
+                  <div class="bg-gray-50 rounded-lg p-4">
+                    <div class="grid grid-cols-3 gap-4 text-center">
+                      <div class="bg-white rounded-lg p-3">
+                        <div class="text-2xl font-bold text-blue-600">{{ selectedCourse()?.sectionsCount || 0 }}</div>
+                        <div class="text-xs text-gray-500 mt-1">Chương học</div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3">
+                        <div class="text-2xl font-bold text-green-600">{{ selectedCourse()?.lessonsCount || 0 }}</div>
+                        <div class="text-xs text-gray-500 mt-1">Bài học</div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3">
+                        <div class="text-2xl font-bold text-purple-600">{{ selectedCourse()?.assignmentsCount || 0 }}</div>
+                        <div class="text-xs text-gray-500 mt-1">Bài tập</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Review Status -->
+                <div class="mb-6">
+                  <h4 class="text-lg font-semibold text-gray-900 mb-3">✅ Trạng thái phê duyệt</h4>
+                  <div class="bg-gray-50 rounded-lg p-4 space-y-3">
+                    <div class="grid grid-cols-2 gap-4">
+                      <div>
+                        <span class="text-sm font-medium text-gray-500">Ngày nộp:</span>
+                        <p class="text-sm text-gray-900 mt-1">{{ selectedCourse()?.submittedAt ? formatDate(selectedCourse()!.submittedAt!) : 'Chưa nộp' }}</p>
+                      </div>
+                      @if (selectedCourse()?.approvedAt) {
+                        <div>
+                          <span class="text-sm font-medium text-gray-500">Ngày phê duyệt:</span>
+                          <p class="text-sm text-gray-900 mt-1">{{ formatDate(selectedCourse()!.approvedAt!) }}</p>
+                        </div>
+                      }
+                    </div>
+                    @if (selectedCourse()?.rejectionReason) {
+                      <div>
+                        <span class="text-sm font-medium text-red-500">Lý do từ chối:</span>
+                        <p class="text-sm text-red-600 mt-1 bg-red-50 p-2 rounded">{{ selectedCourse()!.rejectionReason }}</p>
+                      </div>
+                    }
+                    @if (selectedCourse()?.reviewComment) {
+                      <div>
+                        <span class="text-sm font-medium text-gray-500">Nhận xét:</span>
+                        <p class="text-sm text-gray-900 mt-1">{{ selectedCourse()!.reviewComment }}</p>
+                      </div>
+                    }
+                  </div>
+                </div>
+
+                <!-- Statistics -->
+                <div class="mb-6">
+                  <h4 class="text-lg font-semibold text-gray-900 mb-3">📊 Thống kê</h4>
+                  <div class="bg-gray-50 rounded-lg p-4">
+                    <div class="grid grid-cols-2 gap-4">
+                      <div>
+                        <span class="text-sm font-medium text-gray-500">Số học viên đã đăng ký:</span>
+                        <p class="text-sm text-gray-900 mt-1 font-semibold">{{ selectedCourse()?.enrolledCount || 0 }} học viên</p>
+                      </div>
+                      <div>
+                        <span class="text-sm font-medium text-gray-500">Doanh thu:</span>
+                        <p class="text-sm text-gray-900 mt-1 font-semibold">{{ selectedCourse()?.revenue ? formatCurrency(selectedCourse()!.revenue!) : '0 ₫' }}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Footer -->
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+              <button (click)="closeDetailModal()"
+                      class="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -350,6 +535,7 @@ export class CourseManagementComponent implements OnInit {
 
   // Modal state
   showRejectModal = signal(false);
+  showDetailModal = signal(false);
   selectedCourse = signal<AdminCourseSummary | null>(null);
   rejectionReason = signal('');
 
@@ -480,8 +666,22 @@ export class CourseManagementComponent implements OnInit {
   }
 
   viewCourse(courseId: string): void {
-    // Navigate to course detail page
-    window.open(`/courses/${courseId}`, '_blank');
+    console.log('🔍 viewCourse called with ID:', courseId);
+    console.log('📚 All courses:', this.courses());
+    const course = this.courses().find(c => c.id === courseId);
+    console.log('✅ Found course:', course);
+    if (course) {
+      this.selectedCourse.set(course);
+      this.showDetailModal.set(true);
+      console.log('🎯 Modal should show now. showDetailModal:', this.showDetailModal());
+    } else {
+      console.error('❌ Course not found with ID:', courseId);
+    }
+  }
+
+  closeDetailModal(): void {
+    this.showDetailModal.set(false);
+    this.selectedCourse.set(null);
   }
 
   editCourse(courseId: string): void {
@@ -507,7 +707,8 @@ export class CourseManagementComponent implements OnInit {
   }
 
   getStatusClass(status: string): string {
-    switch (status) {
+    const normalizedStatus = status?.toLowerCase();
+    switch (normalizedStatus) {
       case 'pending':
         return 'bg-yellow-100 text-yellow-800';
       case 'approved':
@@ -524,7 +725,8 @@ export class CourseManagementComponent implements OnInit {
   }
 
   getStatusText(status: string): string {
-    switch (status) {
+    const normalizedStatus = status?.toLowerCase();
+    switch (normalizedStatus) {
       case 'pending':
         return 'Chờ phê duyệt';
       case 'approved':

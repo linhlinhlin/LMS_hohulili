@@ -12,10 +12,12 @@ interface QuizQuestion {
   correctOption: string;
 }
 
+import { IconComponent } from '../../../shared/components/ui/icon/icon.component';
+
 @Component({
   selector: 'app-student-quiz-taking',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, IconComponent],
   templateUrl: './student-quiz-taking.component.html',
   styles: [`
     @keyframes scale-in {
@@ -38,6 +40,9 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private quizApi = inject(QuizApi);
+  
+  // Expose Math for template
+  Math = Math;
 
   lessonId = '';
   quizTitle = signal('Bài kiểm tra');
@@ -46,10 +51,16 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
   loading = signal(true);
   error = signal<string | null>(null);
   questions = signal<QuizQuestion[]>([]);
-  currentIndex = signal(0);
   answers = signal<Record<string, string>>({});
   showResults = signal(false);
   showResultsModal = signal(true);
+  
+  // Sidebar visibility
+  sidebarVisible = signal(true);
+
+  // Pagination - 10 questions per page
+  readonly QUESTIONS_PER_PAGE = 10;
+  currentPage = signal(0);
 
   // Timer
   timeRemaining = signal(30 * 60); // 30 minutes default
@@ -57,7 +68,20 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
   private timerInterval: any;
   private startTime = 0;
 
-  currentQuestion = computed(() => this.questions()[this.currentIndex()]);
+  // Computed for pagination
+  totalPages = computed(() => Math.ceil(this.questions().length / this.QUESTIONS_PER_PAGE));
+  
+  currentPageQuestions = computed(() => {
+    const start = this.currentPage() * this.QUESTIONS_PER_PAGE;
+    const end = start + this.QUESTIONS_PER_PAGE;
+    return this.questions().slice(start, end);
+  });
+
+  // Get question index in full list
+  getQuestionIndex(pageIndex: number): number {
+    return this.currentPage() * this.QUESTIONS_PER_PAGE + pageIndex;
+  }
+
   answeredCount = computed(() => Object.keys(this.answers()).length);
   
   correctCount = computed(() => {
@@ -176,20 +200,31 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
     this.answers.update(ans => ({ ...ans, [questionId]: optionKey }));
   }
 
-  prevQuestion() {
-    if (this.currentIndex() > 0) {
-      this.currentIndex.update(i => i - 1);
+  prevPage() {
+    if (this.currentPage() > 0) {
+      this.currentPage.update(p => p - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }
 
-  nextQuestion() {
-    if (this.currentIndex() < this.questions().length - 1) {
-      this.currentIndex.update(i => i + 1);
+  nextPage() {
+    if (this.currentPage() < this.totalPages() - 1) {
+      this.currentPage.update(p => p + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
+  goToPage(pageIndex: number) {
+    if (pageIndex >= 0 && pageIndex < this.totalPages()) {
+      this.currentPage.set(pageIndex);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }
 
   goToQuestion(index: number) {
-    this.currentIndex.set(index);
+    const page = Math.floor(index / this.QUESTIONS_PER_PAGE);
+    this.currentPage.set(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   submitQuiz() {
@@ -204,7 +239,7 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
 
   resetQuiz() {
     this.answers.set({});
-    this.currentIndex.set(0);
+    this.currentPage.set(0);
     this.showResults.set(false);
     this.showResultsModal.set(false);
     this.timeRemaining.set(30 * 60);
@@ -212,11 +247,17 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
     this.startTimer();
   }
 
+  toggleSidebar() {
+    this.sidebarVisible.update(v => !v);
+  }
+
   goBack() {
     this.stopTimer();
-    if (this.returnUrl) {
+    if (this.returnUrl && this.returnUrl !== '/student/learn/course') {
+      // Navigate back to the specific lesson/course page
       this.router.navigateByUrl(this.returnUrl);
     } else {
+      // Fallback: go to my courses page
       this.router.navigate(['/student/my-courses']);
     }
   }

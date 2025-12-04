@@ -99,7 +99,14 @@ export class LessonContentComponent {
   // Go to quiz
   onGoToQuiz(): void {
     console.log('🎯 Quiz button clicked!');
-    this.router.navigate(['/student/quiz/take', this.lesson.id]);
+    // Get current URL to use as return URL
+    const currentUrl = this.router.url;
+    this.router.navigate(['/student/quiz/take', this.lesson.id], {
+      queryParams: {
+        title: this.lesson.title,
+        returnUrl: currentUrl
+      }
+    });
   }
   
   // Get lesson type label in Vietnamese

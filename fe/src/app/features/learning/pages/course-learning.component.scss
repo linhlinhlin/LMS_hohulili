@@ -50,26 +50,35 @@
 
       .back-button {
         flex-shrink: 0;
-        width: 36px;
-        height: 36px;
-        border: none;
-        background: transparent;
-        color: #6b7280;
+        width: 40px;
+        height: 40px;
+        border: 2px solid #3b82f6;
+        background: white;
+        color: #3b82f6;
         cursor: pointer;
-        border-radius: 6px;
+        border-radius: 8px;
         display: flex;
         align-items: center;
         justify-content: center;
         transition: all 0.2s;
+        box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
 
         &:hover {
-          background: #f3f4f6;
-          color: #1f2937;
+          background: #eff6ff;
+          color: #2563eb;
+          border-color: #2563eb;
+          transform: scale(1.05);
+          box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+        }
+
+        &:active {
+          transform: scale(0.95);
         }
 
         i {
           font-size: 1.25rem;
           color: inherit !important;
+          font-weight: bold;
         }
       }
 
@@ -99,26 +108,35 @@
 
       .collapse-btn {
         flex-shrink: 0;
-        width: 32px;
-        height: 32px;
-        border: none;
-        background: transparent;
-        color: #6b7280;
+        width: 36px;
+        height: 36px;
+        border: 2px solid #3b82f6;
+        background: white;
+        color: #3b82f6;
         cursor: pointer;
-        border-radius: 4px;
+        border-radius: 8px;
         display: flex;
         align-items: center;
         justify-content: center;
         transition: all 0.2s;
+        box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
 
         &:hover {
-          background: #f3f4f6;
-          color: #1f2937;
+          background: #eff6ff;
+          color: #2563eb;
+          border-color: #2563eb;
+          transform: scale(1.05);
+          box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+        }
+
+        &:active {
+          transform: scale(0.95);
         }
 
         i {
           font-size: 1.25rem;
           color: inherit !important;
+          font-weight: bold;
         }
       }
     }
@@ -400,61 +418,73 @@
     overflow: hidden;
     background: white;
 
-    // Mobile Menu Button
+    // Mobile Menu Button - Always Visible
     .mobile-menu-btn {
       position: fixed;
       top: 1rem;
       left: 1rem;
-      width: 44px;
-      height: 44px;
-      border: none;
-      background: white;
-      color: #1f2937;
-      cursor: pointer;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 50;
-      transition: all 0.2s;
-
-      &:hover {
-        background: #f9fafb;
-      }
-
-      i {
-        font-size: 1.5rem;
-      }
-    }
-
-    // Sidebar Toggle Button (when collapsed)
-    .sidebar-toggle-btn {
-      position: fixed;
-      top: 1rem;
-      left: 1rem;
-      width: 44px;
-      height: 44px;
-      border: none;
+      width: 48px;
+      height: 48px;
+      border: 2px solid #3b82f6;
       background: white;
       color: #3b82f6;
       cursor: pointer;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 50;
+      z-index: 150;
       transition: all 0.2s;
 
       &:hover {
         background: #eff6ff;
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+        transform: scale(1.05);
+        box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+      }
+
+      &:active {
+        transform: scale(0.95);
+      }
+
+      i {
+        font-size: 1.5rem;
+        font-weight: bold;
+      }
+    }
+
+    // Sidebar Toggle Button (when collapsed) - Enhanced Visibility
+    .sidebar-toggle-btn {
+      position: fixed;
+      top: 1rem;
+      left: 1rem;
+      width: 48px;
+      height: 48px;
+      border: 2px solid #3b82f6;
+      background: #3b82f6;
+      color: white;
+      cursor: pointer;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 150;
+      transition: all 0.2s;
+
+      &:hover {
+        background: #2563eb;
+        transform: scale(1.05);
+        box-shadow: 0 6px 16px rgba(59, 130, 246, 0.5);
+      }
+
+      &:active {
+        transform: scale(0.95);
       }
 
       svg {
-        width: 24px;
-        height: 24px;
+        width: 26px;
+        height: 26px;
       }
     }
 

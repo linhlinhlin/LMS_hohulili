@@ -126,7 +126,7 @@ public class CourseController {
     @PostMapping
     @PreAuthorize("hasRole('TEACHER')")
     @SecurityRequirement(name = "Bearer Authentication")
-    @Operation(summary = "Tạo khóa học mới", description = "Giảng viên tạo khóa học mới và được duyệt ngay (không cần phê duyệt)")
+    @Operation(summary = "Tạo khóa học mới", description = "Giảng viên tạo khóa học mới với trạng thái DRAFT (cần gửi phê duyệt)")
     public ResponseEntity<ApiResponse<CourseDetail>> createCourse(
             @AuthenticationPrincipal User currentUser,
             @Valid @RequestBody CreateCourseRequest request
@@ -186,12 +186,35 @@ public class CourseController {
     }
 
     @GetMapping("/{courseId}")
-    @Operation(summary = "Lấy thông tin chi tiết khóa học", description = "Lấy thông tin chi tiết của một khóa học")
-    public ResponseEntity<ApiResponse<CourseDetail>> getCourseById(@PathVariable UUID courseId) {
+    @Operation(summary = "Lấy thông tin chi tiết khóa học", description = "Lấy thông tin chi tiết của khóa học. Teacher có thể xem khóa học của mình dù chưa được duyệt.")
+    public ResponseEntity<ApiResponse<CourseDetail>> getCourseById(
+            @PathVariable UUID courseId,
+            @AuthenticationPrincipal User currentUser) {
         try {
             Course course = courseService.getCourseById(courseId);
-            CourseDetail courseDetail = convertToCourseDetail(course);
             
+            // Check access permission:
+            // - If user is the teacher of this course, allow access regardless of status
+            // - Otherwise, only allow access to APPROVED courses
+            boolean isTeacherOfCourse = currentUser != null && 
+                                       course.getTeacher() != null && 
+                                       course.getTeacher().getId().equals(currentUser.getId());
+            
+            // Debug logging
+            System.out.println("=== getCourseById Debug ===");
+            System.out.println("Course ID: " + courseId);
+            System.out.println("Course Status: " + course.getStatus());
+            System.out.println("Current User: " + (currentUser != null ? currentUser.getId() + " (" + currentUser.getUsername() + ")" : "null"));
+            System.out.println("Course Teacher: " + (course.getTeacher() != null ? course.getTeacher().getId() + " (" + course.getTeacher().getUsername() + ")" : "null"));
+            System.out.println("Is Teacher of Course: " + isTeacherOfCourse);
+            System.out.println("========================");
+            
+            if (!isTeacherOfCourse && course.getStatus() != Course.CourseStatus.APPROVED) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(ApiResponse.error("Khóa học đang được kiểm duyệt hoặc chưa được công khai"));
+            }
+            
+            CourseDetail courseDetail = convertToCourseDetail(course);
             return ResponseEntity.ok(ApiResponse.success(courseDetail));
         } catch (RuntimeException e) {
             String msg = e.getMessage() != null ? e.getMessage() : "Không tìm thấy khóa học";
@@ -218,18 +241,69 @@ public class CourseController {
         }
     }
 
-    @PatchMapping("/{courseId}/publish")
+    @PostMapping("/{courseId}/submit-for-approval")
+    @PreAuthorize("hasRole('TEACHER')")
     @SecurityRequirement(name = "Bearer Authentication")
-    @Operation(summary = "Đánh dấu khóa học đã duyệt", description = "Bỏ quy trình duyệt: thao tác này đảm bảo khóa học ở trạng thái APPROVED")
-    public ResponseEntity<ApiResponse<String>> publishCourse(
+    @Operation(summary = "Gửi khóa học để phê duyệt", description = "Giảng viên gửi khóa học DRAFT hoặc REJECTED để admin phê duyệt")
+    public ResponseEntity<ApiResponse<CourseDetail>> submitForApproval(
             @PathVariable UUID courseId,
             @AuthenticationPrincipal User currentUser
     ) {
         try {
-            courseService.submitForApproval(courseId, currentUser);
-            return ResponseEntity.ok(ApiResponse.success("Khóa học đã được gửi để duyệt"));
+            Course course = courseService.submitForApproval(courseId, currentUser);
+            CourseDetail courseDetail = convertToCourseDetail(course);
+            return ResponseEntity.ok(ApiResponse.success(courseDetail, "Khóa học đã được gửi để phê duyệt"));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/{courseId}/cancel-approval")
+    @PreAuthorize("hasRole('TEACHER')")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @Operation(summary = "Hủy yêu cầu phê duyệt", description = "Giảng viên hủy yêu cầu phê duyệt để chỉnh sửa khóa học")
+    public ResponseEntity<ApiResponse<CourseDetail>> cancelApprovalRequest(
+            @PathVariable UUID courseId,
+            @AuthenticationPrincipal User currentUser
+    ) {
+        try {
+            Course course = courseService.cancelApprovalRequest(courseId, currentUser);
+            CourseDetail courseDetail = convertToCourseDetail(course);
+            return ResponseEntity.ok(ApiResponse.success(courseDetail, "Đã hủy yêu cầu phê duyệt"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @GetMapping("/{courseId}/review-status")
+    @PreAuthorize("hasRole('TEACHER')")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @Operation(summary = "Lấy trạng thái phê duyệt", description = "Giảng viên xem trạng thái và feedback phê duyệt của khóa học")
+    public ResponseEntity<ApiResponse<CourseReviewStatus>> getReviewStatus(
+            @PathVariable UUID courseId,
+            @AuthenticationPrincipal User currentUser
+    ) {
+        try {
+            Course course = courseService.getCourseById(courseId);
+            
+            // Check if user is the teacher of this course
+            if (!course.getTeacher().getId().equals(currentUser.getId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(ApiResponse.error("Bạn không có quyền xem trạng thái phê duyệt của khóa học này"));
+            }
+            
+            CourseReviewStatus status = CourseReviewStatus.builder()
+                    .courseId(course.getId())
+                    .status(course.getStatus().name())
+                    .reviewComment(course.getReviewComment())
+                    .reviewedAt(course.getReviewedAt())
+                    .reviewedByName(course.getReviewedBy() != null ? course.getReviewedBy().getFullName() : null)
+                    .build();
+            
+            return ResponseEntity.ok(ApiResponse.success(status));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error(e.getMessage()));
         }
     }
 
@@ -274,12 +348,6 @@ public class CourseController {
     ) {
         try {
             Course course = courseService.getCourseById(courseId);
-            
-            // Check if user is the teacher of this course
-            if (!course.getTeacher().getId().equals(currentUser.getId())) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(ApiResponse.error("Bạn không có quyền xem danh sách học viên của khóa học này"));
-            }
             
             List<EnrolledStudentInfo> students = course.getEnrolledStudents().stream()
                     .map(student -> EnrolledStudentInfo.builder()
@@ -743,5 +811,48 @@ public class CourseController {
         public UUID getId() { return id; }
         public String getFullName() { return fullName; }
         public String getEmail() { return email; }
+    }
+
+    // DTO for course review status
+    public static class CourseReviewStatus {
+        private UUID courseId;
+        private String status;
+        private String reviewComment;
+        private Instant reviewedAt;
+        private String reviewedByName;
+
+        public static CourseReviewStatusBuilder builder() {
+            return new CourseReviewStatusBuilder();
+        }
+
+        public static class CourseReviewStatusBuilder {
+            private UUID courseId;
+            private String status;
+            private String reviewComment;
+            private Instant reviewedAt;
+            private String reviewedByName;
+
+            public CourseReviewStatusBuilder courseId(UUID courseId) { this.courseId = courseId; return this; }
+            public CourseReviewStatusBuilder status(String status) { this.status = status; return this; }
+            public CourseReviewStatusBuilder reviewComment(String reviewComment) { this.reviewComment = reviewComment; return this; }
+            public CourseReviewStatusBuilder reviewedAt(Instant reviewedAt) { this.reviewedAt = reviewedAt; return this; }
+            public CourseReviewStatusBuilder reviewedByName(String reviewedByName) { this.reviewedByName = reviewedByName; return this; }
+
+            public CourseReviewStatus build() {
+                CourseReviewStatus dto = new CourseReviewStatus();
+                dto.courseId = this.courseId;
+                dto.status = this.status;
+                dto.reviewComment = this.reviewComment;
+                dto.reviewedAt = this.reviewedAt;
+                dto.reviewedByName = this.reviewedByName;
+                return dto;
+            }
+        }
+
+        public UUID getCourseId() { return courseId; }
+        public String getStatus() { return status; }
+        public String getReviewComment() { return reviewComment; }
+        public Instant getReviewedAt() { return reviewedAt; }
+        public String getReviewedByName() { return reviewedByName; }
     }
 }

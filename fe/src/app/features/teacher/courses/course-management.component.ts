@@ -34,9 +34,10 @@ import { CourseSummary } from '../../../api/types/course.types';
                     [(ngModel)]="status"
                     (ngModelChange)="applyFilters()">
               <option value="">Tất cả trạng thái</option>
-              <option value="APPROVED">Đã xuất bản</option>
-              <option value="PENDING">Chờ duyệt</option>
               <option value="DRAFT">Nháp</option>
+              <option value="PENDING">Chờ duyệt</option>
+              <option value="APPROVED">Đã duyệt</option>
+              <option value="REJECTED">Bị từ chối</option>
             </select>
             <a routerLink="/teacher/course-creation" 
                class="px-5 py-2.5 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors font-medium text-sm flex items-center gap-2 whitespace-nowrap">
@@ -76,7 +77,7 @@ import { CourseSummary } from '../../../api/types/course.types';
                   <td class="px-6 py-4 text-center">
                     <span *ngIf="c.status === 'APPROVED'" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
                       <span class="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5"></span>
-                      Đã xuất bản
+                      Đã duyệt
                     </span>
                     <span *ngIf="c.status === 'PENDING'" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
                       <span class="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5"></span>
@@ -85,6 +86,10 @@ import { CourseSummary } from '../../../api/types/course.types';
                     <span *ngIf="c.status === 'DRAFT'" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
                       <span class="w-1.5 h-1.5 rounded-full bg-gray-400 mr-1.5"></span>
                       Nháp
+                    </span>
+                    <span *ngIf="c.status === 'REJECTED'" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                      <span class="w-1.5 h-1.5 rounded-full bg-red-500 mr-1.5"></span>
+                      Bị từ chối
                     </span>
                   </td>
                   <td class="px-6 py-4 text-center">
@@ -96,23 +101,59 @@ import { CourseSummary } from '../../../api/types/course.types';
                     </div>
                   </td>
                   <td class="px-6 py-4">
-                    <div class="flex items-center justify-center gap-2">
-                      <a [routerLink]="['/teacher/courses', c.id, 'edit']" 
-                        class="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-md transition-colors text-xs font-medium inline-flex items-center gap-1">
+                    <div class="flex items-center justify-center gap-2 flex-wrap">
+                      <!-- Edit button - disabled for PENDING courses -->
+                      <a *ngIf="c.status?.toUpperCase() !== 'PENDING'" 
+                         [routerLink]="['/teacher/courses', c.id, 'edit']" 
+                         class="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-md transition-colors text-xs font-medium inline-flex items-center gap-1">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                         </svg>
                         Sửa
                       </a>
-                      <button *ngIf="c.status !== 'APPROVED'"
-                              class="px-3 py-1.5 bg-green-50 text-green-600 hover:bg-green-100 rounded-md transition-colors text-xs font-medium disabled:opacity-50 inline-flex items-center gap-1"
-                              [disabled]="publishingId() === c.id"
-                              (click)="publish(c.id)">
+                      <button *ngIf="c.status?.toUpperCase() === 'PENDING'" 
+                              disabled
+                              title="Không thể chỉnh sửa khóa học đang chờ duyệt"
+                              class="px-3 py-1.5 bg-gray-100 text-gray-400 rounded-md text-xs font-medium inline-flex items-center gap-1 cursor-not-allowed">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                         </svg>
-                        Xuất bản
+                        Sửa
                       </button>
+
+                      <!-- Submit for Approval button - show for DRAFT and REJECTED -->
+                      <button *ngIf="c.status === 'DRAFT' || c.status === 'REJECTED'"
+                              class="px-3 py-1.5 bg-green-50 text-green-600 hover:bg-green-100 rounded-md transition-colors text-xs font-medium disabled:opacity-50 inline-flex items-center gap-1"
+                              [disabled]="submittingId() === c.id"
+                              (click)="submitForApproval(c.id)">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Gửi duyệt
+                      </button>
+
+                      <!-- Cancel Approval button - show for PENDING -->
+                      <button *ngIf="c.status === 'PENDING'"
+                              class="px-3 py-1.5 bg-amber-50 text-amber-600 hover:bg-amber-100 rounded-md transition-colors text-xs font-medium disabled:opacity-50 inline-flex items-center gap-1"
+                              [disabled]="cancellingId() === c.id"
+                              (click)="cancelApproval(c.id)">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                        Hủy yêu cầu
+                      </button>
+
+                      <!-- View Review Comment button - show for REJECTED -->
+                      <button *ngIf="c.status === 'REJECTED'"
+                              class="px-3 py-1.5 bg-purple-50 text-purple-600 hover:bg-purple-100 rounded-md transition-colors text-xs font-medium inline-flex items-center gap-1"
+                              (click)="viewReviewComment(c.id)">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
+                        </svg>
+                        Xem phản hồi
+                      </button>
+
+                      <!-- Delete button -->
                       <button class="px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-md transition-colors text-xs font-medium disabled:opacity-50 inline-flex items-center gap-1"
                               [disabled]="deletingId() === c.id"
                               (click)="deleteCourse(c.id, c.title)">
@@ -193,9 +234,11 @@ export class CourseManagementComponent {
   filtered = signal<CourseSummary[]>([]);
   error = signal('');
   keyword = '';
-  status: '' | 'APPROVED' | 'PENDING' | 'DRAFT' = '';
+  status: '' | 'APPROVED' | 'PENDING' | 'DRAFT' | 'REJECTED' = '';
   publishingId = signal<string | null>(null);
   deletingId = signal<string | null>(null);
+  submittingId = signal<string | null>(null);
+  cancellingId = signal<string | null>(null);
   pageIndex = signal(1);
   pageSize = signal(10);
   paged = computed(() => {
@@ -235,6 +278,61 @@ export class CourseManagementComponent {
         this.filtered.set(apply(this.filtered()));
       },
       complete: () => this.publishingId.set(null)
+    });
+  }
+
+  submitForApproval(id: string) {
+    this.submittingId.set(id);
+    this.api.submitForApproval(id).subscribe({
+      next: (res: any) => {
+        // Update course status to PENDING in both lists
+        const updateStatus = (list: CourseSummary[]) => 
+          list.map(item => item.id === id ? { ...item, status: 'PENDING' } : item);
+        this.courses.set(updateStatus(this.courses()));
+        this.filtered.set(updateStatus(this.filtered()));
+        alert('Khóa học đã được gửi để phê duyệt');
+      },
+      error: (err: any) => {
+        alert('Không thể gửi khóa học: ' + (err?.error?.message || err?.message || 'Lỗi không xác định'));
+      },
+      complete: () => this.submittingId.set(null)
+    });
+  }
+
+  cancelApproval(id: string) {
+    const confirmed = confirm('Bạn có chắc chắn muốn hủy yêu cầu phê duyệt?\n\nKhóa học sẽ chuyển về trạng thái Nháp và bạn có thể chỉnh sửa lại.');
+    if (!confirmed) return;
+
+    this.cancellingId.set(id);
+    this.api.cancelApprovalRequest(id).subscribe({
+      next: (res: any) => {
+        // Update course status to DRAFT in both lists
+        const updateStatus = (list: CourseSummary[]) => 
+          list.map(item => item.id === id ? { ...item, status: 'DRAFT' } : item);
+        this.courses.set(updateStatus(this.courses()));
+        this.filtered.set(updateStatus(this.filtered()));
+        alert('Đã hủy yêu cầu phê duyệt');
+      },
+      error: (err: any) => {
+        alert('Không thể hủy yêu cầu: ' + (err?.error?.message || err?.message || 'Lỗi không xác định'));
+      },
+      complete: () => this.cancellingId.set(null)
+    });
+  }
+
+  viewReviewComment(id: string) {
+    this.api.getReviewStatus(id).subscribe({
+      next: (res: any) => {
+        const status = res?.data;
+        if (status?.reviewComment) {
+          alert(`Phản hồi từ Admin:\n\n${status.reviewComment}\n\n${status.reviewedByName ? `Người duyệt: ${status.reviewedByName}` : ''}\n${status.reviewedAt ? `Thời gian: ${new Date(status.reviewedAt).toLocaleString('vi-VN')}` : ''}`);
+        } else {
+          alert('Không có phản hồi từ admin');
+        }
+      },
+      error: (err: any) => {
+        alert('Không thể tải phản hồi: ' + (err?.error?.message || err?.message || 'Lỗi không xác định'));
+      }
     });
   }
 

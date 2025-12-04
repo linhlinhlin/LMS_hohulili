@@ -108,7 +108,7 @@ import { QuestionImportModalComponent } from './components/question-import-modal
                           [disabled]="!selectedPackage()"
                           class="flex items-center justify-center gap-2 h-11 px-4 rounded-lg border-2 border-green-600 text-green-600 text-sm font-semibold hover:bg-green-50 disabled:border-gray-300 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors whitespace-nowrap">
                     <span class="material-symbols-outlined text-base">upload_file</span>
-                    <span>Import file</span>
+                    <span>Tải file lên</span>
                   </button>
                   
                   <!-- Add question button -->
@@ -291,7 +291,7 @@ import { QuestionImportModalComponent } from './components/question-import-modal
 
     <!-- Modal: Create Package -->
     <div *ngIf="showCreatePackageModal" 
-         class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" 
+         class="fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity flex items-center justify-center z-50 p-4" 
          (click)="showCreatePackageModal = false">
       <div class="bg-white rounded-xl p-6 w-full max-w-lg shadow-2xl" (click)="$event.stopPropagation()">
         <div class="flex items-center justify-between mb-6">
@@ -335,8 +335,8 @@ import { QuestionImportModalComponent } from './components/question-import-modal
             <select [(ngModel)]="newPackage.visibility" 
                     name="visibility" 
                     class="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-              <option value="PRIVATE">🔒 Riêng tư (chỉ mình tôi)</option>
-              <option value="PUBLIC">🌐 Công khai (mọi người xem được)</option>
+              <option value="PRIVATE">Riêng tư (chỉ mình tôi)</option>
+              <option value="PUBLIC">Công khai (mọi người xem được)</option>
             </select>
           </div>
           

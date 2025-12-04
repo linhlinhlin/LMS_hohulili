@@ -15,7 +15,7 @@ export const quizRoutes: Routes = [
         path: 'quiz-bank',
         loadComponent: () => import('./quiz-bank.component').then(m => m.QuizBankComponent),
         canActivate: [teacherGuard],
-        title: 'Quiz Bank - Quản lý ngân hàng câu hỏi'
+        title: 'Ngân hàng câu hỏi - Quản lý ngân hàng câu hỏi'
       },
       // Legacy Create Route (can be deprecated or redirected)
       {

@@ -5,19 +5,18 @@
   min-height: 100%;
 
   // ========================================
-  // VIDEO SECTION - Coursera Style (Not Full Width)
+  // VIDEO SECTION - Full Width
   // ========================================
   .video-section {
     width: 100%;
     background: #f9fafb;
-    padding: 2rem 0;
+    padding: 1rem 0;
     position: relative;
 
     .video-container {
       position: relative;
-      max-width: 960px; // Coursera-style max width
-      margin: 0 auto;
-      padding: 0 1.5rem;
+      margin: 0;
+      padding: 0 1rem;
       
       .video-wrapper {
         position: relative;
@@ -47,24 +46,23 @@
   }
 
   // ========================================
-  // CONTENT CONTAINER - Constrained Width
+  // CONTENT CONTAINER - Full Width
   // ========================================
   .content-container {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 2rem 1.5rem;
+    margin: 0;
+    padding: 1.5rem 1rem;
     width: 100%;
 
     // Lesson Header
     .lesson-header {
-      margin-bottom: 2rem;
+      margin-bottom: 1.5rem;
 
       .lesson-title {
-        font-size: 1.875rem;
+        font-size: 1.5rem;
         font-weight: 700;
         color: #1f2937;
         line-height: 1.3;
-        margin: 0 0 1rem 0;
+        margin: 0 0 0.75rem 0;
       }
 
       .lesson-description {
@@ -105,10 +103,10 @@
 
     // HTML Content
     .html-content {
-      font-size: 1rem;
-      line-height: 1.75;
+      font-size: 0.9375rem;
+      line-height: 1.7;
       color: #374151;
-      margin-bottom: 2rem;
+      margin-bottom: 1.5rem;
 
       // Typography styles
       h1, h2, h3, h4, h5, h6 {
@@ -214,10 +212,10 @@
 
     // Attachments Section
     .attachments-section {
-      margin-bottom: 2rem;
-      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      padding: 1rem;
       background: #f9fafb;
-      border-radius: 12px;
+      border-radius: 8px;
       border: 1px solid #e5e7eb;
 
       .section-title {
@@ -323,28 +321,29 @@
       border-top: 1px solid #e5e7eb;
 
       .btn-mark-complete {
-        padding: 0.875rem 2rem;
+        padding: 1rem 2rem;
         background: #3b82f6;
         color: white;
         border: none;
-        border-radius: 8px;
-        font-size: 1rem;
+        border-radius: 12px;
+        font-size: 1.0625rem;
         font-weight: 600;
         cursor: pointer;
-        display: flex;
+        display: inline-flex;
         align-items: center;
         gap: 0.75rem;
-        transition: all 0.2s;
-        box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
 
         &:hover {
           background: #2563eb;
-          box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
-          transform: translateY(-1px);
+          box-shadow: 0 6px 16px rgba(59, 130, 246, 0.35);
+          transform: translateY(-2px);
         }
 
         &:active {
           transform: translateY(0);
+          box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
         }
 
         i {
@@ -354,15 +353,17 @@
     }
 
     .completed-badge {
-      padding: 1rem 1.5rem;
-      background: #d1fae5;
-      border: 1px solid #6ee7b7;
-      border-radius: 8px;
-      display: flex;
+      padding: 1.25rem 1.75rem;
+      background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+      border: 2px solid #6ee7b7;
+      border-radius: 12px;
+      display: inline-flex;
       align-items: center;
-      gap: 0.75rem;
+      gap: 0.875rem;
       color: #065f46;
       font-weight: 600;
+      font-size: 1.0625rem;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
 
       i {
         font-size: 1.5rem;
@@ -421,42 +422,169 @@
   }
 }
 
-// Quiz Section
-.quiz-section {
+// Quiz Prompt Card - Modern Design
+.quiz-prompt-card {
   margin: 2rem 0;
-  padding: 1.5rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 12px;
-  text-align: center;
-}
-
-.btn-quiz {
-  display: inline-flex;
+  padding: 2rem;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.25);
+  display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 1rem 2rem;
-  background: white;
-  color: #667eea;
-  border: none;
-  border-radius: 8px;
-  font-size: 1.125rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  
-  svg {
-    width: 24px;
-    height: 24px;
+  justify-content: space-between;
+  gap: 2rem;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+
+  // Decorative background pattern
+  &::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -10%;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
   }
-  
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -30%;
+    left: -5%;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
-    background: #f8f9ff;
+    box-shadow: 0 12px 32px rgba(59, 130, 246, 0.3);
   }
-  
-  &:active {
-    transform: translateY(0);
+
+  .quiz-prompt-content {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    flex: 1;
+    position: relative;
+    z-index: 1;
+
+    .quiz-icon-wrapper {
+      flex-shrink: 0;
+      width: 64px;
+      height: 64px;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+
+      .quiz-icon {
+        width: 36px;
+        height: 36px;
+        color: white;
+        stroke-width: 2.5;
+      }
+    }
+
+    .quiz-text {
+      .quiz-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: white;
+        margin: 0 0 0.25rem 0;
+        letter-spacing: -0.02em;
+      }
+
+      .quiz-description {
+        font-size: 1rem;
+        color: rgba(255, 255, 255, 0.9);
+        margin: 0;
+        font-weight: 500;
+      }
+    }
+  }
+
+  .btn-start-quiz {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 2rem;
+    background: white;
+    color: #3b82f6;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.125rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    transition: all 0.2s ease;
+    white-space: nowrap;
+
+    .arrow-icon {
+      width: 20px;
+      height: 20px;
+      transition: transform 0.2s ease;
+    }
+
+    &:hover {
+      background: #eff6ff;
+      transform: translateX(4px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+
+      .arrow-icon {
+        transform: translateX(4px);
+      }
+    }
+
+    &:active {
+      transform: translateX(2px);
+    }
+  }
+
+  // Responsive
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 1.5rem;
+    gap: 1.5rem;
+
+    .quiz-prompt-content {
+      .quiz-icon-wrapper {
+        width: 56px;
+        height: 56px;
+
+        .quiz-icon {
+          width: 32px;
+          height: 32px;
+        }
+      }
+
+      .quiz-text {
+        .quiz-title {
+          font-size: 1.25rem;
+        }
+
+        .quiz-description {
+          font-size: 0.9375rem;
+        }
+      }
+    }
+
+    .btn-start-quiz {
+      width: 100%;
+      justify-content: center;
+      padding: 1rem 1.5rem;
+    }
   }
 }
