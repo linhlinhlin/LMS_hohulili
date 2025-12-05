@@ -27,53 +27,48 @@ import { CommonModule } from '@angular/common';
   styles: [`
     .typing-container {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       gap: 16px;
       margin: 20px 0;
-      padding-left: 4px;
     }
 
     .ai-avatar {
-      width: 36px;
-      height: 36px;
-      border-radius: 10px;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
       background: linear-gradient(135deg, #0056D2 0%, #0040a0 100%);
       display: flex;
       align-items: center;
       justify-content: center;
       color: white;
+      flex-shrink: 0;
     }
 
     .avatar-icon {
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
     }
 
     .typing-content {
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 14px 18px;
-      background: #F3F4F6;
-      border-radius: 16px;
-      border-bottom-left-radius: 6px;
     }
 
     .typing-text {
       color: #6b7280;
       font-size: 14px;
-      font-weight: 500;
     }
 
     .typing-dots {
       display: flex;
-      gap: 5px;
+      gap: 4px;
     }
 
     .typing-dots span {
       width: 6px;
       height: 6px;
-      background: #0056D2;
+      background: #9CA3AF;
       border-radius: 50%;
       animation: bounce 1.4s infinite ease-in-out both;
     }
@@ -85,7 +80,7 @@ import { CommonModule } from '@angular/common';
     @keyframes bounce {
       0%, 80%, 100% { 
         transform: scale(0.6);
-        opacity: 0.5;
+        opacity: 0.4;
       }
       40% { 
         transform: scale(1);

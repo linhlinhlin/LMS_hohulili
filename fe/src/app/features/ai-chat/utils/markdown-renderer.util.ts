@@ -107,7 +107,9 @@ export function renderMarkdown(markdown: string): string {
   html = html.replace(/^\*\*\*$/gm, '<hr>');
 
   // Line breaks (double newline = paragraph)
-  html = html.replace(/\n\n/g, '</p><p>');
+  html = html.replace(/\n\n+/g, '</p><p>');
+  
+  // Single line breaks within paragraphs
   html = html.replace(/\n/g, '<br>');
 
   // Wrap in paragraph if not already wrapped
@@ -115,10 +117,28 @@ export function renderMarkdown(markdown: string): string {
     html = `<p>${html}</p>`;
   }
 
-  // Clean up empty paragraphs
+  // Clean up empty paragraphs and fix nesting
   html = html.replace(/<p><\/p>/g, '');
+  html = html.replace(/<p>\s*<\/p>/g, '');
   html = html.replace(/<p>(<[huo])/g, '$1');
   html = html.replace(/(<\/[huo][l1-6]?>)<\/p>/g, '$1');
+  html = html.replace(/<p>(<table)/g, '$1');
+  html = html.replace(/(<\/table>)<\/p>/g, '$1');
+  html = html.replace(/<p>(<blockquote)/g, '$1');
+  html = html.replace(/(<\/blockquote>)<\/p>/g, '$1');
+  html = html.replace(/<p>(<div)/g, '$1');
+  html = html.replace(/(<\/div>)<\/p>/g, '$1');
+  html = html.replace(/<p>(<hr)/g, '$1');
+  html = html.replace(/(<hr>)<\/p>/g, '$1');
+  
+  // Remove <br> right after block elements
+  html = html.replace(/(<\/h[1-6]>)<br>/g, '$1');
+  html = html.replace(/(<\/ul>)<br>/g, '$1');
+  html = html.replace(/(<\/ol>)<br>/g, '$1');
+  html = html.replace(/(<\/table>)<br>/g, '$1');
+  html = html.replace(/(<\/blockquote>)<br>/g, '$1');
+  html = html.replace(/(<\/pre>)<br>/g, '$1');
+  html = html.replace(/(<hr>)<br>/g, '$1');
 
   return html;
 }
