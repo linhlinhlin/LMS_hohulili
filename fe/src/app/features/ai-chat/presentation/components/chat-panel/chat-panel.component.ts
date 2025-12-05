@@ -63,6 +63,14 @@ import { SuggestedQuestionsComponent } from '../suggested-questions/suggested-qu
 
       <!-- Messages Area -->
       <div class="panel-messages" #messagesContainer>
+        <!-- Cold Start Notice -->
+        @if (chatService.serviceState().coldStartDetected) {
+          <div class="cold-start-notice">
+            <span class="icon">⏳</span>
+            <span>Server đang khởi động, có thể mất 20-30 giây cho lần đầu...</span>
+          </div>
+        }
+
         @if (chatService.messages().length === 0) {
           <div class="empty-state">
             <div class="empty-icon">🚢</div>
@@ -98,6 +106,14 @@ import { SuggestedQuestionsComponent } from '../suggested-questions/suggested-qu
         <div class="panel-error">
           <span>{{ chatService.error() }}</span>
           <button (click)="chatService.clearError()">Đóng</button>
+        </div>
+      }
+
+      <!-- Extended Loading Indicator -->
+      @if (chatService.isLoading() && chatService.loadingTime() > 5000) {
+        <div class="extended-loading">
+          <span>Đang xử lý, vui lòng đợi...</span>
+          <span class="time">{{ formatLoadingTime(chatService.loadingTime()) }}</span>
         </div>
       }
 
@@ -261,6 +277,35 @@ import { SuggestedQuestionsComponent } from '../suggested-questions/suggested-qu
       cursor: pointer;
     }
 
+    /* Cold Start & Loading Styles */
+    .cold-start-notice {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: #fff7ed;
+      color: #c2410c;
+      font-size: 12px;
+      border-bottom: 1px solid #ffedd5;
+    }
+
+    .extended-loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 8px;
+      font-size: 12px;
+      color: #6b7280;
+      background: #f9fafb;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .extended-loading .time {
+      font-weight: 600;
+      color: #3b82f6;
+    }
+
     @media (max-width: 767px) {
       .chat-panel {
         bottom: 0;
@@ -337,5 +382,10 @@ export class ChatPanelComponent {
     if (container) {
       container.nativeElement.scrollTop = container.nativeElement.scrollHeight;
     }
+  }
+
+  formatLoadingTime(ms: number): string {
+    const seconds = Math.floor(ms / 1000);
+    return `${seconds}s`;
   }
 }

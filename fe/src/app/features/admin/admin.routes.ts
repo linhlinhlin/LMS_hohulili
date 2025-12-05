@@ -22,7 +22,7 @@ export const adminRoutes: Routes = [
         redirectTo: 'dashboard',
         pathMatch: 'full'
       },
-      
+
       // Dashboard - Trang chủ quản trị
       {
         path: 'dashboard',
@@ -72,7 +72,7 @@ export const adminRoutes: Routes = [
         loadComponent: () => import('./presentation/components/system-settings.component').then(m => m.SystemSettingsComponent),
         title: 'Cài đặt hệ thống'
       },
-      
+
       // Reports Routes
       {
         path: 'reports',
@@ -99,6 +99,13 @@ export const adminRoutes: Routes = [
         path: 'ai-chat',
         loadChildren: () => import('../ai-chat/ai-chat.routes').then(m => m.AI_CHAT_ROUTES),
         title: 'Trợ lý AI Hàng Hải'
+      },
+
+      // AI Knowledge Management - Quản lý Tri thức AI
+      {
+        path: 'ai-knowledge',
+        loadComponent: () => import('./ai-knowledge/ai-knowledge-page.component').then(m => m.AiKnowledgePageComponent),
+        title: 'Quản lý Tri thức AI'
       }
     ]
   }

@@ -18,7 +18,8 @@ export function renderMarkdown(markdown: string): string {
   // Code blocks (must be before inline code)
   html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_match, lang, code) => {
     const langClass = lang ? ` class="language-${lang}"` : '';
-    return `<pre><code${langClass}>${code.trim()}</code></pre>`;
+    // Wrap in a relative container for the copy button
+    return `<div class="code-block-wrapper"><pre><code${langClass}>${code.trim()}</code></pre></div>`;
   });
 
   // Inline code
@@ -31,6 +32,43 @@ export function renderMarkdown(markdown: string): string {
   html = html.replace(/^###\s+(.+)$/gm, '<h3>$1</h3>');
   html = html.replace(/^##\s+(.+)$/gm, '<h2>$1</h2>');
   html = html.replace(/^#\s+(.+)$/gm, '<h1>$1</h1>');
+
+  // Tables
+  // 1. Match the whole table
+  const tableRegex = /^\|(.+)\|\n\|([-:| ]+)\|\n((?:\|.*\|\n?)+)/gm;
+
+  html = html.replace(tableRegex, (match, headerStr, alignStr, bodyStr) => {
+    const headers = headerStr.split('|').map((h: string) => h.trim()).filter((h: string) => h);
+    const aligns = alignStr.split('|').map((a: string) => {
+      a = a.trim();
+      if (a.startsWith(':') && a.endsWith(':')) return 'center';
+      if (a.endsWith(':')) return 'right';
+      return 'left';
+    }).filter((a: string) => a);
+
+    const rows = bodyStr.trim().split('\n').map((row: string) => {
+      return row.split('|').map((cell: string) => cell.trim()).filter((cell: string) => cell !== '');
+    });
+
+    let tableHtml = '<table><thead><tr>';
+    headers.forEach((header: string, i: number) => {
+      const align = aligns[i] || 'left';
+      tableHtml += `<th style="text-align: ${align}">${header}</th>`;
+    });
+    tableHtml += '</tr></thead><tbody>';
+
+    rows.forEach((row: string[]) => {
+      tableHtml += '<tr>';
+      row.forEach((cell: string, i: number) => {
+        const align = aligns[i] || 'left';
+        tableHtml += `<td style="text-align: ${align}">${cell}</td>`;
+      });
+      tableHtml += '</tr>';
+    });
+
+    tableHtml += '</tbody></table>';
+    return tableHtml;
+  });
 
   // Bold and italic (order matters)
   html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
@@ -49,6 +87,11 @@ export function renderMarkdown(markdown: string): string {
 
   // Ordered lists
   html = html.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>');
+  html = html.replace(/(<li>.*<\/li>\n?)+/g, (match) => {
+    // Check if it was already wrapped in ul (simple heuristic)
+    if (match.startsWith('<ul>')) return match;
+    return `<ol>${match}</ol>`;
+  });
 
   // Links
   html = html.replace(
@@ -64,7 +107,9 @@ export function renderMarkdown(markdown: string): string {
   html = html.replace(/^\*\*\*$/gm, '<hr>');
 
   // Line breaks (double newline = paragraph)
-  html = html.replace(/\n\n/g, '</p><p>');
+  html = html.replace(/\n\n+/g, '</p><p>');
+  
+  // Single line breaks within paragraphs
   html = html.replace(/\n/g, '<br>');
 
   // Wrap in paragraph if not already wrapped
@@ -72,10 +117,28 @@ export function renderMarkdown(markdown: string): string {
     html = `<p>${html}</p>`;
   }
 
-  // Clean up empty paragraphs
+  // Clean up empty paragraphs and fix nesting
   html = html.replace(/<p><\/p>/g, '');
+  html = html.replace(/<p>\s*<\/p>/g, '');
   html = html.replace(/<p>(<[huo])/g, '$1');
   html = html.replace(/(<\/[huo][l1-6]?>)<\/p>/g, '$1');
+  html = html.replace(/<p>(<table)/g, '$1');
+  html = html.replace(/(<\/table>)<\/p>/g, '$1');
+  html = html.replace(/<p>(<blockquote)/g, '$1');
+  html = html.replace(/(<\/blockquote>)<\/p>/g, '$1');
+  html = html.replace(/<p>(<div)/g, '$1');
+  html = html.replace(/(<\/div>)<\/p>/g, '$1');
+  html = html.replace(/<p>(<hr)/g, '$1');
+  html = html.replace(/(<hr>)<\/p>/g, '$1');
+  
+  // Remove <br> right after block elements
+  html = html.replace(/(<\/h[1-6]>)<br>/g, '$1');
+  html = html.replace(/(<\/ul>)<br>/g, '$1');
+  html = html.replace(/(<\/ol>)<br>/g, '$1');
+  html = html.replace(/(<\/table>)<br>/g, '$1');
+  html = html.replace(/(<\/blockquote>)<br>/g, '$1');
+  html = html.replace(/(<\/pre>)<br>/g, '$1');
+  html = html.replace(/(<hr>)<br>/g, '$1');
 
   return html;
 }

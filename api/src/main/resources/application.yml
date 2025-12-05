@@ -53,3 +53,13 @@ app:
     secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
     expiration: 86400000  # 24 hours in milliseconds
     refresh-expiration: 604800000  # 7 days in milliseconds
+
+# AI Service Configuration
+ai:
+  service:
+    url: ${AI_SERVICE_URL:https://maritime-ai-chatbot.onrender.com}
+    api-key: ${AI_SERVICE_API_KEY:secret_key_cho_team_lms}
+    timeout: ${AI_SERVICE_TIMEOUT:90}  # seconds
+    retry:
+      max-attempts: ${AI_SERVICE_RETRY_MAX:2}
+      delay: ${AI_SERVICE_RETRY_DELAY:1000}  # milliseconds

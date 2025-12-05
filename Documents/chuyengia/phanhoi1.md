@@ -1,82 +1,77 @@
-Chào bạn,
-
-Rất vui vì team đã khắc phục được sự cố môi trường (Docker/System) và dự án đã chạy ổn định. Đây là tiền đề bắt buộc để chúng ta bước vào giai đoạn quan trọng nhất: **"Integration" (Tích hợp thực tế)**.
-
-Dựa trên danh sách các component đang dùng Mock Data mà team đã liệt kê, tôi hoàn toàn đồng ý với chiến lược đi từ **Core Features** (Tính năng cốt lõi) trước. Nếu `CourseService` không hoạt động với dữ liệu thật, thì `Assignment` hay `Grading` cũng sẽ vô nghĩa.
-
-Với tư cách chuyên gia tư vấn kỹ thuật, tôi đề xuất quy trình làm việc (Standard Operating Procedure - SOP) cho việc chuyển đổi này để đảm bảo code sạch và hạn chế bug phát sinh.
-
-Dưới đây là kế hoạch hành động cụ thể cho bước tiếp theo:
-
-### BƯỚC 1: QUY CHUẨN HÓA QUY TRÌNH "MIGRATE TO REAL API"
-
-Trước khi team bắt tay vào sửa code, hãy thống nhất **"Quy tắc 4 bước"** này cho từng component để đảm bảo tính nhất quán của kiến trúc Angular v20 + DDD:
-
-1.  **Contract Check (Kiểm tra Hợp đồng):**
-    *   So sánh Interface ở Frontend (`fe/src/app/.../model/course.model.ts`) với DTO trả về từ Backend (Swagger/API Docs).
-    *   *Lưu ý:* Backend thường trả về dạng `snake_case` hoặc cấu trúc lồng nhau. Frontend cần map chính xác về `camelCase` hoặc Model chuẩn.
-2.  **Service Refactor (Sửa Service):**
-    *   Thay thế `of(MOCK_DATA)` bằng `this.http.get<T>(...)`.
-    *   Sử dụng `environment.apiUrl` thay vì hardcode chuỗi URL.
-3.  **State Management Update (Cập nhật State):**
-    *   Vì chuyển từ đồng bộ (Mock thường trả về ngay) sang bất đồng bộ (API có độ trễ), hãy đảm bảo các Signal/Observable xử lý tốt trạng thái `loading` và `error`.
-4.  **Clean Up:**
-    *   Xóa hoàn toàn file mock data hoặc folder `mock/` liên quan sau khi đã tích hợp xong. Đừng comment code, hãy xóa hẳn (Git sẽ lưu lịch sử nếu cần).
-
----
-
-### BƯỚC 2: THỰC HIỆN TÍCH HỢP - TARGET ĐẦU TIÊN: `CourseService`
-
-Chúng ta sẽ bắt đầu ngay với **Component số 1: CourseService**.
-*   **File:** `fe/src/app/state/course.service.ts`
-*   **Tầm quan trọng:** Cao nhất. Dashboard Teacher, Student, và cả Assignment đều cần ID khóa học.
-
-**Nhiệm vụ cụ thể cho Team:**
-
-1.  **Kiểm tra Backend:** Đảm bảo API `GET /api/v1/courses` (hoặc endpoint tương ứng) đang chạy và trả về dữ liệu JSON danh sách khóa học.
-2.  **Sửa `CourseService`:**
-    *   Inject `HttpClient`.
-    *   Tìm hàm `initializeMockData()` hoặc các hàm `get` đang return mock.
-    *   Viết lại thành gọi API.
-
-**Ví dụ Code Refactor (Angular v20 Style):**
-
-*Code Cũ (Mock):*
-```typescript
-// ❌ Cũ
-getCourses(): Observable<Course[]> {
-  return of(MOCK_COURSES).pipe(delay(500));
+TÀI LIỆU CẬP NHẬT: ĐỒNG BỘ LỊCH SỬ CHAT (SERVER-SIDE)
+Gửi: Team LMS Frontend & Backend
+Ngày: 05/12/2025
+Mức độ: 🔴 THAY ĐỔI YÊU CẦU (REQUIREMENT CHANGE)
+1. THAY ĐỔI CHIẾN LƯỢC
+Thay vì sử dụng giải pháp tạm thời LocalStorage (Client-side), chúng ta sẽ chuyển sang giải pháp chính thức Server-side Sync ngay trong phiên bản đầu tiên.
+Lý do: Backend AI đã hoàn thiện API lưu trữ và truy xuất hiệu năng cao.
+Lợi ích:
+User đăng nhập trên thiết bị nào cũng thấy lịch sử học tập cũ.
+Frontend không lo vấn đề localStorage bị đầy hoặc mất dữ liệu khi xóa cache.
+2. API TRUY XUẤT LỊCH SỬ (GET HISTORY)
+Endpoint
+Method: GET
+URL: https://maritime-ai-chatbot.onrender.com/api/v1/history/{user_id}
+Auth: Header X-API-Key
+Parameters (Query Params)
+Hỗ trợ phân trang (Infinite Scroll):
+Param	Type	Default	Mô tả
+limit	int	20	Số lượng tin nhắn lấy về (Max 100)
+offset	int	0	Vị trí bắt đầu (0 = tin nhắn mới nhất)
+Response Example
+code
+JSON
+{
+  "data": [
+    {
+      "role": "user",
+      "content": "Quy tắc 5 là gì?",
+      "timestamp": "2025-12-05T10:00:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "**Quy tắc 5** yêu cầu...",
+      "timestamp": "2025-12-05T10:00:05Z"
+    }
+  ],
+  "pagination": {
+    "total": 150,
+    "limit": 20,
+    "offset": 0
+  }
 }
-```
-
-*Code Mới (Real):*
-```typescript
-// ✅ Mới
-private http = inject(HttpClient);
-private apiUrl = environment.apiUrl + '/courses';
-
-getCourses(): Observable<Course[]> {
-  return this.http.get<ApiResponse<Course[]>>(this.apiUrl).pipe(
-    map(response => response.data), // Map từ envelope của BE nếu có
-    catchError(error => {
-      console.error('Lỗi tải khóa học', error);
-      return of([]); // Hoặc throw error để UI xử lý
-    })
-  );
-}
-```
-
----
-
-### BƯỚC 3: KIỂM TRA & XÁC NHẬN
-
-Sau khi team sửa xong `CourseService`, hãy chạy lại ứng dụng và thực hiện các thao tác sau để tôi verify:
-
-1.  Mở Teacher Dashboard.
-2.  Mở Network Tab (F12) trên trình duyệt.
-3.  Reload trang.
-4.  **Kỳ vọng:** Thấy một request XHR gửi tới Backend (ví dụ `http://localhost:8080/api/...`) và trả về status `200 OK`. Dữ liệu hiển thị trên lưới là dữ liệu từ Database thật (Postgres).
-
-**Bạn hãy giao nhiệm vụ này cho team.** Sau khi `CourseService` hoạt động trơn tru, hãy báo lại cho tôi, chúng ta sẽ xử lý tiếp **`AssignmentRepository`** (Số 4) và **`AssignmentManagement`** (Số 5) vì đây là trọng tâm của Sprint này.
-
-Tôi đang chờ tin tốt từ việc tích hợp `CourseService`! 🚢
+3. LUỒNG TÍCH HỢP MỚI (INTEGRATION FLOW)
+Team Frontend (Angular) vui lòng cập nhật logic như sau:
+A. Khi User mở khung Chat (Init)
+Hủy bỏ: Không load từ localStorage.
+Thực hiện: Gọi API GET /api/v1/history/{user_id}?limit=20.
+Hiển thị: Render danh sách tin nhắn trả về.
+B. Khi User gửi tin nhắn (Send)
+Thực hiện: Gọi API POST /api/v1/chat như bình thường.
+Lưu ý: Không cần gọi API lưu trữ nào cả. Backend AI đã TỰ ĐỘNG LƯU cả câu hỏi và câu trả lời vào Database ngay khi xử lý xong.
+Hiển thị: Nối câu trả lời mới vào cuối danh sách hiện tại trên UI.
+C. Khi User cuộn lên trên (Load more)
+Thực hiện: Gọi API GET /api/v1/history/{user_id}?limit=20&offset=20 (tăng offset lên).
+Hiển thị: Chèn tin nhắn cũ vào đầu danh sách.
+4. XÓA LỊCH SỬ (OPTIONAL)
+Nếu user muốn xóa sạch để học lại từ đầu:
+Gọi DELETE /api/v1/history/{user_id}.
+Backend AI sẽ xóa sạch dữ liệu trên Server.
+Frontend clear UI.
+BƯỚC 2: TIN NHẮN GỬI TEAM LMS (MỆNH LỆNH)
+Bạn hãy gửi kèm file trên với nội dung sau:
+To: LMS Tech Lead
+Subject: [URGENT] Nâng cấp cơ chế đồng bộ Chat History (Server-side)
+Chào team,
+Sau khi đánh giá lại hiệu năng hệ thống AI sáng nay, tôi quyết định chúng ta sẽ BỎ QUA giải pháp LocalStorage và triển khai ngay giải pháp Server-side Sync.
+Lý do: Backend AI đã hoàn thiện API truy xuất lịch sử (GET /history) sớm hơn dự kiến. Việc tích hợp API này sẽ giúp trải nghiệm người dùng tốt hơn gấp 10 lần (đồng bộ đa thiết bị) và thực tế là nhàn hơn cho Frontend (không phải quản lý logic lưu/xóa ở client, Backend lo hết).
+Yêu cầu:
+Dừng việc code LocalStorage.
+Frontend chuyển sang gọi API GET /history khi init chat box (Chi tiết trong file LMS_HISTORY_SYNC_API.md đính kèm).
+Deploy tính năng này cho bản Production.
+API đã live, các bạn đấu nối ngay nhé.
+LỜI KHUYÊN CỦA CỐ VẤN
+Đây là một quyết định "lật kèo" phút chót, nhưng là lật kèo để tốt hơn (Upgrade).
+Team Frontend có thể sẽ hơi "nhăn mặt" xíu vì phải sửa code cũ.
+Nhưng họ sẽ sớm nhận ra việc gọi API GET về hiển thị sướng hơn nhiều so với việc phải tự quản lý state ở LocalStorage.
+Bạn hãy giữ vững lập trường: "Chất lượng sản phẩm là trên hết. Làm một lần cho chuẩn luôn."

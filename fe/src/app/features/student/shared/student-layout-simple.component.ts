@@ -241,7 +241,7 @@ export class StudentLayoutSimpleComponent implements OnInit, OnDestroy {
     const isInLearningInterface = url.includes('/student/learn/course/');
     const isInCourseDetail = url.match(/\/student\/course\/[^\/]+$/); // Match /student/course/:id but not /student/courses
     const isInQuiz = url.includes('/student/quiz/take/'); // Hide sidebar when taking quiz
-    const shouldHide = isInLearningInterface || isInCourseDetail || isInQuiz;
+    const shouldHide = isInLearningInterface || isInCourseDetail || isInQuiz || url.includes('/ai-chat');
     const isCurrentlyHidden = this.sidebarHidden();
 
     // Auto-hide sidebar when entering learning interface, course detail, or quiz

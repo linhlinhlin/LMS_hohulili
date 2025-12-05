@@ -33,6 +33,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
         
+        // Skip JWT filter for public endpoints
+        String path = request.getRequestURI();
+        if (shouldSkipFilter(path)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+        
         final String authHeader = request.getHeader("Authorization");
         final String jwt;
         final String username;
@@ -101,5 +108,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+    
+    /**
+     * Check if the request path should skip JWT authentication
+     */
+    private boolean shouldSkipFilter(String path) {
+        return path.startsWith("/v3/api-docs") ||
+               path.startsWith("/swagger-ui") ||
+               path.startsWith("/swagger-resources") ||
+               path.startsWith("/webjars") ||
+               path.startsWith("/actuator") ||
+               path.startsWith("/api/v1/auth") ||
+               path.startsWith("/api/auth") ||
+               path.equals("/api/v1/ai/health") ||  // AI health check public
+               path.equals("/api/v1/ai/ping");      // AI ping public
     }
 }

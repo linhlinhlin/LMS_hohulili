@@ -12,6 +12,7 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 
@@ -46,11 +47,16 @@ public class SecurityConfig {
                                 "/api/v1/auth/**", // Fixed: Add v1 auth endpoints
                                 "/api/v1/health/**",
                                 "/api/health/**",
+                                "/api/v1/ai/health", // AI health check public
                                 "/api/v1/courses", // Public course list (approved courses only)
                                 "/api/v1/dev/**", // DEV endpoints (REMOVE IN PRODUCTION!)
+                                // Swagger/OpenAPI endpoints
                                 "/v3/api-docs/**",
+                                "/v3/api-docs",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
+                                "/swagger-resources/**",
+                                "/webjars/**",
                                 "/actuator/**"
                         ).permitAll()
             // Public read-only course endpoints (detail) - allow GET for course detail
@@ -92,6 +98,14 @@ public class SecurityConfig {
                         
                         // Messaging endpoints (TEACHER and STUDENT can message each other)
                         .requestMatchers("/api/v1/messages/**").hasAnyRole("ADMIN", "TEACHER", "STUDENT")
+                        
+                        // AI Chat endpoints
+                        // Public: health check và ping
+                        .requestMatchers("/api/v1/ai/health", "/api/v1/ai/ping").permitAll()
+                        // Admin only: Knowledge management và History management
+                        .requestMatchers("/api/v1/ai/admin/**").hasRole("ADMIN")
+                        // Protected: chat và session management (yêu cầu authentication)
+                        .requestMatchers("/api/v1/ai/**").hasAnyRole("ADMIN", "TEACHER", "STUDENT")
                         
                         // Section and lesson management
                         .requestMatchers("/api/v1/sections/**", "/api/v1/lessons/**").hasAnyRole("ADMIN", "TEACHER", "STUDENT")
@@ -141,5 +155,21 @@ public class SecurityConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
+    }
+    
+    /**
+     * Completely bypass security for Swagger/OpenAPI endpoints
+     * This ensures these endpoints are not processed by the security filter chain at all
+     */
+    @Bean
+    public WebSecurityCustomizer webSecurityCustomizer() {
+        return (web) -> web.ignoring().requestMatchers(
+            "/v3/api-docs/**",
+            "/v3/api-docs",
+            "/swagger-ui/**",
+            "/swagger-ui.html",
+            "/swagger-resources/**",
+            "/webjars/**"
+        );
     }
 }

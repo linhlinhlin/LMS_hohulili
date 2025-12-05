@@ -1,6 +1,7 @@
-import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, signal, OnInit } from '@angular/core';
+import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule, RouterOutlet } from '@angular/router';
+import { RouterModule, RouterOutlet, Router, NavigationEnd } from '@angular/router';
+import { Subscription, filter } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { SidebarComponent } from '../../../shared/components/navigation/sidebar.component';
 import { teacherSidebarConfig } from '../../../shared/components/navigation/sidebar.config';
@@ -17,12 +18,13 @@ import { ChatWidgetComponent } from '../../ai-chat/presentation/components/chat-
     <!-- Modern gradient background for teacher portal -->
     <div class="min-h-screen flex flex-col">
       <!-- Desktop Sidebar - Full Height -->
-      <div class="hidden lg:flex lg:w-72 lg:flex-col lg:fixed lg:inset-y-0 lg:z-40">
+      <div class="hidden lg:flex lg:w-72 lg:flex-col lg:fixed lg:inset-y-0 lg:z-40"
+           *ngIf="!shouldHideSidebar()">
         <app-sidebar [config]="teacherSidebarConfig"></app-sidebar>
       </div>
 
       <!-- Mobile sidebar overlay -->
-      <div *ngIf="isMobileSidebarOpen()"
+      <div *ngIf="isMobileSidebarOpen() && !shouldHideSidebar()"
            class="fixed inset-0 z-50 lg:hidden"
            (click)="toggleMobileSidebar()">
         <div class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
@@ -32,9 +34,10 @@ import { ChatWidgetComponent } from '../../ai-chat/presentation/components/chat-
       </div>
 
       <!-- Main content area -->
-      <div class="lg:pl-72 flex flex-col flex-1 min-h-0">
+      <div [class]="shouldHideSidebar() ? 'flex flex-col flex-1 min-h-0' : 'lg:pl-72 flex flex-col flex-1 min-h-0'">
         <!-- Modern top navigation bar - Mobile only -->
-        <header class="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-gray-200/50 lg:hidden shadow-sm">
+        <header class="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-gray-200/50 lg:hidden shadow-sm"
+                *ngIf="!shouldHideSidebar()">
           <div class="px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
               <div class="flex items-center space-x-3">
@@ -94,22 +97,49 @@ import { ChatWidgetComponent } from '../../ai-chat/presentation/components/chat-
         </main>
       </div>
 
-      <!-- AI Chat Widget -->
-      <app-chat-widget />
+      <!-- AI Chat Widget (hidden when in AI Chat full page) -->
+      <app-chat-widget *ngIf="!shouldHideSidebar()" />
     </div>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class TeacherLayoutSimpleComponent implements OnInit {
+export class TeacherLayoutSimpleComponent implements OnInit, OnDestroy {
   protected authService = inject(AuthService);
+  private router = inject(Router);
   private notificationService = inject(NotificationService);
   protected isMobileSidebarOpen = signal(false);
   protected teacherSidebarConfig = teacherSidebarConfig;
+
+  private sidebarHidden = signal<boolean>(false);
+  private routerSubscription?: Subscription;
+
+  protected shouldHideSidebar = computed(() => this.sidebarHidden());
 
   ngOnInit(): void {
     // Initialize notification service with current user ID
     const userId = this.authService.currentUser()?.id || 'teacher-1';
     this.notificationService.initialize(userId);
+
+    // Subscribe to router events
+    this.routerSubscription = this.router.events
+      .pipe(filter(event => event instanceof NavigationEnd))
+      .subscribe((event: NavigationEnd) => {
+        this.handleRouteChange(event.urlAfterRedirects);
+      });
+
+    // Handle initial route
+    this.handleRouteChange(this.router.url);
+  }
+
+  ngOnDestroy() {
+    if (this.routerSubscription) {
+      this.routerSubscription.unsubscribe();
+    }
+  }
+
+  private handleRouteChange(url: string) {
+    const isInAiChat = url.includes('/ai-chat');
+    this.sidebarHidden.set(isInAiChat);
   }
 
   toggleMobileSidebar(): void {
