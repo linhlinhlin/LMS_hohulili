@@ -54,19 +54,19 @@ import { CourseSummary } from '../../../api/types/course.types';
             <table class="min-w-full">
               <thead class="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-16">STT</th>
-                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Tên khóa học</th>
-                  <th class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-64">Trạng thái</th>
-                  <th class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-28">Học viên</th>
-                  <th class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-64">Thao tác</th>
+                  <th class="px-6 py-3 text-left align-middle text-xs font-semibold text-gray-500 uppercase tracking-wider w-16">STT</th>
+                  <th class="px-6 py-3 text-left align-middle text-xs font-semibold text-gray-500 uppercase tracking-wider">Tên khóa học</th>
+                  <th class="px-4 py-3 text-center align-middle text-xs font-semibold text-gray-500 uppercase tracking-wider w-60">Trạng thái</th>
+                  <th class="px-4 py-3 text-center align-middle text-xs font-semibold text-gray-500 uppercase tracking-wider w-28">Học viên</th>
+                  <th class="px-4 py-3 text-center align-middle text-xs font-semibold text-gray-500 uppercase tracking-wider w-80">Thao tác</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-100">
                 <tr *ngFor="let c of paged(); let i = index; trackBy: trackById" class="hover:bg-blue-50/50 transition-colors">
-                  <td class="px-6 py-4 text-sm text-gray-500 font-medium text-center">
+                  <td class="px-6 py-1 text-sm text-gray-500 font-medium text-center">
                     {{ (pageIndex() - 1) * pageSize() + i + 1 }}
                   </td>
-                  <td class="px-6 py-4">
+                  <td class="px-6 py-1">
                     <div class="flex items-start gap-3">
                       <div class="min-w-0">
                         <div class="text-sm font-semibold text-gray-900 truncate">{{ c.title }}</div>
@@ -74,7 +74,7 @@ import { CourseSummary } from '../../../api/types/course.types';
                       </div>
                     </div>
                   </td>
-                  <td class="px-6 py-4 text-center">
+                  <td class="px-6 py-1 text-center">
                     <span *ngIf="c.status === 'APPROVED'" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
                       <span class="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5"></span>
                       Đã duyệt
@@ -92,7 +92,7 @@ import { CourseSummary } from '../../../api/types/course.types';
                       Bị từ chối
                     </span>
                   </td>
-                  <td class="px-6 py-4 text-center">
+                  <td class="px-6 py-1 text-center">
                     <div class="inline-flex items-center gap-1.5 text-sm text-gray-700 w-full">
                       <svg class="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path>
@@ -100,8 +100,8 @@ import { CourseSummary } from '../../../api/types/course.types';
                       <span class="font-semibold ml-auto">{{ c.enrolledCount || 0 }}</span>
                     </div>
                   </td>
-                  <td class="px-6 py-4">
-                    <div class="flex items-center justify-center gap-2 flex-wrap">
+                  <td class="px-6 py-1">
+                    <div class="flex gap-2 flex-wrap">
                       <!-- Edit button - disabled for PENDING courses -->
                       <a *ngIf="c.status?.toUpperCase() !== 'PENDING'" 
                          [routerLink]="['/teacher/courses', c.id, 'edit']" 
@@ -119,6 +119,16 @@ import { CourseSummary } from '../../../api/types/course.types';
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                         </svg>
                         Sửa
+                      </button>
+
+                      <!-- Delete button -->
+                      <button class="px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-md transition-colors text-xs font-medium disabled:opacity-50 inline-flex items-center gap-1"
+                              [disabled]="deletingId() === c.id"
+                              (click)="deleteCourse(c.id, c.title)">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                        Xóa
                       </button>
 
                       <!-- Submit for Approval button - show for DRAFT and REJECTED -->
@@ -151,16 +161,6 @@ import { CourseSummary } from '../../../api/types/course.types';
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
                         </svg>
                         Xem phản hồi
-                      </button>
-
-                      <!-- Delete button -->
-                      <button class="px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-md transition-colors text-xs font-medium disabled:opacity-50 inline-flex items-center gap-1"
-                              [disabled]="deletingId() === c.id"
-                              (click)="deleteCourse(c.id, c.title)">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                        </svg>
-                        Xóa
                       </button>
                     </div>
                   </td>
@@ -203,7 +203,7 @@ import { CourseSummary } from '../../../api/types/course.types';
             <button class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors flex items-center gap-2" 
                     [disabled]="pageIndex() <= 1" 
                     (click)="prevPage()">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-4 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
               </svg>
               Trước

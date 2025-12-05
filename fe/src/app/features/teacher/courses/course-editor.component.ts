@@ -195,6 +195,7 @@ import { SectionApi } from '../../../api/client/section.api';
                 <tr>
                   <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-16">STT</th>
                   <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Học viên</th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</th>
                   <th class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-36">Ngày đăng ký</th>
                   <th class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-28">Trạng thái</th>
                 </tr>
@@ -204,12 +205,15 @@ import { SectionApi } from '../../../api/client/section.api';
                   <td class="px-6 py-4 text-sm text-gray-500 font-medium text-center">{{ i + 1 }}</td>
                   <td class="px-6 py-4">
                     <div class="flex items-start gap-3">
-                      <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                        {{ student.fullName?.charAt(0)?.toUpperCase() || '?' }}
-                      </div>
                       <div class="min-w-0">
                         <div class="text-sm font-semibold text-gray-900">{{ student.fullName }}</div>
-                        <div class="text-xs text-gray-500 mt-0.5">{{ student.email }}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4">
+                    <div class="flex items-start gap-3">
+                      <div class="min-w-0">
+                        <div class="text-sm text-gray-700">{{ student.email }}</div>
                       </div>
                     </div>
                   </td>
