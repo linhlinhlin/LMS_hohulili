@@ -80,54 +80,147 @@ export interface ChatSession {
 }
 
 // ============================================================================
-// API Types
+// API Types (Backend Proxy)
 // ============================================================================
 
 /**
  * Request payload for chat API
  */
 export interface ChatRequest {
-  user_id: string;
   message: string;
-  role: UserRole;
-  session_id?: string;
+  sessionId?: string;
   context?: ChatContext;
 }
 
 /**
- * Response data from chat API
- */
-export interface ChatResponseData {
-  answer: string;
-  sources?: MessageSource[];
-  suggested_questions?: string[];
-}
-
-/**
- * Response metadata from chat API
- */
-export interface ChatResponseMetadata {
-  processing_time: number;
-  model: string;
-  agent_type: string;
-}
-
-/**
- * Full response from chat API
+ * Response from chat API
  */
 export interface ChatResponse {
-  status: 'success' | 'error';
-  data: ChatResponseData;
-  metadata: ChatResponseMetadata;
+  status: 'success';
+  data: ChatData;
+}
+
+/**
+ * Inner data of chat response
+ */
+export interface ChatData {
+  sessionId: string;
+  messageId: string;
+  answer: string;
+  sources: Source[];
+  suggestedQuestions: string[];
+  metadata: ResponseMetadata;
+}
+
+/**
+ * Source citation
+ */
+export interface Source {
+  title: string;
+  content: string;
+  url?: string;
+}
+
+/**
+ * Response metadata
+ */
+export interface ResponseMetadata {
+  processingTime: number;
+}
+
+/**
+ * Sessions list response
+ */
+export interface SessionsResponse {
+  content: SessionSummary[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+  first: boolean;
+  last: boolean;
+  empty: boolean;
+}
+
+/**
+ * Session summary item
+ */
+export interface SessionSummary {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  messageCount: number;
+}
+
+/**
+ * Session detail with messages
+ */
+export interface SessionDetail {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  messages: ChatMessageDTO[];
+}
+
+/**
+ * Chat message DTO from API
+ */
+export interface ChatMessageDTO {
+  id: string;
+  content: string;
+  senderType: 'USER' | 'AI';
+  createdAt: string;
+  sources: Source[];
 }
 
 /**
  * Health check response
  */
 export interface HealthStatus {
-  status: 'healthy' | 'unhealthy';
-  message?: string;
-  timestamp?: string;
+  status: string;
+  aiServiceStatus: string;
+  version: string;
+  error?: string;
+}
+
+// ============================================================================
+// History API Types (Server-Side Sync)
+// ============================================================================
+
+/**
+ * Single history message from AI backend
+ */
+export interface HistoryMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+}
+
+/**
+ * Pagination info for history response
+ */
+export interface HistoryPagination {
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+/**
+ * Response from GET /api/v1/history/{user_id}
+ */
+export interface HistoryResponse {
+  data: HistoryMessage[];
+  pagination: HistoryPagination;
+}
+
+/**
+ * API Error response
+ */
+export interface ApiError {
+  status: number;
+  message: string;
 }
 
 // ============================================================================

@@ -1,36 +1,37 @@
 /**
- * ChatApiClient - HTTP client for Maritime AI Backend
- * Handles communication with the AI chatbot API
+ * ChatApiClient - HTTP client for LMS Backend AI Proxy
+ * Handles communication with the AI chatbot via LMS Backend
  */
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
-import { Observable, throwError, timer, of } from 'rxjs';
-import { catchError, map, timeout, retry, tap } from 'rxjs/operators';
+import { HttpClient, HttpHeaders, HttpErrorResponse, HttpParams } from '@angular/common/http';
+import { Router } from '@angular/router';
+import { Observable, throwError, of } from 'rxjs';
+import { catchError, map, timeout, tap } from 'rxjs/operators';
 import {
   ChatRequest,
   ChatResponse,
-  HealthStatus,
-  UserRole,
+  ChatData,
   ChatContext,
+  SessionsResponse,
+  SessionDetail,
+  HealthStatus,
+  HistoryResponse,
 } from '../../domain/types';
 
 /**
  * API Configuration
  */
 export const AI_CHAT_CONFIG = {
-  baseUrl: 'https://maritime-ai-chatbot.onrender.com',
-  apiKey: 'secret_key_cho_team_lms',
-  timeout: 60000, // 60 seconds for cold start
+  baseUrl: '/api/v1/ai', // LMS Backend Proxy
+  timeout: 60000, // 60 seconds
   coldStartThreshold: 10000, // 10 seconds indicates cold start
-  retryAttempts: 1,
-  retryDelay: 1000,
 } as const;
 
 /**
- * API Error types
+ * API Error types (Client side)
  */
-export interface ApiError {
-  type: 'validation' | 'unauthorized' | 'rate_limited' | 'timeout' | 'network' | 'server';
+export interface ClientApiError {
+  type: 'validation' | 'unauthorized' | 'forbidden' | 'rate_limited' | 'timeout' | 'network' | 'server' | 'ai_service_error' | 'service_unavailable';
   message: string;
   details?: unknown;
   retryAfter?: number;
@@ -51,44 +52,32 @@ export interface RequestTiming {
 })
 export class ChatApiClient {
   private readonly http = inject(HttpClient);
+  private readonly router = inject(Router);
   private lastRequestTiming: RequestTiming | null = null;
   private isServerAwake = false;
 
   /**
-   * Get HTTP headers for API requests
-   */
-  private getHeaders(): HttpHeaders {
-    return new HttpHeaders({
-      'Content-Type': 'application/json',
-      'X-API-Key': AI_CHAT_CONFIG.apiKey,
-    });
-  }
-
-  /**
-   * Send a chat message to the AI backend
+   * Send a chat message to the LMS Backend Proxy
    */
   sendChatMessage(
-    userId: string,
     message: string,
-    role: UserRole,
     sessionId?: string,
     context?: ChatContext
-  ): Observable<ChatResponse> {
+  ): Observable<ChatData> {
     const startTime = Date.now();
 
+    // Build request - only include sessionId if it's a valid non-empty string
     const request: ChatRequest = {
-      user_id: userId,
       message,
-      role,
-      session_id: sessionId,
+      // Only include sessionId if it's truthy (not empty string, null, or undefined)
+      ...(sessionId ? { sessionId } : {}),
       context,
     };
 
     return this.http
       .post<ChatResponse>(
-        `${AI_CHAT_CONFIG.baseUrl}/api/v1/chat`,
-        request,
-        { headers: this.getHeaders() }
+        `${AI_CHAT_CONFIG.baseUrl}/chat`,
+        request
       )
       .pipe(
         timeout(AI_CHAT_CONFIG.timeout),
@@ -103,8 +92,44 @@ export class ChatApiClient {
           };
           this.isServerAwake = true;
         }),
+        map(response => response.data),
         catchError((error: HttpErrorResponse | Error) => this.handleError(error))
       );
+  }
+
+  /**
+   * Get user's chat sessions
+   */
+  getSessions(page = 0, size = 20): Observable<SessionsResponse> {
+    return this.http.get<SessionsResponse>(
+      `${AI_CHAT_CONFIG.baseUrl}/sessions`,
+      { params: new HttpParams().set('page', page).set('size', size) }
+    ).pipe(
+      catchError((error) => this.handleError(error))
+    );
+  }
+
+  /**
+   * Get session detail
+   */
+  getSessionDetail(sessionId: string): Observable<SessionDetail> {
+    return this.http.get<SessionDetail>(
+      `${AI_CHAT_CONFIG.baseUrl}/sessions/${sessionId}`
+    ).pipe(
+      catchError((error) => this.handleError(error))
+    );
+  }
+
+  /**
+   * Delete a session
+   */
+  deleteSession(sessionId: string): Observable<void> {
+    return this.http.delete<void>(
+      `${AI_CHAT_CONFIG.baseUrl}/sessions/${sessionId}`
+    ).pipe(
+      map(() => void 0),
+      catchError((error) => this.handleError(error))
+    );
   }
 
   /**
@@ -112,38 +137,61 @@ export class ChatApiClient {
    */
   checkHealth(): Observable<HealthStatus> {
     return this.http
-      .get<{ status: string; database?: string }>(
+      .get<HealthStatus>(
         `${AI_CHAT_CONFIG.baseUrl}/health`
       )
       .pipe(
-        timeout(10000), // 10 second timeout for health check
-        map((response: { status: string; database?: string }) => ({
-          status: response.status === 'ok' ? 'healthy' : 'unhealthy',
-          message: response.database ? `Database: ${response.database}` : undefined,
-          timestamp: new Date().toISOString(),
-        } as HealthStatus)),
+        timeout(10000),
         tap(() => {
           this.isServerAwake = true;
         }),
         catchError(() =>
           of({
             status: 'unhealthy',
-            message: 'Service unavailable',
-            timestamp: new Date().toISOString(),
+            aiServiceStatus: 'unknown',
+            version: 'unknown',
+            error: 'Service unavailable',
           } as HealthStatus)
         )
       );
   }
 
   /**
-   * Wake up the server by calling health endpoint
-   * Useful to reduce cold start delay before user sends first message
+   * Wake up the server
    */
   wakeUpServer(): Observable<boolean> {
     return this.checkHealth().pipe(
       map((health: HealthStatus) => health.status === 'healthy'),
       catchError(() => of(false))
     );
+  }
+
+  /**
+   * Get chat history from server (Server-Side Sync)
+   * API: GET /api/v1/history/{user_id}
+   */
+  getChatHistory(userId: string, limit = 20, offset = 0): Observable<HistoryResponse> {
+    return this.http
+      .get<HistoryResponse>(
+        `${AI_CHAT_CONFIG.baseUrl}/history/${userId}`,
+        { params: new HttpParams().set('limit', limit).set('offset', offset) }
+      )
+      .pipe(
+        catchError((error) => this.handleError(error))
+      );
+  }
+
+  /**
+   * Delete all chat history for a user
+   * API: DELETE /api/v1/history/{user_id}
+   */
+  deleteChatHistory(userId: string): Observable<void> {
+    return this.http
+      .delete<void>(`${AI_CHAT_CONFIG.baseUrl}/history/${userId}`)
+      .pipe(
+        map(() => void 0),
+        catchError((error) => this.handleError(error))
+      );
   }
 
   /**
@@ -168,49 +216,75 @@ export class ChatApiClient {
   }
 
   /**
-   * Handle HTTP errors and convert to ApiError
+   * Handle HTTP errors and convert to ClientApiError
    */
   private handleError(error: HttpErrorResponse | Error): Observable<never> {
-    let apiError: ApiError;
+    let apiError: ClientApiError;
 
     if (error instanceof HttpErrorResponse) {
       switch (error.status) {
         case 400:
           apiError = {
             type: 'validation',
-            message: error.error?.message || 'Dữ liệu không hợp lệ',
+            message: error.error?.message || 'Tin nhắn không hợp lệ. Vui lòng kiểm tra lại.',
             details: error.error?.details,
           };
           break;
         case 401:
           apiError = {
             type: 'unauthorized',
-            message: 'Không có quyền truy cập API',
+            message: 'Phiên đăng nhập hết hạn, vui lòng đăng nhập lại',
+          };
+          this.router.navigate(['/login']);
+          break;
+        case 403:
+          apiError = {
+            type: 'forbidden',
+            message: 'Bạn không có quyền truy cập tài nguyên này',
           };
           break;
         case 429:
+          const retryAfter = error.headers.get('Retry-After') || '60';
           apiError = {
             type: 'rate_limited',
-            message: 'Quá nhiều yêu cầu, vui lòng thử lại sau',
-            retryAfter: error.error?.retry_after || 60,
+            message: `Bạn đã gửi quá nhiều tin nhắn. Vui lòng đợi ${retryAfter} giây.`,
+            retryAfter: parseInt(retryAfter, 10),
+          };
+          break;
+        case 502:
+          apiError = {
+            type: 'ai_service_error',
+            message: 'Dịch vụ AI tạm thời không khả dụng (Bad Gateway).',
+          };
+          break;
+        case 503:
+          apiError = {
+            type: 'service_unavailable',
+            message: 'Dịch vụ đang bảo trì hoặc quá tải, vui lòng thử lại sau.',
+          };
+          break;
+        case 504:
+          apiError = {
+            type: 'timeout',
+            message: 'Yêu cầu quá thời gian chờ (Gateway Timeout). Server có thể đang khởi động.',
           };
           break;
         case 0:
           apiError = {
             type: 'network',
-            message: 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng.',
+            message: 'Không thể kết nối. Vui lòng kiểm tra kết nối mạng của bạn.',
           };
           break;
         default:
           apiError = {
             type: 'server',
-            message: error.error?.message || 'Đã xảy ra lỗi từ server',
+            message: error.error?.message || 'Đã xảy ra lỗi từ server, vui lòng thử lại.',
           };
       }
     } else if (error.name === 'TimeoutError') {
       apiError = {
         type: 'timeout',
-        message: 'Yêu cầu quá thời gian chờ. Vui lòng thử lại.',
+        message: 'Yêu cầu quá thời gian chờ (Client Timeout). Server AI có thể đang khởi động.',
       };
     } else {
       apiError = {

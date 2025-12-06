@@ -603,7 +603,7 @@ public class AdminController {
         public Instant getCreatedAt() { return createdAt; }
         public Instant getUpdatedAt() { return updatedAt; }
     }
-    
+
     // DTO for revoking approved course
     static class RevokeCourseRequest {
         @NotBlank(message = "Lý do thu hồi không được để trống")

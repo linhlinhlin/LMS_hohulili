@@ -34,32 +34,35 @@ import { CommonModule } from '@angular/common';
   `,
   styles: [`
     .suggested-questions {
-      padding: 12px 0;
+      padding: 16px 0;
     }
 
     .suggestions-label {
       display: block;
-      font-size: 12px;
+      font-size: 13px;
+      font-weight: 600;
       color: #6b7280;
-      margin-bottom: 8px;
+      margin-bottom: 12px;
     }
 
     .suggestions-list {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
+      gap: 10px;
     }
 
     .suggestion-chip {
-      display: inline-block;
-      padding: 8px 14px;
-      font-size: 13px;
-      color: #374151;
-      background: #f3f4f6;
-      border: 1px solid #e5e7eb;
-      border-radius: 20px;
+      display: inline-flex;
+      align-items: center;
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #0056D2;
+      background: #E6F1FF;
+      border: 1px solid #BFDBFE;
+      border-radius: 24px;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.2s ease;
       max-width: 100%;
       text-align: left;
       white-space: nowrap;
@@ -68,12 +71,16 @@ import { CommonModule } from '@angular/common';
     }
 
     .suggestion-chip:hover {
-      background: #e5e7eb;
-      border-color: #d1d5db;
+      background: #0056D2;
+      color: white;
+      border-color: #0056D2;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 86, 210, 0.25);
     }
 
     .suggestion-chip:active {
-      transform: scale(0.98);
+      transform: translateY(0);
+      box-shadow: 0 2px 6px rgba(0, 86, 210, 0.2);
     }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -264,18 +264,17 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
 
     .my-courses-container {
       display: grid;
-      grid-template-columns: 1fr 320px;
-      gap: 32px;
-      max-width: 1400px;
-      margin: 0 auto;
-      padding: 40px 48px;
+      grid-template-columns: 1fr 300px;
+      gap: 24px;
+      margin: 0;
+      padding: 24px;
       background: #FAFAFA;
       min-height: 100vh;
 
       @include mobile {
         grid-template-columns: 1fr;
-        padding: 24px 16px;
-        gap: 24px;
+        padding: 16px;
+        gap: 16px;
       }
     }
 
@@ -285,8 +284,8 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
 
     /* Coursera-Style Header */
     .coursera-header {
-      margin-bottom: $spacing-8;
-      padding: $spacing-6 0;
+      margin-bottom: 24px;
+      padding: 0;
     }
 
     .header-content {
@@ -419,11 +418,15 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
       }
     }
 
-    /* Courses List - Horizontal Cards */
+    /* Courses List - 2 Column Grid */
     .courses-list {
-      display: flex;
-      flex-direction: column;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
       gap: 16px;
+
+      @media (max-width: 1200px) {
+        grid-template-columns: 1fr;
+      }
     }
 
     .course-card-wrapper {
@@ -698,9 +701,9 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
     /* Filter Sidebar - Sticky */
     .filter-sidebar {
       position: sticky;
-      top: 90px;
+      top: 24px;
       height: fit-content;
-      max-height: calc(100vh - 110px);
+      max-height: calc(100vh - 48px);
       overflow-y: auto;
 
       @include mobile {
@@ -872,11 +875,11 @@ export class StudentMyCoursesComponent implements OnInit {
       await this.enrollmentService.loadEnrolledCourses();
       const courses = this.enrollmentService.enrolledCourses();
       
-      // Enhance courses with modules
+      // Enhance courses with empty modules (will be loaded on demand)
       const enhancedCourses: EnhancedEnrolledCourse[] = courses.map((course: any) => ({
         ...course,
         showModules: false,
-        modules: this.generateMockModules(course['id'])
+        modules: [] // Empty initially, will load from API when expanded
       }));
 
       this.enrolledCourses.set(enhancedCourses);
@@ -885,24 +888,41 @@ export class StudentMyCoursesComponent implements OnInit {
     }
   }
 
-  private generateMockModules(courseId: string) {
-    return [
-      {
-        id: '1',
-        title: 'Chương 1: Giới thiệu',
-        lessons: [
-          { id: '1', title: 'Bài 1: Tổng quan', type: 'video' as const, duration: '15 phút', completed: true },
-          { id: '2', title: 'Bài 2: Khái niệm cơ bản', type: 'reading' as const, duration: '10 phút', completed: false }
-        ]
-      },
-      {
-        id: '2',
-        title: 'Chương 2: Thực hành',
-        lessons: [
-          { id: '3', title: 'Bài 3: Bài tập 1', type: 'quiz' as const, duration: '20 phút', completed: false }
-        ]
-      }
-    ];
+  // Load course content (modules/lessons) from API
+  private async loadCourseContent(courseId: string): Promise<void> {
+    try {
+      const response = await firstValueFrom(this.courseApi.getCourseContent(courseId));
+      const sections = response.data || [];
+      
+      // Transform API response to module format
+      const modules = sections.map((section: any) => ({
+        id: section.id,
+        title: section.title,
+        lessons: (section.lessons || []).map((lesson: any) => ({
+          id: lesson.id,
+          title: lesson.title,
+          type: this.getLessonType(lesson.lessonType),
+          duration: lesson.durationMinutes ? `${lesson.durationMinutes} phút` : '',
+          completed: lesson.completed || false
+        }))
+      }));
+      
+      // Update the specific course with loaded modules
+      this.enrolledCourses.update(courses =>
+        courses.map(c =>
+          c['id'] === courseId ? { ...c, modules } : c
+        )
+      );
+    } catch (error) {
+      console.error(`Error loading content for course ${courseId}:`, error);
+    }
+  }
+
+  private getLessonType(lessonType: string): 'video' | 'reading' | 'quiz' {
+    const type = lessonType?.toLowerCase();
+    if (type === 'quiz') return 'quiz';
+    if (type === 'reading') return 'reading';
+    return 'video';
   }
 
   getGreeting(): string {
@@ -931,11 +951,20 @@ export class StudentMyCoursesComponent implements OnInit {
   }
 
   toggleModules(courseId: string): void {
+    const course = this.enrolledCourses().find(c => c['id'] === courseId);
+    const isCurrentlyExpanded = course?.showModules || false;
+    
+    // Toggle the showModules state
     this.enrolledCourses.update(courses =>
       courses.map(c =>
         c['id'] === courseId ? { ...c, showModules: !c.showModules } : c
       )
     );
+    
+    // Load course content if expanding and modules not yet loaded
+    if (!isCurrentlyExpanded && course && (!course.modules || course.modules.length === 0)) {
+      this.loadCourseContent(courseId);
+    }
   }
 
   toggleMenu(courseId: string): void {

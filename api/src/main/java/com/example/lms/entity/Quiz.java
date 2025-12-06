@@ -14,6 +14,7 @@ import java.util.UUID;
 @Entity
 @Table(name = "quizzes")
 @Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor

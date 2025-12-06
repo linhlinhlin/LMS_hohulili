@@ -1,14 +1,16 @@
 /**
  * ChatStorageRepository - localStorage persistence for chat sessions
- * Handles saving and loading chat history
+ * Handles saving and loading chat history with USER ISOLATION
+ * Each user has their own storage namespace to prevent data leakage
  */
 import { Injectable } from '@angular/core';
 import { ChatSession, ChatMessage } from '../../domain/types';
 
 /**
- * Storage keys
+ * Storage key prefixes - actual keys will include userId
+ * Format: ai_chat_{type}_{userId}
  */
-const STORAGE_KEYS = {
+const STORAGE_KEY_PREFIX = {
   SESSION: 'ai_chat_session',
   MESSAGES: 'ai_chat_messages',
   LAST_SESSION_ID: 'ai_chat_last_session_id',
@@ -43,9 +45,34 @@ interface SerializedMessage {
 })
 export class ChatStorageRepository {
   private isStorageAvailable: boolean;
+  private currentUserId: string = '';
 
   constructor() {
     this.isStorageAvailable = this.checkStorageAvailability();
+  }
+
+  /**
+   * Set current user ID for storage isolation
+   * MUST be called when user logs in
+   */
+  setCurrentUserId(userId: string): void {
+    this.currentUserId = userId;
+  }
+
+  /**
+   * Get current user ID
+   */
+  getCurrentUserId(): string {
+    return this.currentUserId;
+  }
+
+  /**
+   * Get user-specific storage key
+   * Format: {prefix}_{userId}
+   */
+  private getStorageKey(keyType: keyof typeof STORAGE_KEY_PREFIX): string {
+    const userId = this.currentUserId || 'anonymous';
+    return `${STORAGE_KEY_PREFIX[keyType]}_${userId}`;
   }
 
   /**
@@ -64,15 +91,15 @@ export class ChatStorageRepository {
   }
 
   /**
-   * Save a chat session to localStorage
+   * Save a chat session to localStorage (user-isolated)
    */
   saveSession(session: ChatSession): boolean {
     if (!this.isStorageAvailable) return false;
 
     try {
       const serialized = this.serializeSession(session);
-      localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(serialized));
-      localStorage.setItem(STORAGE_KEYS.LAST_SESSION_ID, session.id);
+      localStorage.setItem(this.getStorageKey('SESSION'), JSON.stringify(serialized));
+      localStorage.setItem(this.getStorageKey('LAST_SESSION_ID'), session.id);
       return true;
     } catch (error) {
       console.error('Failed to save chat session:', error);
@@ -81,16 +108,22 @@ export class ChatStorageRepository {
   }
 
   /**
-   * Load a chat session from localStorage
+   * Load a chat session from localStorage (user-isolated)
    */
   loadSession(): ChatSession | null {
     if (!this.isStorageAvailable) return null;
 
     try {
-      const data = localStorage.getItem(STORAGE_KEYS.SESSION);
+      const data = localStorage.getItem(this.getStorageKey('SESSION'));
       if (!data) return null;
 
       const serialized: SerializedSession = JSON.parse(data);
+      // Verify session belongs to current user
+      if (serialized.userId !== this.currentUserId && this.currentUserId !== '') {
+        console.warn('Session userId mismatch, clearing invalid session');
+        this.clearSession();
+        return null;
+      }
       return this.deserializeSession(serialized);
     } catch (error) {
       console.error('Failed to load chat session:', error);
@@ -99,15 +132,15 @@ export class ChatStorageRepository {
   }
 
   /**
-   * Clear the stored session
+   * Clear the stored session for current user
    */
   clearSession(): boolean {
     if (!this.isStorageAvailable) return false;
 
     try {
-      localStorage.removeItem(STORAGE_KEYS.SESSION);
-      localStorage.removeItem(STORAGE_KEYS.MESSAGES);
-      localStorage.removeItem(STORAGE_KEYS.LAST_SESSION_ID);
+      localStorage.removeItem(this.getStorageKey('SESSION'));
+      localStorage.removeItem(this.getStorageKey('MESSAGES'));
+      localStorage.removeItem(this.getStorageKey('LAST_SESSION_ID'));
       return true;
     } catch (error) {
       console.error('Failed to clear chat session:', error);
@@ -116,19 +149,47 @@ export class ChatStorageRepository {
   }
 
   /**
-   * Get the last session ID
+   * Clear ALL ai chat sessions (for logout - security)
+   * This clears sessions for ALL users on this device
    */
-  getLastSessionId(): string | null {
-    if (!this.isStorageAvailable) return null;
-    return localStorage.getItem(STORAGE_KEYS.LAST_SESSION_ID);
+  clearAllSessions(): boolean {
+    if (!this.isStorageAvailable) return false;
+
+    try {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (
+          key.startsWith(STORAGE_KEY_PREFIX.SESSION) ||
+          key.startsWith(STORAGE_KEY_PREFIX.MESSAGES) ||
+          key.startsWith(STORAGE_KEY_PREFIX.LAST_SESSION_ID)
+        )) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+      console.log(`Cleared ${keysToRemove.length} AI chat storage keys`);
+      return true;
+    } catch (error) {
+      console.error('Failed to clear all chat sessions:', error);
+      return false;
+    }
   }
 
   /**
-   * Check if a session exists in storage
+   * Get the last session ID for current user
+   */
+  getLastSessionId(): string | null {
+    if (!this.isStorageAvailable) return null;
+    return localStorage.getItem(this.getStorageKey('LAST_SESSION_ID'));
+  }
+
+  /**
+   * Check if a session exists in storage for current user
    */
   hasStoredSession(): boolean {
     if (!this.isStorageAvailable) return false;
-    return localStorage.getItem(STORAGE_KEYS.SESSION) !== null;
+    return localStorage.getItem(this.getStorageKey('SESSION')) !== null;
   }
 
   /**
@@ -162,18 +223,41 @@ export class ChatStorageRepository {
   }
 
   /**
-   * Get storage usage info
+   * Get storage usage info for current user
    */
-  getStorageInfo(): { used: number; available: boolean } {
+  getStorageInfo(): { used: number; available: boolean; userId: string } {
     if (!this.isStorageAvailable) {
-      return { used: 0, available: false };
+      return { used: 0, available: false, userId: this.currentUserId };
     }
 
-    const sessionData = localStorage.getItem(STORAGE_KEYS.SESSION) || '';
+    const sessionData = localStorage.getItem(this.getStorageKey('SESSION')) || '';
     return {
       used: new Blob([sessionData]).size,
       available: true,
+      userId: this.currentUserId,
     };
+  }
+
+  /**
+   * Clear sessions with invalid sessionId format (not UUID)
+   * Call this on app init to clean up old format sessions
+   */
+  clearInvalidSessions(): boolean {
+    if (!this.isStorageAvailable) return false;
+
+    try {
+      const lastSessionId = this.getLastSessionId();
+      // Check if sessionId is NOT a valid UUID (UUIDs have dashes and are 36 chars)
+      if (lastSessionId && (!lastSessionId.includes('-') || lastSessionId.length !== 36)) {
+        console.log('Clearing invalid session format:', lastSessionId);
+        this.clearSession();
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Failed to clear invalid sessions:', error);
+      return false;
+    }
   }
 
   /**

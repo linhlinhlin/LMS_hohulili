@@ -12,10 +12,12 @@ interface QuizQuestion {
   correctOption: string;
 }
 
+import { IconComponent } from '../../../shared/components/ui/icon/icon.component';
+
 @Component({
   selector: 'app-student-quiz-taking',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, IconComponent],
   templateUrl: './student-quiz-taking.component.html',
   styles: [`
     @keyframes scale-in {
@@ -52,6 +54,9 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
   answers = signal<Record<string, string>>({});
   showResults = signal(false);
   showResultsModal = signal(true);
+  
+  // Sidebar visibility
+  sidebarVisible = signal(true);
 
   // Pagination - 10 questions per page
   readonly QUESTIONS_PER_PAGE = 10;
@@ -242,11 +247,17 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
     this.startTimer();
   }
 
+  toggleSidebar() {
+    this.sidebarVisible.update(v => !v);
+  }
+
   goBack() {
     this.stopTimer();
-    if (this.returnUrl) {
+    if (this.returnUrl && this.returnUrl !== '/student/learn/course') {
+      // Navigate back to the specific lesson/course page
       this.router.navigateByUrl(this.returnUrl);
     } else {
+      // Fallback: go to my courses page
       this.router.navigate(['/student/my-courses']);
     }
   }
