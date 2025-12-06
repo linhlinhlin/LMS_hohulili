@@ -603,10 +603,9 @@ public class AdminController {
         public Instant getCreatedAt() { return createdAt; }
         public Instant getUpdatedAt() { return updatedAt; }
     }
-}
- 
-   // DTO for revoking approved course
-    public static class RevokeCourseRequest {
+    
+    // DTO for revoking approved course
+    static class RevokeCourseRequest {
         @NotBlank(message = "Lý do thu hồi không được để trống")
         private String reason;
 
@@ -618,3 +617,4 @@ public class AdminController {
             this.reason = reason;
         }
     }
+}
