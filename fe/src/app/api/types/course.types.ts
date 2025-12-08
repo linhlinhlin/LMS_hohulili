@@ -118,6 +118,15 @@ export interface UpdateLessonRequest {
   videoUrl?: string;
   durationMinutes?: number;
   orderIndex?: number;
+  // Quiz-specific fields
+  quizTimeLimit?: number;
+  quizPassingScore?: number;
+  quizMaxAttempts?: number;
+  // Assignment-specific fields
+  assignmentDescription?: string;
+  assignmentInstructions?: string;
+  assignmentDueDate?: string;
+  assignmentMaxScore?: number;
 }
 
 export interface FileUploadResponse {

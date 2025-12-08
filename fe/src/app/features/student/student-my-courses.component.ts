@@ -48,9 +48,7 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
     RouterModule,
     IconComponent,
     ButtonComponent,
-    CardComponent,
-    ProgressBarComponent,
-    TabsComponent
+    IconComponent
   ],
   template: `
     <div class="my-courses-container">
@@ -828,7 +826,7 @@ export class StudentMyCoursesComponent implements OnInit {
   // State
   enrolledCourses = signal<EnhancedEnrolledCourse[]>([]);
   activeTab = signal<string>('in-progress');
-  
+
   // Filter state
   sortBy = signal<string>('recent');
   filterNotStarted = signal<boolean>(false);
@@ -845,7 +843,7 @@ export class StudentMyCoursesComponent implements OnInit {
   readonly filteredCourses = computed(() => {
     const courses = this.enrolledCourses();
     const tab = this.activeTab();
-    
+
     if (tab === 'in-progress') {
       return courses.filter(c => c['status'] === 'in-progress' || c['status'] === 'enrolled');
     }
@@ -874,7 +872,7 @@ export class StudentMyCoursesComponent implements OnInit {
     try {
       await this.enrollmentService.loadEnrolledCourses();
       const courses = this.enrollmentService.enrolledCourses();
-      
+
       // Enhance courses with empty modules (will be loaded on demand)
       const enhancedCourses: EnhancedEnrolledCourse[] = courses.map((course: any) => ({
         ...course,
@@ -893,7 +891,7 @@ export class StudentMyCoursesComponent implements OnInit {
     try {
       const response = await firstValueFrom(this.courseApi.getCourseContent(courseId));
       const sections = response.data || [];
-      
+
       // Transform API response to module format
       const modules = sections.map((section: any) => ({
         id: section.id,
@@ -906,7 +904,7 @@ export class StudentMyCoursesComponent implements OnInit {
           completed: lesson.completed || false
         }))
       }));
-      
+
       // Update the specific course with loaded modules
       this.enrolledCourses.update(courses =>
         courses.map(c =>
@@ -953,14 +951,14 @@ export class StudentMyCoursesComponent implements OnInit {
   toggleModules(courseId: string): void {
     const course = this.enrolledCourses().find(c => c['id'] === courseId);
     const isCurrentlyExpanded = course?.showModules || false;
-    
+
     // Toggle the showModules state
     this.enrolledCourses.update(courses =>
       courses.map(c =>
         c['id'] === courseId ? { ...c, showModules: !c.showModules } : c
       )
     );
-    
+
     // Load course content if expanding and modules not yet loaded
     if (!isCurrentlyExpanded && course && (!course.modules || course.modules.length === 0)) {
       this.loadCourseContent(courseId);

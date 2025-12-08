@@ -110,6 +110,9 @@ public class SecurityConfig {
                         // Section and lesson management
                         .requestMatchers("/api/v1/sections/**", "/api/v1/lessons/**").hasAnyRole("ADMIN", "TEACHER", "STUDENT")
                         
+                        // Course Authoring endpoints (TEACHER/ADMIN only)
+                        .requestMatchers("/api/v1/authoring/**").hasAnyRole("ADMIN", "TEACHER")
+                        
                         // Course management - specific endpoints first
                         .requestMatchers("/api/v1/courses/create", "/api/v1/courses/*/edit").hasAnyRole("ADMIN", "TEACHER")
                         .requestMatchers("/api/v1/courses/my-courses").hasAnyRole("ADMIN", "TEACHER")

@@ -14,7 +14,7 @@ type BadgeSize = 'sm' | 'md' | 'lg';
     </span>
   `,
   styles: [`
-    @import '../../../../../styles/variables';
+    @use '../../../../../styles/variables' as *;
 
     .badge {
       display: inline-flex;

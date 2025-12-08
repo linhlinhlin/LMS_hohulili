@@ -4,7 +4,7 @@ import { ErrorDisplayComponent } from './shared/components/error-display/error-d
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, ErrorDisplayComponent],
+  imports: [RouterOutlet],
   encapsulation: ViewEncapsulation.None,
   template: `
     <router-outlet></router-outlet>

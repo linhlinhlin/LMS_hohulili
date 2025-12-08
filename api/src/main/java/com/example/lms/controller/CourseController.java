@@ -1,6 +1,7 @@
 package com.example.lms.controller;
 
 import com.example.lms.dto.ApiResponse;
+import com.example.lms.entity.Assignment;
 import com.example.lms.entity.Course;
 import com.example.lms.entity.Section;
 import com.example.lms.entity.User;
@@ -487,12 +488,36 @@ public class CourseController {
     private SectionWithLessons convertToSectionWithLessons(Section section) {
         List<com.example.lms.entity.Lesson> rawLessons = section.getLessons() != null ? section.getLessons() : java.util.Collections.emptyList();
         List<LessonSummary> lessons = rawLessons.stream()
-                .map(lesson -> LessonSummary.builder()
+                .map(lesson -> {
+                    LessonSummary.LessonSummaryBuilder builder = LessonSummary.builder()
                         .id(lesson.getId())
                         .title(lesson.getTitle())
                         .description(lesson.getDescription())
+                        .content(lesson.getContent())
+                        .videoUrl(lesson.getVideoUrl())
                         .orderIndex(lesson.getOrderIndex())
-                        .build())
+                        .lessonType(lesson.getLessonType() != null ? lesson.getLessonType().name() : "LECTURE");
+                    
+                    // Add quiz fields if lesson has quiz
+                    if (lesson.getQuiz() != null) {
+                        builder.quizTimeLimit(lesson.getQuiz().getTimeLimitMinutes())
+                               .quizMaxScore(lesson.getQuiz().getPassingScore())
+                               .quizMaxAttempts(lesson.getQuiz().getMaxAttempts());
+                    }
+                    
+                    // Add assignment info if lesson has assignment
+                    if (lesson.getLessonAssignment() != null && lesson.getLessonAssignment().getAssignment() != null) {
+                        Assignment assignment = lesson.getLessonAssignment().getAssignment();
+                        builder.assignment(AssignmentInfo.builder()
+                            .description(assignment.getDescription())
+                            .instructions(assignment.getInstructions())
+                            .dueDate(assignment.getDueDate() != null ? assignment.getDueDate().toString() : null)
+                            .maxScore(assignment.getMaxScore() != null ? assignment.getMaxScore().intValue() : null)
+                            .build());
+                    }
+                    
+                    return builder.build();
+                })
                 .collect(Collectors.toList());
 
         return SectionWithLessons.builder()
@@ -689,7 +714,16 @@ public class CourseController {
         private UUID id;
         private String title;
         private String description;
+        private String content;
+        private String videoUrl;
         private Integer orderIndex;
+        private String lessonType;
+        // Quiz fields
+        private Integer quizTimeLimit;
+        private Integer quizMaxScore;
+        private Integer quizMaxAttempts;
+        // Assignment fields
+        private AssignmentInfo assignment;
 
         public static LessonSummaryBuilder builder() {
             return new LessonSummaryBuilder();
@@ -699,19 +733,40 @@ public class CourseController {
             private UUID id;
             private String title;
             private String description;
+            private String content;
+            private String videoUrl;
             private Integer orderIndex;
+            private String lessonType;
+            private Integer quizTimeLimit;
+            private Integer quizMaxScore;
+            private Integer quizMaxAttempts;
+            private AssignmentInfo assignment;
 
             public LessonSummaryBuilder id(UUID id) { this.id = id; return this; }
             public LessonSummaryBuilder title(String title) { this.title = title; return this; }
             public LessonSummaryBuilder description(String description) { this.description = description; return this; }
+            public LessonSummaryBuilder content(String content) { this.content = content; return this; }
+            public LessonSummaryBuilder videoUrl(String videoUrl) { this.videoUrl = videoUrl; return this; }
             public LessonSummaryBuilder orderIndex(Integer orderIndex) { this.orderIndex = orderIndex; return this; }
+            public LessonSummaryBuilder lessonType(String lessonType) { this.lessonType = lessonType; return this; }
+            public LessonSummaryBuilder quizTimeLimit(Integer quizTimeLimit) { this.quizTimeLimit = quizTimeLimit; return this; }
+            public LessonSummaryBuilder quizMaxScore(Integer quizMaxScore) { this.quizMaxScore = quizMaxScore; return this; }
+            public LessonSummaryBuilder quizMaxAttempts(Integer quizMaxAttempts) { this.quizMaxAttempts = quizMaxAttempts; return this; }
+            public LessonSummaryBuilder assignment(AssignmentInfo assignment) { this.assignment = assignment; return this; }
 
             public LessonSummary build() {
                 LessonSummary lesson = new LessonSummary();
                 lesson.id = this.id;
                 lesson.title = this.title;
                 lesson.description = this.description;
+                lesson.content = this.content;
+                lesson.videoUrl = this.videoUrl;
                 lesson.orderIndex = this.orderIndex;
+                lesson.lessonType = this.lessonType;
+                lesson.quizTimeLimit = this.quizTimeLimit;
+                lesson.quizMaxScore = this.quizMaxScore;
+                lesson.quizMaxAttempts = this.quizMaxAttempts;
+                lesson.assignment = this.assignment;
                 return lesson;
             }
         }
@@ -720,7 +775,52 @@ public class CourseController {
         public UUID getId() { return id; }
         public String getTitle() { return title; }
         public String getDescription() { return description; }
+        public String getContent() { return content; }
+        public String getVideoUrl() { return videoUrl; }
         public Integer getOrderIndex() { return orderIndex; }
+        public String getLessonType() { return lessonType; }
+        public Integer getQuizTimeLimit() { return quizTimeLimit; }
+        public Integer getQuizMaxScore() { return quizMaxScore; }
+        public Integer getQuizMaxAttempts() { return quizMaxAttempts; }
+        public AssignmentInfo getAssignment() { return assignment; }
+    }
+
+    public static class AssignmentInfo {
+        private String description;
+        private String instructions;
+        private String dueDate;
+        private Integer maxScore;
+
+        public static AssignmentInfoBuilder builder() {
+            return new AssignmentInfoBuilder();
+        }
+
+        public static class AssignmentInfoBuilder {
+            private String description;
+            private String instructions;
+            private String dueDate;
+            private Integer maxScore;
+
+            public AssignmentInfoBuilder description(String description) { this.description = description; return this; }
+            public AssignmentInfoBuilder instructions(String instructions) { this.instructions = instructions; return this; }
+            public AssignmentInfoBuilder dueDate(String dueDate) { this.dueDate = dueDate; return this; }
+            public AssignmentInfoBuilder maxScore(Integer maxScore) { this.maxScore = maxScore; return this; }
+
+            public AssignmentInfo build() {
+                AssignmentInfo info = new AssignmentInfo();
+                info.description = this.description;
+                info.instructions = this.instructions;
+                info.dueDate = this.dueDate;
+                info.maxScore = this.maxScore;
+                return info;
+            }
+        }
+
+        // Getters
+        public String getDescription() { return description; }
+        public String getInstructions() { return instructions; }
+        public String getDueDate() { return dueDate; }
+        public Integer getMaxScore() { return maxScore; }
     }
 
     public static class CreateCourseRequest {

@@ -245,7 +245,7 @@ public class LessonController {
         private UUID id;
         private String title;
         private String description;
-        private String content;
+        private String content; // HTML content from rich text editor (Quill)
         private String videoUrl;
         private Integer durationMinutes;
         private Integer orderIndex;
@@ -268,7 +268,7 @@ public class LessonController {
             private UUID id;
             private String title;
             private String description;
-            private String content;
+            private String content; // HTML content from rich text editor (Quill)
             private String videoUrl;
             private Integer durationMinutes;
             private Integer orderIndex;

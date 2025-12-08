@@ -39,7 +39,7 @@ export interface Tab {
     </div>
   `,
   styles: [`
-    @import '../../../../../styles/variables';
+    @use '../../../../../styles/variables' as *;
 
     .tabs-container {
       width: 100%;
@@ -145,7 +145,7 @@ export class TabsComponent {
   tabs = input.required<Tab[]>();
   activeTabId = input<string>('');
   ariaLabel = input<string>('Tabs');
-  
+
   tabChanged = output<string>();
 
   private _activeTab = signal<string>('');

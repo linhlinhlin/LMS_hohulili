@@ -34,7 +34,7 @@ public class Lesson {
     private String title;
 
     @Column(columnDefinition = "TEXT")
-    private String content;
+    private String content; // HTML content from rich text editor (Quill)
 
     @Column(columnDefinition = "TEXT")
     private String description;

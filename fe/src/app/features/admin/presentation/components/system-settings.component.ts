@@ -6,7 +6,7 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
 
 @Component({
   selector: 'app-system-settings',
-  imports: [CommonModule, FormsModule, LoadingComponent],
+  imports: [CommonModule, FormsModule],
   encapsulation: ViewEncapsulation.None,
   template: `
     <!-- Loading State - Temporarily disabled -->

@@ -27,7 +27,7 @@ type SpinnerSize = 'sm' | 'md' | 'lg';
     </div>
   `,
   styles: [`
-    @import '../../../../../styles/variables';
+    @use '../../../../../styles/variables' as *;
 
     .spinner-container {
       display: flex;

@@ -1,4 +1,4 @@
-@import '../../../../styles/variables';
+@use '../../../../styles/variables' as *;
 
 /* ===== DASHBOARD CONTAINER ===== */
 .dashboard-container {
@@ -516,7 +516,7 @@
   margin-bottom: 16px;
   overflow-x: auto;
   padding: 4px 0;
-  
+
   // Hide scrollbar but keep functionality
   scrollbar-width: thin;
   scrollbar-color: #D1D5DB transparent;

@@ -2,7 +2,7 @@ import { Component, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 // Icon names based on Heroicons
-export type IconName = 
+export type IconName =
   | 'academic-cap'      // 🎓 Education
   | 'book-open'         // 📚 Book/Course
   | 'pencil'            // 📝 Edit/Assignment
@@ -120,7 +120,7 @@ type IconSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
     </svg>
   `,
   styles: [`
-    @import '../../../../../styles/variables';
+    @use '../../../../../styles/variables' as *;
 
     .icon {
       display: inline-block;

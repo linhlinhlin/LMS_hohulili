@@ -34,7 +34,7 @@ import { CourseInstructorComponent } from './components/course-instructor.compon
             <app-course-instructor [instructor]="courseDetailService.course()?.instructor || null"></app-course-instructor>
             
             <!-- Reviews Section -->
-            <div class="bg-white rounded-lg shadow-sm p-6">
+            <div class="bg-white rounded-lg shadow-sm">
               <h2 class="text-2xl font-bold text-gray-900 mb-6">Đánh giá học viên</h2>
               
               @if (courseDetailService.reviews().length === 0) {

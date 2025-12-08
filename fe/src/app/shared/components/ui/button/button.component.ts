@@ -18,7 +18,7 @@ type ButtonSize = 'sm' | 'md' | 'lg';
     </button>
   `,
   styles: [`
-    @import '../../../../../styles/variables';
+    @use '../../../../../styles/variables' as *;
 
     .btn {
       display: inline-flex;
@@ -121,7 +121,7 @@ export class ButtonComponent {
   type = input<'button' | 'submit' | 'reset'>('button');
   disabled = input<boolean>(false);
   fullWidth = input<boolean>(false);
-  
+
   clicked = output<MouseEvent>();
 
   buttonClasses() {

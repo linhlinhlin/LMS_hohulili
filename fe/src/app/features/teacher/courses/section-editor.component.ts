@@ -139,20 +139,20 @@ import { QuizCreationModalComponent } from './components/quiz-creation-modal.com
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
           </svg>
-          <a [routerLink]="['/teacher/courses', courseId, 'edit']" class="hover:text-blue-600">Chi tiết khóa học</a>
+          <a [routerLink]="['/teacher/courses', courseId, 'editor', 'curriculum']" class="hover:text-blue-600">Nội dung khóa học</a>
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
           </svg>
-          <span class="text-gray-900">Nội dung chương</span>
+          <span class="text-gray-900">Quản lý bài học</span>
         </div>
         <div class="flex items-center justify-between">
           <div>
-            <h1 class="text-2xl font-bold text-gray-900">Nội dung chương</h1>
-            <p class="text-gray-500 mt-1">Quản lý bài học và bài trắc nghiệm</p>
+            <h1 class="text-2xl font-bold text-gray-900">Quản lý bài học</h1>
+            <p class="text-gray-500 mt-1">Thêm, sửa, xóa bài học và bài trắc nghiệm trong chương</p>
           </div>
           <div class="flex items-center gap-3">
             <a class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2 shadow-sm" 
-               [routerLink]="['/teacher/courses', courseId, 'edit']">
+               [routerLink]="['/teacher/courses', courseId, 'editor', 'curriculum']">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
               </svg>
@@ -212,8 +212,8 @@ import { QuizCreationModalComponent } from './components/quiz-creation-modal.com
             </thead>
             <tbody class="divide-y divide-gray-100">
               <tr *ngFor="let l of lessons(); let i = index" class="hover:bg-blue-50/50 transition-colors">
-                <td class="px-6 py-4 text-sm text-gray-500 font-medium text-center">{{ i + 1 }}</td>
-                <td class="px-6 py-4">
+                <td class="px-6 py-2 text-sm text-gray-500 font-medium text-center">{{ i + 1 }}</td>
+                <td class="px-6 py-2">
                   <div class="flex items-start gap-3">
                     
                     <div class="min-w-0">
@@ -222,7 +222,7 @@ import { QuizCreationModalComponent } from './components/quiz-creation-modal.com
                     </div>
                   </div>
                 </td>
-                <td class="px-6 py-4 text-center">
+                <td class="px-6 py-2 text-center">
                   <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium"
                         [ngClass]="{
                           'bg-blue-100 text-blue-700': !l.lessonType || l.lessonType === 'LECTURE',
@@ -234,13 +234,13 @@ import { QuizCreationModalComponent } from './components/quiz-creation-modal.com
                     <ng-container *ngIf="l.lessonType === 'QUIZ'">Trắc nghiệm</ng-container>
                   </span>
                 </td>
-                <td class="px-6 py-4 text-center">
+                <td class="px-6 py-2 text-center">
                   <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
                     <span class="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5"></span>
                     Đã xuất bản
                   </span>
                 </td>
-                <td class="px-6 py-4">
+                <td class="px-6 py-2">
                   <div class="flex items-center justify-center gap-2">
                     <!-- View button - for all lesson types -->
                     <button (click)="viewLesson(l)"

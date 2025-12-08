@@ -7,7 +7,7 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
 
 @Component({
   selector: 'app-course-management',
-  imports: [CommonModule, RouterModule, FormsModule, LoadingComponent],
+  imports: [CommonModule, RouterModule, FormsModule],
   encapsulation: ViewEncapsulation.None,
   template: `
     <!-- Loading State - Temporarily disabled -->
@@ -226,7 +226,7 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
 
                 <!-- Course Actions -->
                 <div class="flex gap-2">
-                  @if (course.status?.toUpperCase() === 'PENDING') {
+                  @if (course.status.toUpperCase() === 'PENDING') {
                     <button (click)="approveCourse(course.id)"
                             class="flex-1 px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm font-medium">
                       Phê duyệt
@@ -235,7 +235,7 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
                             class="flex-1 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-sm font-medium">
                       Từ chối
                     </button>
-                  } @else if (course.status?.toUpperCase() === 'APPROVED') {
+                  } @else if (course.status.toUpperCase() === 'APPROVED') {
                     <button (click)="viewCourse(course.id)"
                             class="w-full px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium">
                       Xem chi tiết
@@ -544,17 +544,17 @@ export class CourseManagementComponent implements OnInit {
     const courses = this.courses();
     return Array.isArray(courses) ? courses.length : 0;
   });
-  
+
   pendingCourses = computed(() => {
     const courses = this.courses();
     return Array.isArray(courses) ? courses.filter(c => c.status === 'pending' || c.status === 'PENDING').length : 0;
   });
-  
+
   approvedCourses = computed(() => {
     const courses = this.courses();
     return Array.isArray(courses) ? courses.filter(c => c.status === 'approved' || c.status === 'APPROVED').length : 0;
   });
-  
+
   totalRevenue = computed(() => {
     const courses = this.courses();
     if (!Array.isArray(courses)) return 0;
@@ -563,39 +563,39 @@ export class CourseManagementComponent implements OnInit {
 
   filteredCourses = computed(() => {
     const courses = this.courses();
-    
+
     // Safety check: ensure courses is an array
     if (!Array.isArray(courses)) {
       console.warn('[CourseManagement] courses is not an array:', courses);
       return [];
     }
-    
+
     let filtered = [...courses];
-    
+
     // Filter by search query
     if (this.searchQuery()) {
       const query = this.searchQuery().toLowerCase();
-      filtered = filtered.filter((course: AdminCourseSummary) => 
+      filtered = filtered.filter((course: AdminCourseSummary) =>
         course.title?.toLowerCase().includes(query) ||
         course.teacherName?.toLowerCase().includes(query)
       );
     }
-    
+
     // Filter by status
     if (this.statusFilter()) {
       const status = this.statusFilter().toUpperCase();
-      filtered = filtered.filter((course: AdminCourseSummary) => 
+      filtered = filtered.filter((course: AdminCourseSummary) =>
         course.status?.toUpperCase() === status
       );
     }
-    
+
     // Filter by category
     if (this.categoryFilter()) {
-      filtered = filtered.filter((course: AdminCourseSummary) => 
+      filtered = filtered.filter((course: AdminCourseSummary) =>
         course.category?.toLowerCase() === this.categoryFilter().toLowerCase()
       );
     }
-    
+
     return filtered;
   });
 
@@ -606,15 +606,15 @@ export class CourseManagementComponent implements OnInit {
   private loadCourses(): void {
     console.log('[CourseManagement] Loading courses...');
     this.isLoading.set(true);
-    
+
     this.adminService.getAllCourses().subscribe({
       next: (response) => {
         console.log('[CourseManagement] Courses loaded:', response);
-        
+
         // Ensure we have an array
         const coursesData = Array.isArray(response.data) ? response.data : [];
         console.log('[CourseManagement] Setting courses:', coursesData.length, 'items');
-        
+
         this.courses.set(coursesData);
         this.isLoading.set(false);
       },
