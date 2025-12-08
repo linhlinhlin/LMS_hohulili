@@ -34,6 +34,19 @@ export interface ChapterDraftDTO {
     lessons: LessonDraftDTO[];
 }
 
+export interface CourseSettings {
+    visibility: 'public' | 'private';
+    allowSelfEnrollment: boolean;
+    maxStudents: number | null;
+    autoCertificate: boolean;
+    progressionMode: 'free' | 'linear';
+    dripType: 'instant' | 'date' | 'complete';
+    dateBatchSize: number;
+    completeBatchSize: number;
+    dateIntervalDays: number;
+    completeIntervalDays: number;
+}
+
 export interface CourseDraftDTO {
     id: string;
     code: string;
@@ -43,6 +56,7 @@ export interface CourseDraftDTO {
     price?: number;
     priceType?: string;
     unlockMode?: string;
+    settings?: CourseSettings;
     chapters: ChapterDraftDTO[];
 }
 
@@ -60,6 +74,7 @@ interface CourseDetailResponse {
     status: string;
     teacherId: string;
     teacherName: string;
+    settings?: CourseSettings;
 }
 
 interface SectionWithLessons {
@@ -140,6 +155,8 @@ export class CourseAuthoringService {
                     code: courseData.code,
                     title: courseData.title,
                     description: courseData.description,
+                    thumbnailUrl: (courseData as any).thumbnailUrl, // Assuming it exists or not
+                    settings: courseData.settings,
                     chapters
                 } as CourseDraftDTO;
             })
@@ -154,16 +171,16 @@ export class CourseAuthoringService {
     // --- Reordering ---
 
     reorderChapters(courseId: string, orderedIds: string[]): Observable<void> {
-        return this.http.patch<void>(`${this.baseUrl}/sections/reorder`, { 
-            courseId, 
-            orderedIds 
+        return this.http.patch<void>(`${this.baseUrl}/sections/reorder`, {
+            courseId,
+            orderedIds
         });
     }
 
     reorderLessons(chapterId: string, orderedIds: string[]): Observable<void> {
-        return this.http.patch<void>(`${this.baseUrl}/lessons/reorder`, { 
-            sectionId: chapterId, 
-            orderedIds 
+        return this.http.patch<void>(`${this.baseUrl}/lessons/reorder`, {
+            sectionId: chapterId,
+            orderedIds
         });
     }
 
