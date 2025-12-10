@@ -48,24 +48,21 @@
         <div class="courses-list">
           @for (course of recentInProgress(); track course.id) {
             <div class="course-card-wrapper">
-              <!-- Top Section: Metadata -->
+              <!-- Partner Logo -->
+              <div class="partner-logo">
+                <app-icon name="academic-cap" size="sm" />
+              </div>
+
+              <!-- Course Metadata -->
               <div class="course-metadata">
-                <!-- Partner Logo & Name -->
                 <div class="partner-info">
-                  <div class="partner-logo">
-                    <app-icon name="academic-cap" size="sm" />
-                  </div>
                   <span class="partner-name">{{ course.partner }}</span>
                 </div>
-
-                <!-- Course Title -->
                 <h3 class="course-title">
                   <a [routerLink]="['/student/course', course.id]">
                     {{ course.title }}
                   </a>
                 </h3>
-
-                <!-- Course Meta -->
                 <div class="course-meta">
                   <span>Khóa học</span>
                   <span class="separator">·</span>
@@ -75,81 +72,52 @@
                     <span class="estimated">Dự kiến: {{ course.estimatedCompletion }}</span>
                   }
                 </div>
-
-                <!-- Thin Progress Bar -->
-                <div class="progress-bar-thin">
-                  <div class="progress-fill" [style.width.%]="course.progress"></div>
-                </div>
               </div>
 
-              <!-- Bottom Section: Next Item & Actions -->
-              <div class="course-actions-section">
-                <!-- Expandable Next Item -->
-                <div class="next-item-expandable" (click)="toggleModules(course.id)">
-                  <div class="next-item-header">
-                    <div class="next-item-info">
-                      <app-icon 
-                        [name]="course.nextItem.type === 'Video' ? 'play' : course.nextItem.type === 'Quiz' ? 'clipboard-document-check' : 'check-circle'" 
-                        size="sm" 
-                      />
-                      <div class="next-item-text">
-                        <p class="next-item-title">{{ course.nextItem.title }}</p>
-                        <p class="next-item-meta">
-                          {{ course.nextItem.type }}
-                          @if (course.nextItem.duration) {
-                            <span> ({{ course.nextItem.duration }})</span>
-                          }
-                        </p>
-                      </div>
-                    </div>
-                    <app-icon 
-                      [name]="course.showModules ? 'chevron-up' : 'chevron-down'" 
-                      size="sm" 
-                    />
-                  </div>
+              <!-- Action Buttons -->
+              <div class="action-buttons">
+                <app-button 
+                  variant="primary" 
+                  (clicked)="continueCourse(course.id)">
+                  Tiếp tục học
+                </app-button>
+                <button class="dropdown-button" (click)="toggleModules(course.id)" aria-label="Show lessons">
+                  <app-icon [name]="course.showModules ? 'chevron-up' : 'chevron-down'" size="sm" />
+                </button>
+              </div>
 
-                  <!-- Modules Dropdown -->
-                  @if (course.showModules && course.modules && course.modules.length > 0) {
-                    <div class="modules-dropdown" (click)="$event.stopPropagation()">
-                      @for (module of course.modules; track module.id) {
-                        <div class="module-item">
-                          <div class="module-header">
-                            <app-icon name="book-open" size="xs" />
-                            <span class="module-title">{{ module.title }}</span>
-                          </div>
-                          <div class="lessons-list">
-                            @for (lesson of module.lessons; track lesson.id) {
-                              <a 
-                                [routerLink]="['/student/courses', course.id, 'lessons', lesson.id]"
-                                class="lesson-item"
-                                [class.completed]="lesson.completed">
-                                <span class="lesson-title">{{ lesson.title }}</span>
-                                @if (lesson.completed) {
-                                  <app-icon name="check-circle" size="xs" class="check-icon" />
-                                }
-                              </a>
-                            }
-                          </div>
-                        </div>
-                      }
-                    </div>
-                  }
-                </div>
-
-                <!-- Action Buttons -->
-                <div class="action-buttons">
-                  <app-button 
-                    variant="primary" 
-                    [fullWidth]="true"
-                    (clicked)="continueCourse(course.id)">
-                    Tiếp tục học
-                  </app-button>
-                  <button class="menu-button" aria-label="More options">
-                    <app-icon name="ellipsis-vertical" size="sm" />
-                  </button>
-                </div>
+              <!-- Progress Bar -->
+              <div class="progress-bar-thin">
+                <div class="progress-fill" [style.width.%]="course.progress"></div>
               </div>
             </div>
+
+            <!-- Modules Dropdown -->
+            @if (course.showModules && course.modules && course.modules.length > 0) {
+              <div class="modules-dropdown">
+                @for (module of course.modules; track module.id) {
+                  <div class="module-item">
+                    <div class="module-header">
+                      <app-icon name="book-open" size="xs" />
+                      <span class="module-title">{{ module.title }}</span>
+                    </div>
+                    <div class="lessons-list">
+                      @for (lesson of module.lessons; track lesson.id) {
+                        <a 
+                          [routerLink]="['/student/courses', course.id, 'lessons', lesson.id]"
+                          class="lesson-item"
+                          [class.completed]="lesson.completed">
+                          <span class="lesson-title">{{ lesson.title }}</span>
+                          @if (lesson.completed) {
+                            <app-icon name="check-circle" size="xs" class="check-icon" />
+                          }
+                        </a>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            }
           }
         </div>
       }
@@ -159,24 +127,21 @@
         <div class="courses-list">
           @for (course of recentCompleted(); track course.id) {
         <div class="course-card-wrapper">
-          <!-- Top Section: Metadata -->
+          <!-- Partner Logo -->
+          <div class="partner-logo">
+            <app-icon name="academic-cap" size="sm" />
+          </div>
+
+          <!-- Course Metadata -->
           <div class="course-metadata">
-            <!-- Partner Logo & Name -->
             <div class="partner-info">
-              <div class="partner-logo">
-                <app-icon name="academic-cap" size="sm" />
-              </div>
               <span class="partner-name">{{ course.partner }}</span>
             </div>
-
-            <!-- Course Title -->
             <h3 class="course-title">
               <a [routerLink]="['/student/course', course.id]">
                 {{ course.title }}
               </a>
             </h3>
-
-            <!-- Course Meta -->
             <div class="course-meta">
               <span>Khóa học</span>
               <span class="separator">·</span>
@@ -186,81 +151,52 @@
                 <span class="estimated">Dự kiến: {{ course.estimatedCompletion }}</span>
               }
             </div>
-
-            <!-- Thin Progress Bar -->
-            <div class="progress-bar-thin">
-              <div class="progress-fill" [style.width.%]="course.progress"></div>
-            </div>
           </div>
 
-          <!-- Bottom Section: Next Item & Actions -->
-          <div class="course-actions-section">
-            <!-- Expandable Next Item -->
-            <div class="next-item-expandable" (click)="toggleModules(course.id)">
-              <div class="next-item-header">
-                <div class="next-item-info">
-                  <app-icon 
-                    [name]="course.nextItem.type === 'Video' ? 'play' : course.nextItem.type === 'Quiz' ? 'clipboard-document-check' : 'check-circle'" 
-                    size="sm" 
-                  />
-                  <div class="next-item-text">
-                    <p class="next-item-title">{{ course.nextItem.title }}</p>
-                    <p class="next-item-meta">
-                      {{ course.nextItem.type }}
-                      @if (course.nextItem.duration) {
-                        <span> ({{ course.nextItem.duration }})</span>
-                      }
-                    </p>
-                  </div>
-                </div>
-                <app-icon 
-                  [name]="course.showModules ? 'chevron-up' : 'chevron-down'" 
-                  size="sm" 
-                />
-              </div>
+          <!-- Action Buttons -->
+          <div class="action-buttons">
+            <app-button 
+              variant="primary" 
+              (clicked)="continueCourse(course.id)">
+              {{ course.status === 'completed' ? 'Xem lại' : 'Tiếp tục học' }}
+            </app-button>
+            <button class="dropdown-button" (click)="toggleModules(course.id)" aria-label="Show lessons">
+              <app-icon [name]="course.showModules ? 'chevron-up' : 'chevron-down'" size="sm" />
+            </button>
+          </div>
 
-              <!-- Modules Dropdown -->
-              @if (course.showModules && course.modules && course.modules.length > 0) {
-                <div class="modules-dropdown" (click)="$event.stopPropagation()">
-                  @for (module of course.modules; track module.id) {
-                    <div class="module-item">
-                      <div class="module-header">
-                        <app-icon name="book-open" size="xs" />
-                        <span class="module-title">{{ module.title }}</span>
-                      </div>
-                      <div class="lessons-list">
-                        @for (lesson of module.lessons; track lesson.id) {
-                          <a 
-                            [routerLink]="['/student/courses', course.id, 'lessons', lesson.id]"
-                            class="lesson-item"
-                            [class.completed]="lesson.completed">
-                            <span class="lesson-title">{{ lesson.title }}</span>
-                            @if (lesson.completed) {
-                              <app-icon name="check-circle" size="xs" class="check-icon" />
-                            }
-                          </a>
-                        }
-                      </div>
-                    </div>
-                  }
-                </div>
-              }
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="action-buttons">
-              <app-button 
-                variant="primary" 
-                [fullWidth]="true"
-                (clicked)="continueCourse(course.id)">
-                {{ course.status === 'completed' ? 'Xem lại' : 'Tiếp tục học' }}
-              </app-button>
-              <button class="menu-button" aria-label="More options">
-                <app-icon name="ellipsis-vertical" size="sm" />
-              </button>
-            </div>
+          <!-- Progress Bar -->
+          <div class="progress-bar-thin">
+            <div class="progress-fill" [style.width.%]="course.progress"></div>
           </div>
         </div>
+
+        <!-- Modules Dropdown -->
+        @if (course.showModules && course.modules && course.modules.length > 0) {
+          <div class="modules-dropdown">
+            @for (module of course.modules; track module.id) {
+              <div class="module-item">
+                <div class="module-header">
+                  <app-icon name="book-open" size="xs" />
+                  <span class="module-title">{{ module.title }}</span>
+                </div>
+                <div class="lessons-list">
+                  @for (lesson of module.lessons; track lesson.id) {
+                    <a 
+                      [routerLink]="['/student/courses', course.id, 'lessons', lesson.id]"
+                      class="lesson-item"
+                      [class.completed]="lesson.completed">
+                      <span class="lesson-title">{{ lesson.title }}</span>
+                      @if (lesson.completed) {
+                        <app-icon name="check-circle" size="xs" class="check-icon" />
+                      }
+                    </a>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
       }
         </div>
       }
