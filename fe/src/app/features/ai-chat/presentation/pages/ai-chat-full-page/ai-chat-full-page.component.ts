@@ -65,6 +65,8 @@ import { SessionManagementService } from '../../../application/services/session-
           class="chat-content"
           [messages]="chatService.messages()"
           [isLoading]="chatService.isLoading()"
+          [isStreaming]="chatService.isStreaming()"
+          [streamingThinking]="chatService.streamingThinking()"
           [suggestedQuestions]="chatService.suggestedQuestions()"
           (sendMessage)="onSendMessage($event)"
           (selectSuggestion)="onSelectSuggestion($event)"

@@ -55,10 +55,11 @@ app:
     refresh-expiration: 604800000  # 7 days in milliseconds
 
 # AI Service Configuration
+# Updated: 10/12/2025 - API Key từ Team AI
 ai:
   service:
     url: ${AI_SERVICE_URL:https://maritime-ai-chatbot.onrender.com}
-    api-key: ${AI_SERVICE_API_KEY:secret_key_cho_team_lms}
+    api-key: ${AI_SERVICE_API_KEY:maritime-lms-prod-2024}
     timeout: ${AI_SERVICE_TIMEOUT:90}  # seconds
     retry:
       max-attempts: ${AI_SERVICE_RETRY_MAX:2}

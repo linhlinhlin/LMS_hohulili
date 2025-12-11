@@ -3,7 +3,7 @@
  * Handles communication with the AI chatbot via LMS Backend
  */
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpHeaders, HttpErrorResponse, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, throwError, of } from 'rxjs';
 import { catchError, map, timeout, tap } from 'rxjs/operators';
@@ -16,6 +16,7 @@ import {
   SessionDetail,
   HealthStatus,
   HistoryResponse,
+  StreamEvent,
 } from '../../domain/types';
 
 /**
@@ -192,6 +193,293 @@ export class ChatApiClient {
         map(() => void 0),
         catchError((error) => this.handleError(error))
       );
+  }
+
+  /**
+   * Test streaming endpoint - for debugging SSE parsing
+   * Call this to verify frontend can receive and parse SSE events
+   */
+  async *testStream(): AsyncGenerator<StreamEvent, void, unknown> {
+    console.log('🧪 Testing SSE stream...');
+
+    const token = typeof window !== 'undefined'
+      ? localStorage.getItem('lms_access_token')
+      : null;
+
+    const headers: Record<string, string> = {
+      'Accept': 'text/event-stream',
+    };
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${AI_CHAT_CONFIG.baseUrl}/chat/stream/test`, {
+      method: 'GET',
+      headers,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Test stream error: ${response.status}`);
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new Error('No response body');
+    }
+
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let currentEventType: string | null = null;
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          const trimmedLine = line.trim();
+          if (!trimmedLine) continue;
+
+          if (trimmedLine.startsWith('event:')) {
+            currentEventType = trimmedLine.slice(6).trim();
+            console.log('🧪 Test event type:', currentEventType);
+            continue;
+          }
+
+          if (trimmedLine.startsWith('data:')) {
+            const data = trimmedLine.slice(5).trim();
+            if (data) {
+              try {
+                const parsed = JSON.parse(data);
+                const eventType = currentEventType || 'answer';
+                console.log('🧪 Test event:', eventType, parsed);
+                yield { type: eventType as StreamEvent['type'], ...parsed };
+              } catch {
+                console.log('🧪 Test raw data:', data);
+                yield { type: currentEventType as StreamEvent['type'] || 'answer', content: data } as StreamEvent;
+              }
+              currentEventType = null;
+            }
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+    console.log('🧪 Test stream completed');
+  }
+
+  /**
+   * Stream chat response using Server-Sent Events (SSE)
+   * Returns an async generator that yields SSE events
+   * 
+   * Events:
+   * - thinking: AI reasoning process
+   * - answer: Response chunks
+   * - sources: Source citations
+   * - suggested_questions: Follow-up questions
+   * - metadata: Processing info
+   * - done: Stream completed
+   * - error: Error occurred
+   */
+  async *streamChat(
+    message: string,
+    sessionId?: string,
+    context?: ChatContext
+  ): AsyncGenerator<StreamEvent, void, unknown> {
+    const request = {
+      message,
+      ...(sessionId ? { sessionId } : {}),
+      context,
+    };
+
+    // Get auth token from localStorage (same as auth interceptor)
+    const token = typeof window !== 'undefined'
+      ? localStorage.getItem('lms_access_token')
+      : null;
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Accept': 'text/event-stream',
+    };
+
+    // Add Authorization header if token exists
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    console.log('🚀 Starting SSE stream to:', `${AI_CHAT_CONFIG.baseUrl}/chat/stream`);
+    console.log('🔑 Auth token present:', !!token);
+    console.log('📦 Request body:', JSON.stringify(request));
+
+    const response = await fetch(`${AI_CHAT_CONFIG.baseUrl}/chat/stream`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(request),
+      credentials: 'include', // Include cookies for auth
+    });
+
+    if (!response.ok) {
+      console.error('❌ Stream response error:', response.status, response.statusText);
+      if (response.status === 401) {
+        this.router.navigate(['/login']);
+        throw new Error('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại');
+      }
+      if (response.status === 403) {
+        throw new Error('Bạn không có quyền truy cập tính năng này');
+      }
+      throw new Error(`Lỗi kết nối streaming: ${response.status}`);
+    }
+
+    console.log('✅ SSE stream connected');
+
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new Error('No response body');
+    }
+
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let currentEventType: string | null = null; // Track event type from "event:" line
+
+    let receivedDoneEvent = false;
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          console.log('📭 SSE stream ended (reader done)');
+          // If we didn't receive a 'done' event, yield one to ensure proper cleanup
+          if (!receivedDoneEvent) {
+            console.log('📭 Yielding synthetic done event');
+            yield { type: 'done' as StreamEvent['type'] };
+          }
+          break;
+        }
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          const trimmedLine = line.trim();
+
+          // Log ALL raw lines for debugging
+          if (trimmedLine) {
+            console.log('📜 RAW SSE LINE:', trimmedLine.substring(0, 200));
+          }
+
+          // Skip empty lines (SSE event separator)
+          if (!trimmedLine) {
+            continue;
+          }
+
+          if (trimmedLine.startsWith('event:')) {
+            // Capture event type for the next data line
+            currentEventType = trimmedLine.slice(6).trim();
+            console.log('📨 SSE event type:', currentEventType);
+            // IMPORTANT: Check if this is sources event
+            if (currentEventType === 'sources') {
+              console.log('🎯🎯🎯 SOURCES EVENT TYPE DETECTED FROM event: LINE! 🎯🎯🎯');
+            }
+            // Check for done event type
+            if (currentEventType === 'done') {
+              console.log('✅✅✅ DONE EVENT TYPE DETECTED FROM event: LINE! ✅✅✅');
+            }
+            continue;
+          }
+
+          if (trimmedLine.startsWith('data:')) {
+            const data = trimmedLine.slice(5).trim();
+            if (data) {
+              try {
+                const parsed = JSON.parse(data);
+
+                // IMPORTANT: AI Service sends sources/questions/metadata in "answer" events
+                // So we MUST check content FIRST, then fall back to event type
+
+                // Content-based detection ALWAYS runs first for special data types
+                let eventType: string | null = null;
+
+                // Check for sources array - HIGHEST PRIORITY
+                if (parsed.sources && Array.isArray(parsed.sources) && parsed.sources.length > 0) {
+                  eventType = 'sources';
+                  console.log('🎯🎯🎯 SOURCES detected from content!', parsed.sources.length, 'sources');
+                }
+                // Check for questions array
+                else if (parsed.questions && Array.isArray(parsed.questions) && parsed.questions.length > 0) {
+                  eventType = 'suggested_questions';
+                  console.log('❓ QUESTIONS detected from content!', parsed.questions.length, 'questions');
+                }
+                // Check for metadata fields
+                else if (parsed.processing_time !== undefined && parsed.model !== undefined) {
+                  eventType = 'metadata';
+                  console.log('📊 METADATA detected from content!');
+                }
+                // Check for done event - multiple ways Backend AI might signal completion:
+                // 1. event: done line (currentEventType)
+                // 2. parsed.type === 'done'
+                // 3. parsed.status === 'complete' (Backend AI format)
+                else if (currentEventType === 'done' || parsed.type === 'done' || parsed.status === 'complete') {
+                  eventType = 'done';
+                  console.log('✅ DONE EVENT detected!', { currentEventType, parsedType: parsed.type, status: parsed.status });
+                }
+                // Check for error event
+                else if (currentEventType === 'error' || parsed.type === 'error') {
+                  eventType = 'error';
+                }
+                // Fall back to event type from "event:" line or parsed.type
+                else {
+                  eventType = currentEventType || parsed.type || 'answer';
+                }
+
+                // Log sources detection
+                if (eventType === 'sources') {
+                  console.log('🎯🎯🎯 SOURCES EVENT WILL BE YIELDED! 🎯🎯🎯', {
+                    eventType,
+                    currentEventType,
+                    parsedType: parsed.type,
+                    sourcesCount: parsed.sources?.length
+                  });
+                }
+
+                // Log ALL events for debugging
+                console.log('📤 YIELDING EVENT:', eventType, JSON.stringify(parsed).substring(0, 200));
+
+                // Track if we received done event
+                if (eventType === 'done') {
+                  receivedDoneEvent = true;
+                }
+
+                // IMPORTANT: Put type AFTER spread to ensure our detected type is used
+                // If parsed has a "type" field, spread would override our detected type
+                const event: StreamEvent = {
+                  ...parsed,
+                  type: eventType as StreamEvent['type'],  // Our detected type takes priority
+                };
+
+                console.log('📦 SSE event:', eventType, 'event.type:', event.type);
+                yield event;
+              } catch {
+                // Not JSON, yield as raw text with event type
+                const eventType = currentEventType || 'answer';
+                console.log('📝 SSE raw data:', eventType, data);
+                yield { type: eventType as StreamEvent['type'], content: data } as StreamEvent;
+              }
+              // Reset event type after processing data
+              currentEventType = null;
+            }
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
   }
 
   /**

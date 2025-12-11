@@ -1,8 +1,10 @@
 package com.example.lms.controller;
 
 import com.example.lms.dto.ai.*;
+import com.example.lms.dto.ai.external.AIServiceRequest;
 import com.example.lms.entity.User;
 import com.example.lms.service.ai.AIChatService;
+import com.example.lms.service.ai.AIStreamClient;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -12,9 +14,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Flux;
 
 import java.util.UUID;
 
@@ -32,9 +37,11 @@ public class AIChatController {
     private static final Logger log = LoggerFactory.getLogger(AIChatController.class);
     
     private final AIChatService aiChatService;
+    private final AIStreamClient aiStreamClient;
     
-    public AIChatController(AIChatService aiChatService) {
+    public AIChatController(AIChatService aiChatService, AIStreamClient aiStreamClient) {
         this.aiChatService = aiChatService;
+        this.aiStreamClient = aiStreamClient;
     }
     
     /**
@@ -130,5 +137,91 @@ public class AIChatController {
         response.put("timestamp", java.time.Instant.now().toString());
         response.put("service", "LMS AI Proxy");
         return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * Streaming chat endpoint - SSE (Server-Sent Events)
+     * Trả về response từng chunk như ChatGPT/Claude
+     * 
+     * Events:
+     * - thinking: AI reasoning process
+     * - answer: Response chunks
+     * - sources: Source citations
+     * - suggested_questions: Follow-up questions
+     * - metadata: Processing info
+     * - done: Stream completed
+     * - error: Error occurred
+     */
+    @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(summary = "Streaming chat với AI (SSE)")
+    @SecurityRequirement(name = "Bearer Authentication")
+    public Flux<ServerSentEvent<String>> chatStream(
+            @Valid @RequestBody ChatRequestDTO request,
+            @AuthenticationPrincipal User currentUser
+    ) {
+        log.info("AI Streaming chat request from user: {}, message: {}", 
+            currentUser.getEmail(), request.message());
+        
+        // Build AI Service request
+        String role = currentUser.getRole() != null 
+            ? currentUser.getRole().name().toLowerCase() 
+            : "student";
+        
+        AIServiceRequest aiRequest = AIServiceRequest.create(
+            currentUser.getId().toString(),
+            request.message(),
+            role,
+            request.sessionId() != null ? request.sessionId().toString() : null,
+            null // context
+        );
+        
+        // Try ParameterizedTypeReference method first, fallback to raw if needed
+        return aiStreamClient.streamChatSSE(aiRequest)
+            .doOnSubscribe(s -> log.info("Stream started for user: {}", currentUser.getEmail()))
+            .doOnNext(sse -> log.info("Forwarding SSE event: type={}", sse.event()))
+            .doOnComplete(() -> log.info("Stream completed for user: {}", currentUser.getEmail()))
+            .doOnError(e -> log.error("Stream error for user {}: {}", currentUser.getEmail(), e.getMessage()))
+            .onErrorResume(e -> {
+                log.warn("SSE parsing failed, trying raw method: {}", e.getMessage());
+                return aiStreamClient.streamChatRaw(aiRequest);
+            });
+    }
+    
+    /**
+     * Test streaming endpoint - PUBLIC (for debugging)
+     * Returns fake SSE events to test frontend parsing
+     */
+    @GetMapping(value = "/chat/stream/test", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(summary = "Test streaming endpoint")
+    public Flux<ServerSentEvent<String>> testStream() {
+        log.info("Test streaming endpoint called");
+        
+        return Flux.interval(java.time.Duration.ofMillis(500))
+            .take(10)
+            .map(i -> {
+                String eventType;
+                String data;
+                
+                if (i == 0) {
+                    eventType = "thinking";
+                    data = "{\"content\": \"Đang phân tích câu hỏi...\"}";
+                } else if (i < 8) {
+                    eventType = "answer";
+                    data = "{\"content\": \"Đây là chunk " + i + " của câu trả lời. \"}";
+                } else if (i == 8) {
+                    eventType = "sources";
+                    data = "{\"sources\": [{\"title\": \"Test Source\", \"content\": \"Test content\"}]}";
+                } else {
+                    eventType = "done";
+                    data = "{}";
+                }
+                
+                log.debug("Sending test event: type={}", eventType);
+                return ServerSentEvent.<String>builder()
+                    .event(eventType)
+                    .data(data)
+                    .build();
+            })
+            .doOnComplete(() -> log.info("Test stream completed"));
     }
 }

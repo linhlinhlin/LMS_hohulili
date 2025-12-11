@@ -3,26 +3,39 @@ import { CommonModule } from '@angular/common';
 import { ChatMessage } from '../../../domain/types';
 import { ChatMessageComponent } from '../chat-message/chat-message.component';
 import { ChatMessageInputComponent } from '../chat-message-input/chat-message-input.component';
+import { SourceCitationComponent } from '../source-citation/source-citation.component';
+import { SourcePanelComponent } from '../source-panel/source-panel.component';
 
 @Component({
   selector: 'app-chat-main-area',
   standalone: true,
-  imports: [CommonModule, ChatMessageComponent, ChatMessageInputComponent],
+  imports: [CommonModule, ChatMessageComponent, ChatMessageInputComponent, SourceCitationComponent, SourcePanelComponent],
   template: `
-    <div class="chat-area">
-      <!-- Scrollable Messages Area -->
-      <div class="messages-scroll" #scrollContainer>
-        <div class="messages-inner">
-          <ng-container *ngIf="messages.length > 0; else welcomeTemplate">
-            <app-chat-message
-              *ngFor="let msg of messages"
-              [message]="msg"
-              (retry)="onRetry(msg)"
-              (regenerate)="onRegenerate(msg)"
-            ></app-chat-message>
+    <div class="chat-container">
+      <!-- Main Chat Area -->
+      <div class="chat-area">
+        <!-- Scrollable Messages Area -->
+        <div class="messages-scroll" #scrollContainer>
+          <div class="messages-inner">
+            <ng-container *ngIf="messages.length > 0; else welcomeTemplate">
+              <!-- Each message with its source citation directly below -->
+              <ng-container *ngFor="let msg of messages; let i = index">
+              <app-chat-message
+                [message]="msg"
+                [isStreaming]="isStreaming && i === messages.length - 1"
+                [streamingThinking]="i === messages.length - 1 ? streamingThinking : ''"
+                (retry)="onRetry(msg)"
+                (regenerate)="onRegenerate(msg)"
+              ></app-chat-message>
+              <!-- Source Citations - Displayed directly after its AI message -->
+              <app-source-citation 
+                *ngIf="msg.sender === 'ai' && msg.metadata?.sources?.length"
+                [sources]="msg.metadata!.sources!"
+              ></app-source-citation>
+            </ng-container>
             
-            <!-- Loading Indicator -->
-            <div *ngIf="isLoading" class="thinking-indicator">
+            <!-- Loading Indicator - Only show when loading AND NOT streaming -->
+            <div *ngIf="isLoading && !isStreaming" class="thinking-indicator">
               <div class="thinking-avatar">
                 <svg class="avatar-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M12 2L13.09 8.26L19 6L14.74 10.91L21 12L14.74 13.09L19 18L13.09 15.74L12 22L10.91 15.74L5 18L9.26 13.09L3 12L9.26 10.91L5 6L10.91 8.26L12 2Z" fill="currentColor"/>
@@ -148,6 +161,10 @@ import { ChatMessageInputComponent } from '../chat-message-input/chat-message-in
           AI có thể mắc lỗi. Hãy kiểm tra lại thông tin quan trọng với các nguồn chính thức.
         </div>
       </div>
+      </div>
+
+      <!-- Source Panel Sidebar - Inline -->
+      <app-source-panel></app-source-panel>
     </div>
   `,
   styles: [`
@@ -157,11 +174,20 @@ import { ChatMessageInputComponent } from '../chat-message-input/chat-message-in
       overflow: hidden;
     }
 
+    .chat-container {
+      display: flex;
+      height: 100%;
+      width: 100%;
+    }
+
     .chat-area {
+      flex: 1;
+      min-width: 0;
       display: flex;
       flex-direction: column;
       height: 100%;
       background: #F8FAFC;
+      transition: flex 0.3s ease;
     }
 
     /* ===== SCROLLABLE MESSAGES ===== */
@@ -451,6 +477,8 @@ import { ChatMessageInputComponent } from '../chat-message-input/chat-message-in
 export class ChatMainAreaComponent implements AfterViewChecked, OnChanges, OnDestroy {
   @Input() messages: ChatMessage[] = [];
   @Input() isLoading: boolean = false;
+  @Input() isStreaming: boolean = false;
+  @Input() streamingThinking: string = '';
   @Input() suggestedQuestions: string[] = [];
 
   @Output() sendMessage = new EventEmitter<string>();

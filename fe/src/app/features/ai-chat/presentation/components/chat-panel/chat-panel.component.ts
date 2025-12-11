@@ -78,13 +78,16 @@ import { SuggestedQuestionsComponent } from '../suggested-questions/suggested-qu
             <p>Tôi là trợ lý AI chuyên về hàng hải. Hãy hỏi tôi về COLREGs, luật hàng hải, hoặc bất kỳ chủ đề nào liên quan!</p>
           </div>
         } @else {
-          @for (message of chatService.messages(); track message.id) {
+          @for (message of chatService.messages(); track message.id; let i = $index) {
             <app-chat-message
               [message]="message"
+              [isStreaming]="chatService.isStreaming() && i === chatService.messages().length - 1"
+              [streamingThinking]="i === chatService.messages().length - 1 ? chatService.streamingThinking() : ''"
               (retry)="onRetry()"
             />
           }
         }
+
 
         @if (chatService.isTyping()) {
           <app-typing-indicator />

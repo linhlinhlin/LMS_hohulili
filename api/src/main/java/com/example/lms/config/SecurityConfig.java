@@ -100,8 +100,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/messages/**").hasAnyRole("ADMIN", "TEACHER", "STUDENT")
                         
                         // AI Chat endpoints
-                        // Public: health check và ping
-                        .requestMatchers("/api/v1/ai/health", "/api/v1/ai/ping").permitAll()
+                        // Public: health check, ping, và test streaming
+                        .requestMatchers("/api/v1/ai/health", "/api/v1/ai/ping", "/api/v1/ai/chat/stream/test").permitAll()
                         // Admin only: Knowledge management và History management
                         .requestMatchers("/api/v1/ai/admin/**").hasRole("ADMIN")
                         // Protected: chat và session management (yêu cầu authentication)

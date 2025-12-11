@@ -11,15 +11,15 @@ import java.util.UUID;
 
 /**
  * Entity lưu trữ tin nhắn trong phiên chat AI.
- * Chuẩn bị sẵn cho tích hợp AI Chatbot Backend Proxy.
+ * Hỗ trợ lưu trữ analytics data từ AI Service.
  * 
- * Note: Entity này được tạo trước để chuẩn bị infrastructure.
- * Sẽ được sử dụng khi team AI Backend hoàn thành điều chỉnh.
+ * Updated: 10/12/2025 - Thêm analytics columns theo yêu cầu từ Team AI
  */
 @Entity
 @Table(name = "chat_messages", indexes = {
     @Index(name = "idx_chat_message_session", columnList = "session_id"),
-    @Index(name = "idx_chat_message_created", columnList = "created_at")
+    @Index(name = "idx_chat_message_created", columnList = "created_at"),
+    @Index(name = "idx_chat_message_query_type", columnList = "query_type")
 })
 @Data
 @Builder
@@ -49,7 +49,7 @@ public class ChatMessage {
 
     /**
      * JSON array of sources từ AI response.
-     * Format: [{"title": "...", "content": "...", "url": "..."}]
+     * Format: [{"title": "...", "content": "...", "imageUrl": "...", "boundingBoxes": [...]}]
      */
     @Column(name = "sources", columnDefinition = "TEXT")
     private String sources;
@@ -65,6 +65,39 @@ public class ChatMessage {
      */
     @Column(name = "ai_model", length = 100)
     private String aiModel;
+
+    // ========== Analytics Fields (Added 10/12/2025) ==========
+    
+    /**
+     * JSON array of topics accessed in this message.
+     * Extracted từ source titles bởi AI Service.
+     * Example: ["Điều 15", "Chủ tàu", "Luật Hàng hải 2015"]
+     */
+    @Column(name = "topics_accessed", columnDefinition = "TEXT")
+    private String topicsAccessed;
+
+    /**
+     * AI confidence score for this response (0.5-1.0).
+     * Dựa trên số sources tìm được và relevance.
+     */
+    @Column(name = "confidence_score")
+    private Double confidenceScore;
+
+    /**
+     * JSON array of document IDs used for RAG.
+     * Example: ["luat-hang-hai-2015-p1", "colregs-2024"]
+     */
+    @Column(name = "document_ids_used", columnDefinition = "TEXT")
+    private String documentIdsUsed;
+
+    /**
+     * Type of query classification.
+     * Values: "factual", "conceptual", "procedural"
+     */
+    @Column(name = "query_type", length = 50)
+    private String queryType;
+
+    // ========== Timestamps ==========
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;

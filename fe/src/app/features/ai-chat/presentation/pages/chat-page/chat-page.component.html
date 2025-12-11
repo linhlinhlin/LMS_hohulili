@@ -92,11 +92,16 @@
         } @else {
           <!-- Messages List -->
           <div class="messages-list">
-            @for (message of chatService.messages(); track message.id) {
+            @for (message of chatService.messages(); track message.id; let isLast = $last) {
               <app-chat-message
                 [message]="message"
+                [isStreaming]="isLast && message.sender === 'ai' && chatService.isStreaming()"
+                [streamingThinking]="isLast && message.sender === 'ai' ? chatService.streamingThinking() : ''"
                 (retry)="onRetry()"
               />
+              <!-- Show sources when available - even during streaming -->
+              <!-- Sources are received before stream ends, so show them immediately -->
+              <!-- DEBUG: message.metadata?.sources?.length = {{ message.metadata?.sources?.length || 0 }} -->
               @if (message.sender === 'ai' && message.metadata?.sources?.length) {
                 <app-source-citation [sources]="message.metadata!.sources!" />
               }

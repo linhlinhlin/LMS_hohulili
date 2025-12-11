@@ -13,7 +13,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ChatMessage } from '../../../domain/types';
-import { renderMarkdown } from '../../../utils/markdown-renderer.util';
+import { renderMarkdown, parseAIResponse } from '../../../utils/markdown-renderer.util';
 import { getMessageAlignment } from '../../../domain/entities/chat-message.entity';
 import { ChatToastService } from '../chat-toast/chat-toast.component';
 
@@ -21,6 +21,7 @@ import { ChatToastService } from '../chat-toast/chat-toast.component';
   selector: 'app-chat-message',
   standalone: true,
   imports: [CommonModule],
+  // Note: isStreaming input added for typewriter effect
   template: `
     <div
       class="chat-message"
@@ -44,38 +45,89 @@ import { ChatToastService } from '../chat-toast/chat-toast.component';
       <!-- Message Content -->
       <div class="message-content">
         <div class="message-bubble">
-          <!-- Main Content -->
-          <div [innerHTML]="renderedContent()"></div>
-
-          <!-- Sources (AI only) -->
-          @if (!isUserMessage() && hasSources()) {
-            <div class="sources-container">
-              <div class="sources-header" (click)="toggleSources()">
-                <span class="sources-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
-                  </svg>
-                </span>
-                <span class="sources-title">Nguồn tham khảo ({{ sources().length }})</span>
-                <span class="sources-toggle">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" [style.transform]="showSources() ? 'rotate(180deg)' : 'rotate(0)'">
-                    <path d="M19 9l-7 7-7-7"/>
-                  </svg>
-                </span>
+          <!-- Thinking Section (AI only) - Qwen Style -->
+          <!-- Show when: 1) streaming AND has thinking, OR 2) has thinking content after streaming -->
+          <!-- Don't show empty thinking panel when streaming without thinking content -->
+          @if (!isUserMessage() && hasThinking()) {
+            <div class="thinking-panel">
+              <div class="thinking-header" (click)="toggleThinking($event)">
+                <div class="thinking-header-left">
+                  <span class="thinking-status-icon">
+                    @if (isStreaming()) {
+                      <svg class="thinking-spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" stroke-dasharray="60" stroke-dashoffset="20"/>
+                      </svg>
+                    } @else {
+                      <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                      </svg>
+                    }
+                  </span>
+                  <span class="thinking-title">
+                    @if (isStreaming()) {
+                      Đang suy luận...
+                    } @else {
+                      Suy luận hoàn tất
+                    }
+                  </span>
+                </div>
+                <svg class="thinking-chevron" [class.open]="showThinking()" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M19 9l-7 7-7-7"/>
+                </svg>
               </div>
-              
-              @if (showSources()) {
-                <div class="sources-list">
-                  @for (source of sources(); track $index) {
-                    <div class="source-card">
-                      <div class="source-title">{{ source.title }}</div>
-                      <div class="source-snippet">{{ source.content }}</div>
+              @if (showThinking()) {
+                <div class="thinking-steps">
+                  @if (thinkingSteps().length === 0) {
+                    <!-- Show placeholder when has thinking signal but no parsed steps yet -->
+                    <div class="thinking-step">
+                      <div class="step-indicator">
+                        <span class="step-check" [class.streaming]="isStreaming()">
+                          @if (isStreaming()) {
+                            <svg class="thinking-spinner-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <circle cx="12" cy="12" r="10" stroke-dasharray="60" stroke-dashoffset="20"/>
+                            </svg>
+                          } @else {
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                            </svg>
+                          }
+                        </span>
+                      </div>
+                      <div class="step-content">{{ isStreaming() ? 'Đang suy luận...' : 'Đã hoàn tất suy luận' }}</div>
                     </div>
+                  } @else {
+                    @for (step of thinkingSteps(); track $index) {
+                      <div class="thinking-step">
+                        <div class="step-indicator">
+                          <span class="step-check">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                            </svg>
+                          </span>
+                          @if ($index < thinkingSteps().length - 1) {
+                            <div class="step-line"></div>
+                          }
+                        </div>
+                        <div class="step-content" [innerHTML]="renderStepContent(step)"></div>
+                      </div>
+                    }
                   }
                 </div>
               }
             </div>
           }
+
+          <!-- Main Content -->
+          <div class="main-content-wrapper">
+            <div [innerHTML]="renderedContent()"></div>
+            <!-- Streaming cursor (shows during typewriter effect) -->
+            @if (isStreaming()) {
+              <span class="streaming-cursor"></span>
+            }
+          </div>
+
+          <!-- Sources are displayed by app-source-citation component in chat-page -->
+          <!-- This component focuses on message content and thinking panel -->
         </div>
 
         <!-- Metadata & Actions -->
@@ -235,6 +287,139 @@ import { ChatToastService } from '../chat-toast/chat-toast.component';
       border: 1px solid #fecaca;
       padding: 12px 16px;
       border-radius: 12px;
+    }
+
+    /* ===== THINKING PANEL (Qwen Style) ===== */
+    .thinking-panel {
+      margin-bottom: 16px;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #fafafa;
+    }
+
+    .thinking-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.2s ease;
+    }
+
+    .thinking-header:hover {
+      background: #f3f4f6;
+    }
+
+    .thinking-header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .thinking-status-icon {
+      width: 20px;
+      height: 20px;
+      color: #10b981;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .thinking-status-icon svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .thinking-spinner {
+      animation: spin 1s linear infinite;
+      color: #6b7280;
+    }
+
+    .thinking-spinner-small {
+      width: 14px;
+      height: 14px;
+      animation: spin 1s linear infinite;
+      color: #6b7280;
+    }
+
+    .step-check.streaming {
+      background: #f3f4f6;
+      color: #6b7280;
+    }
+
+    .thinking-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: #374151;
+    }
+
+    .thinking-chevron {
+      width: 16px;
+      height: 16px;
+      color: #9ca3af;
+      transition: transform 0.2s ease;
+    }
+
+    .thinking-chevron.open {
+      transform: rotate(180deg);
+    }
+
+    .thinking-steps {
+      padding: 0 16px 16px;
+    }
+
+    .thinking-step {
+      display: flex;
+      gap: 12px;
+    }
+
+    .step-indicator {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .step-check {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #dcfce7;
+      color: #16a34a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .step-check svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    .step-line {
+      width: 2px;
+      flex: 1;
+      min-height: 16px;
+      background: #e5e7eb;
+      margin: 4px 0;
+    }
+
+    .step-content {
+      flex: 1;
+      padding: 2px 0 16px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #4b5563;
+    }
+
+    .step-content :global(p) {
+      margin: 0;
+    }
+
+    .thinking-step:last-child .step-content {
+      padding-bottom: 0;
     }
 
     /* Sources Styles */
@@ -641,6 +826,31 @@ import { ChatToastService } from '../chat-toast/chat-toast.component';
       border-radius: 8px;
       margin: 16px 0;
     }
+
+    /* ===== STREAMING CURSOR (ChatGPT-like) ===== */
+    .main-content-wrapper {
+      display: inline;
+    }
+
+    .streaming-cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1em;
+      background: #6b7280;
+      margin-left: 2px;
+      vertical-align: text-bottom;
+      animation: blink-cursor 0.8s ease-in-out infinite;
+      border-radius: 1px;
+    }
+
+    @keyframes blink-cursor {
+      0%, 50% {
+        opacity: 1;
+      }
+      51%, 100% {
+        opacity: 0;
+      }
+    }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -649,6 +859,8 @@ export class ChatMessageComponent {
 
   // Inputs
   message = input.required<ChatMessage>();
+  isStreaming = input<boolean>(false); // For typewriter cursor effect
+  streamingThinking = input<string>(''); // For real-time thinking display
 
   // Outputs
   retry = output<void>();
@@ -657,7 +869,27 @@ export class ChatMessageComponent {
 
   // Signals
   isRetrying = signal(false);
-  showSources = signal(false);
+  private _showThinking = signal(false);
+
+  // Auto-expand thinking panel when streaming OR has thinking content
+  // User can manually collapse/expand
+  showThinking = computed(() => {
+    // If user manually toggled, respect that choice
+    const userPref = this._showThinking();
+
+    // Auto-expand during streaming (to show "Đang suy luận...")
+    if (this.isStreaming()) {
+      return true;
+    }
+
+    // Auto-expand if has thinking content (first time)
+    if (this.hasThinking()) {
+      return true;
+    }
+
+    // Otherwise use user preference
+    return userPref;
+  });
 
   // Computed
   isUserMessage = computed(() => this.message().sender === 'user');
@@ -667,9 +899,64 @@ export class ChatMessageComponent {
   sources = computed(() => this.message().metadata?.sources || []);
   hasSources = computed(() => this.sources().length > 0);
 
-  renderedContent = computed(() => {
+  // Get thinking from metadata (preferred), streaming input, or parse from content (fallback)
+  parsedResponse = computed(() => {
     const content = this.message().content;
-    return this.isUserMessage() ? content : renderMarkdown(content);
+    const metadata = this.message().metadata;
+    const streamThinking = this.streamingThinking();
+
+    if (this.isUserMessage()) {
+      return { thinking: null, mainAnswer: content };
+    }
+
+    // During streaming, use streamingThinking input if available
+    if (this.isStreaming() && streamThinking) {
+      return { thinking: streamThinking, mainAnswer: content };
+    }
+
+    // Prefer thinking from metadata (new approach)
+    if (metadata?.thinking) {
+      return { thinking: metadata.thinking, mainAnswer: content };
+    }
+
+    // Fallback: parse from content for backward compatibility
+    return parseAIResponse(content);
+  });
+
+  // Has thinking if: metadata has thinking, or streaming thinking input has content
+  hasThinking = computed(() => {
+    const { thinking } = this.parsedResponse();
+    const streamThinking = this.streamingThinking();
+    return !!(thinking && thinking.trim()) || !!(streamThinking && streamThinking.trim());
+  });
+
+  // Parse thinking into steps (split by newlines or sentences)
+  thinkingSteps = computed(() => {
+    const { thinking } = this.parsedResponse();
+    if (!thinking) return [];
+
+    // Split by double newline or single newline
+    const steps = thinking
+      .split(/\n\n|\n/)
+      .map(s => s.trim())
+      .filter(s => s.length > 0);
+
+    return steps;
+  });
+
+  // Render a single thinking step
+  renderStepContent(step: string): string {
+    return renderMarkdown(step);
+  }
+
+  renderedContent = computed(() => {
+    const { mainAnswer } = this.parsedResponse();
+    return this.isUserMessage() ? mainAnswer : renderMarkdown(mainAnswer);
+  });
+
+  renderedThinking = computed(() => {
+    const { thinking } = this.parsedResponse();
+    return thinking ? renderMarkdown(thinking) : '';
   });
 
   formattedTime = computed(() => {
@@ -688,8 +975,9 @@ export class ChatMessageComponent {
     this.dismiss.emit();
   }
 
-  toggleSources(): void {
-    this.showSources.update(v => !v);
+  toggleThinking(event: Event): void {
+    event.preventDefault();
+    this._showThinking.update(v => !v);
   }
 
   onCopy(): void {

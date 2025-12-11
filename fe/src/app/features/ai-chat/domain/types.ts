@@ -33,12 +33,17 @@ export interface ChatContext {
 }
 
 /**
- * Source citation from AI response
+ * Source citation from AI response with PDF highlighting support
+ * Updated: 10/12/2025 - Added bounding boxes for source highlighting
  */
 export interface MessageSource {
   title: string;
   content: string;
   url?: string;
+  imageUrl?: string;      // URL ảnh trang PDF
+  pageNumber?: number;    // Số trang
+  documentId?: string;    // ID tài liệu
+  boundingBoxes?: BoundingBox[];  // Tọa độ highlight
 }
 
 // ============================================================================
@@ -53,6 +58,7 @@ export interface MessageMetadata {
   processingTime?: number;
   model?: string;
   agentType?: string;
+  thinking?: string; // AI reasoning process (stored separately from content)
 }
 
 /**
@@ -113,12 +119,28 @@ export interface ChatData {
 }
 
 /**
- * Source citation
+ * Bounding box for PDF highlighting
+ * Coordinates are percentages (0-100) relative to page dimensions
+ */
+export interface BoundingBox {
+  x0: number;  // Left
+  y0: number;  // Top
+  x1: number;  // Right
+  y1: number;  // Bottom
+}
+
+/**
+ * Source citation with PDF highlighting support
+ * Updated: 10/12/2025 - Added bounding boxes for source highlighting
  */
 export interface Source {
   title: string;
   content: string;
   url?: string;
+  imageUrl?: string;      // URL ảnh trang PDF
+  pageNumber?: number;    // Số trang
+  documentId?: string;    // ID tài liệu
+  boundingBoxes?: BoundingBox[];  // Tọa độ highlight
 }
 
 /**
@@ -220,6 +242,86 @@ export interface HistoryResponse {
  */
 export interface ApiError {
   status: number;
+  message: string;
+}
+
+// ============================================================================
+// Streaming API Types (SSE)
+// ============================================================================
+
+/**
+ * Stream event types from SSE endpoint
+ */
+export type StreamEventType = 'thinking_start' | 'thinking' | 'thinking_end' | 'answer' | 'sources' | 'suggested_questions' | 'metadata' | 'done' | 'error' | 'raw';
+
+/**
+ * Base stream event
+ */
+export interface StreamEvent {
+  type?: StreamEventType;
+  content?: string;
+  sources?: Source[];
+  questions?: string[];
+  processing_time?: number;
+  confidence_score?: number;
+  query_type?: string;
+  message?: string; // For error events
+}
+
+/**
+ * Thinking event - AI reasoning process
+ */
+export interface ThinkingEvent extends StreamEvent {
+  type: 'thinking';
+  content: string;
+}
+
+/**
+ * Answer event - Response chunk
+ */
+export interface AnswerEvent extends StreamEvent {
+  type: 'answer';
+  content: string;
+}
+
+/**
+ * Sources event - Citations
+ */
+export interface SourcesEvent extends StreamEvent {
+  type: 'sources';
+  sources: Source[];
+}
+
+/**
+ * Suggested questions event
+ */
+export interface SuggestedQuestionsEvent extends StreamEvent {
+  type: 'suggested_questions';
+  questions: string[];
+}
+
+/**
+ * Metadata event - Processing info
+ */
+export interface MetadataEvent extends StreamEvent {
+  type: 'metadata';
+  processing_time: number;
+  confidence_score?: number;
+  query_type?: string;
+}
+
+/**
+ * Done event - Stream completed
+ */
+export interface DoneEvent extends StreamEvent {
+  type: 'done';
+}
+
+/**
+ * Error event
+ */
+export interface ErrorEvent extends StreamEvent {
+  type: 'error';
   message: string;
 }
 

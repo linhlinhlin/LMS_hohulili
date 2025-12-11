@@ -136,10 +136,16 @@ public class AIChatService {
     }
     
     /**
-     * Lưu AI response vào database
+     * Lưu AI response vào database với đầy đủ analytics data.
+     * Updated: 10/12/2025 - Thêm analytics fields
      */
     private ChatMessage saveAIResponse(ChatSession session, AIServiceResponse response) {
         String sourcesJson = serializeSources(response.data().sources());
+        
+        // Extract analytics data from metadata
+        AIMetadataResponse metadata = response.metadata();
+        String topicsJson = serializeStringList(metadata != null ? metadata.topicsAccessed() : null);
+        String docIdsJson = serializeStringList(metadata != null ? metadata.documentIdsUsed() : null);
         
         ChatMessage message = ChatMessage.builder()
             .session(session)
@@ -147,8 +153,13 @@ public class AIChatService {
             .senderType(SenderType.AI)
             .status(MessageStatus.SENT)
             .sources(sourcesJson)
-            .processingTime(response.metadata() != null ? response.metadata().processingTime() : null)
-            .aiModel(response.metadata() != null ? response.metadata().model() : null)
+            .processingTime(metadata != null ? metadata.processingTime() : null)
+            .aiModel(metadata != null ? metadata.model() : null)
+            // Analytics fields
+            .topicsAccessed(topicsJson)
+            .confidenceScore(metadata != null ? metadata.confidenceScore() : null)
+            .documentIdsUsed(docIdsJson)
+            .queryType(metadata != null ? metadata.queryType() : null)
             .build();
         
         return messageRepository.save(message);
@@ -208,7 +219,8 @@ public class AIChatService {
     }
     
     /**
-     * Serialize sources to JSON
+     * Serialize sources to JSON với đầy đủ bounding boxes.
+     * Updated: 10/12/2025 - Sử dụng SourceDTO.fromAISource()
      */
     private String serializeSources(List<AISourceResponse> sources) {
         if (sources == null || sources.isEmpty()) {
@@ -216,7 +228,7 @@ public class AIChatService {
         }
         try {
             List<SourceDTO> sourceDTOs = sources.stream()
-                .map(s -> new SourceDTO(s.title(), s.content(), null))
+                .map(SourceDTO::fromAISource)
                 .toList();
             return objectMapper.writeValueAsString(sourceDTOs);
         } catch (JsonProcessingException e) {
@@ -226,12 +238,28 @@ public class AIChatService {
     }
     
     /**
-     * Build response DTO
+     * Serialize string list to JSON
+     */
+    private String serializeStringList(List<String> list) {
+        if (list == null || list.isEmpty()) {
+            return null;
+        }
+        try {
+            return objectMapper.writeValueAsString(list);
+        } catch (JsonProcessingException e) {
+            log.warn("Failed to serialize string list", e);
+            return null;
+        }
+    }
+    
+    /**
+     * Build response DTO với đầy đủ source data cho frontend.
+     * Updated: 10/12/2025 - Sử dụng SourceDTO.fromAISource() để include bounding boxes
      */
     private ChatResponseDTO buildChatResponse(ChatSession session, ChatMessage aiMessage, AIServiceResponse aiResponse) {
         List<SourceDTO> sources = aiResponse.data().sources() != null
             ? aiResponse.data().sources().stream()
-                .map(s -> new SourceDTO(s.title(), s.content(), null))
+                .map(SourceDTO::fromAISource)
                 .toList()
             : List.of();
         

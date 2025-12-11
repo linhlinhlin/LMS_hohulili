@@ -2,7 +2,40 @@
  * MarkdownRenderer Utility
  * Renders Markdown content to sanitized HTML
  * Supports: headings, bold, italic, lists, code blocks, links
+ * 
+ * Updated: 10/12/2025 - Added parseAIResponse for <thinking> tags handling
  */
+
+/**
+ * Parsed AI response with thinking and main answer separated
+ */
+export interface ParsedAIResponse {
+  thinking: string | null;
+  mainAnswer: string;
+}
+
+/**
+ * Parse AI response to extract <thinking> tags
+ * AI responses may contain <thinking>...</thinking> tags for reasoning process
+ * Similar to ChatGPT/Claude thinking display
+ * 
+ * @param answer - Raw AI response that may contain thinking tags
+ * @returns Object with thinking content (if any) and main answer
+ */
+export function parseAIResponse(answer: string): ParsedAIResponse {
+  if (!answer) {
+    return { thinking: null, mainAnswer: '' };
+  }
+
+  // Match <thinking>...</thinking> tags (case insensitive, multiline)
+  const thinkingMatch = answer.match(/<thinking>([\s\S]*?)<\/thinking>/i);
+  const thinking = thinkingMatch ? thinkingMatch[1].trim() : null;
+  
+  // Remove thinking tags from main answer
+  const mainAnswer = answer.replace(/<thinking>[\s\S]*?<\/thinking>/gi, '').trim();
+  
+  return { thinking, mainAnswer };
+}
 
 /**
  * Render Markdown string to HTML
@@ -37,7 +70,7 @@ export function renderMarkdown(markdown: string): string {
   // 1. Match the whole table
   const tableRegex = /^\|(.+)\|\n\|([-:| ]+)\|\n((?:\|.*\|\n?)+)/gm;
 
-  html = html.replace(tableRegex, (match, headerStr, alignStr, bodyStr) => {
+  html = html.replace(tableRegex, (_match, headerStr, alignStr, bodyStr) => {
     const headers = headerStr.split('|').map((h: string) => h.trim()).filter((h: string) => h);
     const aligns = alignStr.split('|').map((a: string) => {
       a = a.trim();
