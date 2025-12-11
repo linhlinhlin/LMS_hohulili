@@ -323,6 +323,12 @@
   border-radius: 8px;
   cursor: pointer;
   transition: background-color 0.2s;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  opacity: 1 !important;
+  visibility: visible !important;
 
   &:hover {
     background-color: #F3F4F6;
@@ -331,6 +337,19 @@
   &:focus {
     outline: none;
     box-shadow: 0 0 0 3px rgba(0, 86, 210, 0.1);
+  }
+
+  // Fallback arrow icon
+  &::after {
+    content: '←';
+    font-size: 1.25rem;
+    font-weight: bold;
+    line-height: 1;
+    color: #4B5563;
+  }
+
+  i {
+    display: none;
   }
 }
 

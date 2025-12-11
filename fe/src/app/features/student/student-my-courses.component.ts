@@ -105,21 +105,21 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
           <div class="courses-list">
             @for (course of filteredCourses(); track course.id) {
               <div class="course-card-wrapper">
-                <!-- Top Section: Metadata -->
+                <!-- Partner Logo -->
+                <div class="partner-logo">
+                  <app-icon name="academic-cap" size="sm" />
+                </div>
+
+                <!-- Course Metadata -->
                 <div class="course-metadata">
                   <div class="partner-info">
-                    <div class="partner-logo">
-                      <app-icon name="academic-cap" size="sm" />
-                    </div>
                     <span class="partner-name">LMS Maritime</span>
                   </div>
-
                   <h3 class="course-title">
                     <a [routerLink]="['/student/course', course.id]">
                       {{ course.title }}
                     </a>
                   </h3>
-
                   <div class="course-meta">
                     <span>Khóa học</span>
                     <span class="separator">·</span>
@@ -129,71 +129,52 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
                       <span class="estimated">Dự kiến: {{ course['estimatedCompletion'] }}</span>
                     }
                   </div>
-
-                  <div class="progress-bar-thin">
-                    <div class="progress-fill" [style.width.%]="course.progress"></div>
-                  </div>
                 </div>
 
-                <!-- Bottom Section: Next Item & Actions -->
-                <div class="course-actions-section">
-                  <div class="next-item-expandable" (click)="toggleModules(course.id)">
-                    <div class="next-item-header">
-                      <div class="next-item-info">
-                        <app-icon name="play" size="sm" />
-                        <div class="next-item-text">
-                          <p class="next-item-title">Tiếp theo: Bài học 1</p>
-                          <p class="next-item-meta">Video (15 phút)</p>
-                        </div>
-                      </div>
-                      <app-icon 
-                        [name]="course.showModules ? 'chevron-up' : 'chevron-down'" 
-                        size="sm" 
-                      />
-                    </div>
+                <!-- Action Buttons -->
+                <div class="action-buttons">
+                  <app-button 
+                    variant="primary" 
+                    (clicked)="resumeCourse(course.id)">
+                    {{ activeTab() === 'completed' ? 'Xem lại' : 'Tiếp tục học' }}
+                  </app-button>
+                  <button class="dropdown-button" (click)="toggleModules(course.id)" aria-label="Show lessons">
+                    <app-icon [name]="course.showModules ? 'chevron-up' : 'chevron-down'" size="sm" />
+                  </button>
+                </div>
 
-                    <!-- Modules Dropdown -->
-                    @if (course.showModules && course.modules) {
-                      <div class="modules-dropdown" (click)="$event.stopPropagation()">
-                        @for (module of course.modules; track module.id) {
-                          <div class="module-item">
-                            <div class="module-header">
-                              <app-icon name="book-open" size="xs" />
-                              <span class="module-title">{{ module.title }}</span>
-                            </div>
-                            <div class="lessons-list">
-                              @for (lesson of module.lessons; track lesson.id) {
-                                <a 
-                                  [routerLink]="['/student/course', course.id]"
-                                  class="lesson-item"
-                                  [class.completed]="lesson.completed">
-                                  <span class="lesson-title">{{ lesson.title }}</span>
-                                  @if (lesson.completed) {
-                                    <app-icon name="check-circle" size="xs" class="check-icon" />
-                                  }
-                                </a>
-                              }
-                            </div>
-                          </div>
-                        }
-                      </div>
-                    }
-                  </div>
-
-                  <!-- Action Buttons -->
-                  <div class="action-buttons">
-                    <app-button 
-                      variant="primary" 
-                      [fullWidth]="true"
-                      (clicked)="resumeCourse(course.id)">
-                      {{ activeTab() === 'completed' ? 'Xem lại' : 'Tiếp tục học' }}
-                    </app-button>
-                    <button class="menu-button" aria-label="More options">
-                      <app-icon name="ellipsis-vertical" size="sm" />
-                    </button>
-                  </div>
+                <!-- Progress Bar -->
+                <div class="progress-bar-thin">
+                  <div class="progress-fill" [style.width.%]="course.progress"></div>
                 </div>
               </div>
+
+              <!-- Modules Dropdown -->
+              @if (course.showModules && course.modules && course.modules.length > 0) {
+                <div class="modules-dropdown">
+                  @for (module of course.modules; track module.id) {
+                    <div class="module-item">
+                      <div class="module-header">
+                        <app-icon name="book-open" size="xs" />
+                        <span class="module-title">{{ module.title }}</span>
+                      </div>
+                      <div class="lessons-list">
+                        @for (lesson of module.lessons; track lesson.id) {
+                          <a 
+                            [routerLink]="['/student/courses', course.id, 'lessons', lesson.id]"
+                            class="lesson-item"
+                            [class.completed]="lesson.completed">
+                            <span class="lesson-title">{{ lesson.title }}</span>
+                            @if (lesson.completed) {
+                              <app-icon name="check-circle" size="xs" class="check-icon" />
+                            }
+                          </a>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
             }
           </div>
         }
@@ -263,16 +244,37 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
     .my-courses-container {
       display: grid;
       grid-template-columns: 1fr 300px;
-      gap: 24px;
+      gap: 16px;
       margin: 0;
-      padding: 24px;
+      padding: 0;
       background: #FAFAFA;
       min-height: 100vh;
 
       @include mobile {
         grid-template-columns: 1fr;
-        padding: 16px;
-        gap: 16px;
+        padding: 0;
+        gap: 12px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .course-card-wrapper {
+        grid-template-columns: auto 1fr;
+        grid-template-rows: auto auto auto;
+        grid-template-areas:
+          "logo metadata"
+          "logo progress"
+          "actions actions";
+        row-gap: 8px;
+        padding: 12px;
+      }
+
+      .action-buttons {
+        justify-self: stretch;
+        
+        app-button {
+          flex: 1;
+        }
       }
     }
 
@@ -283,7 +285,7 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
     /* Coursera-Style Header */
     .coursera-header {
       margin-bottom: 24px;
-      padding: 0;
+      padding: 24px 16px 16px 16px;
     }
 
     .header-content {
@@ -347,8 +349,8 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
       top: 0;
       z-index: 10;
       background: #FAFAFA;
-      padding: 16px 0;
-      margin: 0 0 24px 0;
+      padding: 0 16px 16px 16px;
+      margin: 0 0 16px 0;
       border-bottom: 1px solid #E5E7EB;
     }
 
@@ -416,74 +418,90 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
       }
     }
 
-    /* Courses List - 2 Column Grid */
+    /* Courses List - Single Column Layout */
     .courses-list {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 16px;
-
-      @media (max-width: 1200px) {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .course-card-wrapper {
-      background: white;
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-      transition: all 0.2s ease;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-
-      &:hover {
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        transform: translateY(-2px);
-      }
-    }
-
-    /* Course Metadata Section */
-    .course-metadata {
       display: flex;
       flex-direction: column;
       gap: 12px;
     }
 
-    .partner-info {
-      display: flex;
-      align-items: center;
-      gap: 8px;
+    .course-card-wrapper {
+      background: white;
+      border: 1px solid #E5E7EB;
+      border-radius: 8px;
+      overflow: visible;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+      transition: all 0.2s ease;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      grid-template-rows: auto auto;
+      grid-template-areas:
+        "logo metadata actions"
+        "logo progress actions";
+      column-gap: 16px;
+      row-gap: 10px;
+      padding: 16px;
+      align-items: start;
+
+      &:hover {
+        background: #F9FAFB;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      }
     }
 
+    /* Left Section - Logo */
     .partner-logo {
-      width: 20px;
-      height: 20px;
+      grid-area: logo;
+      width: 48px;
+      height: 48px;
       display: flex;
       align-items: center;
       justify-content: center;
       color: $blue-primary;
+      background: #E3F2FD;
+      border-radius: 8px;
+      flex-shrink: 0;
+      align-self: center;
+    }
+
+    /* Metadata Section */
+    .course-metadata {
+      grid-area: metadata;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 0;
+      overflow: visible;
+    }
+
+    .partner-info {
+      margin: 0;
     }
 
     .partner-name {
-      font-size: 13px;
+      font-size: 11px;
       color: #6B7280;
       font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
     }
 
     .course-title {
       margin: 0;
 
       a {
-        font-size: 18px;
+        font-size: 15px;
         font-weight: 600;
         color: #1F1F1F;
         text-decoration: none;
-        display: block;
         line-height: 1.4;
+        display: block;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
 
         &:hover {
           color: $blue-primary;
+          text-decoration: underline;
         }
       }
     }
@@ -491,10 +509,11 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
     .course-meta {
       display: flex;
       align-items: center;
-      gap: 6px;
-      font-size: 13px;
-      color: #6B7280;
       flex-wrap: wrap;
+      gap: 4px;
+      font-size: 12px;
+      color: #6B7280;
+      margin: 0;
 
       .separator {
         color: #D1D5DB;
@@ -505,78 +524,82 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
       }
     }
 
+    /* Progress Bar - Compact Style */
     .progress-bar-thin {
-      height: 4px;
+      grid-area: progress;
+      width: 100%;
+      height: 6px;
       background: #E5E7EB;
-      border-radius: 2px;
+      border-radius: 3px;
       overflow: hidden;
+      position: relative;
+      align-self: start;
+      margin-top: 2px;
     }
 
     .progress-fill {
       height: 100%;
-      background: $blue-primary;
+      background: linear-gradient(90deg, $blue-primary 0%, #2563EB 100%);
+      border-radius: 3px;
       transition: width 0.3s ease;
     }
 
-    /* Next Item Section */
-    .next-item-section {
-      flex: 1;
+    /* Action Buttons - Compact Style */
+    .action-buttons {
+      grid-area: actions;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      justify-self: end;
+      align-self: center;
+
+      app-button {
+        white-space: nowrap;
+        font-size: 14px;
+        font-weight: 600;
+        padding: 8px 20px;
+        height: 36px;
+      }
     }
 
-    .next-item-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: $spacing-3;
-      background: $gray-50;
-      border-radius: $radius-md;
+    .dropdown-button {
+      padding: 4px;
+      background: transparent;
+      border: 1px solid #E5E7EB;
+      border-radius: 4px;
       cursor: pointer;
-      transition: background $transition-fast;
+      color: #6B7280;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
 
       &:hover {
-        background: $gray-100;
+        background: #F9FAFB;
+        border-color: #D1D5DB;
+        color: #374151;
       }
-    }
-
-    .next-item-info {
-      display: flex;
-      align-items: center;
-      gap: $spacing-3;
-      flex: 1;
-      min-width: 0;
 
       app-icon {
-        color: $blue-primary;
-        flex-shrink: 0;
+        width: 16px;
+        height: 16px;
       }
-    }
-
-    .next-item-title {
-      font-size: $text-sm;
-      font-weight: $font-semibold;
-      color: $text-primary;
-      margin: 0 0 $spacing-1 0;
-      @include line-clamp(1);
-    }
-
-    .next-item-meta {
-      font-size: $text-xs;
-      color: $text-secondary;
-      margin: 0;
     }
 
     /* Modules Dropdown */
     .modules-dropdown {
-      margin-top: $spacing-3;
-      padding: $spacing-3;
-      background: $gray-50;
-      border-radius: $radius-md;
-      max-height: 400px;
-      overflow-y: auto;
+      background: #F9FAFB;
+      border: 1px solid #E5E7EB;
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      padding: 16px;
+      margin: -8px 0 0 0;
     }
 
     .module-item {
-      margin-bottom: $spacing-4;
+      margin-bottom: 16px;
 
       &:last-child {
         margin-bottom: 0;
@@ -586,114 +609,65 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
     .module-header {
       display: flex;
       align-items: center;
-      gap: $spacing-2;
-      margin-bottom: $spacing-2;
-      padding: $spacing-2 0;
+      gap: 8px;
+      margin-bottom: 8px;
 
       app-icon {
-        color: $text-muted;
+        color: #6B7280;
+        width: 14px;
+        height: 14px;
       }
     }
 
     .module-title {
-      font-size: $text-sm;
-      font-weight: $font-semibold;
-      color: $text-primary;
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
     }
 
     .lessons-list {
       display: flex;
       flex-direction: column;
-      gap: $spacing-1;
+      gap: 4px;
+      padding-left: 22px;
     }
 
     .lesson-item {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: $spacing-2 $spacing-3;
+      padding: 8px 12px;
       background: white;
-      border-radius: $radius-sm;
+      border-radius: 6px;
       text-decoration: none;
-      transition: all $transition-fast;
+      transition: all 0.2s ease;
+      border: 1px solid transparent;
 
       &:hover {
-        background: $blue-light;
+        background: #E5E7EB;
+        border-color: #D1D5DB;
       }
 
       &.completed {
         .lesson-title {
-          color: $text-secondary;
+          color: #9CA3AF;
+          text-decoration: line-through;
         }
       }
     }
 
-    .lesson-info {
-      display: flex;
-      align-items: center;
-      gap: $spacing-2;
-      flex: 1;
-      min-width: 0;
-
-      app-icon {
-        color: $text-muted;
-        flex-shrink: 0;
-      }
-    }
-
     .lesson-title {
-      font-size: $text-xs;
-      color: $text-primary;
-      @include line-clamp(1);
+      font-size: 13px;
+      color: #374151;
+      flex: 1;
+      line-height: 1.4;
     }
 
-    .lesson-meta {
-      display: flex;
-      align-items: center;
-      gap: $spacing-2;
+    .check-icon {
+      color: #10B981;
       flex-shrink: 0;
-
-      .check-icon {
-        color: $success;
-      }
-    }
-
-    .lesson-duration {
-      font-size: $text-xs;
-      color: $text-muted;
-    }
-
-    /* Course Actions Section */
-    .course-actions-section {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .next-item-expandable {
-      cursor: pointer;
-    }
-
-    .action-buttons {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-
-    .menu-button {
-      padding: 8px;
-      background: transparent;
-      border: 1px solid #E5E7EB;
-      border-radius: 8px;
-      cursor: pointer;
-      color: #6B7280;
-      transition: all 0.2s ease;
-      flex-shrink: 0;
-
-      &:hover {
-        background: #F3F4F6;
-        border-color: #D1D5DB;
-      }
+      width: 14px;
+      height: 14px;
     }
 
     /* Filter Sidebar - Sticky */
@@ -703,6 +677,7 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
       height: fit-content;
       max-height: calc(100vh - 48px);
       overflow-y: auto;
+      padding: 24px 16px 16px 0;
 
       @include mobile {
         display: none;
@@ -711,9 +686,15 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
 
     .sidebar-section {
       background: white;
+      border: 1px solid #E5E7EB;
       border-radius: 12px;
       padding: 20px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      transition: box-shadow 0.2s ease;
+
+      &:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+      }
     }
 
     .sidebar-title {

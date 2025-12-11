@@ -198,6 +198,39 @@
           (videoStateChange)="onVideoStateChange($event)"
           (videoEnded)="onVideoEnded()">
         </app-lesson-content>
+
+        <!-- Navigation Buttons - Inside content area -->
+        <div class="lesson-navigation">
+          <button 
+            class="nav-btn prev"
+            [disabled]="!canGoPrevious()"
+            (click)="previousLesson()"
+            aria-label="Bài học trước">
+            <i class="icon-chevron-left"></i>
+            <span>Bài trước</span>
+          </button>
+
+          <button 
+            class="btn-complete"
+            [class.completed]="learningService.isLessonCompleted(currentLesson()!.id)()"
+            (click)="onMarkComplete()">
+            @if (learningService.isLessonCompleted(currentLesson()!.id)()) {
+              <i class="icon-check"></i>
+              <span>Đã hoàn thành</span>
+            } @else {
+              <span>Đánh dấu hoàn thành</span>
+            }
+          </button>
+
+          <button 
+            class="nav-btn next"
+            [disabled]="!canGoNext()"
+            (click)="nextLesson()"
+            aria-label="Bài học tiếp theo">
+            <span>Bài tiếp theo</span>
+            <i class="icon-chevron-right"></i>
+          </button>
+        </div>
       } @else {
         <div class="no-lesson-selected">
           <i class="icon-book-open"></i>
@@ -206,40 +239,5 @@
         </div>
       }
     </div>
-
-    <!-- Navigation Buttons -->
-    @if (currentLesson()) {
-      <div class="lesson-navigation">
-        <button 
-          class="nav-btn prev"
-          [disabled]="!canGoPrevious()"
-          (click)="previousLesson()"
-          aria-label="Bài học trước">
-          <i class="icon-chevron-left"></i>
-          <span>Bài trước</span>
-        </button>
-
-        <button 
-          class="btn-complete"
-          [class.completed]="learningService.isLessonCompleted(currentLesson()!.id)()"
-          (click)="onMarkComplete()">
-          @if (learningService.isLessonCompleted(currentLesson()!.id)()) {
-            <i class="icon-check"></i>
-            <span>Đã hoàn thành</span>
-          } @else {
-            <span>Đánh dấu hoàn thành</span>
-          }
-        </button>
-
-        <button 
-          class="nav-btn next"
-          [disabled]="!canGoNext()"
-          (click)="nextLesson()"
-          aria-label="Bài học tiếp theo">
-          <span>Bài tiếp theo</span>
-          <i class="icon-chevron-right"></i>
-        </button>
-      </div>
-    }
   </main>
 </div>

@@ -122,19 +122,5 @@
       </div>
     }
 
-    <!-- Mark Complete Button -->
-    @if (!isCompleted) {
-      <div class="complete-section">
-        <button class="btn-mark-complete" (click)="onMarkComplete()">
-          <i class="icon-check-circle"></i>
-          Đánh dấu hoàn thành
-        </button>
-      </div>
-    } @else {
-      <div class="completed-badge">
-        <i class="icon-check-circle"></i>
-        <span>Đã hoàn thành</span>
-      </div>
-    }
   </div>
 </div>
