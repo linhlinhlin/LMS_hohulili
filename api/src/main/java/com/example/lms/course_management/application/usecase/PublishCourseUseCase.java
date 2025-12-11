@@ -14,8 +14,9 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class PublishCourseUseCase {
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(PublishCourseUseCase.class);
 
     private final PostgresCourseRepository courseRepository;
 

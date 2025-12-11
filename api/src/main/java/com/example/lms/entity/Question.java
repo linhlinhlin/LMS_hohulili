@@ -97,4 +97,55 @@ public class Question {
     public enum Status {
         DRAFT, ACTIVE, INACTIVE
     }
+
+    // Manual Getters/Setters
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
+    public String getContent() { return content; }
+    public void setContent(String content) { this.content = content; }
+    public Difficulty getDifficulty() { return difficulty; }
+    public void setDifficulty(Difficulty difficulty) { this.difficulty = difficulty; }
+    public String getTags() { return tags; }
+    public void setTags(String tags) { this.tags = tags; }
+    public Status getStatus() { return status; }
+    public void setStatus(Status status) { this.status = status; }
+    public String getCorrectOption() { return correctOption; }
+    public void setCorrectOption(String correctOption) { this.correctOption = correctOption; }
+    public User getCreatedBy() { return createdBy; }
+    public void setCreatedBy(User createdBy) { this.createdBy = createdBy; }
+    public Course getCourse() { return course; }
+    public void setCourse(Course course) { this.course = course; }
+    public Package getPackageEntity() { return packageEntity; }
+    public void setPackageEntity(Package packageEntity) { this.packageEntity = packageEntity; }
+    public Integer getUsageCount() { return usageCount; }
+    public void setUsageCount(Integer usageCount) { this.usageCount = usageCount; }
+    public BigDecimal getCorrectRate() { return correctRate; }
+    public void setCorrectRate(BigDecimal correctRate) { this.correctRate = correctRate; }
+    public List<QuestionOption> getOptions() { return options; }
+    public void setOptions(List<QuestionOption> options) { this.options = options; }
+    public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+    public Instant getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+
+    // Manual Builder
+    public static QuestionBuilder builder() { return new QuestionBuilder(); }
+    public static class QuestionBuilder {
+        private Question question = new Question();
+        public QuestionBuilder id(UUID id) { question.setId(id); return this; }
+        public QuestionBuilder content(String c) { question.setContent(c); return this; }
+        public QuestionBuilder difficulty(Difficulty d) { question.setDifficulty(d); return this; }
+        public QuestionBuilder tags(String t) { question.setTags(t); return this; }
+        public QuestionBuilder status(Status s) { question.setStatus(s); return this; }
+        public QuestionBuilder correctOption(String c) { question.setCorrectOption(c); return this; }
+        public QuestionBuilder createdBy(User u) { question.setCreatedBy(u); return this; }
+        public QuestionBuilder course(Course c) { question.setCourse(c); return this; }
+        public QuestionBuilder packageEntity(Package p) { question.setPackageEntity(p); return this; }
+        public QuestionBuilder usageCount(Integer u) { question.setUsageCount(u); return this; }
+        public QuestionBuilder correctRate(BigDecimal r) { question.setCorrectRate(r); return this; }
+        public QuestionBuilder options(List<QuestionOption> o) { question.setOptions(o); return this; }
+        public QuestionBuilder createdAt(Instant c) { question.setCreatedAt(c); return this; }
+        public QuestionBuilder updatedAt(Instant u) { question.setUpdatedAt(u); return this; }
+        public Question build() { return question; }
+    }
 }

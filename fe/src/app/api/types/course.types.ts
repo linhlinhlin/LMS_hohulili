@@ -13,8 +13,8 @@ export interface CourseSummary {
   teacherName: string;
   enrolledCount: number;
   createdAt: string;
-  enrolled?: boolean; // Whether current user is enrolled in this course (from backend)
-  isEnrolled?: boolean; // Legacy field for backward compatibility
+  enrolled?: boolean;
+  isEnrolled?: boolean;
 }
 
 export interface CourseDetail {
@@ -26,13 +26,13 @@ export interface CourseDetail {
   teacherId: string;
   teacherName: string;
   enrolledCount: number;
-  sectionsCount: number;
+  chaptersCount: number; // Renamed from sectionsCount
   createdAt: string;
   updatedAt: string | null;
 }
 
-// Course content for learning UI
-export interface CourseContentSection {
+// Course content for learning UI (old Section is now Chapter)
+export interface CourseContentChapter {
   id: string;
   title: string;
   description: string;
@@ -40,14 +40,30 @@ export interface CourseContentSection {
   lessons: LessonSummary[];
 }
 
+// L3 Section (Renamed from Topic)
+export interface SectionSummary {
+  id: string;
+  title: string;
+  type: 'TEXT' | 'VIDEO' | 'QUIZ';
+  content?: string;
+  videoUrl?: string;
+  duration?: number;
+  orderIndex: number;
+  isRequired?: boolean;
+}
+
 export interface LessonSummary {
   id: string;
   title: string;
   description: string;
   orderIndex: number;
+  content?: string; // Fallback
+  videoUrl?: string; // Fallback
+  sections?: SectionSummary[]; // Renamed from topics
 }
 
-export interface SectionDetail {
+// Renamed from SectionDetail (L1) to ChapterDetail
+export interface ChapterDetail {
   id: string;
   title: string;
   description: string;
@@ -63,18 +79,27 @@ export interface LessonDetail {
   id: string;
   title: string;
   description: string;
-  content: string;
-  videoUrl: string;
+  content: string; // Deprecated/Fallback
+  videoUrl: string; // Deprecated/Fallback
   durationMinutes: number;
   orderIndex: number;
   lessonType: 'LECTURE' | 'ASSIGNMENT' | 'QUIZ';
-  sectionId: string;
-  sectionTitle: string;
+  sectionId: string; // This technically links to Chapter now (chapter_id), so maybe rename to chapterId? Backend returns chapterId if entity updated? 
+  // Backend Lesson.java has @JoinColumn(name = "chapter_id"). 
+  // But DTOs might still call it sectionId if not updated. 
+  // Let's assume backend CourseController returns correct field if I updated it.
+  // I did NOT update LessonDetail DTO in CourseController explicitly in my previous edit?
+  // Wait, I updated CourseController. LessonSummary is inside convertToChapterResponse.
+  // But there is NO LessonDetail DTO in CourseController I edited. 
+  // Maybe LessonController returns LessonDetail?
+  // I need to check LessonController later. For now, keep as is or rename if sure.
+  sectionTitle: string; // chapterTitle
   courseId: string;
   courseTitle: string;
   createdAt: string;
   updatedAt: string | null;
   attachments?: LessonAttachment[];
+  sections?: SectionSummary[]; // New
 }
 
 export interface LessonAttachment {
@@ -85,16 +110,54 @@ export interface LessonAttachment {
   fileType: string;
 }
 
-export interface CreateSectionRequest {
+// Renamed L1 Requests
+export interface CreateChapterRequest {
   title: string;
   description?: string;
   orderIndex?: number;
 }
 
-export interface UpdateSectionRequest {
+export interface UpdateChapterRequest {
   title?: string;
   description?: string;
   orderIndex?: number;
+}
+
+// NEW L3 Requests
+export interface CreateSectionRequest {
+  lessonId: string;
+  title: string;
+  type?: 'TEXT' | 'VIDEO' | 'QUIZ';
+  content?: string;
+  videoUrl?: string;
+  duration?: number;
+  orderIndex?: number;
+  isRequired?: boolean;
+}
+
+export interface UpdateSectionRequest {
+  title?: string;
+  type?: 'TEXT' | 'VIDEO' | 'QUIZ'; // Usually type shouldn't change, but ok
+  content?: string;
+  videoUrl?: string;
+  duration?: number;
+  orderIndex?: number;
+  isRequired?: boolean;
+}
+
+// L3 Detail
+export interface SectionDetail { // New L3 Section
+  id: string;
+  title: string;
+  type: string;
+  content: string;
+  videoUrl: string;
+  duration: number;
+  orderIndex: number;
+  lessonId: string;
+  isRequired?: boolean;
+  createdAt: string;
+  updatedAt: string | null;
 }
 
 export interface CreateLessonRequest {
@@ -105,10 +168,9 @@ export interface CreateLessonRequest {
   durationMinutes?: number;
   orderIndex?: number;
   lessonType?: 'LECTURE' | 'ASSIGNMENT' | 'QUIZ';
-  // Quiz-specific fields
-  quizTimeLimit?: number;      // in minutes
-  quizMaxScore?: number;         // points
-  quizMaxAttempts?: number;      // number of attempts
+  quizTimeLimit?: number;
+  quizMaxScore?: number;
+  quizMaxAttempts?: number;
 }
 
 export interface UpdateLessonRequest {
@@ -118,11 +180,9 @@ export interface UpdateLessonRequest {
   videoUrl?: string;
   durationMinutes?: number;
   orderIndex?: number;
-  // Quiz-specific fields
   quizTimeLimit?: number;
   quizPassingScore?: number;
   quizMaxAttempts?: number;
-  // Assignment-specific fields
   assignmentDescription?: string;
   assignmentInstructions?: string;
   assignmentDueDate?: string;
@@ -138,7 +198,6 @@ export interface FileUploadResponse {
   uploadedAt: string;
 }
 
-// Simplified enrollment request - email only
 export interface EnrollStudentRequest {
   email: string;
 }

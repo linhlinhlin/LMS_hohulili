@@ -1,0 +1,123 @@
+<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]">
+
+        <!-- HEADER -->
+        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+            <h3 class="text-lg font-bold text-gray-800">Thêm nội dung mới</h3>
+            <button (click)="close.emit()" class="text-gray-400 hover:text-gray-600">✕</button>
+        </div>
+
+        <!-- BODY -->
+        <div class="p-6 overflow-y-auto flex-1">
+
+            <!-- 1. TYPE SELECTOR (Tabs) -->
+            <div class="flex gap-3 mb-6">
+                <button (click)="setType('TEXT')"
+                    [class]="selectedType() === 'TEXT' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                    class="flex-1 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2">
+                    <span>📝</span> Bài giảng
+                </button>
+                <button (click)="setType('VIDEO')"
+                    [class]="selectedType() === 'VIDEO' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                    class="flex-1 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2">
+                    <span>🎥</span> Video
+                </button>
+                <button (click)="setType('FILE')"
+                    [class]="selectedType() === 'FILE' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                    class="flex-1 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2">
+                    <span>📎</span> Tài liệu
+                </button>
+                <button (click)="setType('QUIZ')"
+                    [class]="selectedType() === 'QUIZ' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                    class="flex-1 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2">
+                    <span>❓</span> Trắc nghiệm
+                </button>
+            </div>
+
+            <form [formGroup]="form" class="space-y-5">
+
+                <!-- TITLE INPUT -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Tiêu đề mục</label>
+                    <input formControlName="title"
+                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                        placeholder="Ví dụ: Giới thiệu tổng quan...">
+                </div>
+
+                <!-- DYNAMIC CONTENT AREA -->
+
+                <!-- CASE 1: TEXT (Rich Editor) -->
+                <div *ngIf="selectedType() === 'TEXT'" class="animate-fade-in">
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Nội dung chi tiết</label>
+                    <app-rich-text-editor formControlName="content" [height]="300"
+                        placeholder="Soạn thảo bài giảng..."></app-rich-text-editor>
+                </div>
+
+                <!-- CASE 2: VIDEO (URL Input) -->
+                <div *ngIf="selectedType() === 'VIDEO'" class="animate-fade-in">
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Đường dẫn Video</label>
+                    <input formControlName="content"
+                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                        placeholder="https://youtube.com/...">
+                    <p class="text-xs text-gray-500 mt-1">Hỗ trợ Youtube, Vimeo hoặc link trực tiếp.</p>
+                </div>
+
+                <!-- CASE 3: FILE (Upload Zone) -->
+                <div *ngIf="selectedType() === 'FILE'" class="animate-fade-in">
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Tải lên tài liệu</label>
+
+                    <div
+                        class="border-2 border-dashed border-gray-300 rounded-xl p-8 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors relative cursor-pointer">
+                        <input type="file" (change)="onFileSelected($event)"
+                            class="absolute inset-0 opacity-0 cursor-pointer">
+
+                        <div *ngIf="!selectedFile" class="text-center">
+                            <svg class="w-10 h-10 text-gray-400 mx-auto mb-2" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                            </svg>
+                            <p class="text-sm font-medium text-gray-600">Nhấn để chọn hoặc kéo thả file vào đây</p>
+                            <p class="text-xs text-gray-400 mt-1">PDF, DOCX, XLSX (Max 50MB)</p>
+                        </div>
+
+                        <div *ngIf="selectedFile"
+                            class="flex items-center gap-3 bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200 z-10">
+                            <span class="text-2xl">📄</span>
+                            <div class="text-left">
+                                <p class="text-sm font-bold text-gray-800">{{ selectedFile.name }}</p>
+                                <p class="text-xs text-gray-500">{{ (selectedFile.size / 1024 / 1024) | number:'1.1-2'
+                                    }} MB</p>
+                            </div>
+                            <button type="button" (click)="selectedFile = null; $event.stopPropagation()"
+                                class="ml-2 text-red-500 hover:bg-red-50 p-1 rounded">✕</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CASE 4: QUIZ (Simplified for now) -->
+                <div *ngIf="selectedType() === 'QUIZ'" class="animate-fade-in">
+                    <div class="p-4 bg-yellow-50 text-yellow-800 rounded-lg">
+                        <p>⚠️ Chức năng tạo Quiz nhanh đang phát triển. Vui lòng tạo section Quiz rỗng và chỉnh sửa chi
+                            tiết sau.</p>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+
+        <!-- FOOTER -->
+        <div class="bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t border-gray-200">
+            <button (click)="close.emit()"
+                class="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-lg font-medium transition-colors">Hủy
+                bỏ</button>
+            <button (click)="submit()" [disabled]="isSubmitting()"
+                class="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2">
+                <span *ngIf="isSubmitting()"
+                    class="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
+                <span>{{ isSubmitting() ? 'Đang lưu...' : 'Tạo mới' }}</span>
+            </button>
+        </div>
+
+    </div>
+</div>

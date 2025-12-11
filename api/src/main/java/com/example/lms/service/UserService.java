@@ -144,14 +144,14 @@ public class UserService implements UserDetailsService {
             throw new RuntimeException("Vai trò không hợp lệ: " + request.getRole());
         }
 
-        User user = User.builder()
-                .username(request.getUsername())
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .fullName(request.getFullName())
-                .role(role)
-                .enabled(true)
-                .build();
+        User user = new User(
+                request.getUsername(),
+                request.getEmail(),
+                passwordEncoder.encode(request.getPassword()),
+                request.getFullName(),
+                role
+        );
+        user.setEnabled(true);
         
         return userRepository.save(user);
     }

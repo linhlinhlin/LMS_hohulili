@@ -4,17 +4,20 @@ import com.example.lms.learning_delivery.domain.model.Class;
 import com.example.lms.learning_delivery.domain.model.Enrollment;
 import com.example.lms.learning_delivery.domain.repo_port.LearningRepository;
 import com.example.lms.entity.User;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
-@RequiredArgsConstructor
-@Slf4j
 public class EnrollStudentUseCase {
 
+    private static final Logger log = LoggerFactory.getLogger(EnrollStudentUseCase.class);
     private final LearningRepository learningRepository;
+
+    public EnrollStudentUseCase(LearningRepository learningRepository) {
+        this.learningRepository = learningRepository;
+    }
 
     @Transactional
     public Enrollment enroll(String studentEmail, String classCode) {

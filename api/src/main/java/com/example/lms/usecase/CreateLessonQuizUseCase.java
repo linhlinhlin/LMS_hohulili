@@ -5,7 +5,8 @@ import com.example.lms.dto.response.QuizResponse;
 import com.example.lms.entity.*;
 import com.example.lms.repository.*;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,8 +19,9 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Transactional
-@Slf4j
 public class CreateLessonQuizUseCase {
+
+    private static final Logger log = LoggerFactory.getLogger(CreateLessonQuizUseCase.class);
 
     private final QuizRepository quizRepository;
     private final LessonRepository lessonRepository;
@@ -34,7 +36,7 @@ public class CreateLessonQuizUseCase {
             .orElseThrow(() -> new IllegalArgumentException("Lesson not found: " + lessonId));
 
         // 2. Business rule: Teacher must own the course
-        UUID courseTeacherId = lesson.getSection().getCourse().getTeacher().getId();
+        UUID courseTeacherId = lesson.getChapter().getCourse().getTeacher().getId(); // Was getSection()
         if (!courseTeacherId.equals(teacherId)) {
             throw new SecurityException("You don't have permission to create quiz for this lesson");
         }
@@ -45,6 +47,7 @@ public class CreateLessonQuizUseCase {
         }
 
         // 4. Business rule: Lesson should not already have a quiz
+        // Note: Repository method updated to join on section->lesson
         if (quizRepository.existsByLesson(lesson)) {
             throw new IllegalArgumentException("This lesson already has a quiz");
         }
@@ -52,20 +55,27 @@ public class CreateLessonQuizUseCase {
         // 5. Load and validate questions
         List<Question> questions = loadAndValidateQuestions(
             request.getQuestionIds(),
-            lesson.getSection().getCourse().getId()
+            lesson.getChapter().getCourse().getId()
         );
 
         // 6. Load teacher
         User teacher = userRepository.findById(teacherId)
             .orElseThrow(() -> new IllegalArgumentException("Teacher not found: " + teacherId));
 
+        // 6.5 Verify or Create Section (Level 3) for this Quiz
+        // Since we are refactoring, we need to ensure the quiz attaches to a Section.
+        // If the lesson is type QUIZ, it should have a corresponding Section.
+        Section quizSection = lesson.getSections().stream()
+            .findFirst()
+            .orElseThrow(() -> new IllegalStateException("Lesson of type QUIZ has no content Section. Database migration might be incomplete."));
+
         // 7. Create Quiz Aggregate
         Quiz quiz = Quiz.builder()
             .type(Quiz.QuizType.LESSON_QUIZ)
             .title(request.getTitle())
             .description(request.getDescription())
-            .lesson(lesson)
-            .course(null) // LESSON_QUIZ doesn't have direct course reference
+            .section(quizSection) // Updated from lesson(lesson)
+            .course(null)
             .createdBy(teacher)
             .timeLimitMinutes(request.getTimeLimitMinutes())
             .maxAttempts(request.getMaxAttempts())
@@ -124,14 +134,14 @@ public class CreateLessonQuizUseCase {
         UUID courseId = null;
         String courseTitle = null;
         
-        if (quiz.getLesson() != null) {
-            lessonId = quiz.getLesson().getId();
-            lessonTitle = quiz.getLesson().getTitle();
+        if (quiz.getSection() != null && quiz.getSection().getLesson() != null) {
+            lessonId = quiz.getSection().getLesson().getId();
+            lessonTitle = quiz.getSection().getLesson().getTitle();
             
-            if (quiz.getLesson().getSection() != null && 
-                quiz.getLesson().getSection().getCourse() != null) {
-                courseId = quiz.getLesson().getSection().getCourse().getId();
-                courseTitle = quiz.getLesson().getSection().getCourse().getTitle();
+            if (quiz.getSection().getLesson().getChapter() != null && 
+                quiz.getSection().getLesson().getChapter().getCourse() != null) {
+                courseId = quiz.getSection().getLesson().getChapter().getCourse().getId();
+                courseTitle = quiz.getSection().getLesson().getChapter().getCourse().getTitle();
             }
         }
         

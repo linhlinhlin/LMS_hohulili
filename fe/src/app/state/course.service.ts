@@ -32,7 +32,7 @@ export class CourseService {
   readonly error = this._error.asReadonly();
 
   // Computed signals
-  readonly publishedCourses = computed(() => 
+  readonly publishedCourses = computed(() =>
     this._courses().filter(course => course.isPublished)
   );
 
@@ -67,7 +67,7 @@ export class CourseService {
 
       // Call real API
       const response = await firstValueFrom(this.courseApi.publicCourses(params));
-      
+
       // Map API response to ExtendedCourse format
       let mappedCourses = this.mapCourseSummaryToExtended(response.data || []);
 
@@ -109,13 +109,13 @@ export class CourseService {
 
     try {
       const response = await firstValueFrom(this.courseApi.getCourseById(id));
-      
+
       if (response.data) {
         const course = this.mapCourseDetailToExtended(response.data);
         this._currentCourse.set(course);
         return course;
       }
-      
+
       this._currentCourse.set(null);
       return null;
     } catch (error) {
@@ -136,7 +136,7 @@ export class CourseService {
 
     try {
       const response = await firstValueFrom(this.courseApi.getCourseContent(courseId));
-      
+
       // Flatten sections to lessons
       const lessons: Lesson[] = [];
       if (response.data) {
@@ -176,7 +176,7 @@ export class CourseService {
 
     try {
       await firstValueFrom(this.courseApi.enrollCourse(courseId));
-      
+
       // Update local progress state
       const existingProgress = this._progress().find(p => p.courseId === courseId && p.userId === userId);
       if (!existingProgress) {
@@ -189,7 +189,7 @@ export class CourseService {
           progressPercentage: 0,
           lastAccessed: new Date()
         };
-        
+
         this._progress.update(progress => [...progress, newProgress]);
       }
     } catch (error) {
@@ -291,7 +291,7 @@ export class CourseService {
         description: 'Chứng chỉ hoàn thành'
       },
       curriculum: {
-        modules: course.sectionsCount || 0,
+        modules: course.chaptersCount || 0,
         lessons: 0,
         duration: '30 giờ'
       },
@@ -329,17 +329,17 @@ export class CourseService {
       filtered.sort((a, b) => {
         const aValue = a[filters.sortBy as keyof ExtendedCourse];
         const bValue = b[filters.sortBy as keyof ExtendedCourse];
-        
+
         if (typeof aValue === 'string' && typeof bValue === 'string') {
-          return filters.sortOrder === 'desc' 
+          return filters.sortOrder === 'desc'
             ? bValue.localeCompare(aValue)
             : aValue.localeCompare(bValue);
         }
-        
+
         if (typeof aValue === 'number' && typeof bValue === 'number') {
           return filters.sortOrder === 'desc' ? bValue - aValue : aValue - bValue;
         }
-        
+
         return 0;
       });
     }

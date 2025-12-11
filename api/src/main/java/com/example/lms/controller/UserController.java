@@ -25,8 +25,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
-@Tag(name = "User Management", description = "API quản lý người dùng (Admin only)")
-@PreAuthorize("hasRole('ADMIN')")
+@Tag(name = "User Management", description = "API quản lý người dùng")
 @SecurityRequirement(name = "Bearer Authentication")
 public class UserController {
 
@@ -34,6 +33,7 @@ public class UserController {
 
     @GetMapping
     @Operation(summary = "Lấy danh sách người dùng", description = "Admin lấy danh sách tất cả người dùng với phân trang")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Page<UserSummary>>> getAllUsers(
             @Parameter(description = "Số trang (bắt đầu từ 1)") @RequestParam(defaultValue = "1") int page,
             @Parameter(description = "Số lượng item trên mỗi trang") @RequestParam(defaultValue = "10") int limit,
@@ -62,6 +62,7 @@ public class UserController {
 
     @PostMapping
     @Operation(summary = "Tạo người dùng mới", description = "Admin tạo tài khoản người dùng mới")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<UserDetail>> createUser(@Valid @RequestBody CreateUserRequest request) {
         try {
             User newUser = userService.createUser(request);
@@ -85,6 +86,7 @@ public class UserController {
 
     @GetMapping("/{userId}")
     @Operation(summary = "Lấy thông tin chi tiết người dùng", description = "Admin lấy thông tin của một người dùng cụ thể")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<UserDetail>> getUserById(@PathVariable UUID userId) {
         try {
             User user = userService.getUserById(userId);
@@ -109,6 +111,7 @@ public class UserController {
 
     @PutMapping("/{userId}")
     @Operation(summary = "Cập nhật thông tin người dùng", description = "Admin cập nhật thông tin của một người dùng")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<UserDetail>> updateUser(
             @PathVariable UUID userId,
             @Valid @RequestBody UpdateUserRequest request
@@ -135,6 +138,7 @@ public class UserController {
 
     @GetMapping("/list/all")
     @Operation(summary = "Lấy tất cả người dùng", description = "Admin lấy danh sách tất cả người dùng không phân trang (dành cho dropdown, etc.)")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<java.util.List<UserSummary>>> getAllUsers() {
         try {
             java.util.List<User> users = userService.getAllUsers();
@@ -159,6 +163,7 @@ public class UserController {
 
     @DeleteMapping("/{userId}")
     @Operation(summary = "Vô hiệu hóa người dùng", description = "Admin vô hiệu hóa tài khoản người dùng")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<String>> deleteUser(@PathVariable UUID userId) {
         try {
             userService.disableUser(userId);
@@ -170,6 +175,7 @@ public class UserController {
 
     @PatchMapping("/{userId}/toggle-status")
     @Operation(summary = "Thay đổi trạng thái người dùng", description = "Kích hoạt hoặc vô hiệu hóa tài khoản")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<UserDetail>> toggleUserStatus(@PathVariable UUID userId) {
         try {
             User updatedUser = userService.toggleUserStatus(userId);
@@ -189,6 +195,21 @@ public class UserController {
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
+    }
+
+    @GetMapping("/instructors")
+    @Operation(summary = "Lấy danh sách giảng viên", description = "Lấy danh sách tất cả user có role TEACHER")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    public ResponseEntity<ApiResponse<java.util.List<UserSummary>>> getInstructors() {
+        java.util.List<User> teachers = userService.findByRole(User.Role.TEACHER);
+        java.util.List<UserSummary> summaries = teachers.stream()
+                .map(u -> UserSummary.builder()
+                        .id(u.getId())
+                        .fullName(u.getFullName())
+                        .email(u.getEmail())
+                        .build())
+                .collect(java.util.stream.Collectors.toList());
+        return ResponseEntity.ok(ApiResponse.success(summaries));
     }
 
     // DTOs

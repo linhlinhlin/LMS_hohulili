@@ -8,8 +8,9 @@ import { CreateSectionRequest, SectionDetail, UpdateSectionRequest } from '../ty
 export class SectionApi {
   private api = inject(ApiClient);
 
-  createSection(courseId: string, payload: CreateSectionRequest) {
-    return this.api.postWithResponse<SectionDetail>(SECTION_ENDPOINTS.CREATE(courseId), payload);
+  createSection(payload: CreateSectionRequest | FormData) {
+    // Note: If payload is FormData, HttpClient handles Content-Type automatically
+    return this.api.postWithResponse<SectionDetail>(SECTION_ENDPOINTS.CREATE, payload);
   }
 
   updateSection(sectionId: string, payload: UpdateSectionRequest) {
@@ -20,8 +21,7 @@ export class SectionApi {
     return this.api.delete<ApiResponse<string>>(SECTION_ENDPOINTS.DELETE(sectionId));
   }
 
-  // Flat listing helpers
-  listSectionsFlat(courseId: string) {
-    return this.api.getWithResponse<any>(SECTION_ENDPOINTS.LIST_FLAT(courseId));
+  getSection(sectionId: string) {
+    return this.api.getWithResponse<SectionDetail>(SECTION_ENDPOINTS.GET(sectionId));
   }
 }

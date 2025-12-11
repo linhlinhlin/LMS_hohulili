@@ -3,8 +3,10 @@ package com.example.lms.controller;
 import com.example.lms.dto.ApiResponse;
 import com.example.lms.entity.Assignment;
 import com.example.lms.entity.Course;
+import com.example.lms.entity.Chapter;
 import com.example.lms.entity.Section;
 import com.example.lms.entity.User;
+import com.example.lms.entity.Quiz;
 import com.example.lms.service.CourseService;
 import com.example.lms.service.ExcelProcessingService;
 import com.example.lms.dto.response.BulkEnrollmentResponse;
@@ -27,8 +29,10 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -194,21 +198,9 @@ public class CourseController {
         try {
             Course course = courseService.getCourseById(courseId);
             
-            // Check access permission:
-            // - If user is the teacher of this course, allow access regardless of status
-            // - Otherwise, only allow access to APPROVED courses
             boolean isTeacherOfCourse = currentUser != null && 
                                        course.getTeacher() != null && 
                                        course.getTeacher().getId().equals(currentUser.getId());
-            
-            // Debug logging
-            System.out.println("=== getCourseById Debug ===");
-            System.out.println("Course ID: " + courseId);
-            System.out.println("Course Status: " + course.getStatus());
-            System.out.println("Current User: " + (currentUser != null ? currentUser.getId() + " (" + currentUser.getUsername() + ")" : "null"));
-            System.out.println("Course Teacher: " + (course.getTeacher() != null ? course.getTeacher().getId() + " (" + course.getTeacher().getUsername() + ")" : "null"));
-            System.out.println("Is Teacher of Course: " + isTeacherOfCourse);
-            System.out.println("========================");
             
             if (!isTeacherOfCourse && course.getStatus() != Course.CourseStatus.APPROVED) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -368,15 +360,16 @@ public class CourseController {
 
     @GetMapping("/{courseId}/content")
     @SecurityRequirement(name = "Bearer Authentication")
-    @Operation(summary = "Lấy nội dung khóa học", description = "Lấy toàn bộ sections và lessons của khóa học")
-    public ResponseEntity<ApiResponse<List<SectionWithLessons>>> getCourseContent(
+    @Operation(summary = "Lấy nội dung khóa học", description = "Lấy toàn bộ chapters (sections) -> lessons -> topics (sections)")
+    public ResponseEntity<ApiResponse<List<ChapterResponse>>> getCourseContent(
             @PathVariable UUID courseId,
             @AuthenticationPrincipal User currentUser
     ) {
         try {
-            List<Section> sections = courseService.getCourseContent(courseId, currentUser);
-            List<SectionWithLessons> content = sections.stream()
-                    .map(this::convertToSectionWithLessons)
+            // Updated service returns List<Chapter>
+            List<Chapter> chapters = courseService.getCourseContent(courseId, currentUser);
+            List<ChapterResponse> content = chapters.stream()
+                    .map(this::convertToChapterResponse)
                     .collect(Collectors.toList());
             
             return ResponseEntity.ok(ApiResponse.success(content));
@@ -449,20 +442,19 @@ public class CourseController {
 
         // Add enrollment status for authenticated students
         if (currentUser != null && currentUser.getRole() == User.Role.STUDENT) {
-            // Use database query to check enrollment status without loading lazy collections
             boolean isEnrolled = userRepository.existsByCourseEnrollment(course.getId(), currentUser.getId());
             summary.setEnrolled(isEnrolled);
         } else {
-            summary.setEnrolled(null); // Not enrolled or not a student
+            summary.setEnrolled(null); 
         }
 
         return summary;
     }
 
     private CourseDetail convertToCourseDetail(Course course) {
-    int sectionsCount = 0;
+    int chaptersCount = 0;
     try {
-        sectionsCount = course.getSections() != null ? course.getSections().size() : 0;
+        chaptersCount = course.getChapters() != null ? course.getChapters().size() : 0;
     } catch (Exception ignored) {}
 
     int enrolledCount = 0;
@@ -479,33 +471,76 @@ public class CourseController {
                 .teacherId(course.getTeacher().getId())
                 .teacherName(course.getTeacher().getFullName())
                 .enrolledCount(enrolledCount)
-        .sectionsCount(sectionsCount)
+                .chaptersCount(chaptersCount) // Renamed from sectionsCount
                 .createdAt(course.getCreatedAt())
                 .updatedAt(course.getUpdatedAt())
+                .instructorId(course.getInstructorId())
+                .teachingStaffIds(course.getTeachingStaffIds())
+                .categoryId(course.getCategory() != null ? course.getCategory().getId() : null)
+                .categoryName(course.getCategory() != null ? course.getCategory().getName() : null)
+                .tags(course.getTags())
+                .welcomeMessage(course.getWelcomeMessage())
+                .courseInformation(course.getCourseInformation())
+                .benefits(course.getBenefits())
+                .introVideoUrl(course.getIntroVideoUrl())
+                .credits(course.getCredits())
+                .visibility(course.getVisibility() != null ? course.getVisibility().name() : "PUBLIC")
+                .priceType(course.getPriceType() != null ? course.getPriceType().name() : "FREE")
+                .price(course.getPrice())
+                .salePrice(course.getSalePrice())
                 .build();
     }
 
-    private SectionWithLessons convertToSectionWithLessons(Section section) {
-        List<com.example.lms.entity.Lesson> rawLessons = section.getLessons() != null ? section.getLessons() : java.util.Collections.emptyList();
+    private ChapterResponse convertToChapterResponse(Chapter chapter) {
+        List<com.example.lms.entity.Lesson> rawLessons = chapter.getLessons() != null ? chapter.getLessons() : java.util.Collections.emptyList();
         List<LessonSummary> lessons = rawLessons.stream()
                 .map(lesson -> {
+                    // Get default section/content if available for backward compatibility
+                    String defaultContent = null;
+                    String defaultVideoUrl = null;
+                    if (lesson.getSections() != null && !lesson.getSections().isEmpty()) {
+                        Section firstTopic = lesson.getSections().get(0);
+                        defaultContent = firstTopic.getContent();
+                        defaultVideoUrl = firstTopic.getVideoUrl();
+                    }
+
+                    // Map sections (Level 3)
+                    List<SectionSummary> sections = lesson.getSections() != null ? 
+                         lesson.getSections().stream().map(section -> SectionSummary.builder()
+                            .id(section.getId())
+                            .title(section.getTitle())
+                            .type(section.getType().name())
+                            .content(section.getContent())
+                            .videoUrl(section.getVideoUrl())
+                            .duration(section.getDuration())
+                            .orderIndex(section.getOrderIndex())
+                            .isRequired(section.getIsRequired()) // Added
+                            .build()
+                         ).collect(Collectors.toList()) : java.util.Collections.emptyList();
+
                     LessonSummary.LessonSummaryBuilder builder = LessonSummary.builder()
                         .id(lesson.getId())
                         .title(lesson.getTitle())
                         .description(lesson.getDescription())
-                        .content(lesson.getContent())
-                        .videoUrl(lesson.getVideoUrl())
+                        .content(defaultContent) // Fallback
+                        .videoUrl(defaultVideoUrl) // Fallback
                         .orderIndex(lesson.getOrderIndex())
-                        .lessonType(lesson.getLessonType() != null ? lesson.getLessonType().name() : "LECTURE");
+                        .lessonType(lesson.getLessonType() != null ? lesson.getLessonType().name() : "LECTURE")
+                        .sections(sections); // Renamed from topics
                     
-                    // Add quiz fields if lesson has quiz
-                    if (lesson.getQuiz() != null) {
-                        builder.quizTimeLimit(lesson.getQuiz().getTimeLimitMinutes())
-                               .quizMaxScore(lesson.getQuiz().getPassingScore())
-                               .quizMaxAttempts(lesson.getQuiz().getMaxAttempts());
+                    // Find quiz in sections
+                    Quiz quiz = lesson.getSections().stream()
+                        .filter(s -> s.getType() == com.example.lms.entity.Section.SectionType.QUIZ)
+                        .flatMap(s -> s.getQuizzes().stream())
+                        .findFirst()
+                        .orElse(null);
+
+                    if (quiz != null) {
+                        builder.quizTimeLimit(quiz.getTimeLimitMinutes())
+                               .quizMaxScore(quiz.getPassingScore())
+                               .quizMaxAttempts(quiz.getMaxAttempts());
                     }
                     
-                    // Add assignment info if lesson has assignment
                     if (lesson.getLessonAssignment() != null && lesson.getLessonAssignment().getAssignment() != null) {
                         Assignment assignment = lesson.getLessonAssignment().getAssignment();
                         builder.assignment(AssignmentInfo.builder()
@@ -520,11 +555,11 @@ public class CourseController {
                 })
                 .collect(Collectors.toList());
 
-        return SectionWithLessons.builder()
-                .id(section.getId())
-                .title(section.getTitle())
-                .description(section.getDescription())
-                .orderIndex(section.getOrderIndex())
+        return ChapterResponse.builder()
+                .id(chapter.getId())
+                .title(chapter.getTitle())
+                .description(chapter.getDescription())
+                .orderIndex(chapter.getOrderIndex())
                 .lessons(lessons)
                 .build();
     }
@@ -541,57 +576,35 @@ public class CourseController {
         private Instant createdAt;
         private Boolean enrolled;
 
-        public static CourseSummaryBuilder builder() {
-            return new CourseSummaryBuilder();
+        public CourseSummary() {}
+        public CourseSummary(UUID id, String code, String title, String description, String status, String teacherName, int enrolledCount, Instant createdAt, Boolean enrolled) {
+            this.id = id; this.code = code; this.title = title; this.description = description; this.status = status; this.teacherName = teacherName; this.enrolledCount = enrolledCount; this.createdAt = createdAt; this.enrolled = enrolled;
         }
+        // Getters and Setters
+        public UUID getId() { return id; } public void setId(UUID id) { this.id = id; }
+        public String getCode() { return code; } public void setCode(String code) { this.code = code; }
+        public String getTitle() { return title; } public void setTitle(String title) { this.title = title; }
+        public String getDescription() { return description; } public void setDescription(String description) { this.description = description; }
+        public String getStatus() { return status; } public void setStatus(String status) { this.status = status; }
+        public String getTeacherName() { return teacherName; } public void setTeacherName(String teacherName) { this.teacherName = teacherName; }
+        public int getEnrolledCount() { return enrolledCount; } public void setEnrolledCount(int enrolledCount) { this.enrolledCount = enrolledCount; }
+        public Instant getCreatedAt() { return createdAt; } public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+        public Boolean getEnrolled() { return enrolled; } public void setEnrolled(Boolean enrolled) { this.enrolled = enrolled; }
 
+        public static CourseSummaryBuilder builder() { return new CourseSummaryBuilder(); }
         public static class CourseSummaryBuilder {
-            private UUID id;
-            private String code;
-            private String title;
-            private String description;
-            private String status;
-            private String teacherName;
-            private int enrolledCount;
-            private Instant createdAt;
-            private Boolean enrolled;
-
-            public CourseSummaryBuilder id(UUID id) { this.id = id; return this; }
-            public CourseSummaryBuilder code(String code) { this.code = code; return this; }
-            public CourseSummaryBuilder title(String title) { this.title = title; return this; }
-            public CourseSummaryBuilder description(String description) { this.description = description; return this; }
-            public CourseSummaryBuilder status(String status) { this.status = status; return this; }
-            public CourseSummaryBuilder teacherName(String teacherName) { this.teacherName = teacherName; return this; }
-            public CourseSummaryBuilder enrolledCount(int enrolledCount) { this.enrolledCount = enrolledCount; return this; }
-            public CourseSummaryBuilder createdAt(Instant createdAt) { this.createdAt = createdAt; return this; }
-            public CourseSummaryBuilder enrolled(Boolean enrolled) { this.enrolled = enrolled; return this; }
-
-            public CourseSummary build() {
-                CourseSummary course = new CourseSummary();
-                course.id = this.id;
-                course.code = this.code;
-                course.title = this.title;
-                course.description = this.description;
-                course.status = this.status;
-                course.teacherName = this.teacherName;
-                course.enrolledCount = this.enrolledCount;
-                course.createdAt = this.createdAt;
-                course.enrolled = this.enrolled;
-                return course;
-            }
+            private CourseSummary s = new CourseSummary();
+            public CourseSummaryBuilder id(UUID id) { s.setId(id); return this; }
+            public CourseSummaryBuilder code(String code) { s.setCode(code); return this; }
+            public CourseSummaryBuilder title(String title) { s.setTitle(title); return this; }
+            public CourseSummaryBuilder description(String description) { s.setDescription(description); return this; }
+            public CourseSummaryBuilder status(String status) { s.setStatus(status); return this; }
+            public CourseSummaryBuilder teacherName(String teacherName) { s.setTeacherName(teacherName); return this; }
+            public CourseSummaryBuilder enrolledCount(int enrolledCount) { s.setEnrolledCount(enrolledCount); return this; }
+            public CourseSummaryBuilder createdAt(Instant createdAt) { s.setCreatedAt(createdAt); return this; }
+            public CourseSummaryBuilder enrolled(Boolean enrolled) { s.setEnrolled(enrolled); return this; }
+            public CourseSummary build() { return s; }
         }
-
-        // Getters
-        public UUID getId() { return id; }
-        public String getCode() { return code; }
-        public String getTitle() { return title; }
-        public String getDescription() { return description; }
-        public String getStatus() { return status; }
-        public String getTeacherName() { return teacherName; }
-        public int getEnrolledCount() { return enrolledCount; }
-        public Instant getCreatedAt() { return createdAt; }
-        public Boolean getEnrolled() { return enrolled; }
-        public void setEnrolled(Boolean enrolled) { this.enrolled = enrolled; }
     }
 
     public static class CourseDetail {
@@ -603,186 +616,190 @@ public class CourseController {
         private UUID teacherId;
         private String teacherName;
         private int enrolledCount;
-        private int sectionsCount;
+        private int chaptersCount; 
         private Instant createdAt;
         private Instant updatedAt;
+        private UUID instructorId;
+        private Set<UUID> teachingStaffIds;
+        private UUID categoryId;
+        private String categoryName;
+        private Set<String> tags;
+        private String welcomeMessage;
+        private String courseInformation;
+        private String benefits;
+        private String introVideoUrl;
+        private Integer credits;
+        private String visibility;
+        private String priceType;
+        private BigDecimal price;
+        private BigDecimal salePrice;
 
-        public static CourseDetailBuilder builder() {
-            return new CourseDetailBuilder();
-        }
+        public CourseDetail() {}
+        // Getters and Setters omitted for brevity but required? No, I must include them.
+        public UUID getId() { return id; } public void setId(UUID id) { this.id = id; }
+        public String getCode() { return code; } public void setCode(String code) { this.code = code; }
+        public String getTitle() { return title; } public void setTitle(String title) { this.title = title; }
+        public String getDescription() { return description; } public void setDescription(String description) { this.description = description; }
+        public String getStatus() { return status; } public void setStatus(String status) { this.status = status; }
+        public UUID getTeacherId() { return teacherId; } public void setTeacherId(UUID teacherId) { this.teacherId = teacherId; }
+        public String getTeacherName() { return teacherName; } public void setTeacherName(String teacherName) { this.teacherName = teacherName; }
+        public int getEnrolledCount() { return enrolledCount; } public void setEnrolledCount(int enrolledCount) { this.enrolledCount = enrolledCount; }
+        public int getChaptersCount() { return chaptersCount; } public void setChaptersCount(int chaptersCount) { this.chaptersCount = chaptersCount; }
+        public Instant getCreatedAt() { return createdAt; } public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+        public Instant getUpdatedAt() { return updatedAt; } public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+        public UUID getInstructorId() { return instructorId; } public void setInstructorId(UUID instructorId) { this.instructorId = instructorId; }
+        public Set<UUID> getTeachingStaffIds() { return teachingStaffIds; } public void setTeachingStaffIds(Set<UUID> teachingStaffIds) { this.teachingStaffIds = teachingStaffIds; }
+        public UUID getCategoryId() { return categoryId; } public void setCategoryId(UUID categoryId) { this.categoryId = categoryId; }
+        public String getCategoryName() { return categoryName; } public void setCategoryName(String categoryName) { this.categoryName = categoryName; }
+        public Set<String> getTags() { return tags; } public void setTags(Set<String> tags) { this.tags = tags; }
+        public String getWelcomeMessage() { return welcomeMessage; } public void setWelcomeMessage(String welcomeMessage) { this.welcomeMessage = welcomeMessage; }
+        public String getCourseInformation() { return courseInformation; } public void setCourseInformation(String courseInformation) { this.courseInformation = courseInformation; }
+        public String getBenefits() { return benefits; } public void setBenefits(String benefits) { this.benefits = benefits; }
+        public String getIntroVideoUrl() { return introVideoUrl; } public void setIntroVideoUrl(String introVideoUrl) { this.introVideoUrl = introVideoUrl; }
+        public Integer getCredits() { return credits; } public void setCredits(Integer credits) { this.credits = credits; }
+        public String getVisibility() { return visibility; } public void setVisibility(String visibility) { this.visibility = visibility; }
+        public String getPriceType() { return priceType; } public void setPriceType(String priceType) { this.priceType = priceType; }
+        public BigDecimal getPrice() { return price; } public void setPrice(BigDecimal price) { this.price = price; }
+        public BigDecimal getSalePrice() { return salePrice; } public void setSalePrice(BigDecimal salePrice) { this.salePrice = salePrice; }
 
+        public static CourseDetailBuilder builder() { return new CourseDetailBuilder(); }
         public static class CourseDetailBuilder {
-            private UUID id;
-            private String code;
-            private String title;
-            private String description;
-            private String status;
-            private UUID teacherId;
-            private String teacherName;
-            private int enrolledCount;
-            private int sectionsCount;
-            private Instant createdAt;
-            private Instant updatedAt;
-
-            public CourseDetailBuilder id(UUID id) { this.id = id; return this; }
-            public CourseDetailBuilder code(String code) { this.code = code; return this; }
-            public CourseDetailBuilder title(String title) { this.title = title; return this; }
-            public CourseDetailBuilder description(String description) { this.description = description; return this; }
-            public CourseDetailBuilder status(String status) { this.status = status; return this; }
-            public CourseDetailBuilder teacherId(UUID teacherId) { this.teacherId = teacherId; return this; }
-            public CourseDetailBuilder teacherName(String teacherName) { this.teacherName = teacherName; return this; }
-            public CourseDetailBuilder enrolledCount(int enrolledCount) { this.enrolledCount = enrolledCount; return this; }
-            public CourseDetailBuilder sectionsCount(int sectionsCount) { this.sectionsCount = sectionsCount; return this; }
-            public CourseDetailBuilder createdAt(Instant createdAt) { this.createdAt = createdAt; return this; }
-            public CourseDetailBuilder updatedAt(Instant updatedAt) { this.updatedAt = updatedAt; return this; }
-
-            public CourseDetail build() {
-                CourseDetail course = new CourseDetail();
-                course.id = this.id;
-                course.code = this.code;
-                course.title = this.title;
-                course.description = this.description;
-                course.status = this.status;
-                course.teacherId = this.teacherId;
-                course.teacherName = this.teacherName;
-                course.enrolledCount = this.enrolledCount;
-                course.sectionsCount = this.sectionsCount;
-                course.createdAt = this.createdAt;
-                course.updatedAt = this.updatedAt;
-                return course;
-            }
+            private CourseDetail d = new CourseDetail();
+            public CourseDetailBuilder id(UUID id) { d.setId(id); return this; }
+            public CourseDetailBuilder code(String code) { d.setCode(code); return this; }
+            public CourseDetailBuilder title(String title) { d.setTitle(title); return this; }
+            public CourseDetailBuilder description(String description) { d.setDescription(description); return this; }
+            public CourseDetailBuilder status(String status) { d.setStatus(status); return this; }
+            public CourseDetailBuilder teacherId(UUID teacherId) { d.setTeacherId(teacherId); return this; }
+            public CourseDetailBuilder teacherName(String teacherName) { d.setTeacherName(teacherName); return this; }
+            public CourseDetailBuilder enrolledCount(int enrolledCount) { d.setEnrolledCount(enrolledCount); return this; }
+            public CourseDetailBuilder chaptersCount(int chaptersCount) { d.setChaptersCount(chaptersCount); return this; }
+            public CourseDetailBuilder createdAt(Instant createdAt) { d.setCreatedAt(createdAt); return this; }
+            public CourseDetailBuilder updatedAt(Instant updatedAt) { d.setUpdatedAt(updatedAt); return this; }
+            public CourseDetailBuilder instructorId(UUID instructorId) { d.setInstructorId(instructorId); return this; }
+            public CourseDetailBuilder teachingStaffIds(Set<UUID> teachingStaffIds) { d.setTeachingStaffIds(teachingStaffIds); return this; }
+            public CourseDetailBuilder categoryId(UUID categoryId) { d.setCategoryId(categoryId); return this; }
+            public CourseDetailBuilder categoryName(String categoryName) { d.setCategoryName(categoryName); return this; }
+            public CourseDetailBuilder tags(Set<String> tags) { d.setTags(tags); return this; }
+            public CourseDetailBuilder welcomeMessage(String welcomeMessage) { d.setWelcomeMessage(welcomeMessage); return this; }
+            public CourseDetailBuilder courseInformation(String courseInformation) { d.setCourseInformation(courseInformation); return this; }
+            public CourseDetailBuilder benefits(String benefits) { d.setBenefits(benefits); return this; }
+            public CourseDetailBuilder introVideoUrl(String introVideoUrl) { d.setIntroVideoUrl(introVideoUrl); return this; }
+            public CourseDetailBuilder credits(Integer credits) { d.setCredits(credits); return this; }
+            public CourseDetailBuilder visibility(String visibility) { d.setVisibility(visibility); return this; }
+            public CourseDetailBuilder priceType(String priceType) { d.setPriceType(priceType); return this; }
+            public CourseDetailBuilder price(BigDecimal price) { d.setPrice(price); return this; }
+            public CourseDetailBuilder salePrice(BigDecimal salePrice) { d.setSalePrice(salePrice); return this; }
+            public CourseDetail build() { return d; }
         }
-
-        // Getters
-        public UUID getId() { return id; }
-        public String getCode() { return code; }
-        public String getTitle() { return title; }
-        public String getDescription() { return description; }
-        public String getStatus() { return status; }
-        public UUID getTeacherId() { return teacherId; }
-        public String getTeacherName() { return teacherName; }
-        public int getEnrolledCount() { return enrolledCount; }
-        public int getSectionsCount() { return sectionsCount; }
-        public Instant getCreatedAt() { return createdAt; }
-        public Instant getUpdatedAt() { return updatedAt; }
     }
 
-    public static class SectionWithLessons {
+    public static class ChapterResponse {
         private UUID id;
         private String title;
         private String description;
         private Integer orderIndex;
         private List<LessonSummary> lessons;
 
-        public static SectionWithLessonsBuilder builder() {
-            return new SectionWithLessonsBuilder();
+        public ChapterResponse() {}
+        public UUID getId() { return id; } public void setId(UUID id) { this.id = id; }
+        public String getTitle() { return title; } public void setTitle(String title) { this.title = title; }
+        public String getDescription() { return description; } public void setDescription(String description) { this.description = description; }
+        public Integer getOrderIndex() { return orderIndex; } public void setOrderIndex(Integer orderIndex) { this.orderIndex = orderIndex; }
+        public List<LessonSummary> getLessons() { return lessons; } public void setLessons(List<LessonSummary> lessons) { this.lessons = lessons; }
+
+        public static ChapterResponseBuilder builder() { return new ChapterResponseBuilder(); }
+        public static class ChapterResponseBuilder {
+            private ChapterResponse c = new ChapterResponse();
+            public ChapterResponseBuilder id(UUID id) { c.setId(id); return this; }
+            public ChapterResponseBuilder title(String title) { c.setTitle(title); return this; }
+            public ChapterResponseBuilder description(String description) { c.setDescription(description); return this; }
+            public ChapterResponseBuilder orderIndex(Integer orderIndex) { c.setOrderIndex(orderIndex); return this; }
+            public ChapterResponseBuilder lessons(List<LessonSummary> lessons) { c.setLessons(lessons); return this; }
+            public ChapterResponse build() { return c; }
         }
+    }
 
-        public static class SectionWithLessonsBuilder {
-            private UUID id;
-            private String title;
-            private String description;
-            private Integer orderIndex;
-            private List<LessonSummary> lessons;
+    public static class SectionSummary {
+        private UUID id;
+        private String title;
+        private String type;
+        private String content;
+        private String videoUrl;
+        private Integer duration;
+        private Integer orderIndex;
+        private Boolean isRequired;
 
-            public SectionWithLessonsBuilder id(UUID id) { this.id = id; return this; }
-            public SectionWithLessonsBuilder title(String title) { this.title = title; return this; }
-            public SectionWithLessonsBuilder description(String description) { this.description = description; return this; }
-            public SectionWithLessonsBuilder orderIndex(Integer orderIndex) { this.orderIndex = orderIndex; return this; }
-            public SectionWithLessonsBuilder lessons(List<LessonSummary> lessons) { this.lessons = lessons; return this; }
+        public SectionSummary() {}
+        public UUID getId() { return id; } public void setId(UUID id) { this.id = id; }
+        public String getTitle() { return title; } public void setTitle(String title) { this.title = title; }
+        public String getType() { return type; } public void setType(String type) { this.type = type; }
+        public String getContent() { return content; } public void setContent(String content) { this.content = content; }
+        public String getVideoUrl() { return videoUrl; } public void setVideoUrl(String videoUrl) { this.videoUrl = videoUrl; }
+        public Integer getDuration() { return duration; } public void setDuration(Integer duration) { this.duration = duration; }
+        public Integer getOrderIndex() { return orderIndex; } public void setOrderIndex(Integer orderIndex) { this.orderIndex = orderIndex; }
+        public Boolean getIsRequired() { return isRequired; } public void setIsRequired(Boolean isRequired) { this.isRequired = isRequired; }
 
-            public SectionWithLessons build() {
-                SectionWithLessons section = new SectionWithLessons();
-                section.id = this.id;
-                section.title = this.title;
-                section.description = this.description;
-                section.orderIndex = this.orderIndex;
-                section.lessons = this.lessons;
-                return section;
-            }
+        public static SectionSummaryBuilder builder() { return new SectionSummaryBuilder(); }
+        public static class SectionSummaryBuilder {
+            private SectionSummary s = new SectionSummary();
+            public SectionSummaryBuilder id(UUID id) { s.setId(id); return this; }
+            public SectionSummaryBuilder title(String title) { s.setTitle(title); return this; }
+            public SectionSummaryBuilder type(String type) { s.setType(type); return this; }
+            public SectionSummaryBuilder content(String content) { s.setContent(content); return this; }
+            public SectionSummaryBuilder videoUrl(String videoUrl) { s.setVideoUrl(videoUrl); return this; }
+            public SectionSummaryBuilder duration(Integer duration) { s.setDuration(duration); return this; }
+            public SectionSummaryBuilder orderIndex(Integer orderIndex) { s.setOrderIndex(orderIndex); return this; }
+            public SectionSummaryBuilder isRequired(Boolean isRequired) { s.setIsRequired(isRequired); return this; }
+            public SectionSummary build() { return s; }
         }
-
-        // Getters
-        public UUID getId() { return id; }
-        public String getTitle() { return title; }
-        public String getDescription() { return description; }
-        public Integer getOrderIndex() { return orderIndex; }
-        public List<LessonSummary> getLessons() { return lessons; }
     }
 
     public static class LessonSummary {
         private UUID id;
         private String title;
         private String description;
-        private String content;
-        private String videoUrl;
+        private String content; 
+        private String videoUrl; 
         private Integer orderIndex;
         private String lessonType;
-        // Quiz fields
         private Integer quizTimeLimit;
         private Integer quizMaxScore;
         private Integer quizMaxAttempts;
-        // Assignment fields
         private AssignmentInfo assignment;
+        private List<SectionSummary> sections;
 
-        public static LessonSummaryBuilder builder() {
-            return new LessonSummaryBuilder();
-        }
+        public LessonSummary() {}
+        public UUID getId() { return id; } public void setId(UUID id) { this.id = id; }
+        public String getTitle() { return title; } public void setTitle(String title) { this.title = title; }
+        public String getDescription() { return description; } public void setDescription(String description) { this.description = description; }
+        public String getContent() { return content; } public void setContent(String content) { this.content = content; }
+        public String getVideoUrl() { return videoUrl; } public void setVideoUrl(String videoUrl) { this.videoUrl = videoUrl; }
+        public Integer getOrderIndex() { return orderIndex; } public void setOrderIndex(Integer orderIndex) { this.orderIndex = orderIndex; }
+        public String getLessonType() { return lessonType; } public void setLessonType(String lessonType) { this.lessonType = lessonType; }
+        public Integer getQuizTimeLimit() { return quizTimeLimit; } public void setQuizTimeLimit(Integer quizTimeLimit) { this.quizTimeLimit = quizTimeLimit; }
+        public Integer getQuizMaxScore() { return quizMaxScore; } public void setQuizMaxScore(Integer quizMaxScore) { this.quizMaxScore = quizMaxScore; }
+        public Integer getQuizMaxAttempts() { return quizMaxAttempts; } public void setQuizMaxAttempts(Integer quizMaxAttempts) { this.quizMaxAttempts = quizMaxAttempts; }
+        public AssignmentInfo getAssignment() { return assignment; } public void setAssignment(AssignmentInfo assignment) { this.assignment = assignment; }
+        public List<SectionSummary> getSections() { return sections; } public void setSections(List<SectionSummary> sections) { this.sections = sections; }
 
+        public static LessonSummaryBuilder builder() { return new LessonSummaryBuilder(); }
         public static class LessonSummaryBuilder {
-            private UUID id;
-            private String title;
-            private String description;
-            private String content;
-            private String videoUrl;
-            private Integer orderIndex;
-            private String lessonType;
-            private Integer quizTimeLimit;
-            private Integer quizMaxScore;
-            private Integer quizMaxAttempts;
-            private AssignmentInfo assignment;
-
-            public LessonSummaryBuilder id(UUID id) { this.id = id; return this; }
-            public LessonSummaryBuilder title(String title) { this.title = title; return this; }
-            public LessonSummaryBuilder description(String description) { this.description = description; return this; }
-            public LessonSummaryBuilder content(String content) { this.content = content; return this; }
-            public LessonSummaryBuilder videoUrl(String videoUrl) { this.videoUrl = videoUrl; return this; }
-            public LessonSummaryBuilder orderIndex(Integer orderIndex) { this.orderIndex = orderIndex; return this; }
-            public LessonSummaryBuilder lessonType(String lessonType) { this.lessonType = lessonType; return this; }
-            public LessonSummaryBuilder quizTimeLimit(Integer quizTimeLimit) { this.quizTimeLimit = quizTimeLimit; return this; }
-            public LessonSummaryBuilder quizMaxScore(Integer quizMaxScore) { this.quizMaxScore = quizMaxScore; return this; }
-            public LessonSummaryBuilder quizMaxAttempts(Integer quizMaxAttempts) { this.quizMaxAttempts = quizMaxAttempts; return this; }
-            public LessonSummaryBuilder assignment(AssignmentInfo assignment) { this.assignment = assignment; return this; }
-
-            public LessonSummary build() {
-                LessonSummary lesson = new LessonSummary();
-                lesson.id = this.id;
-                lesson.title = this.title;
-                lesson.description = this.description;
-                lesson.content = this.content;
-                lesson.videoUrl = this.videoUrl;
-                lesson.orderIndex = this.orderIndex;
-                lesson.lessonType = this.lessonType;
-                lesson.quizTimeLimit = this.quizTimeLimit;
-                lesson.quizMaxScore = this.quizMaxScore;
-                lesson.quizMaxAttempts = this.quizMaxAttempts;
-                lesson.assignment = this.assignment;
-                return lesson;
-            }
+            private LessonSummary l = new LessonSummary();
+            public LessonSummaryBuilder id(UUID id) { l.setId(id); return this; }
+            public LessonSummaryBuilder title(String title) { l.setTitle(title); return this; }
+            public LessonSummaryBuilder description(String description) { l.setDescription(description); return this; }
+            public LessonSummaryBuilder content(String content) { l.setContent(content); return this; }
+            public LessonSummaryBuilder videoUrl(String videoUrl) { l.setVideoUrl(videoUrl); return this; }
+            public LessonSummaryBuilder orderIndex(Integer orderIndex) { l.setOrderIndex(orderIndex); return this; }
+            public LessonSummaryBuilder lessonType(String lessonType) { l.setLessonType(lessonType); return this; }
+            public LessonSummaryBuilder quizTimeLimit(Integer quizTimeLimit) { l.setQuizTimeLimit(quizTimeLimit); return this; }
+            public LessonSummaryBuilder quizMaxScore(Integer quizMaxScore) { l.setQuizMaxScore(quizMaxScore); return this; }
+            public LessonSummaryBuilder quizMaxAttempts(Integer quizMaxAttempts) { l.setQuizMaxAttempts(quizMaxAttempts); return this; }
+            public LessonSummaryBuilder assignment(AssignmentInfo assignment) { l.setAssignment(assignment); return this; }
+            public LessonSummaryBuilder sections(List<SectionSummary> sections) { l.setSections(sections); return this; }
+            public LessonSummary build() { return l; }
         }
-
-        // Getters
-        public UUID getId() { return id; }
-        public String getTitle() { return title; }
-        public String getDescription() { return description; }
-        public String getContent() { return content; }
-        public String getVideoUrl() { return videoUrl; }
-        public Integer getOrderIndex() { return orderIndex; }
-        public String getLessonType() { return lessonType; }
-        public Integer getQuizTimeLimit() { return quizTimeLimit; }
-        public Integer getQuizMaxScore() { return quizMaxScore; }
-        public Integer getQuizMaxAttempts() { return quizMaxAttempts; }
-        public AssignmentInfo getAssignment() { return assignment; }
     }
 
     public static class AssignmentInfo {
@@ -791,36 +808,21 @@ public class CourseController {
         private String dueDate;
         private Integer maxScore;
 
-        public static AssignmentInfoBuilder builder() {
-            return new AssignmentInfoBuilder();
-        }
+        public AssignmentInfo() {}
+        public String getDescription() { return description; } public void setDescription(String description) { this.description = description; }
+        public String getInstructions() { return instructions; } public void setInstructions(String instructions) { this.instructions = instructions; }
+        public String getDueDate() { return dueDate; } public void setDueDate(String dueDate) { this.dueDate = dueDate; }
+        public Integer getMaxScore() { return maxScore; } public void setMaxScore(Integer maxScore) { this.maxScore = maxScore; }
 
+        public static AssignmentInfoBuilder builder() { return new AssignmentInfoBuilder(); }
         public static class AssignmentInfoBuilder {
-            private String description;
-            private String instructions;
-            private String dueDate;
-            private Integer maxScore;
-
-            public AssignmentInfoBuilder description(String description) { this.description = description; return this; }
-            public AssignmentInfoBuilder instructions(String instructions) { this.instructions = instructions; return this; }
-            public AssignmentInfoBuilder dueDate(String dueDate) { this.dueDate = dueDate; return this; }
-            public AssignmentInfoBuilder maxScore(Integer maxScore) { this.maxScore = maxScore; return this; }
-
-            public AssignmentInfo build() {
-                AssignmentInfo info = new AssignmentInfo();
-                info.description = this.description;
-                info.instructions = this.instructions;
-                info.dueDate = this.dueDate;
-                info.maxScore = this.maxScore;
-                return info;
-            }
+            private AssignmentInfo a = new AssignmentInfo();
+            public AssignmentInfoBuilder description(String description) { a.setDescription(description); return this; }
+            public AssignmentInfoBuilder instructions(String instructions) { a.setInstructions(instructions); return this; }
+            public AssignmentInfoBuilder dueDate(String dueDate) { a.setDueDate(dueDate); return this; }
+            public AssignmentInfoBuilder maxScore(Integer maxScore) { a.setMaxScore(maxScore); return this; }
+            public AssignmentInfo build() { return a; }
         }
-
-        // Getters
-        public String getDescription() { return description; }
-        public String getInstructions() { return instructions; }
-        public String getDueDate() { return dueDate; }
-        public Integer getMaxScore() { return maxScore; }
     }
 
     public static class CreateCourseRequest {
@@ -833,14 +835,37 @@ public class CourseController {
         private String title;
 
         private String description;
-
-        // Getters and Setters
-        public String getCode() { return code; }
-        public void setCode(String code) { this.code = code; }
-        public String getTitle() { return title; }
-        public void setTitle(String title) { this.title = title; }
-        public String getDescription() { return description; }
-        public void setDescription(String description) { this.description = description; }
+        private UUID instructorId;
+        private UUID categoryId;
+        private Set<UUID> teachingStaffIds;
+        private Set<String> tags;
+        private String welcomeMessage;
+        private String courseInformation;
+        private String benefits;
+        private String introVideoUrl;
+        private Integer credits;
+        private String visibility;
+        private String priceType;
+        private BigDecimal price;
+        private BigDecimal salePrice;
+        
+        public CreateCourseRequest() {}
+        public String getCode() { return code; } public void setCode(String code) { this.code = code; }
+        public String getTitle() { return title; } public void setTitle(String title) { this.title = title; }
+        public String getDescription() { return description; } public void setDescription(String description) { this.description = description; }
+        public UUID getInstructorId() { return instructorId; } public void setInstructorId(UUID instructorId) { this.instructorId = instructorId; }
+        public UUID getCategoryId() { return categoryId; } public void setCategoryId(UUID categoryId) { this.categoryId = categoryId; }
+        public Set<UUID> getTeachingStaffIds() { return teachingStaffIds; } public void setTeachingStaffIds(Set<UUID> teachingStaffIds) { this.teachingStaffIds = teachingStaffIds; }
+        public Set<String> getTags() { return tags; } public void setTags(Set<String> tags) { this.tags = tags; }
+        public String getWelcomeMessage() { return welcomeMessage; } public void setWelcomeMessage(String welcomeMessage) { this.welcomeMessage = welcomeMessage; }
+        public String getCourseInformation() { return courseInformation; } public void setCourseInformation(String courseInformation) { this.courseInformation = courseInformation; }
+        public String getBenefits() { return benefits; } public void setBenefits(String benefits) { this.benefits = benefits; }
+        public String getIntroVideoUrl() { return introVideoUrl; } public void setIntroVideoUrl(String introVideoUrl) { this.introVideoUrl = introVideoUrl; }
+        public Integer getCredits() { return credits; } public void setCredits(Integer credits) { this.credits = credits; }
+        public String getVisibility() { return visibility; } public void setVisibility(String visibility) { this.visibility = visibility; }
+        public String getPriceType() { return priceType; } public void setPriceType(String priceType) { this.priceType = priceType; }
+        public BigDecimal getPrice() { return price; } public void setPrice(BigDecimal price) { this.price = price; }
+        public BigDecimal getSalePrice() { return salePrice; } public void setSalePrice(BigDecimal salePrice) { this.salePrice = salePrice; }
     }
 
     public static class UpdateCourseRequest {
@@ -851,69 +876,91 @@ public class CourseController {
         private String title;
 
         private String description;
-
-        // Getters and Setters
-        public String getCode() { return code; }
-        public void setCode(String code) { this.code = code; }
-        public String getTitle() { return title; }
-        public void setTitle(String title) { this.title = title; }
-        public String getDescription() { return description; }
-        public void setDescription(String description) { this.description = description; }
+        private UUID instructorId;
+        private UUID categoryId;
+        private Set<UUID> teachingStaffIds;
+        private Set<String> tags;
+        private String welcomeMessage;
+        private String courseInformation;
+        private String benefits;
+        private String introVideoUrl;
+        private Integer credits;
+        private String visibility;
+        private String priceType;
+        private BigDecimal price;
+        private BigDecimal salePrice;
+        
+        public UpdateCourseRequest() {}
+        public String getCode() { return code; } public void setCode(String code) { this.code = code; }
+        public String getTitle() { return title; } public void setTitle(String title) { this.title = title; }
+        public String getDescription() { return description; } public void setDescription(String description) { this.description = description; }
+        public UUID getInstructorId() { return instructorId; } public void setInstructorId(UUID instructorId) { this.instructorId = instructorId; }
+        public UUID getCategoryId() { return categoryId; } public void setCategoryId(UUID categoryId) { this.categoryId = categoryId; }
+        public Set<UUID> getTeachingStaffIds() { return teachingStaffIds; } public void setTeachingStaffIds(Set<UUID> teachingStaffIds) { this.teachingStaffIds = teachingStaffIds; }
+        public Set<String> getTags() { return tags; } public void setTags(Set<String> tags) { this.tags = tags; }
+        public String getWelcomeMessage() { return welcomeMessage; } public void setWelcomeMessage(String welcomeMessage) { this.welcomeMessage = welcomeMessage; }
+        public String getCourseInformation() { return courseInformation; } public void setCourseInformation(String courseInformation) { this.courseInformation = courseInformation; }
+        public String getBenefits() { return benefits; } public void setBenefits(String benefits) { this.benefits = benefits; }
+        public String getIntroVideoUrl() { return introVideoUrl; } public void setIntroVideoUrl(String introVideoUrl) { this.introVideoUrl = introVideoUrl; }
+        public Integer getCredits() { return credits; } public void setCredits(Integer credits) { this.credits = credits; }
+        public String getVisibility() { return visibility; } public void setVisibility(String visibility) { this.visibility = visibility; }
+        public String getPriceType() { return priceType; } public void setPriceType(String priceType) { this.priceType = priceType; }
+        public BigDecimal getPrice() { return price; } public void setPrice(BigDecimal price) { this.price = price; }
+        public BigDecimal getSalePrice() { return salePrice; } public void setSalePrice(BigDecimal salePrice) { this.salePrice = salePrice; }
     }
 
-    // Request for teacher/admin enrollment - simplified to email only
     public static class EnrollStudentRequest {
         @NotBlank(message = "Email không được để trống")
         private String email;
-
+        
+        public EnrollStudentRequest() {}
         public String getEmail() { return email; }
         public void setEmail(String email) { this.email = email; }
     }
 
-    // DTO for enrolled student info
-    @lombok.Data
-    @lombok.Builder
     public static class EnrolledStudentInfo {
         private UUID id;
         private String fullName;
         private String email;
         private Instant enrolledAt;
+
+        public EnrolledStudentInfo() {}
+        public UUID getId() { return id; } public void setId(UUID id) { this.id = id; }
+        public String getFullName() { return fullName; } public void setFullName(String fullName) { this.fullName = fullName; }
+        public String getEmail() { return email; } public void setEmail(String email) { this.email = email; }
+        public Instant getEnrolledAt() { return enrolledAt; } public void setEnrolledAt(Instant enrolledAt) { this.enrolledAt = enrolledAt; }
+
+        public static EnrolledStudentInfoBuilder builder() { return new EnrolledStudentInfoBuilder(); }
+        public static class EnrolledStudentInfoBuilder {
+            private EnrolledStudentInfo e = new EnrolledStudentInfo();
+            public EnrolledStudentInfoBuilder id(UUID id) { e.setId(id); return this; }
+            public EnrolledStudentInfoBuilder fullName(String fullName) { e.setFullName(fullName); return this; }
+            public EnrolledStudentInfoBuilder email(String email) { e.setEmail(email); return this; }
+            public EnrolledStudentInfoBuilder enrolledAt(Instant enrolledAt) { e.setEnrolledAt(enrolledAt); return this; }
+            public EnrolledStudentInfo build() { return e; }
+        }
     }
     
-    // DTO for available students (not enrolled in course)
     public static class AvailableStudentDTO {
         private UUID id;
         private String fullName;
         private String email;
 
-        public static AvailableStudentDTOBuilder builder() {
-            return new AvailableStudentDTOBuilder();
-        }
+        public AvailableStudentDTO() {}
+        public UUID getId() { return id; } public void setId(UUID id) { this.id = id; }
+        public String getFullName() { return fullName; } public void setFullName(String fullName) { this.fullName = fullName; }
+        public String getEmail() { return email; } public void setEmail(String email) { this.email = email; }
 
+        public static AvailableStudentDTOBuilder builder() { return new AvailableStudentDTOBuilder(); }
         public static class AvailableStudentDTOBuilder {
-            private UUID id;
-            private String fullName;
-            private String email;
-
-            public AvailableStudentDTOBuilder id(UUID id) { this.id = id; return this; }
-            public AvailableStudentDTOBuilder fullName(String fullName) { this.fullName = fullName; return this; }
-            public AvailableStudentDTOBuilder email(String email) { this.email = email; return this; }
-
-            public AvailableStudentDTO build() {
-                AvailableStudentDTO dto = new AvailableStudentDTO();
-                dto.id = this.id;
-                dto.fullName = this.fullName;
-                dto.email = this.email;
-                return dto;
-            }
+            private AvailableStudentDTO a = new AvailableStudentDTO();
+            public AvailableStudentDTOBuilder id(UUID id) { a.setId(id); return this; }
+            public AvailableStudentDTOBuilder fullName(String fullName) { a.setFullName(fullName); return this; }
+            public AvailableStudentDTOBuilder email(String email) { a.setEmail(email); return this; }
+            public AvailableStudentDTO build() { return a; }
         }
-
-        public UUID getId() { return id; }
-        public String getFullName() { return fullName; }
-        public String getEmail() { return email; }
     }
 
-    // DTO for course review status
     public static class CourseReviewStatus {
         private UUID courseId;
         private String status;
@@ -921,38 +968,22 @@ public class CourseController {
         private Instant reviewedAt;
         private String reviewedByName;
 
-        public static CourseReviewStatusBuilder builder() {
-            return new CourseReviewStatusBuilder();
-        }
+        public CourseReviewStatus() {}
+        public UUID getCourseId() { return courseId; } public void setCourseId(UUID courseId) { this.courseId = courseId; }
+        public String getStatus() { return status; } public void setStatus(String status) { this.status = status; }
+        public String getReviewComment() { return reviewComment; } public void setReviewComment(String reviewComment) { this.reviewComment = reviewComment; }
+        public Instant getReviewedAt() { return reviewedAt; } public void setReviewedAt(Instant reviewedAt) { this.reviewedAt = reviewedAt; }
+        public String getReviewedByName() { return reviewedByName; } public void setReviewedByName(String reviewedByName) { this.reviewedByName = reviewedByName; }
 
+        public static CourseReviewStatusBuilder builder() { return new CourseReviewStatusBuilder(); }
         public static class CourseReviewStatusBuilder {
-            private UUID courseId;
-            private String status;
-            private String reviewComment;
-            private Instant reviewedAt;
-            private String reviewedByName;
-
-            public CourseReviewStatusBuilder courseId(UUID courseId) { this.courseId = courseId; return this; }
-            public CourseReviewStatusBuilder status(String status) { this.status = status; return this; }
-            public CourseReviewStatusBuilder reviewComment(String reviewComment) { this.reviewComment = reviewComment; return this; }
-            public CourseReviewStatusBuilder reviewedAt(Instant reviewedAt) { this.reviewedAt = reviewedAt; return this; }
-            public CourseReviewStatusBuilder reviewedByName(String reviewedByName) { this.reviewedByName = reviewedByName; return this; }
-
-            public CourseReviewStatus build() {
-                CourseReviewStatus dto = new CourseReviewStatus();
-                dto.courseId = this.courseId;
-                dto.status = this.status;
-                dto.reviewComment = this.reviewComment;
-                dto.reviewedAt = this.reviewedAt;
-                dto.reviewedByName = this.reviewedByName;
-                return dto;
-            }
+            private CourseReviewStatus c = new CourseReviewStatus();
+            public CourseReviewStatusBuilder courseId(UUID courseId) { c.setCourseId(courseId); return this; }
+            public CourseReviewStatusBuilder status(String status) { c.setStatus(status); return this; }
+            public CourseReviewStatusBuilder reviewComment(String reviewComment) { c.setReviewComment(reviewComment); return this; }
+            public CourseReviewStatusBuilder reviewedAt(Instant reviewedAt) { c.setReviewedAt(reviewedAt); return this; }
+            public CourseReviewStatusBuilder reviewedByName(String reviewedByName) { c.setReviewedByName(reviewedByName); return this; }
+            public CourseReviewStatus build() { return c; }
         }
-
-        public UUID getCourseId() { return courseId; }
-        public String getStatus() { return status; }
-        public String getReviewComment() { return reviewComment; }
-        public Instant getReviewedAt() { return reviewedAt; }
-        public String getReviewedByName() { return reviewedByName; }
     }
 }

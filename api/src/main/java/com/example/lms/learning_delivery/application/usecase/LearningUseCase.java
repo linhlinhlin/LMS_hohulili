@@ -83,24 +83,55 @@ public class LearningUseCase {
                 .build();
     }
 
-    @Data
-    @Builder
     public static class LearningPathDTO {
         private UUID enrollmentId;
         private String courseTitle;
         private Integer completionPercent;
         private List<ChapterDTO> chapters;
 
-        @Data
-        @Builder
+        // Manual G/S
+        public UUID getEnrollmentId() { return enrollmentId; }
+        public void setEnrollmentId(UUID enrollmentId) { this.enrollmentId = enrollmentId; }
+        public String getCourseTitle() { return courseTitle; }
+        public void setCourseTitle(String courseTitle) { this.courseTitle = courseTitle; }
+        public Integer getCompletionPercent() { return completionPercent; }
+        public void setCompletionPercent(Integer completionPercent) { this.completionPercent = completionPercent; }
+        public List<ChapterDTO> getChapters() { return chapters; }
+        public void setChapters(List<ChapterDTO> chapters) { this.chapters = chapters; }
+
+        public static LearningPathDTOBuilder builder() { return new LearningPathDTOBuilder(); }
+        public static class LearningPathDTOBuilder {
+            private LearningPathDTO dto = new LearningPathDTO();
+            public LearningPathDTOBuilder enrollmentId(UUID id) { dto.setEnrollmentId(id); return this; }
+            public LearningPathDTOBuilder courseTitle(String t) { dto.setCourseTitle(t); return this; }
+            public LearningPathDTOBuilder completionPercent(Integer c) { dto.setCompletionPercent(c); return this; }
+            public LearningPathDTOBuilder chapters(List<ChapterDTO> c) { dto.setChapters(c); return this; }
+            public LearningPathDTO build() { return dto; }
+        }
+
         public static class ChapterDTO {
             private UUID id;
             private String title;
             private List<LessonDTO> lessons;
+            
+            // Manual G/S
+            public UUID getId() { return id; }
+            public void setId(UUID id) { this.id = id; }
+            public String getTitle() { return title; }
+            public void setTitle(String title) { this.title = title; }
+            public List<LessonDTO> getLessons() { return lessons; }
+            public void setLessons(List<LessonDTO> lessons) { this.lessons = lessons; }
+
+            public static ChapterDTOBuilder builder() { return new ChapterDTOBuilder(); }
+            public static class ChapterDTOBuilder {
+                private ChapterDTO dto = new ChapterDTO();
+                public ChapterDTOBuilder id(UUID id) { dto.setId(id); return this; }
+                public ChapterDTOBuilder title(String t) { dto.setTitle(t); return this; }
+                public ChapterDTOBuilder lessons(List<LessonDTO> l) { dto.setLessons(l); return this; }
+                public ChapterDTO build() { return dto; }
+            }
         }
 
-        @Data
-        @Builder
         public static class LessonDTO {
             private UUID id;
             private String title;
@@ -108,6 +139,32 @@ public class LearningUseCase {
             private String status;
             private Integer durationSeconds;
             private boolean isCompleted;
+            
+            // Manual G/S
+            public UUID getId() { return id; }
+            public void setId(UUID id) { this.id = id; }
+            public String getTitle() { return title; }
+            public void setTitle(String title) { this.title = title; }
+            public String getType() { return type; }
+            public void setType(String type) { this.type = type; }
+            public String getStatus() { return status; }
+            public void setStatus(String status) { this.status = status; }
+            public Integer getDurationSeconds() { return durationSeconds; }
+            public void setDurationSeconds(Integer durationSeconds) { this.durationSeconds = durationSeconds; }
+            public boolean isCompleted() { return isCompleted; }
+            public void setCompleted(boolean isCompleted) { this.isCompleted = isCompleted; }
+
+            public static LessonDTOBuilder builder() { return new LessonDTOBuilder(); }
+            public static class LessonDTOBuilder {
+                private LessonDTO dto = new LessonDTO();
+                public LessonDTOBuilder id(UUID id) { dto.setId(id); return this; }
+                public LessonDTOBuilder title(String t) { dto.setTitle(t); return this; }
+                public LessonDTOBuilder type(String t) { dto.setType(t); return this; }
+                public LessonDTOBuilder status(String s) { dto.setStatus(s); return this; }
+                public LessonDTOBuilder durationSeconds(Integer d) { dto.setDurationSeconds(d); return this; }
+                public LessonDTOBuilder isCompleted(boolean b) { dto.setCompleted(b); return this; }
+                public LessonDTO build() { return dto; }
+            }
         }
     }
 }

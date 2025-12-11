@@ -4,19 +4,21 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
+import java.util.List;
+import java.util.ArrayList;
 
 @Entity
 @Table(name = "sections")
-@Data
-@Builder
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Section {
     
@@ -25,24 +27,37 @@ public class Section {
     private UUID id;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "course_id", nullable = false)
+    @JoinColumn(name = "lesson_id", nullable = false)
     @JsonIgnore
-    private Course course;
+    private Lesson lesson;
     
     @Column(nullable = false)
     private String title;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private SectionType type; // VIDEO, TEXT, QUIZ, FILE, ASSIGNMENT
     
-    private String description;
+    @Column(columnDefinition = "TEXT")
+    private String content;
+    
+    @Column(name = "video_url", length = 500)
+    private String videoUrl;
+
+    @Column(name = "file_url", length = 500)
+    private String fileUrl;
+    
+    @Column(name = "is_required", nullable = false)
+    @Builder.Default
+    private Boolean isRequired = false;
+    
+    @Column(name = "duration")
+    @Builder.Default
+    private Integer duration = 0;
     
     @Column(name = "order_index", nullable = false)
     @Builder.Default
     private Integer orderIndex = 0;
-    
-    @OneToMany(mappedBy = "section", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderBy("orderIndex ASC")
-    @Builder.Default
-    @JsonIgnore
-    private List<Lesson> lessons = new java.util.ArrayList<>();
     
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -51,4 +66,12 @@ public class Section {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private Instant updatedAt;
+
+    @OneToMany(mappedBy = "section", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<Quiz> quizzes = new ArrayList<>();
+
+    public enum SectionType {
+        VIDEO, TEXT, QUIZ, FILE, ASSIGNMENT
+    }
 }

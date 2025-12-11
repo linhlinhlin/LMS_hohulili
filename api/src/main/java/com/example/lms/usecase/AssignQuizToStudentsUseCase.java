@@ -20,8 +20,9 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Transactional
-@Slf4j
 public class AssignQuizToStudentsUseCase {
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AssignQuizToStudentsUseCase.class);
 
     private final QuizRepository quizRepository;
     private final QuizAssignmentRepository assignmentRepository;

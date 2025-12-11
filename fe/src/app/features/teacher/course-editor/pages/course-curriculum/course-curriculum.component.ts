@@ -4,9 +4,10 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { CourseEditorStore } from '../../store/course-editor.store';
-import { LessonDraftDTO } from '../../services/course-authoring.service';
+import { LessonDraftDTO, SectionDraftDTO } from '../../services/course-authoring.service';
 import { CurriculumSelectionService } from '../../services/curriculum-selection.service';
 import { LessonApi } from '../../../../../api/client/lesson.api';
+import { ChapterApi } from '../../../../../api/client/chapter.api';
 import { SectionApi } from '../../../../../api/client/section.api';
 import { QuizApi } from '../../../../../api/endpoints/quiz.api';
 import { PackageApi } from '../../../../../api/endpoints/package.api';
@@ -107,8 +108,89 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
         </div>
       }
 
+      <!-- Section Editor (Level 3) -->
+      @if (selectedSectionId()) {
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-y-auto h-full">
+          <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+             <div class="flex items-center gap-3">
+               <!-- Icon based on type -->
+               <div class="w-10 h-10 rounded-lg flex items-center justify-center" 
+                    [class.bg-blue-100]="newSectionType === 'VIDEO'" 
+                    [class.bg-gray-100]="newSectionType === 'TEXT'"
+                    [class.bg-purple-100]="newSectionType === 'QUIZ'">
+                 @if (newSectionType === 'VIDEO') {
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path></svg>
+                 } @else if (newSectionType === 'QUIZ') {
+                    <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                 } @else {
+                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                 }
+               </div>
+               <div>
+                 <h2 class="text-lg font-semibold text-gray-900">
+                    {{ newSectionType === 'TEXT' ? 'Văn bản' : newSectionType === 'VIDEO' ? 'Video' : 'Trắc nghiệm' }}
+                 </h2>
+                 <p class="text-sm text-gray-500">{{ sectionTitle || 'Chưa có tiêu đề' }}</p>
+               </div>
+             </div>
+          </div>
+
+          <div class="p-6 space-y-6">
+             <!-- Reuse Form Logic -->
+             <div>
+               <label class="block text-sm font-medium text-gray-700 mb-2">Tiêu đề Section <span class="text-red-500">*</span></label>
+               <input type="text" [(ngModel)]="sectionTitle" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+             </div>
+
+             <div class="flex items-center gap-2">
+                <input type="checkbox" [(ngModel)]="sectionIsRequired" id="reqSec" class="rounded text-blue-600 focus:ring-blue-500 w-4 h-4">
+                <label for="reqSec" class="text-sm text-gray-700 font-medium select-none cursor-pointer">Bắt buộc hoàn thành (Học viên phải xem nội dung này)</label>
+             </div>
+
+             @if (newSectionType === 'VIDEO') {
+               <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Video URL <span class="text-red-500">*</span></label>
+                  <input type="text" [(ngModel)]="sectionVideoUrl" 
+                         (blur)="updateVideoPreview(sectionVideoUrl)"
+                         (keydown.enter)="updateVideoPreview(sectionVideoUrl); $event.preventDefault()"
+                         class="w-full px-4 py-2.5 border border-gray-300 rounded-lg" placeholder="https://youtube.com/...">
+                  @if (safeVideoUrl()) {
+                      <div class="mt-2 aspect-video bg-black rounded-lg overflow-hidden">
+                          <iframe class="w-full h-full" [src]="safeVideoUrl()" frameborder="0" allowfullscreen></iframe>
+                      </div>
+                  }
+               </div>
+             }
+
+             @if (newSectionType === 'TEXT') {
+               <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Nội dung</label>
+                  <div class="editor-container-wrapper border border-gray-300 rounded-lg bg-white relative shadow-sm" [style.height.px]="editorHeight()">
+                      <ckeditor [editor]="Editor" [(ngModel)]="sectionContent" 
+                                [config]="editorConfig" (ready)="onEditorReady($event)"
+                                (change)="onEditorChange($event)">
+                      </ckeditor>
+                  </div>
+               </div>
+             }
+          </div>
+
+          <div class="px-6 py-4 border-t border-gray-200 flex justify-end gap-3 flex-shrink-0 bg-gray-50">
+             <button (click)="editingSectionId() && deleteSection(editingSectionId()!)" 
+                     class="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors mr-auto">
+                Xóa
+             </button>
+
+             <button (click)="saveSection()" [disabled]="isSaving() || !sectionTitle.trim()" class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2">
+               @if (isSaving()) { <span class="animate-spin">⏳</span> }
+               Lưu thay đổi
+             </button>
+          </div>
+        </div>
+      }
+
       <!-- Lesson Editor -->
-      @if (selectedLessonId()) {
+      @if (selectedLessonId() && !selectedSectionId()) {
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-y-auto h-full">
           <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
             <div class="flex items-center gap-3">
@@ -130,58 +212,53 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
               <input type="text" [(ngModel)]="lessonTitle" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
             </div>
 
-            <!-- LECTURE fields -->
+            <!-- LECTURE fields (Refactored for Level 3 Topics) -->
             @if (getLessonType(selectedLesson()) === 'LECTURE') {
-              <div class="space-y-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">URL Video</label>
-                  <input type="text" [(ngModel)]="lessonVideoUrl" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg" placeholder="https://youtube.com/watch?v=...">
-                @if (lessonVideoUrl && isYouTubeUrl(lessonVideoUrl)) {
-                    <button (click)="showVideoPreview.set(!showVideoPreview())" 
-                    class="px-3 py-2 text-sm font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 border border-blue-100 rounded-lg transition-colors mt-2">
-                      {{ showVideoPreview() ? 'Ẩn xem trước' : 'Xem trước Video' }}
-                    </button>
-                    @if (showVideoPreview()) {
-                      <div class="aspect-video max-w-lg w-full mx-auto rounded-lg overflow-hidden bg-black mt-3 shadow-sm">
-                        <iframe class="w-full h-full" [src]="getYouTubeEmbedUrl()" frameborder="0" allowfullscreen></iframe>
-                      </div>
-                    }
-                }
-                </div>
-                <div>
-                  <div class="flex flex-col gap-2 w-full">
-                    <label class="block text-sm font-semibold text-gray-700">Nội dung chi tiết</label>
-                    
-                    <!-- EDITOR WRAPPER -->
-                    <div class="editor-container-wrapper border border-gray-300 rounded-lg bg-white relative shadow-sm"
-                         [style.height.px]="editorHeight()">
-                         
-                      <!-- Component chính -->
-                      <ckeditor [editor]="Editor" [(ngModel)]="lessonContent" 
-                                [config]="editorConfig" (ready)="onEditorReady($event)"
-                                (change)="onEditorChange($event)">
-                      </ckeditor>
-
-                      <!-- Footer Info (Word Count & Path) -->
-                      <div class="absolute bottom-0 left-0 right-0 h-8 bg-gray-50 border-t border-gray-200 flex items-center justify-between px-4 text-xs text-gray-500 z-10 select-none">
-                        <div class="flex items-center gap-2">
-                          <span class="font-medium text-gray-400">PATH:</span>
-                          <span class="bg-gray-200 px-1.5 py-0.5 rounded text-gray-600">body</span>
-                        </div>
-                        <span class="font-medium">{{ wordCount() }} từ</span>
-                      </div>
-
-                      <!-- Resize Handle (Góc kéo) -->
-                      <div class="absolute bottom-0 right-0 w-6 h-6 cursor-ns-resize flex items-center justify-center hover:bg-gray-200 transition-colors z-20 rounded-br-lg"
-                           (mousedown)="startResize($event)" title="Kéo để thay đổi kích thước">
-                        <svg class="w-3 h-3 text-gray-400" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M22 22H20V20H22V22ZM22 18H20V16H22V18ZM18 22H16V20H18V22ZM22 14H20V12H22V14ZM18 18H16V16H18V18ZM14 22H12V20H14V22Z"/>
-                        </svg>
-                      </div>
+              <div class="space-y-6">
+                <!-- Topic List -->
+                <div class="bg-gray-50 rounded-lg border border-gray-200 p-4">
+                  <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-medium text-gray-900">Nội dung bài học ({{ selectedLesson()?.sections?.length || 0 }} sections)</h3>
+                    <div class="flex gap-2">
+                       <button (click)="openSectionEditor('TEXT')" class="px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-1">
+                         <span>+ Text</span>
+                       </button>
+                       <button (click)="openSectionEditor('VIDEO')" class="px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-1">
+                         <span>+ Video</span>
+                       </button>
                     </div>
-                    
-                    <p class="text-xs text-gray-500 italic">* Kéo góc dưới bên phải để mở rộng vùng soạn thảo.</p>
                   </div>
+                  
+                  @if (selectedLesson()?.sections?.length === 0) {
+                     <div class="text-center py-6 text-gray-500 text-sm italic">
+                        Chưa có nội dung. Hãy thêm Text hoặc Video.
+                     </div>
+                  } @else {
+                     <div class="space-y-2" cdkDropList (cdkDropListDropped)="dropSection($event)">
+                        @for (section of selectedLesson()?.sections; track section.id) {
+                           <div class="bg-white p-3 rounded-lg border border-gray-200 flex items-center gap-3 cursor-pointer hover:border-blue-300 transition-all group"
+                                (click)="editSection(section)" cdkDrag>
+                              <div class="text-gray-400 cursor-move" cdkDragHandle>
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
+                              </div>
+                              <div class="w-8 h-8 rounded flex items-center justify-center flex-shrink-0" [class.bg-blue-100]="section.type === 'VIDEO'" [class.bg-gray-100]="section.type === 'TEXT'">
+                                 @if (section.type === 'VIDEO') {
+                                   <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path></svg>
+                                 } @else {
+                                   <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                 }
+                              </div>
+                              <div class="flex-1">
+                                 <h4 class="text-sm font-medium text-gray-900">{{ section.title }}</h4>
+                                 <p class="text-xs text-gray-500 truncate max-w-md">{{ section.content || section.videoUrl || 'No content' }}</p>
+                              </div>
+                              <button (click)="deleteSection(section.id); $event.stopPropagation()" class="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-600 rounded">
+                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                              </button>
+                           </div>
+                        }
+                     </div>
+                  }
                 </div>
               </div>
             }
@@ -535,6 +612,67 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
         </div>
       </div>
     }
+    <!-- Section Editor Modal (Level 3) -->
+    @if (showSectionModal()) {
+      <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 overflow-y-auto" (click)="showSectionModal.set(false)">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl mx-4 my-8 flex flex-col max-h-[90vh]" (click)="$event.stopPropagation()">
+          <div class="p-5 border-b border-gray-200 flex justify-between items-center">
+            <h3 class="text-lg font-semibold text-gray-900">{{ editingSectionId() ? 'Chỉnh sửa Section' : 'Thêm Section Mới' }}</h3>
+            <button (click)="showSectionModal.set(false)" class="text-gray-400 hover:text-gray-600">✕</button>
+          </div>
+          <div class="p-6 space-y-6 overflow-y-auto">
+             <div>
+               <label class="block text-sm font-medium text-gray-700 mb-2">Tiêu đề Section <span class="text-red-500">*</span></label>
+               <input type="text" [(ngModel)]="sectionTitle" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+             </div>
+
+             <div class="flex items-center gap-2">
+                <input type="checkbox" [(ngModel)]="sectionIsRequired" id="reqSec" class="rounded text-blue-600 focus:ring-blue-500 w-4 h-4">
+                <label for="reqSec" class="text-sm text-gray-700 font-medium select-none cursor-pointer">Bắt buộc hoàn thành (Học viên phải xem nội dung này)</label>
+             </div>
+
+             @if (newSectionType === 'VIDEO') {
+               <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Video URL <span class="text-red-500">*</span></label>
+                  <input type="text" [(ngModel)]="sectionVideoUrl" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg" placeholder="https://youtube.com/...">
+                  @if (sectionVideoUrl) {
+                      <div class="mt-2 aspect-video bg-black rounded-lg overflow-hidden">
+                          <iframe class="w-full h-full" [src]="getSafeUrl(sectionVideoUrl)" frameborder="0" allowfullscreen></iframe>
+                      </div>
+                  }
+               </div>
+             }
+
+             @if (newSectionType === 'TEXT') {
+               <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Nội dung</label>
+                  <div class="editor-container-wrapper border border-gray-300 rounded-lg bg-white relative shadow-sm" [style.height.px]="editorHeight()">
+                      <ckeditor [editor]="Editor" [(ngModel)]="sectionContent" 
+                                [config]="editorConfig" (ready)="onEditorReady($event)"
+                                (change)="onEditorChange($event)">
+                      </ckeditor>
+                      <!-- Word count similar to previous -->
+                      <div class="absolute bottom-0 left-0 right-0 h-8 bg-gray-50 border-t border-gray-200 flex items-center justify-between px-4 text-xs text-gray-500 z-10 select-none">
+                         <span class="font-medium">{{ wordCount() }} từ</span>
+                      </div>
+                      <div class="absolute bottom-0 right-0 w-6 h-6 cursor-ns-resize flex items-center justify-center hover:bg-gray-200 z-20 rounded-br-lg"
+                           (mousedown)="startResize($event)">
+                        <svg class="w-3 h-3 text-gray-400" viewBox="0 0 24 24" fill="currentColor"><path d="M22 22H20V20H22V22ZM22 18H20V16H22V18ZM18 22H16V20H18V22ZM22 14H20V12H22V14ZM18 18H16V16H18V18ZM14 22H12V20H14V22Z"/></svg>
+                      </div>
+                  </div>
+               </div>
+             }
+          </div>
+          <div class="p-5 border-t border-gray-200 flex justify-end gap-3 bg-gray-50">
+            <button (click)="showSectionModal.set(false)" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">Hủy</button>
+            <button (click)="saveSection()" [disabled]="isSaving() || !sectionTitle.trim()" class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2">
+              @if (isSaving()) { <span class="animate-spin">⏳</span> }
+              {{ editingSectionId() ? 'Cập nhật' : 'Tạo mới' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    }
   `,
 })
 export class CourseCurriculumComponent {
@@ -543,6 +681,7 @@ export class CourseCurriculumComponent {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private lessonApi = inject(LessonApi);
+  private chapterApi = inject(ChapterApi);
   private sectionApi = inject(SectionApi);
   private quizApi = inject(QuizApi);
   private packageApi = inject(PackageApi);
@@ -645,6 +784,20 @@ export class CourseCurriculumComponent {
   selectedChapterId = this.selectionService.selectedChapterId;
   selectedLessonId = this.selectionService.selectedLessonId;
   selectedLesson = this.selectionService.selectedLesson;
+  selectedSectionId = this.selectionService.selectedSectionId; // [NEW]
+  selectedSection = this.selectionService.selectedSection; // [NEW]
+
+  // Section Logic (L3)
+  editingSectionId = signal<string | null>(null);
+  showSectionModal = signal(false);
+  newSectionType: 'TEXT' | 'VIDEO' | 'QUIZ' = 'TEXT';
+
+  // Section Form
+  sectionTitle = '';
+  sectionContent = '';
+  sectionVideoUrl = '';
+  sectionIsRequired = false;
+  safeVideoUrl = signal<SafeResourceUrl | null>(null); // [NEW]
 
   // State
   isSaving = signal(false);
@@ -712,6 +865,20 @@ export class CourseCurriculumComponent {
         if (this.getLessonType(lesson) === 'QUIZ') {
           this.loadQuizQuestions();
         }
+      }
+    });
+
+    // Effect for Section Selection [NEW]
+    effect(() => {
+      const section = this.selectedSection();
+      if (section) {
+        this.editingSectionId.set(section.id);
+        this.sectionTitle = section.title;
+        this.newSectionType = (section.type as any) || 'TEXT';
+        this.sectionContent = section.content || '';
+        this.sectionVideoUrl = section.videoUrl || '';
+        this.sectionIsRequired = (section as any).isRequired || false;
+        this.updateVideoPreview(this.sectionVideoUrl); // [NEW] Init preview
       }
     });
   }
@@ -822,7 +989,7 @@ export class CourseCurriculumComponent {
 
     this.isSaving.set(true);
     try {
-      await firstValueFrom(this.sectionApi.updateSection(chapterId, {
+      await firstValueFrom(this.chapterApi.updateChapter(chapterId, {
         title: this.chapterTitle.trim(),
         description: this.chapterDescription.trim()
       }));
@@ -1041,5 +1208,104 @@ export class CourseCurriculumComponent {
     } finally {
       this.quizQuestionsLoading.set(false);
     }
+  }
+  // Section Methods (L3)
+  openSectionEditor(type: 'TEXT' | 'VIDEO' | 'QUIZ') {
+    this.editingSectionId.set(null);
+    this.newSectionType = type;
+    this.sectionTitle = '';
+    this.sectionContent = '';
+    this.sectionVideoUrl = '';
+    this.sectionIsRequired = false;
+    this.showSectionModal.set(true);
+  }
+
+  editSection(section: SectionDraftDTO) {
+    this.editingSectionId.set(section.id);
+    this.newSectionType = (section.type as any) || 'TEXT';
+    this.sectionTitle = section.title;
+    this.sectionContent = section.content || '';
+    this.sectionVideoUrl = section.videoUrl || '';
+    this.sectionIsRequired = section.isRequired || false;
+    this.showSectionModal.set(true);
+  }
+
+  // Video Preview Logic [NEW]
+  updateVideoPreview(url: string) {
+    if (!url) {
+      this.safeVideoUrl.set(null);
+      return;
+    }
+    const videoId = this.extractYouTubeId(url);
+    if (videoId) {
+      this.safeVideoUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(`https://www.youtube.com/embed/${videoId}`));
+    } else {
+      this.safeVideoUrl.set(null);
+    }
+  }
+
+  getSafeUrl(url: string): SafeResourceUrl {
+    const videoId = this.extractYouTubeId(url);
+    if (videoId) {
+      return this.sanitizer.bypassSecurityTrustResourceUrl(`https://www.youtube.com/embed/${videoId}`);
+    }
+    return this.sanitizer.bypassSecurityTrustResourceUrl(url);
+  }
+
+  async saveSection() {
+    const lesson = this.selectedLesson();
+    if (!lesson || !this.sectionTitle.trim()) return;
+
+    this.isSaving.set(true);
+    try {
+      if (this.editingSectionId()) {
+        // Update
+        await firstValueFrom(this.sectionApi.updateSection(this.editingSectionId()!, {
+          title: this.sectionTitle.trim(),
+          content: this.sectionContent,
+          videoUrl: this.sectionVideoUrl,
+          isRequired: this.sectionIsRequired,
+          type: this.newSectionType // Usually type doesn't change
+        }));
+      } else {
+        // Create
+        await firstValueFrom(this.sectionApi.createSection({
+          lessonId: lesson.id,
+          title: this.sectionTitle.trim(),
+          type: this.newSectionType,
+          content: this.sectionContent,
+          videoUrl: this.sectionVideoUrl,
+          isRequired: this.sectionIsRequired
+        }));
+      }
+      // Reload course to refresh tree
+      const courseId = this.store.courseTree()?.id;
+      if (courseId) this.store.loadCourse(courseId);
+      this.showSectionModal.set(false);
+    } catch (e: any) {
+      console.error('Error saving section:', e);
+      alert('Lỗi khi lưu Section: ' + (e?.error?.message || e.message));
+    } finally {
+      this.isSaving.set(false);
+    }
+  }
+
+  async deleteSection(sectionId: string) {
+    if (!confirm('Bạn có chắc muốn xóa Section này?')) return;
+    this.isSaving.set(true);
+    try {
+      await firstValueFrom(this.sectionApi.deleteSection(sectionId));
+      const courseId = this.store.courseTree()?.id;
+      if (courseId) this.store.loadCourse(courseId);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      this.isSaving.set(false);
+    }
+  }
+
+  dropSection(event: any) {
+    // Reorder logic for Sections (Topic)
+    // ...
   }
 }

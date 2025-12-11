@@ -29,9 +29,10 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/teacher")
 @RequiredArgsConstructor
-@Slf4j
 @Tag(name = "Teacher", description = "Teacher management APIs")
 public class TeacherController {
+    
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(TeacherController.class);
     
     private final TeacherApplicationService teacherApplicationService;
     

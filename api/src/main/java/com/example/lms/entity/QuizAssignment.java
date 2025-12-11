@@ -1,11 +1,8 @@
 package com.example.lms.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -20,11 +17,6 @@ import java.util.UUID;
  */
 @Entity
 @Table(name = "quiz_assignments")
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class QuizAssignment {
 
     // ============ AGGREGATE ROOT ============
@@ -36,26 +28,21 @@ public class QuizAssignment {
     // Reference to Quiz (Definition) - NOT owned by this aggregate
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "quiz_id", nullable = false)
-    @JsonIgnore
     private Quiz quiz;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "student_id", nullable = false)
-    @JsonIgnore
     private User student;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_by", nullable = false)
-    @JsonIgnore
     private User assignedBy; // Teacher who assigned this quiz
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    @Builder.Default
     private AssignmentStatus status = AssignmentStatus.ASSIGNED;
 
     @Column(name = "assigned_at", nullable = false)
-    @Builder.Default
     private Instant assignedAt = Instant.now();
 
     @Column(name = "due_date")
@@ -66,8 +53,6 @@ public class QuizAssignment {
 
     // Aggregate children: Attempts belong to Assignment, not Quiz
     @OneToMany(mappedBy = "assignment", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
-    @JsonIgnore
     private List<QuizAttempt> attempts = new ArrayList<>();
 
     @CreationTimestamp
@@ -77,6 +62,22 @@ public class QuizAssignment {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private Instant updatedAt;
+
+    public QuizAssignment() {}
+
+    public QuizAssignment(UUID id, Quiz quiz, User student, User assignedBy, AssignmentStatus status, Instant assignedAt, Instant dueDate, Instant completedAt, List<QuizAttempt> attempts, Instant createdAt, Instant updatedAt) {
+        this.id = id;
+        this.quiz = quiz;
+        this.student = student;
+        this.assignedBy = assignedBy;
+        this.status = status != null ? status : AssignmentStatus.ASSIGNED;
+        this.assignedAt = assignedAt != null ? assignedAt : Instant.now();
+        this.dueDate = dueDate;
+        this.completedAt = completedAt;
+        this.attempts = attempts != null ? attempts : new ArrayList<>();
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
 
     // ============ DOMAIN METHODS ============
 
@@ -193,5 +194,47 @@ public class QuizAssignment {
         IN_PROGRESS, // Đang làm
         COMPLETED,   // Đã hoàn thành
         OVERDUE      // Quá hạn
+    }
+
+    // Manual Getters and Setters
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
+    public Quiz getQuiz() { return quiz; }
+    public void setQuiz(Quiz quiz) { this.quiz = quiz; }
+    public User getStudent() { return student; }
+    public void setStudent(User student) { this.student = student; }
+    public User getAssignedBy() { return assignedBy; }
+    public void setAssignedBy(User assignedBy) { this.assignedBy = assignedBy; }
+    public AssignmentStatus getStatus() { return status; }
+    public void setStatus(AssignmentStatus status) { this.status = status; }
+    public Instant getAssignedAt() { return assignedAt; }
+    public void setAssignedAt(Instant assignedAt) { this.assignedAt = assignedAt; }
+    public Instant getDueDate() { return dueDate; }
+    public void setDueDate(Instant dueDate) { this.dueDate = dueDate; }
+    public Instant getCompletedAt() { return completedAt; }
+    public void setCompletedAt(Instant completedAt) { this.completedAt = completedAt; }
+    public List<QuizAttempt> getAttempts() { return attempts; }
+    public void setAttempts(List<QuizAttempt> attempts) { this.attempts = attempts; }
+    public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+    public Instant getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+
+    // Manual Builder
+    public static QuizAssignmentBuilder builder() { return new QuizAssignmentBuilder(); }
+    public static class QuizAssignmentBuilder {
+        private QuizAssignment a = new QuizAssignment();
+        public QuizAssignmentBuilder id(UUID i) { a.setId(i); return this; }
+        public QuizAssignmentBuilder quiz(Quiz q) { a.setQuiz(q); return this; }
+        public QuizAssignmentBuilder student(User s) { a.setStudent(s); return this; }
+        public QuizAssignmentBuilder assignedBy(User u) { a.setAssignedBy(u); return this; }
+        public QuizAssignmentBuilder status(AssignmentStatus s) { a.setStatus(s); return this; }
+        public QuizAssignmentBuilder assignedAt(Instant at) { a.setAssignedAt(at); return this; }
+        public QuizAssignmentBuilder dueDate(Instant d) { a.setDueDate(d); return this; }
+        public QuizAssignmentBuilder completedAt(Instant c) { a.setCompletedAt(c); return this; }
+        public QuizAssignmentBuilder attempts(List<QuizAttempt> at) { a.setAttempts(at); return this; }
+        public QuizAssignmentBuilder createdAt(Instant c) { a.setCreatedAt(c); return this; }
+        public QuizAssignmentBuilder updatedAt(Instant u) { a.setUpdatedAt(u); return this; }
+        public QuizAssignment build() { return a; }
     }
 }

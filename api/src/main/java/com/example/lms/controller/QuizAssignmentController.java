@@ -20,8 +20,9 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/quizzes")
 @RequiredArgsConstructor
-@Slf4j
 public class QuizAssignmentController {
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(QuizAssignmentController.class);
 
     private final AssignQuizToStudentsUseCase assignQuizToStudentsUseCase;
 

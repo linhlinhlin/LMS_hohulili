@@ -92,4 +92,40 @@ public class ChatMessage {
         SENT,       // Đã gửi thành công
         ERROR       // Lỗi
     }
+
+    // Manual Getters/Setters
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
+    public ChatSession getSession() { return session; }
+    public void setSession(ChatSession session) { this.session = session; }
+    public String getContent() { return content; }
+    public void setContent(String content) { this.content = content; }
+    public SenderType getSenderType() { return senderType; }
+    public void setSenderType(SenderType senderType) { this.senderType = senderType; }
+    public MessageStatus getStatus() { return status; }
+    public void setStatus(MessageStatus status) { this.status = status; }
+    public String getSources() { return sources; }
+    public void setSources(String sources) { this.sources = sources; }
+    public Double getProcessingTime() { return processingTime; }
+    public void setProcessingTime(Double processingTime) { this.processingTime = processingTime; }
+    public String getAiModel() { return aiModel; }
+    public void setAiModel(String aiModel) { this.aiModel = aiModel; }
+    public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+
+    // Manual Builder
+    public static ChatMessageBuilder builder() { return new ChatMessageBuilder(); }
+    public static class ChatMessageBuilder {
+        private ChatMessage message = new ChatMessage();
+        public ChatMessageBuilder id(UUID id) { message.setId(id); return this; }
+        public ChatMessageBuilder session(ChatSession s) { message.setSession(s); return this; }
+        public ChatMessageBuilder content(String c) { message.setContent(c); return this; }
+        public ChatMessageBuilder senderType(SenderType s) { message.setSenderType(s); return this; }
+        public ChatMessageBuilder status(MessageStatus s) { message.setStatus(s); return this; }
+        public ChatMessageBuilder sources(String s) { message.setSources(s); return this; }
+        public ChatMessageBuilder processingTime(Double p) { message.setProcessingTime(p); return this; }
+        public ChatMessageBuilder aiModel(String a) { message.setAiModel(a); return this; }
+        public ChatMessageBuilder createdAt(Instant c) { message.setCreatedAt(c); return this; }
+        public ChatMessage build() { return message; }
+    }
 }

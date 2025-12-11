@@ -8,7 +8,7 @@ import { RealVideoPlayerComponent, VideoPlayerConfig } from '../../../shared/com
 import { environment } from '../../../../environments/environment';
 import { CourseApi } from '../../../api/client/course.api';
 import { LessonApi } from '../../../api/client/lesson.api';
-import { CourseContentSection, LessonDetail, LessonAttachment } from '../../../api/types/course.types';
+import { CourseContentChapter, LessonDetail, LessonAttachment, LessonSummary } from '../../../api/types/course.types';
 import { AuthService } from '../../../core/services/auth.service';
 import { UserRole } from '../../../shared/types/user.types';
 
@@ -167,12 +167,12 @@ export class ProfessionalLearningInterfaceComponent implements OnInit {
 
     this.courseApi.getCourseContent(courseId).subscribe({
       next: (res) => {
-        const sections: CourseContentSection[] = res?.data || [];
+        const sections: CourseContentChapter[] = res?.data || [];
         const lessonsFlat: VideoLesson[] = [];
         sections.sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0)).forEach((sec) => {
-          sec.lessons
-            ?.sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
-            .forEach((l, idx) => {
+          (sec.lessons || [])
+            .sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
+            .forEach((l: LessonSummary, idx: number) => {
               lessonsFlat.push({
                 id: l.id,
                 title: l.title,

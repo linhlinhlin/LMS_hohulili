@@ -18,8 +18,9 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Transactional
-@Slf4j
 public class CreateAssignmentQuizUseCase {
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(CreateAssignmentQuizUseCase.class);
 
     private final QuizRepository quizRepository;
     private final CourseRepository courseRepository;
@@ -53,7 +54,7 @@ public class CreateAssignmentQuizUseCase {
             .type(Quiz.QuizType.ASSIGNMENT)
             .title(request.getTitle())
             .description(request.getDescription())
-            .lesson(null) // ASSIGNMENT doesn't have lesson
+            .section(null) // ASSIGNMENT doesn't have section (was lesson)
             .course(course)
             .createdBy(teacher)
             .timeLimitMinutes(request.getTimeLimitMinutes())

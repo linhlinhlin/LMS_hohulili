@@ -23,10 +23,6 @@ import java.util.UUID;
     @Index(name = "idx_chat_session_user", columnList = "user_id"),
     @Index(name = "idx_chat_session_created", columnList = "created_at")
 })
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class ChatSession {
 
     @Id
@@ -47,7 +43,6 @@ public class ChatSession {
     private UUID contextLessonId;
 
     @Column(name = "is_deleted")
-    @Builder.Default
     private boolean isDeleted = false;
 
     @Column(name = "created_at", nullable = false)
@@ -58,8 +53,21 @@ public class ChatSession {
 
     @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("createdAt ASC")
-    @Builder.Default
     private List<ChatMessage> messages = new ArrayList<>();
+
+    public ChatSession() {}
+
+    public ChatSession(UUID id, User user, String title, UUID contextCourseId, UUID contextLessonId, boolean isDeleted, Instant createdAt, Instant updatedAt, List<ChatMessage> messages) {
+        this.id = id;
+        this.user = user;
+        this.title = title;
+        this.contextCourseId = contextCourseId;
+        this.contextLessonId = contextLessonId;
+        this.isDeleted = isDeleted;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        this.messages = messages != null ? messages : new ArrayList<>();
+    }
 
     @PrePersist
     protected void onCreate() {
@@ -93,5 +101,40 @@ public class ChatSession {
                 title = firstContent;
             }
         }
+    }
+
+    // Manual Getters/Setters
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
+    public User getUser() { return user; }
+    public void setUser(User user) { this.user = user; }
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
+    public UUID getContextCourseId() { return contextCourseId; }
+    public void setContextCourseId(UUID contextCourseId) { this.contextCourseId = contextCourseId; }
+    public UUID getContextLessonId() { return contextLessonId; }
+    public void setContextLessonId(UUID contextLessonId) { this.contextLessonId = contextLessonId; }
+    public boolean isDeleted() { return isDeleted; }
+    public void setDeleted(boolean isDeleted) { this.isDeleted = isDeleted; }
+    public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+    public Instant getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+    public List<ChatMessage> getMessages() { return messages; }
+    public void setMessages(List<ChatMessage> messages) { this.messages = messages; }
+    // Manual Builder
+    public static ChatSessionBuilder builder() { return new ChatSessionBuilder(); }
+    public static class ChatSessionBuilder {
+        private ChatSession session = new ChatSession();
+        public ChatSessionBuilder id(UUID id) { session.setId(id); return this; }
+        public ChatSessionBuilder user(User u) { session.setUser(u); return this; }
+        public ChatSessionBuilder title(String t) { session.setTitle(t); return this; }
+        public ChatSessionBuilder contextCourseId(UUID c) { session.setContextCourseId(c); return this; }
+        public ChatSessionBuilder contextLessonId(UUID l) { session.setContextLessonId(l); return this; }
+        public ChatSessionBuilder isDeleted(boolean d) { session.setDeleted(d); return this; }
+        public ChatSessionBuilder createdAt(Instant c) { session.setCreatedAt(c); return this; }
+        public ChatSessionBuilder updatedAt(Instant u) { session.setUpdatedAt(u); return this; }
+        public ChatSessionBuilder messages(List<ChatMessage> m) { session.setMessages(m); return this; }
+        public ChatSession build() { return session; }
     }
 }

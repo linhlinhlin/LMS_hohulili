@@ -91,8 +91,9 @@ public class TeacherDomainService {
      * Count total lessons in a course
      */
     private int countTotalLessons(Course course) {
-        return course.getSections().stream()
-            .mapToInt(section -> section.getLessons() != null ? section.getLessons().size() : 0)
+        if (course.getChapters() == null) return 0;
+        return course.getChapters().stream()
+            .mapToInt(chapter -> chapter.getLessons() != null ? chapter.getLessons().size() : 0)
             .sum();
     }
     

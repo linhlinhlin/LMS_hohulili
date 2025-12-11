@@ -17,11 +17,6 @@ import java.util.UUID;
 
 @Entity(name = "CourseAuthoring")
 @Table(name = "course_authoring")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class Course {
 
     @Id
@@ -84,6 +79,65 @@ public class Course {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private Instant updatedAt;
+
+    public Course() {}
+
+    // Manual Getters/Setters
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
+    public String getCode() { return code; }
+    public void setCode(String code) { this.code = code; }
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
+    public String getSlug() { return slug; }
+    public void setSlug(String slug) { this.slug = slug; }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+    public String getThumbnailUrl() { return thumbnailUrl; }
+    public void setThumbnailUrl(String thumbnailUrl) { this.thumbnailUrl = thumbnailUrl; }
+    public User getTeacher() { return teacher; }
+    public void setTeacher(User teacher) { this.teacher = teacher; }
+    public Integer getCategoryId() { return categoryId; }
+    public void setCategoryId(Integer categoryId) { this.categoryId = categoryId; }
+    public BigDecimal getPrice() { return price; }
+    public void setPrice(BigDecimal price) { this.price = price; }
+    public CoursePriceType getPriceType() { return priceType; }
+    public void setPriceType(CoursePriceType priceType) { this.priceType = priceType; }
+    public UUID getPrerequisiteCourseId() { return prerequisiteCourseId; }
+    public void setPrerequisiteCourseId(UUID prerequisiteCourseId) { this.prerequisiteCourseId = prerequisiteCourseId; }
+    public CourseUnlockMode getUnlockMode() { return unlockMode; }
+    public void setUnlockMode(CourseUnlockMode unlockMode) { this.unlockMode = unlockMode; }
+    public CourseStatus getStatus() { return status; }
+    public void setStatus(CourseStatus status) { this.status = status; }
+    public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+    public Instant getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+
+    public void setChapters(List<Chapter> chapters) { this.chapters = chapters; }
+
+    // Manual Builder
+    public static CourseBuilder builder() { return new CourseBuilder(); }
+    public static class CourseBuilder {
+        private Course c = new Course();
+        public CourseBuilder id(UUID id) { c.setId(id); return this; }
+        public CourseBuilder code(String code) { c.setCode(code); return this; }
+        public CourseBuilder title(String title) { c.setTitle(title); return this; }
+        public CourseBuilder slug(String slug) { c.setSlug(slug); return this; }
+        public CourseBuilder description(String d) { c.setDescription(d); return this; }
+        public CourseBuilder thumbnailUrl(String t) { c.setThumbnailUrl(t); return this; }
+        public CourseBuilder teacher(User t) { c.setTeacher(t); return this; }
+        public CourseBuilder categoryId(Integer cId) { c.setCategoryId(cId); return this; }
+        public CourseBuilder price(BigDecimal p) { c.setPrice(p); return this; }
+        public CourseBuilder priceType(CoursePriceType p) { c.setPriceType(p); return this; }
+        public CourseBuilder prerequisiteCourseId(UUID p) { c.setPrerequisiteCourseId(p); return this; }
+        public CourseBuilder unlockMode(CourseUnlockMode u) { c.setUnlockMode(u); return this; }
+        public CourseBuilder status(CourseStatus s) { c.setStatus(s); return this; }
+        public CourseBuilder chapters(List<Chapter> ch) { c.setChapters(ch); return this; }
+        public CourseBuilder createdAt(Instant ct) { c.setCreatedAt(ct); return this; }
+        public CourseBuilder updatedAt(Instant ut) { c.setUpdatedAt(ut); return this; }
+        public Course build() { return c; }
+    }
 
     // Domain Behavior
 

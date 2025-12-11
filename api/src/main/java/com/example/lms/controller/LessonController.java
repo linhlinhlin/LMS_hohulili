@@ -45,6 +45,7 @@ public class LessonController {
             @Valid @RequestBody CreateLessonRequest request
     ) {
         try {
+            // sectionId corresponds to chapterId in new hierarchy
             Lesson lesson = lessonService.createLesson(sectionId, currentUser, request);
             LessonDetail lessonDetail = convertToLessonDetail(lesson);
             
@@ -138,6 +139,7 @@ public class LessonController {
                     .build();
 
             // Create lesson with assignment
+            // sectionId maps to chapterId
             Lesson lesson = lessonService.createAssignmentLesson(sectionId, currentUser, request, assignment);
             LessonDetail lessonDetail = convertToLessonDetail(lesson);
 
@@ -183,24 +185,35 @@ public class LessonController {
         return convertToLessonDetail(lesson, null);
     }
 
-    private LessonDetail convertToLessonDetail(Lesson lesson, User currentUser) {
+     private LessonDetail convertToLessonDetail(Lesson lesson, User currentUser) {
+        String content = null;
+        String videoUrl = null;
+        Integer duration = 0;
+        
+        if (lesson.getSections() != null && !lesson.getSections().isEmpty()) {
+            com.example.lms.entity.Section firstSection = lesson.getSections().get(0);
+            content = firstSection.getContent();
+            videoUrl = firstSection.getVideoUrl();
+            duration = firstSection.getDuration();
+        }
+
         LessonDetail.LessonDetailBuilder builder = LessonDetail.builder()
                 .id(lesson.getId())
                 .title(lesson.getTitle())
                 .description(lesson.getDescription())
-                .content(lesson.getContent())
-                .videoUrl(lesson.getVideoUrl())
-                .durationMinutes(lesson.getDurationMinutes())
+                .content(content)
+                .videoUrl(videoUrl)
+                .durationMinutes(duration)
                 .orderIndex(lesson.getOrderIndex())
                 .lessonType(lesson.getLessonType() != null ? lesson.getLessonType().toString() : "LECTURE")
                 .attachments(lesson.getAttachments() != null ?
                     lesson.getAttachments().stream()
                         .map(this::convertToAttachmentDetail)
                         .toList() : java.util.Collections.emptyList())
-                .sectionId(lesson.getSection().getId())
-                .sectionTitle(lesson.getSection().getTitle())
-                .courseId(lesson.getSection().getCourse().getId())
-                .courseTitle(lesson.getSection().getCourse().getTitle())
+                .sectionId(lesson.getChapter().getId()) // Changed to Chapter
+                .sectionTitle(lesson.getChapter().getTitle()) // Changed to Chapter
+                .courseId(lesson.getChapter().getCourse().getId()) // Changed to Chapter
+                .courseTitle(lesson.getChapter().getCourse().getTitle()) // Changed to Chapter
                 .createdAt(lesson.getCreatedAt())
                 .updatedAt(lesson.getUpdatedAt());
 

@@ -1,10 +1,8 @@
 package com.example.lms.learning_delivery.domain.model;
 
-import com.example.lms.entity.User;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -13,11 +11,6 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "learning_classes")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class Class {
 
     @Id
@@ -30,17 +23,11 @@ public class Class {
 
     @NotNull
     @Column(name = "course_version_id", nullable = false)
-    private UUID courseVersionId; // Link to the specific content snapshot
-    
-    // Also keep reference to Course ID for easy grouping? 
-    // Expert said: Class -> CourseVersion. 
-    // But UI might want to show "All classes for Course X". 
-    // We can get CourseId from CourseVersion, but a direct link might be useful for optimization.
-    // adhering to strict plan for now.
+    private UUID courseVersionId; 
 
     @NotNull
     @Column(name = "teacher_id", nullable = false)
-    private UUID teacherId; // Teacher responsible for this class instance
+    private UUID teacherId; 
 
     @Column(name = "start_date")
     private Instant startDate;
@@ -50,7 +37,6 @@ public class Class {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    @Builder.Default
     private ClassStatus status = ClassStatus.OPEN;
     
     @Column(name = "max_students")
@@ -66,5 +52,59 @@ public class Class {
     
     public enum ClassStatus {
         OPEN, CLOSED, ARCHIVED
+    }
+
+    public Class() {}
+
+    public Class(UUID id, String code, UUID courseVersionId, UUID teacherId, Instant startDate, Instant endDate, ClassStatus status, Integer maxStudents, Instant createdAt, Instant updatedAt) {
+        this.id = id;
+        this.code = code;
+        this.courseVersionId = courseVersionId;
+        this.teacherId = teacherId;
+        this.startDate = startDate;
+        this.endDate = endDate;
+        this.status = status != null ? status : ClassStatus.OPEN;
+        this.maxStudents = maxStudents;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
+
+    // Getters and Setters
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
+    public String getCode() { return code; }
+    public void setCode(String code) { this.code = code; }
+    public UUID getCourseVersionId() { return courseVersionId; }
+    public void setCourseVersionId(UUID courseVersionId) { this.courseVersionId = courseVersionId; }
+    public UUID getTeacherId() { return teacherId; }
+    public void setTeacherId(UUID teacherId) { this.teacherId = teacherId; }
+    public Instant getStartDate() { return startDate; }
+    public void setStartDate(Instant startDate) { this.startDate = startDate; }
+    public Instant getEndDate() { return endDate; }
+    public void setEndDate(Instant endDate) { this.endDate = endDate; }
+    public ClassStatus getStatus() { return status; }
+    public void setStatus(ClassStatus status) { this.status = status; }
+    public Integer getMaxStudents() { return maxStudents; }
+    public void setMaxStudents(Integer maxStudents) { this.maxStudents = maxStudents; }
+    public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+    public Instant getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+
+    // Builder
+    public static ClassBuilder builder() { return new ClassBuilder(); }
+    public static class ClassBuilder {
+        private Class c = new Class();
+        public ClassBuilder id(UUID i) { c.setId(i); return this; }
+        public ClassBuilder code(String co) { c.setCode(co); return this; }
+        public ClassBuilder courseVersionId(UUID cv) { c.setCourseVersionId(cv); return this; }
+        public ClassBuilder teacherId(UUID t) { c.setTeacherId(t); return this; }
+        public ClassBuilder startDate(Instant s) { c.setStartDate(s); return this; }
+        public ClassBuilder endDate(Instant e) { c.setEndDate(e); return this; }
+        public ClassBuilder status(ClassStatus st) { c.setStatus(st); return this; }
+        public ClassBuilder maxStudents(Integer m) { c.setMaxStudents(m); return this; }
+        public ClassBuilder createdAt(Instant cr) { c.setCreatedAt(cr); return this; }
+        public ClassBuilder updatedAt(Instant u) { c.setUpdatedAt(u); return this; }
+        public Class build() { return c; }
     }
 }

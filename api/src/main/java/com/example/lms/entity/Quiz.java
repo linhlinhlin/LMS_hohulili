@@ -39,11 +39,11 @@ public class Quiz {
     @Builder.Default
     private QuizType type = QuizType.LESSON_QUIZ;
 
-    // Nullable - only for LESSON_QUIZ type
+    // Modified: Section instead of Lesson
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "lesson_id")
+    @JoinColumn(name = "section_id")
     @JsonIgnore
-    private Lesson lesson;
+    private Section section;
 
     // Nullable - only for ASSIGNMENT type
     @ManyToOne(fetch = FetchType.LAZY)
@@ -113,9 +113,6 @@ public class Quiz {
     @Column(name = "random_tags", columnDefinition = "TEXT")
     private String randomTags; // JSON array of tags
 
-    // NOTE: Attempts are now managed by QuizAssignment aggregate
-    // This relationship is kept for backward compatibility during migration
-    // Will be removed in Phase 3
     @OneToMany(mappedBy = "quiz", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     @JsonIgnore
@@ -139,34 +136,19 @@ public class Quiz {
 
     // ============ DOMAIN METHODS ============
 
-    /**
-     * Add a question to this quiz
-     * Invariant: Cannot modify quiz content after it has been published and attempted
-     */
     public void addQuestion(Question question, int displayOrder) {
-        // Validation 1: Quiz must be modifiable
         if (!canBeModified()) {
-            throw new IllegalStateException(
-                "Cannot modify quiz content after it has been published and attempted."
-            );
+            throw new IllegalStateException("Cannot modify quiz content after it has been published and attempted.");
         }
-
-        // Validation 2: Question must belong to the same course
         UUID expectedCourseId = getExpectedCourseId();
         if (expectedCourseId != null && !question.belongsToCourse(expectedCourseId)) {
-            throw new IllegalArgumentException(
-                "Question must belong to the same course as the quiz."
-            );
+            throw new IllegalArgumentException("Question must belong to the same course as the quiz.");
         }
-
-        // Validation 3: No duplicate questions
         boolean alreadyExists = this.quizQuestions.stream()
             .anyMatch(qq -> qq.getQuestion().getId().equals(question.getId()));
         if (alreadyExists) {
             throw new IllegalArgumentException("Question already exists in this quiz.");
         }
-
-        // Create link entity
         QuizQuestion link = QuizQuestion.builder()
             .quiz(this)
             .question(question)
@@ -175,22 +157,13 @@ public class Quiz {
         this.quizQuestions.add(link);
     }
 
-    /**
-     * Remove a question from this quiz
-     */
     public void removeQuestion(UUID questionId) {
         if (!canBeModified()) {
-            throw new IllegalStateException(
-                "Cannot remove questions after quiz has been attempted."
-            );
+            throw new IllegalStateException("Cannot remove questions after quiz has been attempted.");
         }
-
         this.quizQuestions.removeIf(qq -> qq.getQuestion().getId().equals(questionId));
     }
 
-    /**
-     * Publish this quiz (transition from draft to active)
-     */
     public void publish() {
         if (this.quizQuestions.isEmpty()) {
             throw new IllegalStateException("Cannot publish quiz without questions.");
@@ -201,27 +174,17 @@ public class Quiz {
         this.publishedAt = Instant.now();
     }
 
-    /**
-     * Check if quiz can be modified
-     * @return true if quiz is not published or has no attempts
-     */
     public boolean canBeModified() {
-        // If not published, can always modify
         if (this.publishedAt == null) {
             return true;
         }
-        // If published but no attempts, can still modify
         return this.attempts.isEmpty();
     }
 
-    /**
-     * Check if quiz is available now (based on time window)
-     */
     public boolean isAvailableNow() {
         if (this.publishedAt == null) {
             return false;
         }
-
         Instant now = Instant.now();
         if (this.startDate != null && now.isBefore(this.startDate)) {
             return false;
@@ -232,12 +195,9 @@ public class Quiz {
         return true;
     }
 
-    /**
-     * Get the expected course ID based on quiz type
-     */
     private UUID getExpectedCourseId() {
-        if (this.type == QuizType.LESSON_QUIZ && this.lesson != null) {
-            return this.lesson.getSection().getCourse().getId();
+        if (this.type == QuizType.LESSON_QUIZ && this.section != null) {
+            return this.section.getLesson().getChapter().getCourse().getId();
         } else if (this.type == QuizType.ASSIGNMENT && this.course != null) {
             return this.course.getId();
         }
@@ -249,5 +209,81 @@ public class Quiz {
     public enum QuizType {
         LESSON_QUIZ,  // Quiz gắn với lesson
         ASSIGNMENT    // Quiz độc lập (bài tập giao thêm)
+    }
+
+    // Manual Getters/Setters
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
+    public QuizType getType() { return type; }
+    public void setType(QuizType type) { this.type = type; }
+    public Section getSection() { return section; }
+    public void setSection(Section section) { this.section = section; }
+    public Course getCourse() { return course; }
+    public void setCourse(Course course) { this.course = course; }
+    public User getCreatedBy() { return createdBy; }
+    public void setCreatedBy(User createdBy) { this.createdBy = createdBy; }
+    public List<QuizQuestion> getQuizQuestions() { return quizQuestions; }
+    public void setQuizQuestions(List<QuizQuestion> quizQuestions) { this.quizQuestions = quizQuestions; }
+    public Integer getMaxAttempts() { return maxAttempts; }
+    public void setMaxAttempts(Integer maxAttempts) { this.maxAttempts = maxAttempts; }
+    public Integer getPassingScore() { return passingScore; }
+    public void setPassingScore(Integer passingScore) { this.passingScore = passingScore; }
+    public Integer getTimeLimitMinutes() { return timeLimitMinutes; }
+    public void setTimeLimitMinutes(Integer timeLimitMinutes) { this.timeLimitMinutes = timeLimitMinutes; }
+    public Boolean getShuffleQuestions() { return shuffleQuestions; }
+    public void setShuffleQuestions(Boolean shuffleQuestions) { this.shuffleQuestions = shuffleQuestions; }
+    public Boolean getShuffleOptions() { return shuffleOptions; }
+    public void setShuffleOptions(Boolean shuffleOptions) { this.shuffleOptions = shuffleOptions; }
+    public Boolean getShowResultsImmediately() { return showResultsImmediately; }
+    public void setShowResultsImmediately(Boolean showResultsImmediately) { this.showResultsImmediately = showResultsImmediately; }
+    public Boolean getShowCorrectAnswers() { return showCorrectAnswers; }
+    public void setShowCorrectAnswers(Boolean showCorrectAnswers) { this.showCorrectAnswers = showCorrectAnswers; }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+    public Instant getPublishedAt() { return publishedAt; }
+    public void setPublishedAt(Instant publishedAt) { this.publishedAt = publishedAt; }
+    public Instant getStartDate() { return startDate; }
+    public void setStartDate(Instant startDate) { this.startDate = startDate; }
+    public Instant getEndDate() { return endDate; }
+    public void setEndDate(Instant endDate) { this.endDate = endDate; }
+    public String getQuestionIds() { return questionIds; }
+    public void setQuestionIds(String questionIds) { this.questionIds = questionIds; }
+    public Integer getRandomCount() { return randomCount; }
+    public void setRandomCount(Integer randomCount) { this.randomCount = randomCount; }
+    public String getRandomDifficulties() { return randomDifficulties; }
+    public void setRandomDifficulties(String randomDifficulties) { this.randomDifficulties = randomDifficulties; }
+    public String getRandomTags() { return randomTags; }
+    public void setRandomTags(String randomTags) { this.randomTags = randomTags; }
+    public List<QuizAttempt> getAttempts() { return attempts; }
+    public void setAttempts(List<QuizAttempt> attempts) { this.attempts = attempts; }
+    public Instant getCreatedAt() { return createdAt; }
+    public Instant getUpdatedAt() { return updatedAt; }
+
+    // Manual Quiz Builder
+    public static QuizBuilder builder() { return new QuizBuilder(); }
+    public static class QuizBuilder {
+        private Quiz quiz = new Quiz();
+        public QuizBuilder section(Section s) { quiz.setSection(s); return this; }
+        public QuizBuilder course(Course c) { quiz.setCourse(c); return this; }
+        public QuizBuilder title(String t) { quiz.setTitle(t); return this; }
+        public QuizBuilder createdBy(User u) { quiz.setCreatedBy(u); return this; }
+        public QuizBuilder timeLimitMinutes(Integer t) { quiz.setTimeLimitMinutes(t); return this; }
+        public QuizBuilder maxAttempts(Integer m) { quiz.setMaxAttempts(m); return this; }
+        public QuizBuilder passingScore(Integer p) { quiz.setPassingScore(p); return this; }
+        public QuizBuilder shuffleQuestions(Boolean s) { quiz.setShuffleQuestions(s); return this; }
+        public QuizBuilder shuffleOptions(Boolean s) { quiz.setShuffleOptions(s); return this; }
+        public QuizBuilder showResultsImmediately(Boolean s) { quiz.setShowResultsImmediately(s); return this; }
+        public QuizBuilder showCorrectAnswers(Boolean s) { quiz.setShowCorrectAnswers(s); return this; }
+        public QuizBuilder startDate(Instant s) { quiz.setStartDate(s); return this; }
+        public QuizBuilder endDate(Instant e) { quiz.setEndDate(e); return this; }
+        public QuizBuilder type(QuizType t) { quiz.setType(t); return this; }
+        public QuizBuilder description(String d) { quiz.setDescription(d); return this; }
+        public QuizBuilder id(UUID i) { quiz.setId(i); return this; }
+        public QuizBuilder randomCount(Integer r) { quiz.setRandomCount(r); return this; }
+        public QuizBuilder randomDifficulties(String r) { quiz.setRandomDifficulties(r); return this; }
+        public QuizBuilder randomTags(String r) { quiz.setRandomTags(r); return this; }
+        public Quiz build() { return quiz; }
     }
 }

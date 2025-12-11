@@ -3,6 +3,8 @@ package com.example.lms.service;
 import com.example.lms.entity.Course;
 import com.example.lms.entity.Section;
 import com.example.lms.entity.User;
+import com.example.lms.entity.Category; // Added
+import com.example.lms.repository.CategoryRepository; // Added
 import com.example.lms.repository.CourseRepository;
 import com.example.lms.repository.UserRepository;
 import com.example.lms.dto.response.BulkEnrollmentResponse;
@@ -22,6 +24,7 @@ public class CourseService {
 
     private final CourseRepository courseRepository;
     private final UserRepository userRepository;
+    private final CategoryRepository categoryRepository; // Added
 
     public Page<Course> getApprovedCourses(Pageable pageable, String search, String teacher) {
         if (search != null && !search.trim().isEmpty()) {
@@ -36,12 +39,32 @@ public class CourseService {
             throw new RuntimeException("Mã khóa học đã tồn tại: " + request.getCode());
         }
 
+        Category category = null;
+        if (request.getCategoryId() != null) {
+            category = categoryRepository.findById(request.getCategoryId())
+                    .orElse(null);
+        }
+
         Course course = Course.builder()
                 .code(request.getCode())
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .teacher(teacher)
-                // New courses start as DRAFT - teacher must submit for approval
+                // New Fields
+                .instructorId(request.getInstructorId())
+                .teachingStaffIds(request.getTeachingStaffIds())
+                .category(category)
+                .tags(request.getTags())
+                .welcomeMessage(request.getWelcomeMessage())
+                .courseInformation(request.getCourseInformation())
+                .benefits(request.getBenefits())
+                .introVideoUrl(request.getIntroVideoUrl())
+                .credits(request.getCredits())
+                .visibility(request.getVisibility() != null ? Course.Visibility.valueOf(request.getVisibility()) : Course.Visibility.PUBLIC)
+                .priceType(request.getPriceType() != null ? Course.PriceType.valueOf(request.getPriceType()) : Course.PriceType.FREE)
+                .price(request.getPrice())
+                .salePrice(request.getSalePrice())
+                // New courses start as DRAFT
                 .status(Course.CourseStatus.DRAFT)
                 .build();
 
@@ -106,6 +129,39 @@ public class CourseService {
         if (request.getDescription() != null) {
             course.setDescription(request.getDescription());
         }
+
+        // Update new fields
+        if (request.getInstructorId() != null) course.setInstructorId(request.getInstructorId());
+        if (request.getTeachingStaffIds() != null) course.setTeachingStaffIds(request.getTeachingStaffIds());
+        
+        if (request.getCategoryId() != null) {
+            Category category = categoryRepository.findById(request.getCategoryId()).orElse(null);
+            course.setCategory(category);
+        }
+        
+        if (request.getTags() != null) course.setTags(request.getTags());
+        if (request.getWelcomeMessage() != null) course.setWelcomeMessage(request.getWelcomeMessage());
+        if (request.getCourseInformation() != null) course.setCourseInformation(request.getCourseInformation());
+        if (request.getBenefits() != null) course.setBenefits(request.getBenefits());
+        if (request.getIntroVideoUrl() != null) course.setIntroVideoUrl(request.getIntroVideoUrl());
+        if (request.getCredits() != null) course.setCredits(request.getCredits());
+        
+        if (request.getVisibility() != null) {
+            try {
+                course.setVisibility(Course.Visibility.valueOf(request.getVisibility()));
+            } catch (IllegalArgumentException e) {
+                // Ignore invalid enum or handle error
+            }
+        }
+        
+        if (request.getPriceType() != null) {
+            try {
+                course.setPriceType(Course.PriceType.valueOf(request.getPriceType()));
+            } catch (IllegalArgumentException e) {}
+        }
+        
+        if (request.getPrice() != null) course.setPrice(request.getPrice());
+        if (request.getSalePrice() != null) course.setSalePrice(request.getSalePrice());
 
         // If course was APPROVED and content changed, reset to PENDING for re-review
         if (wasApproved) {
@@ -223,7 +279,7 @@ public class CourseService {
         userRepository.save(student);
     }
 
-    public List<Section> getCourseContent(UUID courseId, User currentUser) {
+    public List<com.example.lms.entity.Chapter> getCourseContent(UUID courseId, User currentUser) {
         Course course = getCourseById(courseId);
         
         // Check if user is enrolled or is the teacher
@@ -234,19 +290,29 @@ public class CourseService {
             throw new RuntimeException("Bạn không có quyền truy cập nội dung khóa học này");
         }
 
-        java.util.Set<Section> sectionSet = course.getSections();
-        java.util.List<Section> sections = sectionSet == null ? java.util.Collections.emptyList() : new java.util.ArrayList<>(sectionSet);
-        sections.sort((s1, s2) -> Integer.compare(
-                s1.getOrderIndex() != null ? s1.getOrderIndex() : 0,
-                s2.getOrderIndex() != null ? s2.getOrderIndex() : 0
+        java.util.Set<com.example.lms.entity.Chapter> chapterSet = course.getChapters();
+        java.util.List<com.example.lms.entity.Chapter> chapters = chapterSet == null ? java.util.Collections.emptyList() : new java.util.ArrayList<>(chapterSet);
+        chapters.sort((c1, c2) -> Integer.compare(
+                c1.getOrderIndex() != null ? c1.getOrderIndex() : 0,
+                c2.getOrderIndex() != null ? c2.getOrderIndex() : 0
         ));
-        // Ensure lessons lists are initialized
-        for (Section s : sections) {
-            if (s.getLessons() == null) {
-                s.setLessons(new java.util.ArrayList<>());
+        // Ensure lessons lists are initialized and sorted
+        for (com.example.lms.entity.Chapter c : chapters) {
+            if (c.getLessons() == null) {
+                c.setLessons(new java.util.ArrayList<>());
+            } else {
+                // Initialize sections for each lesson to avoid lazy loading issues
+                for (com.example.lms.entity.Lesson lesson : c.getLessons()) {
+                    if (lesson.getSections() == null) {
+                        lesson.setSections(new java.util.ArrayList<>());
+                    } else {
+                        // Force initialization
+                        lesson.getSections().size();
+                    }
+                }
             }
         }
-        return sections;
+        return chapters;
     }
 
     /**

@@ -299,27 +299,51 @@ public class PackageController {
     }
 
     // DTOs
-    @lombok.Data
     public static class CreatePackageRequest {
         private String name;
         private String description;
         private String subject;
         private Integer capacity;
         private Package.Visibility visibility;
+
+        public String getName() { return name; }
+        public void setName(String name) { this.name = name; }
+        public String getDescription() { return description; }
+        public void setDescription(String description) { this.description = description; }
+        public String getSubject() { return subject; }
+        public void setSubject(String subject) { this.subject = subject; }
+        public Integer getCapacity() { return capacity; }
+        public void setCapacity(Integer capacity) { this.capacity = capacity; }
+        public Package.Visibility getVisibility() { return visibility; }
+        public void setVisibility(Package.Visibility visibility) { this.visibility = visibility; }
     }
 
-    @lombok.Data
     public static class UpdatePackageRequest {
         private String name;
         private String description;
         private String subject;
         private Integer capacity;
         private Package.Visibility visibility;
+
+        public String getName() { return name; }
+        public void setName(String name) { this.name = name; }
+        public String getDescription() { return description; }
+        public void setDescription(String description) { this.description = description; }
+        public String getSubject() { return subject; }
+        public void setSubject(String subject) { this.subject = subject; }
+        public Integer getCapacity() { return capacity; }
+        public void setCapacity(Integer capacity) { this.capacity = capacity; }
+        public Package.Visibility getVisibility() { return visibility; }
+        public void setVisibility(Package.Visibility visibility) { this.visibility = visibility; }
     }
 
-    @lombok.Data
     public static class MoveQuestionsRequest {
         private List<UUID> questionIds;
         private UUID targetPackageId;
+
+        public List<UUID> getQuestionIds() { return questionIds; }
+        public void setQuestionIds(List<UUID> questionIds) { this.questionIds = questionIds; }
+        public UUID getTargetPackageId() { return targetPackageId; }
+        public void setTargetPackageId(UUID targetPackageId) { this.targetPackageId = targetPackageId; }
     }
 }

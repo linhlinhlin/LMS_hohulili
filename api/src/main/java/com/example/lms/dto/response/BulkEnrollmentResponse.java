@@ -1,37 +1,68 @@
 package com.example.lms.dto.response;
 
-import lombok.Data;
-import lombok.Builder;
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
-
 import java.util.List;
 import java.util.ArrayList;
 
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class BulkEnrollmentResponse {
     
     private int totalProcessed;
     private int successCount;
     private int errorCount;
     
-    @Builder.Default
     private List<String> successfulEnrollments = new ArrayList<>();
     
-    @Builder.Default
     private List<EnrollmentError> errors = new ArrayList<>();
     
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
+    public BulkEnrollmentResponse() {}
+
+    public BulkEnrollmentResponse(int totalProcessed, int successCount, int errorCount, List<String> successfulEnrollments, List<EnrollmentError> errors) {
+        this.totalProcessed = totalProcessed;
+        this.successCount = successCount;
+        this.errorCount = errorCount;
+        this.successfulEnrollments = successfulEnrollments != null ? successfulEnrollments : new ArrayList<>();
+        this.errors = errors != null ? errors : new ArrayList<>();
+    }
+
+    // Getters and Setters
+    public int getTotalProcessed() { return totalProcessed; }
+    public void setTotalProcessed(int totalProcessed) { this.totalProcessed = totalProcessed; }
+    public int getSuccessCount() { return successCount; }
+    public void setSuccessCount(int successCount) { this.successCount = successCount; }
+    public int getErrorCount() { return errorCount; }
+    public void setErrorCount(int errorCount) { this.errorCount = errorCount; }
+    public List<String> getSuccessfulEnrollments() { return successfulEnrollments; }
+    public void setSuccessfulEnrollments(List<String> successfulEnrollments) { this.successfulEnrollments = successfulEnrollments; }
+    public List<EnrollmentError> getErrors() { return errors; }
+    public void setErrors(List<EnrollmentError> errors) { this.errors = errors; }
+
     public static class EnrollmentError {
         private String email;
         private String errorMessage;
         private ErrorType errorType;
+
+        public EnrollmentError() {}
+
+        public EnrollmentError(String email, String errorMessage, ErrorType errorType) {
+            this.email = email;
+            this.errorMessage = errorMessage;
+            this.errorType = errorType;
+        }
+
+        public String getEmail() { return email; }
+        public void setEmail(String email) { this.email = email; }
+        public String getErrorMessage() { return errorMessage; }
+        public void setErrorMessage(String errorMessage) { this.errorMessage = errorMessage; }
+        public ErrorType getErrorType() { return errorType; }
+        public void setErrorType(ErrorType errorType) { this.errorType = errorType; }
+
+        public static EnrollmentErrorBuilder builder() { return new EnrollmentErrorBuilder(); }
+        public static class EnrollmentErrorBuilder {
+            private EnrollmentError e = new EnrollmentError();
+            public EnrollmentErrorBuilder email(String email) { e.setEmail(email); return this; }
+            public EnrollmentErrorBuilder errorMessage(String errorMessage) { e.setErrorMessage(errorMessage); return this; }
+            public EnrollmentErrorBuilder errorType(ErrorType errorType) { e.setErrorType(errorType); return this; }
+            public EnrollmentError build() { return e; }
+        }
     }
     
     public enum ErrorType {
@@ -71,5 +102,16 @@ public class BulkEnrollmentResponse {
     
     public void addError(String email, ErrorType errorType) {
         addError(email, errorType, null);
+    }
+
+    public static BulkEnrollmentResponseBuilder builder() { return new BulkEnrollmentResponseBuilder(); }
+    public static class BulkEnrollmentResponseBuilder {
+        private BulkEnrollmentResponse r = new BulkEnrollmentResponse();
+        public BulkEnrollmentResponseBuilder totalProcessed(int t) { r.setTotalProcessed(t); return this; }
+        public BulkEnrollmentResponseBuilder successCount(int s) { r.setSuccessCount(s); return this; }
+        public BulkEnrollmentResponseBuilder errorCount(int e) { r.setErrorCount(e); return this; }
+        public BulkEnrollmentResponseBuilder successfulEnrollments(List<String> s) { r.setSuccessfulEnrollments(s); return this; }
+        public BulkEnrollmentResponseBuilder errors(List<EnrollmentError> e) { r.setErrors(e); return this; }
+        public BulkEnrollmentResponse build() { return r; }
     }
 }

@@ -27,11 +27,15 @@ import java.util.stream.Collectors;
  * - Progress can only advance (NOT_STARTED -> IN_PROGRESS -> COMPLETED)
  * - Completion triggers course progress recalculation
  */
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Service
 @RequiredArgsConstructor
-@Slf4j
 @Transactional
 public class LessonProgressDomainService {
+
+    private static final Logger log = LoggerFactory.getLogger(LessonProgressDomainService.class);
 
     private final StudentLessonProgressRepository progressRepository;
     private final CourseRepository courseRepository;
@@ -50,7 +54,7 @@ public class LessonProgressDomainService {
         log.info("Completing lesson {} for student {}", lesson.getId(), student.getId());
 
         // Validate student is enrolled in course
-        Course course = lesson.getSection().getCourse();
+        Course course = lesson.getChapter().getCourse();
         validateStudentEnrollment(student, course);
 
         // Find or create progress record
@@ -77,7 +81,7 @@ public class LessonProgressDomainService {
         log.debug("Starting lesson {} for student {}", lesson.getId(), student.getId());
 
         // Validate enrollment
-        Course course = lesson.getSection().getCourse();
+        Course course = lesson.getChapter().getCourse();
         validateStudentEnrollment(student, course);
 
         // Find or create progress
@@ -149,9 +153,9 @@ public class LessonProgressDomainService {
         log.info("Initializing progress tracking for student {} in course {}", student.getId(), course.getId());
 
         // Get all lessons in course
-        List<Lesson> lessons = course.getSections().stream()
-                .flatMap(section -> section.getLessons().stream())
-                .toList();
+        List<Lesson> lessons = course.getChapters().stream()
+                .flatMap(chapter -> chapter.getLessons().stream())
+                .collect(Collectors.toList());
 
         // Create progress records for lessons that don't have them
         for (Lesson lesson : lessons) {
@@ -173,11 +177,11 @@ public class LessonProgressDomainService {
     public UUID getNextLessonToContinue(User student, Course course) {
         log.debug("Finding next lesson to continue for student {} in course {}", student.getId(), course.getId());
 
-        // Get all lessons in course order (sections then lessons within sections)
-        List<Lesson> allLessons = course.getSections().stream()
-                .sorted((s1, s2) -> Integer.compare(s1.getOrderIndex() != null ? s1.getOrderIndex() : 0,
-                                                   s2.getOrderIndex() != null ? s2.getOrderIndex() : 0))
-                .flatMap(section -> section.getLessons().stream()
+        // Get all lessons in course order (chapters then lessons)
+        List<Lesson> allLessons = course.getChapters().stream()
+                .sorted((c1, c2) -> Integer.compare(c1.getOrderIndex() != null ? c1.getOrderIndex() : 0,
+                                                   c2.getOrderIndex() != null ? c2.getOrderIndex() : 0))
+                .flatMap(chapter -> chapter.getLessons().stream()
                         .sorted((l1, l2) -> Integer.compare(l1.getOrderIndex() != null ? l1.getOrderIndex() : 0,
                                                            l2.getOrderIndex() != null ? l2.getOrderIndex() : 0)))
                 .collect(Collectors.toList());
@@ -210,7 +214,7 @@ public class LessonProgressDomainService {
      * Check if student has access to lesson (enrolled and lesson exists)
      */
     public boolean hasAccessToLesson(User student, Lesson lesson) {
-        Course course = lesson.getSection().getCourse();
+        Course course = lesson.getChapter().getCourse();
         return course.getEnrolledStudents().contains(student);
     }
 

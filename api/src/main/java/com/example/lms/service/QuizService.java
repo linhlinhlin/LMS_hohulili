@@ -45,10 +45,16 @@ public class QuizService {
             System.out.println("🔍 DEBUG createQuiz - questionIds size: " + (questionIds != null ? questionIds.size() : "null"));
             
             // Get creator from course teacher
-            User creator = lesson.getSection().getCourse().getTeacher();
+            User creator = lesson.getChapter().getCourse().getTeacher();
+
+            // Find valid section for quiz
+            Section quizSection = lesson.getSections().stream()
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Lesson of type QUIZ must have a content Section"));
+
             
             Quiz quiz = Quiz.builder()
-                    .lesson(lesson)
+                    .section(quizSection) // Updated from lesson(lesson)
                     .title(lesson.getTitle()) // Set title from lesson to satisfy NOT NULL constraint
                     .createdBy(creator) // Set created_by from course teacher
                     .timeLimitMinutes(timeLimitMinutes)
@@ -304,7 +310,7 @@ public class QuizService {
         attempt.setEndTime(Instant.now());
         // NEW: Auto-update StudentLessonProgress if quiz passed
         if (Boolean.TRUE.equals(attempt.getIsPassed())) {
-            Lesson lesson = attempt.getQuiz().getLesson();
+            Lesson lesson = attempt.getQuiz().getSection().getLesson(); 
             User student = attempt.getStudent();
             
             try {
@@ -367,7 +373,7 @@ public class QuizService {
 
         return QuizResultDetail.builder()
                 .attemptId(attempt.getId())
-                .quizTitle(quiz.getLesson().getTitle())
+                .quizTitle(quiz.getSection().getLesson().getTitle()) // updated from quiz.getLesson().getTitle()
                 .studentName(attempt.getStudent().getFullName())
                 .score(attempt.getScore())
                 .totalQuestions(attempt.getTotalQuestions())
@@ -413,7 +419,7 @@ public class QuizService {
 
         return QuizStatistics.builder()
                 .quizId(quiz.getId())
-                .quizTitle(quiz.getLesson().getTitle())
+                .quizTitle(quiz.getSection().getLesson().getTitle()) // updated
                 .totalAttempts(totalAttempts)
                 .completedAttempts(completedAttempts)
                 .averageScore(averageScore)
@@ -454,8 +460,6 @@ public class QuizService {
     }
 
     // DTOs for enhanced results
-    @Data
-    @Builder
     public static class QuizResultDetail {
         private UUID attemptId;
         private String quizTitle;
@@ -471,10 +475,57 @@ public class QuizService {
         private Long timeSpentSeconds;
         private Boolean showCorrectAnswers;
         private List<QuizResultItem> resultItems;
+
+        public static QuizResultDetailBuilder builder() { return new QuizResultDetailBuilder(); }
+        public static class QuizResultDetailBuilder {
+            private QuizResultDetail d = new QuizResultDetail();
+            public QuizResultDetailBuilder attemptId(UUID id) { d.setAttemptId(id); return this; }
+            public QuizResultDetailBuilder quizTitle(String t) { d.setQuizTitle(t); return this; }
+            public QuizResultDetailBuilder studentName(String n) { d.setStudentName(n); return this; }
+            public QuizResultDetailBuilder score(Double s) { d.setScore(s); return this; }
+            public QuizResultDetailBuilder totalQuestions(Integer t) { d.setTotalQuestions(t); return this; }
+            public QuizResultDetailBuilder correctAnswers(Integer c) { d.setCorrectAnswers(c); return this; }
+            public QuizResultDetailBuilder incorrectAnswers(Integer i) { d.setIncorrectAnswers(i); return this; }
+            public QuizResultDetailBuilder isPassed(Boolean p) { d.setIsPassed(p); return this; }
+            public QuizResultDetailBuilder passingScore(Integer s) { d.setPassingScore(s); return this; }
+            public QuizResultDetailBuilder startTime(Instant s) { d.setStartTime(s); return this; }
+            public QuizResultDetailBuilder endTime(Instant e) { d.setEndTime(e); return this; }
+            public QuizResultDetailBuilder timeSpentSeconds(Long t) { d.setTimeSpentSeconds(t); return this; }
+            public QuizResultDetailBuilder showCorrectAnswers(Boolean s) { d.setShowCorrectAnswers(s); return this; }
+            public QuizResultDetailBuilder resultItems(List<QuizResultItem> r) { d.setResultItems(r); return this; }
+            public QuizResultDetail build() { return d; }
+        }
+
+        public UUID getAttemptId() { return attemptId; }
+        public void setAttemptId(UUID attemptId) { this.attemptId = attemptId; }
+        public String getQuizTitle() { return quizTitle; }
+        public void setQuizTitle(String quizTitle) { this.quizTitle = quizTitle; }
+        public String getStudentName() { return studentName; }
+        public void setStudentName(String studentName) { this.studentName = studentName; }
+        public Double getScore() { return score; }
+        public void setScore(Double score) { this.score = score; }
+        public Integer getTotalQuestions() { return totalQuestions; }
+        public void setTotalQuestions(Integer totalQuestions) { this.totalQuestions = totalQuestions; }
+        public Integer getCorrectAnswers() { return correctAnswers; }
+        public void setCorrectAnswers(Integer correctAnswers) { this.correctAnswers = correctAnswers; }
+        public Integer getIncorrectAnswers() { return incorrectAnswers; }
+        public void setIncorrectAnswers(Integer incorrectAnswers) { this.incorrectAnswers = incorrectAnswers; }
+        public Boolean getIsPassed() { return isPassed; }
+        public void setIsPassed(Boolean isPassed) { this.isPassed = isPassed; }
+        public Integer getPassingScore() { return passingScore; }
+        public void setPassingScore(Integer passingScore) { this.passingScore = passingScore; }
+        public Instant getStartTime() { return startTime; }
+        public void setStartTime(Instant startTime) { this.startTime = startTime; }
+        public Instant getEndTime() { return endTime; }
+        public void setEndTime(Instant endTime) { this.endTime = endTime; }
+        public Long getTimeSpentSeconds() { return timeSpentSeconds; }
+        public void setTimeSpentSeconds(Long timeSpentSeconds) { this.timeSpentSeconds = timeSpentSeconds; }
+        public Boolean getShowCorrectAnswers() { return showCorrectAnswers; }
+        public void setShowCorrectAnswers(Boolean showCorrectAnswers) { this.showCorrectAnswers = showCorrectAnswers; }
+        public List<QuizResultItem> getResultItems() { return resultItems; }
+        public void setResultItems(List<QuizResultItem> resultItems) { this.resultItems = resultItems; }
     }
 
-    @Data
-    @Builder
     public static class QuizResultItem {
         private UUID questionId;
         private String questionContent;
@@ -483,10 +534,36 @@ public class QuizService {
         private Boolean isCorrect;
         private List<QuestionOption> options;
         private Long timeSpentSeconds;
+
+        public static QuizResultItemBuilder builder() { return new QuizResultItemBuilder(); }
+        public static class QuizResultItemBuilder {
+            private QuizResultItem i = new QuizResultItem();
+            public QuizResultItemBuilder questionId(UUID id) { i.setQuestionId(id); return this; }
+            public QuizResultItemBuilder questionContent(String c) { i.setQuestionContent(c); return this; }
+            public QuizResultItemBuilder selectedOption(String s) { i.setSelectedOption(s); return this; }
+            public QuizResultItemBuilder correctOption(String c) { i.setCorrectOption(c); return this; }
+            public QuizResultItemBuilder isCorrect(Boolean b) { i.setIsCorrect(b); return this; }
+            public QuizResultItemBuilder options(List<QuestionOption> o) { i.setOptions(o); return this; }
+            public QuizResultItemBuilder timeSpentSeconds(Long t) { i.setTimeSpentSeconds(t); return this; }
+            public QuizResultItem build() { return i; }
+        }
+
+        public UUID getQuestionId() { return questionId; }
+        public void setQuestionId(UUID questionId) { this.questionId = questionId; }
+        public String getQuestionContent() { return questionContent; }
+        public void setQuestionContent(String questionContent) { this.questionContent = questionContent; }
+        public String getSelectedOption() { return selectedOption; }
+        public void setSelectedOption(String selectedOption) { this.selectedOption = selectedOption; }
+        public String getCorrectOption() { return correctOption; }
+        public void setCorrectOption(String correctOption) { this.correctOption = correctOption; }
+        public Boolean getIsCorrect() { return isCorrect; }
+        public void setIsCorrect(Boolean isCorrect) { this.isCorrect = isCorrect; }
+        public List<QuestionOption> getOptions() { return options; }
+        public void setOptions(List<QuestionOption> options) { this.options = options; }
+        public Long getTimeSpentSeconds() { return timeSpentSeconds; }
+        public void setTimeSpentSeconds(Long timeSpentSeconds) { this.timeSpentSeconds = timeSpentSeconds; }
     }
 
-    @Data
-    @Builder
     public static class QuizStatistics {
         private UUID quizId;
         private String quizTitle;
@@ -496,16 +573,67 @@ public class QuizService {
         private Double passRate;
         private Integer passingScore;
         private List<QuestionStatistic> questionStatistics;
+
+        public static QuizStatisticsBuilder builder() { return new QuizStatisticsBuilder(); }
+        public static class QuizStatisticsBuilder {
+            private QuizStatistics s = new QuizStatistics();
+            public QuizStatisticsBuilder quizId(UUID id) { s.setQuizId(id); return this; }
+            public QuizStatisticsBuilder quizTitle(String t) { s.setQuizTitle(t); return this; }
+            public QuizStatisticsBuilder totalAttempts(Integer t) { s.setTotalAttempts(t); return this; }
+            public QuizStatisticsBuilder completedAttempts(Integer c) { s.setCompletedAttempts(c); return this; }
+            public QuizStatisticsBuilder averageScore(Double a) { s.setAverageScore(a); return this; }
+            public QuizStatisticsBuilder passRate(Double p) { s.setPassRate(p); return this; }
+            public QuizStatisticsBuilder passingScore(Integer p) { s.setPassingScore(p); return this; }
+            public QuizStatisticsBuilder questionStatistics(List<QuestionStatistic> q) { s.setQuestionStatistics(q); return this; }
+            public QuizStatistics build() { return s; }
+        }
+
+        public UUID getQuizId() { return quizId; }
+        public void setQuizId(UUID quizId) { this.quizId = quizId; }
+        public String getQuizTitle() { return quizTitle; }
+        public void setQuizTitle(String quizTitle) { this.quizTitle = quizTitle; }
+        public Integer getTotalAttempts() { return totalAttempts; }
+        public void setTotalAttempts(Integer totalAttempts) { this.totalAttempts = totalAttempts; }
+        public Integer getCompletedAttempts() { return completedAttempts; }
+        public void setCompletedAttempts(Integer completedAttempts) { this.completedAttempts = completedAttempts; }
+        public Double getAverageScore() { return averageScore; }
+        public void setAverageScore(Double averageScore) { this.averageScore = averageScore; }
+        public Double getPassRate() { return passRate; }
+        public void setPassRate(Double passRate) { this.passRate = passRate; }
+        public Integer getPassingScore() { return passingScore; }
+        public void setPassingScore(Integer passingScore) { this.passingScore = passingScore; }
+        public List<QuestionStatistic> getQuestionStatistics() { return questionStatistics; }
+        public void setQuestionStatistics(List<QuestionStatistic> questionStatistics) { this.questionStatistics = questionStatistics; }
     }
 
-    @Data
-    @Builder
     public static class QuestionStatistic {
         private UUID questionId;
         private String questionContent;
         private Integer totalAttempts;
         private Integer correctAttempts;
         private Double correctRate;
+
+        public static QuestionStatisticBuilder builder() { return new QuestionStatisticBuilder(); }
+        public static class QuestionStatisticBuilder {
+            private QuestionStatistic s = new QuestionStatistic();
+            public QuestionStatisticBuilder questionId(UUID id) { s.setQuestionId(id); return this; }
+            public QuestionStatisticBuilder questionContent(String c) { s.setQuestionContent(c); return this; }
+            public QuestionStatisticBuilder totalAttempts(Integer t) { s.setTotalAttempts(t); return this; }
+            public QuestionStatisticBuilder correctAttempts(Integer c) { s.setCorrectAttempts(c); return this; }
+            public QuestionStatisticBuilder correctRate(Double r) { s.setCorrectRate(r); return this; }
+            public QuestionStatistic build() { return s; }
+        }
+
+        public UUID getQuestionId() { return questionId; }
+        public void setQuestionId(UUID questionId) { this.questionId = questionId; }
+        public String getQuestionContent() { return questionContent; }
+        public void setQuestionContent(String questionContent) { this.questionContent = questionContent; }
+        public Integer getTotalAttempts() { return totalAttempts; }
+        public void setTotalAttempts(Integer totalAttempts) { this.totalAttempts = totalAttempts; }
+        public Integer getCorrectAttempts() { return correctAttempts; }
+        public void setCorrectAttempts(Integer correctAttempts) { this.correctAttempts = correctAttempts; }
+        public Double getCorrectRate() { return correctRate; }
+        public void setCorrectRate(Double correctRate) { this.correctRate = correctRate; }
     }
 
     /**
@@ -527,15 +655,44 @@ public class QuizService {
     }
     
     private QuizDTO convertToDTO(Quiz quiz) {
+        // Safely traverse relationships
+        UUID lessonId = null;
+        String lessonTitle = null;
+        UUID sectionId = null;
+        String sectionTitle = null;
+        UUID courseId = null;
+        String courseTitle = null;
+        String courseCode = null;
+
+        if (quiz.getSection() != null) {
+            sectionId = quiz.getSection().getId();
+            
+            if (quiz.getSection().getLesson() != null) {
+                lessonId = quiz.getSection().getLesson().getId();
+                lessonTitle = quiz.getSection().getLesson().getTitle();
+                
+                if (quiz.getSection().getLesson().getChapter() != null) {
+                    sectionId = quiz.getSection().getLesson().getChapter().getId(); // Note: DTO calls Chapter 'section' (legacy naming confusion?)
+                    sectionTitle = quiz.getSection().getLesson().getChapter().getTitle();
+                    
+                    if (quiz.getSection().getLesson().getChapter().getCourse() != null) {
+                        courseId = quiz.getSection().getLesson().getChapter().getCourse().getId();
+                        courseTitle = quiz.getSection().getLesson().getChapter().getCourse().getTitle();
+                        courseCode = quiz.getSection().getLesson().getChapter().getCourse().getCode();
+                    }
+                }
+            }
+        }
+        
         return QuizDTO.builder()
                 .id(quiz.getId())
-                .lessonId(quiz.getLesson().getId())
-                .lessonTitle(quiz.getLesson().getTitle())
-                .sectionId(quiz.getLesson().getSection().getId())
-                .sectionTitle(quiz.getLesson().getSection().getTitle())
-                .courseId(quiz.getLesson().getSection().getCourse().getId())
-                .courseTitle(quiz.getLesson().getSection().getCourse().getTitle())
-                .courseCode(quiz.getLesson().getSection().getCourse().getCode())
+                .lessonId(lessonId)
+                .lessonTitle(lessonTitle)
+                .sectionId(sectionId) // Actually Chapter ID in DTO?
+                .sectionTitle(sectionTitle)
+                .courseId(courseId)
+                .courseTitle(courseTitle)
+                .courseCode(courseCode)
                 .timeLimitMinutes(quiz.getTimeLimitMinutes())
                 .maxAttempts(quiz.getMaxAttempts())
                 .passingScore(quiz.getPassingScore())
@@ -734,8 +891,11 @@ public class QuizService {
 
         // Find all lessons with multiple quizzes
         List<Quiz> allQuizzes = quizRepository.findAll();
+        
+        // Filter only for LESSON_QUIZ and group (safely)
         Map<UUID, List<Quiz>> quizzesByLesson = allQuizzes.stream()
-                .collect(Collectors.groupingBy(q -> q.getLesson().getId()));
+                .filter(q -> q.getType() == Quiz.QuizType.LESSON_QUIZ && q.getSection() != null && q.getSection().getLesson() != null)
+                .collect(Collectors.groupingBy(q -> q.getSection().getLesson().getId()));
 
         for (Map.Entry<UUID, List<Quiz>> entry : quizzesByLesson.entrySet()) {
             List<Quiz> quizzes = entry.getValue();
@@ -873,7 +1033,7 @@ public class QuizService {
                     .status(Question.Status.ACTIVE)
                     .correctOption(data[5])
                     .createdBy(teacher)
-                    .course(lesson.getSection().getCourse())
+                    .course(lesson.getChapter().getCourse())
                     .build();
             
             // Create options

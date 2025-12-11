@@ -26,14 +26,15 @@ public class AuthenticationService {
         }
 
         // Create new user
-        User user = User.builder()
-                .username(request.getUsername())
-                .email(request.getEmail())
-                .password(request.getPassword()) // Will be encoded in UserService
-                .fullName(request.getFullName())
-                .role(request.getRole() != null ? request.getRole() : User.Role.STUDENT)
-                .enabled(true)
-                .build();
+        // Create new user
+        User user = new User(
+                request.getUsername(),
+                request.getEmail(),
+                request.getPassword(), // Will be encoded in UserService? Wait, UserService.createUser encodes it.
+                request.getFullName(),
+                request.getRole() != null ? request.getRole() : User.Role.STUDENT
+        );
+        user.setEnabled(true);
 
         User savedUser = userService.createUser(user);
 

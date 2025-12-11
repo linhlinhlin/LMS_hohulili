@@ -70,3 +70,5 @@ Front-end-NCKH_v2-main/node-v*/**
 Front-end-NCKH_v2-main/nodejs/**
 
 backend-lms-postgres/uploads/**
+
+!api/src/main/resources/db/migration/*.sql

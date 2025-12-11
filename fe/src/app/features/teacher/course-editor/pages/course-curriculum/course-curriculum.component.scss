@@ -77,6 +77,10 @@ ckeditor {
             /* Placeholder style */
             &.ck-placeholder:before {
                 color: #9ca3af !important;
+                font-style: italic !important;
+                font-size: 12px !important;
+                font-family: Arial, sans-serif !important;
+                opacity: 0.8 !important;
             }
 
             /* Bỏ margin thừa của đoạn văn đầu tiên */
