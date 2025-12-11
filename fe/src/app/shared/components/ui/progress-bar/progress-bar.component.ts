@@ -29,7 +29,7 @@ import { CommonModule } from '@angular/common';
     </div>
   `,
   styles: [`
-    @import '../../../../../styles/variables';
+    @use '../../../../../styles/variables' as *;
 
     .progress-container {
       width: 100%;

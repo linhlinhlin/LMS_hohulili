@@ -1,7 +1,6 @@
 package com.example.lms.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -11,19 +10,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * Entity lưu trữ thông tin phân phối bài tập cho học viên.
- * 
- * Hỗ trợ 2 loại phân phối:
- * - ALL_STUDENTS: Giao cho tất cả học viên trong khóa học (bao gồm học viên mới đăng ký sau)
- * - SPECIFIC_STUDENTS: Giao cho danh sách học viên cụ thể
- */
 @Entity
 @Table(name = "assignment_allocations")
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class AssignmentAllocation {
 
     @Id
@@ -36,7 +24,6 @@ public class AssignmentAllocation {
 
     @Column(name = "distribution_type", nullable = false)
     @Enumerated(EnumType.STRING)
-    @Builder.Default
     private DistributionType distributionType = DistributionType.ALL_STUDENTS;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -44,11 +31,9 @@ public class AssignmentAllocation {
     private User createdBy;
 
     @Column(name = "is_individual")
-    @Builder.Default
     private Boolean isIndividual = false;
 
     @OneToMany(mappedBy = "allocation", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
     private Set<AssignmentAllocationStudent> allocatedStudents = new HashSet<>();
 
     @CreationTimestamp
@@ -60,17 +45,49 @@ public class AssignmentAllocation {
     private Instant updatedAt;
 
     public enum DistributionType {
-        ALL_STUDENTS,      // Giao cho tất cả học viên trong khóa học
-        SPECIFIC_STUDENTS  // Giao cho danh sách học viên cụ thể
+        ALL_STUDENTS,
+        SPECIFIC_STUDENTS
     }
+
+    public AssignmentAllocation() {}
+
+    public AssignmentAllocation(UUID id, Assignment assignment, DistributionType distributionType, User createdBy, Boolean isIndividual, Set<AssignmentAllocationStudent> allocatedStudents, Instant createdAt, Instant updatedAt) {
+        this.id = id;
+        this.assignment = assignment;
+        this.distributionType = distributionType != null ? distributionType : DistributionType.ALL_STUDENTS;
+        this.createdBy = createdBy;
+        this.isIndividual = isIndividual != null ? isIndividual : false;
+        this.allocatedStudents = allocatedStudents != null ? allocatedStudents : new HashSet<>();
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
+
+    // Manual Getters/Setters
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
+    public Assignment getAssignment() { return assignment; }
+    public void setAssignment(Assignment assignment) { this.assignment = assignment; }
+    public DistributionType getDistributionType() { return distributionType; }
+    public void setDistributionType(DistributionType distributionType) { this.distributionType = distributionType; }
+    public User getCreatedBy() { return createdBy; }
+    public void setCreatedBy(User createdBy) { this.createdBy = createdBy; }
+    public Boolean getIsIndividual() { return isIndividual; }
+    public void setIsIndividual(Boolean isIndividual) { this.isIndividual = isIndividual; }
+    public Set<AssignmentAllocationStudent> getAllocatedStudents() { return allocatedStudents; }
+    public void setAllocatedStudents(Set<AssignmentAllocationStudent> allocatedStudents) { this.allocatedStudents = allocatedStudents; }
+    public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+    public Instant getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
 
     // Helper methods
     public void addStudent(User student, LocalDateTime customDeadline) {
-        AssignmentAllocationStudent allocationStudent = AssignmentAllocationStudent.builder()
-                .allocation(this)
-                .student(student)
-                .customDeadline(customDeadline)
-                .build();
+        // Warning: AssignmentAllocationStudent builder relies on AssignmentAllocationStudent
+        AssignmentAllocationStudent allocationStudent = new AssignmentAllocationStudent();
+        allocationStudent.setAllocation(this);
+        allocationStudent.setStudent(student);
+        allocationStudent.setCustomDeadline(customDeadline);
+        
         this.allocatedStudents.add(allocationStudent);
     }
 
@@ -81,5 +98,19 @@ public class AssignmentAllocation {
     public boolean hasStudent(UUID studentId) {
         return this.allocatedStudents.stream()
                 .anyMatch(as -> as.getStudent().getId().equals(studentId));
+    }
+
+    public static AssignmentAllocationBuilder builder() { return new AssignmentAllocationBuilder(); }
+    public static class AssignmentAllocationBuilder {
+        private AssignmentAllocation a = new AssignmentAllocation();
+        public AssignmentAllocationBuilder id(UUID id) { a.setId(id); return this; }
+        public AssignmentAllocationBuilder assignment(Assignment asset) { a.setAssignment(asset); return this; }
+        public AssignmentAllocationBuilder distributionType(DistributionType d) { a.setDistributionType(d); return this; }
+        public AssignmentAllocationBuilder createdBy(User u) { a.setCreatedBy(u); return this; }
+        public AssignmentAllocationBuilder isIndividual(Boolean i) { a.setIsIndividual(i); return this; }
+        public AssignmentAllocationBuilder allocatedStudents(Set<AssignmentAllocationStudent> s) { a.setAllocatedStudents(s); return this; }
+        public AssignmentAllocationBuilder createdAt(Instant c) { a.setCreatedAt(c); return this; }
+        public AssignmentAllocationBuilder updatedAt(Instant u) { a.setUpdatedAt(u); return this; }
+        public AssignmentAllocation build() { return a; }
     }
 }

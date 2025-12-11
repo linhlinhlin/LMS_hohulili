@@ -3,17 +3,15 @@
 @use "tailwindcss";
 
 // Import variables after @use rules
-@import 'styles/variables';
+@use 'styles/variables' as *;
 
 html {
-  @include mat.theme((
-    color: (
-      primary: mat.$azure-palette,
-      tertiary: mat.$blue-palette,
-    ),
-    typography: Roboto,
-    density: 0,
-  ));
+  @include mat.theme((color: (primary: mat.$azure-palette,
+        tertiary: mat.$blue-palette,
+      ),
+      typography: Roboto,
+      density: 0,
+    ));
 }
 
 body {
@@ -33,6 +31,7 @@ body {
   // Reset the user agent margin.
   margin: 0;
 }
+
 /* Global styles for LMS Maritime - Professional Design System */
 
 /* ===== DESIGN TOKENS ===== */
@@ -40,42 +39,45 @@ body {
   /* Color Palette - Light Mode */
   --c-bg: #F8FAFC;
   --c-surface: #FFFFFF;
-  --c-text: #0A2A43;       /* Mariner text */
+  --c-text: #0A2A43;
+  /* Mariner text */
   --c-muted: #4B5565;
-  --c-border: rgba(10,42,67,.08);
-  --c-primary: #1C5C86;    /* Mariner Blue */
-  --c-accent: #FFC861;     /* Sunburst Gold */
+  --c-border: rgba(10, 42, 67, .08);
+  --c-primary: #1C5C86;
+  /* Mariner Blue */
+  --c-accent: #FFC861;
+  /* Sunburst Gold */
   --c-accent-press: #E39A1C;
   --c-focus: #FFC861;
-  
+
   /* Icon sizing tokens */
   --icon-xs: 14px;
   --icon-sm: 16px;
   --icon-md: 20px;
   --icon-lg: 24px;
-  
+
   /* Spacing tokens */
   --space-xs: 4px;
   --space-sm: 8px;
   --space-md: 12px;
   --space-lg: 16px;
   --space-xl: 24px;
-  
+
   /* Border radius tokens */
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 24px;
-  
+
   /* Shadow tokens */
-  --shadow-elev-1: 0 1px 2px rgba(10,42,67,.06);
-  --shadow-elev-2: 0 6px 16px rgba(10,42,67,.12);
-  --shadow-elev-3: 0 12px 24px rgba(10,42,67,.18);
-  
+  --shadow-elev-1: 0 1px 2px rgba(10, 42, 67, .06);
+  --shadow-elev-2: 0 6px 16px rgba(10, 42, 67, .12);
+  --shadow-elev-3: 0 12px 24px rgba(10, 42, 67, .18);
+
   /* Transition tokens */
-  --transition-fast: 150ms cubic-bezier(.2,.8,.2,1);
-  --transition-normal: 200ms cubic-bezier(.2,.8,.2,1);
-  --transition-slow: 300ms cubic-bezier(.2,.8,.2,1);
+  --transition-fast: 150ms cubic-bezier(.2, .8, .2, 1);
+  --transition-normal: 200ms cubic-bezier(.2, .8, .2, 1);
+  --transition-slow: 300ms cubic-bezier(.2, .8, .2, 1);
 }
 
 /* Dark Mode */
@@ -84,16 +86,16 @@ body {
   --c-surface: #121A26;
   --c-text: #E2E8F0;
   --c-muted: #94A3B8;
-  --c-border: rgba(226,232,240,.08);
+  --c-border: rgba(226, 232, 240, .08);
   --c-primary: #123E5E;
   --c-accent: #F2B650;
   --c-accent-press: #C9901A;
   --c-focus: #F2B650;
-  
+
   /* Adjust shadows for dark mode */
-  --shadow-elev-1: 0 1px 2px rgba(0,0,0,.2);
-  --shadow-elev-2: 0 6px 16px rgba(0,0,0,.3);
-  --shadow-elev-3: 0 12px 24px rgba(0,0,0,.4);
+  --shadow-elev-1: 0 1px 2px rgba(0, 0, 0, .2);
+  --shadow-elev-2: 0 6px 16px rgba(0, 0, 0, .3);
+  --shadow-elev-3: 0 12px 24px rgba(0, 0, 0, .4);
 }
 
 /* ===== BASE STYLES ===== */
@@ -206,11 +208,11 @@ html {
 }
 
 .btn-ghost:hover {
-  background: rgba(0,0,0,.05);
+  background: rgba(0, 0, 0, .05);
 }
 
 .dark .btn-ghost:hover {
-  background: rgba(255,255,255,.05);
+  background: rgba(255, 255, 255, .05);
 }
 
 /* Accent button */
@@ -246,7 +248,7 @@ html {
 .input-base:focus {
   outline: none;
   border-color: var(--c-focus);
-  box-shadow: 0 0 0 2px rgba(255,200,97,.2);
+  box-shadow: 0 0 0 2px rgba(255, 200, 97, .2);
 }
 
 .input-base::placeholder {
@@ -255,6 +257,161 @@ html {
 }
 
 /* Ensure html and body take full height */
-html, body { 
-  height: 100%; 
+html,
+body {
+  height: 100%;
+}
+
+
+/* ===== QUILL EDITOR CUSTOM STYLES ===== */
+.ql-toolbar.ql-snow {
+  border: none !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  background: #f9fafb;
+  padding: 8px !important;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.ql-container.ql-snow {
+  border: none !important;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.ql-editor {
+  padding: 16px !important;
+  min-height: 200px;
+}
+
+.ql-editor.ql-blank::before {
+  color: #9ca3af;
+  font-style: normal;
+}
+
+/* Toolbar button styles */
+.ql-snow .ql-toolbar button,
+.ql-snow.ql-toolbar button {
+  width: 28px !important;
+  height: 28px !important;
+  padding: 4px !important;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.ql-snow .ql-toolbar button:hover,
+.ql-snow.ql-toolbar button:hover {
+  background: #e5e7eb;
+}
+
+.ql-snow .ql-toolbar button.ql-active,
+.ql-snow.ql-toolbar button.ql-active {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.ql-snow .ql-toolbar .ql-picker,
+.ql-snow.ql-toolbar .ql-picker {
+  height: 28px;
+}
+
+.ql-snow .ql-toolbar .ql-picker-label,
+.ql-snow.ql-toolbar .ql-picker-label {
+  border-radius: 4px;
+  padding: 2px 8px;
+  transition: all 0.15s ease;
+}
+
+.ql-snow .ql-toolbar .ql-picker-label:hover,
+.ql-snow.ql-toolbar .ql-picker-label:hover {
+  background: #e5e7eb;
+}
+
+/* Separator between toolbar groups */
+.ql-toolbar.ql-snow .ql-formats {
+  margin-right: 8px !important;
+  padding-right: 8px;
+  border-right: 1px solid #e5e7eb;
+}
+
+.ql-toolbar.ql-snow .ql-formats:last-child {
+  border-right: none;
+  margin-right: 0 !important;
+  padding-right: 0;
+}
+
+/* Editor content styles */
+.ql-editor h1 {
+  font-size: 2em;
+  font-weight: 700;
+  margin-bottom: 0.5em;
+}
+
+.ql-editor h2 {
+  font-size: 1.5em;
+  font-weight: 600;
+  margin-bottom: 0.5em;
+}
+
+.ql-editor h3 {
+  font-size: 1.25em;
+  font-weight: 600;
+  margin-bottom: 0.5em;
+}
+
+.ql-editor blockquote {
+  border-left: 4px solid #3b82f6;
+  padding-left: 16px;
+  margin: 16px 0;
+  color: #4b5563;
+  font-style: italic;
+}
+
+.ql-editor pre.ql-syntax {
+  background: #1f2937;
+  color: #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  overflow-x: auto;
+}
+
+.ql-editor ul,
+.ql-editor ol {
+  padding-left: 24px;
+}
+
+.ql-editor img {
+  max-width: 100%;
+  border-radius: 8px;
+}
+
+.ql-editor a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.ql-editor a:hover {
+  color: #1d4ed8;
+}
+
+.ck.ck-editor__main > .ck-editor__editable {
+  padding: 12px !important;
+  border-radius: 0 !important;
+}
+
+.ck.ck-editor__editable {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.ck.ck-toolbar {
+  padding: 4px 6px !important;
+  border-bottom: 1px solid #ddd !important;
+  background: #fafafa !important;
+}
+
+/* Loại bỏ margin đầu của P mặc định */
+.ck-content p:first-child {
+  margin-top: 0 !important;
 }

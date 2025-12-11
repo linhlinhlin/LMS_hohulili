@@ -53,4 +53,34 @@ public class Message {
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    // Manual Getters/Setters
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
+    public Conversation getConversation() { return conversation; }
+    public void setConversation(Conversation conversation) { this.conversation = conversation; }
+    public User getSender() { return sender; }
+    public void setSender(User sender) { this.sender = sender; }
+    public String getContent() { return content; }
+    public void setContent(String content) { this.content = content; }
+    public Assignment getAssignmentReference() { return assignmentReference; }
+    public void setAssignmentReference(Assignment assignmentReference) { this.assignmentReference = assignmentReference; }
+    public Boolean getIsRead() { return isRead; }
+    public void setIsRead(Boolean isRead) { this.isRead = isRead; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    // Manual Builder
+    public static MessageBuilder builder() { return new MessageBuilder(); }
+    public static class MessageBuilder {
+        private Message m = new Message();
+        public MessageBuilder id(UUID id) { m.setId(id); return this; }
+        public MessageBuilder conversation(Conversation conversation) { m.setConversation(conversation); return this; }
+        public MessageBuilder sender(User sender) { m.setSender(sender); return this; }
+        public MessageBuilder content(String content) { m.setContent(content); return this; }
+        public MessageBuilder assignmentReference(Assignment assignmentReference) { m.setAssignmentReference(assignmentReference); return this; }
+        public MessageBuilder isRead(Boolean isRead) { m.setIsRead(isRead); return this; }
+        public MessageBuilder createdAt(LocalDateTime createdAt) { m.setCreatedAt(createdAt); return this; }
+        public Message build() { return m; }
+    }
 }

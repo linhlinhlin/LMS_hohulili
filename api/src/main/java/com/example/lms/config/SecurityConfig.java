@@ -66,6 +66,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/**", "/api/v1/admin/**").hasRole("ADMIN")
                         
                         // User management endpoints (ADMIN only)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/users/instructors").hasAnyRole("ADMIN", "TEACHER")
                         .requestMatchers("/api/v1/users/**").hasRole("ADMIN")
                         
                         // Teacher endpoints
@@ -108,7 +109,16 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/ai/**").hasAnyRole("ADMIN", "TEACHER", "STUDENT")
                         
                         // Section and lesson management
+                        // Explicitly allow OPTIONS for CORS preflight
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        
+                        .requestMatchers(HttpMethod.POST, "/api/v1/sections/**", "/api/v1/sections").hasAnyRole("ADMIN", "TEACHER")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/sections/**", "/api/v1/sections").hasAnyRole("ADMIN", "TEACHER")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/sections/**", "/api/v1/sections").hasAnyRole("ADMIN", "TEACHER")
                         .requestMatchers("/api/v1/sections/**", "/api/v1/lessons/**").hasAnyRole("ADMIN", "TEACHER", "STUDENT")
+                        
+                        // Course Authoring endpoints (TEACHER/ADMIN only)
+                        .requestMatchers("/api/v1/authoring/**").hasAnyRole("ADMIN", "TEACHER")
                         
                         // Course management - specific endpoints first
                         .requestMatchers("/api/v1/courses/create", "/api/v1/courses/*/edit").hasAnyRole("ADMIN", "TEACHER")

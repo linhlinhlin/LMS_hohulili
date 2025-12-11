@@ -36,7 +36,7 @@ import java.util.UUID;
 public class AdminController {
 
     private final AdminService adminService;
-    private final SectionRepository sectionRepository;
+    private final com.example.lms.repository.ChapterRepository chapterRepository;
     private final AssignmentRepository assignmentRepository;
 
     @GetMapping("/courses/pending")
@@ -186,7 +186,7 @@ public class AdminController {
                 .teacherId(course.getTeacher().getId())
                 .teacherName(course.getTeacher().getFullName())
                 .teacherEmail(course.getTeacher().getEmail())
-                .sectionsCount(Math.toIntExact(sectionRepository.countByCourseId(course.getId())))
+                .sectionsCount(Math.toIntExact(chapterRepository.countByCourseId(course.getId())))
                 .submittedAt(course.getUpdatedAt() != null ? course.getUpdatedAt() : course.getCreatedAt())
                 .createdAt(course.getCreatedAt())
                 .build();
@@ -207,7 +207,7 @@ public class AdminController {
                 .status(course.getStatus().name())
                 .teacherName(course.getTeacher().getFullName())
                 .enrolledCount(enrolledCount)
-                .sectionsCount(Math.toIntExact(sectionRepository.countByCourseId(course.getId())))
+                .sectionsCount(Math.toIntExact(chapterRepository.countByCourseId(course.getId())))
                 .assignmentsCount(Math.toIntExact(assignmentRepository.countByCourseId(course.getId())))
                 .createdAt(course.getCreatedAt())
                 .updatedAt(course.getUpdatedAt())
@@ -218,10 +218,11 @@ public class AdminController {
         int sectionsCount = 0;
         int lessonsCount = 0;
         try {
-            sectionsCount = course.getSections() != null ? course.getSections().size() : 0;
-            lessonsCount = course.getSections() != null ? 
-                course.getSections().stream()
-                    .mapToInt(section -> section.getLessons() != null ? section.getLessons().size() : 0)
+            // Updated to use Chapters and Chapter.getLessons()
+            sectionsCount = course.getChapters() != null ? course.getChapters().size() : 0;
+            lessonsCount = course.getChapters() != null ? 
+                course.getChapters().stream()
+                    .mapToInt(chapter -> chapter.getLessons() != null ? chapter.getLessons().size() : 0)
                     .sum() : 0;
         } catch (Exception ignored) {}
 

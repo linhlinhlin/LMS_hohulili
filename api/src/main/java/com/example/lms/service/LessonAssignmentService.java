@@ -34,7 +34,7 @@ public class LessonAssignmentService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài tập với ID: " + assignmentId));
 
         // Permission check: only the teacher who owns the course can link assignments
-        if (!lesson.getSection().getCourse().getTeacher().getId().equals(currentUser.getId())) {
+        if (!lesson.getChapter().getCourse().getTeacher().getId().equals(currentUser.getId())) {
             throw new RuntimeException("Bạn không có quyền liên kết bài tập với bài học này");
         }
 
@@ -59,7 +59,7 @@ public class LessonAssignmentService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài học với ID: " + lessonId));
 
         // Permission check
-        if (!lesson.getSection().getCourse().getTeacher().getId().equals(currentUser.getId())) {
+        if (!lesson.getChapter().getCourse().getTeacher().getId().equals(currentUser.getId())) {
             throw new RuntimeException("Bạn không có quyền hủy liên kết bài tập với bài học này");
         }
 
@@ -74,7 +74,7 @@ public class LessonAssignmentService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài học với ID: " + lessonId));
 
         // Permission check
-        if (!lesson.getSection().getCourse().getTeacher().getId().equals(currentUser.getId())) {
+        if (!lesson.getChapter().getCourse().getTeacher().getId().equals(currentUser.getId())) {
             throw new RuntimeException("Bạn không có quyền xem danh sách bài tập của bài học này");
         }
 

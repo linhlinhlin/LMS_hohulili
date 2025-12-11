@@ -19,10 +19,10 @@
   }
 
   // ========================================
-  // SIDEBAR
+  // SIDEBAR - Optimized width for better content visibility
   // ========================================
   .learning-sidebar {
-    width: 360px;
+    width: 300px;
     background: white;
     border-right: 1px solid #e5e7eb;
     display: flex;
@@ -38,11 +38,11 @@
 
     // Sidebar Header
     .sidebar-header {
-      padding: 1rem 1.25rem;
+      padding: 0.875rem 1rem;
       border-bottom: 1px solid #e5e7eb;
       display: flex;
       align-items: center;
-      gap: 0.75rem;
+      gap: 0.625rem;
       background: white;
       position: sticky;
       top: 0;
@@ -57,11 +57,14 @@
         color: #3b82f6;
         cursor: pointer;
         border-radius: 8px;
-        display: flex;
+        display: flex !important;
         align-items: center;
         justify-content: center;
         transition: all 0.2s;
         box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+        position: relative;
+        opacity: 1 !important;
+        visibility: visible !important;
 
         &:hover {
           background: #eff6ff;
@@ -75,10 +78,16 @@
           transform: scale(0.95);
         }
 
-        i {
-          font-size: 1.25rem;
-          color: inherit !important;
+        // Fallback arrow icon
+        &::after {
+          content: '←';
+          font-size: 1.5rem;
           font-weight: bold;
+          line-height: 1;
+        }
+
+        i {
+          display: none;
         }
       }
 
@@ -120,6 +129,7 @@
         justify-content: center;
         transition: all 0.2s;
         box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+        position: relative;
 
         &:hover {
           background: #eff6ff;
@@ -133,17 +143,36 @@
           transform: scale(0.95);
         }
 
+        // Fallback chevron icon
+        &::before {
+          content: '‹';
+          font-size: 1.75rem;
+          font-weight: bold;
+          line-height: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
         i {
           font-size: 1.25rem;
           color: inherit !important;
           font-weight: bold;
+          position: absolute;
+        }
+
+        // If icon loads, hide fallback
+        i.icon-chevron-left {
+          &::before {
+            content: none;
+          }
         }
       }
     }
 
     // Search Box
     .search-box {
-      padding: 1rem 1.25rem;
+      padding: 0.75rem 1rem;
       border-bottom: 1px solid #e5e7eb;
       position: relative;
       background: white;
@@ -257,7 +286,7 @@
 
         .section-header {
           width: 100%;
-          padding: 1rem 1.25rem;
+          padding: 0.75rem 1rem;
           border: none;
           background: transparent;
           text-align: left;
@@ -265,7 +294,7 @@
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 0.75rem;
+          gap: 0.625rem;
           transition: all 0.2s;
 
           &:hover {
@@ -320,14 +349,14 @@
 
             .lesson-item {
               width: 100%;
-              padding: 0.75rem 1.25rem 0.75rem 2.5rem;
+              padding: 0.625rem 1rem 0.625rem 2rem;
               border: none;
               background: transparent;
               text-align: left;
               cursor: pointer;
               display: flex;
               align-items: flex-start;
-              gap: 0.75rem;
+              gap: 0.625rem;
               transition: all 0.2s;
               border-left: 3px solid transparent;
 
@@ -431,11 +460,13 @@
       cursor: pointer;
       border-radius: 10px;
       box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-      display: flex;
+      display: flex !important;
       align-items: center;
       justify-content: center;
       z-index: 150;
       transition: all 0.2s;
+      opacity: 1 !important;
+      visibility: visible !important;
 
       &:hover {
         background: #eff6ff;
@@ -447,9 +478,16 @@
         transform: scale(0.95);
       }
 
-      i {
+      // Use SVG icon or fallback
+      &::after {
+        content: '☰';
         font-size: 1.5rem;
         font-weight: bold;
+        line-height: 1;
+      }
+
+      i {
+        display: none;
       }
     }
 
@@ -565,22 +603,23 @@
       }
     }
 
-    // Navigation Buttons
+    // Navigation Buttons - At the end of content
     .lesson-navigation {
-      padding: 1.5rem;
+      padding: 0.75rem 1rem;
+      margin-top: 2rem;
       border-top: 1px solid #e5e7eb;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 1rem;
+      gap: 0.75rem;
       background: white;
 
       .nav-btn {
-        padding: 0.75rem 1.25rem;
+        padding: 0.5rem 1rem;
         border: 1px solid #e5e7eb;
         background: white;
         color: #374151;
-        border-radius: 8px;
+        border-radius: 6px;
         font-weight: 500;
         font-size: 0.875rem;
         cursor: pointer;
@@ -588,6 +627,7 @@
         align-items: center;
         gap: 0.5rem;
         transition: all 0.2s;
+        min-height: 36px;
 
         &:hover:not(:disabled) {
           background: #f9fafb;
@@ -613,11 +653,11 @@
       }
 
       .btn-complete {
-        padding: 0.75rem 1.5rem;
+        padding: 0.5rem 1.25rem;
         border: none;
         background: #3b82f6;
         color: white;
-        border-radius: 8px;
+        border-radius: 6px;
         font-weight: 500;
         font-size: 0.875rem;
         cursor: pointer;
@@ -625,6 +665,7 @@
         align-items: center;
         gap: 0.5rem;
         transition: all 0.2s;
+        min-height: 36px;
 
         &:hover {
           background: #2563eb;
@@ -680,13 +721,14 @@
 
       .lesson-navigation {
         flex-wrap: wrap;
-        padding: 1rem;
+        padding: 0.625rem 0.75rem;
 
         .nav-btn,
         .btn-complete {
           flex: 1;
           min-width: 120px;
           justify-content: center;
+          padding: 0.5rem 0.875rem;
         }
       }
     }

@@ -1,0 +1,178 @@
+package com.example.lms.course_management.domain.model;
+
+import com.example.lms.entity.User;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+
+@Entity(name = "CourseAuthoring")
+@Table(name = "course_authoring")
+public class Course {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+
+    @NotBlank
+    @Column(nullable = false, unique = true)
+    private String code;
+
+    @NotBlank
+    @Column(nullable = false)
+    private String title;
+
+    @Column(unique = true)
+    private String slug;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    @Column(name = "thumbnail_url")
+    private String thumbnailUrl;
+
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id", nullable = false)
+    private User teacher;
+
+    @Column(name = "category_id")
+    private Integer categoryId;
+
+    @Column(name = "price")
+    private BigDecimal price; // Changed to BigDecimal for money
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "price_type")
+    private CoursePriceType priceType;
+
+    @Column(name = "prerequisite_course_id")
+    private UUID prerequisiteCourseId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "unlock_mode")
+    private CourseUnlockMode unlockMode;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private CourseStatus status = CourseStatus.DRAFT;
+
+    @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("orderIndex ASC")
+    @Builder.Default
+    private List<Chapter> chapters = new ArrayList<>();
+
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private Instant createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private Instant updatedAt;
+
+    public Course() {}
+
+    // Manual Getters/Setters
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
+    public String getCode() { return code; }
+    public void setCode(String code) { this.code = code; }
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
+    public String getSlug() { return slug; }
+    public void setSlug(String slug) { this.slug = slug; }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+    public String getThumbnailUrl() { return thumbnailUrl; }
+    public void setThumbnailUrl(String thumbnailUrl) { this.thumbnailUrl = thumbnailUrl; }
+    public User getTeacher() { return teacher; }
+    public void setTeacher(User teacher) { this.teacher = teacher; }
+    public Integer getCategoryId() { return categoryId; }
+    public void setCategoryId(Integer categoryId) { this.categoryId = categoryId; }
+    public BigDecimal getPrice() { return price; }
+    public void setPrice(BigDecimal price) { this.price = price; }
+    public CoursePriceType getPriceType() { return priceType; }
+    public void setPriceType(CoursePriceType priceType) { this.priceType = priceType; }
+    public UUID getPrerequisiteCourseId() { return prerequisiteCourseId; }
+    public void setPrerequisiteCourseId(UUID prerequisiteCourseId) { this.prerequisiteCourseId = prerequisiteCourseId; }
+    public CourseUnlockMode getUnlockMode() { return unlockMode; }
+    public void setUnlockMode(CourseUnlockMode unlockMode) { this.unlockMode = unlockMode; }
+    public CourseStatus getStatus() { return status; }
+    public void setStatus(CourseStatus status) { this.status = status; }
+    public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+    public Instant getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+
+    public void setChapters(List<Chapter> chapters) { this.chapters = chapters; }
+
+    // Manual Builder
+    public static CourseBuilder builder() { return new CourseBuilder(); }
+    public static class CourseBuilder {
+        private Course c = new Course();
+        public CourseBuilder id(UUID id) { c.setId(id); return this; }
+        public CourseBuilder code(String code) { c.setCode(code); return this; }
+        public CourseBuilder title(String title) { c.setTitle(title); return this; }
+        public CourseBuilder slug(String slug) { c.setSlug(slug); return this; }
+        public CourseBuilder description(String d) { c.setDescription(d); return this; }
+        public CourseBuilder thumbnailUrl(String t) { c.setThumbnailUrl(t); return this; }
+        public CourseBuilder teacher(User t) { c.setTeacher(t); return this; }
+        public CourseBuilder categoryId(Integer cId) { c.setCategoryId(cId); return this; }
+        public CourseBuilder price(BigDecimal p) { c.setPrice(p); return this; }
+        public CourseBuilder priceType(CoursePriceType p) { c.setPriceType(p); return this; }
+        public CourseBuilder prerequisiteCourseId(UUID p) { c.setPrerequisiteCourseId(p); return this; }
+        public CourseBuilder unlockMode(CourseUnlockMode u) { c.setUnlockMode(u); return this; }
+        public CourseBuilder status(CourseStatus s) { c.setStatus(s); return this; }
+        public CourseBuilder chapters(List<Chapter> ch) { c.setChapters(ch); return this; }
+        public CourseBuilder createdAt(Instant ct) { c.setCreatedAt(ct); return this; }
+        public CourseBuilder updatedAt(Instant ut) { c.setUpdatedAt(ut); return this; }
+        public Course build() { return c; }
+    }
+
+    // Domain Behavior
+
+    public void addChapter(Chapter chapter) {
+        chapter.setCourse(this);
+        this.chapters.add(chapter);
+    }
+
+    public void removeChapter(Chapter chapter) {
+        this.chapters.remove(chapter);
+        chapter.setCourse(null);
+    }
+
+    public void publish() {
+        if (this.chapters.isEmpty()) {
+            throw new IllegalStateException("Cannot publish an empty course");
+        }
+        this.status = CourseStatus.PUBLISHED;
+    }
+    
+    public List<Chapter> getChapters() {
+        return Collections.unmodifiableList(chapters);
+    }
+
+    // Enums
+
+    public enum CourseStatus {
+        DRAFT, PUBLISHED, ARCHIVED
+    }
+
+    public enum CoursePriceType {
+        FREE, PAID
+    }
+
+    public enum CourseUnlockMode {
+        OPEN_ALL, SEQUENTIAL
+    }
+}

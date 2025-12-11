@@ -85,8 +85,8 @@ public interface CourseRepository extends JpaRepository<Course, UUID> {
      * Find course by ID with sections and lessons (eager loading for progress calculation)
      */
     @Query("SELECT DISTINCT c FROM Course c " +
-           "LEFT JOIN FETCH c.sections s " +
-           "LEFT JOIN FETCH s.lessons l " +
+           "LEFT JOIN FETCH c.chapters ch " +
+           "LEFT JOIN FETCH ch.lessons l " +
            "WHERE c.id = :courseId")
     Optional<Course> findByIdWithSectionsAndLessons(@Param("courseId") UUID courseId);
     

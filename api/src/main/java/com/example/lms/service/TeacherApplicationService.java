@@ -33,8 +33,9 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-@Slf4j
 public class TeacherApplicationService {
+    
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(TeacherApplicationService.class);
     
     private final TeacherDomainService teacherDomainService;
     private final CourseRepository courseRepository;

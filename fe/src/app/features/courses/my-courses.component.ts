@@ -20,7 +20,7 @@ interface CourseFilter {
 
 @Component({
   selector: 'app-my-courses',
-  imports: [CommonModule, RouterModule, FormsModule, LoadingComponent],
+  imports: [CommonModule, RouterModule, FormsModule],
   encapsulation: ViewEncapsulation.None,
   standalone: true,
   template: `
@@ -440,15 +440,15 @@ export class MyCoursesComponent {
   };
 
   // Computed values
-  inProgressCourses = computed(() => 
+  inProgressCourses = computed(() =>
     this.enrolledCourses().filter(course => course.status === 'in-progress')
   );
 
-  completedCourses = computed(() => 
+  completedCourses = computed(() =>
     this.enrolledCourses().filter(course => course.status === 'completed')
   );
 
-  certificatesCount = computed(() => 
+  certificatesCount = computed(() =>
     this.enrolledCourses().filter(course => course.certificate).length
   );
 
@@ -468,7 +468,7 @@ export class MyCoursesComponent {
     // Apply sorting
     courses.sort((a, b) => {
       let aValue: any, bValue: any;
-      
+
       switch (this.filters.sortBy) {
         case 'title':
           aValue = a.title;
@@ -490,21 +490,21 @@ export class MyCoursesComponent {
       }
 
       if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return this.filters.sortOrder === 'desc' 
+        return this.filters.sortOrder === 'desc'
           ? bValue.localeCompare(aValue)
           : aValue.localeCompare(bValue);
       }
-      
+
       if (typeof aValue === 'number' && typeof bValue === 'number') {
         return this.filters.sortOrder === 'desc' ? bValue - aValue : aValue - bValue;
       }
-      
+
       if (aValue instanceof Date && bValue instanceof Date) {
-        return this.filters.sortOrder === 'desc' 
+        return this.filters.sortOrder === 'desc'
           ? bValue.getTime() - aValue.getTime()
           : aValue.getTime() - bValue.getTime();
       }
-      
+
       return 0;
     });
 
@@ -653,8 +653,8 @@ export class MyCoursesComponent {
   // Enhanced features
   toggleFavorite(courseId: string): void {
     const courses = this.enrolledCourses();
-    const updatedCourses = courses.map(course => 
-      course.id === courseId 
+    const updatedCourses = courses.map(course =>
+      course.id === courseId
         ? { ...course, isFavorite: !course.isFavorite }
         : course
     );
@@ -670,8 +670,8 @@ export class MyCoursesComponent {
 
   pauseCourse(courseId: string): void {
     const courses = this.enrolledCourses();
-    const updatedCourses = courses.map(course => 
-      course.id === courseId 
+    const updatedCourses = courses.map(course =>
+      course.id === courseId
         ? { ...course, status: 'paused' as const }
         : course
     );
@@ -681,8 +681,8 @@ export class MyCoursesComponent {
 
   resumeCourse(courseId: string): void {
     const courses = this.enrolledCourses();
-    const updatedCourses = courses.map(course => 
-      course.id === courseId 
+    const updatedCourses = courses.map(course =>
+      course.id === courseId
         ? { ...course, status: 'in-progress' as const }
         : course
     );
@@ -700,7 +700,7 @@ export class MyCoursesComponent {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-  this.errorService.showSuccess('Chứng chỉ đang được tải xuống', 'certificate');
+      this.errorService.showSuccess('Chứng chỉ đang được tải xuống', 'certificate');
     } else {
       this.errorService.addError({
         message: 'Không tìm thấy chứng chỉ hoặc link tải.',

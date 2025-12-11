@@ -88,4 +88,61 @@ public class Assignment {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private Instant updatedAt;
+
+    // Manual Getters/Setters
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
+    public Course getCourse() { return course; }
+    public void setCourse(Course course) { this.course = course; }
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+    public String getInstructions() { return instructions; }
+    public void setInstructions(String instructions) { this.instructions = instructions; }
+    public LocalDateTime getDueDate() { return dueDate; }
+    public void setDueDate(LocalDateTime dueDate) { this.dueDate = dueDate; }
+    public BigDecimal getMaxScore() { return maxScore; }
+    public void setMaxScore(BigDecimal maxScore) { this.maxScore = maxScore; }
+    public AssignmentType getAssignmentType() { return assignmentType; }
+    public void setAssignmentType(AssignmentType assignmentType) { this.assignmentType = assignmentType; }
+    public Map<String, Object> getAssignmentConfig() { return assignmentConfig; }
+    public void setAssignmentConfig(Map<String, Object> assignmentConfig) { this.assignmentConfig = assignmentConfig; }
+    public AssignmentStatus getStatus() { return status; }
+    public void setStatus(AssignmentStatus status) { this.status = status; }
+    public LessonAssignment getLessonAssignment() { return lessonAssignment; }
+    public void setLessonAssignment(LessonAssignment lessonAssignment) { this.lessonAssignment = lessonAssignment; }
+    public List<Submission> getSubmissions() { return submissions; }
+    public void setSubmissions(List<Submission> submissions) { this.submissions = submissions; }
+    public List<AssignmentAttachment> getAttachments() { return attachments; }
+    public void setAttachments(List<AssignmentAttachment> attachments) { this.attachments = attachments; }
+    public List<AssignmentRubric> getRubrics() { return rubrics; }
+    public void setRubrics(List<AssignmentRubric> rubrics) { this.rubrics = rubrics; }
+    public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+    public Instant getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+
+    // Manual Builder
+    public static AssignmentBuilder builder() { return new AssignmentBuilder(); }
+    public static class AssignmentBuilder {
+        private Assignment a = new Assignment();
+        public AssignmentBuilder id(UUID id) { a.setId(id); return this; }
+        public AssignmentBuilder course(Course c) { a.setCourse(c); return this; }
+        public AssignmentBuilder title(String t) { a.setTitle(t); return this; }
+        public AssignmentBuilder description(String d) { a.setDescription(d); return this; }
+        public AssignmentBuilder instructions(String i) { a.setInstructions(i); return this; }
+        public AssignmentBuilder dueDate(LocalDateTime d) { a.setDueDate(d); return this; }
+        public AssignmentBuilder maxScore(BigDecimal m) { a.setMaxScore(m); return this; }
+        public AssignmentBuilder assignmentType(AssignmentType t) { a.setAssignmentType(t); return this; }
+        public AssignmentBuilder assignmentConfig(Map<String, Object> c) { a.setAssignmentConfig(c); return this; }
+        public AssignmentBuilder status(AssignmentStatus s) { a.setStatus(s); return this; }
+        public AssignmentBuilder lessonAssignment(LessonAssignment l) { a.setLessonAssignment(l); return this; }
+        public AssignmentBuilder submissions(List<Submission> s) { a.setSubmissions(s); return this; }
+        public AssignmentBuilder attachments(List<AssignmentAttachment> at) { a.setAttachments(at); return this; }
+        public AssignmentBuilder rubrics(List<AssignmentRubric> r) { a.setRubrics(r); return this; }
+        public AssignmentBuilder createdAt(Instant c) { a.setCreatedAt(c); return this; }
+        public AssignmentBuilder updatedAt(Instant u) { a.setUpdatedAt(u); return this; }
+        public Assignment build() { return a; }
+    }
 }

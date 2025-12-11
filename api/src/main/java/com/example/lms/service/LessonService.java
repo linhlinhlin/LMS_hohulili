@@ -5,17 +5,20 @@ import com.example.lms.entity.Course;
 import com.example.lms.entity.Lesson;
 import com.example.lms.entity.LessonAssignment;
 import com.example.lms.entity.Quiz;
+import com.example.lms.entity.Chapter;
 import com.example.lms.entity.Section;
 import com.example.lms.entity.User;
 import com.example.lms.repository.AssignmentRepository;
 import com.example.lms.repository.LessonAssignmentRepository;
 import com.example.lms.repository.LessonRepository;
+import com.example.lms.repository.ChapterRepository;
 import com.example.lms.repository.SectionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -23,25 +26,24 @@ import java.util.UUID;
 public class LessonService {
 
     private final LessonRepository lessonRepository;
-    private final SectionRepository sectionRepository;
+    private final ChapterRepository chapterRepository; // Level 1
+    private final SectionRepository sectionRepository; // Level 3
     private final AssignmentRepository assignmentRepository;
     private final LessonAssignmentRepository lessonAssignmentRepository;
     private final QuizService quizService;
 
-    public Lesson createLesson(UUID sectionId, User currentUser, com.example.lms.controller.LessonController.CreateLessonRequest request) {
-        Section section = sectionRepository.findById(sectionId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy section với ID: " + sectionId));
+    public Lesson createLesson(UUID chapterId, User currentUser, com.example.lms.controller.LessonController.CreateLessonRequest request) {
+        Chapter chapter = chapterRepository.findById(chapterId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy chapter với ID: " + chapterId));
         
         // Check if user is the teacher of this course
-        if (!section.getCourse().getTeacher().getId().equals(currentUser.getId())) {
-            throw new RuntimeException("Bạn không có quyền tạo bài học cho section này");
+        if (!chapter.getCourse().getTeacher().getId().equals(currentUser.getId())) {
+            throw new RuntimeException("Bạn không có quyền tạo bài học cho chapter này");
         }
-
-        // Approval workflow removed: allow creating lessons regardless of course status
 
         // Set order index if not provided
         int orderIndex = request.getOrderIndex() != null ? request.getOrderIndex() : 
-                        lessonRepository.findMaxOrderIndexBySection(section) + 1;
+                        lessonRepository.findMaxOrderIndexByChapter(chapter) + 1;
 
         // Determine lesson type - default to LECTURE if not specified
         Lesson.LessonType lessonType = request.getLessonType() != null ? 
@@ -49,15 +51,31 @@ public class LessonService {
 
         Lesson lesson = Lesson.builder()
                 .title(request.getTitle())
-                .content(request.getContent())
-                .videoUrl(request.getVideoUrl())
-                .durationMinutes(request.getDurationMinutes() != null ? request.getDurationMinutes() : 0)
                 .orderIndex(orderIndex)
                 .lessonType(lessonType)
-                .section(section)
+                .chapter(chapter)
                 .build();
 
         lesson = lessonRepository.save(lesson);
+
+        // Create Default Section (Content) if content provided
+        if (request.getContent() != null || request.getVideoUrl() != null) {
+            Section.SectionType type = Section.SectionType.TEXT;
+            if (request.getVideoUrl() != null && !request.getVideoUrl().isEmpty()) {
+                type = Section.SectionType.VIDEO;
+            }
+
+            Section section = Section.builder()
+                    .title("Nội dung bài học")
+                    .type(type)
+                    .content(request.getContent())
+                    .videoUrl(request.getVideoUrl())
+                    .duration(request.getDurationMinutes() != null ? request.getDurationMinutes() : 0)
+                    .lesson(lesson)
+                    .orderIndex(0)
+                    .build();
+            sectionRepository.save(section);
+        }
 
         // Create Quiz entity if lesson type is QUIZ
         if (lessonType == Lesson.LessonType.QUIZ) {
@@ -88,33 +106,60 @@ public class LessonService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài học với ID: " + lessonId));
         
         // Check if user is the teacher of this course
-        if (!lesson.getSection().getCourse().getTeacher().getId().equals(currentUser.getId())) {
+        if (!lesson.getChapter().getCourse().getTeacher().getId().equals(currentUser.getId())) {
             throw new RuntimeException("Bạn không có quyền chỉnh sửa bài học này");
         }
-
-        // Approval workflow removed: allow editing lessons regardless of status
 
         if (request.getTitle() != null) {
             lesson.setTitle(request.getTitle());
         }
-
-        if (request.getContent() != null) {
-            lesson.setContent(request.getContent());
-        }
-
-        if (request.getVideoUrl() != null) {
-            lesson.setVideoUrl(request.getVideoUrl());
-        }
-
-        if (request.getDurationMinutes() != null) {
-            lesson.setDurationMinutes(request.getDurationMinutes());
-        }
-
+        
         if (request.getOrderIndex() != null) {
             lesson.setOrderIndex(request.getOrderIndex());
         }
+        
+        lessonRepository.save(lesson);
 
-        return lessonRepository.save(lesson);
+        // Update Content -> Propagate to first Section (Level 3)
+        // Note: This maintains backward compatibility. New API users should use SectionController to manage sections directly.
+        if (request.getContent() != null || request.getVideoUrl() != null || request.getDurationMinutes() != null) {
+            List<Section> sections = sectionRepository.findByLessonIdOrderByOrderIndexAsc(lessonId);
+            Section section;
+            
+            if (sections.isEmpty()) {
+                // Create new default section
+                Section.SectionType type = Section.SectionType.TEXT;
+                if (request.getVideoUrl() != null && !request.getVideoUrl().isEmpty()) {
+                    type = Section.SectionType.VIDEO;
+                }
+                
+                section = Section.builder()
+                        .title("Nội dung bài học")
+                        .type(type)
+                        .lesson(lesson)
+                        .orderIndex(0)
+                        .build();
+            } else {
+                section = sections.get(0);
+            }
+
+            if (request.getContent() != null) {
+                section.setContent(request.getContent());
+            }
+            if (request.getVideoUrl() != null) {
+                section.setVideoUrl(request.getVideoUrl());
+                if (!request.getVideoUrl().isEmpty()) {
+                    section.setType(Section.SectionType.VIDEO);
+                }
+            }
+            if (request.getDurationMinutes() != null) {
+                section.setDuration(request.getDurationMinutes());
+            }
+            
+            sectionRepository.save(section);
+        }
+
+        return lesson;
     }
 
     public void deleteLesson(UUID lessonId, User currentUser) {
@@ -122,34 +167,24 @@ public class LessonService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài học với ID: " + lessonId));
         
         // Check if user is the teacher of this course
-        if (!lesson.getSection().getCourse().getTeacher().getId().equals(currentUser.getId())) {
+        if (!lesson.getChapter().getCourse().getTeacher().getId().equals(currentUser.getId())) {
             throw new RuntimeException("Bạn không có quyền xóa bài học này");
         }
-
-        // Approval workflow removed: allow deleting lessons regardless of status
 
         lessonRepository.delete(lesson);
     }
 
     public Lesson getLessonById(UUID lessonId, User currentUser) {
-        System.out.println("🔍 getLessonById called - lessonId: " + lessonId + ", userId: " + currentUser.getId());
-        
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài học với ID: " + lessonId));
         
         // Check if user has access (is teacher or enrolled student)
-        Course course = lesson.getSection().getCourse();
+        Course course = lesson.getChapter().getCourse();
         UUID teacherId = course.getTeacher().getId();
         UUID userId = currentUser.getId();
         
-        System.out.println("🔍 Course teacher: " + teacherId);
-        System.out.println("🔍 Current user: " + userId);
-        System.out.println("🔍 Is teacher: " + teacherId.equals(userId));
-        
         boolean hasAccess = teacherId.equals(userId) ||
                           course.getEnrolledStudents().contains(currentUser);
-        
-        System.out.println("🔍 Has access: " + hasAccess);
         
         if (!hasAccess) {
             throw new RuntimeException("Bạn không có quyền truy cập bài học này");
@@ -158,36 +193,45 @@ public class LessonService {
         return lesson;
     }
 
-    public Lesson createAssignmentLesson(UUID sectionId, User currentUser,
+    public Lesson createAssignmentLesson(UUID chapterId, User currentUser,
             com.example.lms.controller.LessonController.CreateAssignmentLessonRequest request, Assignment assignment) {
-        Section section = sectionRepository.findById(sectionId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy section với ID: " + sectionId));
+        Chapter chapter = chapterRepository.findById(chapterId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy chapter với ID: " + chapterId));
 
         // Check if user is the teacher of this course
-        if (!section.getCourse().getTeacher().getId().equals(currentUser.getId())) {
-            throw new RuntimeException("Bạn không có quyền tạo bài học cho section này");
+        if (!chapter.getCourse().getTeacher().getId().equals(currentUser.getId())) {
+            throw new RuntimeException("Bạn không có quyền tạo bài học cho chapter này");
         }
 
         // Set order index if not provided
         int orderIndex = request.getOrderIndex() != null ? request.getOrderIndex() :
-                        lessonRepository.findMaxOrderIndexBySection(section) + 1;
+                        lessonRepository.findMaxOrderIndexByChapter(chapter) + 1;
 
         // Save assignment first
-        assignment.setCourse(section.getCourse());
+        assignment.setCourse(chapter.getCourse());
         Assignment savedAssignment = assignmentRepository.save(assignment);
 
         // Create lesson with assignment type
         Lesson lesson = Lesson.builder()
                 .title(request.getTitle())
-                .content(request.getContent())
-                .videoUrl(request.getVideoUrl())
-                .durationMinutes(request.getDurationMinutes() != null ? request.getDurationMinutes() : 0)
                 .orderIndex(orderIndex)
-                .section(section)
+                .chapter(chapter)
                 .lessonType(Lesson.LessonType.ASSIGNMENT)
                 .build();
 
         Lesson savedLesson = lessonRepository.save(lesson);
+
+        // Create Content Section for Description
+        if (request.getContent() != null) {
+             Section section = Section.builder()
+                    .title("Hướng dẫn bài tập")
+                    .type(Section.SectionType.TEXT)
+                    .content(request.getContent())
+                    .lesson(savedLesson)
+                    .orderIndex(0)
+                    .build();
+            sectionRepository.save(section);
+        }
 
         // Create lesson-assignment relationship
         LessonAssignment lessonAssignment = LessonAssignment.builder()

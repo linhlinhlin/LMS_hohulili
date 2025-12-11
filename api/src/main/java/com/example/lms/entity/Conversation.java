@@ -67,6 +67,39 @@ public class Conversation {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    // Manual Getters/Setters
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
+    public User getTeacher() { return teacher; }
+    public void setTeacher(User teacher) { this.teacher = teacher; }
+    public User getStudent() { return student; }
+    public void setStudent(User student) { this.student = student; }
+    public Boolean getIsArchivedByTeacher() { return isArchivedByTeacher; }
+    public void setIsArchivedByTeacher(Boolean isArchivedByTeacher) { this.isArchivedByTeacher = isArchivedByTeacher; }
+    public Boolean getIsArchivedByStudent() { return isArchivedByStudent; }
+    public void setIsArchivedByStudent(Boolean isArchivedByStudent) { this.isArchivedByStudent = isArchivedByStudent; }
+    public List<Message> getMessages() { return messages; }
+    public void setMessages(List<Message> messages) { this.messages = messages; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    // Manual Builder
+    public static ConversationBuilder builder() { return new ConversationBuilder(); }
+    public static class ConversationBuilder {
+        private Conversation c = new Conversation();
+        public ConversationBuilder id(UUID id) { c.setId(id); return this; }
+        public ConversationBuilder teacher(User teacher) { c.setTeacher(teacher); return this; }
+        public ConversationBuilder student(User student) { c.setStudent(student); return this; }
+        public ConversationBuilder isArchivedByTeacher(Boolean isArchivedByTeacher) { c.setIsArchivedByTeacher(isArchivedByTeacher); return this; }
+        public ConversationBuilder isArchivedByStudent(Boolean isArchivedByStudent) { c.setIsArchivedByStudent(isArchivedByStudent); return this; }
+        public ConversationBuilder messages(List<Message> messages) { c.setMessages(messages); return this; }
+        public ConversationBuilder createdAt(LocalDateTime createdAt) { c.setCreatedAt(createdAt); return this; }
+        public ConversationBuilder updatedAt(LocalDateTime updatedAt) { c.setUpdatedAt(updatedAt); return this; }
+        public Conversation build() { return c; }
+    }
+
     /**
      * Get the other participant in the conversation
      */

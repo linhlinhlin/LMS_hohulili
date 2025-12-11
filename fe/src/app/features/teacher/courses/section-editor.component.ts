@@ -11,15 +11,17 @@ import { CreateAssignmentLessonRequest } from '../../../api/types/assignment.typ
 import { CreateLessonRequest } from '../../../api/types/course.types';
 import { QuizApi } from '../../../api/endpoints/quiz.api';
 import { QuestionApi, Question } from '../../../api/endpoints/question.api';
+import { SectionApi } from '../../../api/client/section.api';
 import { PackageApi } from '../../../api/endpoints/package.api';
 import { firstValueFrom } from 'rxjs';
 import { QuizEditModalComponent } from './components/quiz-edit-modal.component';
 import { QuizCreationModalComponent } from './components/quiz-creation-modal.component';
+import { SectionSmartEditorComponent } from './components/section-smart-editor/section-smart-editor.component';
 
 @Component({
   selector: 'app-section-editor',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink, QuizEditModalComponent, QuizCreationModalComponent],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink, QuizEditModalComponent, QuizCreationModalComponent, SectionSmartEditorComponent],
   encapsulation: ViewEncapsulation.None,
   styles: [`
     @keyframes fadeIn {
@@ -139,20 +141,20 @@ import { QuizCreationModalComponent } from './components/quiz-creation-modal.com
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
           </svg>
-          <a [routerLink]="['/teacher/courses', courseId, 'edit']" class="hover:text-blue-600">Chi tiết khóa học</a>
+          <a [routerLink]="['/teacher/courses', courseId, 'editor', 'curriculum']" class="hover:text-blue-600">Nội dung khóa học</a>
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
           </svg>
-          <span class="text-gray-900">Nội dung chương</span>
+          <span class="text-gray-900">Quản lý bài học</span>
         </div>
         <div class="flex items-center justify-between">
           <div>
-            <h1 class="text-2xl font-bold text-gray-900">Nội dung chương</h1>
-            <p class="text-gray-500 mt-1">Quản lý bài học và bài trắc nghiệm</p>
+            <h1 class="text-2xl font-bold text-gray-900">Quản lý bài học</h1>
+            <p class="text-gray-500 mt-1">Thêm, sửa, xóa bài học và bài trắc nghiệm trong chương</p>
           </div>
           <div class="flex items-center gap-3">
             <a class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2 shadow-sm" 
-               [routerLink]="['/teacher/courses', courseId, 'edit']">
+               [routerLink]="['/teacher/courses', courseId, 'editor', 'curriculum']">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
               </svg>
@@ -212,8 +214,8 @@ import { QuizCreationModalComponent } from './components/quiz-creation-modal.com
             </thead>
             <tbody class="divide-y divide-gray-100">
               <tr *ngFor="let l of lessons(); let i = index" class="hover:bg-blue-50/50 transition-colors">
-                <td class="px-6 py-4 text-sm text-gray-500 font-medium text-center">{{ i + 1 }}</td>
-                <td class="px-6 py-4">
+                <td class="px-6 py-2 text-sm text-gray-500 font-medium text-center">{{ i + 1 }}</td>
+                <td class="px-6 py-2">
                   <div class="flex items-start gap-3">
                     
                     <div class="min-w-0">
@@ -222,7 +224,7 @@ import { QuizCreationModalComponent } from './components/quiz-creation-modal.com
                     </div>
                   </div>
                 </td>
-                <td class="px-6 py-4 text-center">
+                <td class="px-6 py-2 text-center">
                   <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium"
                         [ngClass]="{
                           'bg-blue-100 text-blue-700': !l.lessonType || l.lessonType === 'LECTURE',
@@ -234,13 +236,13 @@ import { QuizCreationModalComponent } from './components/quiz-creation-modal.com
                     <ng-container *ngIf="l.lessonType === 'QUIZ'">Trắc nghiệm</ng-container>
                   </span>
                 </td>
-                <td class="px-6 py-4 text-center">
+                <td class="px-6 py-2 text-center">
                   <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
                     <span class="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5"></span>
                     Đã xuất bản
                   </span>
                 </td>
-                <td class="px-6 py-4">
+                <td class="px-6 py-2">
                   <div class="flex items-center justify-center gap-2">
                     <!-- View button - for all lesson types -->
                     <button (click)="viewLesson(l)"
@@ -333,10 +335,59 @@ import { QuizCreationModalComponent } from './components/quiz-creation-modal.com
 
         <!-- Lesson content displayed in viewer -->
         <div class="mt-4">
-          <!-- LECTURE Content -->
+          <!-- LECTURE Content (Sections) -->
           <ng-container *ngIf="s.lessonType === 'LECTURE' || !s.lessonType">
-            <div class="font-semibold mb-1">Nội dung bài học</div>
-            <div class="text-gray-800 whitespace-pre-line">{{ s.content || 'Chưa có nội dung.' }}</div>
+            <div class="flex items-center justify-between mb-4">
+                <h4 class="font-semibold text-gray-900">Nội dung bài học (Sections)</h4>
+                <div class="flex gap-2">
+                    <button type="button" (click)="openSmartEditor(s.id)" 
+                            class="px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        Thêm nội dung
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sections List -->
+            <div class="space-y-3">
+                <div *ngFor="let sec of s.sections" class="group bg-white border border-gray-200 rounded-lg p-3 hover:border-blue-300 hover:shadow-sm transition-all flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center"
+                             [class.bg-blue-100]="sec.type === 'TEXT'"
+                             [class.text-blue-600]="sec.type === 'TEXT'"
+                             [class.bg-red-100]="sec.type === 'VIDEO'"
+                             [class.text-red-600]="sec.type === 'VIDEO'">
+                             <svg *ngIf="sec.type === 'TEXT'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                             <svg *ngIf="sec.type === 'VIDEO'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </div>
+                        <div>
+                            <h5 class="text-sm font-medium text-gray-900">{{ sec.title }}</h5>
+                            <p class="text-xs text-gray-500 flex items-center gap-2">
+                                <span *ngIf="sec.type === 'VIDEO'" class="flex items-center gap-1">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3"></path></svg>
+                                    Video
+                                </span>
+                                <span *ngIf="sec.type === 'TEXT'" class="flex items-center gap-1">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                                    Bài đọc
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button (click)="deleteSection(sec.id)" class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Xóa">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Empty State for Sections -->
+                <div *ngIf="!s.sections || s.sections.length === 0" class="text-center py-8 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg">
+                    <svg class="w-10 h-10 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                    <p class="text-sm text-gray-500">Bài học chưa có nội dung</p>
+                    <p class="text-xs text-gray-400 mt-1">Chọn "Thêm bài đọc" hoặc "Thêm Video" ở trên</p>
+                </div>
+            </div>
           </ng-container>
 
           <!-- ASSIGNMENT Content -->
@@ -1701,6 +1752,13 @@ import { QuizCreationModalComponent } from './components/quiz-creation-modal.com
       (quizCreated)="onQuizCreated($event)"
       (closed)="onQuizCreationModalClosed()">
     </app-quiz-creation-modal>
+    <!-- Smart Editor Modal -->
+    <app-section-smart-editor
+      *ngIf="showSmartEditor()"
+      [lessonId]="activeLessonIdForEditor()!"
+      (close)="closeSmartEditor()"
+      (saved)="onSmartEditorSaved()">
+    </app-section-smart-editor>
   `,
   // changeDetection: ChangeDetectionStrategy.OnPush  // Temporarily disabled for debugging
 })
@@ -1719,10 +1777,22 @@ export class SectionEditorComponent implements OnDestroy {
   private quizApi = inject(QuizApi);
   private questionApi = inject(QuestionApi);
   private packageApi = inject(PackageApi);
+  private sectionApi = inject(SectionApi);
 
   courseId: string = '';
   sectionId: string = '';
   lessons = signal<any[]>([]);
+
+  // Section Management Signals
+  showCreateSectionModal = signal(false); // Legacy? Maybe reuse or replace logic.
+  // New Smart Editor State
+  showSmartEditor = signal(false);
+  activeLessonIdForEditor = signal<string | null>(null);
+
+  createSectionType = signal<'TEXT' | 'VIDEO' | 'QUIZ'>('TEXT');
+  editingSectionId = signal<string | null>(null);
+  loading = signal(false); // Added missing signal
+
   error = signal<string>('');
   opError = signal<string>('');
   editingId = signal<string | null>(null);
@@ -1918,7 +1988,7 @@ export class SectionEditorComponent implements OnDestroy {
   createLesson() {
     const sectionId = this.route.snapshot.paramMap.get('sectionId')!;
     if (this.createForm.invalid) return;
-    
+
     // Prevent double-click
     if (this.isCreating()) return;
     this.isCreating.set(true);
@@ -1976,7 +2046,7 @@ export class SectionEditorComponent implements OnDestroy {
     } else if (lessonType === 'QUIZ') {
       // Get selected question IDs
       const selectedQuestionIds = this.selectedQuizQuestions();
-      
+
       // Create quiz lesson with configuration from form
       const lessonPayload: CreateLessonRequest = {
         title: this.createForm.value.title ?? '',
@@ -1995,12 +2065,12 @@ export class SectionEditorComponent implements OnDestroy {
             try {
               // Check if quiz already exists for this lesson
               let createdQuiz: any = null;
-              
+
               try {
                 // Try to get existing quiz
                 const existingQuizResponse = await firstValueFrom(this.quizApi.getQuizByLessonId(lesson.id));
                 createdQuiz = existingQuizResponse as any;
-                
+
                 // If quiz exists, update it with new questions
                 if (createdQuiz && Array.from(selectedQuestionIds).length > 0) {
                   await firstValueFrom(this.quizApi.updateQuizQuestions(lesson.id, { questionIds: Array.from(selectedQuestionIds) }));
@@ -2051,7 +2121,7 @@ export class SectionEditorComponent implements OnDestroy {
                   quizMaxScore: 100,
                   quizMaxAttempts: 1
                 });
-                
+
                 // Reset quiz selection state
                 this.quizPackageId = '';
                 this.quizPackageQuestions.set([]);
@@ -2137,10 +2207,10 @@ export class SectionEditorComponent implements OnDestroy {
     this.selected.set(null);
     this._sanitizedEmbed.set(null);
     this.expandedAttachment = null;
-    
+
     this.editingId.set(l.id);
     this.editForm.patchValue({ title: l.title || '', content: l.content || '', videoUrl: l.videoUrl || '' });
-    
+
     // Scroll to edit form after a short delay to ensure it's rendered
     setTimeout(() => {
       const editPanel = document.querySelector('[class*="Edit Lesson Panel"]')?.parentElement;
@@ -2200,25 +2270,25 @@ export class SectionEditorComponent implements OnDestroy {
   executeDelete() {
     const lesson = this.lessonToDelete();
     if (!lesson) return;
-    
+
     const id = lesson.id;
     this.isDeleting.set(true);
-    
+
     this.lessonApi.deleteLesson(id).pipe(
       take(1)
     ).subscribe({
       next: () => {
         // Remove from list
         this.lessons.update(list => list.filter(i => i.id !== id));
-        
+
         // Close modal
         this.showDeleteModal.set(false);
         this.lessonToDelete.set(null);
         this.isDeleting.set(false);
-        
+
         // Show success toast
         this.showSuccessToast.set(true);
-        
+
         // Auto hide toast after 3 seconds
         setTimeout(() => {
           this.showSuccessToast.set(false);
@@ -2235,7 +2305,7 @@ export class SectionEditorComponent implements OnDestroy {
   getDeleteWarningMessage(): string {
     const lesson = this.lessonToDelete();
     if (!lesson) return '';
-    
+
     if (lesson.lessonType === 'QUIZ') {
       return 'Tất cả câu hỏi trong quiz và kết quả làm bài của học viên sẽ bị xóa vĩnh viễn.';
     } else if (lesson.lessonType === 'ASSIGNMENT') {
@@ -2250,12 +2320,12 @@ export class SectionEditorComponent implements OnDestroy {
       // First check if quiz has questions
       const response = await firstValueFrom(this.quizApi.getQuizQuestions(lesson.id));
       const questions = Array.isArray(response) ? response : (response as any).data || [];
-      
+
       if (questions.length === 0) {
         alert('⚠️ Quiz này chưa có câu hỏi nào.\n\nVui lòng thêm câu hỏi trước khi xem trước.');
         return;
       }
-      
+
       // Navigate to quiz preview page
       this.router.navigate(['/teacher/quiz/preview', lesson.id], {
         queryParams: {
@@ -2279,7 +2349,7 @@ export class SectionEditorComponent implements OnDestroy {
 
     // Close edit panel if open (only show one at a time)
     this.editingId.set(null);
-    
+
     this.selected.set(l);
 
     // Only setup video embed if video URL exists and is valid
@@ -2727,7 +2797,7 @@ export class SectionEditorComponent implements OnDestroy {
   async onQuizPackageChange(packageId: string) {
     this.quizPackageId = packageId;
     this.selectedQuizQuestions.set(new Set());
-    
+
     if (!packageId) {
       this.quizPackageQuestions.set([]);
       return;
@@ -2745,11 +2815,11 @@ export class SectionEditorComponent implements OnDestroy {
   }
 
   // ==================== INLINE ADD QUESTIONS TO EXISTING QUIZ ====================
-  
+
   async onInlinePackageChange(packageId: string) {
     this.inlinePackageId = packageId;
     this.selectedInlineQuestions.set([]);
-    
+
     if (!packageId) {
       this.inlinePackageQuestions.set([]);
       return;
@@ -2865,10 +2935,10 @@ export class SectionEditorComponent implements OnDestroy {
   async loadQuizQuestions(lessonId: string): Promise<void> {
     this.quizQuestionsLoading.set(true);
     this.currentViewingQuizId.set(lessonId);
-    
+
     try {
       console.log('🔍 Loading quiz questions for lesson:', lessonId);
-      
+
       // Fetch real questions from API using lesson ID
       const response = await firstValueFrom(this.quizApi.getQuizQuestions(lessonId));
       console.log('📦 Raw API response:', response);
@@ -2895,12 +2965,12 @@ export class SectionEditorComponent implements OnDestroy {
     } catch (error: any) {
       console.error('❌ Error loading quiz questions:', error);
       console.error('❌ Error details:', JSON.stringify(error, null, 2));
-      
+
       // Show error to user if quiz not found
       if (error?.error?.message?.includes('Quiz not found')) {
         console.log('⚠️ Quiz entity does not exist for this lesson. It will be created when adding questions.');
       }
-      
+
       this.quizQuestions.set([]);
     } finally {
       this.quizQuestionsLoading.set(false);
@@ -2933,7 +3003,7 @@ export class SectionEditorComponent implements OnDestroy {
   // Remove question from quiz
   async removeQuestionFromQuiz(lessonId: string, questionId: string) {
     if (!confirm('Bạn có chắc muốn xóa câu hỏi này khỏi quiz?')) return;
-    
+
     try {
       await firstValueFrom(this.quizApi.removeQuestionFromQuiz(lessonId, questionId));
       // Reload questions
@@ -3649,5 +3719,85 @@ export class SectionEditorComponent implements OnDestroy {
 
   onQuizCreationModalClosed() {
     console.log('Quiz creation modal closed');
+  }
+
+  // --- SECTION MANAGEMENT (Level 3) ---
+
+  /**
+   * Quick create section based on type
+   */
+  async addSection(lessonId: string, type: 'TEXT' | 'VIDEO' | 'QUIZ') {
+    if (!lessonId) return;
+
+    this.loading.set(true);
+    try {
+      if (type === 'TEXT') {
+        const payload = {
+          lessonId: lessonId,
+          title: 'Bài đọc mới',
+          type: 'TEXT' as const,
+          content: '<p>Nội dung bài đọc...</p>',
+          orderIndex: 0 // Backend should handle order
+        };
+        await firstValueFrom(this.sectionApi.createSection(payload));
+        this.showSuccessToast.set(true);
+        setTimeout(() => this.showSuccessToast.set(false), 3000);
+        await this.refreshLessons();
+      } else if (type === 'VIDEO') {
+        const url = prompt('Nhập URL Video (YouTube):');
+        if (url) {
+          const payload = {
+            lessonId: lessonId,
+            title: 'Video mới',
+            type: 'VIDEO' as const,
+            videoUrl: url,
+            orderIndex: 0
+          };
+          await firstValueFrom(this.sectionApi.createSection(payload));
+          this.showSuccessToast.set(true);
+          setTimeout(() => this.showSuccessToast.set(false), 3000);
+          await this.refreshLessons();
+        }
+      }
+    } catch (err: any) {
+      console.error('Lỗi khi tạo section:', err);
+      alert('Lỗi: ' + (err.error?.message || err.message));
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  async deleteSection(sectionId: string) {
+    if (!confirm('Bạn có chắc muốn xóa nội dung này?')) return;
+
+    this.loading.set(true);
+    try {
+      await firstValueFrom(this.sectionApi.deleteSection(sectionId));
+      this.showSuccessToast.set(true);
+      setTimeout(() => this.showSuccessToast.set(false), 3000);
+      await this.refreshLessons();
+    } catch (err: any) {
+      console.error('Lỗi khi xóa section:', err);
+      alert('Lỗi: ' + (err.error?.message || err.message));
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  // --- SECTION SMART EDITOR ---
+  openSmartEditor(lessonId: string) {
+    this.activeLessonIdForEditor.set(lessonId);
+    this.showSmartEditor.set(true);
+  }
+
+  closeSmartEditor() {
+    this.showSmartEditor.set(false);
+    this.activeLessonIdForEditor.set(null);
+  }
+
+  onSmartEditorSaved() {
+    this.showSuccessToast.set(true);
+    setTimeout(() => this.showSuccessToast.set(false), 3000);
+    this.refreshLessons(); // Reload everything
   }
 }

@@ -70,7 +70,6 @@ public class AllocationController {
             AssignmentAllocation allocation = allocationService.getAllocation(assignmentId);
             
             if (allocation == null) {
-                // Trả về mặc định là ALL_STUDENTS nếu chưa có allocation
                 AllocationResponse defaultResponse = AllocationResponse.builder()
                         .assignmentId(assignmentId)
                         .distributionType("ALL_STUDENTS")
@@ -180,9 +179,6 @@ public class AllocationController {
             @AuthenticationPrincipal User currentUser
     ) {
         try {
-            // Kiểm tra quyền: chỉ học viên đó hoặc giáo viên mới được xem
-            // TODO: Add proper authorization check
-
             List<UUID> assignmentIds = allocationService.getAssignmentsForStudent(studentId, courseId)
                     .stream()
                     .map(a -> a.getId())
@@ -195,7 +191,6 @@ public class AllocationController {
         }
     }
 
-    // Helper method
     private AllocationResponse convertToResponse(AssignmentAllocation allocation) {
         List<AllocatedStudentInfo> studentInfos = null;
         if (allocation.getDistributionType() == AssignmentAllocation.DistributionType.SPECIFIC_STUDENTS) {
@@ -224,33 +219,43 @@ public class AllocationController {
                 .build();
     }
 
-    // DTOs
-    @lombok.Data
+    // Manual DTOs
     public static class CreateAllocationRequest {
         @NotNull(message = "Loại phân phối không được để trống")
-        private String distributionType; // ALL_STUDENTS or SPECIFIC_STUDENTS
-        
-        private List<UUID> studentIds; // Required if distributionType = SPECIFIC_STUDENTS
+        private String distributionType;
+        private List<UUID> studentIds;
         private Boolean isIndividual;
+
+        public String getDistributionType() { return distributionType; }
+        public void setDistributionType(String distributionType) { this.distributionType = distributionType; }
+        public List<UUID> getStudentIds() { return studentIds; }
+        public void setStudentIds(List<UUID> studentIds) { this.studentIds = studentIds; }
+        public Boolean getIsIndividual() { return isIndividual; }
+        public void setIsIndividual(Boolean isIndividual) { this.isIndividual = isIndividual; }
     }
 
-    @lombok.Data
     public static class AssignIndividualRequest {
         @NotNull(message = "ID học viên không được để trống")
         private UUID studentId;
-        
         private Instant customDeadline;
         private String note;
+
+        public UUID getStudentId() { return studentId; }
+        public void setStudentId(UUID studentId) { this.studentId = studentId; }
+        public Instant getCustomDeadline() { return customDeadline; }
+        public void setCustomDeadline(Instant customDeadline) { this.customDeadline = customDeadline; }
+        public String getNote() { return note; }
+        public void setNote(String note) { this.note = note; }
     }
 
-    @lombok.Data
     public static class UpdateDeadlineRequest {
         @NotNull(message = "Deadline mới không được để trống")
         private Instant newDeadline;
+
+        public Instant getNewDeadline() { return newDeadline; }
+        public void setNewDeadline(Instant newDeadline) { this.newDeadline = newDeadline; }
     }
 
-    @lombok.Data
-    @lombok.Builder
     public static class AllocationResponse {
         private UUID id;
         private UUID assignmentId;
@@ -259,23 +264,72 @@ public class AllocationController {
         private List<UUID> studentIds;
         private List<AllocatedStudentInfo> allocatedStudents;
         private Instant createdAt;
+
+        public static AllocationResponseBuilder builder() { return new AllocationResponseBuilder(); }
+        public static class AllocationResponseBuilder {
+            private AllocationResponse r = new AllocationResponse();
+            public AllocationResponseBuilder id(UUID i) { r.id = i; return this; }
+            public AllocationResponseBuilder assignmentId(UUID a) { r.assignmentId = a; return this; }
+            public AllocationResponseBuilder distributionType(String d) { r.distributionType = d; return this; }
+            public AllocationResponseBuilder isIndividual(Boolean i) { r.isIndividual = i; return this; }
+            public AllocationResponseBuilder studentIds(List<UUID> s) { r.studentIds = s; return this; }
+            public AllocationResponseBuilder allocatedStudents(List<AllocatedStudentInfo> a) { r.allocatedStudents = a; return this; }
+            public AllocationResponseBuilder createdAt(Instant c) { r.createdAt = c; return this; }
+            public AllocationResponse build() { return r; }
+        }
+
+        public UUID getId() { return id; }
+        public UUID getAssignmentId() { return assignmentId; }
+        public String getDistributionType() { return distributionType; }
+        public Boolean getIsIndividual() { return isIndividual; }
+        public List<UUID> getStudentIds() { return studentIds; }
+        public List<AllocatedStudentInfo> getAllocatedStudents() { return allocatedStudents; }
+        public Instant getCreatedAt() { return createdAt; }
     }
 
-    @lombok.Data
-    @lombok.Builder
     public static class AllocatedStudentInfo {
         private UUID studentId;
         private String studentName;
         private Instant customDeadline;
         private String note;
         private Instant assignedAt;
+
+        public static AllocatedStudentInfoBuilder builder() { return new AllocatedStudentInfoBuilder(); }
+        public static class AllocatedStudentInfoBuilder {
+            private AllocatedStudentInfo i = new AllocatedStudentInfo();
+            public AllocatedStudentInfoBuilder studentId(UUID s) { i.studentId = s; return this; }
+            public AllocatedStudentInfoBuilder studentName(String n) { i.studentName = n; return this; }
+            public AllocatedStudentInfoBuilder customDeadline(Instant c) { i.customDeadline = c; return this; }
+            public AllocatedStudentInfoBuilder note(String n) { i.note = n; return this; }
+            public AllocatedStudentInfoBuilder assignedAt(Instant a) { i.assignedAt = a; return this; }
+            public AllocatedStudentInfo build() { return i; }
+        }
+
+        public UUID getStudentId() { return studentId; }
+        public String getStudentName() { return studentName; }
+        public Instant getCustomDeadline() { return customDeadline; }
+        public String getNote() { return note; }
+        public Instant getAssignedAt() { return assignedAt; }
     }
 
-    @lombok.Data
-    @lombok.Builder
     public static class AllocationStatsResponse {
         private int totalAllocated;
         private String distributionType;
         private boolean isIndividual;
+
+        public static AllocationStatsResponseBuilder builder() { return new AllocationStatsResponseBuilder(); }
+        public static class AllocationStatsResponseBuilder {
+            private AllocationStatsResponse s = new AllocationStatsResponse();
+            public AllocationStatsResponseBuilder totalAllocated(int t) { s.totalAllocated = t; return this; }
+            public AllocationStatsResponseBuilder distributionType(String d) { s.distributionType = d; return this; }
+            public AllocationStatsResponseBuilder isIndividual(boolean i) { s.isIndividual = i; return this; }
+            public AllocationStatsResponse build() { return s; }
+        }
+
+        public int getTotalAllocated() { return totalAllocated; }
+        public String getDistributionType() { return distributionType; }
+        public boolean isIndividual() { return isIndividual; }
+        public int totalAllocated() { return totalAllocated; } 
+        public String distributionType() { return distributionType; }
     }
 }

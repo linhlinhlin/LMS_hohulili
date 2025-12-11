@@ -32,11 +32,7 @@ interface Activity {
   imports: [
     CommonModule,
     RouterModule,
-    IconComponent,
-    ButtonComponent,
-    CardComponent,
-    ProgressBarComponent,
-    BadgeComponent
+    CommonModule,
   ],
   template: `
     <div class="min-h-screen bg-gray-50 p-6">
@@ -225,7 +221,7 @@ export class TeacherDashboardComponent implements OnInit {
   ngOnInit(): void {
     // Explicitly load data when component initializes
     console.log('[TEACHER DASHBOARD] Component initialized, loading data...');
-    
+
     // ✅ FIXED: Check if already loading to avoid duplicate calls
     if (!this.teacher.isLoading()) {
       this.teacher.loadMyCourses()
@@ -258,7 +254,7 @@ export class TeacherDashboardComponent implements OnInit {
   private _activeTab = 'courses' as 'courses' | 'assignments';
 
   // Computed values - Show only 2 most recent items
-  recentCourses = computed(() => 
+  recentCourses = computed(() =>
     this.teacher.courses().slice(0, 2)
   );
 
@@ -281,7 +277,7 @@ export class TeacherDashboardComponent implements OnInit {
     return (sum / courses.length).toFixed(1);
   });
 
-  topStudents = computed(() => 
+  topStudents = computed(() =>
     [...this.teacher.students()]
       .sort((a, b) => (b.averageGrade || 0) - (a.averageGrade || 0))
       .slice(0, 3)
@@ -393,9 +389,9 @@ export class TeacherDashboardComponent implements OnInit {
   courses = computed(() => this.teacher.courses().slice(0, 5));
   totalCourses = computed(() => this.teacher.totalCourses());
   totalStudents = computed(() => this.teacher.totalStudents());
-  
-  pendingCount = computed(() => 
-    this.teacher.assignments().filter(a => 
+
+  pendingCount = computed(() =>
+    this.teacher.assignments().filter(a =>
       a.status === 'pending' || a.status === 'submitted'
     ).length
   );

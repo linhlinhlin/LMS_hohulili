@@ -44,14 +44,13 @@ public class PackageService {
             throw new RuntimeException("Giới hạn số câu hỏi phải lớn hơn 0");
         }
 
-        Package packageEntity = Package.builder()
-                .name(name)
-                .description(description)
-                .subject(subject)
-                .owner(owner)
-                .capacity(capacity)
-                .visibility(visibility != null ? visibility : Package.Visibility.PRIVATE)
-                .build();
+        Package packageEntity = new Package();
+        packageEntity.setName(name);
+        packageEntity.setDescription(description);
+        packageEntity.setSubject(subject);
+        packageEntity.setOwner(owner);
+        packageEntity.setCapacity(capacity);
+        packageEntity.setVisibility(visibility != null ? visibility : Package.Visibility.PRIVATE);
 
         return packageRepository.save(packageEntity);
     }
@@ -301,11 +300,19 @@ public class PackageService {
     }
 
     // Inner class for statistics
-    @lombok.Data
-    @lombok.AllArgsConstructor
     public static class PackageStats {
         private long totalPackages;
         private long publicPackages;
         private long privatePackages;
+
+        public PackageStats(long totalPackages, long publicPackages, long privatePackages) {
+            this.totalPackages = totalPackages;
+            this.publicPackages = publicPackages;
+            this.privatePackages = privatePackages;
+        }
+
+        public long getTotalPackages() { return totalPackages; }
+        public long getPublicPackages() { return publicPackages; }
+        public long getPrivatePackages() { return privatePackages; }
     }
 }

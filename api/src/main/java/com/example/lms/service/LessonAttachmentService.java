@@ -39,15 +39,15 @@ public class LessonAttachmentService {
             .orElseThrow(() -> new RuntimeException("Không tìm thấy bài học"));
 
         System.out.println("Found Lesson: " + lesson.getTitle());
-        System.out.println("Section: " + lesson.getSection().getTitle());
-        System.out.println("Course: " + lesson.getSection().getCourse().getTitle());
-        System.out.println("Course Teacher ID: " + lesson.getSection().getCourse().getTeacher().getId());
-        System.out.println("Course Teacher Email: " + lesson.getSection().getCourse().getTeacher().getEmail());
+        System.out.println("Section: " + lesson.getChapter().getTitle());
+        System.out.println("Course: " + lesson.getChapter().getCourse().getTitle());
+        System.out.println("Course Teacher ID: " + lesson.getChapter().getCourse().getTeacher().getId());
+        System.out.println("Course Teacher Email: " + lesson.getChapter().getCourse().getTeacher().getEmail());
 
         // Check permissions
-        if (!lesson.getSection().getCourse().getTeacher().getId().equals(currentUser.getId())) {
+        if (!lesson.getChapter().getCourse().getTeacher().getId().equals(currentUser.getId())) {
             System.out.println("PERMISSION DENIED: Teacher ID mismatch");
-            System.out.println("Expected: " + lesson.getSection().getCourse().getTeacher().getId());
+            System.out.println("Expected: " + lesson.getChapter().getCourse().getTeacher().getId());
             System.out.println("Actual: " + currentUser.getId());
             throw new RuntimeException("Không có quyền thêm file đính kèm");
         }
@@ -95,7 +95,7 @@ public class LessonAttachmentService {
             .orElseThrow(() -> new RuntimeException("Không tìm thấy bài học"));
 
         // Check permissions
-        Course course = lesson.getSection().getCourse();
+        Course course = lesson.getChapter().getCourse();
         boolean hasAccess = course.getTeacher().getId().equals(currentUser.getId()) ||
                            course.getEnrolledStudents().contains(currentUser);
 
@@ -111,7 +111,7 @@ public class LessonAttachmentService {
             .orElseThrow(() -> new RuntimeException("Không tìm thấy file đính kèm"));
 
         // Check permissions
-        if (!attachment.getLesson().getSection().getCourse().getTeacher().getId().equals(currentUser.getId())) {
+        if (!attachment.getLesson().getChapter().getCourse().getTeacher().getId().equals(currentUser.getId())) {
             throw new RuntimeException("Không có quyền xóa file đính kèm");
         }
 
@@ -123,7 +123,7 @@ public class LessonAttachmentService {
             .orElseThrow(() -> new RuntimeException("Không tìm thấy file đính kèm"));
 
         // Check permissions
-        if (!attachment.getLesson().getSection().getCourse().getTeacher().getId().equals(currentUser.getId())) {
+        if (!attachment.getLesson().getChapter().getCourse().getTeacher().getId().equals(currentUser.getId())) {
             throw new RuntimeException("Không có quyền chỉnh sửa file đính kèm");
         }
 

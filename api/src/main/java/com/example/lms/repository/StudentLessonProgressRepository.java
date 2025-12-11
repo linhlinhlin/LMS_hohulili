@@ -39,8 +39,8 @@ public interface StudentLessonProgressRepository extends JpaRepository<StudentLe
      */
     @Query("SELECT p FROM StudentLessonProgress p " +
            "JOIN p.lesson l " +
-           "JOIN l.section s " +
-           "WHERE p.student = :student AND s.course = :course")
+           "JOIN l.chapter c " +
+           "WHERE p.student = :student AND c.course = :course")
     List<StudentLessonProgress> findByStudentAndCourse(@Param("student") User student, @Param("course") Course course);
 
     /**
@@ -48,8 +48,8 @@ public interface StudentLessonProgressRepository extends JpaRepository<StudentLe
      */
     @Query("SELECT p FROM StudentLessonProgress p " +
            "JOIN p.lesson l " +
-           "JOIN l.section s " +
-           "WHERE p.student = :student AND s.course = :course")
+           "JOIN l.chapter c " +
+           "WHERE p.student = :student AND c.course = :course")
     Page<StudentLessonProgress> findByStudentAndCourse(@Param("student") User student, @Param("course") Course course, Pageable pageable);
 
     /**
@@ -57,16 +57,16 @@ public interface StudentLessonProgressRepository extends JpaRepository<StudentLe
      */
     @Query("SELECT COUNT(p) FROM StudentLessonProgress p " +
            "JOIN p.lesson l " +
-           "JOIN l.section s " +
-           "WHERE p.student = :student AND s.course = :course AND p.status = 'COMPLETED'")
+           "JOIN l.chapter c " +
+           "WHERE p.student = :student AND c.course = :course AND p.status = 'COMPLETED'")
     long countCompletedLessonsByStudentAndCourse(@Param("student") User student, @Param("course") Course course);
 
     /**
      * Count total lessons in a course
      */
     @Query("SELECT COUNT(l) FROM Lesson l " +
-           "JOIN l.section s " +
-           "WHERE s.course = :course")
+           "JOIN l.chapter c " +
+           "WHERE c.course = :course")
     long countTotalLessonsByCourse(@Param("course") Course course);
 
     /**
@@ -74,8 +74,8 @@ public interface StudentLessonProgressRepository extends JpaRepository<StudentLe
      */
     @Query("SELECT p FROM StudentLessonProgress p " +
            "JOIN p.lesson l " +
-           "JOIN l.section s " +
-           "WHERE p.student = :student AND s.course = :course AND p.status = 'COMPLETED'")
+           "JOIN l.chapter c " +
+           "WHERE p.student = :student AND c.course = :course AND p.status = 'COMPLETED'")
     List<StudentLessonProgress> findCompletedLessonsByStudentAndCourse(@Param("student") User student, @Param("course") Course course);
 
     /**
@@ -102,8 +102,8 @@ public interface StudentLessonProgressRepository extends JpaRepository<StudentLe
            "AVG(CASE WHEN p.status = 'COMPLETED' THEN 1.0 ELSE 0.0 END) as avgCompletionRate " +
            "FROM StudentLessonProgress p " +
            "JOIN p.lesson l " +
-           "JOIN l.section s " +
-           "WHERE s.course = :course")
+           "JOIN l.chapter c " +
+           "WHERE c.course = :course")
     Object[] getCourseProgressStatistics(@Param("course") Course course);
 
     /**
@@ -123,9 +123,9 @@ public interface StudentLessonProgressRepository extends JpaRepository<StudentLe
      */
     @Query("SELECT COUNT(p) FROM StudentLessonProgress p " +
            "JOIN p.lesson l " +
-           "JOIN l.section s " +
+           "JOIN l.chapter c " +
            "WHERE p.student.id = :studentId " +
-           "AND s.course.id = :courseId " +
+           "AND c.course.id = :courseId " +
            "AND p.status = 'COMPLETED'")
     int countCompletedLessonsByCourse(
         @Param("studentId") UUID studentId, 
@@ -146,8 +146,8 @@ public interface StudentLessonProgressRepository extends JpaRepository<StudentLe
         FROM users u
         JOIN course_enrollments ce ON ce.student_id = u.id
         JOIN courses c ON c.id = ce.course_id
-        JOIN sections s ON s.course_id = c.id
-        JOIN lessons l ON l.section_id = s.id
+        JOIN chapters ch ON ch.course_id = c.id
+        JOIN lessons l ON l.chapter_id = ch.id
         LEFT JOIN student_lesson_progress slp ON slp.student_id = u.id AND slp.lesson_id = l.id
         WHERE c.teacher_id = :teacherId
         AND (:courseId IS NULL OR c.id = :courseId)

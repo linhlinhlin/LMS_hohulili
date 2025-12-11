@@ -5,11 +5,6 @@ import jakarta.persistence.Convert;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -23,20 +18,15 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
+import java.util.Objects;
 
 @Entity
 @Table(name = "users")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-@EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "enrolledCourses", "authorities", "accountNonExpired", "accountNonLocked", "credentialsNonExpired"})
 public class User implements UserDetails {
     
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @EqualsAndHashCode.Include
     private UUID id;
     
     @Column(unique = true, nullable = false, length = 50)
@@ -60,15 +50,12 @@ public class User implements UserDetails {
     
     @Column(nullable = false)
     @Convert(converter = com.example.lms.entity.converter.UserRoleConverter.class)
-    @Builder.Default
     private Role role = Role.STUDENT;
     
     @Column(nullable = false)
-    @Builder.Default
     private Boolean enabled = true;
     
     @Column(nullable = false)
-    @Builder.Default
     private Instant createdAt = Instant.now();
     
     @Column
@@ -81,17 +68,31 @@ public class User implements UserDetails {
         joinColumns = @JoinColumn(name = "student_id"),
         inverseJoinColumns = @JoinColumn(name = "course_id")
     )
-    @Builder.Default
     @JsonIgnore
     private Set<Course> enrolledCourses = new HashSet<>();
     
     // Constructor for registration
+    public User() {}
+
     public User(String username, String email, String password, String fullName, Role role) {
         this.username = username;
         this.email = email;
         this.password = password;
         this.fullName = fullName;
         this.role = role;
+    }
+
+    public User(UUID id, String username, String email, String password, String fullName, Role role, Boolean enabled, Instant createdAt, Instant updatedAt, Set<Course> enrolledCourses) {
+        this.id = id;
+        this.username = username;
+        this.email = email;
+        this.password = password;
+        this.fullName = fullName;
+        this.role = role;
+        this.enabled = enabled != null ? enabled : true;
+        this.createdAt = createdAt != null ? createdAt : Instant.now();
+        this.updatedAt = updatedAt;
+        this.enrolledCourses = enrolledCourses != null ? enrolledCourses : new HashSet<>();
     }
     
     // UserDetails implementation
@@ -147,6 +148,70 @@ public class User implements UserDetails {
         updatedAt = Instant.now();
     }
     
+    // Manual getters to ensure visibility
+    public UUID getId() {
+        return id;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public Role getRole() {
+        return role;
+    }
+    
+    public Boolean getEnabled() { return enabled; }
+    public Instant getCreatedAt() { return createdAt; }
+    public Instant getUpdatedAt() { return updatedAt; }
+    
+    // Manual Setters
+    public void setPassword(String password) { this.password = password; }
+    public void setEnabled(Boolean enabled) { this.enabled = enabled; }
+    public void setFullName(String fullName) { this.fullName = fullName; }
+    public void setEmail(String email) { this.email = email; }
+    public void setRole(Role role) { this.role = role; }
+    public void setUsername(String username) { this.username = username; }
+    public void setId(UUID id) { this.id = id; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+    public void setEnrolledCourses(Set<Course> enrolledCourses) { this.enrolledCourses = enrolledCourses; }
+    public Set<Course> getEnrolledCourses() { return enrolledCourses; }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        User user = (User) o;
+        return Objects.equals(id, user.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
+
+    // Manual Builder
+    public static UserBuilder builder() { return new UserBuilder(); }
+    public static class UserBuilder {
+        private User u = new User();
+        public UserBuilder id(UUID id) { u.setId(id); return this; }
+        public UserBuilder username(String username) { u.setUsername(username); return this; }
+        public UserBuilder email(String email) { u.setEmail(email); return this; }
+        public UserBuilder password(String password) { u.setPassword(password); return this; }
+        public UserBuilder fullName(String fullName) { u.setFullName(fullName); return this; }
+        public UserBuilder role(Role role) { u.setRole(role); return this; }
+        public UserBuilder enabled(Boolean enabled) { u.setEnabled(enabled); return this; }
+        public UserBuilder createdAt(Instant createdAt) { u.setCreatedAt(createdAt); return this; }
+        public UserBuilder updatedAt(Instant updatedAt) { u.setUpdatedAt(updatedAt); return this; }
+        public UserBuilder enrolledCourses(Set<Course> enrolledCourses) { u.setEnrolledCourses(enrolledCourses); return this; }
+        public User build() { return u; }
+    }
+
     public enum Role {
         ADMIN("Quản trị viên"),
         TEACHER("Giảng viên"), 

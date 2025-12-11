@@ -2,7 +2,7 @@ import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy } 
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { CourseApi } from '../../../api/client/course.api';
-import { CourseContentSection } from '../../../api/types/course.types';
+import { CourseContentChapter, LessonSummary } from '../../../api/types/course.types';
 import { QuizApi } from '../../../api/endpoints/quiz.api';
 import { catchError, of } from 'rxjs';
 
@@ -12,7 +12,7 @@ interface CourseDetail {
   description: string;
   teacherName: string;
   enrolledCount: number;
-  sectionsCount: number;
+  chaptersCount: number; // Renamed
   progress?: number;
 }
 
@@ -99,7 +99,7 @@ export class CourseDetailComponent implements OnInit {
           description: detail?.description || '',
           teacherName: detail?.teacherName || '',
           enrolledCount: detail?.enrolledCount || 0,
-          sectionsCount: detail?.sectionsCount || 0
+          chaptersCount: (detail as any)?.chaptersCount || 0
         });
       },
       error: (err) => {
@@ -110,7 +110,7 @@ export class CourseDetailComponent implements OnInit {
     // Load course content
     this.courseApi.getCourseContent(courseId).subscribe({
       next: (res) => {
-        const contentSections: CourseContentSection[] = res?.data || [];
+        const contentSections: CourseContentChapter[] = res?.data || [];
         const mappedSections: Section[] = contentSections
           .sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
           .map(section => ({
@@ -120,7 +120,7 @@ export class CourseDetailComponent implements OnInit {
             orderIndex: section.orderIndex ?? 0,
             lessons: (section.lessons || [])
               .sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
-              .map(lesson => ({
+              .map((lesson: LessonSummary) => ({
                 id: lesson.id,
                 title: lesson.title,
                 description: lesson.description || '',

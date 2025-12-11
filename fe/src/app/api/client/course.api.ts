@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { ApiClient } from './api-client';
 import { COURSE_ENDPOINTS } from '../endpoints/course.endpoints';
 import { ApiResponse } from '../types/common.types';
-import { CreateCourseRequest, CourseDetail, CourseSummary, CourseContentSection, EnrollStudentRequest } from '../types/course.types';
+import { CreateCourseRequest, CourseDetail, CourseSummary, CourseContentChapter, EnrollStudentRequest } from '../types/course.types';
 import { map } from 'rxjs/operators';
 import { Observable } from 'rxjs';
 
@@ -68,7 +68,7 @@ export class CourseApi {
   }
 
   getCourseContent(courseId: string) {
-    return this.api.getWithResponse<CourseContentSection[]>(COURSE_ENDPOINTS.CONTENT(courseId));
+    return this.api.getWithResponse<CourseContentChapter[]>(COURSE_ENDPOINTS.CONTENT(courseId));
   }
 
   enrollCourse(courseId: string) {

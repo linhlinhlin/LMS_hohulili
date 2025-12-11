@@ -253,13 +253,14 @@ public class StudentProgressController {
             }
 
             // Initialize collections nếu null để tránh NullPointerException
-            if (course.getSections() == null) {
-                course.setSections(java.util.Collections.emptySet());
+            // Initialize collections nếu null để tránh NullPointerException
+            if (course.getChapters() == null) {
+                course.setChapters(java.util.Collections.emptySet());
             } else {
                 // Đảm bảo lessons collection cũng được initialized
-                course.getSections().forEach(section -> {
-                    if (section.getLessons() == null) {
-                        section.setLessons(java.util.Collections.emptyList());
+                course.getChapters().forEach(chapter -> {
+                    if (chapter.getLessons() == null) {
+                        chapter.setLessons(java.util.Collections.emptyList());
                     }
                 });
             }

@@ -23,10 +23,6 @@ import java.util.UUID;
 @Entity
 @Table(name = "stu_lesson_progress",
        uniqueConstraints = @UniqueConstraint(columnNames = {"student_id", "lesson_id"}))
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
 public class StudentLessonProgress {
@@ -86,6 +82,40 @@ public class StudentLessonProgress {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private Instant updatedAt;
+
+    public StudentLessonProgress() {}
+
+    // Manual Getters/Setters
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
+    public User getStudent() { return student; }
+    public void setStudent(User student) { this.student = student; }
+    public Lesson getLesson() { return lesson; }
+    public void setLesson(Lesson lesson) { this.lesson = lesson; }
+    public ProgressStatus getStatus() { return status; }
+    public void setStatus(ProgressStatus status) { this.status = status; }
+    public Instant getStartedAt() { return startedAt; }
+    public void setStartedAt(Instant startedAt) { this.startedAt = startedAt; }
+    public Instant getCompletedAt() { return completedAt; }
+    public void setCompletedAt(Instant completedAt) { this.completedAt = completedAt; }
+    public Integer getTimeSpentMinutes() { return timeSpentMinutes; }
+    public void setTimeSpentMinutes(Integer timeSpentMinutes) { this.timeSpentMinutes = timeSpentMinutes; }
+    public Instant getCreatedAt() { return createdAt; }
+    public Instant getUpdatedAt() { return updatedAt; }
+
+    // Manual Builder
+    public static StudentLessonProgressBuilder builder() { return new StudentLessonProgressBuilder(); }
+    public static class StudentLessonProgressBuilder {
+        private StudentLessonProgress p = new StudentLessonProgress();
+        public StudentLessonProgressBuilder id(UUID id) { p.setId(id); return this; }
+        public StudentLessonProgressBuilder student(User student) { p.setStudent(student); return this; }
+        public StudentLessonProgressBuilder lesson(Lesson lesson) { p.setLesson(lesson); return this; }
+        public StudentLessonProgressBuilder status(ProgressStatus status) { p.setStatus(status); return this; }
+        public StudentLessonProgressBuilder startedAt(Instant startedAt) { p.setStartedAt(startedAt); return this; }
+        public StudentLessonProgressBuilder completedAt(Instant completedAt) { p.setCompletedAt(completedAt); return this; }
+        public StudentLessonProgressBuilder timeSpentMinutes(Integer t) { p.setTimeSpentMinutes(t); return this; }
+        public StudentLessonProgress build() { return p; }
+    }
 
     /**
      * Domain behavior: Mark lesson as completed

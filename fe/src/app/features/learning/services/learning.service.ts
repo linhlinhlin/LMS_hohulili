@@ -4,7 +4,7 @@ import { catchError, tap, map } from 'rxjs/operators';
 import { CourseApi } from '../../../api/client/course.api';
 import { LessonApi } from '../../../api/client/lesson.api';
 import { ApiClient } from '../../../api/client/api-client';
-import { CourseContentSection } from '../../../api/types/course.types';
+import { CourseContentChapter, LessonSummary as ApiLessonSummary } from '../../../api/types/course.types';
 import {
   CourseOverview,
   CourseState,
@@ -58,34 +58,34 @@ export class LearningService {
   private lessonCache = new Map<string, LessonDetail>();
 
   // Public computed signals for components to consume
-  
+
   /** Current course information */
   course = computed(() => this.courseState().course);
-  
+
   /** All sections with lessons */
   sections = computed(() => this.courseState().sections);
-  
+
   /** Current selected lesson */
   currentLesson = computed(() => this.lessonState().currentLesson);
-  
+
   /** Is loading course data */
   isLoadingCourse = computed(() => this.courseState().loading);
-  
+
   /** Is loading lesson data */
   isLoadingLesson = computed(() => this.lessonState().loading);
-  
+
   /** Course loading error */
   courseError = computed(() => this.courseState().error);
-  
+
   /** Lesson loading error */
   lessonError = computed(() => this.lessonState().error);
-  
+
   /** Set of completed lesson IDs */
   completedLessons = computed(() => this.progressState().completedLessons);
-  
+
   /** Overall progress percentage (0-100) */
   progressPercentage = computed(() => this.progressState().progressPercentage);
-  
+
   /** Last accessed lesson ID */
   lastAccessedLessonId = computed(() => this.progressState().lastAccessedLessonId);
 
@@ -223,7 +223,7 @@ export class LearningService {
           description: courseData?.description || '',
           instructor: courseData?.teacherName || 'Unknown',
           thumbnail: '',
-          sectionsCount: courseData?.sectionsCount || 0,
+          sectionsCount: courseData?.chaptersCount || 0,
           lessonsCount: this.countLessons(courseContent.data || []),
           duration: this.calculateTotalDuration(courseContent.data || []),
           isEnrolled: true // If we can fetch content, assume enrolled
@@ -342,7 +342,7 @@ export class LearningService {
           courseTitle: data.courseTitle || '',
           durationMinutes: data.durationMinutes
         };
-        
+
         console.log('[LearningService] Loaded lesson:', {
           id: lessonDetail.id,
           title: lessonDetail.title,
@@ -507,7 +507,7 @@ export class LearningService {
       })
     );
   }
-  
+
 
 
 
@@ -534,7 +534,7 @@ export class LearningService {
   }
 
 
-  private mapSections(data: CourseContentSection[]): Section[] {
+  private mapSections(data: CourseContentChapter[]): Section[] {
     return data
       .sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
       .map(section => ({
@@ -544,7 +544,7 @@ export class LearningService {
         orderIndex: section.orderIndex || 0,
         lessons: (section.lessons || [])
           .sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
-          .map((lesson, idx) => ({
+          .map((lesson: ApiLessonSummary, idx) => ({
             id: lesson.id,
             title: lesson.title,
             description: lesson.description || '',
@@ -555,13 +555,13 @@ export class LearningService {
       }));
   }
 
-  private countLessons(sections: CourseContentSection[]): number {
-    return sections.reduce((total, section) => 
+  private countLessons(sections: CourseContentChapter[]): number {
+    return sections.reduce((total, section) =>
       total + (section.lessons?.length || 0), 0
     );
   }
 
-  private calculateTotalDuration(sections: CourseContentSection[]): string {
+  private calculateTotalDuration(sections: CourseContentChapter[]): string {
     // Placeholder - would need lesson durations to calculate accurately
     const lessonCount = this.countLessons(sections);
     const estimatedHours = Math.ceil(lessonCount * 0.5); // Assume 30 min per lesson
@@ -604,14 +604,14 @@ export class LearningService {
           completedLessons: new Set(data.completedLessons || []),
           lastAccessedLessonId: data.lastAccessedLessonId
         }));
-        
+
         // Recalculate progress percentage
         const total = this.totalLessons();
         const completed = this.completedLessons().size;
-        const progressPercentage = total > 0 
+        const progressPercentage = total > 0
           ? Math.round((completed / total) * 100)
           : 0;
-        
+
         this.progressState.update(state => ({
           ...state,
           progressPercentage

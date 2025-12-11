@@ -114,8 +114,8 @@ export class CourseCreationComponent {
       const course = res?.data;
       if (course?.id) {
         this.successMsg.set('Tạo khóa học thành công. Đang chuyển đến trang chỉnh sửa...');
-        // Điều hướng đến trang chỉnh sửa
-        await this.router.navigate([`/teacher/courses/${course.id}/edit`]);
+        // Điều hướng đến course-editor (đã hợp nhất)
+        await this.router.navigate(['/teacher/courses', course.id, 'editor']);
       } else {
         this.errorMsg.set('Phản hồi không hợp lệ từ máy chủ');
       }

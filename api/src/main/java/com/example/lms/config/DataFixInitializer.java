@@ -2,7 +2,9 @@ package com.example.lms.config;
 
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.slf4j.Slf4j; // Keeping import to avoid breaking if not used, but actually I should remove it.
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
@@ -13,8 +15,8 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @RequiredArgsConstructor
-@Slf4j
 public class DataFixInitializer {
+    private static final Logger log = LoggerFactory.getLogger(DataFixInitializer.class);
 
     private final JdbcTemplate jdbcTemplate;
 

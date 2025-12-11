@@ -8,7 +8,7 @@ import { RealVideoPlayerComponent, VideoPlayerConfig } from '../../../shared/com
 import { environment } from '../../../../environments/environment';
 import { CourseApi } from '../../../api/client/course.api';
 import { LessonApi } from '../../../api/client/lesson.api';
-import { CourseContentSection, LessonDetail, LessonAttachment } from '../../../api/types/course.types';
+import { CourseContentChapter, LessonDetail, LessonAttachment, LessonSummary } from '../../../api/types/course.types';
 import { AuthService } from '../../../core/services/auth.service';
 import { UserRole } from '../../../shared/types/user.types';
 
@@ -61,7 +61,7 @@ interface Course {
 
 @Component({
   selector: 'app-professional-learning-interface',
-  imports: [CommonModule, RouterModule, FormsModule, RealVideoPlayerComponent],
+  imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './professional-learning-interface.component.html',
   styleUrls: ['./professional-learning-interface.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -82,7 +82,7 @@ export class ProfessionalLearningInterfaceComponent implements OnInit {
   searchQuery = signal('');
   expandedAttachment: number | null = null;
   private blobUrlMap = new Map<string, string>();
-  
+
   // Loading states
   isLoadingCourse = signal(false);
   isLoadingLesson = signal(false);
@@ -119,7 +119,7 @@ export class ProfessionalLearningInterfaceComponent implements OnInit {
   });
 
   currentLesson = signal<VideoLesson | null>(null);
-  
+
   currentLessonIndex = computed(() => {
     const current = this.currentLesson();
     if (!current) return 0;
@@ -143,7 +143,7 @@ export class ProfessionalLearningInterfaceComponent implements OnInit {
     // /student/learn/course/:courseId/lesson/:lessonId
     const courseId = this.route.snapshot.paramMap.get('id') || this.route.snapshot.paramMap.get('courseId');
     const lessonId = this.route.snapshot.paramMap.get('lessonId');
-    
+
     if (courseId) {
       this.loadCourse(courseId, lessonId || undefined);
     }
@@ -167,12 +167,12 @@ export class ProfessionalLearningInterfaceComponent implements OnInit {
 
     this.courseApi.getCourseContent(courseId).subscribe({
       next: (res) => {
-        const sections: CourseContentSection[] = res?.data || [];
+        const sections: CourseContentChapter[] = res?.data || [];
         const lessonsFlat: VideoLesson[] = [];
-        sections.sort((a,b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0)).forEach((sec) => {
-          sec.lessons
-            ?.sort((a,b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
-            .forEach((l, idx) => {
+        sections.sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0)).forEach((sec) => {
+          (sec.lessons || [])
+            .sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
+            .forEach((l: LessonSummary, idx: number) => {
               lessonsFlat.push({
                 id: l.id,
                 title: l.title,
@@ -191,7 +191,7 @@ export class ProfessionalLearningInterfaceComponent implements OnInit {
             });
         });
         this.course.update(c => ({ ...c, lessons: lessonsFlat }));
-        
+
         // Select specific lesson if provided, otherwise select first lesson
         if (lessonsFlat.length > 0) {
           if (specificLessonId) {
@@ -224,7 +224,7 @@ export class ProfessionalLearningInterfaceComponent implements OnInit {
   enrollCurrentCourse(): void {
     const courseId = this.course().id;
     if (!courseId || !this.isStudent()) return;
-    
+
     this.enrolling.set(true);
     this.courseApi.enrollCourse(courseId).subscribe({
       next: () => {
@@ -243,7 +243,7 @@ export class ProfessionalLearningInterfaceComponent implements OnInit {
     this.lessonApi.getLessonById(lesson.id).subscribe({
       next: (res) => {
         const detail: LessonDetail | undefined = res?.data as any;
-        
+
         let videoUrl = '';
         if (detail && typeof detail.videoUrl === 'string' && detail.videoUrl.trim() !== '') {
           videoUrl = detail.videoUrl;
@@ -255,7 +255,7 @@ export class ProfessionalLearningInterfaceComponent implements OnInit {
           duration: (detail?.durationMinutes || 0) * 60,
           attachments: detail?.attachments || []
         };
-        
+
         const lessons = this.course().lessons.map(l => l.id === lesson.id ? updated : l);
         this.course.update(c => ({ ...c, lessons }));
         this.currentLesson.set(updated);
@@ -415,30 +415,30 @@ export class ProfessionalLearningInterfaceComponent implements OnInit {
 
   isOfficeFile(fileName: string): boolean {
     const lower = fileName?.toLowerCase() || '';
-    return lower.endsWith('.doc') || lower.endsWith('.docx') || 
-           lower.endsWith('.xls') || lower.endsWith('.xlsx') ||
-           lower.endsWith('.ppt') || lower.endsWith('.pptx');
+    return lower.endsWith('.doc') || lower.endsWith('.docx') ||
+      lower.endsWith('.xls') || lower.endsWith('.xlsx') ||
+      lower.endsWith('.ppt') || lower.endsWith('.pptx');
   }
 
   isImageFile(fileName: string): boolean {
     const lower = fileName?.toLowerCase() || '';
-    return lower.endsWith('.jpg') || lower.endsWith('.jpeg') || 
-           lower.endsWith('.png') || lower.endsWith('.gif') || 
-           lower.endsWith('.bmp') || lower.endsWith('.webp');
+    return lower.endsWith('.jpg') || lower.endsWith('.jpeg') ||
+      lower.endsWith('.png') || lower.endsWith('.gif') ||
+      lower.endsWith('.bmp') || lower.endsWith('.webp');
   }
 
   isVideoFile(fileName: string): boolean {
     const lower = fileName?.toLowerCase() || '';
-    return lower.endsWith('.mp4') || lower.endsWith('.avi') || 
-           lower.endsWith('.mov') || lower.endsWith('.wmv') || 
-           lower.endsWith('.flv') || lower.endsWith('.webm');
+    return lower.endsWith('.mp4') || lower.endsWith('.avi') ||
+      lower.endsWith('.mov') || lower.endsWith('.wmv') ||
+      lower.endsWith('.flv') || lower.endsWith('.webm');
   }
 
   isAudioFile(fileName: string): boolean {
     const lower = fileName?.toLowerCase() || '';
-    return lower.endsWith('.mp3') || lower.endsWith('.wav') || 
-           lower.endsWith('.ogg') || lower.endsWith('.aac') || 
-           lower.endsWith('.flac') || lower.endsWith('.wma');
+    return lower.endsWith('.mp3') || lower.endsWith('.wav') ||
+      lower.endsWith('.ogg') || lower.endsWith('.aac') ||
+      lower.endsWith('.flac') || lower.endsWith('.wma');
   }
 
   // File utility methods
@@ -484,7 +484,7 @@ export class ProfessionalLearningInterfaceComponent implements OnInit {
 
   getSafeUrl(url?: string): SafeResourceUrl | null {
     if (!url) return null;
-    
+
     const existingBlobUrl = this.blobUrlMap.get(url);
     if (existingBlobUrl) {
       return this.sanitizer.bypassSecurityTrustResourceUrl(existingBlobUrl);

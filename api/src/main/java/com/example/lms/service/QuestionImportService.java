@@ -16,8 +16,9 @@ import java.util.*;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class QuestionImportService {
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(QuestionImportService.class);
 
     private final QuestionRepository questionRepository;
     private final PackageRepository packageRepository;

@@ -8,8 +8,7 @@ import { CourseApi } from '../../../api/client/course.api';
 import { IconComponent } from '../../../shared/components/ui/icon/icon.component';
 import { ButtonComponent } from '../../../shared/components/ui/button/button.component';
 import { CardComponent } from '../../../shared/components/ui/card/card.component';
-import { ProgressBarComponent } from '../../../shared/components/ui/progress-bar/progress-bar.component';
-import { TabsComponent } from '../../../shared/components/ui/tabs/tabs.component';
+
 
 interface Lesson {
   id: string;
@@ -59,10 +58,9 @@ interface Course {
     CommonModule,
     RouterModule,
     IconComponent,
+    IconComponent,
     ButtonComponent,
-    CardComponent,
-    ProgressBarComponent,
-    TabsComponent
+    CardComponent
   ],
   templateUrl: './student-dashboard.component.html',
   styleUrls: ['./student-dashboard.component.scss']
@@ -80,22 +78,22 @@ export class StudentDashboardComponent implements OnInit {
   completedGoals = signal<number>(12);
   totalStudyTime = signal<number>(24);
   activeTab = signal<'in-progress' | 'completed'>('in-progress');
-  
+
   // Loading state
   isLoading = this.enrollmentService.isLoading;
-  
+
   // Get enrolled courses from service
   enrolledCourses = this.enrollmentService.enrolledCourses;
-  
+
   // Track which courses have modules expanded
   private expandedModules = signal<Set<string>>(new Set());
-  
+
   ngOnInit(): void {
     // Mark body as loaded to prevent FOUC
     if (typeof document !== 'undefined') {
       document.body.classList.add('loaded');
     }
-    
+
     // Load enrolled courses on component init
     this.enrollmentService.loadEnrolledCourses(1, 20); // Load first 20 courses
   }
@@ -107,7 +105,7 @@ export class StudentDashboardComponent implements OnInit {
   courses = computed(() => {
     const expanded = this.expandedModules();
     const contents = this.courseContents();
-    
+
     return this.enrolledCourses().map(course => ({
       id: course.id,
       title: course.title,
@@ -133,7 +131,7 @@ export class StudentDashboardComponent implements OnInit {
     try {
       const response = await firstValueFrom(this.courseApi.getCourseContent(courseId));
       const sections = response.data || [];
-      
+
       // Transform API response to Module format
       const modules: Module[] = sections.map((section: any) => ({
         id: section.id,
@@ -144,7 +142,7 @@ export class StudentDashboardComponent implements OnInit {
           completed: lesson.completed || false
         }))
       }));
-      
+
       // Update courseContents map
       this.courseContents.update(contents => {
         const newMap = new Map(contents);
@@ -242,7 +240,7 @@ export class StudentDashboardComponent implements OnInit {
   ]);
 
   // Computed - Get 2 recent in-progress + 2 recent completed
-  recentInProgress = computed(() => 
+  recentInProgress = computed(() =>
     this.courses()
       .filter(c => c.status === 'in-progress')
       .slice(0, 2)
@@ -264,71 +262,79 @@ export class StudentDashboardComponent implements OnInit {
   private generateYearHeatmap() {
     const weeks = [];
     const today = new Date();
-    
+
     // Generate 52 weeks of data
     for (let weekIndex = 0; weekIndex < 52; weekIndex++) {
       const days = [];
-      
+
       for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
         const daysAgo = (51 - weekIndex) * 7 + (6 - dayIndex);
         const date = new Date(today);
         date.setDate(date.getDate() - daysAgo);
-        
+
         // Random activity level (0-3) for demo
         const level = Math.random() > 0.7 ? Math.floor(Math.random() * 4) : 0;
         const count = level * 2;
-        
+
         days.push({
           date: date.toISOString().split('T')[0],
           level,
           count
         });
       }
-      
+
       weeks.push({ week: weekIndex + 1, days });
     }
-    
+
     return weeks;
   }
 
   // Old 4-week data for reference
   learningHeatmapOld = [
-    { week: 1, days: [
-      { date: '2024-10-14', level: 2, count: 3 },
-      { date: '2024-10-15', level: 3, count: 5 },
-      { date: '2024-10-16', level: 1, count: 1 },
-      { date: '2024-10-17', level: 2, count: 3 },
-      { date: '2024-10-18', level: 0, count: 0 },
-      { date: '2024-10-19', level: 1, count: 2 },
-      { date: '2024-10-20', level: 2, count: 4 }
-    ]},
-    { week: 2, days: [
-      { date: '2024-10-21', level: 3, count: 6 },
-      { date: '2024-10-22', level: 2, count: 3 },
-      { date: '2024-10-23', level: 2, count: 3 },
-      { date: '2024-10-24', level: 1, count: 1 },
-      { date: '2024-10-25', level: 3, count: 5 },
-      { date: '2024-10-26', level: 0, count: 0 },
-      { date: '2024-10-27', level: 1, count: 2 }
-    ]},
-    { week: 3, days: [
-      { date: '2024-10-28', level: 2, count: 4 },
-      { date: '2024-10-29', level: 3, count: 5 },
-      { date: '2024-10-30', level: 2, count: 3 },
-      { date: '2024-10-31', level: 2, count: 3 },
-      { date: '2024-11-01', level: 1, count: 1 },
-      { date: '2024-11-02', level: 0, count: 0 },
-      { date: '2024-11-03', level: 2, count: 3 }
-    ]},
-    { week: 4, days: [
-      { date: '2024-11-04', level: 3, count: 6 },
-      { date: '2024-11-05', level: 2, count: 4 },
-      { date: '2024-11-06', level: 2, count: 3 },
-      { date: '2024-11-07', level: 1, count: 2 },
-      { date: '2024-11-08', level: 3, count: 5 },
-      { date: '2024-11-09', level: 2, count: 3 },
-      { date: '2024-11-10', level: 0, count: 0 }
-    ]}
+    {
+      week: 1, days: [
+        { date: '2024-10-14', level: 2, count: 3 },
+        { date: '2024-10-15', level: 3, count: 5 },
+        { date: '2024-10-16', level: 1, count: 1 },
+        { date: '2024-10-17', level: 2, count: 3 },
+        { date: '2024-10-18', level: 0, count: 0 },
+        { date: '2024-10-19', level: 1, count: 2 },
+        { date: '2024-10-20', level: 2, count: 4 }
+      ]
+    },
+    {
+      week: 2, days: [
+        { date: '2024-10-21', level: 3, count: 6 },
+        { date: '2024-10-22', level: 2, count: 3 },
+        { date: '2024-10-23', level: 2, count: 3 },
+        { date: '2024-10-24', level: 1, count: 1 },
+        { date: '2024-10-25', level: 3, count: 5 },
+        { date: '2024-10-26', level: 0, count: 0 },
+        { date: '2024-10-27', level: 1, count: 2 }
+      ]
+    },
+    {
+      week: 3, days: [
+        { date: '2024-10-28', level: 2, count: 4 },
+        { date: '2024-10-29', level: 3, count: 5 },
+        { date: '2024-10-30', level: 2, count: 3 },
+        { date: '2024-10-31', level: 2, count: 3 },
+        { date: '2024-11-01', level: 1, count: 1 },
+        { date: '2024-11-02', level: 0, count: 0 },
+        { date: '2024-11-03', level: 2, count: 3 }
+      ]
+    },
+    {
+      week: 4, days: [
+        { date: '2024-11-04', level: 3, count: 6 },
+        { date: '2024-11-05', level: 2, count: 4 },
+        { date: '2024-11-06', level: 2, count: 3 },
+        { date: '2024-11-07', level: 1, count: 2 },
+        { date: '2024-11-08', level: 3, count: 5 },
+        { date: '2024-11-09', level: 2, count: 3 },
+        { date: '2024-11-10', level: 0, count: 0 }
+      ]
+    }
   ];
 
   getGreeting(): string {
@@ -373,7 +379,7 @@ export class StudentDashboardComponent implements OnInit {
 
   toggleModules(courseId: string): void {
     const isCurrentlyExpanded = this.expandedModules().has(courseId);
-    
+
     this.expandedModules.update(expanded => {
       const newSet = new Set(expanded);
       if (isCurrentlyExpanded) {

@@ -10,11 +10,32 @@ import { quizRoutes, quizStandaloneRoutes } from './quiz/quiz.routes';
  * - Consistent naming conventions
  * - Clear hierarchy và organization
  * - Proper lazy loading cho performance
+ * 
+ * REFACTORED: Hợp nhất courses và course-editor
+ * - /teacher/courses → Danh sách khóa học
+ * - /teacher/course-creation → Tạo khóa học mới
+ * - /teacher/courses/:id/editor/* → Chỉnh sửa khóa học (course-editor)
  */
 export const teacherRoutes: Routes = [
   // Standalone routes (không có sidebar) - phải đặt TRƯỚC layout routes
   ...quizStandaloneRoutes,
-  
+
+  // Course Editor - Standalone Layout (không có teacher sidebar)
+  {
+    path: 'courses/:id/editor',
+    loadChildren: () => import('./course-editor/course-editor.routes').then(m => m.courseEditorRoutes),
+    canActivate: [teacherGuard],
+    title: 'Chỉnh sửa khóa học'
+  },
+
+  // Section Editor - Standalone (quản lý bài học trong chương)
+  {
+    path: 'courses/:courseId/sections/:sectionId',
+    loadComponent: () => import('./courses/section-editor.component').then(m => m.SectionEditorComponent),
+    canActivate: [teacherGuard],
+    title: 'Quản lý bài học'
+  },
+
   // Layout routes (có sidebar)
   {
     path: '',
@@ -27,14 +48,14 @@ export const teacherRoutes: Routes = [
         redirectTo: 'dashboard',
         pathMatch: 'full'
       },
-      
+
       // Dashboard - Trang chủ giảng viên
       {
         path: 'dashboard',
         loadComponent: () => import('./dashboard/teacher-dashboard.component').then(m => m.TeacherDashboardComponent),
         title: 'Dashboard - Giảng viên'
       },
-      
+
       // Course Management Routes
       {
         path: 'courses',
@@ -46,23 +67,13 @@ export const teacherRoutes: Routes = [
         loadComponent: () => import('./courses/course-creation.component').then(m => m.CourseCreationComponent),
         title: 'Tạo khóa học mới'
       },
-      {
-        path: 'courses/:id/edit',
-        loadComponent: () => import('./courses/course-editor.component').then(m => m.CourseEditorComponent),
-        title: 'Chỉnh sửa khóa học'
-      },
-      {
-        path: 'courses/:courseId/sections/:sectionId',
-        loadComponent: () => import('./courses/section-editor.component').then(m => m.SectionEditorComponent),
-        title: 'Quản lý bài học'
-      },
-      
+
       // Assignment Hub Routes (Unified Assignment + Grading)
       {
         path: 'assignments',
         loadChildren: () => import('./assignment-hub/assignment-hub.routes').then(m => m.assignmentHubRoutes)
       },
-      
+
       // Legacy routes (backward compatibility)
       {
         path: 'assignment-creation',
@@ -74,7 +85,7 @@ export const teacherRoutes: Routes = [
         loadComponent: () => import('./assignments/assignment-submissions.component').then(m => m.AssignmentSubmissionsComponent),
         title: 'Bai nop cua hoc vien'
       },
-      
+
       // Student Management Routes
       {
         path: 'students',
@@ -90,14 +101,14 @@ export const teacherRoutes: Routes = [
       // Quiz Management Routes
       ...quizRoutes,
 
-      
+
       // Analytics Routes
       {
         path: 'analytics',
         loadComponent: () => import('./analytics/teacher-analytics.component').then(m => m.TeacherAnalyticsComponent),
         title: 'Phân tích giảng dạy'
       },
-      
+
       // Grading Routes (redirect to unified Assignment Hub)
       {
         path: 'grading',
@@ -131,8 +142,8 @@ export const teacherRoutes: Routes = [
         loadChildren: () => import('../ai-chat/ai-chat.routes').then(m => m.AI_CHAT_ROUTES),
         title: 'Trợ lý AI Hàng Hải'
       },
-      
-      
+
+
     ]
   }
 ];

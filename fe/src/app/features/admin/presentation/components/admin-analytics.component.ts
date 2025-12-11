@@ -5,7 +5,7 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
 
 @Component({
   selector: 'app-admin-analytics',
-  imports: [CommonModule, LoadingComponent],
+  imports: [CommonModule],
   encapsulation: ViewEncapsulation.None,
   template: `
     <!-- Loading State - Temporarily disabled -->

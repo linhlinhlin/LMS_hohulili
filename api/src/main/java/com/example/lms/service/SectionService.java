@@ -1,96 +1,78 @@
 package com.example.lms.service;
 
-import com.example.lms.entity.Course;
-import com.example.lms.entity.Section;
-import com.example.lms.entity.User;
-import com.example.lms.repository.CourseRepository;
-import com.example.lms.repository.SectionRepository;
+import com.example.lms.entity.*;
+import com.example.lms.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.UUID;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class SectionService {
 
     private final SectionRepository sectionRepository;
-    private final CourseRepository courseRepository;
+    private final LessonRepository lessonRepository;
+    private final FileService fileService;
 
-    public Section createSection(UUID courseId, User currentUser, com.example.lms.controller.SectionController.CreateSectionRequest request) {
-        Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học với ID: " + courseId));
-        
-        // Check if user is the teacher of this course
-        if (!course.getTeacher().getId().equals(currentUser.getId())) {
-            throw new RuntimeException("Bạn không có quyền tạo section cho khóa học này");
-        }
+    @Transactional
+    public Section createSection(UUID lessonId, String title, Section.SectionType type, String contentOrUrl, MultipartFile file) {
+        // 1. Tìm Lesson cha
+        Lesson lesson = lessonRepository.findById(lessonId)
+                .orElseThrow(() -> new RuntimeException("Lesson not found"));
 
-        // Check for duplicate section title within the same course
-        if (sectionRepository.existsByCourseIdAndTitle(courseId, request.getTitle())) {
-            throw new RuntimeException("Trong khóa học này đã có chương '" + request.getTitle() + "'");
-        }
+        // 2. Tính Order Index (Xếp cuối cùng)
+        Integer maxOrder = sectionRepository.findMaxOrderIndexByLessonId(lessonId);
+        int newOrder = (maxOrder == null) ? 0 : maxOrder + 1;
 
-        // Approval workflow removed: allow creating sections regardless of course status
-
-        // Set order index if not provided
-        int orderIndex = request.getOrderIndex() != null ? request.getOrderIndex() :
-                        sectionRepository.findMaxOrderIndexByCourse(course) + 1;
-
+        // 3. Tạo Section
         Section section = Section.builder()
-                .title(request.getTitle())
-                .description(request.getDescription())
-                .orderIndex(orderIndex)
-                .course(course)
+                .title(title)
+                .type(type)
+                .lesson(lesson)
+                .orderIndex(newOrder)
+                .isRequired(false)
                 .build();
 
-        return sectionRepository.save(section);
-    }
-
-    public Section updateSection(UUID sectionId, User currentUser, com.example.lms.controller.SectionController.UpdateSectionRequest request) {
-        Section section = sectionRepository.findById(sectionId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy section với ID: " + sectionId));
-        
-        // Check if user is the teacher of this course
-        if (!section.getCourse().getTeacher().getId().equals(currentUser.getId())) {
-            throw new RuntimeException("Bạn không có quyền chỉnh sửa section này");
-        }
-
-        // Approval workflow removed: allow editing sections regardless of course status
-
-        if (request.getTitle() != null) {
-            // Check for duplicate section title within the same course when updating
-            if (!request.getTitle().equals(section.getTitle()) &&
-                sectionRepository.existsByCourseIdAndTitle(section.getCourse().getId(), request.getTitle())) {
-                throw new RuntimeException("Trong khóa học này đã có chương '" + request.getTitle() + "'");
-            }
-            section.setTitle(request.getTitle());
-        }
-
-        if (request.getDescription() != null) {
-            section.setDescription(request.getDescription());
-        }
-
-        if (request.getOrderIndex() != null) {
-            section.setOrderIndex(request.getOrderIndex());
+        // 4. Xử lý dữ liệu theo Type
+        switch (type) {
+            case TEXT:
+                section.setContent(contentOrUrl); // contentOrUrl là HTML
+                break;
+            case VIDEO:
+                section.setVideoUrl(contentOrUrl); // contentOrUrl là Link Youtube
+                break;
+            case FILE:
+                // Lưu Section trước để có ID
+                section = sectionRepository.save(section);
+                if (file != null && !file.isEmpty()) {
+                    // Upload file và link vào Section ID
+                    // Assuming FileCategory.DOCUMENT for generic files, can be refined based on mime type
+                    fileService.uploadFile(file, section.getId(), "SECTION_MATERIAL", FileAttachment.FileCategory.DOCUMENT);
+                    // Có thể set fileUrl vào section để access nhanh nếu muốn
+                    section.setFileUrl("/api/v1/files/download/" + section.getId()); 
+                }
+                break;
+            default:
+                break;
         }
 
         return sectionRepository.save(section);
     }
 
-    public void deleteSection(UUID sectionId, User currentUser) {
-        Section section = sectionRepository.findById(sectionId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy section với ID: " + sectionId));
-        
-        // Check if user is the teacher of this course
-        if (!section.getCourse().getTeacher().getId().equals(currentUser.getId())) {
-            throw new RuntimeException("Bạn không có quyền xóa section này");
-        }
+    public List<Section> getSectionsByLessonId(UUID lessonId) {
+        return sectionRepository.findByLessonIdOrderByOrderIndexAsc(lessonId);
+    }
+    
+    public Section getSectionById(UUID sectionId) {
+        return sectionRepository.findById(sectionId)
+                .orElseThrow(() -> new RuntimeException("Section not found"));
+    }
 
-        // Approval workflow removed: allow deleting regardless of status (optional: enforce ownership only)
-
-        sectionRepository.delete(section);
+    public void deleteSection(UUID sectionId) {
+        sectionRepository.deleteById(sectionId);
     }
 }

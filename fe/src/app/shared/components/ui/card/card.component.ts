@@ -11,7 +11,7 @@ import { CommonModule } from '@angular/common';
     </div>
   `,
   styles: [`
-    @import '../../../../../styles/variables';
+    @use '../../../../../styles/variables' as *;
 
     .card {
       background: $bg-surface;

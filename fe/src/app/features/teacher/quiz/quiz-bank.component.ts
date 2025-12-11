@@ -185,30 +185,30 @@ import { QuestionImportModalComponent } from './components/question-import-modal
                              (change)="toggleSelectAll()"
                              class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500" />
                     </th>
-                    <th class="p-4 font-semibold">Nội dung câu hỏi</th>
-                    <th class="p-4 font-semibold">Chủ đề</th>
-                    <th class="p-4 font-semibold">Độ khó</th>
-                    <th class="p-4 font-semibold">Ngày tạo</th>
-                    <th class="p-4 font-semibold text-right">Hành động</th>
+                    <th class="p3 align-middle font-semibold">Nội dung câu hỏi</th>
+                    <th class="px-6 py-3 align-middle font-semibold">Chủ đề</th>
+                    <th class="px-4 py-3 align-middle font-semibold">Độ khó</th>
+                    <th class="px-4 py-3 align-middle font-semibold">Ngày tạo</th>
+                    <th class="px-4 py-3 align-middle font-semibold text-center tracking-wider w-35">Hành động</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200">
                   <tr *ngFor="let question of filteredQuestions()" class="hover:bg-gray-50 transition-colors">
-                    <td class="p-4">
+                    <td class="py-1 px-2">
                       <input type="checkbox" 
                              [checked]="isQuestionSelected(question.id)"
                              (change)="toggleQuestionSelection(question.id)"
                              class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500" />
                     </td>
-                    <td class="p-4 text-gray-800 max-w-xl">
+                    <td class="py-1 px-2 text-gray-800 max-w-xl">
                       <div class="line-clamp-2">{{ question.content }}</div>
                     </td>
-                    <td class="p-4 text-gray-600">
+                    <td class="py-1 px-2 text-gray-600">
                       <span class="inline-flex px-2.5 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-700">
                         {{ question.tags || 'Chưa phân loại' }}
                       </span>
                     </td>
-                    <td class="p-4">
+                    <td class="py-2 px-2">
                       <span class="inline-flex px-2.5 py-1 text-xs font-medium rounded-full" 
                             [ngClass]="{
                               'bg-green-100 text-green-800': question.difficulty === 'EASY', 
@@ -218,18 +218,25 @@ import { QuestionImportModalComponent } from './components/question-import-modal
                         {{ getDifficultyLabel(question.difficulty) }}
                       </span>
                     </td>
-                    <td class="p-4 text-gray-600 whitespace-nowrap">{{ question.createdAt | date:'dd/MM/yyyy' }}</td>
-                    <td class="p-4 text-right">
-                      <div class="flex justify-end gap-1">
+                    <td class="py-1 px-2 text-gray-600 whitespace-nowrap">{{ question.createdAt | date:'dd/MM/yyyy' }}</td>
+                    <td class="py-1 px-2 text-center">
+                      <div class="flex justify-end gap-1 mr-2">
                         <button (click)="editQuestion(question)" 
-                                class="p-2 rounded-lg hover:bg-blue-50 transition-colors" 
+                                class="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-md transition-colors text-xs font-medium inline-flex items-center gap-1" 
                                 title="Sửa">
-                          <span class="material-symbols-outlined text-lg text-blue-600">edit</span>
+                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                          </svg>
+                          Sửa
                         </button>
+                        
                         <button (click)="deleteQuestion(question)" 
-                                class="p-2 rounded-lg hover:bg-red-50 transition-colors" 
+                                class="px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-md transition-colors text-xs font-medium disabled:opacity-50 inline-flex items-center gap-1" 
                                 title="Xóa">
-                          <span class="material-symbols-outlined text-lg text-red-600">delete</span>
+                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                        Xóa
                         </button>
                       </div>
                     </td>
