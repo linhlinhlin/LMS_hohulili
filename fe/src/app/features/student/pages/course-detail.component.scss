@@ -98,7 +98,7 @@
   display: flex;
   align-items: center;
   color: #D1D5DB;
-  
+
   svg {
     width: 16px;
     height: 16px;
@@ -179,7 +179,7 @@
   line-height: 1.6;
   color: #4B5563;
   margin: 0;
-  
+
   // Collapsed state - show only 3 lines
   &:not(.expanded) {
     display: -webkit-box;
@@ -188,7 +188,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  
+
   // Expanded state - show all
   &.expanded {
     display: block;
@@ -519,6 +519,157 @@
   color: #6B7280;
 }
 
+.lesson-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.lesson-sections-count {
+  font-size: 0.75rem;
+  color: #6B7280;
+  background-color: #F3F4F6;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+// ============================================
+// Sections Under Lesson
+// ============================================
+.sections-under-lesson {
+  margin-top: 8px;
+  margin-left: 36px;
+  padding-left: 12px;
+  border-left: 2px solid #E5E7EB;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.section-content-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 12px;
+  background-color: white;
+  border: 1px solid #E5E7EB;
+  border-radius: 6px;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: #D1D5DB;
+    background-color: #F9FAFB;
+  }
+}
+
+.section-icon-wrapper {
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+
+.section-icon {
+  width: 18px;
+  height: 18px;
+
+  &.video {
+    color: #EF4444; // Red for video
+  }
+
+  &.text {
+    color: #3B82F6; // Blue for text
+  }
+
+  &.quiz {
+    color: #8B5CF6; // Purple for quiz
+  }
+
+  &.file {
+    color: #10B981; // Green for file
+  }
+
+  &.assignment {
+    color: #F59E0B; // Amber for assignment
+  }
+}
+
+.section-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.section-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.section-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.section-type-badge {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+
+  &.video {
+    background-color: #FEE2E2;
+    color: #DC2626;
+  }
+
+  &.text {
+    background-color: #DBEAFE;
+    color: #2563EB;
+  }
+
+  &.quiz {
+    background-color: #EDE9FE;
+    color: #7C3AED;
+  }
+
+  &.file {
+    background-color: #D1FAE5;
+    color: #059669;
+  }
+
+  &.assignment {
+    background-color: #FEF3C7;
+    color: #D97706;
+  }
+}
+
+.section-duration {
+  font-size: 0.6875rem;
+  color: #6B7280;
+  background-color: #F3F4F6;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.required-badge {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background-color: #FEF2F2;
+  color: #DC2626;
+  border: 1px solid #FCA5A5;
+}
+
 // ============================================
 // Responsive Design
 // ============================================
@@ -557,6 +708,11 @@
   .section-name {
     font-size: 0.9375rem;
   }
+
+  .sections-under-lesson {
+    margin-left: 24px;
+    padding-left: 8px;
+  }
 }
 
 // ============================================
@@ -564,8 +720,8 @@
 // ============================================
 .lesson-item-wrapper {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  gap: 0;
   margin-bottom: 8px;
 
   &:last-child {
@@ -573,7 +729,6 @@
   }
 
   .lesson-item {
-    flex: 1;
     margin-bottom: 0;
   }
 }
@@ -593,6 +748,9 @@
   transition: all 0.2s;
   white-space: nowrap;
   flex-shrink: 0;
+  margin-top: 8px;
+  align-self: flex-start;
+  margin-left: 36px;
 
   &:hover {
     background-color: #004BB8;
@@ -612,14 +770,23 @@
 
 // Mobile responsive for quiz button
 @media (max-width: 640px) {
-  .lesson-item-wrapper {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 6px;
+  .quiz-button {
+    width: calc(100% - 36px);
+    justify-content: center;
+    margin-left: 36px;
   }
 
-  .quiz-button {
-    width: 100%;
-    justify-content: center;
+  .sections-under-lesson {
+    margin-left: 16px;
+    padding-left: 6px;
+  }
+
+  .section-content-item {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .section-icon-wrapper {
+    padding-top: 0;
   }
 }

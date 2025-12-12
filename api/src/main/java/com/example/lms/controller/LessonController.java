@@ -215,7 +215,13 @@ public class LessonController {
                 .courseId(lesson.getChapter().getCourse().getId()) // Changed to Chapter
                 .courseTitle(lesson.getChapter().getCourse().getTitle()) // Changed to Chapter
                 .createdAt(lesson.getCreatedAt())
-                .updatedAt(lesson.getUpdatedAt());
+                .updatedAt(lesson.getUpdatedAt())
+                .sections(lesson.getSections() != null ?
+                    lesson.getSections().stream()
+                        .sorted((a, b) -> Integer.compare(a.getOrderIndex() != null ? a.getOrderIndex() : 0,
+                                                          b.getOrderIndex() != null ? b.getOrderIndex() : 0))
+                        .map(this::convertToSectionDetail)
+                        .toList() : java.util.Collections.emptyList());
 
         // Add progress information for students
         if (currentUser != null && currentUser.getRole() == User.Role.STUDENT) {
@@ -239,6 +245,20 @@ public class LessonController {
         return builder.build();
     }
 
+    private SectionDetail convertToSectionDetail(com.example.lms.entity.Section section) {
+        return SectionDetail.builder()
+                .id(section.getId())
+                .title(section.getTitle())
+                .type(section.getType() != null ? section.getType().name() : "TEXT")
+                .content(section.getContent())
+                .videoUrl(section.getVideoUrl())
+                .fileUrl(section.getFileUrl())
+                .duration(section.getDuration())
+                .orderIndex(section.getOrderIndex())
+                .isRequired(section.getIsRequired() != null ? section.getIsRequired() : false)
+                .build();
+    }
+
     private AttachmentDetail convertToAttachmentDetail(LessonAttachment attachment) {
         return AttachmentDetail.builder()
                 .id(attachment.getId())
@@ -258,12 +278,13 @@ public class LessonController {
         private UUID id;
         private String title;
         private String description;
-        private String content; // HTML content from rich text editor (Quill)
-        private String videoUrl;
+        private String content; // HTML content from rich text editor (Quill) - FALLBACK
+        private String videoUrl; // FALLBACK
         private Integer durationMinutes;
         private Integer orderIndex;
         private String lessonType;
         private List<AttachmentDetail> attachments;
+        private List<SectionDetail> sections; // Level 3 sections
         private UUID sectionId;
         private String sectionTitle;
         private UUID courseId;
@@ -287,6 +308,7 @@ public class LessonController {
             private Integer orderIndex;
             private String lessonType;
             private List<AttachmentDetail> attachments;
+            private List<SectionDetail> sections; // Level 3 sections
             private UUID sectionId;
             private String sectionTitle;
             private UUID courseId;
@@ -305,6 +327,7 @@ public class LessonController {
             public LessonDetailBuilder orderIndex(Integer orderIndex) { this.orderIndex = orderIndex; return this; }
             public LessonDetailBuilder lessonType(String lessonType) { this.lessonType = lessonType; return this; }
             public LessonDetailBuilder attachments(List<AttachmentDetail> attachments) { this.attachments = attachments; return this; }
+            public LessonDetailBuilder sections(List<SectionDetail> sections) { this.sections = sections; return this; }
             public LessonDetailBuilder sectionId(UUID sectionId) { this.sectionId = sectionId; return this; }
             public LessonDetailBuilder sectionTitle(String sectionTitle) { this.sectionTitle = sectionTitle; return this; }
             public LessonDetailBuilder courseId(UUID courseId) { this.courseId = courseId; return this; }
@@ -325,6 +348,7 @@ public class LessonController {
                 lesson.orderIndex = this.orderIndex;
                 lesson.lessonType = this.lessonType;
                 lesson.attachments = this.attachments;
+                lesson.sections = this.sections;
                 lesson.sectionId = this.sectionId;
                 lesson.sectionTitle = this.sectionTitle;
                 lesson.courseId = this.courseId;
@@ -353,8 +377,73 @@ public class LessonController {
         public Instant getCreatedAt() { return createdAt; }
         public Instant getUpdatedAt() { return updatedAt; }
         public List<AttachmentDetail> getAttachments() { return attachments; }
+        public List<SectionDetail> getSections() { return sections; }
         public boolean isCompleted() { return isCompleted; }
         public String getProgressStatus() { return progressStatus; }
+    }
+
+    // Section Detail DTO (Level 3)
+    public static class SectionDetail {
+        private UUID id;
+        private String title;
+        private String type; // VIDEO, TEXT, QUIZ, FILE, ASSIGNMENT
+        private String content;
+        private String videoUrl;
+        private String fileUrl;
+        private Integer duration;
+        private Integer orderIndex;
+        private Boolean isRequired;
+
+        public static SectionDetailBuilder builder() {
+            return new SectionDetailBuilder();
+        }
+
+        public static class SectionDetailBuilder {
+            private UUID id;
+            private String title;
+            private String type;
+            private String content;
+            private String videoUrl;
+            private String fileUrl;
+            private Integer duration;
+            private Integer orderIndex;
+            private Boolean isRequired;
+
+            public SectionDetailBuilder id(UUID id) { this.id = id; return this; }
+            public SectionDetailBuilder title(String title) { this.title = title; return this; }
+            public SectionDetailBuilder type(String type) { this.type = type; return this; }
+            public SectionDetailBuilder content(String content) { this.content = content; return this; }
+            public SectionDetailBuilder videoUrl(String videoUrl) { this.videoUrl = videoUrl; return this; }
+            public SectionDetailBuilder fileUrl(String fileUrl) { this.fileUrl = fileUrl; return this; }
+            public SectionDetailBuilder duration(Integer duration) { this.duration = duration; return this; }
+            public SectionDetailBuilder orderIndex(Integer orderIndex) { this.orderIndex = orderIndex; return this; }
+            public SectionDetailBuilder isRequired(Boolean isRequired) { this.isRequired = isRequired; return this; }
+
+            public SectionDetail build() {
+                SectionDetail section = new SectionDetail();
+                section.id = this.id;
+                section.title = this.title;
+                section.type = this.type;
+                section.content = this.content;
+                section.videoUrl = this.videoUrl;
+                section.fileUrl = this.fileUrl;
+                section.duration = this.duration;
+                section.orderIndex = this.orderIndex;
+                section.isRequired = this.isRequired;
+                return section;
+            }
+        }
+
+        // Getters
+        public UUID getId() { return id; }
+        public String getTitle() { return title; }
+        public String getType() { return type; }
+        public String getContent() { return content; }
+        public String getVideoUrl() { return videoUrl; }
+        public String getFileUrl() { return fileUrl; }
+        public Integer getDuration() { return duration; }
+        public Integer getOrderIndex() { return orderIndex; }
+        public Boolean getIsRequired() { return isRequired; }
     }
 
     public static class AttachmentDetail {

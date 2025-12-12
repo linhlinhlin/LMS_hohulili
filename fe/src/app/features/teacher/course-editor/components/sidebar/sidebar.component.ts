@@ -22,20 +22,8 @@ import { CurriculumSelectionService } from '../../services/curriculum-selection.
         <p class="text-xs text-gray-500 mt-1">{{ store.chapters().length }} chương · Kéo thả để sắp xếp</p>
       </div>
       
-      <!-- Loading State -->
-      @if (store.isLoading()) {
-        <div class="flex-grow flex items-center justify-center">
-          <div class="text-center">
-            <svg class="animate-spin h-8 w-8 text-blue-600 mx-auto mb-2" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            <p class="text-sm text-gray-500">Đang tải...</p>
-          </div>
-        </div>
-      } @else {
-        <!-- Tree Content with Drag Drop -->
-        <div class="flex-grow overflow-y-auto p-3 space-y-2" 
+      <!-- Tree Content with Drag Drop (No Loading State - Show Immediately) -->
+      <div class="flex-grow overflow-y-auto p-3 space-y-2" 
              cdkDropList 
              [cdkDropListData]="store.chapters()"
              (cdkDropListDropped)="dropChapter($event)">
@@ -220,7 +208,6 @@ import { CurriculumSelectionService } from '../../services/curriculum-selection.
             </div>
           }
         </div>
-      }
 
       <!-- Bottom Actions -->
       <div class="p-3 border-t border-gray-200 bg-gray-50">
@@ -445,9 +432,11 @@ export class CourseEditorSidebarComponent {
   constructor() {
     // Auto-expand all chapters initially
     setTimeout(() => {
-      const allIds = new Set(this.store.chapters().map(c => c.id));
-      this.expandedChapters.set(allIds);
-      // Also expand lessons? Maybe add expandedLessons signal later
+      const chapters = this.store.chapters();
+      if (chapters.length > 0) {
+        // Expand only the first chapter initially
+        this.expandedChapters.set(new Set([chapters[0].id]));
+      }
     }, 500);
   }
 
@@ -458,12 +447,15 @@ export class CourseEditorSidebarComponent {
 
   toggleChapter(chapterId: string) {
     const current = this.expandedChapters();
-    const newSet = new Set(current);
-    if (newSet.has(chapterId)) {
-      newSet.delete(chapterId);
-    } else {
+    const newSet = new Set<string>();
+
+    // Accordion behavior:
+    // If the clicked chapter is NOT currently expanded, we expand it (and only it).
+    // If it IS currently expanded, we toggle it off (resulting in empty set, all closed).
+    if (!current.has(chapterId)) {
       newSet.add(chapterId);
     }
+
     this.expandedChapters.set(newSet);
   }
 

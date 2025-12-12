@@ -27,15 +27,30 @@ export class CourseEditorStore {
 
     // Actions
 
+    // Simple cache for faster loading
+    private courseCache = new Map<string, { data: CourseDraftDTO, timestamp: number }>();
+    private CACHE_DURATION = 60000; // 1 minute
+
     loadCourse(courseId: string) {
+        // Check cache first - return immediately if valid
+        const cached = this.courseCache.get(courseId);
+        const now = Date.now();
+        if (cached && (now - cached.timestamp < this.CACHE_DURATION)) {
+            this.courseTree.set(cached.data);
+            console.log('Course loaded from cache (instant)');
+            return; // Don't make API call
+        }
+
         this.isLoading.set(true);
         this.error.set(null);
         this.service.getCourseDraft(courseId)
             .pipe(finalize(() => this.isLoading.set(false)))
             .subscribe({
                 next: (data) => {
-                    console.log('Course loaded:', data);
+                    console.log('Course loaded from API:', data);
                     this.courseTree.set(data);
+                    // Cache the data
+                    this.courseCache.set(courseId, { data, timestamp: now });
                 },
                 error: (err: any) => {
                     console.error('Failed to load course:', err);

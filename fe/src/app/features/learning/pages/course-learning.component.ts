@@ -37,6 +37,12 @@ export class CourseLearningComponent implements OnInit {
   // Section collapse state - track which sections are expanded
   expandedSections = signal<Set<string>>(new Set<string>());
 
+  // Lesson collapse state - track which lessons are expanded (to show sections)
+  expandedLessons = signal<Set<string>>(new Set<string>());
+
+  // Current section index for sidebar sync
+  currentSectionIndex = 0;
+
   // Quiz availability - track which lessons have quizzes
   lessonsWithQuiz = signal<Set<string>>(new Set<string>());
 
@@ -343,6 +349,51 @@ export class CourseLearningComponent implements OnInit {
       'LAB': 'Thực hành'
     };
     return labels[lessonType] || 'Bài học';
+  }
+
+  // Section type label for sidebar
+  getSectionTypeLabel(type: string): string {
+    const labels: Record<string, string> = {
+      'VIDEO': 'Video',
+      'TEXT': 'Văn bản',
+      'QUIZ': 'Trắc nghiệm',
+      'FILE': 'Tài liệu',
+      'ASSIGNMENT': 'Bài tập'
+    };
+    return labels[type] || type;
+  }
+
+  // Lesson expansion for Level 3 sections
+  isLessonExpanded(lessonId: string): boolean {
+    return this.expandedLessons().has(lessonId);
+  }
+
+  toggleLesson(lesson: any): void {
+    // Always select the lesson first
+    this.onLessonSelect(lesson.id);
+
+    // Toggle expansion if lesson has sections
+    this.expandedLessons.update(expanded => {
+      const newExpanded = new Set(expanded);
+      if (newExpanded.has(lesson.id)) {
+        newExpanded.delete(lesson.id);
+      } else {
+        // Collapse other lessons, expand this one
+        newExpanded.clear();
+        newExpanded.add(lesson.id);
+      }
+      return newExpanded;
+    });
+  }
+
+  selectSectionInSidebar(sectionIndex: number, event: Event): void {
+    event.stopPropagation();
+    this.currentSectionIndex = sectionIndex;
+  }
+
+  // Handle section index change from lesson-content component
+  onSectionIndexChange(index: number): void {
+    this.currentSectionIndex = index;
   }
 
   // Navigation

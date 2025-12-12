@@ -454,7 +454,7 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
         "logo progress actions";
       column-gap: 16px;
       row-gap: 10px;
-      padding: 16px;
+      padding: 8px;
       align-items: start;
 
       &:hover {
@@ -466,8 +466,8 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
     /* Left Section - Course Thumbnail */
     .course-thumbnail {
       grid-area: logo;
-      width: 240px;
-      height: 135px;
+      width: 160px;
+      height: 90px;
       display: flex;
       align-items: center;
       justify-content: center;

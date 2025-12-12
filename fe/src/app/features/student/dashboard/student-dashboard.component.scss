@@ -169,7 +169,7 @@
   gap: 12px;
 }
 
-/* Course Card Wrapper - Grid Layout like Coursera */
+/* Course Card Wrapper - Compact Grid Layout */
 .course-card-wrapper {
   background: white;
   border: 1px solid #E5E7EB;
@@ -184,8 +184,8 @@
     "logo metadata actions"
     "logo progress actions";
   column-gap: 12px;
-  row-gap: 8px;
-  padding: 12px;
+  row-gap: 6px; // Reduced gap
+  padding: 8px; // Reduced padding
   align-items: start;
   margin: 0;
 
@@ -198,17 +198,17 @@
 /* Left Section - Course Thumbnail */
 .course-thumbnail {
   grid-area: logo;
-  width: 240px;
-  height: 135px;
+  width: 100px; // Smaller width
+  height: 56px; // Smaller height (16:9)
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  border-radius: 6px; // Smaller radius
   flex-shrink: 0;
-  align-self: center;
+  align-self: center; // Center vertically
   overflow: hidden;
   background: #F3F4F6;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .thumbnail-image {
@@ -226,13 +226,18 @@
   justify-content: center;
   color: $blue-primary;
   background: #E3F2FD;
+
+  app-icon {
+    width: 24px; // Smaller icon
+    height: 24px;
+  }
 }
 
 /* Legacy support - keep for backward compatibility */
 .partner-logo {
   grid-area: logo;
-  width: 40px;
-  height: 40px;
+  width: 32px; // Smaller
+  height: 32px; // Smaller
   display: flex;
   align-items: center;
   justify-content: center;
@@ -248,9 +253,10 @@
   grid-area: metadata;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px; // Tighter gap
   min-width: 0;
   overflow: visible;
+  justify-content: center; // Center content vertically
 }
 
 .partner-info {
@@ -258,22 +264,22 @@
 }
 
 .partner-name {
-  font-size: 11px;
+  font-size: 10px; // Smaller font
   color: #6B7280;
   font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.8px;
+  letter-spacing: 0.5px;
 }
 
 .course-title {
   margin: 0;
 
   a {
-    font-size: 15px;
+    font-size: 14px; // Smaller font
     font-weight: 600;
     color: #1F1F1F;
     text-decoration: none;
-    line-height: 1.4;
+    line-height: 1.3;
     display: block;
     word-wrap: break-word;
     overflow-wrap: break-word;
@@ -290,7 +296,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 4px;
-  font-size: 12px;
+  font-size: 11px; // Smaller font
   color: #6B7280;
   margin: 0;
 
@@ -311,6 +317,8 @@
 
     app-icon {
       color: currentColor;
+      width: 12px;
+      height: 12px;
     }
   }
 }
@@ -319,19 +327,19 @@
 .progress-bar-thin {
   grid-area: progress;
   width: 100%;
-  height: 6px;
+  height: 4px; // Thinner
   background: #E5E7EB;
-  border-radius: 3px;
+  border-radius: 2px;
   overflow: hidden;
   position: relative;
   align-self: start;
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
 .progress-fill {
   height: 100%;
   background: linear-gradient(90deg, $blue-primary 0%, #2563EB 100%);
-  border-radius: 3px;
+  border-radius: 2px;
   transition: width 0.3s ease;
 }
 
@@ -341,12 +349,12 @@
   border: 1px solid #E5E7EB;
   border-top: none;
   border-radius: 0 0 8px 8px;
-  padding: 16px;
-  margin: -8px 0 0 0;
+  padding: 12px; // Reduced padding
+  margin: -4px 0 0 0;
 }
 
 .module-item {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 
   &:last-child {
     margin-bottom: 0;
@@ -356,18 +364,18 @@
 .module-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: 6px;
+  margin-bottom: 6px;
 
   app-icon {
     color: #6B7280;
-    width: 14px;
-    height: 14px;
+    width: 12px;
+    height: 12px;
   }
 }
 
 .module-title {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: #374151;
 }
@@ -375,17 +383,17 @@
 .lessons-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding-left: 22px;
+  gap: 2px;
+  padding-left: 18px;
 }
 
 .lesson-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 12px;
+  padding: 6px 10px;
   background: white;
-  border-radius: 6px;
+  border-radius: 4px;
   text-decoration: none;
   transition: all 0.2s ease;
   border: 1px solid transparent;
@@ -404,17 +412,17 @@
 }
 
 .lesson-title {
-  font-size: 13px;
+  font-size: 12px;
   color: #374151;
   flex: 1;
-  line-height: 1.4;
+  line-height: 1.3;
 }
 
 .check-icon {
   color: #10B981;
   flex-shrink: 0;
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
 }
 
 /* Action Buttons - Compact Style */
@@ -428,10 +436,10 @@
 
   app-button {
     white-space: nowrap;
-    font-size: 13px;
-    font-weight: 600;
-    padding: 6px 16px;
-    height: 32px;
+    font-size: 12px; // Smaller font
+    font-weight: 500;
+    padding: 4px 12px; // Smaller padding
+    height: 28px; // Smaller height
   }
 }
 
@@ -727,13 +735,13 @@
       "logo progress"
       "actions actions";
     row-gap: 8px;
-    padding: 12px;
+    padding: 8px;
     margin: 0;
   }
 
   .action-buttons {
     justify-self: stretch;
-    
+
     app-button {
       flex: 1;
     }

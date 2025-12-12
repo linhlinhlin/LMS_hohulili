@@ -220,12 +220,7 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
                   <div class="flex items-center justify-between mb-4">
                     <h3 class="font-medium text-gray-900">Nội dung bài học ({{ selectedLesson()?.sections?.length || 0 }} sections)</h3>
                     <div class="flex gap-2">
-                       <button (click)="openSectionEditor('TEXT')" class="px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-1">
-                         <span>+ Text</span>
-                       </button>
-                       <button (click)="openSectionEditor('VIDEO')" class="px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-1">
-                         <span>+ Video</span>
-                       </button>
+                       <!-- Buttons removed as per user request -->
                     </div>
                   </div>
                   
@@ -1259,14 +1254,20 @@ export class CourseCurriculumComponent {
     this.isSaving.set(true);
     try {
       if (this.editingSectionId()) {
-        // Update
-        await firstValueFrom(this.sectionApi.updateSection(this.editingSectionId()!, {
-          title: this.sectionTitle.trim(),
-          content: this.sectionContent,
-          videoUrl: this.sectionVideoUrl,
-          isRequired: this.sectionIsRequired,
-          type: this.newSectionType // Usually type doesn't change
-        }));
+        // Update - build FormData to match backend multipart/form-data expectation
+        const formData = new FormData();
+        formData.append('title', this.sectionTitle.trim());
+        formData.append('type', this.newSectionType);
+
+        if (this.newSectionType === 'TEXT' && this.sectionContent) {
+          formData.append('content', this.sectionContent);
+        } else if (this.newSectionType === 'VIDEO' && this.sectionVideoUrl) {
+          formData.append('content', this.sectionVideoUrl);
+        }
+
+        // Note: File update not implemented yet (would need file upload UI)
+
+        await firstValueFrom(this.sectionApi.updateSection(this.editingSectionId()!, formData));
       } else {
         // Create
         await firstValueFrom(this.sectionApi.createSection({

@@ -218,11 +218,79 @@
                   </div>
                   <div class="lesson-content">
                     <span class="lesson-title">{{ lesson.title }}</span>
-                    @if (lesson.durationMinutes) {
-                    <span class="lesson-duration">{{ lesson.durationMinutes }} phút</span>
-                    }
+                    <div class="lesson-meta">
+                      @if (lesson.sections && lesson.sections.length > 0) {
+                      <span class="lesson-sections-count">{{ lesson.sections.length }} phần</span>
+                      }
+                      @if (lesson.durationMinutes) {
+                      <span class="lesson-duration">{{ lesson.durationMinutes }} phút</span>
+                      }
+                    </div>
                   </div>
                 </button>
+
+                <!-- Sections under lesson -->
+                @if (lesson.sections && lesson.sections.length > 0) {
+                <div class="sections-under-lesson">
+                  @for (section of lesson.sections; track section.id) {
+                  <div class="section-content-item">
+                    <!-- Section icon based on type -->
+                    <div class="section-icon-wrapper">
+                      @if (section.type === 'VIDEO') {
+                      <svg class="section-icon video" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z">
+                        </path>
+                      </svg>
+                      } @else if (section.type === 'TEXT') {
+                      <svg class="section-icon text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                        </path>
+                      </svg>
+                      } @else if (section.type === 'QUIZ') {
+                      <svg class="section-icon quiz" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2">
+                        </path>
+                      </svg>
+                      } @else if (section.type === 'FILE') {
+                      <svg class="section-icon file" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z">
+                        </path>
+                      </svg>
+                      } @else if (section.type === 'ASSIGNMENT') {
+                      <svg class="section-icon assignment" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                        </path>
+                      </svg>
+                      }
+                    </div>
+
+                    <div class="section-info">
+                      <span class="section-title">{{ section.title }}</span>
+                      <div class="section-badges">
+                        <span class="section-type-badge" [class]="section.type.toLowerCase()">
+                          {{ section.type === 'VIDEO' ? 'Video' :
+                          section.type === 'TEXT' ? 'Văn bản' :
+                          section.type === 'QUIZ' ? 'Trắc nghiệm' :
+                          section.type === 'FILE' ? 'Tài liệu' : 'Bài tập' }}
+                        </span>
+                        @if (section.duration) {
+                        <span class="section-duration">{{ section.duration }} phút</span>
+                        }
+                        @if (section.isRequired) {
+                        <span class="required-badge">Bắt buộc</span>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                  }
+                </div>
+                }
+
                 @if (lesson.hasQuiz) {
                 <button (click)="goToQuiz(lesson.id, lesson.title)" class="quiz-button" title="Làm bài trắc nghiệm">
                   <svg class="quiz-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
