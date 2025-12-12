@@ -41,6 +41,7 @@ interface Course {
   showModules: boolean;
   nextItem: NextItem;
   modules: Module[];
+  thumbnail?: string;
 }
 
 /**
@@ -122,7 +123,8 @@ export class StudentDashboardComponent implements OnInit {
         type: course.status === 'completed' ? 'Certificate' : 'Video',
         duration: course.status === 'completed' ? '' : '(15 phút)'
       },
-      modules: contents.get(course.id) || []
+      modules: contents.get(course.id) || [],
+      thumbnail: course.thumbnail
     }));
   });
 

@@ -28,6 +28,12 @@ export const courseEditorRoutes: Routes = [
                 loadComponent: () => import('./pages/course-settings/course-settings.component')
                     .then(m => m.CourseSettingsComponent),
                 title: 'Course Settings'
+            },
+            {
+                path: 'assignment',
+                loadComponent: () => import('./pages/course-assignment/course-assignment.component')
+                    .then(m => m.CourseAssignmentComponent),
+                title: 'Assign Students'
             }
         ]
     }

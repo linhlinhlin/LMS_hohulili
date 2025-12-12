@@ -50,24 +50,15 @@ import { CurriculumSelectionService } from '../../services/curriculum-selection.
                    [class.border-blue-300]="selectedChapterId() === chapter.id && !selectedLessonId()"
                    [class.border]="selectedChapterId() === chapter.id && !selectedLessonId()"
                    [class.hover:bg-gray-50]="selectedChapterId() !== chapter.id || selectedLessonId()"
-                   (click)="selectChapter(chapter)">
+                   (click)="toggleChapter(chapter.id); selectChapter(chapter)">
                 <!-- Drag Handle -->
-                <div cdkDragHandle class="cursor-grab active:cursor-grabbing p-0.5 hover:bg-gray-200 rounded transition-colors">
+                <div cdkDragHandle class="cursor-grab active:cursor-grabbing p-0.5 hover:bg-gray-200 rounded transition-colors" (click)="$event.stopPropagation()">
                   <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path>
                   </svg>
                 </div>
-                <button (click)="toggleChapter(chapter.id); $event.stopPropagation()" 
-                        class="p-0.5 hover:bg-gray-200 rounded transition-colors">
-                  <svg class="w-4 h-4 text-gray-400 transition-transform" 
-                       [class.rotate-90]="expandedChapters().has(chapter.id)"
-                       fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                  </svg>
-                </button>
-                <div class="w-6 h-6 bg-blue-100 rounded flex items-center justify-center flex-shrink-0">
-                  <span class="text-xs font-bold text-blue-600">{{ i + 1 }}</span>
-                </div>
+
+
                 <span class="text-sm font-medium text-gray-900 truncate flex-1" [title]="chapter.title">
                   {{ chapter.title }}
                 </span>

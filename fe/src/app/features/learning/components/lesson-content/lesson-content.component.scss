@@ -9,23 +9,23 @@
   // ========================================
   .video-section {
     width: 100%;
-    background: #f9fafb;
-    padding: 1rem 0;
+    background: #000;
+    padding: 0;
     position: relative;
+    margin-bottom: 2rem;
 
     .video-container {
       position: relative;
       margin: 0;
-      padding: 0 1rem;
+      padding: 0;
+      max-width: 100%;
       
       .video-wrapper {
         position: relative;
         width: 100%;
         padding-bottom: 56.25%; // 16:9 aspect ratio
         background: #000;
-        border-radius: 8px;
         overflow: hidden;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 
         .video-iframe,
         .video-player {
@@ -50,8 +50,9 @@
   // ========================================
   .content-container {
     margin: 0;
-    padding: 1.5rem 1rem;
+    padding: 1.5rem 2rem;
     width: 100%;
+    max-width: 100%;
 
     // Lesson Header
     .lesson-header {
@@ -153,10 +154,34 @@
       }
 
       img {
-        max-width: 100%;
-        height: auto;
-        border-radius: 8px;
-        margin: 1.5rem 0;
+        max-width: 100% !important;
+        width: 100% !important;
+        height: auto !important;
+        border-radius: 12px !important;
+        margin: 2rem 0 !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1) !important;
+        display: block !important;
+        object-fit: cover !important;
+        min-height: 200px;
+      }
+
+      // Image with caption
+      figure {
+        margin: 2rem 0 !important;
+        width: 100% !important;
+        
+        img {
+          margin: 0 0 0.75rem 0 !important;
+          width: 100% !important;
+        }
+        
+        figcaption {
+          text-align: center;
+          font-size: 0.875rem;
+          color: #6b7280;
+          font-style: italic;
+          padding: 0 1rem;
+        }
       }
 
       code {
@@ -210,13 +235,12 @@
       }
     }
 
-    // Attachments Section
+    // Attachments Section - Simplified, No Extra Borders
     .attachments-section {
-      margin-bottom: 1.5rem;
-      padding: 1rem;
-      background: #f9fafb;
-      border-radius: 8px;
-      border: 1px solid #e5e7eb;
+      margin: 2rem 0;
+      padding: 0;
+      background: transparent;
+      border: none;
 
       .section-title {
         font-size: 1.125rem;
@@ -242,14 +266,14 @@
           align-items: center;
           gap: 1rem;
           padding: 1rem;
-          background: white;
+          background: #f9fafb;
           border-radius: 8px;
-          border: 1px solid #e5e7eb;
+          border: none;
           transition: all 0.2s;
 
           &:hover {
-            border-color: #d1d5db;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            background: #f3f4f6;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
           }
 
           .attachment-icon {
@@ -274,7 +298,7 @@
 
             .attachment-name {
               display: block;
-              font-size: 0.875rem;
+              font-size: 0.9375rem;
               font-weight: 500;
               color: #1f2937;
               margin-bottom: 0.25rem;
@@ -284,27 +308,30 @@
             }
 
             .attachment-size {
-              font-size: 0.75rem;
+              font-size: 0.8125rem;
               color: #6b7280;
             }
           }
 
           .attachment-download {
             flex-shrink: 0;
-            padding: 0.5rem 1rem;
+            padding: 0.625rem 1.25rem;
             background: #3b82f6;
             color: white;
-            border-radius: 6px;
+            border-radius: 8px;
             font-size: 0.875rem;
-            font-weight: 500;
+            font-weight: 600;
             text-decoration: none;
             display: flex;
             align-items: center;
             gap: 0.5rem;
             transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
 
             &:hover {
               background: #2563eb;
+              transform: translateY(-1px);
+              box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
             }
 
             i {

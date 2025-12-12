@@ -183,9 +183,9 @@
   grid-template-areas:
     "logo metadata actions"
     "logo progress actions";
-  column-gap: 16px;
-  row-gap: 10px;
-  padding: 16px;
+  column-gap: 12px;
+  row-gap: 8px;
+  padding: 12px;
   align-items: start;
   margin: 0;
 
@@ -195,17 +195,50 @@
   }
 }
 
-/* Left Section - Logo */
-.partner-logo {
+/* Left Section - Course Thumbnail */
+.course-thumbnail {
   grid-area: logo;
-  width: 48px;
-  height: 48px;
+  width: 240px;
+  height: 135px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  flex-shrink: 0;
+  align-self: center;
+  overflow: hidden;
+  background: #F3F4F6;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.thumbnail-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.thumbnail-placeholder {
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   color: $blue-primary;
   background: #E3F2FD;
-  border-radius: 8px;
+}
+
+/* Legacy support - keep for backward compatibility */
+.partner-logo {
+  grid-area: logo;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $blue-primary;
+  background: #E3F2FD;
+  border-radius: 6px;
   flex-shrink: 0;
   align-self: center;
 }
@@ -215,7 +248,7 @@
   grid-area: metadata;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   min-width: 0;
   overflow: visible;
 }
@@ -389,21 +422,21 @@
   grid-area: actions;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   justify-self: end;
   align-self: center;
 
   app-button {
     white-space: nowrap;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
-    padding: 8px 20px;
-    height: 36px;
+    padding: 6px 16px;
+    height: 32px;
   }
 }
 
 .dropdown-button {
-  padding: 4px;
+  padding: 3px;
   background: transparent;
   border: 1px solid #E5E7EB;
   border-radius: 4px;
@@ -413,8 +446,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
 
   &:hover {
     background: #F9FAFB;
@@ -423,8 +456,8 @@
   }
 
   app-icon {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
   }
 }
 

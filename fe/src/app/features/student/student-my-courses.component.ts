@@ -105,9 +105,15 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
           <div class="courses-list">
             @for (course of filteredCourses(); track course.id) {
               <div class="course-card-wrapper">
-                <!-- Partner Logo -->
-                <div class="partner-logo">
-                  <app-icon name="academic-cap" size="sm" />
+                <!-- Course Thumbnail -->
+                <div class="course-thumbnail">
+                  @if (course.thumbnail) {
+                    <img [src]="course.thumbnail" [alt]="course.title" class="thumbnail-image" />
+                  } @else {
+                    <div class="thumbnail-placeholder">
+                      <app-icon name="academic-cap" size="lg" />
+                    </div>
+                  }
                 </div>
 
                 <!-- Course Metadata -->
@@ -246,13 +252,16 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
       grid-template-columns: 1fr 300px;
       gap: 16px;
       margin: 0;
-      padding: 0;
+      padding: 0 16px;
       background: #FAFAFA;
       min-height: 100vh;
+      max-width: 1400px;
+      margin-left: auto;
+      margin-right: auto;
 
       @include mobile {
         grid-template-columns: 1fr;
-        padding: 0;
+        padding: 0 12px;
         gap: 12px;
       }
     }
@@ -267,6 +276,11 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
           "actions actions";
         row-gap: 8px;
         padding: 12px;
+      }
+
+      .course-thumbnail {
+        width: 160px;
+        height: 90px;
       }
 
       .action-buttons {
@@ -449,19 +463,37 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
       }
     }
 
-    /* Left Section - Logo */
-    .partner-logo {
+    /* Left Section - Course Thumbnail */
+    .course-thumbnail {
       grid-area: logo;
-      width: 48px;
-      height: 48px;
+      width: 240px;
+      height: 135px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      flex-shrink: 0;
+      align-self: center;
+      overflow: hidden;
+      background: #F3F4F6;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .thumbnail-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .thumbnail-placeholder {
+      width: 100%;
+      height: 100%;
       display: flex;
       align-items: center;
       justify-content: center;
       color: $blue-primary;
       background: #E3F2FD;
-      border-radius: 8px;
-      flex-shrink: 0;
-      align-self: center;
     }
 
     /* Metadata Section */
@@ -677,7 +709,7 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
       height: fit-content;
       max-height: calc(100vh - 48px);
       overflow-y: auto;
-      padding: 24px 16px 16px 0;
+      padding: 24px 16px 16px 16px;
 
       @include mobile {
         display: none;

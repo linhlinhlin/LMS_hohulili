@@ -48,9 +48,15 @@
         <div class="courses-list">
           @for (course of recentInProgress(); track course.id) {
             <div class="course-card-wrapper">
-              <!-- Partner Logo -->
-              <div class="partner-logo">
-                <app-icon name="academic-cap" size="sm" />
+              <!-- Course Thumbnail -->
+              <div class="course-thumbnail">
+                @if (course.thumbnail) {
+                  <img [src]="course.thumbnail" [alt]="course.title" class="thumbnail-image" />
+                } @else {
+                  <div class="thumbnail-placeholder">
+                    <app-icon name="academic-cap" size="lg" />
+                  </div>
+                }
               </div>
 
               <!-- Course Metadata -->
@@ -127,9 +133,15 @@
         <div class="courses-list">
           @for (course of recentCompleted(); track course.id) {
         <div class="course-card-wrapper">
-          <!-- Partner Logo -->
-          <div class="partner-logo">
-            <app-icon name="academic-cap" size="sm" />
+          <!-- Course Thumbnail -->
+          <div class="course-thumbnail">
+            @if (course.thumbnail) {
+              <img [src]="course.thumbnail" [alt]="course.title" class="thumbnail-image" />
+            } @else {
+              <div class="thumbnail-placeholder">
+                <app-icon name="academic-cap" size="lg" />
+              </div>
+            }
           </div>
 
           <!-- Course Metadata -->
@@ -261,25 +273,6 @@
       <app-button variant="ghost" [fullWidth]="true" (clicked)="setLearningPlan()">
         Thiết lập kế hoạch
       </app-button>
-    </app-card>
-
-    <!-- Statistics Widget -->
-    <app-card class="widget">
-      <h3 class="widget-title">Thống kê</h3>
-      <div class="stats-list">
-        <div class="stat-item">
-          <span class="stat-label">Khóa học đang học</span>
-          <span class="stat-value">{{ inProgressCount() }}</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">Tiến độ trung bình</span>
-          <span class="stat-value">{{ averageProgress() }}%</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">Tổng thời gian học</span>
-          <span class="stat-value">{{ totalStudyTime() }}h</span>
-        </div>
-      </div>
     </app-card>
   </aside>
 </div>

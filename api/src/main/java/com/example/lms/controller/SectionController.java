@@ -33,6 +33,19 @@ public class SectionController {
         
         return ResponseEntity.ok(newSection);
     }
+
+    @PutMapping(value = "/{sectionId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> updateSection(
+            @PathVariable UUID sectionId,
+            @RequestParam("title") String title,
+            @RequestParam("type") String typeStr,
+            @RequestParam(value = "content", required = false) String content,
+            @RequestParam(value = "file", required = false) MultipartFile file
+    ) {
+        Section.SectionType type = Section.SectionType.valueOf(typeStr.toUpperCase());
+        Section updatedSection = sectionService.updateSection(sectionId, title, type, content, file);
+        return ResponseEntity.ok(updatedSection);
+    }
     
     @GetMapping("/lesson/{lessonId}")
     public ResponseEntity<List<Section>> getSectionsByLesson(@PathVariable UUID lessonId) {

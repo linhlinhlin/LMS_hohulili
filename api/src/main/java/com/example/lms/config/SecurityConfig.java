@@ -112,10 +112,12 @@ public class SecurityConfig {
                         // Explicitly allow OPTIONS for CORS preflight
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         
-                        .requestMatchers(HttpMethod.POST, "/api/v1/sections/**", "/api/v1/sections").hasAnyRole("ADMIN", "TEACHER")
-                        .requestMatchers(HttpMethod.PUT, "/api/v1/sections/**", "/api/v1/sections").hasAnyRole("ADMIN", "TEACHER")
-                        .requestMatchers(HttpMethod.DELETE, "/api/v1/sections/**", "/api/v1/sections").hasAnyRole("ADMIN", "TEACHER")
-                        .requestMatchers("/api/v1/sections/**", "/api/v1/lessons/**").hasAnyRole("ADMIN", "TEACHER", "STUDENT")
+                        // Allow GET for Everyone (including Students)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/sections/**", "/api/v1/lessons/**").hasAnyRole("ADMIN", "TEACHER", "STUDENT")
+                        
+                        // Allow ALL operations (POST/PUT/DELETE) for Admin/Teacher
+                        // This fixes the issue where strict Method matching might fail for multipart/form-data
+                        .requestMatchers("/api/v1/sections/**", "/api/v1/lessons/**").hasAnyRole("ADMIN", "TEACHER")
                         
                         // Course Authoring endpoints (TEACHER/ADMIN only)
                         .requestMatchers("/api/v1/authoring/**").hasAnyRole("ADMIN", "TEACHER")

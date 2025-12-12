@@ -278,7 +278,7 @@ export class StudentEnrollmentService {
       duration: '40 giờ', // Default duration
       deadline: undefined, // No deadline info in CourseSummary
       status: status,
-      thumbnail: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=300&h=200&fit=crop',
+      thumbnail: (course as any).thumbnailUrl || 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=300&h=200&fit=crop',
       category: 'general',
       rating: 4.5,
       lastAccessed: new Date(),

@@ -63,6 +63,37 @@ public class SectionService {
         return sectionRepository.save(section);
     }
 
+    @Transactional
+    public Section updateSection(UUID sectionId, String title, Section.SectionType type, String contentOrUrl, MultipartFile file) {
+        Section section = getSectionById(sectionId);
+        
+        section.setTitle(title);
+        section.setType(type);
+
+        // Update content based on type
+        switch (type) {
+            case TEXT:
+                section.setContent(contentOrUrl);
+                section.setVideoUrl(null); 
+                break;
+            case VIDEO:
+                section.setVideoUrl(contentOrUrl);
+                section.setContent(null);
+                break;
+            case FILE:
+                // If a NEW file is uploaded, replace the old one
+                if (file != null && !file.isEmpty()) {
+                     fileService.uploadFile(file, section.getId(), "SECTION_MATERIAL", FileAttachment.FileCategory.DOCUMENT);
+                     section.setFileUrl("/api/v1/files/download/" + section.getId());
+                }
+                break;
+            default:
+                break;
+        }
+
+        return sectionRepository.save(section);
+    }
+
     public List<Section> getSectionsByLessonId(UUID lessonId) {
         return sectionRepository.findByLessonIdOrderByOrderIndexAsc(lessonId);
     }
