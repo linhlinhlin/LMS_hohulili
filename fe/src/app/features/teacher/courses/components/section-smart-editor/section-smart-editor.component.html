@@ -95,12 +95,26 @@
                     </div>
                 </div>
 
-                <!-- CASE 4: QUIZ (Simplified for now) -->
-                <div *ngIf="selectedType() === 'QUIZ'" class="animate-fade-in">
-                    <div class="p-4 bg-yellow-50 text-yellow-800 rounded-lg">
-                        <p>⚠️ Chức năng tạo Quiz nhanh đang phát triển. Vui lòng tạo section Quiz rỗng và chỉnh sửa chi
-                            tiết sau.</p>
+                <!-- CASE 4: QUIZ (Link to Full Creator) -->
+                <div *ngIf="selectedType() === 'QUIZ'"
+                    class="animate-fade-in flex flex-col items-center justify-center p-8 text-center bg-indigo-50 rounded-xl border border-indigo-100">
+                    <div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mb-4 text-3xl">
+                        ❓
                     </div>
+                    <h4 class="text-lg font-bold text-gray-800 mb-2">Tạo bài trắc nghiệm mới</h4>
+                    <p class="text-gray-600 mb-6 max-w-md">
+                        Để tạo bài trắc nghiệm với đầy đủ tính năng (Ngân hàng câu hỏi, chọn ngẫu nhiên, cấu hình thời
+                        gian...),
+                        vui lòng chuyển sang trình tạo Quiz chuyên dụng.
+                    </p>
+                    <button type="button" (click)="onCreateQuiz()"
+                        class="px-6 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 flex items-center gap-2">
+                        <span>🚀</span>
+                        Chuyển đến trình tạo Quiz
+                    </button>
+                    <p class="text-xs text-gray-500 mt-4 italic">
+                        Lưu ý: Bạn sẽ được chuyển hướng và modal này sẽ đóng lại.
+                    </p>
                 </div>
 
             </form>

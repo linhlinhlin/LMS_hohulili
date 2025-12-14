@@ -31,14 +31,16 @@ export class CourseEditorStore {
     private courseCache = new Map<string, { data: CourseDraftDTO, timestamp: number }>();
     private CACHE_DURATION = 60000; // 1 minute
 
-    loadCourse(courseId: string) {
-        // Check cache first - return immediately if valid
-        const cached = this.courseCache.get(courseId);
-        const now = Date.now();
-        if (cached && (now - cached.timestamp < this.CACHE_DURATION)) {
-            this.courseTree.set(cached.data);
-            console.log('Course loaded from cache (instant)');
-            return; // Don't make API call
+    loadCourse(courseId: string, forceRefresh = false) {
+        // Check cache first - return immediately if valid AND not forced
+        if (!forceRefresh) {
+            const cached = this.courseCache.get(courseId);
+            const now = Date.now();
+            if (cached && (now - cached.timestamp < this.CACHE_DURATION)) {
+                this.courseTree.set(cached.data);
+                console.log('Course loaded from cache (instant)');
+                return; // Don't make API call
+            }
         }
 
         this.isLoading.set(true);
@@ -49,8 +51,7 @@ export class CourseEditorStore {
                 next: (data) => {
                     console.log('Course loaded from API:', data);
                     this.courseTree.set(data);
-                    // Cache the data
-                    this.courseCache.set(courseId, { data, timestamp: now });
+                    this.courseCache.set(courseId, { data, timestamp: Date.now() });
                 },
                 error: (err: any) => {
                     console.error('Failed to load course:', err);

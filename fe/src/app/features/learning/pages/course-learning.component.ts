@@ -190,13 +190,31 @@ export class CourseLearningComponent implements OnInit {
   }
 
   // Navigation
+  // Navigation
   previousLesson(): void {
+    const currentLesson = this.currentLesson();
+    if (currentLesson?.sections && currentLesson.sections.length > 0) {
+      if (this.currentSectionIndex > 0) {
+        this.currentSectionIndex--;
+        return;
+      }
+    }
     this.learningService.goToPreviousLesson();
+    // Reset section index for new lesson (handled in onLessonSelect/loadLesson but good to be explicit if needed)
+    this.currentSectionIndex = 0;
     this.updateUrlForCurrentLesson();
   }
 
   nextLesson(): void {
+    const currentLesson = this.currentLesson();
+    if (currentLesson?.sections && currentLesson.sections.length > 0) {
+      if (this.currentSectionIndex < currentLesson.sections.length - 1) {
+        this.currentSectionIndex++;
+        return;
+      }
+    }
     this.learningService.goToNextLesson();
+    this.currentSectionIndex = 0;
     this.updateUrlForCurrentLesson();
   }
 
@@ -317,6 +335,7 @@ export class CourseLearningComponent implements OnInit {
       if (newExpanded.has(sectionId)) {
         newExpanded.delete(sectionId);
       } else {
+        newExpanded.clear(); // Collapse others
         newExpanded.add(sectionId);
       }
       return newExpanded;
@@ -333,6 +352,7 @@ export class CourseLearningComponent implements OnInit {
     if (current) {
       this.expandedSections.update(expanded => {
         const newExpanded = new Set(expanded);
+        newExpanded.clear(); // Maintain accordion behavior
         newExpanded.add(current.sectionId);
         return newExpanded;
       });

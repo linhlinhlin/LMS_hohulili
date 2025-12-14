@@ -85,6 +85,12 @@ export class LessonContentComponent {
 
   // Get sanitized HTML for any content (used by template)
   getSanitizedHtml(content: string | undefined): any {
+    // Debug: Check if content has images
+    if (content && content.includes('<img')) {
+      console.log('[LessonContent] Rendering HTML with image:', content.substring(0, 100) + '...');
+    } else if (content) {
+      console.log('[LessonContent] Rendering HTML (no image found in first check):', content.substring(0, 50) + '...');
+    }
     return this.sanitizer.bypassSecurityTrustHtml(content || '');
   }
 

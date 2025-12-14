@@ -33,9 +33,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
         
+        // Aggressive logging to confirm filter execution
+        System.out.println("JWT FILTER HIT: " + request.getRequestURI());
+
         // Skip JWT filter for public endpoints
         String path = request.getRequestURI();
         if (shouldSkipFilter(path)) {
+            System.out.println("JWT FILTER SKIPPING: " + path);
             filterChain.doFilter(request, response);
             return;
         }
@@ -46,6 +50,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // Check if Authorization header exists and starts with "Bearer "
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            System.out.println("JWT DEBUG: No Bearer token found in request to " + request.getRequestURI());
             filterChain.doFilter(request, response);
             return;
         }
@@ -99,7 +104,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     }
                 }
             }
-            if (request.getRequestURI().contains("/questions")) {
+            if (request.getRequestURI().contains("/questions") || request.getRequestURI().contains("/api/v2/quizzes") || request.getRequestURI().contains("/api/v1/quizzes")) {
                 System.out.println("=== END JWT DEBUG ===");
             }
         } catch (Exception e) {

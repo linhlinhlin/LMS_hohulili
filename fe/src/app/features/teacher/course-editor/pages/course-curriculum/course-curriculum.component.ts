@@ -59,7 +59,7 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
 
       <!-- Chapter Editor -->
       @if (selectedChapterId() && !selectedLessonId()) {
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-y-auto h-full">
+        <div class="bg-white overflow-y-auto h-full">
           <div class="px-6 py-4 border-b border-gray-200 flex items-center gap-3">
             <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
               <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -110,7 +110,7 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
 
       <!-- Section Editor (Level 3) -->
       @if (selectedSectionId()) {
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-y-auto h-full">
+        <div class="bg-white overflow-y-auto h-full">
           <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
              <div class="flex items-center gap-3">
                <!-- Icon based on type -->
@@ -173,6 +173,25 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
                   </div>
                </div>
              }
+
+             @if (newSectionType === 'QUIZ') {
+                <div class="bg-indigo-50 border border-indigo-100 rounded-lg p-6 text-center">
+                    <div class="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <span class="text-2xl">❓</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-800 mb-2">Quản lý câu hỏi trắc nghiệm</h3>
+                    <p class="text-gray-600 mb-4 text-sm max-w-lg mx-auto">
+                        Để thêm câu hỏi từ ngân hàng, chọn ngẫu nhiên hoặc cài đặt thời gian làm bài, 
+                        vui lòng sử dụng trình quản lý Quiz chuyên dụng.
+                    </p>
+                    <button (click)="goToQuizBuilder()" 
+                            class="px-5 py-2.5 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors shadow-sm inline-flex items-center gap-2">
+                        <span>🚀</span>
+                        Mở trình quản lý Quiz
+                    </button>
+                    <p class="text-xs text-gray-500 mt-3">Thay đổi sẽ được lưu trước khi chuyển trang.</p>
+                </div>
+             }
           </div>
 
           <div class="px-6 py-4 border-t border-gray-200 flex justify-end gap-3 flex-shrink-0 bg-gray-50">
@@ -191,7 +210,7 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
 
       <!-- Lesson Editor -->
       @if (selectedLessonId() && !selectedSectionId()) {
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-y-auto h-full">
+        <div class="bg-white overflow-y-auto h-full">
           <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
             <div class="flex items-center gap-3">
               <div class="w-10 h-10 rounded-lg flex items-center justify-center" [class.bg-blue-100]="getLessonType(selectedLesson()) === 'LECTURE'" [class.bg-purple-100]="getLessonType(selectedLesson()) === 'QUIZ'" [class.bg-green-100]="getLessonType(selectedLesson()) === 'ASSIGNMENT'">
@@ -794,6 +813,20 @@ export class CourseCurriculumComponent {
   sectionIsRequired = false;
   safeVideoUrl = signal<SafeResourceUrl | null>(null); // [NEW]
 
+  goToQuizBuilder() {
+    // If editing an existing section, use Section ID
+    if (this.editingSectionId() && this.selectedSection()) {
+      const sectionId = this.selectedSection()!.id;
+      this.router.navigate(['/teacher/quiz/create/section', sectionId]);
+      return;
+    }
+
+    // Fallback? Ideally we should not reach here for QUIZ type without a section.
+    // unlikely to happen if UI is correct
+    console.error('Cannot determine Section ID for Quiz Builder');
+    alert('Vui lòng lưu Section trước khi tạo Quiz.');
+  }
+
   // State
   isSaving = signal(false);
   isLoadingLesson = signal(false);
@@ -874,6 +907,32 @@ export class CourseCurriculumComponent {
         this.sectionVideoUrl = section.videoUrl || '';
         this.sectionIsRequired = (section as any).isRequired || false;
         this.updateVideoPreview(this.sectionVideoUrl); // [NEW] Init preview
+      }
+    });
+
+    // Validates that the currently selected lesson is updated from the new tree
+    effect(() => {
+      const tree = this.store.courseTree();
+      const currentLessonId = this.selectionService.selectedLessonId();
+
+      if (tree && currentLessonId) {
+        for (const chapter of tree.chapters) {
+          const found = chapter.lessons.find(l => l.id === currentLessonId);
+          if (found) {
+            // Update the service with the new object reference to refresh UI
+            this.selectionService.selectedLesson.set(found);
+
+            // Also sync section if selected
+            const currentSectionId = this.selectionService.selectedSectionId();
+            if (currentSectionId && found.sections) {
+              const foundSection = found.sections.find((s: any) => s.id === currentSectionId);
+              if (foundSection) {
+                this.selectionService.selectedSection.set(foundSection);
+              }
+            }
+            break;
+          }
+        }
       }
     });
   }
@@ -989,7 +1048,7 @@ export class CourseCurriculumComponent {
         description: this.chapterDescription.trim()
       }));
       const courseId = this.store.courseTree()?.id;
-      if (courseId) this.store.loadCourse(courseId);
+      if (courseId) this.store.loadCourse(courseId, true);
     } catch (error) {
       console.error('Error saving chapter:', error);
     } finally {
@@ -1021,7 +1080,7 @@ export class CourseCurriculumComponent {
 
       await firstValueFrom(this.lessonApi.updateLesson(lesson.id, updateData));
       const courseId = this.store.courseTree()?.id;
-      if (courseId) this.store.loadCourse(courseId);
+      if (courseId) this.store.loadCourse(courseId, true);
     } catch (error) {
       console.error('Error saving lesson:', error);
     } finally {
@@ -1281,7 +1340,7 @@ export class CourseCurriculumComponent {
       }
       // Reload course to refresh tree
       const courseId = this.store.courseTree()?.id;
-      if (courseId) this.store.loadCourse(courseId);
+      if (courseId) this.store.loadCourse(courseId, true);
       this.showSectionModal.set(false);
     } catch (e: any) {
       console.error('Error saving section:', e);
@@ -1297,7 +1356,7 @@ export class CourseCurriculumComponent {
     try {
       await firstValueFrom(this.sectionApi.deleteSection(sectionId));
       const courseId = this.store.courseTree()?.id;
-      if (courseId) this.store.loadCourse(courseId);
+      if (courseId) this.store.loadCourse(courseId, true);
     } catch (e) {
       console.error(e);
     } finally {
