@@ -842,6 +842,8 @@ export class CourseCurriculumComponent {
   sectionContent = '';
   sectionVideoUrl = '';
   sectionIsRequired = false;
+  sectionFileUrl = signal<string | null>(null); // [NEW] For FILE type sections
+  selectedFile: File | null = null; // [NEW] For FILE upload
   safeVideoUrl = signal<SafeResourceUrl | null>(null); // [NEW]
 
   // State
@@ -1392,5 +1394,46 @@ export class CourseCurriculumComponent {
   dropSection(event: any) {
     // Reorder logic for Sections (Topic)
     // ...
+  }
+
+  // [NEW] File selection handler for FILE type sections
+  onFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files[0]) {
+      this.selectedFile = input.files[0];
+    }
+  }
+
+  // [NEW] Extract filename from URL for display
+  getFileNameFromUrl(url: string): string {
+    if (!url) return 'Tệp đính kèm';
+    try {
+      const urlObj = new URL(url);
+      const pathname = urlObj.pathname;
+      const fileName = pathname.substring(pathname.lastIndexOf('/') + 1);
+      return decodeURIComponent(fileName) || 'Tệp đính kèm';
+    } catch {
+      // If URL parsing fails, try simple approach
+      const lastSlash = url.lastIndexOf('/');
+      return lastSlash >= 0 ? url.substring(lastSlash + 1) : url;
+    }
+  }
+
+  // [NEW] Navigate to Quiz Builder for the selected lesson
+  goToQuizBuilder() {
+    const lesson = this.selectedLesson();
+    if (!lesson) {
+      console.warn('No lesson selected to navigate to quiz builder');
+      return;
+    }
+
+    const courseId = this.store.courseTree()?.id;
+    if (!courseId) {
+      console.warn('No course ID found');
+      return;
+    }
+
+    // Navigate to the quiz builder page
+    this.router.navigate(['/teacher/courses', courseId, 'lessons', lesson.id, 'quiz']);
   }
 }

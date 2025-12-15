@@ -171,14 +171,12 @@ export class ChatService {
           this._error.set(null);
 
           if (userId) {
-            // User is logged in - load their data
-            this.loadHistory();
+            // User is logged in - load their sessions
             this.loadSessions();
           }
         } else if (previousUserId === null && userId) {
           // Initial load for logged-in user
           console.log(`🔄 AI Chat: Initial load for user ${userId}`);
-          this.loadHistory();
           this.loadSessions();
         }
 
@@ -207,14 +205,10 @@ export class ChatService {
 
   /**
    * Initialize the chat service
+   * NOTE: Data loading (loadHistory/loadSessions) is handled by effect() reactively
+   *       to prevent duplicate calls when user logs in.
    */
   async initialize(): Promise<void> {
-    // Load stored messages
-    this.loadHistory();
-
-    // Load sessions list
-    this.loadSessions();
-
     // Check API health
     this.checkHealth();
 

@@ -6,7 +6,7 @@ import { AuthService } from '../../core/services/auth.service';
 
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
-  constructor(private authService: AuthService) {}
+  constructor(private authService: AuthService) { }
 
   intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
     // Add authorization header
@@ -42,8 +42,8 @@ export const authInterceptor = (req: HttpRequest<any>, next: HttpHandlerFn): Obs
   if (!token) {
     // Fallback: check other possible keys
     token = localStorage.getItem('token') ||
-            localStorage.getItem('access_token') ||
-            localStorage.getItem('auth_token');
+      localStorage.getItem('access_token') ||
+      localStorage.getItem('auth_token');
   }
 
   console.log('🔗 AuthInterceptor: Processing request to:', req.url);
@@ -81,15 +81,17 @@ export const authInterceptor = (req: HttpRequest<any>, next: HttpHandlerFn): Obs
 
   return next(req).pipe(
     catchError((error) => {
-      console.log('🔗 AuthInterceptor: Error response status:', error.status);
+      // Check if error is HttpErrorResponse before accessing status
+      const status = error?.status;
+      console.log('🔗 AuthInterceptor: Error response status:', status ?? 'N/A (Network/CORS error)');
 
       // 🔍 DEBUG: Log 403 errors for student endpoints
-      if (error.status === 403 && req.url.includes('/student/')) {
+      if (status === 403 && req.url.includes('/student/')) {
         console.error('🔗 AuthInterceptor: 403 Forbidden on student endpoint:', req.url);
         console.error('🔗 AuthInterceptor: Check token validity and user roles');
       }
 
-      if (error.status === 401) {
+      if (status === 401) {
         console.log('🔗 AuthInterceptor: 401 Unauthorized - Logging out and redirecting to login');
         authService.logout();
         window.location.href = '/login';

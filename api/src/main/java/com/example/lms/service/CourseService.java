@@ -75,6 +75,14 @@ public class CourseService {
         return courseRepository.findByTeacher(teacher, pageable);
     }
 
+    /**
+     * OPTIMIZED: Get courses with DTO Projection (single query).
+     * Use this instead of getCoursesByTeacher when only CourseSummary fields are needed.
+     */
+    public Page<com.example.lms.dto.CourseSummaryDTO> getCoursesSummaryByTeacher(User teacher, Pageable pageable) {
+        return courseRepository.findCourseSummariesByTeacher(teacher, pageable);
+    }
+
     public Page<Course> getEnrolledCourses(User student, Pageable pageable) {
         return courseRepository.findByEnrolledStudentsContaining(student, pageable);
     }
@@ -280,36 +288,32 @@ public class CourseService {
     }
 
     public List<com.example.lms.entity.Chapter> getCourseContent(UUID courseId, User currentUser) {
-        Course course = getCourseById(courseId);
+        // OPTIMIZED: Use JOIN FETCH query to load course with chapters and lessons in single query
+        Course course = courseRepository.findByIdWithSectionsAndLessons(courseId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học với ID: " + courseId));
         
-        // Check if user is enrolled or is the teacher
-        boolean hasAccess = course.getTeacher().getId().equals(currentUser.getId()) ||
-                          course.getEnrolledStudents().contains(currentUser);
+        // OPTIMIZED: Use database query instead of lazy loading enrolledStudents collection
+        boolean isTeacher = course.getTeacher() != null && course.getTeacher().getId().equals(currentUser.getId());
+        boolean isEnrolled = courseRepository.existsByEnrolledStudentAndCourse(currentUser.getId(), courseId);
+        boolean hasAccess = isTeacher || isEnrolled;
         
         if (!hasAccess) {
             throw new RuntimeException("Bạn không có quyền truy cập nội dung khóa học này");
         }
 
+        // Chapters are already loaded via JOIN FETCH, just sort them
         java.util.Set<com.example.lms.entity.Chapter> chapterSet = course.getChapters();
-        java.util.List<com.example.lms.entity.Chapter> chapters = chapterSet == null ? java.util.Collections.emptyList() : new java.util.ArrayList<>(chapterSet);
+        java.util.List<com.example.lms.entity.Chapter> chapters = chapterSet == null ? 
+                java.util.Collections.emptyList() : new java.util.ArrayList<>(chapterSet);
         chapters.sort((c1, c2) -> Integer.compare(
                 c1.getOrderIndex() != null ? c1.getOrderIndex() : 0,
                 c2.getOrderIndex() != null ? c2.getOrderIndex() : 0
         ));
-        // Ensure lessons lists are initialized and sorted
+        
+        // Lessons are also already loaded, just ensure they're initialized
         for (com.example.lms.entity.Chapter c : chapters) {
             if (c.getLessons() == null) {
                 c.setLessons(new java.util.ArrayList<>());
-            } else {
-                // Initialize sections for each lesson to avoid lazy loading issues
-                for (com.example.lms.entity.Lesson lesson : c.getLessons()) {
-                    if (lesson.getSections() == null) {
-                        lesson.setSections(new java.util.ArrayList<>());
-                    } else {
-                        // Force initialization
-                        lesson.getSections().size();
-                    }
-                }
             }
         }
         return chapters;

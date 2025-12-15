@@ -150,16 +150,15 @@ public class CourseController {
     @PreAuthorize("hasRole('TEACHER')")
     @SecurityRequirement(name = "Bearer Authentication")
     @Operation(summary = "Lấy danh sách khóa học của giảng viên", description = "Giảng viên lấy tất cả khóa học của mình")
-    public ResponseEntity<ApiResponse<Page<CourseSummary>>> getMyCourses(
+    public ResponseEntity<ApiResponse<Page<com.example.lms.dto.CourseSummaryDTO>>> getMyCourses(
             @AuthenticationPrincipal User currentUser,
             @Parameter(description = "Số trang (bắt đầu từ 1)") @RequestParam(defaultValue = "1") int page,
             @Parameter(description = "Số lượng item trên mỗi trang") @RequestParam(defaultValue = "10") int limit
     ) {
         try {
             Pageable pageable = PageRequest.of(page - 1, limit);
-            Page<Course> courses = courseService.getCoursesByTeacher(currentUser, pageable);
-            
-            Page<CourseSummary> courseSummaries = courses.map(this::convertToCourseSummary);
+            // OPTIMIZED: Use DTO Projection - single query instead of N+1
+            Page<com.example.lms.dto.CourseSummaryDTO> courseSummaries = courseService.getCoursesSummaryByTeacher(currentUser, pageable);
             
             return ResponseEntity.ok(ApiResponse.success(courseSummaries));
         } catch (Exception e) {

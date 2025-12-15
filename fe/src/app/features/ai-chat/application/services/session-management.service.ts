@@ -8,6 +8,7 @@
 import { Injectable, signal, computed, inject, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
+import { distinctUntilChanged, map } from 'rxjs/operators';
 import { ChatContext, UserRole, ChatSession } from '../../domain/types';
 import { ChatStorageRepository } from '../../infrastructure/repositories/chat-storage.repository';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -24,7 +25,7 @@ export class SessionManagementService implements OnDestroy {
   private readonly storage = inject(ChatStorageRepository);
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
-  
+
   private authSubscription?: Subscription;
 
   // State signals
@@ -52,19 +53,21 @@ export class SessionManagementService implements OnDestroy {
   });
 
   constructor() {
-    // Initialize with current user from AuthService
-    this.initializeFromAuth();
-    
     // Subscribe to auth changes (login/logout)
-    this.authSubscription = this.authService.currentUser$.subscribe(user => {
-      if (user) {
-        // User logged in - set up their isolated storage
-        this.handleUserLogin(user.id.toString(), user.role || 'student');
+    // Use distinctUntilChanged to prevent duplicate calls when user object is the same
+    this.authSubscription = this.authService.currentUser$.pipe(
+      map(user => user?.id?.toString() || null),
+      distinctUntilChanged()
+    ).subscribe(userId => {
+      if (userId) {
+        const user = this.authService.getCurrentUser();
+        this.handleUserLogin(userId, user?.role || 'student');
       } else {
-        // User logged out - clear session
         this.handleUserLogout();
       }
     });
+
+    this._isInitialized.set(true);
   }
 
   ngOnDestroy(): void {
@@ -87,14 +90,14 @@ export class SessionManagementService implements OnDestroy {
    */
   private handleUserLogin(userId: string, role: string): void {
     console.log(`🔐 AI Chat: Setting up session for user ${userId}`);
-    
+
     // Set user info
     this._userId.set(userId);
     this._role.set(parseRole(role));
-    
+
     // CRITICAL: Set userId in storage for isolation
     this.storage.setCurrentUserId(userId);
-    
+
     // Clear any invalid sessions and restore user's session
     this.storage.clearInvalidSessions();
     this.restoreSession();
@@ -105,14 +108,14 @@ export class SessionManagementService implements OnDestroy {
    */
   private handleUserLogout(): void {
     console.log('🔐 AI Chat: User logged out, clearing session');
-    
+
     // Clear current session
     this.clearSession();
-    
+
     // Reset user info
     this._userId.set('');
     this._role.set(DEFAULT_ROLE);
-    
+
     // Reset storage userId
     this.storage.setCurrentUserId('');
   }

@@ -23,8 +23,7 @@ public class CategoryController {
     @GetMapping
     @Operation(summary = "Lấy danh sách danh mục", description = "Lấy tất cả danh mục khóa học")
     public ResponseEntity<ApiResponse<List<Category>>> getAllCategories() {
-        // Auto seed if empty for demo
-        categoryService.seedCategories();
+        // Removed seedCategories() call - should be done at app startup, not per request
         return ResponseEntity.ok(ApiResponse.success(categoryService.getAllCategories()));
     }
 }

@@ -4,6 +4,7 @@ import { RouterOutlet, RouterModule, ActivatedRoute } from '@angular/router';
 import { CourseEditorSidebarComponent } from '../../components/sidebar/sidebar.component';
 import { CourseEditorHeaderComponent } from '../../components/header/header.component';
 import { CourseEditorStore } from '../../store/course-editor.store';
+import { filter, take, map } from 'rxjs/operators';
 
 @Component({
   selector: 'app-course-editor-layout',
@@ -70,17 +71,28 @@ export class CourseEditorLayoutComponent implements OnInit {
   private store = inject(CourseEditorStore);
 
   ngOnInit() {
-    // Traverse up to find the 'id' parameter since it is on the parent route
+    // FIXED: Extract course ID once from route hierarchy, load only once
+    this.getRouteId().pipe(
+      take(1),
+      filter((id): id is string => !!id)
+    ).subscribe(id => {
+      console.log('CourseEditorLayout: Loading course', id);
+      this.store.loadCourse(id);
+    });
+  }
+
+  /**
+   * Find 'id' param by traversing route hierarchy
+   */
+  private getRouteId() {
     let currentRoute: ActivatedRoute | null = this.route;
     while (currentRoute) {
-      currentRoute.paramMap.subscribe(params => {
-        const id = params.get('id');
-        if (id) {
-          // Found the ID, load the course
-          this.store.loadCourse(id);
-        }
-      });
+      const id = currentRoute.snapshot.paramMap.get('id');
+      if (id) {
+        return currentRoute.paramMap.pipe(map(params => params.get('id')));
+      }
       currentRoute = currentRoute.parent;
     }
+    return this.route.paramMap.pipe(map(params => params.get('id')));
   }
 }

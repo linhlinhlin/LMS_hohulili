@@ -46,9 +46,27 @@ public interface CourseRepository extends JpaRepository<Course, UUID> {
     boolean existsByCode(String code);
     
     Page<Course> findByTeacher(User teacher, Pageable pageable);
-    
+
     Page<Course> findByEnrolledStudentsContaining(User student, Pageable pageable);
-    
+
+    /**
+     * OPTIMIZED: DTO Projection query for teacher's courses.
+     * Returns CourseSummaryDTO directly instead of Entity to avoid N+1 queries.
+     * Single query fetches teacher name and enrolled count.
+     */
+    @Query(value = "SELECT new com.example.lms.dto.CourseSummaryDTO(" +
+           "c.id, c.code, c.title, c.description, " +
+           "CAST(c.status AS string), t.fullName, " +
+           "SIZE(c.enrolledStudents), " +
+           "c.createdAt, CAST(null AS boolean)) " +
+           "FROM Course c " +
+           "LEFT JOIN c.teacher t " +
+           "WHERE c.teacher = :teacher",
+           countQuery = "SELECT COUNT(c) FROM Course c WHERE c.teacher = :teacher")
+    Page<com.example.lms.dto.CourseSummaryDTO> findCourseSummariesByTeacher(
+        @Param("teacher") User teacher, 
+        Pageable pageable);
+
     Page<Course> findByStatusAndTitleContainingIgnoreCase(Course.CourseStatus status, String title, Pageable pageable);
     
     Page<Course> findByTitleContainingIgnoreCase(String title, Pageable pageable);
