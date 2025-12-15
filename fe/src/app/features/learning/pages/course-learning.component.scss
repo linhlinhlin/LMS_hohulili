@@ -12,7 +12,7 @@
     font-style: normal;
     display: inline-block;
     line-height: 1;
-    
+
     &::before {
       color: inherit;
     }
@@ -180,7 +180,7 @@
         font-size: 1rem;
         pointer-events: none;
         z-index: 1;
-        
+
         &::before {
           color: #9ca3af !important;
         }
@@ -337,22 +337,28 @@
             padding: 0;
             margin: 0;
 
+            .lesson-item-wrapper {
+              display: flex;
+              flex-direction: column;
+              margin: 0;
+            }
+
             li {
               margin: 0;
             }
 
             .lesson-item {
               width: 100%;
-              padding: 0.625rem 1rem 0.625rem 2rem;
+              padding: 0.5rem 0.5rem 0.5rem 0.5rem;
               border: none;
               background: transparent;
               text-align: left;
               cursor: pointer;
               display: flex;
               align-items: flex-start;
-              gap: 0.625rem;
+              gap: 0.5rem;
               transition: all 0.2s;
-              border-left: 3px solid transparent;
+              border-left: 2px solid transparent;
 
               &:hover {
                 background: #f9fafb;
@@ -422,6 +428,88 @@
                       margin-right: 0.5rem;
                     }
                   }
+
+                  .section-count {
+                    font-weight: 600;
+                    color: #3b82f6;
+                  }
+                }
+              }
+
+              // Chevron for lessons with sections
+              .lesson-chevron {
+                flex-shrink: 0;
+                color: #9ca3af;
+                transition: transform 0.3s ease;
+                margin-left: auto;
+
+                &.rotated {
+                  transform: rotate(180deg);
+                }
+              }
+            }
+          }
+
+          // Level 3: Section Items under Lesson
+          .section-items {
+            list-style: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
+
+            .section-item-wrapper {
+              margin: 0 !important;
+              padding: 0 !important;
+              width: 100% !important;
+            }
+
+            .section-item {
+              width: 100% !important;
+              // Match exact left padding of lesson-item (0.5rem)
+              padding: 0.35rem 0.5rem 0.35rem 0.5rem !important;
+              border: none;
+              background: transparent;
+              text-align: left;
+              cursor: pointer;
+              display: flex;
+              align-items: center;
+              transition: all 0.1s;
+              font-size: 0.8rem;
+              color: #4b5563;
+              border-left: 2px solid transparent; // Maintain border for active state alignment
+              margin: 0 !important;
+
+              // Ensure box model doesn't add unexpected space
+              box-sizing: border-box;
+
+              &:hover {
+                background: #f3f4f6;
+                color: #1f2937;
+              }
+
+              &.active {
+                background: #dbeafe;
+                color: #1e40af;
+                font-weight: 500;
+                border-left-color: #2563eb;
+              }
+
+              .section-icon {
+                display: none;
+              }
+
+              .section-content {
+                flex: 1;
+                display: flex;
+                align-items: center;
+
+                .section-title {
+                  font-size: 0.8rem;
+                  line-height: 1.3;
+                }
+
+                .section-type-badge {
+                  display: none; // Hide badges for cleaner look
                 }
               }
             }
@@ -485,38 +573,68 @@
       }
     }
 
-    // Sidebar Toggle Button (when collapsed) - Enhanced Visibility
-    .sidebar-toggle-btn {
-      position: fixed;
-      top: 1rem;
-      left: 1rem;
-      width: 48px;
-      height: 48px;
-      border: 2px solid #3b82f6;
-      background: #3b82f6;
-      color: white;
-      cursor: pointer;
-      border-radius: 10px;
-      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    // Sidebar Toggle Bar (when collapsed) - Structural Header
+    .collapsed-top-bar {
       display: flex;
       align-items: center;
-      justify-content: center;
-      z-index: 150;
-      transition: all 0.2s;
+      gap: 1rem;
+      padding: 0.75rem 1.5rem;
+      background: white;
+      border-bottom: 1px solid #e5e7eb;
+      flex-shrink: 0;
+      animation: slideDown 0.2s ease-out;
 
-      &:hover {
-        background: #2563eb;
-        transform: scale(1.05);
-        box-shadow: 0 6px 16px rgba(59, 130, 246, 0.5);
+      .sidebar-toggle-btn-inline {
+        width: 40px;
+        height: 40px;
+        border: none;
+        background: #3b82f6;
+        color: white;
+        cursor: pointer;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+
+        &:hover {
+          background: #2563eb;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 6px rgba(59, 130, 246, 0.2);
+        }
+
+        &:active {
+          transform: translateY(0);
+        }
+
+        svg {
+          width: 22px;
+          height: 22px;
+        }
       }
 
-      &:active {
-        transform: scale(0.95);
-      }
+      .mini-course-info {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
 
-      svg {
-        width: 26px;
-        height: 26px;
+        .text-sm {
+          font-size: 0.75rem;
+          color: #6b7280;
+          line-height: 1.2;
+        }
+
+        h3 {
+          margin: 0;
+          font-size: 0.95rem;
+          font-weight: 600;
+          color: #1f2937;
+          line-height: 1.3;
+          display: -webkit-box;
+          -webkit-line-clamp: 1;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
       }
     }
 
@@ -599,8 +717,8 @@
 
     // Navigation Buttons - Modern Design
     .lesson-navigation {
-      padding: 1.5rem 2rem;
-      margin-top: 2rem;
+      padding: 1rem 1.5rem; // Reduced from 1.5rem 2rem
+      margin-top: 1.5rem; // Reduced from 2rem
       border-top: 1px solid #e5e7eb;
       display: flex;
       align-items: center;
@@ -609,25 +727,25 @@
       background: white;
 
       .nav-btn {
-        padding: 0.75rem 1.5rem;
+        padding: 0.5rem 1.25rem; // Reduced from 0.75rem 1.5rem
         border: none;
         background: #f3f4f6;
         color: #374151;
-        border-radius: 10px;
+        border-radius: 8px; // Slightly smaller radius
         font-weight: 600;
-        font-size: 0.9375rem;
+        font-size: 0.9rem; // Slightly smaller font
         cursor: pointer;
         display: flex;
         align-items: center;
-        gap: 0.625rem;
+        gap: 0.5rem;
         transition: all 0.2s ease;
-        min-height: 44px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        min-height: 38px; // Reduced from 44px
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 
         &:hover:not(:disabled) {
           background: #e5e7eb;
           transform: translateY(-1px);
-          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         &:active:not(:disabled) {
@@ -635,38 +753,36 @@
         }
 
         &:disabled {
-          opacity: 0.4;
+          opacity: 0.5;
           cursor: not-allowed;
           box-shadow: none;
         }
 
         &.prev {
-          // Arrow left using CSS
           &::before {
             content: '';
-            width: 8px;
-            height: 8px;
+            width: 7px; // Smaller arrow
+            height: 7px;
             border-left: 2px solid currentColor;
             border-bottom: 2px solid currentColor;
             transform: rotate(45deg);
           }
-          
+
           i {
             display: none;
           }
         }
 
         &.next {
-          // Arrow right using CSS
           &::after {
             content: '';
-            width: 8px;
-            height: 8px;
+            width: 7px; // Smaller arrow
+            height: 7px;
             border-right: 2px solid currentColor;
             border-top: 2px solid currentColor;
             transform: rotate(45deg);
           }
-          
+
           i {
             display: none;
           }
@@ -674,25 +790,25 @@
       }
 
       .btn-complete {
-        padding: 0.75rem 2rem;
+        padding: 0.5rem 1.5rem; // Reduced padding
         border: none;
         background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
         color: white;
-        border-radius: 10px;
+        border-radius: 8px;
         font-weight: 600;
-        font-size: 0.9375rem;
+        font-size: 0.9rem;
         cursor: pointer;
         display: flex;
         align-items: center;
-        gap: 0.625rem;
+        gap: 0.5rem;
         transition: all 0.2s ease;
-        min-height: 44px;
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        min-height: 38px; // Reduced height
+        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
 
         &:hover {
           background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-          transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
         }
 
         &:active {
@@ -781,6 +897,7 @@
     from {
       opacity: 0;
     }
+
     to {
       opacity: 1;
     }
@@ -791,6 +908,7 @@
       opacity: 0;
       transform: translateY(-10px);
     }
+
     to {
       opacity: 1;
       transform: translateY(0);
@@ -804,11 +922,11 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.25rem 0.75rem;
-  
+
   .lesson-item {
     flex: 1;
   }
-  
+
   .quiz-button {
     display: inline-flex;
     align-items: center;
@@ -824,20 +942,152 @@
     transition: all 0.2s;
     white-space: nowrap;
     flex-shrink: 0;
-    
+
     svg {
       width: 16px;
       height: 16px;
     }
-    
+
     &:hover {
       background: #004BB8;
       transform: translateY(-1px);
       box-shadow: 0 4px 8px rgba(0, 86, 210, 0.3);
     }
-    
+
     &:active {
       transform: translateY(0);
+    }
+  }
+}
+
+// ========================================
+// LESSON NAVIGATION (Previous / Next Buttons)
+// ========================================
+.lesson-navigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 3rem;
+  padding: 2rem 0;
+  border-top: 1px solid #e5e7eb;
+  gap: 1rem;
+
+  .nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1.5rem;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    font-weight: 600;
+    color: #4b5563;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+
+    &.prev {
+      padding-left: 1rem; // Less padding on icon side
+    }
+
+    &.next {
+      padding-right: 1rem;
+      background: #eff6ff;
+      border-color: #dbeafe;
+      color: #2563eb;
+
+      &:hover:not(:disabled) {
+        background: #3b82f6;
+        color: white;
+        border-color: #3b82f6;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px rgba(59, 130, 246, 0.2);
+      }
+    }
+
+    &:hover:not(:disabled) {
+      background: #f9fafb;
+      border-color: #d1d5db;
+      color: #111827;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    &:disabled {
+      background: #f3f4f6;
+      border-color: #e5e7eb;
+      color: #9ca3af;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+      opacity: 0.7;
+    }
+
+    i {
+      font-size: 1.25rem;
+      transition: transform 0.2s;
+    }
+
+    &.next:hover:not(:disabled) i {
+      transform: translateX(4px);
+    }
+
+    &.prev:hover:not(:disabled) i {
+      transform: translateX(-4px);
+    }
+  }
+
+  .btn-complete {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 2rem;
+    background: white;
+    border: 2px solid #22c55e;
+    border-radius: 50px;
+    font-weight: 600;
+    color: #22c55e;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+      background: #f0fdf4;
+      transform: scale(1.02);
+      box-shadow: 0 4px 12px rgba(34, 197, 94, 0.15);
+    }
+
+    &.completed {
+      background: #22c55e;
+      color: white;
+      border-color: #22c55e;
+      box-shadow: 0 4px 12px rgba(34, 197, 94, 0.25);
+
+      &:hover {
+        background: #16a34a;
+        transform: scale(1.05);
+        box-shadow: 0 6px 16px rgba(34, 197, 94, 0.35);
+      }
+    }
+
+    i {
+      font-size: 1.25rem;
+    }
+  }
+
+  // Mobile adjustments
+  @media (max-width: 640px) {
+    flex-direction: column;
+    gap: 1rem;
+
+    .nav-btn,
+    .btn-complete {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .btn-complete {
+      order: -1; // Show complete button first on mobile
     }
   }
 }

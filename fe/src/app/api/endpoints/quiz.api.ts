@@ -322,6 +322,19 @@ export class QuizApi {
   }
 
   /**
+   * Create section-bound quiz (v2 API)
+   * @param sectionId - Section ID
+   * @param request - Quiz creation request
+   * @returns Observable of LessonQuizResponse
+   */
+  createSectionQuiz(sectionId: string, request: CreateLessonQuizRequest): Observable<LessonQuizResponse> {
+    return this.apiClient.post<LessonQuizResponse>(
+      `/api/v2/quizzes/sections/${sectionId}`,
+      request
+    );
+  }
+
+  /**
    * Create assignment quiz (v2 API)
    * @param courseId - Course ID
    * @param request - Quiz creation request

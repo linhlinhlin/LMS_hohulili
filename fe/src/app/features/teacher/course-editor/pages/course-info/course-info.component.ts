@@ -13,7 +13,7 @@ import { RichTextEditorComponent } from '../../../../../shared/components/rich-t
     template: `
     <div class="max-w-10xl mx-auto pb-20">
       
-      <form [formGroup]="form" class="bg-white shadow-sm border border-gray-200 p-6">
+      <form [formGroup]="form" class="bg-white p-6">
         
         <!-- Top Section: Grid with Image on Left, Info on Right -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-8">

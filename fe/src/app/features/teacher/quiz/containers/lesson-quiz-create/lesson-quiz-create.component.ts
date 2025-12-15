@@ -1,9 +1,12 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
+import { forkJoin } from 'rxjs';
+import { finalize } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { QuizApi, CreateLessonQuizRequest } from '../../../../../api/endpoints/quiz.api';
 import { QuestionApi, Question } from '../../../../../api/endpoints/question.api';
 import { LessonApi } from '../../../../../api/client/lesson.api';
+import { PackageApi } from '../../../../../api/endpoints/package.api';
 import { QuizFormComponent, QuizFormConfig, QuizFormData } from '../../components/quiz-form/quiz-form.component';
 
 @Component({
@@ -11,7 +14,7 @@ import { QuizFormComponent, QuizFormConfig, QuizFormData } from '../../component
     standalone: true,
     imports: [CommonModule, QuizFormComponent],
     template: `
-    <div class="container mx-auto px-4 py-8">
+    <div class="w-full h-full px-2 py-2 custom-scrollbar overflow-y-auto">
       <div class="mb-6">
         <h2 class="text-2xl font-bold text-gray-800">Tạo bài trắc nghiệm cho bài học</h2>
         <p class="text-gray-600" *ngIf="lessonTitle()">Bài học: {{ lessonTitle() }}</p>
@@ -25,8 +28,11 @@ import { QuizFormComponent, QuizFormConfig, QuizFormData } from '../../component
         *ngIf="!isLoading()"
         [config]="formConfig"
         [questions]="questions()"
+        [packages]="packages()"
         (onSubmit)="handleSubmit($event)"
-        (onCancel)="handleCancel()">
+        (onCancel)="handleCancel()"
+        (onPackageSelect)="handlePackageSelected($event)"
+        (onUseMyQuestions)="handleUseMyQuestions()">
       </app-quiz-form>
     </div>
   `
@@ -37,10 +43,16 @@ export class LessonQuizCreateComponent implements OnInit {
     private quizApi = inject(QuizApi);
     private questionApi = inject(QuestionApi);
     private lessonApi = inject(LessonApi);
+    private packageApi = inject(PackageApi);
 
     lessonId = signal<string>('');
     lessonTitle = signal<string>('');
-    questions = signal<Question[]>([]);
+
+    // Data state
+    myQuestions = signal<Question[]>([]); // Cache for "My Questions"
+    questions = signal<Question[]>([]);   // Currently displayed questions
+    packages = signal<any[]>([]);         // Available packages
+
     isLoading = signal<boolean>(true);
 
     formConfig: QuizFormConfig = {
@@ -56,12 +68,28 @@ export class LessonQuizCreateComponent implements OnInit {
         }
     };
 
+    sectionId = signal<string | null>(null);
+
     ngOnInit() {
         this.route.params.subscribe(params => {
-            const id = params['lessonId'];
-            if (id) {
-                this.lessonId.set(id);
-                this.loadData(id);
+            console.log('🔍 LessonQuizCreateComponent Params:', params);
+
+            const sectionIdParam = params['sectionId'];
+            const lessonIdParam = params['lessonId'];
+
+            if (sectionIdParam) {
+                console.log('✅ Found Section ID:', sectionIdParam);
+                this.sectionId.set(sectionIdParam);
+                // Update: If we have Section ID, we must also stop loading and fetch questions
+                // Since we don't have separate loadSectionData yet, we just open the form
+                this.isLoading.set(false);
+                this.loadQuestionsInBackground();
+            }
+
+            if (lessonIdParam) {
+                console.log('✅ Found Lesson ID:', lessonIdParam);
+                this.lessonId.set(lessonIdParam);
+                this.loadData(lessonIdParam);
             }
         });
     }
@@ -69,31 +97,89 @@ export class LessonQuizCreateComponent implements OnInit {
     private loadData(lessonId: string) {
         this.isLoading.set(true);
 
-        // 1. Get Lesson Details
-        this.lessonApi.getLessonById(lessonId).subscribe({
-            next: (response: any) => {
-                if (response.success && response.data) {
-                    this.lessonTitle.set(response.data.title);
-                }
-            },
-            error: (err: any) => console.error('Failed to load lesson:', err)
-        });
+        const apiCalls: any = {};
 
-        // 2. Load Questions (My Questions)
-        // 2. Load Questions (My Questions)
-        this.questionApi.getMyQuestions().subscribe({
-            next: (questions: Question[]) => {
-                this.questions.set(questions);
-                this.isLoading.set(false);
+        // Only fetch lesson details if we need them (legacy mode or title display)
+        if (lessonId) {
+            apiCalls.lesson = this.lessonApi.getLessonById(lessonId);
+        }
+
+        // OPTIMIZATION: Do NOT load all questions upfront. 
+        // Only load if explicitly needed or paginated. 
+        // For now, we'll skip loading questions here to speed up transition.
+        // User can click "Add Questions" to load them.
+
+        // Combine calls
+        if (Object.keys(apiCalls).length === 0) {
+            this.isLoading.set(false);
+            // Still try to load questions even if no lesson ID
+            this.loadQuestionsInBackground();
+            return;
+        }
+
+        forkJoin(apiCalls).pipe(
+            finalize(() => this.isLoading.set(false))
+        ).subscribe({
+            next: (results: any) => {
+                if (results.lesson && results.lesson.data) {
+                    this.lessonTitle.set(results.lesson.data.title);
+                }
+                // Load questions in background after main content is ready
+                this.loadQuestionsInBackground();
             },
-            error: (err: any) => {
-                console.error('Failed to load questions:', err);
-                this.isLoading.set(false);
-            }
+            error: (err: any) => console.error('Error loading data:', err)
         });
     }
 
+
+    private loadQuestionsInBackground() {
+        // Load MY questions
+        this.questionApi.getMyQuestions().subscribe({
+            next: (questions: Question[]) => {
+                console.log('Questions loaded in background:', questions.length);
+                this.myQuestions.set(questions);
+                // Also set as default display
+                this.questions.set(questions);
+            },
+            error: (err: any) => console.error('Failed to load questions:', err)
+        });
+
+        // Load PACKAGES
+        this.packageApi.getMyPackages().subscribe({
+            next: (pkgs: any[]) => {
+                console.log('Packages loaded:', pkgs.length);
+                this.packages.set(pkgs);
+            },
+            error: (err: any) => console.error('Failed to load packages:', err)
+        });
+    }
+
+    handlePackageSelected(packageId: string) {
+        this.isLoading.set(true);
+        this.packageApi.getQuestionsInPackage(packageId)
+            .pipe(finalize(() => this.isLoading.set(false)))
+            .subscribe({
+                next: (questions: any[]) => {
+                    console.log('Package questions loaded:', questions.length);
+                    // Map generic array to Question[] if needed, assuming API returns compatible format
+                    this.questions.set(questions);
+                },
+                error: (err: any) => {
+                    console.error('Failed to load package questions:', err);
+                    alert('Không thể tải câu hỏi từ gói này');
+                }
+            });
+    }
+
+    handleUseMyQuestions() {
+        this.questions.set(this.myQuestions());
+    }
+
     handleSubmit(formData: QuizFormData) {
+        console.log('🚀 Submitting Quiz Form...');
+        console.log('   Section ID:', this.sectionId());
+        console.log('   Lesson ID:', this.lessonId());
+
         const request: CreateLessonQuizRequest = {
             title: formData.title,
             description: formData.description,
@@ -108,20 +194,35 @@ export class LessonQuizCreateComponent implements OnInit {
             publishImmediately: formData.publishImmediately
         };
 
-        this.quizApi.createLessonQuizV2(this.lessonId(), request)
-            .subscribe({
-                next: (response: any) => {
-                    // Success - redirect to lesson detail or quiz preview
-                    // Assuming we go back to lesson detail for now
-                    // We might need to navigate to course content page
-                    // For now, let's navigate back
-                    this.handleCancel();
-                },
-                error: (error: any) => {
-                    console.error('Failed to create lesson quiz:', error);
-                    alert('Có lỗi xảy ra khi tạo bài kiểm tra. Vui lòng thử lại.');
-                }
-            });
+        // Check if we are creating for a Section or a Lesson
+        if (this.sectionId()) {
+            console.log('👉 Creating Section Quiz...');
+            this.quizApi.createSectionQuiz(this.sectionId()!, request)
+                .subscribe({
+                    next: (response: any) => {
+                        console.log('✅ Section Quiz Created!', response);
+                        this.handleCancel();
+                    },
+                    error: (error: any) => {
+                        console.error('❌ Failed to create section quiz:', error);
+                        alert('Có lỗi xảy ra khi tạo bài kiểm tra. Vui lòng thử lại.');
+                    }
+                });
+        } else {
+            console.log('👉 Creating Lesson Quiz (Legacy)...');
+            // Fallback to Lesson (Legacy V2)
+            this.quizApi.createLessonQuizV2(this.lessonId(), request)
+                .subscribe({
+                    next: (response: any) => {
+                        console.log('✅ Lesson Quiz Created!', response);
+                        this.handleCancel();
+                    },
+                    error: (error: any) => {
+                        console.error('❌ Failed to create lesson quiz:', error);
+                        alert('Có lỗi xảy ra khi tạo bài kiểm tra. Vui lòng thử lại.');
+                    }
+                });
+        }
     }
 
     handleCancel() {

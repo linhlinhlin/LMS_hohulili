@@ -19,19 +19,19 @@
       margin: 0;
       padding: 0;
       max-width: 100%;
-      
+
       .video-wrapper {
         position: relative;
         width: 100%;
-        padding-bottom: 56.25%; // 16:9 aspect ratio
+        // Use modern aspect-ratio to easily limit height
+        aspect-ratio: 16 / 9;
+        max-height: 70vh; // Cap height to 70% of viewport to ensure it fits
+        margin: 0 auto; // Center if width is limited by max-height
         background: #000;
         overflow: hidden;
 
         .video-iframe,
         .video-player {
-          position: absolute;
-          top: 0;
-          left: 0;
           width: 100%;
           height: 100%;
           border: none;
@@ -110,7 +110,12 @@
       margin-bottom: 1.5rem;
 
       // Typography styles
-      h1, h2, h3, h4, h5, h6 {
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6 {
         font-weight: 700;
         color: #1f2937;
         margin: 2rem 0 1rem 0;
@@ -121,10 +126,21 @@
         }
       }
 
-      h1 { font-size: 1.875rem; }
-      h2 { font-size: 1.5rem; }
-      h3 { font-size: 1.25rem; }
-      h4 { font-size: 1.125rem; }
+      h1 {
+        font-size: 1.875rem;
+      }
+
+      h2 {
+        font-size: 1.5rem;
+      }
+
+      h3 {
+        font-size: 1.25rem;
+      }
+
+      h4 {
+        font-size: 1.125rem;
+      }
 
       p {
         margin: 0 0 1rem 0;
@@ -134,7 +150,8 @@
         }
       }
 
-      ul, ol {
+      ul,
+      ol {
         margin: 1rem 0;
         padding-left: 1.5rem;
 
@@ -154,27 +171,25 @@
       }
 
       img {
-        max-width: 100% !important;
-        width: 100% !important;
-        height: auto !important;
-        border-radius: 12px !important;
-        margin: 2rem 0 !important;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1) !important;
-        display: block !important;
-        object-fit: cover !important;
-        min-height: 200px;
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+        margin: 1.5rem auto;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        display: block;
       }
 
       // Image with caption
       figure {
         margin: 2rem 0 !important;
         width: 100% !important;
-        
+
         img {
-          margin: 0 0 0.75rem 0 !important;
-          width: 100% !important;
+          margin: 0 0 0.75rem 0;
+          max-width: 100%;
+          height: auto;
         }
-        
+
         figcaption {
           text-align: center;
           font-size: 0.875rem;
@@ -221,7 +236,8 @@
         border-collapse: collapse;
         margin: 1.5rem 0;
 
-        th, td {
+        th,
+        td {
           padding: 0.75rem;
           border: 1px solid #e5e7eb;
           text-align: left;
@@ -419,9 +435,17 @@
       .html-content {
         font-size: 0.9375rem;
 
-        h1 { font-size: 1.5rem; }
-        h2 { font-size: 1.25rem; }
-        h3 { font-size: 1.125rem; }
+        h1 {
+          font-size: 1.5rem;
+        }
+
+        h2 {
+          font-size: 1.25rem;
+        }
+
+        h3 {
+          font-size: 1.125rem;
+        }
       }
 
       .attachments-section {
@@ -445,6 +469,450 @@
           justify-content: center;
         }
       }
+    }
+  }
+}
+
+// ========================================
+// SECTION NAVIGATION TABS
+// ========================================
+.sections-navigation {
+  margin: 2rem 0;
+  border-bottom: 2px solid #e5e7eb;
+  position: relative;
+}
+
+.sections-tabs {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  padding-bottom: 1rem;
+
+  &::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 3px;
+  }
+}
+
+.section-tab {
+  flex: 0 0 auto;
+  min-width: 200px;
+  padding: 1rem;
+  background: #f9fafb;
+  border: 2px solid #e5e7eb;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+
+  &:hover {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+  }
+
+  &.active {
+    background: white;
+    border-color: #3b82f6;
+    border-width: 2px;
+    position: relative;
+
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: white;
+    }
+
+    .section-tab-icon svg {
+      color: #3b82f6;
+    }
+
+    .section-tab-title {
+      color: #1f2937;
+      font-weight: 600;
+    }
+  }
+}
+
+.section-tab-icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  background: white;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  svg {
+    width: 18px;
+    height: 18px;
+    color: #6b7280;
+    transition: color 0.2s;
+  }
+}
+
+.section-tab-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.section-tab-title {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.section-tab-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.section-type-badge {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+
+  &[data-type="VIDEO"] {
+    background: #fee2e2;
+    color: #dc2626;
+  }
+
+  &[data-type="TEXT"] {
+    background: #dbeafe;
+    color: #2563eb;
+  }
+
+  &[data-type="QUIZ"] {
+    background: #ede9fe;
+    color: #7c3aed;
+  }
+
+  &[data-type="FILE"] {
+    background: #d1fae5;
+    color: #059669;
+  }
+
+  &[data-type="ASSIGNMENT"] {
+    background: #fef3c7;
+    color: #d97706;
+  }
+}
+
+.section-duration {
+  font-size: 0.6875rem;
+  color: #6b7280;
+  background: #f3f4f6;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.section-nav-arrows {
+  position: absolute;
+  right: 0;
+  bottom: 1rem;
+  display: flex;
+  gap: 0.5rem;
+  background: white;
+  padding: 0.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.nav-arrow {
+  width: 36px;
+  height: 36px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  svg {
+    width: 20px;
+    height: 20px;
+    color: #6b7280;
+  }
+
+  &:hover:not(:disabled) {
+    background: #3b82f6;
+    border-color: #3b82f6;
+
+    svg {
+      color: white;
+    }
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+// ========================================
+// CURRENT SECTION HEADER (When section selected)
+// ========================================
+.current-section-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 0;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid #e5e7eb;
+
+  .section-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0;
+  }
+
+  .section-type-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.375rem 0.75rem;
+    border-radius: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+
+    &[data-type="VIDEO"] {
+      background: #fce7f3;
+      color: #be185d;
+    }
+
+    &[data-type="TEXT"] {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+
+    &[data-type="QUIZ"] {
+      background: #fef3c7;
+      color: #b45309;
+    }
+
+    &[data-type="FILE"] {
+      background: #d1fae5;
+      color: #047857;
+    }
+
+    &[data-type="ASSIGNMENT"] {
+      background: #e0e7ff;
+      color: #4338ca;
+    }
+  }
+}
+
+// ========================================
+// SECTION CONTENT - FULL WIDTH MAIN AREA
+// ========================================
+.section-content {
+  padding: 0;
+  min-height: 60vh;
+  background: #fff;
+
+  // Make video section fit content - Sharp edges as requested
+  .video-section {
+    margin: 0 0 2rem 0;
+    width: 100%;
+    // border-radius and box-shadow removed per user preference
+    overflow: hidden;
+  }
+
+  // HTML content takes full width
+  .html-content {
+    padding: 2rem 0;
+    max-width: 100%;
+  }
+
+  // File card centered
+  .file-section {
+    padding: 3rem 0;
+  }
+
+  // Quiz card centered
+  .quiz-prompt-card {
+    margin: 2rem 0;
+  }
+
+  // Assignment section
+  .assignment-section {
+    padding: 2rem 0;
+  }
+}
+
+// File Section
+.file-section {
+  margin: 2rem 0;
+}
+
+.file-card {
+  padding: 2rem;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 2px solid #bae6fd;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  text-align: center;
+
+  .file-icon {
+    width: 64px;
+    height: 64px;
+    color: #0284c7;
+  }
+
+  .file-info {
+    h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #0c4a6e;
+      margin: 0 0 0.5rem 0;
+    }
+
+    p {
+      font-size: 0.9375rem;
+      color: #075985;
+      margin: 0;
+    }
+  }
+
+  .btn-download-file {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 2rem;
+    background: #0284c7;
+    color: white;
+    border-radius: 10px;
+    font-size: 1.0625rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
+
+    svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    &:hover {
+      background: #0369a1;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(2, 132, 199, 0.35);
+    }
+  }
+}
+
+// Assignment Section
+.assignment-section {
+  margin: 2rem 0;
+}
+
+.assignment-card {
+  padding: 0;
+  background: white;
+  border: 2px solid #fde68a;
+  border-radius: 12px;
+  overflow: hidden;
+
+  .assignment-header {
+    padding: 1.5rem;
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    border-bottom: 2px solid #fde68a;
+
+    .assignment-icon {
+      width: 40px;
+      height: 40px;
+      color: #d97706;
+    }
+
+    h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #78350f;
+      margin: 0;
+    }
+  }
+
+  .assignment-content {
+    padding: 2rem;
+    font-size: 0.9375rem;
+    line-height: 1.7;
+    color: #374151;
+  }
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .sections-navigation {
+    margin: 1.5rem 0;
+  }
+
+  .sections-tabs {
+    gap: 0.25rem;
+  }
+
+  .section-tab {
+    min-width: 160px;
+    padding: 0.75rem;
+  }
+
+  .section-tab-icon {
+    width: 28px;
+    height: 28px;
+
+    svg {
+      width: 16px;
+      height: 16px;
+    }
+  }
+
+  .section-tab-title {
+    font-size: 0.875rem;
+  }
+
+  .section-nav-arrows {
+    position: static;
+    margin-top: 1rem;
+    justify-content: center;
+  }
+
+  .file-card {
+    padding: 1.5rem;
+
+    .btn-download-file {
+      width: 100%;
+      justify-content: center;
     }
   }
 }

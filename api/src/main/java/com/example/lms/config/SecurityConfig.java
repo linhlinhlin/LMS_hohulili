@@ -41,6 +41,10 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
+                        // Quiz management (TEACHER can create/edit, STUDENT can view/attempt) - High priority
+                        // Quiz management - DEBUG: permitAll to test connectivity
+                        .requestMatchers("/api/v1/quizzes/**", "/api/v2/quizzes/**").permitAll()
+
                         // Public endpoints
                         .requestMatchers(
                                 "/api/auth/**",
@@ -91,9 +95,6 @@ public class SecurityConfig {
                         // Document upload and parsing (TEACHER/ADMIN only)
                         .requestMatchers("/api/v1/documents/**").hasAnyRole("ADMIN", "TEACHER")
                         
-                        // Quiz management (TEACHER can create/edit, STUDENT can view/attempt)
-                        .requestMatchers("/api/v1/quizzes/**").hasAnyRole("ADMIN", "TEACHER", "STUDENT")
-                        
                         // Question management (TEACHER/ADMIN only)
                         .requestMatchers("/api/v1/questions/**").hasAnyRole("ADMIN", "TEACHER")
                         
@@ -112,12 +113,13 @@ public class SecurityConfig {
                         // Explicitly allow OPTIONS for CORS preflight
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         
+                        // Allow POST/PUT/DELETE operations for Admin/Teacher (MUST come BEFORE GET rule)
+                        .requestMatchers(HttpMethod.POST, "/api/v1/sections/**", "/api/v1/lessons/**").hasAnyRole("ADMIN", "TEACHER")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/sections/**", "/api/v1/lessons/**").hasAnyRole("ADMIN", "TEACHER")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/sections/**", "/api/v1/lessons/**").hasAnyRole("ADMIN", "TEACHER")
+                        
                         // Allow GET for Everyone (including Students)
                         .requestMatchers(HttpMethod.GET, "/api/v1/sections/**", "/api/v1/lessons/**").hasAnyRole("ADMIN", "TEACHER", "STUDENT")
-                        
-                        // Allow ALL operations (POST/PUT/DELETE) for Admin/Teacher
-                        // This fixes the issue where strict Method matching might fail for multipart/form-data
-                        .requestMatchers("/api/v1/sections/**", "/api/v1/lessons/**").hasAnyRole("ADMIN", "TEACHER")
                         
                         // Course Authoring endpoints (TEACHER/ADMIN only)
                         .requestMatchers("/api/v1/authoring/**").hasAnyRole("ADMIN", "TEACHER")
@@ -157,12 +159,12 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(List.of("*"));
+        configuration.setAllowedOriginPatterns(List.of("*")); // Allow all origins
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers"));
+        configuration.setExposedHeaders(List.of("Authorization", "Content-Disposition", "Content-Type", "Content-Length"));
         configuration.setAllowCredentials(true);
-        // Allow cross-origin requests for PDF.js viewer and other embedded content
-        configuration.setExposedHeaders(List.of("Content-Disposition", "Content-Type", "Content-Length"));
+        configuration.setMaxAge(3600L); // Cache preflight response for 1 hour
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

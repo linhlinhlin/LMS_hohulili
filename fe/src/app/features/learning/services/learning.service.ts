@@ -340,14 +340,32 @@ export class LearningService {
           sectionTitle: data.sectionTitle || '',
           courseId: data.courseId,
           courseTitle: data.courseTitle || '',
-          durationMinutes: data.durationMinutes
+          durationMinutes: data.durationMinutes,
+          // Map sections from API response
+          sections: (data.sections || []).map((s: any) => ({
+            id: s.id,
+            title: s.title,
+            type: s.type as 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT',
+            content: s.content,
+            videoUrl: s.videoUrl,
+            fileUrl: s.fileUrl,
+            duration: s.duration,
+            orderIndex: s.orderIndex ?? 0,
+            isRequired: s.isRequired ?? false
+          }))
         };
 
         console.log('[LearningService] Loaded lesson:', {
           id: lessonDetail.id,
           title: lessonDetail.title,
           lessonType: lessonDetail.lessonType,
-          backendLessonType: data.lessonType
+          backendLessonType: data.lessonType,
+          sectionsCount: lessonDetail.sections?.length || 0
+        });
+
+        console.log('[LearningService] Raw API response data:', {
+          data,
+          sections: lessonDetail.sections
         });
 
         // Cache the lesson

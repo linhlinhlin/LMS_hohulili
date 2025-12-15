@@ -510,8 +510,8 @@ public class CourseController {
                             .id(section.getId())
                             .title(section.getTitle())
                             .type(section.getType().name())
-                            .content(section.getContent())
-                            .videoUrl(section.getVideoUrl())
+                            .content(null) // Optimization
+                            .videoUrl(null) // Optimization
                             .duration(section.getDuration())
                             .orderIndex(section.getOrderIndex())
                             .isRequired(section.getIsRequired()) // Added
@@ -522,8 +522,8 @@ public class CourseController {
                         .id(lesson.getId())
                         .title(lesson.getTitle())
                         .description(lesson.getDescription())
-                        .content(defaultContent) // Fallback
-                        .videoUrl(defaultVideoUrl) // Fallback
+                        .content(null) // Optimization: Don't load content for list view
+                        .videoUrl(null) // Optimization: Don't load video for list view
                         .orderIndex(lesson.getOrderIndex())
                         .lessonType(lesson.getLessonType() != null ? lesson.getLessonType().name() : "LECTURE")
                         .sections(sections); // Renamed from topics

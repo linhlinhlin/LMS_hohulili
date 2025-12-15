@@ -5,121 +5,229 @@
     <div class="lesson-header">
       <h1 class="lesson-title">{{ lesson.title }}</h1>
       @if (lesson.description) {
-        <p class="lesson-description">{{ lesson.description }}</p>
+      <p class="lesson-description">{{ lesson.description }}</p>
       }
       <div class="lesson-meta">
         @if (lesson.durationMinutes && lesson.durationMinutes > 0) {
-          <span class="meta-item">
-            <i class="icon-clock"></i>
-            {{ lesson.durationMinutes }} phút
-          </span>
+        <span class="meta-item">
+          <i class="icon-clock"></i>
+          {{ lesson.durationMinutes }} phút
+        </span>
         }
         @if (lesson.lessonType) {
-          <span class="meta-item lesson-type">
-            <i class="icon-book"></i>
-            {{ getLessonTypeLabel() }}
-          </span>
+        <span class="meta-item lesson-type">
+          <i class="icon-book"></i>
+          {{ getLessonTypeLabel() }}
+        </span>
+        }
+        @if (hasSections) {
+        <span class="meta-item sections-count">
+          <i class="icon-layers"></i>
+          {{ lesson.sections!.length }} phần
+        </span>
         }
       </div>
     </div>
 
-    <!-- Video Player - Coursera Style -->
-    @if (lesson.videoUrl) {
+    <!-- Current Section Content (Full Width) - Navigation via Sidebar -->
+    @if (hasSections && lesson.sections && currentSection) {
+    <div class="current-section-header">
+      <h2 class="section-title">{{ currentSection.title }}</h2>
+      <span class="section-type-badge" [attr.data-type]="currentSection.type">
+        {{ getSectionTypeLabel(currentSection.type) }}
+      </span>
+    </div>
+    }
+
+    <!-- Current Section Content -->
+    @if (currentSection) {
+    <div class="section-content">
+      <!-- Video Section -->
+      @if (currentSection.type === 'VIDEO' && currentSection.videoUrl) {
       <div class="video-section">
         <div class="video-container">
           @if (isYouTubeVideo()) {
-            <!-- YouTube Embed -->
-            <div class="video-wrapper">
-              <iframe
-                [src]="getYouTubeEmbedUrl()"
-                frameborder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowfullscreen
-                class="video-iframe">
-              </iframe>
-            </div>
+          <div class="video-wrapper">
+            <iframe [src]="getYouTubeEmbedUrl()" frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen class="video-iframe">
+            </iframe>
+          </div>
           } @else {
-            <!-- HTML5 Video Player -->
-            <div class="video-wrapper">
-              <video
-                [src]="lesson.videoUrl"
-                [poster]="lesson.thumbnail"
-                controls
-                controlsList="nodownload"
-                class="video-player"
-                (play)="onVideoPlay()"
-                (pause)="onVideoPause()"
-                (ended)="onVideoEnd()"
-                (timeupdate)="onVideoTimeUpdate($event)"
-                (error)="onVideoError($event)">
-                Trình duyệt của bạn không hỗ trợ video.
-              </video>
-            </div>
+          <div class="video-wrapper">
+            <video [src]="currentSection.videoUrl" controls controlsList="nodownload" class="video-player"
+              (play)="onVideoPlay()" (pause)="onVideoPause()" (ended)="onVideoEnd()"
+              (timeupdate)="onVideoTimeUpdate($event)" (error)="onVideoError($event)">
+              Trình duyệt của bạn không hỗ trợ video.
+            </video>
+          </div>
           }
         </div>
       </div>
-    }
+      }
 
-    <!-- HTML Content -->
-    @if (lesson.content) {
-      <div class="html-content" [innerHTML]="getSafeHtmlContent()"></div>
-    }
+      <!-- Text Section -->
+      @if (currentSection.type === 'TEXT' && currentSection.content) {
+      <div class="html-content" [innerHTML]="getSanitizedHtml(currentSection.content)"></div>
+      }
 
-    <!-- Attachments Section -->
-    @if (lesson.attachments && lesson.attachments.length > 0) {
-      <div class="attachments-section">
-        <h3 class="section-title">
-          <i class="icon-paperclip"></i>
-          Tài liệu đính kèm ({{ lesson.attachments.length }})
-        </h3>
-        <div class="attachments-list">
-          @for (attachment of lesson.attachments; track attachment.id) {
-            <div class="attachment-item">
-              <div class="attachment-icon">
-                <i class="icon-file"></i>
-              </div>
-              <div class="attachment-info">
-                <span class="attachment-name">{{ attachment.originalFileName }}</span>
-                @if (attachment.fileSize) {
-                  <span class="attachment-size">{{ formatFileSize(attachment.fileSize) }}</span>
-                }
-              </div>
-              <a 
-                [href]="attachment.fileUrl" 
-                download
-                class="attachment-download"
-                target="_blank"
-                rel="noopener noreferrer">
-                <i class="icon-download"></i>
-                Tải xuống
-              </a>
-            </div>
-          }
+      <!-- File Section -->
+      @if (currentSection.type === 'FILE' && currentSection.fileUrl) {
+      <div class="file-section">
+        <div class="file-card">
+          <svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z">
+            </path>
+          </svg>
+          <div class="file-info">
+            <h3>Tài liệu: {{ currentSection.title }}</h3>
+            <p>Nhấn nút bên dưới để tải xuống tài liệu</p>
+          </div>
+          <a [href]="currentSection.fileUrl" download class="btn-download-file" target="_blank"
+            rel="noopener noreferrer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+            </svg>
+            Tải xuống
+          </a>
         </div>
       </div>
-    }
+      }
 
-    <!-- Quiz Button - Show for QUIZ type lessons or if hasQuiz is true -->
-    @if (hasQuiz || lesson.lessonType === LessonType.QUIZ) {
+      <!-- Quiz Section -->
+      @if (currentSection.type === 'QUIZ') {
       <div class="quiz-prompt-card">
         <div class="quiz-prompt-content">
           <div class="quiz-icon-wrapper">
             <svg class="quiz-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 7h6m-6 4h6"></path>
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 7h6m-6 4h6">
+              </path>
             </svg>
           </div>
           <div class="quiz-text">
-            <h3 class="quiz-title">Kiểm tra</h3>
+            <h3 class="quiz-title">{{ currentSection.title }}</h3>
             <p class="quiz-description">Sẵn sàng kiểm tra kiến thức của bạn?</p>
           </div>
         </div>
         <button (click)="onGoToQuiz()" class="btn-start-quiz">
           <span>Làm bài trắc nghiệm</span>
           <svg class="arrow-icon" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+            <path fill-rule="evenodd"
+              d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
+              clip-rule="evenodd"></path>
           </svg>
         </button>
       </div>
+      }
+
+      <!-- Assignment Section -->
+      @if (currentSection.type === 'ASSIGNMENT' && currentSection.content) {
+      <div class="assignment-section">
+        <div class="assignment-card">
+          <div class="assignment-header">
+            <svg class="assignment-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+              </path>
+            </svg>
+            <h3>Bài tập: {{ currentSection.title }}</h3>
+          </div>
+          <div class="assignment-content" [innerHTML]="getSanitizedHtml(currentSection.content)"></div>
+        </div>
+      </div>
+      }
+    </div>
+    } @else {
+    <!-- Fallback: Show lesson-level content if no sections -->
+    <!-- Video Player - Coursera Style -->
+    @if (lesson.videoUrl) {
+    <div class="video-section">
+      <div class="video-container">
+        @if (isYouTubeVideo()) {
+        <!-- YouTube Embed -->
+        <div class="video-wrapper">
+          <iframe [src]="getYouTubeEmbedUrl()" frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowfullscreen class="video-iframe">
+          </iframe>
+        </div>
+        } @else {
+        <!-- HTML5 Video Player -->
+        <div class="video-wrapper">
+          <video [src]="lesson.videoUrl" [poster]="lesson.thumbnail" controls controlsList="nodownload"
+            class="video-player" (play)="onVideoPlay()" (pause)="onVideoPause()" (ended)="onVideoEnd()"
+            (timeupdate)="onVideoTimeUpdate($event)" (error)="onVideoError($event)">
+            Trình duyệt của bạn không hỗ trợ video.
+          </video>
+        </div>
+        }
+      </div>
+    </div>
+    }
+
+    <!-- HTML Content -->
+    @if (lesson.content) {
+    <div class="html-content" [innerHTML]="getSafeHtmlContent()"></div>
+    }
+    }
+
+    <!-- Attachments Section (Always show if available) -->
+    @if (lesson.attachments && lesson.attachments.length > 0) {
+    <div class="attachments-section">
+      <h3 class="section-title">
+        <i class="icon-paperclip"></i>
+        Tài liệu đính kèm ({{ lesson.attachments.length }})
+      </h3>
+      <div class="attachments-list">
+        @for (attachment of lesson.attachments; track attachment.id) {
+        <div class="attachment-item">
+          <div class="attachment-icon">
+            <i class="icon-file"></i>
+          </div>
+          <div class="attachment-info">
+            <span class="attachment-name">{{ attachment.originalFileName }}</span>
+            @if (attachment.fileSize) {
+            <span class="attachment-size">{{ formatFileSize(attachment.fileSize) }}</span>
+            }
+          </div>
+          <a [href]="attachment.fileUrl" download class="attachment-download" target="_blank" rel="noopener noreferrer">
+            <i class="icon-download"></i>
+            Tải xuống
+          </a>
+        </div>
+        }
+      </div>
+    </div>
+    }
+
+    <!-- Quiz Button - Show for QUIZ type lessons or if hasQuiz is true -->
+    @if ((hasQuiz || lesson.lessonType === LessonType.QUIZ) && !hasSections) {
+    <div class="quiz-prompt-card">
+      <div class="quiz-prompt-content">
+        <div class="quiz-icon-wrapper">
+          <svg class="quiz-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 7h6m-6 4h6">
+            </path>
+          </svg>
+        </div>
+        <div class="quiz-text">
+          <h3 class="quiz-title">Kiểm tra</h3>
+          <p class="quiz-description">Sẵn sàng kiểm tra kiến thức của bạn?</p>
+        </div>
+      </div>
+      <button (click)="onGoToQuiz()" class="btn-start-quiz">
+        <span>Làm bài trắc nghiệm</span>
+        <svg class="arrow-icon" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd"
+            d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
+            clip-rule="evenodd"></path>
+        </svg>
+      </button>
+    </div>
     }
 
   </div>

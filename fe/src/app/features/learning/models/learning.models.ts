@@ -50,12 +50,28 @@ export interface LessonSummary {
 }
 
 /**
+ * Section Content (Level 3)
+ * Actual content within a lesson
+ */
+export interface SectionContent {
+  id: string;
+  title: string;
+  type: 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT';
+  content?: string;
+  videoUrl?: string;
+  fileUrl?: string;
+  duration?: number;
+  orderIndex: number;
+  isRequired: boolean;
+}
+
+/**
  * Lesson Detail
  * Full lesson information including content and attachments
  */
 export interface LessonDetail extends LessonSummary {
-  content: string; // HTML content
-  videoUrl?: string;
+  content: string; // HTML content (fallback)
+  videoUrl?: string; // Fallback video URL
   thumbnail?: string;
   attachments: LessonAttachment[];
   sectionId: string;
@@ -63,6 +79,7 @@ export interface LessonDetail extends LessonSummary {
   courseId: string;
   courseTitle: string;
   durationMinutes?: number;
+  sections?: SectionContent[]; // Level 3 sections
 }
 
 /**

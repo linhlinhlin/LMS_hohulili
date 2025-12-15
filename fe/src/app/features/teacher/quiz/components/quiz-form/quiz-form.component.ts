@@ -28,15 +28,24 @@ import { QuestionSelectorComponent } from '../question-selector/question-selecto
 export class QuizFormComponent implements OnInit {
     @Input() config!: QuizFormConfig;
     @Input() questions: Question[] = [];
+    @Input() packages: any[] = [];
     @Input() initialData?: QuizFormData; // For edit mode
 
     @Output() onSubmit = new EventEmitter<QuizFormData>();
     @Output() onCancel = new EventEmitter<void>();
     @Output() questionsChanged = new EventEmitter<string[]>();
 
+    // New outputs for package handling
+    @Output() onPackageSelect = new EventEmitter<string>();
+    @Output() onUseMyQuestions = new EventEmitter<void>();
+
     quizForm!: FormGroup;
     currentStep = signal(1);
     selectedQuestionIds = signal<string[]>([]);
+
+    // Package selection state
+    activeSource = signal<'my-questions' | 'packages'>('my-questions');
+    selectedPackageId = signal<string>('');
 
     constructor(private fb: FormBuilder) { }
 
@@ -113,6 +122,23 @@ export class QuizFormComponent implements OnInit {
     onQuestionsSelected(questionIds: string[]) {
         this.selectedQuestionIds.set(questionIds);
         this.questionsChanged.emit(questionIds);
+    }
+
+    setSource(source: 'my-questions' | 'packages') {
+        this.activeSource.set(source);
+        if (source === 'my-questions') {
+            this.selectedPackageId.set('');
+            this.onUseMyQuestions.emit();
+        }
+    }
+
+    selectPackage(event: Event) {
+        const select = event.target as HTMLSelectElement;
+        const packageId = select.value;
+        this.selectedPackageId.set(packageId);
+        if (packageId) {
+            this.onPackageSelect.emit(packageId);
+        }
     }
 
     // ========== Form Submission ==========

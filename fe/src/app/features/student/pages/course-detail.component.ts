@@ -24,6 +24,17 @@ interface Section {
   lessons: Lesson[];
 }
 
+interface SectionContent {
+  id: string;
+  title: string;
+  type: 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT';
+  content?: string;
+  videoUrl?: string;
+  duration?: number;
+  orderIndex: number;
+  isRequired: boolean;
+}
+
 interface Lesson {
   id: string;
   title: string;
@@ -32,6 +43,7 @@ interface Lesson {
   durationMinutes?: number;
   isCompleted?: boolean;
   hasQuiz?: boolean;
+  sections: SectionContent[];
 }
 
 @Component({
@@ -125,9 +137,19 @@ export class CourseDetailComponent implements OnInit {
                 title: lesson.title,
                 description: lesson.description || '',
                 orderIndex: lesson.orderIndex ?? 0,
-                durationMinutes: 0, // TODO: Get from API
+                durationMinutes: lesson.sections?.reduce((sum, s) => sum + (s.duration || 0), 0) || 0,
                 isCompleted: false, // TODO: Get from progress tracking
-                hasQuiz: false // Will be updated by checkLessonQuiz
+                hasQuiz: lesson.sections?.some(s => s.type === 'QUIZ') || false,
+                sections: (lesson.sections || []).map(s => ({
+                  id: s.id,
+                  title: s.title,
+                  type: s.type as 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT',
+                  content: s.content,
+                  videoUrl: s.videoUrl,
+                  duration: s.duration,
+                  orderIndex: s.orderIndex ?? 0,
+                  isRequired: s.isRequired ?? false
+                }))
               }))
           }));
 

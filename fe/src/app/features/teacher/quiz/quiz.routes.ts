@@ -32,6 +32,13 @@ export const quizRoutes: Routes = [
         canActivate: [teacherGuard],
         title: 'Tạo Quiz cho Lesson'
       },
+      {
+        path: 'create/section/:sectionId',
+        loadComponent: () => import('./containers/lesson-quiz-create/lesson-quiz-create.component')
+          .then(m => m.LessonQuizCreateComponent),
+        canActivate: [teacherGuard],
+        title: 'Tạo Quiz cho Section'
+      },
       // NEW: Assignment Quiz Create (Smart Component)
       {
         path: 'create/assignment/:courseId',

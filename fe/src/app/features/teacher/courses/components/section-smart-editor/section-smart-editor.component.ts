@@ -1,6 +1,7 @@
 import { Component, inject, signal, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
 import { SectionApi } from '../../../../../api/client/section.api';
 import { RichTextEditorComponent } from '../../../../../shared/components/rich-text-editor/rich-text-editor.component';
 
@@ -13,6 +14,7 @@ import { RichTextEditorComponent } from '../../../../../shared/components/rich-t
 export class SectionSmartEditorComponent {
     private fb = inject(FormBuilder);
     private sectionApi = inject(SectionApi);
+    private router = inject(Router);
 
     @Input() lessonId!: string;
     @Output() close = new EventEmitter<void>();
@@ -35,6 +37,34 @@ export class SectionSmartEditorComponent {
         this.selectedType.set(type);
         this.selectedFile = null; // Reset file nếu chuyển tab
         this.form.patchValue({ content: '' }); // Reset nội dung
+    }
+
+    onCreateQuiz() {
+        if (!this.lessonId) {
+            alert('Không tìm thấy lesson ID');
+            return;
+        }
+
+        // Create a placeholder Section first
+        const formData = new FormData();
+        formData.append('lessonId', this.lessonId);
+        formData.append('title', this.form.value.title || 'Bài trắc nghiệm mới');
+        formData.append('type', 'QUIZ');
+
+        this.isSubmitting.set(true);
+        this.sectionApi.createSection(formData).subscribe({
+            next: (section: any) => {
+                this.isSubmitting.set(false);
+                // Navigate to the Quiz Builder with the new Section ID
+                this.router.navigate(['/teacher/quiz/create/section', section.id]);
+                this.close.emit();
+            },
+            error: (err) => {
+                console.error(err);
+                this.isSubmitting.set(false);
+                alert('Có lỗi xảy ra khi tạo Section Quiz.');
+            }
+        });
     }
 
     // Bắt sự kiện chọn file

@@ -18,6 +18,8 @@ public interface QuizRepository extends JpaRepository<Quiz, UUID> {
     @Query("SELECT q FROM Quiz q WHERE q.section.lesson.id = :lessonId")
     Optional<Quiz> findByLessonId(@Param("lessonId") UUID lessonId);
 
+    Optional<Quiz> findBySectionId(UUID sectionId);
+
     // Find first quiz by lesson id to handle potential duplicates
     @Query("SELECT q FROM Quiz q WHERE q.section.lesson.id = :lessonId ORDER BY q.createdAt DESC")
     Optional<Quiz> findFirstByLessonIdOrderByCreatedAtDesc(@Param("lessonId") UUID lessonId);

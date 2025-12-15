@@ -24,14 +24,8 @@
 
       <div class="form-group">
         <label for="title">Tiêu đề <span class="required">*</span></label>
-        <input
-          type="text"
-          id="title"
-          formControlName="title"
-          class="form-control"
-          placeholder="Nhập tiêu đề bài kiểm tra"
-          [class.is-invalid]="titleControl?.invalid && titleControl?.touched"
-        />
+        <input type="text" id="title" formControlName="title" class="form-control"
+          placeholder="Nhập tiêu đề bài kiểm tra" [class.is-invalid]="titleControl?.invalid && titleControl?.touched" />
         <div class="invalid-feedback" *ngIf="titleControl?.invalid && titleControl?.touched">
           <span *ngIf="titleControl?.errors?.['required']">Tiêu đề là bắt buộc</span>
           <span *ngIf="titleControl?.errors?.['maxlength']">Tiêu đề không được quá 255 ký tự</span>
@@ -40,39 +34,21 @@
 
       <div class="form-group">
         <label for="description">Mô tả</label>
-        <textarea
-          id="description"
-          formControlName="description"
-          class="form-control"
-          rows="3"
-          placeholder="Nhập mô tả (tùy chọn)"
-        ></textarea>
+        <textarea id="description" formControlName="description" class="form-control" rows="3"
+          placeholder="Nhập mô tả (tùy chọn)"></textarea>
       </div>
 
       <div class="form-row">
         <div class="form-group">
           <label for="timeLimitMinutes">Thời gian làm bài (phút)</label>
-          <input
-            type="number"
-            id="timeLimitMinutes"
-            formControlName="timeLimitMinutes"
-            class="form-control"
-            placeholder="Không giới hạn"
-            min="1"
-          />
+          <input type="number" id="timeLimitMinutes" formControlName="timeLimitMinutes" class="form-control"
+            placeholder="Không giới hạn" min="1" />
         </div>
 
         <div class="form-group">
           <label for="maxAttempts">Số lần làm tối đa <span class="required">*</span></label>
-          <input
-            type="number"
-            id="maxAttempts"
-            formControlName="maxAttempts"
-            class="form-control"
-            min="1"
-            max="10"
-            [class.is-invalid]="maxAttemptsControl?.invalid && maxAttemptsControl?.touched"
-          />
+          <input type="number" id="maxAttempts" formControlName="maxAttempts" class="form-control" min="1" max="10"
+            [class.is-invalid]="maxAttemptsControl?.invalid && maxAttemptsControl?.touched" />
           <div class="invalid-feedback" *ngIf="maxAttemptsControl?.invalid && maxAttemptsControl?.touched">
             Từ 1 đến 10 lần
           </div>
@@ -80,15 +56,8 @@
 
         <div class="form-group">
           <label for="passingScore">Điểm đạt (%) <span class="required">*</span></label>
-          <input
-            type="number"
-            id="passingScore"
-            formControlName="passingScore"
-            class="form-control"
-            min="0"
-            max="100"
-            [class.is-invalid]="passingScoreControl?.invalid && passingScoreControl?.touched"
-          />
+          <input type="number" id="passingScore" formControlName="passingScore" class="form-control" min="0" max="100"
+            [class.is-invalid]="passingScoreControl?.invalid && passingScoreControl?.touched" />
           <div class="invalid-feedback" *ngIf="passingScoreControl?.invalid && passingScoreControl?.touched">
             Từ 0 đến 100%
           </div>
@@ -99,23 +68,13 @@
       <div class="form-row" *ngIf="config.showDates">
         <div class="form-group">
           <label for="startDate">Ngày bắt đầu</label>
-          <input
-            type="datetime-local"
-            id="startDate"
-            formControlName="startDate"
-            class="form-control"
-          />
+          <input type="datetime-local" id="startDate" formControlName="startDate" class="form-control" />
         </div>
 
         <div class="form-group">
           <label for="endDate">Ngày kết thúc</label>
-          <input
-            type="datetime-local"
-            id="endDate"
-            formControlName="endDate"
-            class="form-control"
-            [class.is-invalid]="quizForm.errors?.['dateRangeInvalid'] && endDateControl?.touched"
-          />
+          <input type="datetime-local" id="endDate" formControlName="endDate" class="form-control"
+            [class.is-invalid]="quizForm.errors?.['dateRangeInvalid'] && endDateControl?.touched" />
           <div class="invalid-feedback" *ngIf="quizForm.errors?.['dateRangeInvalid']">
             Ngày kết thúc phải sau ngày bắt đầu
           </div>
@@ -124,7 +83,7 @@
 
       <div class="form-group">
         <h4>Cài đặt</h4>
-        
+
         <div class="checkbox-group">
           <label class="checkbox-label">
             <input type="checkbox" formControlName="shuffleQuestions" />
@@ -157,12 +116,46 @@
     <!-- Step 2: Question Selection -->
     <div class="form-step" *ngIf="currentStep() === 2">
       <h3>Chọn câu hỏi</h3>
-      
-      <app-question-selector
-        [questions]="questions"
-        [selectedIds]="selectedQuestionIds()"
-        (selectionChange)="onQuestionsSelected($event)"
-      ></app-question-selector>
+
+      <!-- Source Selection Toolbar -->
+      <div class="mb-4 flex items-center gap-4 bg-gray-50 p-3 rounded-lg border border-gray-200">
+        <label class="font-medium text-gray-700">Nguồn câu hỏi:</label>
+
+        <div class="flex gap-2">
+          <button type="button" class="px-4 py-2 rounded-md text-sm font-medium transition-colors"
+            [class.bg-indigo-600]="activeSource() === 'my-questions'"
+            [class.text-white]="activeSource() === 'my-questions'" [class.bg-white]="activeSource() !== 'my-questions'"
+            [class.text-gray-700]="activeSource() !== 'my-questions'" [class.border]="activeSource() !== 'my-questions'"
+            (click)="setSource('my-questions')">
+            <i class="fas fa-user-tag mr-2"></i> Câu hỏi của tôi
+          </button>
+
+          <button type="button" class="px-4 py-2 rounded-md text-sm font-medium transition-colors"
+            [class.bg-indigo-600]="activeSource() === 'packages'" [class.text-white]="activeSource() === 'packages'"
+            [class.bg-white]="activeSource() !== 'packages'" [class.text-gray-700]="activeSource() !== 'packages'"
+            [class.border]="activeSource() !== 'packages'" (click)="setSource('packages')">
+            <i class="fas fa-box-open mr-2"></i> Từ gói câu hỏi
+          </button>
+        </div>
+
+        <!-- Package Selector -->
+        <div class="flex-1 ml-4" *ngIf="activeSource() === 'packages'">
+          <select class="w-full form-control" [value]="selectedPackageId()" (change)="selectPackage($event)">
+            <option value="" disabled selected>-- Chọn gói câu hỏi --</option>
+            <option *ngFor="let pkg of packages" [value]="pkg.id">
+              {{ pkg.name }} ({{ pkg.questionCount }} câu)
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <p class="text-sm text-gray-500 mb-3 ml-1" *ngIf="activeSource() === 'packages' && selectedPackageId()">
+        <i class="fas fa-info-circle"></i> Đang hiển thị câu hỏi từ gói đã chọn. Bạn có thể chọn câu hỏi cụ thể bên
+        dưới.
+      </p>
+
+      <app-question-selector [questions]="questions" [selectedIds]="selectedQuestionIds()"
+        (selectionChange)="onQuestionsSelected($event)"></app-question-selector>
 
       <div class="alert alert-warning" *ngIf="selectedQuestionIds().length === 0">
         <i class="fas fa-exclamation-triangle"></i>
@@ -207,8 +200,8 @@
         <div class="review-item" *ngIf="config.showDates && quizForm.get('startDate')?.value">
           <span class="label">Thời gian:</span>
           <span class="value">
-            {{ quizForm.get('startDate')?.value | date:'dd/MM/yyyy HH:mm' }} 
-            - 
+            {{ quizForm.get('startDate')?.value | date:'dd/MM/yyyy HH:mm' }}
+            -
             {{ quizForm.get('endDate')?.value | date:'dd/MM/yyyy HH:mm' }}
           </span>
         </div>
@@ -241,31 +234,16 @@
       </button>
 
       <div class="action-right">
-        <button
-          type="button"
-          class="btn btn-outline"
-          (click)="prevStep()"
-          *ngIf="currentStep() > 1"
-        >
+        <button type="button" class="btn btn-outline" (click)="prevStep()" *ngIf="currentStep() > 1">
           <i class="fas fa-arrow-left"></i> Quay lại
         </button>
 
-        <button
-          type="button"
-          class="btn btn-primary"
-          (click)="nextStep()"
-          *ngIf="currentStep() < 3"
-          [disabled]="currentStep() === 1 && !isStep1Valid || currentStep() === 2 && !isStep2Valid"
-        >
+        <button type="button" class="btn btn-primary" (click)="nextStep()" *ngIf="currentStep() < 3"
+          [disabled]="currentStep() === 1 && !isStep1Valid || currentStep() === 2 && !isStep2Valid">
           Tiếp theo <i class="fas fa-arrow-right"></i>
         </button>
 
-        <button
-          type="submit"
-          class="btn btn-success"
-          *ngIf="currentStep() === 3"
-          [disabled]="!canSubmit"
-        >
+        <button type="submit" class="btn btn-success" *ngIf="currentStep() === 3" [disabled]="!canSubmit">
           <i class="fas fa-check"></i> Hoàn thành
         </button>
       </div>

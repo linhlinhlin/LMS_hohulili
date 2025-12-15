@@ -3,12 +3,14 @@ import { ApiClient } from './api-client';
 import { COURSE_ENDPOINTS } from '../endpoints/course.endpoints';
 import { ApiResponse } from '../types/common.types';
 import { CreateCourseRequest, CourseDetail, CourseSummary, CourseContentChapter, EnrollStudentRequest } from '../types/course.types';
-import { map } from 'rxjs/operators';
+import { map, tap } from 'rxjs/operators';
 import { Observable } from 'rxjs';
+import { ApiCacheService } from '../../core/services/api-cache.service';
 
 @Injectable({ providedIn: 'root' })
 export class CourseApi {
   private api = inject(ApiClient);
+  private cache = inject(ApiCacheService);
 
   createCourse(payload: CreateCourseRequest) {
     return this.api.postWithResponse<CourseDetail>(COURSE_ENDPOINTS.CREATE, payload);
@@ -76,13 +78,17 @@ export class CourseApi {
   }
 
   enrollStudentAsTeacher(courseId: string, payload: EnrollStudentRequest) {
-    return this.api.postWithResponse<string>(COURSE_ENDPOINTS.ENROLLMENTS(courseId), payload);
+    return this.api.postWithResponse<string>(COURSE_ENDPOINTS.ENROLLMENTS(courseId), payload).pipe(
+      tap(() => this.invalidateEnrolledStudentsCache(courseId))
+    );
   }
 
   bulkEnrollStudents(courseId: string, file: File) {
     const formData = new FormData();
     formData.append('file', file);
-    return this.api.postWithResponse<any>(`/api/v1/courses/${courseId}/bulk-enroll`, formData);
+    return this.api.postWithResponse<any>(`/api/v1/courses/${courseId}/bulk-enroll`, formData).pipe(
+      tap(() => this.invalidateEnrolledStudentsCache(courseId))
+    );
   }
 
   deleteCourse(id: string) {
@@ -123,19 +129,29 @@ export class CourseApi {
     );
   }
 
-  // Get enrolled students in this course
+  // Get enrolled students in this course (with caching)
   getEnrolledStudents(courseId: string, params?: { page?: number; size?: number; search?: string }): Observable<ApiResponse<EnrolledStudent[]>> {
-    return this.api.getWithResponse<any>(`/api/v1/courses/${courseId}/students`, { params }).pipe(
-      map((res: ApiResponse<any>) => {
-        // Backend returns List directly, not Page
-        const content: EnrolledStudent[] = res?.data?.content ?? res?.data ?? [];
-        return {
-          data: content,
-          pagination: res?.pagination,
-          message: res?.message
-        } as ApiResponse<EnrolledStudent[]>;
-      })
+    const cacheKey = `enrolled-students-${courseId}-${JSON.stringify(params || {})}`;
+
+    return this.cache.get(
+      cacheKey,
+      () => this.api.getWithResponse<any>(`/api/v1/courses/${courseId}/students`, { params }).pipe(
+        map((res: ApiResponse<any>) => {
+          const content: EnrolledStudent[] = res?.data?.content ?? res?.data ?? [];
+          return {
+            data: content,
+            pagination: res?.pagination,
+            message: res?.message
+          } as ApiResponse<EnrolledStudent[]>;
+        })
+      ),
+      30000 // Cache for 30 seconds
     );
+  }
+
+  // Call this after enrolling students to refresh the list
+  invalidateEnrolledStudentsCache(courseId: string): void {
+    this.cache.invalidatePattern(`enrolled-students-${courseId}`);
   }
 }
 

@@ -14,7 +14,8 @@ export class SectionApi {
   }
 
   updateSection(sectionId: string, payload: UpdateSectionRequest | FormData) {
-    return this.api.put<ApiResponse<SectionDetail>>(SECTION_ENDPOINTS.UPDATE(sectionId), payload);
+    // Note: If payload is FormData, HttpClient handles Content-Type automatically
+    return this.api.putWithResponse<SectionDetail>(SECTION_ENDPOINTS.UPDATE(sectionId), payload);
   }
 
   deleteSection(sectionId: string) {

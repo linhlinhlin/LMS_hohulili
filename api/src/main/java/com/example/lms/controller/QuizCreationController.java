@@ -7,6 +7,7 @@ import com.example.lms.dto.response.QuizResponse;
 import com.example.lms.entity.User;
 import com.example.lms.usecase.CreateAssignmentQuizUseCase;
 import com.example.lms.usecase.CreateLessonQuizUseCase;
+import com.example.lms.usecase.CreateSectionQuizUseCase;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -34,10 +35,16 @@ public class QuizCreationController {
 
     private final CreateLessonQuizUseCase createLessonQuizUseCase;
     private final CreateAssignmentQuizUseCase createAssignmentQuizUseCase;
+    private final CreateSectionQuizUseCase createSectionQuizUseCase;
 
-    public QuizCreationController(CreateLessonQuizUseCase createLessonQuizUseCase, CreateAssignmentQuizUseCase createAssignmentQuizUseCase) {
+    public QuizCreationController(
+            CreateLessonQuizUseCase createLessonQuizUseCase, 
+            CreateAssignmentQuizUseCase createAssignmentQuizUseCase,
+            CreateSectionQuizUseCase createSectionQuizUseCase
+    ) {
         this.createLessonQuizUseCase = createLessonQuizUseCase;
         this.createAssignmentQuizUseCase = createAssignmentQuizUseCase;
+        this.createSectionQuizUseCase = createSectionQuizUseCase;
     }
 
     /**
@@ -81,6 +88,55 @@ public class QuizCreationController {
                 
         } catch (Exception e) {
             log.error("Unexpected error creating lesson quiz", e);
+            return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.error("Internal server error: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Create section-bound quiz (Level 3 - New Model)
+     * POST /api/v2/quizzes/sections/{sectionId}
+     */
+    @PostMapping("/sections/{sectionId}")
+    @Operation(
+        summary = "Tạo quiz cho section (DDD)",
+        description = "Tạo quiz gắn với section (Level 3) - thay thế cho lesson quiz cũ"
+    )
+    public ResponseEntity<ApiResponse<QuizResponse>> createSectionQuiz(
+            @PathVariable UUID sectionId,
+            @Valid @RequestBody CreateLessonQuizRequest request,
+            @AuthenticationPrincipal User currentUser
+    ) {
+        System.out.println("DEBUG: Reached createSectionQuiz controller for section " + sectionId);
+        try {
+            log.info("Creating section quiz for section: {}, teacher: {}", sectionId, currentUser.getId());
+            
+            QuizResponse quiz = createSectionQuizUseCase.execute(
+                sectionId,
+                request,
+                currentUser.getId()
+            );
+            
+            return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(ApiResponse.success(quiz, "Section quiz created successfully"));
+                
+        } catch (SecurityException e) {
+            log.error("Security error creating section quiz: {}", e.getMessage());
+            // DEBUG: Return 400 instead of 403 to distinguish from filter chain block
+            return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error("Security Check Failed: " + e.getMessage()));
+                
+        } catch (IllegalArgumentException e) {
+            log.error("Validation error creating section quiz: {}", e.getMessage());
+            return ResponseEntity
+                .badRequest()
+                .body(ApiResponse.error(e.getMessage()));
+                
+        } catch (Exception e) {
+            log.error("Unexpected error creating section quiz", e);
             return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.error("Internal server error: " + e.getMessage()));
