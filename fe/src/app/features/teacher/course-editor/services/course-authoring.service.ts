@@ -10,6 +10,7 @@ export interface SectionDraftDTO { // Renamed from TopicDraftDTO
     type: string;
     content?: string;
     videoUrl?: string;
+    fileUrl?: string;
     duration?: number;
     orderIndex: number;
     isRequired?: boolean;
@@ -196,6 +197,7 @@ export class CourseAuthoringService {
                             type: t.type,
                             content: t.content,
                             videoUrl: t.videoUrl,
+                            fileUrl: t.fileUrl,
                             duration: t.duration,
                             orderIndex: t.orderIndex,
                             isRequired: t.isRequired

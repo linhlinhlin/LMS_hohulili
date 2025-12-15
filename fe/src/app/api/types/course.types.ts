@@ -44,9 +44,10 @@ export interface CourseContentChapter {
 export interface SectionSummary {
   id: string;
   title: string;
-  type: 'TEXT' | 'VIDEO' | 'QUIZ';
+  type: 'TEXT' | 'VIDEO' | 'QUIZ' | 'FILE';
   content?: string;
   videoUrl?: string;
+  fileUrl?: string;
   duration?: number;
   orderIndex: number;
   isRequired?: boolean;
@@ -127,7 +128,7 @@ export interface UpdateChapterRequest {
 export interface CreateSectionRequest {
   lessonId: string;
   title: string;
-  type?: 'TEXT' | 'VIDEO' | 'QUIZ';
+  type?: 'TEXT' | 'VIDEO' | 'QUIZ' | 'FILE';
   content?: string;
   videoUrl?: string;
   duration?: number;
@@ -137,7 +138,7 @@ export interface CreateSectionRequest {
 
 export interface UpdateSectionRequest {
   title?: string;
-  type?: 'TEXT' | 'VIDEO' | 'QUIZ'; // Usually type shouldn't change, but ok
+  type?: 'TEXT' | 'VIDEO' | 'QUIZ' | 'FILE'; // Usually type shouldn't change, but ok
   content?: string;
   videoUrl?: string;
   duration?: number;
@@ -152,6 +153,7 @@ export interface SectionDetail { // New L3 Section
   type: string;
   content: string;
   videoUrl: string;
+  fileUrl: string;
   duration: number;
   orderIndex: number;
   lessonId: string;

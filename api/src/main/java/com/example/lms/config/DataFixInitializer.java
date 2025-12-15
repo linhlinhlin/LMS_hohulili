@@ -30,6 +30,7 @@ public class DataFixInitializer {
         fixSubmissionStatusValues();
         fixUserRoleValues();
         fixLessonTypeValues();
+        fixSectionTypeConstraint();
         
         log.info("=== Database enum value normalization completed ===");
     }
@@ -147,6 +148,19 @@ public class DataFixInitializer {
             logResult("lesson type", updated);
         } catch (Exception e) {
             log.warn("Could not fix lesson type values: {}", e.getMessage());
+        }
+    }
+
+    private void fixSectionTypeConstraint() {
+        log.info("Fixing sections_type_check constraint...");
+        try {
+            // Drop existing constraint
+            jdbcTemplate.execute("ALTER TABLE sections DROP CONSTRAINT IF EXISTS sections_type_check");
+            // Add new constraint including FILE and ASSIGNMENT
+            jdbcTemplate.execute("ALTER TABLE sections ADD CONSTRAINT sections_type_check CHECK (type IN ('VIDEO', 'TEXT', 'QUIZ', 'FILE', 'ASSIGNMENT'))");
+            log.info("Successfully updated sections_type_check constraint");
+        } catch (Exception e) {
+            log.warn("Could not fix sections type constraint: {}", e.getMessage());
         }
     }
 

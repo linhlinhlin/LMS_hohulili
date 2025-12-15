@@ -30,8 +30,8 @@ import { RouterModule, Router } from '@angular/router';
       <div class="absolute top-1/3 right-1/3 w-8 h-8 bg-blue-300 rounded-lg opacity-20 animate-pulse" style="animation-delay: 0.5s;"></div>
 
       <!-- Foreground overlay - clean professional design -->
-      <div class="foreground-layer absolute inset-0 flex items-center justify-center z-20" style="width: 100vw; height: 100vh;">
-        <div class="text-center max-w-4xl mx-auto px-4">
+      <div class="foreground-layer absolute inset-0 flex items-center justify-center z-20 pointer-events-none" style="width: 100vw; height: 100vh;">
+        <div class="text-center max-w-4xl mx-auto px-4 pointer-events-auto">
           <!-- Hero Title -->
           <h1 class="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 text-balance text-slate-800">
             Nâng tầm sự nghiệp

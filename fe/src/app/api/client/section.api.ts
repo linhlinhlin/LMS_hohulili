@@ -13,7 +13,7 @@ export class SectionApi {
     return this.api.postWithResponse<SectionDetail>(SECTION_ENDPOINTS.CREATE, payload);
   }
 
-  updateSection(sectionId: string, payload: UpdateSectionRequest) {
+  updateSection(sectionId: string, payload: UpdateSectionRequest | FormData) {
     return this.api.put<ApiResponse<SectionDetail>>(SECTION_ENDPOINTS.UPDATE(sectionId), payload);
   }
 

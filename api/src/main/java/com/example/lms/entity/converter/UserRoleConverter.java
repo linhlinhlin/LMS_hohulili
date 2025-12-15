@@ -27,17 +27,15 @@ public class UserRoleConverter implements AttributeConverter<Role, String> {
         // Normalize: convert to uppercase
         String normalized = dbData.toUpperCase().trim();
         
-        // Try exact match first
+        // Handle "ROLE_" prefix if present (common Spring Security convention)
+        if (normalized.startsWith("ROLE_")) {
+            normalized = normalized.substring(5);
+        }
+        
+        // Try exact match
         try {
             return Role.valueOf(normalized);
         } catch (IllegalArgumentException e) {
-            // Try case-insensitive match
-            for (Role role : Role.values()) {
-                if (role.name().equalsIgnoreCase(dbData)) {
-                    return role;
-                }
-            }
-            
             System.err.println("WARNING: Unknown User Role value in database: '" + dbData + "', defaulting to STUDENT");
             return Role.STUDENT;
         }

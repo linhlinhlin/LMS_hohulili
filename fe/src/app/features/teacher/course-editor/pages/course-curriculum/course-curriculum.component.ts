@@ -46,7 +46,7 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
       @if (!selectedChapterId() && !selectedLessonId()) {
         <div class="bg-white shadow-sm border border-gray-200 h-full flex items-center justify-center">
           <div class="text-center p-8">
-            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div class="w-16 h-16 bg-gray-100 flex items-center justify-center mx-auto mb-4">
               <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path>
               </svg>
@@ -59,7 +59,7 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
 
       <!-- Chapter Editor -->
       @if (selectedChapterId() && !selectedLessonId()) {
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-y-auto h-full">
+        <div class="bg-white shadow-sm border border-gray-200 overflow-y-auto h-full">
           <div class="px-6 py-4 border-b border-gray-200 flex items-center gap-3">
             <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
               <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -110,25 +110,28 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
 
       <!-- Section Editor (Level 3) -->
       @if (selectedSectionId()) {
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-y-auto h-full">
+        <div class="bg-white shadow-sm border border-gray-200 overflow-y-auto h-full">
           <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
              <div class="flex items-center gap-3">
                <!-- Icon based on type -->
                <div class="w-10 h-10 rounded-lg flex items-center justify-center" 
                     [class.bg-blue-100]="newSectionType === 'VIDEO'" 
                     [class.bg-gray-100]="newSectionType === 'TEXT'"
+                    [class.bg-orange-100]="newSectionType === 'FILE'"
                     [class.bg-purple-100]="newSectionType === 'QUIZ'">
                  @if (newSectionType === 'VIDEO') {
                     <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path></svg>
                  } @else if (newSectionType === 'QUIZ') {
                     <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                 } @else if (newSectionType === 'FILE') {
+                    <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                  } @else {
                     <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                  }
                </div>
                <div>
                  <h2 class="text-lg font-semibold text-gray-900">
-                    {{ newSectionType === 'TEXT' ? 'Văn bản' : newSectionType === 'VIDEO' ? 'Video' : 'Trắc nghiệm' }}
+                    {{ newSectionType === 'TEXT' ? 'Văn bản' : newSectionType === 'VIDEO' ? 'Video' : newSectionType === 'FILE' ? 'Tài liệu' : 'Trắc nghiệm' }}
                  </h2>
                  <p class="text-sm text-gray-500">{{ sectionTitle || 'Chưa có tiêu đề' }}</p>
                </div>
@@ -226,6 +229,9 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
                        <button (click)="openSectionEditor('VIDEO')" class="px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-1">
                          <span>+ Video</span>
                        </button>
+                       <button (click)="openSectionEditor('FILE')" class="px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-1">
+                         <span>+ Tài liệu</span>
+                       </button>
                     </div>
                   </div>
                   
@@ -241,9 +247,14 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
                               <div class="text-gray-400 cursor-move" cdkDragHandle>
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
                               </div>
-                              <div class="w-8 h-8 rounded flex items-center justify-center flex-shrink-0" [class.bg-blue-100]="section.type === 'VIDEO'" [class.bg-gray-100]="section.type === 'TEXT'">
+                              <div class="w-8 h-8 rounded flex items-center justify-center flex-shrink-0" 
+                                   [class.bg-blue-100]="section.type === 'VIDEO'" 
+                                   [class.bg-orange-100]="section.type === 'FILE'" 
+                                   [class.bg-gray-100]="section.type === 'TEXT'">
                                  @if (section.type === 'VIDEO') {
                                    <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path></svg>
+                                 } @else if (section.type === 'FILE') {
+                                   <svg class="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                                  } @else {
                                    <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                                  }
@@ -662,10 +673,28 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
                   </div>
                </div>
              }
+             
+             @if (newSectionType === 'FILE') {
+               <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Tải lên tài liệu <span class="text-red-500">*</span></label>
+                  <input type="file" (change)="onFileSelected($event)" 
+                         class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-gray-300 rounded-lg p-1">
+                  
+                  @if (sectionFileUrl()) {
+                    <div class="mt-3 flex items-center p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <svg class="w-6 h-6 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                      <a [href]="sectionFileUrl()" target="_blank" class="text-blue-600 hover:underline text-sm font-medium truncate flex-1">
+                        {{ getFileNameFromUrl(sectionFileUrl()!) }}
+                      </a>
+                    </div>
+                  }
+               </div>
+             }
           </div>
           <div class="p-5 border-t border-gray-200 flex justify-end gap-3 bg-gray-50">
             <button (click)="showSectionModal.set(false)" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">Hủy</button>
-            <button (click)="saveSection()" [disabled]="isSaving() || !sectionTitle.trim()" class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2">
+            <button (click)="saveSection()" [disabled]="isSaving() || !sectionTitle.trim() || (newSectionType === 'FILE' && !selectedFile && !sectionFileUrl())" 
+                    class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2">
               @if (isSaving()) { <span class="animate-spin">⏳</span> }
               {{ editingSectionId() ? 'Cập nhật' : 'Tạo mới' }}
             </button>
@@ -753,7 +782,7 @@ export class CourseCurriculumComponent {
       contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells']
     },
 
-    // Placeholder hướng dẫn
+    // Placeholder
     placeholder: 'Nhập nội dung bài học chi tiết tại đây (văn bản, hình ảnh, video)...'
   };
 
@@ -790,14 +819,30 @@ export class CourseCurriculumComponent {
   // Section Logic (L3)
   editingSectionId = signal<string | null>(null);
   showSectionModal = signal(false);
-  newSectionType: 'TEXT' | 'VIDEO' | 'QUIZ' = 'TEXT';
+  newSectionType: 'TEXT' | 'VIDEO' | 'QUIZ' | 'FILE' = 'TEXT';
 
   // Section Form
   sectionTitle = '';
   sectionContent = '';
   sectionVideoUrl = '';
   sectionIsRequired = false;
-  safeVideoUrl = signal<SafeResourceUrl | null>(null); // [NEW]
+  sectionFileUrl = signal<string | null>(null); // [NEW]
+  selectedFile: File | null = null; // [NEW]
+  safeVideoUrl = signal<SafeResourceUrl | null>(null); // [Restored]
+
+  // [NEW] File Handling
+  onFileSelected(event: any) {
+    const file = event.target.files[0];
+    if (file) {
+      this.selectedFile = file;
+    }
+  }
+
+  getFileNameFromUrl(url: string): string {
+    if (!url) return '';
+    const parts = url.split('/');
+    return parts[parts.length - 1];
+  }
 
   // State
   isSaving = signal(false);
@@ -877,6 +922,7 @@ export class CourseCurriculumComponent {
         this.newSectionType = (section.type as any) || 'TEXT';
         this.sectionContent = section.content || '';
         this.sectionVideoUrl = section.videoUrl || '';
+        this.sectionFileUrl.set(section.fileUrl || null); // [NEW]
         this.sectionIsRequired = (section as any).isRequired || false;
         this.updateVideoPreview(this.sectionVideoUrl); // [NEW] Init preview
       }
@@ -1210,12 +1256,14 @@ export class CourseCurriculumComponent {
     }
   }
   // Section Methods (L3)
-  openSectionEditor(type: 'TEXT' | 'VIDEO' | 'QUIZ') {
+  openSectionEditor(type: 'TEXT' | 'VIDEO' | 'QUIZ' | 'FILE') {
     this.editingSectionId.set(null);
-    this.newSectionType = type;
+    this.newSectionType = type as any;
     this.sectionTitle = '';
     this.sectionContent = '';
     this.sectionVideoUrl = '';
+    this.sectionFileUrl.set(null);
+    this.selectedFile = null;
     this.sectionIsRequired = false;
     this.showSectionModal.set(true);
   }
@@ -1226,6 +1274,8 @@ export class CourseCurriculumComponent {
     this.sectionTitle = section.title;
     this.sectionContent = section.content || '';
     this.sectionVideoUrl = section.videoUrl || '';
+    this.sectionFileUrl.set(section.fileUrl || null);
+    this.selectedFile = null;
     this.sectionIsRequired = section.isRequired || false;
     this.showSectionModal.set(true);
   }
@@ -1258,25 +1308,28 @@ export class CourseCurriculumComponent {
 
     this.isSaving.set(true);
     try {
+      const formData = new FormData();
+      formData.append('title', this.sectionTitle.trim());
+      formData.append('type', this.newSectionType);
+      formData.append('isRequired', String(this.sectionIsRequired));
+
+      if (this.newSectionType === 'TEXT') {
+        formData.append('content', this.sectionContent);
+      } else if (this.newSectionType === 'VIDEO') {
+        formData.append('videoUrl', this.sectionVideoUrl);
+      } else if (this.newSectionType === 'FILE') {
+        if (this.selectedFile) {
+          formData.append('file', this.selectedFile);
+        }
+      }
+
       if (this.editingSectionId()) {
         // Update
-        await firstValueFrom(this.sectionApi.updateSection(this.editingSectionId()!, {
-          title: this.sectionTitle.trim(),
-          content: this.sectionContent,
-          videoUrl: this.sectionVideoUrl,
-          isRequired: this.sectionIsRequired,
-          type: this.newSectionType // Usually type doesn't change
-        }));
+        await firstValueFrom(this.sectionApi.updateSection(this.editingSectionId()!, formData));
       } else {
         // Create
-        await firstValueFrom(this.sectionApi.createSection({
-          lessonId: lesson.id,
-          title: this.sectionTitle.trim(),
-          type: this.newSectionType,
-          content: this.sectionContent,
-          videoUrl: this.sectionVideoUrl,
-          isRequired: this.sectionIsRequired
-        }));
+        formData.append('lessonId', lesson.id);
+        await firstValueFrom(this.sectionApi.createSection(formData));
       }
       // Reload course to refresh tree
       const courseId = this.store.courseTree()?.id;
