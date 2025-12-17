@@ -133,4 +133,16 @@ public interface UserRepository extends JpaRepository<User, UUID> {
         @Param("search") String search, 
         Pageable pageable
     );
+    @Query("""
+        SELECT u FROM User u 
+        WHERE u.role = :role 
+        AND (:search IS NULL OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :search, '%')) 
+             OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%'))
+             OR LOWER(u.username) LIKE LOWER(CONCAT('%', :search, '%')))
+    """)
+    Page<User> searchByRole(
+        @Param("role") User.Role role, 
+        @Param("search") String search, 
+        Pageable pageable
+    );
 }

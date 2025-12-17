@@ -6,7 +6,7 @@ import { Injectable, signal, computed, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { Course, CourseCategory, CourseLevel, Lesson, CourseProgress, FilterOptions, ExtendedCourse } from '../shared/types/course.types';
 import { PaginatedResponse } from '../shared/types/common.types';
-import { CourseApi } from '../api/client/course.api';
+import { CourseApi, ClassSummary } from '../api/client/course.api';
 import { CourseSummary, CourseDetail } from '../api/types/course.types';
 
 @Injectable({
@@ -170,12 +170,12 @@ export class CourseService {
   /**
    * Enroll in a course via real API
    */
-  async enrollInCourse(courseId: string, userId: string): Promise<void> {
+  async enrollInCourse(courseId: string, userId: string, classId?: string): Promise<void> {
     this._isLoading.set(true);
     this._error.set(null);
 
     try {
-      await firstValueFrom(this.courseApi.enrollCourse(courseId));
+      await firstValueFrom(this.courseApi.enrollCourse(courseId, classId));
 
       // Update local progress state
       const existingProgress = this._progress().find(p => p.courseId === courseId && p.userId === userId);
@@ -198,6 +198,16 @@ export class CourseService {
       throw error;
     } finally {
       this._isLoading.set(false);
+    }
+  }
+
+  async getAvailableClasses(courseId: string): Promise<ClassSummary[]> {
+    try {
+      const res = await firstValueFrom(this.courseApi.getAvailableClasses(courseId));
+      return res.data || [];
+    } catch (e) {
+      console.error('Error fetching classes', e);
+      return [];
     }
   }
 

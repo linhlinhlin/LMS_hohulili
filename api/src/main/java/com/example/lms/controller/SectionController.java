@@ -24,12 +24,16 @@ public class SectionController {
             @RequestParam("lessonId") UUID lessonId,
             @RequestParam("title") String title,
             @RequestParam("type") String typeStr, // "TEXT", "VIDEO", "FILE"
-            @RequestParam(value = "content", required = false) String content, // HTML hoặc Video URL
+            @RequestParam(value = "content", required = false) String content, // HTML
+            @RequestParam(value = "videoUrl", required = false) String videoUrl, // Explicit videoUrl param
+            @RequestParam(value = "isRequired", required = false, defaultValue = "false") Boolean isRequired,
             @RequestParam(value = "file", required = false) MultipartFile file // Chỉ dùng khi type=FILE
     ) {
         Section.SectionType type = Section.SectionType.valueOf(typeStr.toUpperCase());
+        // Use videoUrl if content is null/empty and type is VIDEO
+        String finalContent = (type == Section.SectionType.VIDEO && (content == null || content.isEmpty())) ? videoUrl : content;
         
-        Section newSection = sectionService.createSection(lessonId, title, type, content, file);
+        Section newSection = sectionService.createSection(lessonId, title, type, finalContent, isRequired, file);
         
         return ResponseEntity.ok(newSection);
     }
@@ -40,10 +44,14 @@ public class SectionController {
             @RequestParam("title") String title,
             @RequestParam("type") String typeStr,
             @RequestParam(value = "content", required = false) String content,
+            @RequestParam(value = "videoUrl", required = false) String videoUrl,
+            @RequestParam(value = "isRequired", required = false, defaultValue = "false") Boolean isRequired,
             @RequestParam(value = "file", required = false) MultipartFile file
     ) {
         Section.SectionType type = Section.SectionType.valueOf(typeStr.toUpperCase());
-        Section updatedSection = sectionService.updateSection(sectionId, title, type, content, file);
+        String finalContent = (type == Section.SectionType.VIDEO && (content == null || content.isEmpty())) ? videoUrl : content;
+        
+        Section updatedSection = sectionService.updateSection(sectionId, title, type, finalContent, isRequired, file);
         return ResponseEntity.ok(updatedSection);
     }
     

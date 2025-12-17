@@ -19,7 +19,7 @@ public class SectionService {
     private final FileService fileService;
 
     @Transactional
-    public Section createSection(UUID lessonId, String title, Section.SectionType type, String contentOrUrl, MultipartFile file) {
+    public Section createSection(UUID lessonId, String title, Section.SectionType type, String contentOrUrl, Boolean isRequired, MultipartFile file) {
         // 1. Tìm Lesson cha
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new RuntimeException("Lesson not found"));
@@ -34,7 +34,7 @@ public class SectionService {
                 .type(type)
                 .lesson(lesson)
                 .orderIndex(newOrder)
-                .isRequired(false)
+                .isRequired(isRequired)
                 .build();
 
         // 4. Xử lý dữ liệu theo Type
@@ -64,11 +64,12 @@ public class SectionService {
     }
 
     @Transactional
-    public Section updateSection(UUID sectionId, String title, Section.SectionType type, String contentOrUrl, MultipartFile file) {
+    public Section updateSection(UUID sectionId, String title, Section.SectionType type, String contentOrUrl, Boolean isRequired, MultipartFile file) {
         Section section = getSectionById(sectionId);
         
         section.setTitle(title);
         section.setType(type);
+        section.setIsRequired(isRequired);
 
         // Update content based on type
         switch (type) {

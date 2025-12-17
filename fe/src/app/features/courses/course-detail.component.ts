@@ -5,6 +5,9 @@ import { Title, Meta } from '@angular/platform-browser';
 import { PLATFORM_ID } from '@angular/core';
 import { CourseService } from '../../state/course.service';
 import { Course, CourseCategory, ExtendedCourse } from '../../shared/types/course.types';
+import { AuthService } from '../../core/services/auth.service';
+import { ClassSummary } from '../../api/client/course.api';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-course-detail',
@@ -56,7 +59,8 @@ import { Course, CourseCategory, ExtendedCourse } from '../../shared/types/cours
                     </div>
                   </div>
 
-                  <button class="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all mb-4">
+                  <button (click)="handleEnrollClick()" 
+                          class="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all mb-4">
                     Đăng ký khóa học
                   </button>
 
@@ -148,19 +152,63 @@ import { Course, CourseCategory, ExtendedCourse } from '../../shared/types/cours
           </div>
         </div>
       }
+
+      <!-- Class Selection Modal -->
+      @if (showClassModal()) {
+        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div class="bg-white rounded-lg p-6 max-w-md w-full">
+            <h3 class="text-xl font-bold mb-4">Chọn lớp học</h3>
+            <div class="space-y-3 max-h-60 overflow-y-auto mb-4">
+              @for (cls of availableClasses(); track cls.id) {
+                <div (click)="selectedClass.set(cls.id)" 
+                     class="p-4 border rounded cursor-pointer hover:bg-gray-50 flex justify-between items-center"
+                     [class.border-blue-500]="selectedClass() === cls.id"
+                     [class.bg-blue-50]="selectedClass() === cls.id">
+                  <div>
+                    <div class="font-semibold">{{ cls.name }}</div>
+                    <div class="text-sm text-gray-500">Giảng viên: {{ cls.teacherName }}</div>
+                  </div>
+                  <div class="text-sm text-gray-600">
+                    {{ cls.maxStudents }} học viên
+                  </div>
+                </div>
+              }
+            </div>
+            
+            <div class="flex justify-end space-x-3">
+              <button (click)="showClassModal.set(false)" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">
+                Hủy
+              </button>
+              <button (click)="confirmEnrollment()" 
+                      [disabled]="!selectedClass() || isEnrolling()"
+                      class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50">
+                {{ isEnrolling() ? 'Đang xử lý...' : 'Xác nhận' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      }
     </div>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CourseDetailComponent implements OnInit {
   protected courseService = inject(CourseService);
+  protected authService = inject(AuthService);
+  private router = inject(Router);
   private route = inject(ActivatedRoute);
   private title = inject(Title);
   private meta = inject(Meta);
-  constructor(@Inject(DOCUMENT) private document: Document, @Inject(PLATFORM_ID) private platformId: Object) {}
+  constructor(@Inject(DOCUMENT) private document: Document, @Inject(PLATFORM_ID) private platformId: Object) { }
 
   course = signal<ExtendedCourse | null>(null);
-  
+
+  // Class selection state
+  availableClasses = signal<ClassSummary[]>([]);
+  showClassModal = signal(false);
+  selectedClass = signal<string | null>(null);
+  isEnrolling = signal(false);
+
   // Make Math available in template
   Math = Math;
 
@@ -170,6 +218,61 @@ export class CourseDetailComponent implements OnInit {
         this.loadCourse(params['id']);
       }
     });
+  }
+
+  async handleEnrollClick() {
+    if (!this.authService.currentUser()) {
+      this.router.navigate(['/auth/login'], { queryParams: { returnUrl: this.router.url } });
+      return;
+    }
+
+    const courseId = this.course()?.id;
+    if (!courseId) return;
+
+    this.isEnrolling.set(true);
+    try {
+      const classes = await this.courseService.getAvailableClasses(courseId);
+      if (classes.length === 0) {
+        alert('Hiện tại chưa có lớp nào mở cho khóa học này.');
+      } else if (classes.length === 1) {
+        // Enroll directly in the only class
+        await this.enroll(classes[0].id);
+      } else {
+        // Show modal
+        this.availableClasses.set(classes);
+        this.selectedClass.set(null);
+        this.showClassModal.set(true);
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Có lỗi xảy ra khi kiểm tra lớp học.');
+    } finally {
+      this.isEnrolling.set(false);
+    }
+  }
+
+  async confirmEnrollment() {
+    const clsId = this.selectedClass();
+    if (clsId) {
+      this.isEnrolling.set(true);
+      await this.enroll(clsId);
+      this.showClassModal.set(false);
+      this.isEnrolling.set(false);
+    }
+  }
+
+  private async enroll(classId: string) {
+    const user = this.authService.currentUser();
+    if (!user || !this.course()) return;
+
+    try {
+      await this.courseService.enrollInCourse(this.course()!.id, user.id, classId);
+      alert('Đăng ký thành công!');
+      // Refresh course to show enrolled state
+      this.loadCourse(this.course()!.id);
+    } catch (e: any) {
+      alert('Đăng ký thất bại: ' + (e.error?.message || e.message));
+    }
   }
 
   private async loadCourse(id: string): Promise<void> {

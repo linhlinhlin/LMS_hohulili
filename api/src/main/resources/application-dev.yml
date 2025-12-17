@@ -29,6 +29,10 @@ spring:
     open-in-view: true
   flyway:
     enabled: true
+logging:
+  level:
+    org.springframework.web: DEBUG
 
 server:
   port: 8088
+

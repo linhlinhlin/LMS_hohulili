@@ -141,7 +141,7 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
           <div class="p-6 space-y-6">
              <!-- Reuse Form Logic -->
              <div>
-               <label class="block text-sm font-medium text-gray-700 mb-2">Tiêu đề Section <span class="text-red-500">*</span></label>
+               <label class="block text-sm font-medium text-gray-700 mb-2">Tiêu đề mục <span class="text-red-500">*</span></label>
                <input type="text" [(ngModel)]="sectionTitle" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
              </div>
 
@@ -169,11 +169,53 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
                <div>
                   <label class="block text-sm font-medium text-gray-700 mb-2">Nội dung</label>
                   <div class="editor-container-wrapper border border-gray-300 rounded-lg bg-white relative shadow-sm" [style.height.px]="editorHeight()">
-                      <ckeditor [editor]="Editor" [(ngModel)]="sectionContent" 
-                                [config]="editorConfig" (ready)="onEditorReady($event)"
-                                (change)="onEditorChange($event)">
-                      </ckeditor>
+                      @if (isDataLoaded()) {
+                        <ckeditor [editor]="Editor" [(ngModel)]="sectionContent" 
+                                  [config]="editorConfig" (ready)="onEditorReady($event)"
+                                  (change)="onEditorChange($event)">
+                        </ckeditor>
+                      } @else {
+                        <div class="flex items-center justify-center h-full text-gray-400">
+                          <span class="animate-pulse">Đang tải trình soạn thảo...</span>
+                        </div>
+                      }
                   </div>
+               </div>
+             }
+
+             @if (newSectionType === 'FILE') {
+               <div class="space-y-4">
+                 <div>
+                   <label class="block text-sm font-medium text-gray-700 mb-2">Tài liệu đính kèm</label>
+                   
+                   @if (sectionFileUrl()) {
+                     <div class="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                       @if (isPdfFile(sectionFileUrl()!)) {
+                          <div class="aspect-[3/4] w-full bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
+                            <embed [src]="getSafePdfUrl(editingSectionId()!)" type="application/pdf" class="w-full h-full" />
+                          </div>
+                          <p class="text-xs text-center text-gray-500 mt-2">Đang hiển thị chế độ xem trước PDF</p>
+                       } @else {
+                          <div class="flex items-center gap-3">
+                            <div class="p-2 bg-orange-100 rounded-lg text-orange-600">
+                              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                              <p class="text-sm font-medium text-gray-900 truncate">{{ sectionTitle }}</p>
+                              <p class="text-xs text-gray-500">File tài liệu</p>
+                            </div>
+                            <a [href]="sectionFileUrl()" target="_blank" class="px-3 py-1.5 bg-white border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50">
+                              Tải xuống
+                            </a>
+                          </div>
+                       }
+                     </div>
+                   } @else {
+                      <div class="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+                         <p class="text-gray-500 text-sm">Chưa có file nào được tải lên.</p>
+                      </div>
+                   }
+                 </div>
                </div>
              }
 
@@ -649,7 +691,7 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
           </div>
           <div class="p-6 space-y-6 overflow-y-auto">
              <div>
-               <label class="block text-sm font-medium text-gray-700 mb-2">Tiêu đề Section <span class="text-red-500">*</span></label>
+               <label class="block text-sm font-medium text-gray-700 mb-2">Tiêu đề Mục <span class="text-red-500">*</span></label>
                <input type="text" [(ngModel)]="sectionTitle" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
              </div>
 
@@ -697,12 +739,24 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
                          class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-gray-300 rounded-lg p-1">
                   
                   @if (sectionFileUrl()) {
-                    <div class="mt-3 flex items-center p-3 bg-gray-50 rounded-lg border border-gray-200">
-                      <svg class="w-6 h-6 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                      <a [href]="sectionFileUrl()" target="_blank" class="text-blue-600 hover:underline text-sm font-medium truncate flex-1">
-                        {{ getFileNameFromUrl(sectionFileUrl()!) }}
-                      </a>
-                    </div>
+                    <!-- PDF Inline Viewer -->
+                    @if (isPdfFile(sectionFileUrl())) {
+                      <div class="mt-3 rounded-lg border border-gray-200 overflow-hidden">
+                        <div class="bg-gray-50 px-3 py-2 border-b flex items-center justify-between">
+                          <span class="text-sm font-medium text-gray-700">{{ getFileNameFromUrl(sectionFileUrl()!) }}</span>
+                          <a [href]="sectionFileUrl()" target="_blank" class="text-xs text-blue-600 hover:underline">Mở tab mới ↗</a>
+                        </div>
+                        <embed [src]="getSafePdfUrl(sectionFileUrl())" type="application/pdf" class="w-full h-96" />
+                      </div>
+                    } @else {
+                      <!-- Other file types - download link -->
+                      <div class="mt-3 flex items-center p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <svg class="w-6 h-6 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                        <a [href]="sectionFileUrl()" target="_blank" class="text-blue-600 hover:underline text-sm font-medium truncate flex-1">
+                          {{ getFileNameFromUrl(sectionFileUrl()!) }}
+                        </a>
+                      </div>
+                    }
                   }
                </div>
              }
@@ -971,6 +1025,13 @@ export class CourseCurriculumComponent {
   }
   onEditorReady(editor: any) {
     this.editorInstance = editor;
+    // FIX: Set data after editor is ready if content already exists (for edit mode)
+    if (this.sectionContent && this.editingSectionId()) {
+      // Use setTimeout to ensure Angular change detection has completed
+      setTimeout(() => {
+        editor.setData(this.sectionContent);
+      }, 0);
+    }
   }
 
   // Optimisation: Helper method mainly for internal use or simple checks, but template uses signal
@@ -1296,16 +1357,47 @@ export class CourseCurriculumComponent {
     this.showSectionModal.set(true);
   }
 
+  // Flag to control editor loading timing
+  isDataLoaded = signal<boolean>(false);
+
   editSection(section: SectionDraftDTO) {
-    this.editingSectionId.set(section.id);
-    this.newSectionType = (section.type as any) || 'TEXT';
-    this.sectionTitle = section.title;
-    this.sectionContent = section.content || '';
-    this.sectionVideoUrl = section.videoUrl || '';
-    this.sectionFileUrl.set(section.fileUrl || null);
-    this.selectedFile = null;
-    this.sectionIsRequired = section.isRequired || false;
+    this.isDataLoaded.set(false); // Reset before loading
     this.showSectionModal.set(true);
+    // this.isEditingSection.set(true); // Removed as property doesn't exist
+    this.editingSectionId.set(section.id);
+    this.sectionTitle = section.title;
+    this.newSectionType = section.type as any;
+    this.sectionIsRequired = section.isRequired || false;
+
+    // Reset content fields
+    this.sectionContent = '';
+    this.sectionVideoUrl = '';
+    this.safeVideoUrl.set(null);
+    this.selectedFile = null;
+    this.sectionFileUrl.set(null); // Ensure file URL is also reset
+
+    if (section.type === 'TEXT') {
+      // Load content and delay flag set
+      this.sectionContent = section.content || '';
+      setTimeout(() => {
+        this.isDataLoaded.set(true);
+      }, 50);
+    } else if (section.type === 'VIDEO') {
+      // ... existing video logic
+      if (section.videoUrl) {
+        this.sectionVideoUrl = section.videoUrl;
+        this.safeVideoUrl.set(this.getSafeUrl(section.videoUrl));
+      }
+      this.isDataLoaded.set(true);
+    } else if (section.type === 'FILE') {
+      // ... file logic
+      if (section.fileUrl) {
+        this.sectionFileUrl.set(section.fileUrl);
+      }
+      this.isDataLoaded.set(true);
+    } else {
+      this.isDataLoaded.set(true);
+    }
   }
 
   // Video Preview Logic [NEW]
@@ -1352,16 +1444,10 @@ export class CourseCurriculumComponent {
       }
 
       if (this.editingSectionId()) {
-        // Update
-        await firstValueFrom(this.sectionApi.updateSection(this.editingSectionId()!, {
-          title: this.sectionTitle.trim(),
-          content: this.sectionContent,
-          videoUrl: this.sectionVideoUrl,
-          isRequired: this.sectionIsRequired,
-          type: this.newSectionType // Usually type doesn't change
-        }));
+        // Update - Send FormData (Multipart)
+        await firstValueFrom(this.sectionApi.updateSection(this.editingSectionId()!, formData));
       } else {
-        // Create
+        // Create - Send FormData (Multipart)
         formData.append('lessonId', lesson.id);
         await firstValueFrom(this.sectionApi.createSection(formData));
       }
@@ -1435,5 +1521,17 @@ export class CourseCurriculumComponent {
 
     // Navigate to the quiz builder page
     this.router.navigate(['/teacher/courses', courseId, 'lessons', lesson.id, 'quiz']);
+  }
+
+  // [NEW] Check if file is a PDF
+  isPdfFile(url: string | null): boolean {
+    if (!url) return false;
+    return url.toLowerCase().endsWith('.pdf');
+  }
+
+  // [NEW] Get safe PDF URL for embed (bypass Angular security)
+  getSafePdfUrl(url: string | null): any {
+    if (!url) return null;
+    return this.sanitizer.bypassSecurityTrustResourceUrl(url);
   }
 }

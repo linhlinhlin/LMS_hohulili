@@ -6,6 +6,18 @@ export interface ApiResponse<T> {
   timestamp: string;
 }
 
+// Spring Data Page
+export interface Page<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+  last: boolean;
+  first: boolean;
+  empty: boolean;
+}
+
 export interface PaginationInfo {
   totalItems: number;
   totalPages: number;

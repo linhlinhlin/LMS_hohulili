@@ -19,6 +19,7 @@ public class DataFixInitializer {
     private static final Logger log = LoggerFactory.getLogger(DataFixInitializer.class);
 
     private final JdbcTemplate jdbcTemplate;
+    private final com.example.lms.service.AdminService adminService;
 
     @PostConstruct
     public void fixEnumValues() {
@@ -31,6 +32,9 @@ public class DataFixInitializer {
         fixUserRoleValues();
         fixLessonTypeValues();
         fixSectionTypeConstraint();
+        
+        log.info("=== Checking for missing course versions ===");
+        adminService.fixMissingVersions();
         
         log.info("=== Database enum value normalization completed ===");
     }

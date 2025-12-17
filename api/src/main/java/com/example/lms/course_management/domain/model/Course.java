@@ -64,12 +64,10 @@ public class Course {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    @Builder.Default
     private CourseStatus status = CourseStatus.DRAFT;
 
     @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("orderIndex ASC")
-    @Builder.Default
     private List<Chapter> chapters = new ArrayList<>();
 
     @CreationTimestamp

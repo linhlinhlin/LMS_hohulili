@@ -1,6 +1,6 @@
 package com.example.lms.learning_delivery.infrastructure.persistence;
 
-import com.example.lms.learning_delivery.domain.model.Class;
+import com.example.lms.learning_delivery.domain.model.LearningClass;
 import com.example.lms.learning_delivery.domain.model.Enrollment;
 import com.example.lms.learning_delivery.domain.repo_port.LearningRepository;
 import com.example.lms.entity.User;
@@ -20,17 +20,17 @@ public class PostgresLearningRepository implements LearningRepository {
     private final UserRepository userRepository; // Legacy repo
 
     @Override
-    public Class saveClass(Class clazz) {
+    public LearningClass saveClass(LearningClass clazz) {
         return jpaClassRepository.save(clazz);
     }
 
     @Override
-    public Optional<Class> findClassById(UUID id) {
+    public Optional<LearningClass> findClassById(UUID id) {
         return jpaClassRepository.findById(id);
     }
 
     @Override
-    public Optional<Class> findClassByCode(String code) {
+    public Optional<LearningClass> findClassByCode(String code) {
         return jpaClassRepository.findByCode(code);
     }
 
@@ -46,7 +46,7 @@ public class PostgresLearningRepository implements LearningRepository {
 
     @Override
     public Optional<Enrollment> findEnrollmentByStudentAndClass(UUID studentId, UUID classId) {
-        return jpaEnrollmentRepository.findByStudentIdAndClazzId(studentId, classId);
+        return jpaEnrollmentRepository.findByStudentIdAndLearningClassId(studentId, classId);
     }
 
     @Override

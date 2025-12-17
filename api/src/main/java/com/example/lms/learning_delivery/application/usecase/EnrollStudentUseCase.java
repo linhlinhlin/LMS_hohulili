@@ -1,6 +1,6 @@
 package com.example.lms.learning_delivery.application.usecase;
 
-import com.example.lms.learning_delivery.domain.model.Class;
+import com.example.lms.learning_delivery.domain.model.LearningClass;
 import com.example.lms.learning_delivery.domain.model.Enrollment;
 import com.example.lms.learning_delivery.domain.repo_port.LearningRepository;
 import com.example.lms.entity.User;
@@ -24,10 +24,10 @@ public class EnrollStudentUseCase {
         log.info("Enrolling student {} to class {}", studentEmail, classCode);
 
         // 1. Validate Class
-        Class clazz = learningRepository.findClassByCode(classCode)
+        LearningClass clazz = learningRepository.findClassByCode(classCode)
                 .orElseThrow(() -> new RuntimeException("Class not found: " + classCode));
 
-        if (clazz.getStatus() != Class.ClassStatus.OPEN) {
+        if (clazz.getStatus() != LearningClass.ClassStatus.OPEN) {
             throw new RuntimeException("Class is not open for enrollment");
         }
 
@@ -42,7 +42,7 @@ public class EnrollStudentUseCase {
 
         // 4. Create Enrollment
         Enrollment enrollment = Enrollment.builder()
-                .clazz(clazz)
+                .learningClass(clazz)
                 .student(student)
                 .status(Enrollment.EnrollmentStatus.ACTIVE)
                 .build();

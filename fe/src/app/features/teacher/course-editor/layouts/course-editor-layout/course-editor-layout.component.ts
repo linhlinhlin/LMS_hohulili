@@ -47,6 +47,14 @@ import { filter, take, map } from 'rxjs/operators';
                   </svg>
                   Học viên
                </a>
+               <a routerLink="classes" 
+                  routerLinkActive="border-b-2 border-blue-600 text-blue-600 bg-blue-50/50"
+                  class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors border-b-2 border-transparent rounded-t-lg flex items-center gap-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                  </svg>
+                  Lớp học
+               </a>
                <a routerLink="settings" 
                   routerLinkActive="border-b-2 border-blue-600 text-blue-600 bg-blue-50/50"
                   class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors border-b-2 border-transparent rounded-t-lg flex items-center gap-2">

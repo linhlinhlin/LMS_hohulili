@@ -29,12 +29,10 @@ public class Chapter {
     private Integer orderIndex;
 
     @Column(name = "is_published")
-    @Builder.Default
     private boolean isPublished = false; // Granular control if needed
 
     @OneToMany(mappedBy = "chapter", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("orderIndex ASC")
-    @Builder.Default
     private List<Lesson> lessons = new ArrayList<>();
 
     @CreationTimestamp

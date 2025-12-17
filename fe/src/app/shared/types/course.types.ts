@@ -78,7 +78,7 @@ export interface CourseFilter {
 // Course Category as enum for runtime values
 export enum CourseCategory {
   MARINE_ENGINEERING = 'engineering',
-  PORT_MANAGEMENT = 'logistics', 
+  PORT_MANAGEMENT = 'logistics',
   MARITIME_SAFETY = 'safety',
   NAVIGATION = 'navigation',
   CARGO_HANDLING = 'logistics',
@@ -310,4 +310,40 @@ export interface CourseDetailState {
   enrollment: CourseEnrollment | null;
   isLoading: boolean;
   error: string | null;
+}
+
+// Class Management Types
+export type ScheduleType = 'SEMESTER' | 'CUSTOM';
+
+export interface ClassSummary {
+  id: string;
+  name: string;
+  code: string;
+  teacherName: string;
+  startDate: string;
+  endDate: string;
+  maxStudents: number;
+  currentStudents?: number; // Optional until backend sends it
+  scheduleType: ScheduleType;
+  semester?: string;
+}
+
+export interface CreateClassRequest {
+  courseId: string;
+  name: string;
+  maxStudents: number;
+  startDate: string;
+  endDate: string;
+  scheduleType: ScheduleType;
+  semester?: string;
+  teacherId?: string; // Added optional teacher assignment
+}
+
+export interface UpdateClassRequest {
+  name: string;
+  maxStudents: number;
+  startDate: string;
+  endDate: string;
+  scheduleType: ScheduleType;
+  semester?: string;
 }

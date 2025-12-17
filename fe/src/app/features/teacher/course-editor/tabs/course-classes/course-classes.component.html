@@ -1,0 +1,176 @@
+<div class="bg-white rounded-lg shadow-sm border border-gray-200">
+    <!-- Header -->
+    <div class="px-6 py-3 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+        <div>
+            <h2 class="text-xl font-bold text-gray-900">Quản lý Lớp học</h2>
+            <p class="text-sm text-gray-500 mt-1">Danh sách các lớp đang hoạt động</p>
+        </div>
+        <button (click)="openCreateDialog()"
+            class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Tạo Lớp mới
+        </button>
+    </div>
+
+    <!-- FILTER BAR -->
+    <div class="p-4 border-b border-gray-200 bg-white flex flex-wrap gap-3 items-center justify-between">
+        <!-- Search -->
+        <div class="relative flex-1 min-w-[200px] max-w-md">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+            </div>
+            <input type="text" [formControl]="searchControl"
+                class="block w-full pl-10 pr-3 py-1.5 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                placeholder="Tìm theo tên lớp hoặc mã lớp...">
+        </div>
+
+        <!-- Status Filter -->
+        <select (change)="onStatusChange($event)"
+            class="block pl-3 pr-8 py-1.5 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+            <option value="">Tất cả trạng thái</option>
+            <option value="OPEN">Đang mở</option>
+            <option value="CLOSED">Đã đóng</option>
+        </select>
+    </div>
+
+    <!-- COMPACT TABLE -->
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">Tên lớp</th>
+                    <th class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">Giáo viên</th>
+                    <th class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">Thời gian (Mới nhất)</th>
+                    <th class="px-4 py-2 text-xs font-semibold text-center text-gray-500 uppercase">Sĩ số</th>
+                    <th class="px-4 py-2 text-xs font-semibold text-right text-gray-500 uppercase">Hành động</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                <!-- Loading State -->
+                <tr *ngIf="isLoading()">
+                    <td colspan="5" class="px-4 py-8 text-center text-gray-500">Đang tải dữ liệu...</td>
+                </tr>
+
+                <!-- Empty State -->
+                <tr *ngIf="!isLoading() && classes().length === 0">
+                    <td colspan="5" class="px-4 py-8 text-center text-gray-500">
+                        Chưa có lớp học nào phù hợp.
+                    </td>
+                </tr>
+
+                <!-- List Items -->
+                <tr *ngFor="let cls of classes()" class="hover:bg-blue-50/50 transition-colors">
+                    <!-- Compact Name -->
+                    <td class="px-4 py-2 whitespace-nowrap">
+                        <div class="flex flex-col">
+                            <span class="text-sm font-medium text-gray-900">{{ cls.name }}</span>
+                            <span class="text-xs text-gray-400">{{ cls.code }}</span>
+                        </div>
+                    </td>
+
+                    <!-- Compact Teacher -->
+                    <td class="px-4 py-2 whitespace-nowrap">
+                        <div class="flex items-center text-sm text-gray-700">
+                            <div
+                                class="h-6 w-6 rounded-full bg-gray-200 flex items-center justify-center text-xs mr-2 font-bold text-gray-600">
+                                {{ cls.teacherName.charAt(0) }}
+                            </div>
+                            {{ cls.teacherName }}
+                        </div>
+                    </td>
+
+                    <!-- Compact Time -->
+                    <td class="px-4 py-2 whitespace-nowrap">
+                        <div class="flex flex-col text-xs text-gray-500">
+                            <div class="flex items-center">
+                                <span *ngIf="cls.scheduleType === 'SEMESTER'"
+                                    class="mr-1.5 font-semibold text-blue-700">
+                                    {{ cls.semester }}
+                                </span>
+                                <span *ngIf="cls.scheduleType === 'CUSTOM'"
+                                    class="mr-1.5 font-semibold text-purple-700">
+                                    Custom
+                                </span>
+                            </div>
+                            <span>{{ cls.startDate | date:'dd/MM/yyyy' }} - {{ cls.endDate | date:'dd/MM/yyyy' }}</span>
+                        </div>
+                    </td>
+
+                    <!-- Compact Count -->
+                    <td class="px-4 py-2 whitespace-nowrap text-center">
+                        <span class="text-xs font-medium bg-gray-100 px-2 py-0.5 rounded text-gray-700">
+                            {{ cls.maxStudents }}
+                        </span>
+                    </td>
+
+                    <!-- Compact Actions -->
+                    <td class="px-4 py-2 whitespace-nowrap text-right">
+                        <div class="flex items-center justify-end space-x-2">
+                            <button (click)="viewStudents(cls.id)"
+                                class="text-blue-500 hover:text-blue-700 transition-colors p-1" title="Xem học viên">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                            </button>
+                            <button (click)="editClass(cls)"
+                                class="text-indigo-500 hover:text-indigo-700 transition-colors p-1" title="Sửa">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                            </button>
+                            <button (click)="deleteClass(cls.id)"
+                                class="text-red-500 hover:text-red-700 transition-colors p-1" title="Xóa">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- PAGINATION FOOTER -->
+    <div class="px-4 py-2 border-t border-gray-200 bg-white flex items-center justify-between sm:px-6"
+        *ngIf="totalElements > 0">
+        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div>
+                <p class="text-xs text-gray-700">
+                    Hiển thị <span class="font-medium">{{ pageInfo.startRow }}</span> đến <span class="font-medium">{{
+                        pageInfo.endRow }}</span>
+                    trong số <span class="font-medium">{{ totalElements }}</span> kết quả
+                </p>
+            </div>
+            <div>
+                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                    <button (click)="changePage(currentPage - 1)" [disabled]="currentPage === 0"
+                        class="relative inline-flex items-center px-2 py-1 rounded-l-md border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                        Trước
+                    </button>
+
+                    <!-- Page Numbers (Simplified: Current Page only for now, can implement proper sliding window if needed) -->
+                    <span
+                        class="relative inline-flex items-center px-4 py-1 border border-gray-300 bg-white text-xs font-medium text-gray-700">
+                        Trang {{ currentPage + 1 }} / {{ totalPages }}
+                    </span>
+
+                    <button (click)="changePage(currentPage + 1)" [disabled]="isLastPage"
+                        class="relative inline-flex items-center px-2 py-1 rounded-r-md border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                        Tiếp
+                    </button>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>

@@ -9,5 +9,5 @@ import java.util.UUID;
 
 @Repository
 public interface JpaEnrollmentRepository extends JpaRepository<Enrollment, UUID> {
-    Optional<Enrollment> findByStudentIdAndClazzId(UUID studentId, UUID clazzId);
+    Optional<Enrollment> findByStudentIdAndLearningClassId(UUID studentId, UUID learningClassId);
 }

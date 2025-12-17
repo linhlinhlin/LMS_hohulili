@@ -73,8 +73,9 @@ export class CourseApi {
     return this.api.getWithResponse<CourseContentChapter[]>(COURSE_ENDPOINTS.CONTENT(courseId));
   }
 
-  enrollCourse(courseId: string) {
-    return this.api.postWithResponse<string>(`${COURSE_ENDPOINTS.BY_ID(courseId)}/enroll`, {});
+  enrollCourse(courseId: string, classId?: string) {
+    const payload = classId ? { classId } : {};
+    return this.api.postWithResponse<string>(`${COURSE_ENDPOINTS.BY_ID(courseId)}/enroll`, payload);
   }
 
   enrollStudentAsTeacher(courseId: string, payload: EnrollStudentRequest) {
@@ -113,6 +114,10 @@ export class CourseApi {
 
   getNextLesson(courseId: string) {
     return this.api.getWithResponse<any>(`/api/v1/student/progress/courses/${courseId}/next-lesson`);
+  }
+
+  getAvailableClasses(courseId: string) {
+    return this.api.getWithResponse<ClassSummary[]>(`/api/v1/courses/${courseId}/classes/available`);
   }
 
   // Get available students for enrollment (not yet enrolled in this course)
@@ -176,4 +181,14 @@ export interface CourseReviewStatus {
   reviewComment?: string;
   reviewedAt?: string;
   reviewedByName?: string;
+}
+
+export interface ClassSummary {
+  id: string;
+  name: string;
+  code: string;
+  teacherName: string;
+  startDate?: string;
+  endDate?: string;
+  maxStudents: number;
 }

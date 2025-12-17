@@ -16,6 +16,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import com.example.lms.course_management.infrastructure.persistence.JpaCourseVersionRepository;
+import com.example.lms.course_management.domain.model.CourseVersion;
+import java.util.stream.Collectors;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -24,6 +28,7 @@ public class AdminService {
     private final CourseRepository courseRepository;
     private final UserRepository userRepository;
     private final AssignmentRepository assignmentRepository;
+    private final JpaCourseVersionRepository courseVersionRepository;
 
     public Map<String, Object> getAnalytics() {
         Map<String, Object> analytics = new HashMap<>();
@@ -104,6 +109,10 @@ public class AdminService {
             } else {
                 course.setReviewComment(request.getComment());
             }
+
+            // Create Course Version Snapshot
+            createCourseVersion(course);
+
         } else {
             course.setStatus(Course.CourseStatus.REJECTED);
             course.setReviewComment(request.getComment());
@@ -114,6 +123,90 @@ public class AdminService {
         course.setReviewedBy(reviewer);
         
         return courseRepository.save(course);
+    }
+
+    // Made public for usage in DataFixInitializer
+    public void createCourseVersion(Course courseEntity) {
+        // Fetch full course data with chapters and lessons
+        Course fullCourse = courseRepository.findByIdWithSectionsAndLessons(courseEntity.getId())
+                .orElseThrow(() -> new IllegalStateException("Course data integrity error"));
+
+        // Determine new version number
+        Integer maxVersion = courseVersionRepository.findMaxVersionByCourseId(fullCourse.getId());
+        int newVersion = (maxVersion == null) ? 1 : maxVersion + 1;
+
+        // Map Chapters to Snapshots
+        java.util.List<CourseVersion.ChapterSnapshot> chapterSnapshots = new java.util.ArrayList<>();
+        if (fullCourse.getChapters() != null) {
+            chapterSnapshots = fullCourse.getChapters().stream()
+                .map(chapter -> {
+                    java.util.List<CourseVersion.LessonSnapshot> lessonSnapshots = new java.util.ArrayList<>();
+                    if (chapter.getLessons() != null) {
+                        lessonSnapshots = chapter.getLessons().stream()
+                            .map(lesson -> {
+                                // For backward compatibility, check sections if needed, 
+                                // but assuming lesson structure is primary now.
+                                String contentUrl = null;
+                                String contentHtml = null;
+                                String type = "LECTURE"; // Default
+                                
+                                // Attempt to extract content from Sections
+                                if (lesson.getSections() != null && !lesson.getSections().isEmpty()) {
+                                    com.example.lms.entity.Section s = lesson.getSections().iterator().next();
+                                    contentUrl = s.getVideoUrl();
+                                    contentHtml = s.getContent();
+                                    type = s.getType().name();
+                                }
+
+                                return CourseVersion.LessonSnapshot.builder()
+                                    .id(lesson.getId())
+                                    .title(lesson.getTitle())
+                                    .type(type)
+                                    .contentUrl(contentUrl)
+                                    .contentHtml(contentHtml)
+                                    .orderIndex(lesson.getOrderIndex())
+                                    .build();
+                            })
+                            .collect(Collectors.toList());
+                    }
+
+                    return CourseVersion.ChapterSnapshot.builder()
+                        .id(chapter.getId())
+                        .title(chapter.getTitle())
+                        .orderIndex(chapter.getOrderIndex())
+                        .lessons(lessonSnapshots)
+                        .build();
+                })
+                .collect(Collectors.toList());
+        }
+
+        CourseVersion version = CourseVersion.builder()
+                .courseId(fullCourse.getId())
+                .versionNumber(newVersion)
+                .snapshotContent(chapterSnapshots)
+                .build();
+
+        courseVersionRepository.save(version);
+    }
+
+    public void fixMissingVersions() {
+        // Find all APPROVED courses
+        java.util.List<Course> approvedCourses = courseRepository.findByStatus(Course.CourseStatus.APPROVED);
+        
+        for (Course course : approvedCourses) {
+            // Check if version exists
+            Integer maxVersion = courseVersionRepository.findMaxVersionByCourseId(course.getId());
+            if (maxVersion == null) {
+                // Create V1 for existing approved course
+                try {
+                    createCourseVersion(course);
+                    System.out.println("Backfilled version for course: " + course.getId());
+                } catch (Exception e) {
+                    System.err.println("Failed to backfill version for course: " + course.getId());
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 
     public Page<User> getAllUsers(String search, User.Role role, Pageable pageable) {

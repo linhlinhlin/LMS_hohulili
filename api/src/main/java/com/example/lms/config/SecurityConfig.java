@@ -36,109 +36,26 @@ public class SecurityConfig {
     private final PasswordEncoder passwordEncoder;
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(AbstractHttpConfigurer::disable)
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .authorizeHttpRequests(auth -> auth
-                        // Quiz management (TEACHER can create/edit, STUDENT can view/attempt) - High priority
-                        // Quiz management - DEBUG: permitAll to test connectivity
-                        .requestMatchers("/api/v1/quizzes/**", "/api/v2/quizzes/**").permitAll()
-
-                        // Public endpoints
-                        .requestMatchers(
-                                "/api/auth/**",
-                                "/api/v1/auth/**", // Fixed: Add v1 auth endpoints
-                                "/api/v1/health/**",
-                                "/api/health/**",
-                                "/api/v1/ai/health", // AI health check public
-                                "/api/v1/courses", // Public course list (approved courses only)
-                                "/api/v1/dev/**", // DEV endpoints (REMOVE IN PRODUCTION!)
-                                // Swagger/OpenAPI endpoints
-                                "/v3/api-docs/**",
-                                "/v3/api-docs",
-                                "/swagger-ui/**",
-                                "/swagger-ui.html",
-                                "/swagger-resources/**",
-                                "/webjars/**",
-                                "/actuator/**"
-                        ).permitAll()
-            // Public read-only course endpoints (detail) - allow GET for course detail
-            .requestMatchers(HttpMethod.GET, "/api/v1/courses/*").permitAll()
-                        
-                        // Admin endpoints
-                        .requestMatchers("/api/admin/**", "/api/v1/admin/**").hasRole("ADMIN")
-                        
-                        // User management endpoints (ADMIN only)
-                        .requestMatchers(HttpMethod.GET, "/api/v1/users/instructors").hasAnyRole("ADMIN", "TEACHER")
-                        .requestMatchers("/api/v1/users/**").hasRole("ADMIN")
-                        
-                        // Teacher endpoints
-                        .requestMatchers("/api/teacher/**", "/api/v1/teacher/**").hasAnyRole("ADMIN", "TEACHER")
-                        
-                        // Student endpoints
-                        // .requestMatchers("/api/student/**", "/api/v1/student/**").hasAnyRole("ADMIN", "TEACHER", "STUDENT")
-                        .requestMatchers("/api/v1/student/**").hasRole("STUDENT")
-                        .requestMatchers("/api/student/**").hasRole("STUDENT")
-
-                        // Specific student progress endpoints - ensure STUDENT role access
-                        //.requestMatchers(HttpMethod.GET, "/api/v1/student/progress/courses/*/completed-ids").hasAnyRole("ADMIN", "TEACHER", "STUDENT")
-                        
-                        // Assignment management
-                        .requestMatchers("/api/v1/assignments/**").hasAnyRole("ADMIN", "TEACHER", "STUDENT")
-                        
-                        // File streaming: allow GET to serve uploaded files (video/audio/images)
-                        .requestMatchers(HttpMethod.GET, "/api/v1/files/**").permitAll()
-                        // Other file operations (upload/delete) require auth
-                        .requestMatchers("/api/v1/files/**").hasAnyRole("ADMIN", "TEACHER", "STUDENT")
-                        
-                        // Document upload and parsing (TEACHER/ADMIN only)
-                        .requestMatchers("/api/v1/documents/**").hasAnyRole("ADMIN", "TEACHER")
-                        
-                        // Question management (TEACHER/ADMIN only)
-                        .requestMatchers("/api/v1/questions/**").hasAnyRole("ADMIN", "TEACHER")
-                        
-                        // Messaging endpoints (TEACHER and STUDENT can message each other)
-                        .requestMatchers("/api/v1/messages/**").hasAnyRole("ADMIN", "TEACHER", "STUDENT")
-                        
-                        // AI Chat endpoints
-                        // Public: health check, ping, và test streaming
-                        .requestMatchers("/api/v1/ai/health", "/api/v1/ai/ping", "/api/v1/ai/chat/stream/test").permitAll()
-                        // Admin only: Knowledge management và History management
-                        .requestMatchers("/api/v1/ai/admin/**").hasRole("ADMIN")
-                        // Protected: chat và session management (yêu cầu authentication)
-                        .requestMatchers("/api/v1/ai/**").hasAnyRole("ADMIN", "TEACHER", "STUDENT")
-                        
-                        // Section and lesson management
-                        // Explicitly allow OPTIONS for CORS preflight
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        
-                        // Allow POST/PUT/DELETE operations for Admin/Teacher (MUST come BEFORE GET rule)
-                        .requestMatchers(HttpMethod.POST, "/api/v1/sections/**", "/api/v1/lessons/**").hasAnyRole("ADMIN", "TEACHER")
-                        .requestMatchers(HttpMethod.PUT, "/api/v1/sections/**", "/api/v1/lessons/**").hasAnyRole("ADMIN", "TEACHER")
-                        .requestMatchers(HttpMethod.DELETE, "/api/v1/sections/**", "/api/v1/lessons/**").hasAnyRole("ADMIN", "TEACHER")
-                        
-                        // Allow GET for Everyone (including Students)
-                        .requestMatchers(HttpMethod.GET, "/api/v1/sections/**", "/api/v1/lessons/**").hasAnyRole("ADMIN", "TEACHER", "STUDENT")
-                        
-                        // Course Authoring endpoints (TEACHER/ADMIN only)
-                        .requestMatchers("/api/v1/authoring/**").hasAnyRole("ADMIN", "TEACHER")
-                        
-                        // Course management - specific endpoints first
-                        .requestMatchers("/api/v1/courses/create", "/api/v1/courses/*/edit").hasAnyRole("ADMIN", "TEACHER")
-                        .requestMatchers("/api/v1/courses/my-courses").hasAnyRole("ADMIN", "TEACHER")
-                        .requestMatchers("/api/v1/courses/enrolled-courses").hasAnyRole("ADMIN", "TEACHER", "STUDENT")
-                        .requestMatchers("/api/v1/courses/**").hasAnyRole("ADMIN", "TEACHER", "STUDENT")
-                        
-                        // All other requests need authentication
-                        .anyRequest().authenticated()
-                )
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
-                .authenticationProvider(authenticationProvider())
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
-
+            .cors(org.springframework.security.config.Customizer.withDefaults()) // Enable CORS using the Bean
+            .csrf(AbstractHttpConfigurer::disable) // Disable CSRF
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers(
+                    "/v3/api-docs/**",
+                    "/swagger-ui/**",
+                    "/swagger-ui.html",
+                    "/api/v1/auth/**",
+                    "/api/auth/**",
+                    "/api/v1/ai/health",
+                    "/api/v1/ai/ping"
+                ).permitAll()
+                .anyRequest().authenticated()
+            )
+            .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authenticationProvider(authenticationProvider())
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+            
         return http.build();
     }
 

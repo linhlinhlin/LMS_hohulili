@@ -212,4 +212,11 @@ public class UserService implements UserDetailsService {
         user.setEnabled(!user.getEnabled());
         return userRepository.save(user);
     }
+    public org.springframework.data.domain.Page<User> getUsersByRoleAndSearch(
+            User.Role role, String search, org.springframework.data.domain.Pageable pageable) {
+        if (role == null) {
+            return getAllUsers(pageable, search);
+        }
+        return userRepository.searchByRole(role, search, pageable);
+    }
 }

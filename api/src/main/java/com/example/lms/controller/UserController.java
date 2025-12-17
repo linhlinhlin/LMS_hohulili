@@ -212,6 +212,40 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(summaries));
     }
 
+    @GetMapping("/search")
+    @Operation(summary = "Tìm kiếm user theo role", description = "Tìm kiếm user theo keyword và role (dùng cho autocomplete)")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    public ResponseEntity<ApiResponse<Page<UserSummary>>> searchUsersByRole(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String role,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int limit
+    ) {
+        Pageable pageable = PageRequest.of(page - 1, limit);
+        User.Role userRole = null;
+        if (role != null && !role.isEmpty()) {
+            try {
+                userRole = User.Role.valueOf(role.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                // Ignore invalid role, search all or return empty? Default to all for now or handle error.
+                // Better to ignore invalid role for search robustness.
+            }
+        }
+        
+        // Call the new service method
+        Page<User> users = userService.getUsersByRoleAndSearch(userRole, q, pageable);
+        
+        Page<UserSummary> summaries = users.map(u -> UserSummary.builder()
+                .id(u.getId())
+                .username(u.getUsername())
+                .email(u.getEmail())
+                .fullName(u.getFullName())
+                .role(u.getRole().name())
+                .build());
+                
+        return ResponseEntity.ok(ApiResponse.success(summaries));
+    }
+
     // DTOs
     public static class UserSummary {
         private UUID id;

@@ -1,0 +1,9 @@
+{
+    "name": "Test Class Valid",
+    "courseId": "77b89d53-623a-46fa-8cca-7b2fcd5e4676",
+    "maxStudents": 50,
+    "startDate": "2025-01-01T00:00:00Z",
+    "endDate": "2025-06-01T00:00:00Z",
+    "scheduleType": "SEMESTER",
+    "semester": "HK1-2025"
+}

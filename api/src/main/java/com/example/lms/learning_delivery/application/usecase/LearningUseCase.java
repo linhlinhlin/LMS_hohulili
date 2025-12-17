@@ -2,7 +2,7 @@ package com.example.lms.learning_delivery.application.usecase;
 
 import com.example.lms.course_management.domain.model.CourseVersion;
 import com.example.lms.course_management.domain.repo_port.CourseRepository;
-import com.example.lms.learning_delivery.domain.model.Class;
+import com.example.lms.learning_delivery.domain.model.LearningClass;
 import com.example.lms.learning_delivery.domain.model.Enrollment;
 import com.example.lms.learning_delivery.domain.repo_port.LearningRepository;
 import lombok.Builder;
@@ -31,7 +31,7 @@ public class LearningUseCase {
         Enrollment enrollment = learningRepository.findEnrollmentById(enrollmentId)
                 .orElseThrow(() -> new RuntimeException("Enrollment not found: " + enrollmentId));
 
-        Class clazz = enrollment.getClazz();
+        LearningClass clazz = enrollment.getLearningClass();
 
         // 2. Get Course Snapshot (Immutable Content)
         CourseVersion version = courseRepository.findVersionById(clazz.getCourseVersionId())

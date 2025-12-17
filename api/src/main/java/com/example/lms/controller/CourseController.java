@@ -43,6 +43,8 @@ import java.util.stream.Collectors;
 public class CourseController {
 
     private final CourseService courseService;
+    private final com.example.lms.service.ClassService classService;
+    private final com.example.lms.service.EnrollmentService enrollmentService;
     private final ExcelProcessingService excelProcessingService;
     private final com.example.lms.repository.UserRepository userRepository;
 
@@ -317,17 +319,39 @@ public class CourseController {
     @PostMapping("/{courseId}/enroll")
     @PreAuthorize("hasRole('STUDENT')")
     @SecurityRequirement(name = "Bearer Authentication")
-    @Operation(summary = "Đăng ký khóa học", description = "Học viên đăng ký vào khóa học")
+    @Operation(summary = "Đăng ký khóa học", description = "Học viên đăng ký vào khóa học (chọn lớp)")
     public ResponseEntity<?> enrollCourse(
             @PathVariable UUID courseId,
+            @RequestBody(required = false) EnrollRequest request,
             @AuthenticationPrincipal User currentUser
     ) {
         try {
-            courseService.enrollStudent(courseId, currentUser.getId());
+            UUID classId = (request != null) ? request.getClassId() : null;
+
+            if (classId == null) {
+                // Auto-select logic
+                List<com.example.lms.learning_delivery.domain.model.LearningClass> classes = classService.getOpenClasses(courseId);
+                if (classes.size() == 1) {
+                    classId = classes.get(0).getId();
+                } else if (classes.isEmpty()) {
+                    return ResponseEntity.badRequest().body(Map.of("message", "Không có lớp học nào đang mở đăng ký"));
+                } else {
+                    return ResponseEntity.badRequest().body(Map.of("message", "Vui lòng chọn một lớp học cụ thể"));
+                }
+            }
+
+            enrollmentService.enrollStudent(currentUser.getId(), classId);
             return ResponseEntity.ok(Map.of("message", "Đăng ký thành công!"));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
+    }
+
+    public static class EnrollRequest {
+        private UUID classId;
+        public EnrollRequest() {}
+        public UUID getClassId() { return classId; }
+        public void setClassId(UUID classId) { this.classId = classId; }
     }
 
     @GetMapping("/{courseId}/students")
