@@ -109,3 +109,4 @@ export class AssignmentDetailLayoutComponent implements OnInit, OnDestroy {
     this.router.navigate(['/teacher/assignments']);
   }
 }
+

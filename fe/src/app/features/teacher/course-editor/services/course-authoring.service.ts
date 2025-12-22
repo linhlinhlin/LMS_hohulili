@@ -153,26 +153,43 @@ interface ChapterResponse { // Was SectionWithLessons
 })
 export class CourseAuthoringService {
     private http = inject(HttpClient);
-    private baseUrl = `${environment.apiUrl}/api/v1`;
+    private baseUrl = `${environment.apiUrl}/api/v3`;
 
     // --- Draft Operations ---
 
     getCourseDraft(courseId: string): Observable<CourseDraftDTO> {
+        console.log(`[CourseAuthoringService] Loading course draft: ${courseId}`);
+
         return forkJoin({
-            course: this.http.get<ApiResponse<CourseDetailResponse>>(`${this.baseUrl}/courses/${courseId}`),
-            content: this.http.get<ApiResponse<ChapterResponse[]>>(`${this.baseUrl}/courses/${courseId}/content`)
+            course: this.http.get<any>(`${this.baseUrl}/courses/${courseId}`),
+            content: this.http.get<any>(`${this.baseUrl}/courses/${courseId}/content`)
         }).pipe(
             map(({ course, content }) => {
-                const courseData = course.data;
-                const backendChapters = content.data || [];
+                console.log('[CourseAuthoringService] Raw course response:', course);
+                console.log('[CourseAuthoringService] Raw content response:', content);
+
+                // Handle both wrapped and unwrapped responses (apiResponseInterceptor unwraps)
+                // If wrapped: { success: true, data: {...} } → data is in course.data
+                // If unwrapped: {...} → data is course itself
+                const courseData = (course as any)?.data ?? course;
+                const backendChapters = (content as any)?.data ?? content ?? [];
+
+                console.log('[CourseAuthoringService] Extracted courseData:', courseData);
+                console.log('[CourseAuthoringService] Extracted backendChapters:', backendChapters);
+
+                // Handle case when course is not found
+                if (!courseData || !courseData.id) {
+                    console.error('[CourseAuthoringService] Course data is null or missing id:', courseData);
+                    throw new Error(`Course not found: ${courseId}`);
+                }
 
                 // Map chapters
-                const chapters: ChapterDraftDTO[] = backendChapters.map(ch => ({
+                const chapters: ChapterDraftDTO[] = backendChapters.map((ch: any) => ({
                     id: ch.id,
                     title: ch.title,
                     description: ch.description,
                     orderIndex: ch.orderIndex,
-                    lessons: (ch.lessons || []).map(lesson => ({
+                    lessons: (ch.lessons || []).map((lesson: any) => ({
                         id: lesson.id,
                         title: lesson.title,
                         type: (lesson as any).lessonType || 'LECTURE',
@@ -243,7 +260,7 @@ export class CourseAuthoringService {
         // Updated to chapters endpoint if available, but for now stick to what code might expect if backend controller supports it.
         // I haven't implemented reorder in backend ChapterController yet, so this might 404. 
         // Usage of reorder usually implies a patch.
-        // Assuming /api/v1/chapters/reorder or similar.
+        // Assuming /api/v3/chapters/reorder or similar.
         // For safety I should probably NOT break this if it was working.
         // Old was /sections/reorder.
         // I will point to /chapters/reorder and need to ensure backend supports it or leave it as TODO.
@@ -285,14 +302,17 @@ export class CourseAuthoringService {
     }
 
     getCategories(): Observable<CategoryDTO[]> {
-        return this.http.get<ApiResponse<CategoryDTO[]>>(`${this.baseUrl}/categories`).pipe(
-            map(res => res.data)
+        return this.http.get<any>(`${this.baseUrl}/categories`).pipe(
+            // Handle both wrapped and unwrapped responses
+            map(res => (res as any)?.data ?? res ?? [])
         );
     }
 
     getInstructors(): Observable<any[]> {
-        return this.http.get<ApiResponse<any[]>>(`${this.baseUrl}/users/instructors`).pipe(
-            map(res => res.data)
+        return this.http.get<any>(`${this.baseUrl}/users/instructors`).pipe(
+            // Handle both wrapped and unwrapped responses  
+            map(res => (res as any)?.data ?? res ?? [])
         );
     }
 }
+

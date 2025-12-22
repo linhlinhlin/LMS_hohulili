@@ -437,3 +437,4 @@ export class StudentAssignmentsComponent implements OnInit {
     this.loadAssignments();
   }
 }
+

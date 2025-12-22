@@ -57,7 +57,7 @@ export class AllocationApi {
    */
   createOrUpdateAllocation(assignmentId: string, request: CreateAllocationRequest): Observable<ApiResponse<AllocationResponse>> {
     return this.api.postWithResponse<AllocationResponse>(
-      `/api/v1/assignments/${assignmentId}/allocation`,
+      `/api/v3/assignments/${assignmentId}/allocation`,
       request
     );
   }
@@ -67,7 +67,7 @@ export class AllocationApi {
    */
   getAllocation(assignmentId: string): Observable<ApiResponse<AllocationResponse>> {
     return this.api.getWithResponse<AllocationResponse>(
-      `/api/v1/assignments/${assignmentId}/allocation`
+      `/api/v3/assignments/${assignmentId}/allocation`
     );
   }
 
@@ -76,7 +76,7 @@ export class AllocationApi {
    */
   getAllocationStats(assignmentId: string, totalEnrolledStudents: number): Observable<ApiResponse<AllocationStatsResponse>> {
     return this.api.getWithResponse<AllocationStatsResponse>(
-      `/api/v1/assignments/${assignmentId}/allocation/stats`,
+      `/api/v3/assignments/${assignmentId}/allocation/stats`,
       { params: { totalEnrolledStudents: totalEnrolledStudents.toString() } }
     );
   }
@@ -86,7 +86,7 @@ export class AllocationApi {
    */
   assignIndividual(assignmentId: string, request: AssignIndividualRequest): Observable<ApiResponse<AllocationResponse>> {
     return this.api.postWithResponse<AllocationResponse>(
-      `/api/v1/assignments/${assignmentId}/allocation/individual`,
+      `/api/v3/assignments/${assignmentId}/allocation/individual`,
       request
     );
   }
@@ -96,7 +96,7 @@ export class AllocationApi {
    */
   removeStudentFromAllocation(assignmentId: string, studentId: string): Observable<ApiResponse<string>> {
     return this.api.deleteWithResponse<string>(
-      `/api/v1/assignments/${assignmentId}/allocation/students/${studentId}`
+      `/api/v3/assignments/${assignmentId}/allocation/students/${studentId}`
     );
   }
 
@@ -105,7 +105,7 @@ export class AllocationApi {
    */
   updateStudentDeadline(assignmentId: string, studentId: string, request: UpdateDeadlineRequest): Observable<ApiResponse<string>> {
     return this.api.patchWithResponse<string>(
-      `/api/v1/assignments/${assignmentId}/allocation/students/${studentId}/deadline`,
+      `/api/v3/assignments/${assignmentId}/allocation/students/${studentId}/deadline`,
       request
     );
   }
@@ -115,8 +115,9 @@ export class AllocationApi {
    */
   getStudentAllocatedAssignments(studentId: string, courseId: string): Observable<ApiResponse<string[]>> {
     return this.api.getWithResponse<string[]>(
-      `/api/v1/students/${studentId}/allocated-assignments`,
+      `/api/v3/students/${studentId}/allocated-assignments`,
       { params: { courseId } }
     );
   }
 }
+

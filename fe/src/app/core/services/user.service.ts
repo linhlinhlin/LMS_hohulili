@@ -18,7 +18,7 @@ export interface UserSummary {
 })
 export class UserService {
     private http = inject(HttpClient);
-    private readonly API_URL = `${environment.apiUrl}/api/v1/users`;
+    private readonly API_URL = `${environment.apiUrl}/api/v3/users`;
 
     searchUsersByRole(role: string, query: string, page: number = 0, limit: number = 10): Observable<Page<UserSummary>> {
         let params = `?role=${role}&page=${page + 1}&limit=${limit}`; // Backend uses 1-based page index for this endpoint or standard? 
@@ -35,3 +35,4 @@ export class UserService {
             .pipe(map(response => response.data));
     }
 }
+

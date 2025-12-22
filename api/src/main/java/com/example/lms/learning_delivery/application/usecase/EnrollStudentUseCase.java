@@ -3,12 +3,20 @@ package com.example.lms.learning_delivery.application.usecase;
 import com.example.lms.learning_delivery.domain.model.LearningClass;
 import com.example.lms.learning_delivery.domain.model.Enrollment;
 import com.example.lms.learning_delivery.domain.repo_port.LearningRepository;
-import com.example.lms.entity.User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.UUID;
+
+/**
+ * Use case for enrolling a student into a learning class.
+ * 
+ * Following DDD/Clean Architecture principles:
+ * - References other aggregates by ID only
+ * - Business logic is explicit and testable
+ */
 @Service
 public class EnrollStudentUseCase {
 
@@ -31,19 +39,19 @@ public class EnrollStudentUseCase {
             throw new RuntimeException("Class is not open for enrollment");
         }
 
-        // 2. Validate Student
-        User student = learningRepository.findStudentByEmail(studentEmail)
+        // 2. Validate Student (get ID only, respecting bounded context)
+        UUID studentId = learningRepository.findStudentIdByEmail(studentEmail)
                 .orElseThrow(() -> new RuntimeException("Student not found: " + studentEmail));
 
         // 3. Check Duplicate
-        if (learningRepository.findEnrollmentByStudentAndClass(student.getId(), clazz.getId()).isPresent()) {
+        if (learningRepository.findEnrollmentByStudentAndClass(studentId, clazz.getId()).isPresent()) {
             throw new RuntimeException("Student already enrolled in this class");
         }
 
-        // 4. Create Enrollment
+        // 4. Create Enrollment (using studentId, not User entity)
         Enrollment enrollment = Enrollment.builder()
                 .learningClass(clazz)
-                .student(student)
+                .studentId(studentId)
                 .status(Enrollment.EnrollmentStatus.ACTIVE)
                 .build();
 

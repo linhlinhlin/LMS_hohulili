@@ -163,3 +163,4 @@ export class IconComponent {
     return ['icon', `icon-${this.size()}`].join(' ');
   }
 }
+

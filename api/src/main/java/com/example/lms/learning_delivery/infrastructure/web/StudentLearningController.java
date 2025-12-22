@@ -2,16 +2,21 @@ package com.example.lms.learning_delivery.infrastructure.web;
 
 import com.example.lms.learning_delivery.application.usecase.EnrollStudentUseCase;
 import com.example.lms.learning_delivery.application.usecase.LearningUseCase;
+import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import com.example.lms.entity.User; // Legacy User
 import java.util.UUID;
 
+/**
+ * Controller for student learning operations.
+ * 
+ * Uses UserJpaEntity from identity module as the authenticated principal.
+ */
 @RestController
-@RequestMapping("/api/v1/learning")
+@RequestMapping("/api/v3/learning")
 @RequiredArgsConstructor
 public class StudentLearningController {
 
@@ -20,14 +25,14 @@ public class StudentLearningController {
 
     // Enroll in a class
     @PostMapping("/classes/{classCode}/enroll")
-    public ResponseEntity<?> enroll(@PathVariable String classCode, @AuthenticationPrincipal User user) {
+    public ResponseEntity<?> enroll(@PathVariable String classCode, @AuthenticationPrincipal UserJpaEntity user) {
         var enrollment = enrollStudentUseCase.enroll(user.getEmail(), classCode);
         return ResponseEntity.ok(enrollment);
     }
 
     // Get Learning Path (Course Content from Snapshot)
     @GetMapping("/enrollments/{enrollmentId}/path")
-    public ResponseEntity<?> getLearningPath(@PathVariable UUID enrollmentId, @AuthenticationPrincipal User user) {
+    public ResponseEntity<?> getLearningPath(@PathVariable UUID enrollmentId, @AuthenticationPrincipal UserJpaEntity user) {
         // Todo: Verify user owns enrollment or is admin
         var learningPath = learningUseCase.getLearningPath(enrollmentId);
         return ResponseEntity.ok(learningPath);

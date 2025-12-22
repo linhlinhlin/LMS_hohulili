@@ -16,3 +16,4 @@ export function Base64UploadAdapterPlugin(editor: any) {
         return new Base64UploadAdapter(loader);
     };
 }
+

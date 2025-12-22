@@ -259,3 +259,4 @@ export function formatMessageForDisplay(message: ChatMessage): string {
 export function exportMessagesToText(messages: ChatMessage[]): string {
   return messages.map(formatMessageForDisplay).join('\n');
 }
+

@@ -1,10 +1,8 @@
 package com.example.lms.course_management.domain.model;
 
-import com.example.lms.entity.User;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -15,6 +13,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Course aggregate root for Course Management bounded context.
+ * 
+ * Following DDD principles:
+ * - References to User aggregate are by ID only (teacherId)
+ * - This maintains bounded context isolation
+ */
 @Entity(name = "CourseAuthoring")
 @Table(name = "course_authoring")
 public class Course {
@@ -40,16 +45,18 @@ public class Course {
     @Column(name = "thumbnail_url")
     private String thumbnailUrl;
 
+    /**
+     * Reference to User aggregate (teacher) by ID only (DDD principle)
+     */
     @NotNull
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "owner_id", nullable = false)
-    private User teacher;
+    @Column(name = "owner_id", nullable = false)
+    private UUID teacherId;
 
     @Column(name = "category_id")
     private Integer categoryId;
 
     @Column(name = "price")
-    private BigDecimal price; // Changed to BigDecimal for money
+    private BigDecimal price;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "price_type")
@@ -80,7 +87,7 @@ public class Course {
 
     public Course() {}
 
-    // Manual Getters/Setters
+    // Getters & Setters
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
     public String getCode() { return code; }
@@ -93,8 +100,8 @@ public class Course {
     public void setDescription(String description) { this.description = description; }
     public String getThumbnailUrl() { return thumbnailUrl; }
     public void setThumbnailUrl(String thumbnailUrl) { this.thumbnailUrl = thumbnailUrl; }
-    public User getTeacher() { return teacher; }
-    public void setTeacher(User teacher) { this.teacher = teacher; }
+    public UUID getTeacherId() { return teacherId; }
+    public void setTeacherId(UUID teacherId) { this.teacherId = teacherId; }
     public Integer getCategoryId() { return categoryId; }
     public void setCategoryId(Integer categoryId) { this.categoryId = categoryId; }
     public BigDecimal getPrice() { return price; }
@@ -114,7 +121,7 @@ public class Course {
 
     public void setChapters(List<Chapter> chapters) { this.chapters = chapters; }
 
-    // Manual Builder
+    // Builder
     public static CourseBuilder builder() { return new CourseBuilder(); }
     public static class CourseBuilder {
         private Course c = new Course();
@@ -124,7 +131,7 @@ public class Course {
         public CourseBuilder slug(String slug) { c.setSlug(slug); return this; }
         public CourseBuilder description(String d) { c.setDescription(d); return this; }
         public CourseBuilder thumbnailUrl(String t) { c.setThumbnailUrl(t); return this; }
-        public CourseBuilder teacher(User t) { c.setTeacher(t); return this; }
+        public CourseBuilder teacherId(UUID t) { c.setTeacherId(t); return this; }
         public CourseBuilder categoryId(Integer cId) { c.setCategoryId(cId); return this; }
         public CourseBuilder price(BigDecimal p) { c.setPrice(p); return this; }
         public CourseBuilder priceType(CoursePriceType p) { c.setPriceType(p); return this; }
@@ -138,7 +145,6 @@ public class Course {
     }
 
     // Domain Behavior
-
     public void addChapter(Chapter chapter) {
         chapter.setCourse(this);
         this.chapters.add(chapter);
@@ -161,7 +167,6 @@ public class Course {
     }
 
     // Enums
-
     public enum CourseStatus {
         DRAFT, PUBLISHED, ARCHIVED
     }

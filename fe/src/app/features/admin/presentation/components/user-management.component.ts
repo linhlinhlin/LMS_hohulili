@@ -805,7 +805,7 @@ export class UserManagementComponent implements OnInit {
     { value: 'TEACHER', label: 'Giảng viên' },
     { value: 'STUDENT', label: 'Học viên' }
   ] as const;
-  
+
   // Make UserRole available in template
   UserRole = UserRole;
 
@@ -850,7 +850,7 @@ export class UserManagementComponent implements OnInit {
   // Computed properties
   isLoadingUsers = signal(false);
   isDeletingUser = signal(false);
-  
+
   totalUsers = this.adminService.totalUsers;
   totalTeachers = this.adminService.totalTeachers;
   totalStudents = this.adminService.totalStudents;
@@ -898,7 +898,7 @@ export class UserManagementComponent implements OnInit {
   loadUsers(page: number = 1, limit: number = 10): void {
     this.currentPage.set(page);
     this.isLoadingUsers.set(true);
-    
+
     const params: any = {
       page: page,
       limit: limit
@@ -928,37 +928,39 @@ export class UserManagementComponent implements OnInit {
       status: this.statusFilter()
     });
 
+    // getUsers returns Promise, not Observable - use .then()/.catch()
     this.adminService.getUsers(params).subscribe({
-      next: (response) => {
+      next: (response: { data: AdminUser[]; pagination: any }) => {
         console.log('✅ Users loaded successfully:', response);
-        console.log('📊 First user role:', response.data?.[0]?.role, 'Type:', typeof response.data?.[0]?.role);
-        
-        // Normalize roles to uppercase
+        console.log('📊 Response data:', response.data);
+        console.log('📊 First user:', response.data?.[0]);
+
+        // Normalize roles to uppercase for consistent filtering
         const normalizedUsers = (response.data || []).map((user: any) => ({
           ...user,
-          role: user.role?.toUpperCase() || user.role
+          role: (user.role || 'STUDENT').toUpperCase()
         }));
-        
+
         console.log('📊 After normalize:', normalizedUsers[0]?.role);
-        
+        console.log('[ADMIN] Normalized users count:', normalizedUsers.length);
+
         // Update local users signal
         this._localUsers.set(normalizedUsers);
-        
-        // Update pagination info
-        if (response.pagination) {
-          this.pagination.set({
-            page: response.pagination.page || page,
-            limit: response.pagination.limit || limit,
-            totalItems: response.pagination.totalItems || 0,
-            totalPages: response.pagination.totalPages || 1,
-            first: page === 1,
-            last: page === (response.pagination.totalPages || 1)
-          });
-        }
-        
+
+        // Update pagination info from response
+        const total = response.pagination?.totalItems || response.pagination?.totalElements || normalizedUsers.length;
+        this.pagination.set({
+          page: page,
+          limit: limit,
+          totalItems: total,
+          totalPages: Math.ceil(total / limit) || 1,
+          first: page === 1,
+          last: page === Math.ceil(total / limit)
+        });
+
         this.isLoadingUsers.set(false);
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('❌ Error loading users:', error);
         this.isLoadingUsers.set(false);
         alert('Không thể tải danh sách người dùng. Vui lòng thử lại.');
@@ -1138,12 +1140,12 @@ export class UserManagementComponent implements OnInit {
       next: (response) => {
         const currentPageInfo = this.pagination();
         const currentFilteredCount = this.filteredUsers().length;
-        
+
         let targetPage = this.currentPage();
         if (currentFilteredCount === 1 && currentPageInfo && currentPageInfo.page > 1) {
           targetPage = currentPageInfo.page - 1;
         }
-        
+
         this.loadUsers(targetPage);
         this.isDeletingUser.set(false);
         alert('Người dùng đã được vô hiệu hóa');
@@ -1158,7 +1160,7 @@ export class UserManagementComponent implements OnInit {
 
   onRoleChange(userId: string, oldRole: string, newRole: string): void {
     console.log('[ROLE CHANGE]', { userId, oldRole, newRole, oldType: typeof oldRole, newType: typeof newRole });
-    
+
     // If role didn't actually change, do nothing
     if (oldRole === newRole) {
       console.log('[ROLE CHANGE] No change detected');
@@ -1181,7 +1183,7 @@ export class UserManagementComponent implements OnInit {
       next: (response) => {
         console.log('User role updated:', response);
         alert(`Vai trò đã được thay đổi thành ${this.getRoleText(newRole)} thành công!`);
-        
+
         // Update local state for smooth UI
         const users = this._localUsers();
         const idx = users.findIndex(u => u.id === userId);
@@ -1189,14 +1191,14 @@ export class UserManagementComponent implements OnInit {
           users[idx] = { ...users[idx], role: newRole };
           this._localUsers.set([...users]);
         }
-        
+
         // Optional: reload to sync with backend
         // this.loadUsers(this.currentPage());
       },
       error: (error) => {
         console.error('Error updating user role:', error);
         alert('Không thể thay đổi vai trò. Vui lòng thử lại.');
-        
+
         // Revert to old role on error
         const users = this._localUsers();
         const idx = users.findIndex(u => u.id === userId);
@@ -1413,7 +1415,7 @@ export class UserManagementComponent implements OnInit {
     this.adminService.bulkImportUsers(file, this.defaultImportRole() as 'ADMIN' | 'TEACHER' | 'STUDENT').subscribe({
       next: (response: any) => {
         console.log('Bulk import completed:', response);
-        
+
         this.bulkImportProgress.set({
           isImporting: false,
           progress: 100,
@@ -1542,7 +1544,7 @@ export class UserManagementComponent implements OnInit {
   formatBulkImportError(error: any, email: string): string {
     // Extract meaningful error message from API response
     let errorMessage = '';
-    
+
     // Try to get error from different possible locations
     if (error?.error?.message) {
       errorMessage = error.error.message;
@@ -1565,7 +1567,7 @@ export class UserManagementComponent implements OnInit {
       const username = email.split('@')[0];
       return `Email "${email}" đã được sử dụng (username: ${username})`;
     }
-    
+
     if (errorMessage.includes('Email đã tồn tại') || errorMessage.includes('email already exists')) {
       return `Email "${email}" đã tồn tại trong hệ thống`;
     }
@@ -1582,3 +1584,4 @@ export class UserManagementComponent implements OnInit {
     return `${email}: ${errorMessage}`;
   }
 }
+

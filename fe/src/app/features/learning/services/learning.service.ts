@@ -206,7 +206,9 @@ export class LearningService {
     }).subscribe({
       next: ({ courseInfo, courseContent, courseProgress }) => {
         console.log('[LearningService] Course loaded successfully, progress data:', courseProgress);
-        if (!courseInfo || !courseContent) {
+
+        // CourseApi returns ApiResponse<T>, access .data for actual content
+        if (!courseInfo?.data || !courseContent?.data) {
           this.courseState.update(state => ({
             ...state,
             loading: false,
@@ -215,8 +217,8 @@ export class LearningService {
           return;
         }
 
-        // Map course info
-        const courseData = courseInfo?.data;
+        // Map course info from response.data
+        const courseData = courseInfo.data;
         const course: CourseOverview = {
           id: courseData?.id || courseId,
           title: courseData?.title || '',
@@ -229,7 +231,7 @@ export class LearningService {
           isEnrolled: true // If we can fetch content, assume enrolled
         };
 
-        // Map sections
+        // Map sections from response.data
         const sections = this.mapSections(courseContent.data || []);
 
         // Merge progress data
@@ -508,7 +510,7 @@ export class LearningService {
   // Private helper methods
 
   private getCourseProgress(courseId: string) {
-    const url = `/api/v1/student/progress/courses/${courseId}/completed-ids`;
+    const url = `/api/v3/student/progress/courses/${courseId}/completed-ids`;
     return this.api.get<any>(url).pipe(
       tap(res => {
         console.log('[LearningService] Raw course progress response:', res);
@@ -658,3 +660,4 @@ export class LearningService {
     }
   }
 }
+

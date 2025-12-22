@@ -98,7 +98,7 @@ export class StudentApi {
       if (params.search) cleanParams.search = params.search;
     }
     
-    return this.api.getWithResponse<any>('/api/v1/teacher/students', { params: cleanParams }).pipe(
+    return this.api.getWithResponse<any>('/api/v3/teacher/students', { params: cleanParams }).pipe(
       map((res: ApiResponse<any>) => {
         const content: StudentSummary[] = res?.data?.content ?? [];
         return {
@@ -112,7 +112,7 @@ export class StudentApi {
 
   // Get students by course
   getStudentsByCourse(courseId: string, params?: { page?: number; limit?: number }) {
-    return this.api.getWithResponse<any>(`/api/v1/courses/${courseId}/students`, { params }).pipe(
+    return this.api.getWithResponse<any>(`/api/v3/courses/${courseId}/students`, { params }).pipe(
       map((res: ApiResponse<any>) => {
         const content: StudentSummary[] = res?.data?.content ?? [];
         return {
@@ -126,42 +126,42 @@ export class StudentApi {
 
   // Get detailed student information
   getStudentDetail(studentId: string) {
-    return this.api.getWithResponse<StudentDetail>(`/api/v1/teacher/students/${studentId}`);
+    return this.api.getWithResponse<StudentDetail>(`/api/v3/teacher/students/${studentId}`);
   }
 
   // Get student progress in specific course
   getStudentCourseProgress(studentId: string, courseId: string) {
-    return this.api.getWithResponse<StudentCourseProgress>(`/api/v1/courses/${courseId}/students/${studentId}/progress`);
+    return this.api.getWithResponse<StudentCourseProgress>(`/api/v3/courses/${courseId}/students/${studentId}/progress`);
   }
 
   // Get student assignment submissions
   getStudentAssignments(studentId: string, params?: { courseId?: string; status?: string }) {
-    return this.api.getWithResponse<StudentAssignmentSummary[]>(`/api/v1/teacher/students/${studentId}/assignments`, { params });
+    return this.api.getWithResponse<StudentAssignmentSummary[]>(`/api/v3/teacher/students/${studentId}/assignments`, { params });
   }
 
   // Get student analytics
   getStudentAnalytics(studentId: string, params?: { courseId?: string; timeRange?: string }) {
-    return this.api.getWithResponse<StudentAnalytics>(`/api/v1/teacher/students/${studentId}/analytics`, { params });
+    return this.api.getWithResponse<StudentAnalytics>(`/api/v3/teacher/students/${studentId}/analytics`, { params });
   }
 
   // Update student status (activate/deactivate/suspend)
   updateStudentStatus(studentId: string, status: 'active' | 'inactive' | 'suspended') {
-    return this.api.patchWithResponse<StudentSummary>(`/api/v1/teacher/students/${studentId}/status`, { status });
+    return this.api.patchWithResponse<StudentSummary>(`/api/v3/teacher/students/${studentId}/status`, { status });
   }
 
   // Remove student from course
   removeStudentFromCourse(courseId: string, studentId: string) {
-    return this.api.deleteWithResponse<string>(`/api/v1/courses/${courseId}/students/${studentId}`);
+    return this.api.deleteWithResponse<string>(`/api/v3/courses/${courseId}/students/${studentId}`);
   }
 
   // Send message to student
   sendMessageToStudent(studentId: string, message: { subject: string; content: string }) {
-    return this.api.postWithResponse<string>(`/api/v1/teacher/students/${studentId}/messages`, message);
+    return this.api.postWithResponse<string>(`/api/v3/teacher/students/${studentId}/messages`, message);
   }
 
   // Export student progress report
   exportStudentReport(studentId: string, format: 'pdf' | 'excel' = 'pdf') {
-    return this.api.get<Blob>(`/api/v1/teacher/students/${studentId}/export`, {
+    return this.api.get<Blob>(`/api/v3/teacher/students/${studentId}/export`, {
       params: { format },
       responseType: 'blob'
     });

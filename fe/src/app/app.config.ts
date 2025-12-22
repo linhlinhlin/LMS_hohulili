@@ -11,6 +11,8 @@ import { provideServiceWorker } from '@angular/service-worker';
 import { authInterceptor } from './api/interceptors/auth.interceptor';
 import { errorInterceptor } from './api/interceptors/error.interceptor';
 import { baseUrlInterceptor } from './api/interceptors/base-url.interceptor';
+import { loggingInterceptor } from './api/interceptors/logging.interceptor';
+import { apiResponseInterceptor } from './api/interceptors/api-response.interceptor';
 import { AuthService } from './core/services/auth.service';
 
 // ✅ FIXED: Factory function to setup global state when app initializes
@@ -21,16 +23,16 @@ function initializeApp(authService: AuthService): () => Promise<void> {
       console.log('[APP INIT] Running in SSR context, skipping localStorage access');
       return Promise.resolve();
     }
-    
+
     console.log('[APP INIT] Initializing application...');
-    
+
     // If user is already authenticated (token in localStorage), restore context
     if (authService.isAuthenticated()) {
       console.log('[APP INIT] User already authenticated, restoring context...');
       const user = authService.getCurrentUser();
       console.log('[APP INIT] Restored user:', user?.fullName, 'role:', user?.role);
     }
-    
+
     return Promise.resolve();
   };
 }
@@ -44,7 +46,13 @@ export const appConfig: ApplicationConfig = {
     provideAnimationsAsync(),
     provideHttpClient(
       withFetch(),
-      withInterceptors([baseUrlInterceptor, authInterceptor, errorInterceptor])
+      // Interceptor chain order matters!
+      // 1. loggingInterceptor - Log request/response
+      // 2. baseUrlInterceptor - Add base URL to /api/ requests
+      // 3. authInterceptor - Add JWT token
+      // 4. apiResponseInterceptor - Unwrap ApiResponse.data
+      // 5. errorInterceptor - Handle errors
+      withInterceptors([loggingInterceptor, baseUrlInterceptor, authInterceptor, apiResponseInterceptor, errorInterceptor])
     ),
     // Set default locale to Vietnamese for pipes like CurrencyPipe, DatePipe, etc.
     { provide: LOCALE_ID, useValue: 'vi' },

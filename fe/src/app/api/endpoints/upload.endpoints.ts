@@ -1,6 +1,8 @@
+import { API } from './api.config';
+
 export const UPLOAD_ENDPOINTS = {
-  MULTIPART: '/api/v1/uploads/file',
-  SIGNED_URL: '/api/v1/uploads/signed-url',
-  VALIDATE: '/api/v1/uploads/validate',
-  DELETE: '/api/v1/uploads/file'
+  MULTIPART: `${API.BASE}/uploads/file`,
+  SIGNED_URL: `${API.BASE}/uploads/signed-url`,
+  VALIDATE: `${API.BASE}/uploads/validate`,
+  DELETE: `${API.BASE}/uploads/file`
 } as const;

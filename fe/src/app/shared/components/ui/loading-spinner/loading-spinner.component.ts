@@ -147,3 +147,4 @@ export class LoadingSpinnerComponent {
     return ['spinner', `spinner-${this.size()}`].join(' ');
   }
 }
+

@@ -708,3 +708,4 @@ export class CourseEditorSidebarComponent {
     })
   }
 }
+

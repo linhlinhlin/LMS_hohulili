@@ -89,3 +89,4 @@ import { ParallaxBackgroundComponent } from '../../shared/components/ui/parallax
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class HomeSimpleComponent {}
+

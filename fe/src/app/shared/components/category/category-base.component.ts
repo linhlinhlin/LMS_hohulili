@@ -312,3 +312,4 @@ export class CategoryBaseComponent {
   @Input() categoryInfo = signal<CategoryInfo>({} as CategoryInfo);
   @Input() courses = signal<Course[]>([]);
 }
+

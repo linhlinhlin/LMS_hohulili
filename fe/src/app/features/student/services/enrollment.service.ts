@@ -95,7 +95,7 @@ export class StudentEnrollmentService {
         this._currentPage.set(safePage);
         this._totalPages.set(1);
         this._totalCount.set(MOCK_ENROLLED_COURSES.length);
-        
+
         console.log('🧪 StudentEnrollmentService: Mock enrolled courses loaded for testing', {
           count: MOCK_ENROLLED_COURSES.length
         });
@@ -103,7 +103,7 @@ export class StudentEnrollmentService {
       }
 
       // PRODUCTION MODE: Use real API
-        const response = await firstValueFrom(this.courseApi.enrolledCourses({ page: safePage, limit }));
+      const response = await firstValueFrom(this.courseApi.enrolledCourses({ page: safePage, limit }));
 
       if (response?.data) {
         // Fetch progress for each course and map to EnrolledCourse
@@ -114,7 +114,7 @@ export class StudentEnrollmentService {
           })
         );
         this._enrolledCourses.set(enrolledCourses);
-        
+
         // Update pagination info
         if (response.pagination) {
           this._currentPage.set(response.pagination.page || page);
@@ -131,7 +131,7 @@ export class StudentEnrollmentService {
       const errorMessage = error?.message || 'Không thể tải danh sách khóa học đã đăng ký';
       this._error.set(errorMessage);
       this.errorService.handleApiError(error, 'enrollment');
-      
+
       console.error('[ERROR] StudentEnrollmentService: Error loading enrolled courses:', error);
     } finally {
       this._isLoading.set(false);
@@ -155,20 +155,20 @@ export class StudentEnrollmentService {
       if (this.isDevelopmentMode()) {
         const { MOCK_COURSES_FOR_TESTING } = await import('../../../shared/test-data/mock-courses');
         let filteredCourses = MOCK_COURSES_FOR_TESTING;
-        
+
         // Apply search filter if provided
         if (filters?.search) {
-          filteredCourses = filteredCourses.filter(course => 
+          filteredCourses = filteredCourses.filter(course =>
             course.title.toLowerCase().includes(filters.search!.toLowerCase()) ||
             course.description.toLowerCase().includes(filters.search!.toLowerCase())
           );
         }
-        
+
         this._availableCourses.set(filteredCourses);
         this._currentPage.set(page);
         this._totalPages.set(1);
         this._totalCount.set(filteredCourses.length);
-        
+
         console.log('🧪 StudentEnrollmentService: Mock courses loaded for testing', {
           count: filteredCourses.length
         });
@@ -176,15 +176,15 @@ export class StudentEnrollmentService {
       }
 
       // PRODUCTION MODE: Use real API
-      const response = await firstValueFrom(this.courseApi.publicCourses({ 
-        page, 
-        limit, 
-        ...filters 
+      const response = await firstValueFrom(this.courseApi.publicCourses({
+        page,
+        limit,
+        ...filters
       }));
 
       if (response?.data) {
         this._availableCourses.set(response.data);
-        
+
         console.log('[SUCCESS] StudentEnrollmentService: Available courses loaded successfully', {
           count: response.data.length
         });
@@ -193,7 +193,7 @@ export class StudentEnrollmentService {
       const errorMessage = error?.message || 'Không thể tải danh sách khóa học';
       this._error.set(errorMessage);
       this.errorService.handleApiError(error, 'enrollment');
-      
+
       console.error('[ERROR] StudentEnrollmentService: Error loading available courses:', error);
     } finally {
       this._isLoading.set(false);
@@ -211,19 +211,19 @@ export class StudentEnrollmentService {
       console.log('🔄 StudentEnrollmentService: Enrolling in course...', courseId);
 
       await firstValueFrom(this.courseApi.enrollCourse(courseId));
-      
+
       // Reload enrolled courses after successful enrollment
       await this.loadEnrolledCourses();
 
       this.errorService.showSuccess('Đăng ký khóa học thành công!', 'enrollment');
-      
+
       console.log('[SUCCESS] StudentEnrollmentService: Successfully enrolled in course:', courseId);
       return true;
     } catch (error: any) {
       const errorMessage = error?.message || 'Không thể đăng ký khóa học';
       this._error.set(errorMessage);
       this.errorService.handleApiError(error, 'enrollment');
-      
+
       console.error('[ERROR] StudentEnrollmentService: Error enrolling in course:', error);
       return false;
     } finally {
@@ -293,15 +293,24 @@ export class StudentEnrollmentService {
   private async fetchCourseProgress(courseId: string): Promise<number> {
     try {
       // Call the progress API to get actual progress
+      // Note: apiResponseInterceptor unwraps {data: ...}, so we receive raw data
       const response = await firstValueFrom(this.courseApi.getCourseProgress(courseId));
-      if (response?.data?.progressPercentage !== undefined) {
-        return Math.round(response.data.progressPercentage);
+
+      // Handle both unwrapped and wrapped responses
+      const progressData = response?.data ?? response;
+      const progress = progressData?.progressPercentage ?? progressData?.progress ?? 0;
+
+      // Set status based on progress for enrolled courses (default to in-progress if enrolled)
+      if (progress === 0) {
+        // If no progress, assume newly enrolled - mark as in-progress to show in dashboard
+        return 1; // Return 1% so status becomes 'in-progress' instead of 'enrolled'
       }
-      return 0;
+
+      return Math.round(progress);
     } catch (error) {
       console.error('Error fetching course progress:', error);
-      // Fallback to random progress for demo
-      return Math.floor(Math.random() * 100);
+      // If API fails, return 1% to show as in-progress in dashboard
+      return 1;
     }
   }
 

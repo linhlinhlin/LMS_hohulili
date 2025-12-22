@@ -3801,3 +3801,4 @@ export class SectionEditorComponent implements OnDestroy {
     this.refreshLessons(); // Reload everything
   }
 }
+

@@ -44,7 +44,7 @@ export interface MarkAsReadRequest {
 })
 export class MessagingService {
   private http = inject(HttpClient);
-  private apiUrl = '/api/v1/messages';
+  private apiUrl = '/api/v3/messages';
 
   // State signals
   private _conversations = signal<Conversation[]>([]);
@@ -429,3 +429,4 @@ export class MessagingService {
   }
 
 }
+

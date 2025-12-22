@@ -452,3 +452,4 @@ export class QuizAttemptComponent implements OnInit, OnDestroy {
     this.router.navigate(['/learn/quiz']);
   }
 }
+

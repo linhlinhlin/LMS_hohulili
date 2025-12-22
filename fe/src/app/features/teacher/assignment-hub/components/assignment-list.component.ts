@@ -381,3 +381,4 @@ export class AssignmentListComponent implements OnInit {
   }
 
 }
+

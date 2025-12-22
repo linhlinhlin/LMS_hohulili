@@ -15,7 +15,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class PostgresCourseRepository implements CourseRepository {
 
-    private final JpaCourseRepository jpaCourseRepository;
+    private final JpaCourseManagementRepository jpaCourseRepository;
     private final JpaCourseVersionRepository jpaCourseVersionRepository;
 
     @Override

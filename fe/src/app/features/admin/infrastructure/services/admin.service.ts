@@ -189,7 +189,7 @@ export class AdminService {
   // Reactive state
   private _isLoading = new BehaviorSubject<boolean>(false);
   readonly isLoading$ = this._isLoading.asObservable();
-  
+
   // Getter for loading state (better for template binding)
   get isLoading(): boolean {
     return this._isLoading.value;
@@ -299,26 +299,44 @@ export class AdminService {
   getUsers(params: any = {}): Observable<{ data: AdminUser[]; pagination: any }> {
     console.log('[ADMIN SERVICE] 🔍 Loading users with params:', params);
     this._isLoading.next(true);
-    
-    return this.apiClient.getWithResponse<BackendUser[]>(ADMIN_ENDPOINTS.USERS, { params }).pipe(
+
+    // SOTA FIX: apiResponseInterceptor already unwraps ApiResponse.data
+    // So we receive Page object directly: { content: [], totalElements, totalPages, ... }
+    // Use get<any>() instead of getWithResponse<T>() to avoid type mismatch
+    return this.apiClient.get<any>(ADMIN_ENDPOINTS.USERS, { params }).pipe(
       finalize(() => this._isLoading.next(false)),
       map(response => {
-        console.log('[ADMIN SERVICE] ✅ Users loaded successfully:', response);
-        
-        // Backend returns Spring Boot Page format: {data: {content: [...], totalElements: ...}, pagination: {...}}
-        // Extract the actual user array from content
-        const responseData = response.data as any;
-        const backendUsers: BackendUser[] = Array.isArray(response.data) 
-          ? response.data 
-          : (responseData?.content || responseData?.data || []);
-        
+        console.log('[ADMIN SERVICE] ✅ Raw response from interceptor:', response);
+
+        // After interceptor unwrap, response IS the Page object (not wrapped)
+        // Structure: { content: [...users], totalElements, totalPages, pageable, ... }
+        const pageData = response as any;
+
+        // Extract users from Page.content
+        const backendUsers: BackendUser[] = Array.isArray(response)
+          ? response  // In case it's already an array
+          : (pageData?.content || []);
+
+        console.log('[ADMIN SERVICE] 📊 Extracted users:', backendUsers.length);
+
         // Convert BackendUser to AdminUser
         const users: AdminUser[] = backendUsers.map((u: BackendUser) => this.mapBackendUserToAdminUser(u));
         this._users.set(users);
-        
+
+        // Extract pagination from Page object
+        const pagination = {
+          totalItems: pageData?.totalElements || users.length,
+          totalElements: pageData?.totalElements || users.length,
+          totalPages: pageData?.totalPages || 1,
+          page: pageData?.number || 0,
+          size: pageData?.size || 10
+        };
+
+        console.log('[ADMIN SERVICE] 📄 Pagination:', pagination);
+
         return {
           data: users,
-          pagination: response.pagination || {}
+          pagination
         };
       }),
       catchError(error => {
@@ -330,7 +348,7 @@ export class AdminService {
 
   getAllUsersNoPagination(): Observable<AdminUser[]> {
     console.log('[ADMIN SERVICE] 🔍 Loading all users (no pagination)');
-    
+
     return this.apiClient.get<BackendUser[]>(ADMIN_ENDPOINTS.ALL_USERS_NO_PAGINATION).pipe(
       map(users => {
         console.log('[ADMIN SERVICE] ✅ All users loaded:', users.length);
@@ -345,7 +363,7 @@ export class AdminService {
 
   getUserById(userId: string): Observable<AdminUser> {
     console.log('[ADMIN SERVICE] 🔍 Loading user by ID:', userId);
-    
+
     return this.apiClient.get<BackendUser>(ADMIN_ENDPOINTS.USER_DETAIL(userId)).pipe(
       map(user => {
         console.log('[ADMIN SERVICE] ✅ User loaded:', user);
@@ -361,16 +379,16 @@ export class AdminService {
   createUser(request: CreateUserRequest): Observable<{ message: string; data: AdminUser }> {
     console.log('[ADMIN SERVICE] 🔨 Creating user:', request);
     this._isLoading.next(true);
-    
+
     return this.apiClient.postWithResponse<BackendUser>(ADMIN_ENDPOINTS.CREATE_USER, request).pipe(
       finalize(() => this._isLoading.next(false)),
       map(response => {
         console.log('[ADMIN SERVICE] ✅ User created successfully:', response);
-        
+
         const user = this.mapBackendUserToAdminUser(response.data);
-        
+
         // ✅ No auto-refresh - let component handle it with correct params
-        
+
         return {
           message: response.message || 'User created successfully',
           data: user
@@ -386,16 +404,16 @@ export class AdminService {
   updateUser(userId: string, request: UpdateUserRequest): Observable<{ message: string; data: AdminUser }> {
     console.log('[ADMIN SERVICE] 🔨 Updating user:', userId, request);
     this._isLoading.next(true);
-    
+
     return this.apiClient.putWithResponse<BackendUser>(ADMIN_ENDPOINTS.UPDATE_USER(userId), request).pipe(
       finalize(() => this._isLoading.next(false)),
       map(response => {
         console.log('[ADMIN SERVICE] ✅ User updated successfully:', response);
-        
+
         const user = this.mapBackendUserToAdminUser(response.data);
-        
+
         // ✅ No auto-refresh - let component handle it with correct params
-        
+
         return {
           message: response.message || 'User updated successfully',
           data: user
@@ -411,14 +429,14 @@ export class AdminService {
   deleteUser(userId: string): Observable<{ message: string }> {
     console.log('[ADMIN SERVICE] 🗑️ Deleting user:', userId);
     this._isLoading.next(true);
-    
+
     return this.apiClient.deleteWithResponse<string>(ADMIN_ENDPOINTS.DELETE_USER(userId)).pipe(
       finalize(() => this._isLoading.next(false)),
       map(response => {
         console.log('[ADMIN SERVICE] ✅ User deleted successfully');
-        
+
         // ✅ No auto-refresh - let component handle it with correct params
-        
+
         return {
           message: response.message || 'User deleted successfully'
         };
@@ -433,16 +451,16 @@ export class AdminService {
   toggleUserStatus(userId: string): Observable<{ message: string; data: AdminUser }> {
     console.log('[ADMIN SERVICE] 🔄 Toggling user status:', userId);
     this._isLoading.next(true);
-    
+
     return this.apiClient.patchWithResponse<BackendUser>(ADMIN_ENDPOINTS.TOGGLE_USER_STATUS(userId), {}).pipe(
       finalize(() => this._isLoading.next(false)),
       map(response => {
         console.log('[ADMIN SERVICE] ✅ User status toggled successfully:', response);
-        
+
         const user = this.mapBackendUserToAdminUser(response.data);
-        
+
         // ✅ No auto-refresh - let component handle it with correct params
-        
+
         return {
           message: response.message || 'User status toggled successfully',
           data: user
@@ -460,7 +478,7 @@ export class AdminService {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('defaultRole', defaultRole);
-    
+
     return this.apiClient.postWithResponse(ADMIN_ENDPOINTS.BULK_IMPORT_USERS, formData).pipe(
       map(response => {
         console.log('[ADMIN SERVICE] ✅ Bulk import completed:', response);
@@ -525,19 +543,20 @@ export class AdminService {
 
   totalUsers = computed(() => this._users().length);
 
-  totalTeachers = computed(() => 
+  totalTeachers = computed(() =>
     this._users().filter(u => u.role === 'TEACHER').length
   );
 
-  totalStudents = computed(() => 
+  totalStudents = computed(() =>
     this._users().filter(u => u.role === 'STUDENT').length
   );
 
-  totalAdminsCount = computed(() => 
+  totalAdminsCount = computed(() =>
     this._users().filter(u => u.role === 'ADMIN').length
   );
 
-  activeUsersCount = computed(() => 
+  activeUsersCount = computed(() =>
     this._users().filter(u => u.isActive).length
   );
 }
+

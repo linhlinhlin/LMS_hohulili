@@ -1,9 +1,11 @@
+import { API } from './api.config';
+
 export const AUTH_ENDPOINTS = {
-  LOGIN: '/api/v1/auth/login',
-  REGISTER: '/api/v1/auth/register',
-  LOGOUT: '/api/v1/auth/logout',
-  REFRESH: '/api/v1/auth/refresh',
-  ME: '/api/v1/auth/me',
-  PROFILE: '/api/v1/auth/profile',
-  PASSWORD: '/api/v1/auth/password'
+  LOGIN: `${API.BASE}/auth/login`,
+  REGISTER: `${API.BASE}/auth/register`,
+  LOGOUT: `${API.BASE}/auth/logout`,
+  REFRESH: `${API.BASE}/auth/refresh`,
+  ME: `${API.BASE}/auth/me`,
+  PROFILE: `${API.BASE}/auth/profile`,
+  PASSWORD: `${API.BASE}/auth/password`
 } as const;

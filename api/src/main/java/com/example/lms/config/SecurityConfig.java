@@ -1,6 +1,6 @@
 package com.example.lms.config;
 
-import com.example.lms.service.UserService;
+import com.example.lms.identity.infrastructure.security.UserDetailsServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpMethod;
 import org.springframework.context.annotation.Bean;
@@ -32,7 +32,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
-    private final UserService userService;
+    private final UserDetailsServiceImpl userDetailsService;
     private final PasswordEncoder passwordEncoder;
 
     @Bean
@@ -42,13 +42,20 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable) // Disable CSRF
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
+                    // API Documentation
                     "/v3/api-docs/**",
                     "/swagger-ui/**",
                     "/swagger-ui.html",
-                    "/api/v1/auth/**",
-                    "/api/auth/**",
-                    "/api/v1/ai/health",
-                    "/api/v1/ai/ping"
+                    // Auth endpoints (V3 only)
+                    "/api/v3/auth/**",
+                    // AI health endpoints
+                    "/api/v3/ai/health",
+                    "/api/v3/ai/ping",
+                    // Public course endpoints
+                    "/api/v3/courses",
+                    "/api/v3/courses/public/**",
+                    // Categories (for testing)
+                    "/api/v3/categories"
                 ).permitAll()
                 .anyRequest().authenticated()
             )
@@ -62,7 +69,7 @@ public class SecurityConfig {
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-        authProvider.setUserDetailsService(userService);
+        authProvider.setUserDetailsService(userDetailsService);
         authProvider.setPasswordEncoder(passwordEncoder);
         authProvider.setHideUserNotFoundExceptions(false); // Show actual authentication errors
         return authProvider;

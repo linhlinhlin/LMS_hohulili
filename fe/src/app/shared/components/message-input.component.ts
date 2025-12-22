@@ -257,3 +257,4 @@ export class MessageInputComponent {
     this.textareaRef?.nativeElement?.focus();
   }
 }
+

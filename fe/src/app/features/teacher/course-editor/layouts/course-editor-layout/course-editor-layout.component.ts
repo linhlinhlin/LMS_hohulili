@@ -104,3 +104,4 @@ export class CourseEditorLayoutComponent implements OnInit {
     return this.route.paramMap.pipe(map(params => params.get('id')));
   }
 }
+

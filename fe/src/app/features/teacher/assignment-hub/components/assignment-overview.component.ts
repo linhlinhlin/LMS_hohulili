@@ -329,3 +329,4 @@ export class AssignmentOverviewComponent implements OnInit {
     return this.stats().totalStudents || this.enrolledStudents().length;
   }
 }
+

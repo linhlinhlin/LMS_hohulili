@@ -179,3 +179,4 @@ export function getLessonTypeFromTitle(title: string): LessonType {
   
   return LessonType.LECTURE;
 }
+

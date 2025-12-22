@@ -104,3 +104,4 @@ export class ChatWidgetComponent implements OnInit, OnDestroy {
     }
   }
 }
+

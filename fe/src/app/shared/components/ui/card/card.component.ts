@@ -59,3 +59,4 @@ export class CardComponent {
     ].filter(Boolean).join(' ');
   }
 }
+

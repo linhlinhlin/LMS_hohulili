@@ -298,3 +298,4 @@ export class QuizEditModalComponent implements OnInit {
     }
   }
 }
+

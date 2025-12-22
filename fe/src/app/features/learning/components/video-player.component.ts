@@ -316,3 +316,4 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
     // Controls are hidden via CSS hover
   }
 }
+

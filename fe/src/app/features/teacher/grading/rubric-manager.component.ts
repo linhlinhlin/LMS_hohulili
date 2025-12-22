@@ -301,3 +301,4 @@ export class RubricManagerComponent implements OnInit {
     ];
   }
 }
+

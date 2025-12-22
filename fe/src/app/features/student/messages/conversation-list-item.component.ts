@@ -115,3 +115,4 @@ export class ConversationListItemComponent {
     return formatMessageTime(dateString);
   }
 }
+

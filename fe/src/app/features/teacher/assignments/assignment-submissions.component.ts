@@ -574,3 +574,4 @@ export class AssignmentSubmissionsComponent implements OnInit {
     return texts[status] || status;
   }
 }
+

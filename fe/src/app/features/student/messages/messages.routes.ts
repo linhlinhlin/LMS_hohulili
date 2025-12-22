@@ -21,3 +21,4 @@ export const MESSAGES_ROUTES: Routes = [
     title: 'Cuộc hội thoại - LMS Maritime',
   },
 ];
+

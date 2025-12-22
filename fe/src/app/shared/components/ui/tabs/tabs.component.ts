@@ -175,3 +175,4 @@ export class TabsComponent {
     }
   }
 }
+

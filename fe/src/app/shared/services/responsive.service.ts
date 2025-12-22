@@ -87,3 +87,4 @@ export class ResponsiveService {
     return classes;
   }
 }
+

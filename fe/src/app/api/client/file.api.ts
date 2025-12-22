@@ -38,7 +38,7 @@ export class FileApi {
     formData.append('file', file);
     formData.append('category', category);
 
-    return this.http.post<ApiResponse<FileUploadResponse>>(`${this.api['baseUrl']}/api/v1/files/upload`, formData, {
+    return this.http.post<ApiResponse<FileUploadResponse>>(`${this.api['baseUrl']}/api/v3/files/upload`, formData, {
       reportProgress: true,
       observe: 'events'
     }).pipe(
@@ -97,32 +97,32 @@ export class FileApi {
 
   // Get files list
   getFiles(params?: { category?: string; page?: number; limit?: number }) {
-    return this.api.getWithResponse<FileUploadResponse[]>('/api/v1/files', { params });
+    return this.api.getWithResponse<FileUploadResponse[]>('/api/v3/files', { params });
   }
 
   // Get file by ID
   getFileById(fileId: string) {
-    return this.api.getWithResponse<FileUploadResponse>(`/api/v1/files/${fileId}`);
+    return this.api.getWithResponse<FileUploadResponse>(`/api/v3/files/${fileId}`);
   }
 
   // Delete file
   deleteFile(fileId: string) {
-    return this.api.deleteWithResponse<string>(`/api/v1/files/${fileId}`);
+    return this.api.deleteWithResponse<string>(`/api/v3/files/${fileId}`);
   }
 
   // Get file download URL
   getDownloadUrl(fileId: string): string {
-    return `/api/v1/files/${fileId}/download`;
+    return `/api/v3/files/${fileId}/download`;
   }
 
   // Get file thumbnail URL
   getThumbnailUrl(fileId: string): string {
-    return `/api/v1/files/${fileId}/thumbnail`;
+    return `/api/v3/files/${fileId}/thumbnail`;
   }
 
   // Generate presigned upload URL (for large files)
   getPresignedUploadUrl(fileName: string, fileSize: number, contentType: string) {
-    return this.api.postWithResponse<{ uploadUrl: string; fileId: string }>('/api/v1/files/presigned-url', {
+    return this.api.postWithResponse<{ uploadUrl: string; fileId: string }>('/api/v3/files/presigned-url', {
       fileName,
       fileSize,
       contentType

@@ -262,3 +262,4 @@ export class MessagesTabComponent implements OnInit, OnDestroy, AfterViewChecked
       .toUpperCase();
   }
 }
+

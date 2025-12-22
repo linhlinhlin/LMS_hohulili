@@ -358,3 +358,4 @@ export class RubricCreatorComponent {
     }, 1000);
   }
 }
+

@@ -5,131 +5,87 @@ import { catchError, map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../types/common.types';
 
+/**
+ * Centralized API Client - Angular v20 SOTA
+ * 
+ * Best Practices Applied:
+ * - Uses `inject()` for DI (Angular v14+)
+ * - Typed generics for type safety
+ * - Centralized error handling
+ * - No console.log (logging moved to interceptor)
+ * - Single responsibility: HTTP operations only
+ */
 @Injectable({
   providedIn: 'root'
 })
 export class ApiClient {
-  private http = inject(HttpClient);
-  private readonly baseUrl = environment.apiUrl;  // ✅ Sử dụng environment
+  private readonly http = inject(HttpClient);
+  private readonly baseUrl = environment.apiUrl;
 
-  constructor() {}
+  // ============================================
+  // RAW HTTP Methods (return raw response)
+  // ============================================
 
-  // Generic GET request
-  get<T>(endpoint: string, options?: any): Observable<T> {
-    const fullUrl = `${this.baseUrl}${endpoint}`;
-    console.log('[API CLIENT] 🌐 GET Request:', fullUrl);
-    console.log('[API CLIENT] 📦 Options:', options);
-    
-    return this.http.get(fullUrl, options).pipe(
-      map(response => {
-        console.log('[API CLIENT] ✅ GET Response for', endpoint, ':', response);
-        return response as T;
-      }),
-      catchError((error) => {
-        console.error('[API CLIENT] ❌ GET Error for', endpoint, ':', error);
-        return this.handleError(error);
-      })
-    );
-  }
-
-  // Generic POST request
-  post<T>(endpoint: string, data: any, options?: any): Observable<T> {
-    const fullUrl = `${this.baseUrl}${endpoint}`;
-    console.log('[API CLIENT] 🌐 POST Request:', fullUrl);
-    console.log('[API CLIENT] 📦 Data:', JSON.stringify(data));
-    
-    return this.http.post(fullUrl, data, options).pipe(
-      map(response => {
-        console.log('[API CLIENT] ✅ POST Response for', endpoint, ':', response);
-        return response as T;
-      }),
-      catchError((error) => {
-        console.error('[API CLIENT] ❌ POST Error for', endpoint, ':', error);
-        console.error('[API CLIENT] ❌ Error status:', error.status);
-        console.error('[API CLIENT] ❌ Error body:', error.error);
-        return this.handleError(error);
-      })
-    );
-  }
-
-  // Generic PUT request
-  put<T>(endpoint: string, data: any, options?: any): Observable<T> {
-    return this.http.put(`${this.baseUrl}${endpoint}`, data, options).pipe(
-      map(response => response as T),
+  get<T>(endpoint: string, options?: object): Observable<T> {
+    return this.http.get<T>(`${this.baseUrl}${endpoint}`, options).pipe(
       catchError(this.handleError)
     );
   }
 
-  // Generic DELETE request
-  delete<T>(endpoint: string, options?: any): Observable<T> {
-    return this.http.delete(`${this.baseUrl}${endpoint}`, options).pipe(
-      map(response => response as T),
+  post<T>(endpoint: string, data: unknown, options?: object): Observable<T> {
+    return this.http.post<T>(`${this.baseUrl}${endpoint}`, data, options).pipe(
       catchError(this.handleError)
     );
   }
 
-  // PATCH method
-  patch<T>(endpoint: string, data: any, options?: any): Observable<T> {
-    return this.http.patch(`${this.baseUrl}${endpoint}`, data, options).pipe(
-      map(response => response as T),
+  put<T>(endpoint: string, data: unknown, options?: object): Observable<T> {
+    return this.http.put<T>(`${this.baseUrl}${endpoint}`, data, options).pipe(
       catchError(this.handleError)
     );
   }
 
-  // Helper method for API responses with standard format
-  getWithResponse<T>(endpoint: string, options?: any): Observable<ApiResponse<T>> {
-    return this.http.get<ApiResponse<T>>(`${this.baseUrl}${endpoint}`, options).pipe(
-      map(response => response as unknown as ApiResponse<T>),
+  patch<T>(endpoint: string, data: unknown, options?: object): Observable<T> {
+    return this.http.patch<T>(`${this.baseUrl}${endpoint}`, data, options).pipe(
       catchError(this.handleError)
     );
   }
 
-  postWithResponse<T>(endpoint: string, data: any, options?: any): Observable<ApiResponse<T>> {
-    const fullUrl = `${this.baseUrl}${endpoint}`;
-    console.log('[HTTP] ApiClient.postWithResponse:', fullUrl, 'with data:', data);
-    return this.http.post<ApiResponse<T>>(fullUrl, data, options).pipe(
-      map(response => {
-        console.log('[HTTP] ApiClient.postWithResponse success:', fullUrl, 'response:', response);
-        return response as unknown as ApiResponse<T>;
-      }),
-      catchError(error => {
-        console.error('[HTTP] ApiClient.postWithResponse error:', fullUrl, 'error:', error);
-        return this.handleError(error);
-      })
-    );
-  }
-
-  putWithResponse<T>(endpoint: string, data: any, options?: any): Observable<ApiResponse<T>> {
-    return this.http.put<ApiResponse<T>>(`${this.baseUrl}${endpoint}`, data, options).pipe(
-      map(response => response as unknown as ApiResponse<T>),
+  delete<T>(endpoint: string, options?: object): Observable<T> {
+    return this.http.delete<T>(`${this.baseUrl}${endpoint}`, options).pipe(
       catchError(this.handleError)
     );
   }
 
-  patchWithResponse<T>(endpoint: string, data: any, options?: any): Observable<ApiResponse<T>> {
-    const fullUrl = `${this.baseUrl}${endpoint}`;
-    console.log('[HTTP] ApiClient.patchWithResponse:', fullUrl, 'with data:', data);
-    return this.http.patch<ApiResponse<T>>(fullUrl, data, options).pipe(
-      map(response => {
-        console.log('[HTTP] ApiClient.patchWithResponse success:', fullUrl, 'response:', response);
-        return response as unknown as ApiResponse<T>;
-      }),
-      catchError(error => {
-        console.error('[HTTP] ApiClient.patchWithResponse error:', fullUrl, 'error:', error);
-        return this.handleError(error);
-      })
-    );
+  // ============================================
+  // ApiResponse Wrapper Methods
+  // For endpoints that return { data, message, pagination }
+  // ============================================
+
+  getWithResponse<T>(endpoint: string, options?: object): Observable<ApiResponse<T>> {
+    return this.get<ApiResponse<T>>(endpoint, options);
   }
 
-  deleteWithResponse<T>(endpoint: string, options?: any): Observable<ApiResponse<T>> {
-    return this.http.delete<ApiResponse<T>>(`${this.baseUrl}${endpoint}`, options).pipe(
-      map(response => response as unknown as ApiResponse<T>),
-      catchError(this.handleError)
-    );
+  postWithResponse<T>(endpoint: string, data: unknown, options?: object): Observable<ApiResponse<T>> {
+    return this.post<ApiResponse<T>>(endpoint, data, options);
   }
 
-  // Error handling
-  private handleError(error: HttpErrorResponse): Observable<never> {
+  putWithResponse<T>(endpoint: string, data: unknown, options?: object): Observable<ApiResponse<T>> {
+    return this.put<ApiResponse<T>>(endpoint, data, options);
+  }
+
+  patchWithResponse<T>(endpoint: string, data: unknown, options?: object): Observable<ApiResponse<T>> {
+    return this.patch<ApiResponse<T>>(endpoint, data, options);
+  }
+
+  deleteWithResponse<T>(endpoint: string, options?: object): Observable<ApiResponse<T>> {
+    return this.delete<ApiResponse<T>>(endpoint, options);
+  }
+
+  // ============================================
+  // Error Handling
+  // ============================================
+
+  private handleError = (error: HttpErrorResponse): Observable<never> => {
     let errorMessage = 'An unknown error occurred';
 
     if (error.error instanceof ErrorEvent) {
@@ -146,7 +102,6 @@ export class ApiClient {
       }
     }
 
-    console.error('API Error:', error);
     return throwError(() => new Error(errorMessage));
-  }
+  };
 }

@@ -1,7 +1,5 @@
 package com.example.lms.learning_delivery.domain.model;
 
-import com.example.lms.entity.Course;
-import com.example.lms.entity.User;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
@@ -11,6 +9,13 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * LearningClass aggregate root.
+ * 
+ * Following DDD principles:
+ * - References to other aggregates (Course, User) are by ID only
+ * - This maintains bounded context isolation
+ */
 @Entity
 @Table(name = "learning_classes")
 @Getter @Setter @Builder @NoArgsConstructor @AllArgsConstructor
@@ -30,13 +35,17 @@ public class LearningClass {
     @Column(name = "course_version_id")
     private UUID courseVersionId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "course_id", nullable = false)
-    private Course course;
+    /**
+     * Reference to Course aggregate by ID (DDD principle: reference by ID, not entity)
+     */
+    @Column(name = "course_id", nullable = false)
+    private UUID courseId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "teacher_id")
-    private User teacher;
+    /**
+     * Reference to User aggregate (teacher) by ID
+     */
+    @Column(name = "teacher_id")
+    private UUID teacherId;
 
     @Column(name = "start_date")
     private Instant startDate;

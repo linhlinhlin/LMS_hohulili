@@ -169,3 +169,4 @@ export class DeleteConfirmModalComponent {
         this.cancel.emit();
     }
 }
+

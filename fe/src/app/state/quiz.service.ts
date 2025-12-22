@@ -391,3 +391,4 @@ export class QuizService {
     return of(submittedAttempts.length < quiz.maxAttempts);
   }
 }
+

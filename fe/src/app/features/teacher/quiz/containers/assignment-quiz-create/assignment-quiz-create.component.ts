@@ -135,3 +135,4 @@ export class AssignmentQuizCreateComponent implements OnInit {
         this.router.navigate(['/teacher/courses', this.courseId()]);
     }
 }
+

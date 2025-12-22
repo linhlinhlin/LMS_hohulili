@@ -552,3 +552,4 @@ export class ChatMainAreaComponent implements AfterViewChecked, OnChanges, OnDes
     this.regenerate.emit();
   }
 }
+

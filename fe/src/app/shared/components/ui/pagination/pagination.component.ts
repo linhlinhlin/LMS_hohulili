@@ -189,3 +189,4 @@ export class PaginationComponent {
     return page;
   }
 }
+

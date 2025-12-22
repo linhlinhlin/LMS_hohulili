@@ -385,3 +385,4 @@ export function containsUrls(content: string): boolean {
   URL_PATTERN.lastIndex = 0;
   return URL_PATTERN.test(content);
 }
+

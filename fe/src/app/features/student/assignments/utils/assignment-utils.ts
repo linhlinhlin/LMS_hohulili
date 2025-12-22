@@ -408,3 +408,4 @@ export function isAssignmentOverdue(assignment: StudentAssignment): boolean {
 export function isAssignmentCompleted(assignment: StudentAssignment): boolean {
   return assignment.status === 'SUBMITTED' || assignment.status === 'GRADED';
 }
+

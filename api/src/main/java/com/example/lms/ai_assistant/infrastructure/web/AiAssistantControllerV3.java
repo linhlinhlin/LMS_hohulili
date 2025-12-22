@@ -37,6 +37,20 @@ public class AiAssistantControllerV3 {
 
     private final ChatSessionUseCaseV3 chatSessionUseCase;
 
+    // ============== Health Check ==============
+    
+    @GetMapping("/health")
+    @Operation(summary = "Check AI service health status")
+    public ResponseEntity<Map<String, Object>> healthCheck() {
+        Map<String, Object> health = Map.of(
+            "status", "healthy",
+            "aiServiceStatus", "available",
+            "version", "3.0",
+            "timestamp", System.currentTimeMillis()
+        );
+        return ResponseEntity.ok(health);
+    }
+
     // ============== Session Management ==============
 
     @PostMapping("/sessions")

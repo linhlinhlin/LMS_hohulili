@@ -168,3 +168,4 @@ export class MessageBubbleComponent {
     return formatMessageTime(this.message.createdAt);
   }
 }
+

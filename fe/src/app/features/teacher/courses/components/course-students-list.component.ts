@@ -90,7 +90,7 @@ export class CourseStudentsListComponent implements OnInit {
     this.error.set('');
 
     const searchParam = this.searchTerm ? `&search=${encodeURIComponent(this.searchTerm)}` : '';
-    const url = `/api/v1/courses/${this.courseId()}/students?page=${this.currentPage()}&size=${this.pageSize}${searchParam}`;
+    const url = `/api/v3/courses/${this.courseId()}/students?page=${this.currentPage()}&size=${this.pageSize}${searchParam}`;
 
     this.http.get<{ success: boolean; data: PageableResponse }>(url).subscribe({
       next: (response) => {
@@ -176,3 +176,4 @@ export class CourseStudentsListComponent implements OnInit {
     }
   }
 }
+

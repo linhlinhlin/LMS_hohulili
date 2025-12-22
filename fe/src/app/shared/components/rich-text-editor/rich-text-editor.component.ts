@@ -129,3 +129,4 @@ export class RichTextEditorComponent implements ControlValueAccessor {
         this.onChange(value);
     }
 }
+

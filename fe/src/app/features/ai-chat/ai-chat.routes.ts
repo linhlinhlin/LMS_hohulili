@@ -14,3 +14,4 @@ export const AI_CHAT_ROUTES: Routes = [
     title: 'Trợ lý AI Hàng Hải',
   },
 ];
+

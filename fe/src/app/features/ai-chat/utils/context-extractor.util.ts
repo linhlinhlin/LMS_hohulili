@@ -181,3 +181,4 @@ export function formatContextForDisplay(context: ChatContext): string {
 
   return parts.length > 0 ? parts.join(' | ') : 'Không có ngữ cảnh';
 }
+

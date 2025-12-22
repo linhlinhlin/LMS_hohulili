@@ -316,3 +316,4 @@ export class AssignmentStateService {
     return this._assignments().some((a: AssignmentSummary) => a.id === assignmentId);
   }
 }
+

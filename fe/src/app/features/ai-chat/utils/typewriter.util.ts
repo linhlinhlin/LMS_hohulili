@@ -159,3 +159,4 @@ export async function typewriterEffect(
     onComplete
   });
 }
+

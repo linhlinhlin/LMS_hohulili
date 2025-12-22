@@ -220,57 +220,57 @@ export class QuizApi {
 
   // Create quiz for lesson
   createQuiz(lessonId: string, request: CreateQuizRequest) {
-    return this.apiClient.post<QuizResponse>(`/api/v1/quizzes/lessons/${lessonId}`, request);
+    return this.apiClient.post<QuizResponse>(`/api/v3/quizzes/lessons/${lessonId}`, request);
   }
 
   // Update quiz questions
   updateQuizQuestions(lessonId: string, request: UpdateQuizQuestionsRequest) {
-    return this.apiClient.put<QuizResponse>(`/api/v1/quizzes/lessons/${lessonId}/questions`, request);
+    return this.apiClient.put<QuizResponse>(`/api/v3/quizzes/lessons/${lessonId}/questions`, request);
   }
 
   // Get quiz by lesson ID
   getQuizByLessonId(lessonId: string) {
-    return this.apiClient.get<QuizResponse>(`/api/v1/quizzes/lessons/${lessonId}`);
+    return this.apiClient.get<QuizResponse>(`/api/v3/quizzes/lessons/${lessonId}`);
   }
 
   // Get quiz questions
   getQuizQuestions(lessonId: string) {
-    return this.apiClient.get<Question[]>(`/api/v1/quizzes/lessons/${lessonId}/questions`);
+    return this.apiClient.get<Question[]>(`/api/v3/quizzes/lessons/${lessonId}/questions`);
   }
 
   // Start quiz attempt
   startAttempt(lessonId: string) {
-    return this.apiClient.post<QuizAttemptResponse>(`/api/v1/quizzes/${lessonId}/attempts`, {});
+    return this.apiClient.post<QuizAttemptResponse>(`/api/v3/quizzes/${lessonId}/attempts`, {});
   }
 
   // Submit quiz attempt
   submitAttempt(attemptId: string, request: SubmitAttemptRequest) {
-    return this.apiClient.post<QuizAttemptResponse>(`/api/v1/quizzes/attempts/${attemptId}/submit`, request);
+    return this.apiClient.post<QuizAttemptResponse>(`/api/v3/quizzes/attempts/${attemptId}/submit`, request);
   }
 
   // Get student attempts
   getStudentAttempts(lessonId: string) {
-    return this.apiClient.get<QuizAttemptResponse[]>(`/api/v1/quizzes/${lessonId}/attempts`);
+    return this.apiClient.get<QuizAttemptResponse[]>(`/api/v3/quizzes/${lessonId}/attempts`);
   }
 
   // Get quiz attempts (for teacher)
   getQuizAttempts(lessonId: string) {
-    return this.apiClient.get<QuizAttemptResponse[]>(`/api/v1/quizzes/lessons/${lessonId}/attempts`);
+    return this.apiClient.get<QuizAttemptResponse[]>(`/api/v3/quizzes/lessons/${lessonId}/attempts`);
   }
 
   // Get quiz result detail
   getQuizResult(attemptId: string) {
-    return this.apiClient.get<QuizResult>(`/api/v1/quizzes/attempts/${attemptId}/result`);
+    return this.apiClient.get<QuizResult>(`/api/v3/quizzes/attempts/${attemptId}/result`);
   }
 
   // Get quiz statistics
   getQuizStatistics(lessonId: string) {
-    return this.apiClient.get<QuizStatistics>(`/api/v1/quizzes/lessons/${lessonId}/statistics`);
+    return this.apiClient.get<QuizStatistics>(`/api/v3/quizzes/lessons/${lessonId}/statistics`);
   }
 
   // Get all quizzes for teacher
   getTeacherQuizzes() {
-    return this.apiClient.get<QuizResponse[]>(`/api/v1/quizzes/teacher/quizzes`);
+    return this.apiClient.get<QuizResponse[]>(`/api/v3/quizzes/teacher/quizzes`);
   }
 
   // Add question to existing quiz
@@ -282,7 +282,7 @@ export class QuizApi {
     console.log('   requestBody:', JSON.stringify(requestBody));
     console.log('   requestBody type:', typeof requestBody);
     console.log('   questionId type:', typeof questionId);
-    return this.apiClient.post<QuizResponse>(`/api/v1/quizzes/lessons/${lessonId}/questions/add`, requestBody);
+    return this.apiClient.post<QuizResponse>(`/api/v3/quizzes/lessons/${lessonId}/questions/add`, requestBody);
   }
 
   // Update quiz settings
@@ -296,12 +296,12 @@ export class QuizApi {
     showResultsImmediately?: boolean;
     showCorrectAnswers?: boolean;
   }) {
-    return this.apiClient.put<QuizResponse>(`/api/v1/quizzes/${quizId}/settings`, settings);
+    return this.apiClient.put<QuizResponse>(`/api/v3/quizzes/${quizId}/settings`, settings);
   }
 
   // Remove question from quiz
   removeQuestionFromQuiz(lessonId: string, questionId: string) {
-    return this.apiClient.delete<{ message: string }>(`/api/v1/quizzes/lessons/${lessonId}/questions/${questionId}`);
+    return this.apiClient.delete<{ message: string }>(`/api/v3/quizzes/lessons/${lessonId}/questions/${questionId}`);
   }
 
   // ============================================
@@ -355,7 +355,7 @@ export class QuizApi {
    */
   assignQuizToStudents(quizId: string, request: AssignQuizRequest): Observable<QuizAssignmentResponse[]> {
     return this.apiClient.post<QuizAssignmentResponse[]>(
-      `/api/v1/quizzes/${quizId}/assignments`,
+      `/api/v3/quizzes/${quizId}/assignments`,
       request
     );
   }
@@ -367,7 +367,7 @@ export class QuizApi {
    */
   getQuizAssignments(quizId: string): Observable<QuizAssignmentResponse[]> {
     return this.apiClient.get<QuizAssignmentResponse[]>(
-      `/api/v1/quizzes/${quizId}/assignments`
+      `/api/v3/quizzes/${quizId}/assignments`
     );
   }
 
@@ -388,7 +388,7 @@ export class QuizApi {
    */
   autoPopulateQuizQuestions(lessonId: string) {
     return this.apiClient.post<any>(
-      `/api/v1/quizzes/lessons/${lessonId}/auto-populate-questions`,
+      `/api/v3/quizzes/lessons/${lessonId}/auto-populate-questions`,
       {}
     );
   }
@@ -400,8 +400,9 @@ export class QuizApi {
    */
   createSampleQuestions(lessonId: string) {
     return this.apiClient.post<any>(
-      `/api/v1/quizzes/lessons/${lessonId}/create-sample-questions`,
+      `/api/v3/quizzes/lessons/${lessonId}/create-sample-questions`,
       {}
     );
   }
 }
+

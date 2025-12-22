@@ -22,7 +22,7 @@ export interface UploadProgress {
 })
 export class DocumentService {
   private http = inject(HttpClient);
-  private readonly baseUrl = `${environment.apiUrl}/api/v1/documents`;
+  private readonly baseUrl = `${environment.apiUrl}/api/v3/documents`;
 
   /**
    * Upload and parse document file (.doc/.docx)

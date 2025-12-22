@@ -130,3 +130,4 @@ export class KnowledgeStatsComponent {
         return Object.keys(this.stats.categories).length;
     }
 }
+

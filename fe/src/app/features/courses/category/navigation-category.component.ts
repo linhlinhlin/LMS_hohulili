@@ -96,3 +96,4 @@ export class NavigationCategoryComponent implements OnInit {
     scriptEl.text = JSON.stringify(data);
   }
 }
+

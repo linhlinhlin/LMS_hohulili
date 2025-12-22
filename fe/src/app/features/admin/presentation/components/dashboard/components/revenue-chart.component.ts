@@ -187,3 +187,4 @@ export class RevenueChartComponent implements OnInit {
     }
   }
 }
+

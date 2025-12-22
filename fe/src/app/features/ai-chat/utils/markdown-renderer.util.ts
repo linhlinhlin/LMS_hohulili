@@ -265,3 +265,4 @@ export function getMarkdownPreview(markdown: string, maxLength: number = 100): s
   }
   return plainText.substring(0, maxLength).trim() + '...';
 }
+

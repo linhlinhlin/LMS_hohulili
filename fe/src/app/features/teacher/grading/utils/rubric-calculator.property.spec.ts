@@ -331,3 +331,4 @@ describe('Rubric Calculator - Property Tests', () => {
     });
   });
 });
+

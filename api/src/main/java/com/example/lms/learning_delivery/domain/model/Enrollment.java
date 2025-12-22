@@ -1,6 +1,5 @@
 package com.example.lms.learning_delivery.domain.model;
 
-import com.example.lms.entity.User;
 import io.hypersistence.utils.hibernate.type.json.JsonType;
 import jakarta.persistence.*;
 import lombok.*;
@@ -13,6 +12,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Enrollment aggregate.
+ * 
+ * Following DDD principles:
+ * - References to User aggregate are by ID only
+ * - This maintains bounded context isolation
+ */
 @Entity
 @Table(name = "enrollments", 
        uniqueConstraints = @UniqueConstraint(columnNames = {"student_id", "class_id"}))
@@ -27,9 +33,11 @@ public class Enrollment {
     @JoinColumn(name = "class_id", nullable = false)
     private LearningClass learningClass;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "student_id", nullable = false)
-    private User student;
+    /**
+     * Reference to User aggregate (student) by ID (DDD principle)
+     */
+    @Column(name = "student_id", nullable = false)
+    private UUID studentId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -53,7 +61,7 @@ public class Enrollment {
     @Column(name = "enrolled_at", updatable = false)
     private Instant enrolledAt;
 
-    @Column(name = "joined_at") // Keeping for backward compatibility if needed, or alias to enrolledAt
+    @Column(name = "joined_at")
     private Instant joinedAt;
 
     @UpdateTimestamp
@@ -76,6 +84,12 @@ public class Enrollment {
     
     public void updateProgress(String lessonId, LessonProgress newProgress) {
         this.progress.put(lessonId, newProgress);
-        // recalculateCompletion(); // To be implemented or called by service
+    }
+    
+    /**
+     * Convenience method to get the class ID without loading the full LearningClass entity.
+     */
+    public UUID getClassId() {
+        return learningClass != null ? learningClass.getId() : null;
     }
 }

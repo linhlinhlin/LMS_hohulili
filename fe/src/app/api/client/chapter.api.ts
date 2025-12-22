@@ -25,3 +25,4 @@ export class ChapterApi {
         return this.api.getWithResponse<any>(CHAPTER_ENDPOINTS.LIST_FLAT(courseId));
     }
 }
+

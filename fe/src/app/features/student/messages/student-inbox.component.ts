@@ -227,3 +227,4 @@ export class StudentInboxComponent implements OnInit, OnDestroy {
     this.router.navigate(['/student/messages', conversationId]);
   }
 }
+

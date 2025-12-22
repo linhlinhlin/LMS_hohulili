@@ -33,7 +33,7 @@ export interface UploadProgress {
 })
 export class LessonAttachmentApi {
   private http = inject(HttpClient);
-  private readonly baseUrl = `${environment.apiUrl}/api/v1/lessons`;
+  private readonly baseUrl = `${environment.apiUrl}/api/v3/lessons`;
 
   /**
    * Add attachment to a lesson

@@ -26,7 +26,7 @@
 
 ---
 
-## 📊 Project Status (Updated: December 5, 2025)
+## 📊 Project Status (Updated: December 21, 2025)
 
 ### Implementation Progress
 
@@ -207,7 +207,7 @@ npm start
 
 # 4. Access Application
 # Frontend: http://localhost:4200
-# Backend API: http://localhost:8088/api/v1
+# Backend API: http://localhost:8088/api/v3
 # Swagger UI: http://localhost:8088/swagger-ui
 ```
 
@@ -226,26 +226,26 @@ npm start
 ### Authentication
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/v1/auth/register` | POST | User registration |
-| `/api/v1/auth/login` | POST | User login (JWT) |
-| `/api/v1/auth/refresh` | POST | Refresh token |
-| `/api/v1/auth/profile` | GET | Get user profile |
+| `/api/v3/auth/register` | POST | User registration |
+| `/api/v3/auth/login` | POST | User login (JWT) |
+| `/api/v3/auth/refresh` | POST | Refresh token |
+| `/api/v3/auth/profile` | GET | Get user profile |
 
 ### AI Chat
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/v1/ai/chat` | POST | Send message to AI |
-| `/api/v1/ai/sessions` | GET | List chat sessions |
-| `/api/v1/ai/history/{userId}` | GET | Load chat history (server-side) |
-| `/api/v1/ai/history/{userId}` | DELETE | Clear chat history |
-| `/api/v1/ai/health` | GET | AI service health |
+| `/api/v3/ai/chat` | POST | Send message to AI |
+| `/api/v3/ai/sessions` | GET | List chat sessions |
+| `/api/v3/ai/sessions/{sessionId}` | GET | Load chat session |
+| `/api/v3/ai/sessions/{sessionId}` | DELETE | Delete session |
+| `/api/v3/ai/health` | GET | AI service health |
 
 ### AI Admin (Admin Only)
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/v1/ai/admin/knowledge/upload` | POST | Upload PDF document |
-| `/api/v1/ai/admin/knowledge/stats` | GET | Knowledge base stats |
-| `/api/v1/ai/admin/knowledge/documents` | GET | List all documents |
+| `/api/v3/ai/admin/knowledge/upload` | POST | Upload PDF document |
+| `/api/v3/ai/admin/knowledge/stats` | GET | Knowledge base stats |
+| `/api/v3/ai/admin/knowledge/documents` | GET | List all documents |
 
 ---
 
@@ -253,11 +253,11 @@ npm start
 
 | Date | Change | Files Modified |
 |------|--------|----------------|
+| Dec 21 | **Full V1 → V3 API Migration** | All frontend + backend files |
+| Dec 21 | JPA-Flyway Schema Alignment | Entity mappings, Flyway config |
+| Dec 21 | DDD Architecture Cleanup | Controllers, SecurityConfig |
 | Dec 5 | Server-side chat history sync | `chat.service.ts`, `chat-api.client.ts` |
-| Dec 5 | AI Chatbot UI/UX redesign (Notion AI style) | `chat-main-area.component.ts`, `chat-sidebar.component.ts` |
-| Dec 4 | Admin AI Knowledge management | `ai-knowledge/*` components |
-| Dec 4 | Session isolation security fix | `session-management.service.ts` |
-| Dec 3 | Quiz system completion | `quiz/*` components |
+| Dec 5 | AI Chatbot UI/UX redesign | `chat-main-area.component.ts` |
 
 ---
 

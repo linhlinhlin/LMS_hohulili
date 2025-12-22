@@ -1,7 +1,7 @@
 package com.example.lms.config;
 
-import com.example.lms.service.JwtService;
-import com.example.lms.service.UserService;
+import com.example.lms.identity.infrastructure.security.JwtService;
+import com.example.lms.identity.infrastructure.security.UserDetailsServiceImpl;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,7 +24,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     @Lazy
-    private final UserService userService;
+    private final UserDetailsServiceImpl userDetailsService;
 
     @Override
     protected void doFilterInternal(
@@ -74,7 +74,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             // If username is extracted and no authentication is set in SecurityContext
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                UserDetails userDetails = this.userService.loadUserByUsername(username);
+                UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
                 
                 if (request.getRequestURI().contains("/questions")) {
                     System.out.println("Loaded UserDetails: " + userDetails.getUsername());
@@ -104,7 +104,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     }
                 }
             }
-            if (request.getRequestURI().contains("/questions") || request.getRequestURI().contains("/api/v2/quizzes") || request.getRequestURI().contains("/api/v1/quizzes")) {
+            if (request.getRequestURI().contains("/questions") || request.getRequestURI().contains("/api/v2/quizzes") || request.getRequestURI().contains("/api/v3/quizzes")) {
                 System.out.println("=== END JWT DEBUG ===");
             }
         } catch (Exception e) {
@@ -124,9 +124,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                path.startsWith("/swagger-resources") ||
                path.startsWith("/webjars") ||
                path.startsWith("/actuator") ||
-               path.startsWith("/api/v1/auth") ||
-               path.startsWith("/api/auth") ||
-               path.equals("/api/v1/ai/health") ||  // AI health check public
-               path.equals("/api/v1/ai/ping");      // AI ping public
+               path.startsWith("/api/v3/auth") ||
+               path.equals("/api/v3/ai/health") ||
+               path.equals("/api/v3/ai/ping") ||
+               path.equals("/api/v3/courses");      // Public courses listing
     }
 }

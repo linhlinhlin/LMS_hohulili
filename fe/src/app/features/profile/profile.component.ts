@@ -350,3 +350,4 @@ export class ProfileComponent {
     this.router.navigate(['/analytics']);
   }
 }
+

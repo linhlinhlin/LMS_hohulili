@@ -28,3 +28,4 @@ export class LessonAssignmentApi {
     return this.api.getWithResponse<LessonAssignmentItem[]>(LESSON_ASSIGNMENT_ENDPOINTS.LIST_BY_LESSON(lessonId));
   }
 }
+

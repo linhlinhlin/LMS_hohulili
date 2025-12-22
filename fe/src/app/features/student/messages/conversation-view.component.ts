@@ -266,3 +266,4 @@ export class ConversationViewComponent implements OnInit, OnDestroy, AfterViewCh
       .toUpperCase();
   }
 }
+

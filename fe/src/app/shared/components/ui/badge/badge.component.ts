@@ -105,3 +105,4 @@ export class BadgeComponent {
     ].filter(Boolean).join(' ');
   }
 }
+

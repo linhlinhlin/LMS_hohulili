@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { ApiClient } from '../client/api-client';
 import { map } from 'rxjs/operators';
+import { API } from './api.config';
 
 export interface PackageDTO {
   id: string;
@@ -43,7 +44,7 @@ export class PackageApi {
 
   // Get all packages accessible by current user
   getMyPackages() {
-    return this.apiClient.get<PackageDTO[]>('/api/v1/packages/my-packages')
+    return this.apiClient.get<PackageDTO[]>(`${API.BASE}/packages/my-packages`)
       .pipe(
         map((response: any) => {
           if (response && response.data) {
@@ -56,7 +57,7 @@ export class PackageApi {
 
   // Get package by ID
   getPackageById(id: string) {
-    return this.apiClient.get<PackageDTO>(`/api/v1/packages/${id}`)
+    return this.apiClient.get<PackageDTO>(`${API.BASE}/packages/${id}`)
       .pipe(
         map((response: any) => {
           if (response && response.data) {
@@ -69,7 +70,7 @@ export class PackageApi {
 
   // Create new package
   createPackage(request: CreatePackageRequest) {
-    return this.apiClient.post<PackageDTO>('/api/v1/packages', request)
+    return this.apiClient.post<PackageDTO>(`${API.BASE}/packages`, request)
       .pipe(
         map((response: any) => {
           if (response && response.data) {
@@ -82,7 +83,7 @@ export class PackageApi {
 
   // Update package
   updatePackage(id: string, request: UpdatePackageRequest) {
-    return this.apiClient.put<PackageDTO>(`/api/v1/packages/${id}`, request)
+    return this.apiClient.put<PackageDTO>(`${API.BASE}/packages/${id}`, request)
       .pipe(
         map((response: any) => {
           if (response && response.data) {
@@ -95,12 +96,12 @@ export class PackageApi {
 
   // Delete package
   deletePackage(id: string) {
-    return this.apiClient.delete<{ message: string }>(`/api/v1/packages/${id}`);
+    return this.apiClient.delete<{ message: string }>(`${API.BASE}/packages/${id}`);
   }
 
   // Get questions in a package
   getQuestionsInPackage(packageId: string) {
-    return this.apiClient.get<any[]>(`/api/v1/packages/${packageId}/questions`)
+    return this.apiClient.get<any[]>(`${API.BASE}/packages/${packageId}/questions`)
       .pipe(
         map((response: any) => {
           if (response && response.data) {
@@ -113,12 +114,12 @@ export class PackageApi {
 
   // Move questions to package
   moveQuestionsToPackage(request: MoveQuestionsRequest) {
-    return this.apiClient.post<{ message: string }>('/api/v1/packages/move-questions', request);
+    return this.apiClient.post<{ message: string }>(`${API.BASE}/packages/move-questions`, request);
   }
 
   // Search packages
   searchPackages(keyword: string) {
-    return this.apiClient.get<PackageDTO[]>('/api/v1/packages/search', {
+    return this.apiClient.get<PackageDTO[]>(`${API.BASE}/packages/search`, {
       params: { keyword }
     }).pipe(
       map((response: any) => {
@@ -130,3 +131,4 @@ export class PackageApi {
     );
   }
 }
+

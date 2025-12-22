@@ -290,3 +290,4 @@ export class CourseDetailComponent implements OnInit {
     this.router.navigate(['/student/quiz/take', lessonId]);
   }
 }
+

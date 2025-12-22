@@ -137,3 +137,4 @@ export class CourseClassesComponent implements OnInit {
         // Future: Navigate to student list
     }
 }
+

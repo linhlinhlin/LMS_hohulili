@@ -383,3 +383,4 @@ export class SafetyCategoryComponent implements OnInit {
   ]);
   }
 }
+

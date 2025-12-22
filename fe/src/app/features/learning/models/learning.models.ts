@@ -185,3 +185,4 @@ export interface SidebarState {
   isMobileView: boolean;
   isOverlayVisible: boolean;
 }
+

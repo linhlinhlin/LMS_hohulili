@@ -441,3 +441,4 @@ export class AssignTaskModalComponent implements OnInit {
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   }
 }
+

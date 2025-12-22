@@ -103,3 +103,4 @@ export class SuggestedQuestionsComponent {
     this.questionSelected.emit(question);
   }
 }
+

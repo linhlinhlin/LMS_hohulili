@@ -23,28 +23,28 @@ public class FileAttachmentJpaEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "entity_type", nullable = false)
+    @Column(name = "entity_type")  // Nullable in DB
     private String entityType;
 
-    @Column(name = "entity_id", nullable = false)
+    @Column(name = "entity_id")  // Nullable in DB
     private UUID entityId;
 
-    @Column(name = "file_name", nullable = false)
+    @Column(name = "stored_filename", nullable = false)  // Actual DB column name
     private String fileName;
 
-    @Column(name = "original_name", nullable = false)
+    @Column(name = "original_filename", nullable = false)  // Actual DB column name
     private String originalName;
 
-    @Column(name = "file_url", nullable = false, length = 500)
+    @Column(name = "storage_path", nullable = false, length = 255)  // Actual DB column name
     private String fileUrl;
 
-    @Column(name = "file_size")
+    @Column(name = "file_size", nullable = false)
     private Long fileSize;
 
-    @Column(name = "content_type", length = 100)
+    @Column(name = "content_type", length = 100, nullable = false)
     private String contentType;
 
-    @Column(name = "uploaded_by")
+    @Column(name = "uploaded_by", nullable = false)
     private UUID uploadedBy;
 
     @CreationTimestamp

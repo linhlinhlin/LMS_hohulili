@@ -86,3 +86,4 @@ export const quizStandaloneRoutes: Routes = [
     title: 'Xem trước bài kiểm tra'
   }
 ];
+

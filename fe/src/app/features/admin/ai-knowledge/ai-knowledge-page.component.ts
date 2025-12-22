@@ -171,3 +171,4 @@ export class AiKnowledgePageComponent implements OnInit {
         this.documentToDelete.set(null);
     }
 }
+

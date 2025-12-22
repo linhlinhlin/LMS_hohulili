@@ -191,3 +191,4 @@ export class FloatingChatBubbleComponent {
     this.bubbleClick.emit();
   }
 }
+

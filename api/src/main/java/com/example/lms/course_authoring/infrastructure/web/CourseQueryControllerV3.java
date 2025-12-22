@@ -85,7 +85,9 @@ public class CourseQueryControllerV3 {
     public ResponseEntity<ApiResponse<CourseDetailResponse>> getCourseById(
             @PathVariable UUID courseId
     ) {
-        return courseRepository.findById(courseId)
+        // FIX: Use findByIdWithContent to eagerly load chapters via JOIN FETCH
+        // This prevents LazyInitializationException when open-in-view=false
+        return courseRepository.findByIdWithContent(courseId)
                 .map(course -> ResponseEntity.ok(ApiResponse.success(toDetail(course), "Course loaded")))
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -145,6 +147,60 @@ public class CourseQueryControllerV3 {
             e.printStackTrace();
             return ResponseEntity.ok(ApiResponse.success(new ArrayList<>(), "Error loading content: " + e.getMessage()));
         }
+    }
+
+    @Operation(summary = "Get enrolled students for a course")
+    @GetMapping("/{courseId}/students")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    public ResponseEntity<ApiResponse<List<StudentInfoResponse>>> getCourseStudents(
+            @PathVariable UUID courseId
+    ) {
+        // TODO: Implement actual student enrollment query
+        // For now, return empty list to prevent 403 errors
+        return ResponseEntity.ok(ApiResponse.success(List.of(), "Students loaded"));
+    }
+
+    @lombok.Builder
+    @lombok.Data
+    public static class StudentInfoResponse {
+        private String id;
+        private String fullName;
+        private String email;
+        private String enrolledAt;
+        private Integer progressPercentage;
+    }
+
+    @Operation(summary = "Get classes for a course")
+    @GetMapping("/{courseId}/classes")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    public ResponseEntity<ApiResponse<List<ClassInfoResponse>>> getCourseClasses(
+            @PathVariable UUID courseId
+    ) {
+        // TODO: Implement actual class query
+        return ResponseEntity.ok(ApiResponse.success(List.of(), "Classes loaded"));
+    }
+
+    @Operation(summary = "Search classes for a course")
+    @GetMapping("/{courseId}/classes/search")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    public ResponseEntity<ApiResponse<List<ClassInfoResponse>>> searchCourseClasses(
+            @PathVariable UUID courseId,
+            @RequestParam(required = false) String query
+    ) {
+        // TODO: Implement actual class search
+        return ResponseEntity.ok(ApiResponse.success(List.of(), "Classes search completed"));
+    }
+
+    @lombok.Builder
+    @lombok.Data
+    public static class ClassInfoResponse {
+        private String id;
+        private String name;
+        private String code;
+        private String status;
+        private Integer studentCount;
+        private String startDate;
+        private String endDate;
     }
 
     @Operation(summary = "Get lesson details by ID")

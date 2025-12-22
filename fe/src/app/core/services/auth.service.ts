@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Observable, tap } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { catchError, map } from 'rxjs/operators';
 import { AUTH_ENDPOINTS } from '../../api/endpoints/auth.endpoints';
 
 export enum UserRole {
@@ -41,26 +41,21 @@ export class AuthService {
   private currentUserSubject = new BehaviorSubject<User | null>(this.getSavedUser());
   public currentUser$ = this.currentUserSubject.asObservable();
 
+  /**
+   * Login - apiResponseInterceptor auto-unwraps ApiResponse.data
+   * So we receive AuthResponse directly, not ApiResponse<AuthResponse>
+   */
   login(credentials: { email: string; password: string }): Observable<AuthResponse> {
-    console.log('🔐 AuthService.login called with:', credentials);
-    console.log('🔗 Login endpoint:', AUTH_ENDPOINTS.LOGIN);
-
-    const loginRequest = this.http.post<AuthResponse>(AUTH_ENDPOINTS.LOGIN, credentials);
-    console.log('🔗 Login HTTP request created');
-
-    return loginRequest.pipe(
+    return this.http.post<AuthResponse>(AUTH_ENDPOINTS.LOGIN, credentials).pipe(
       tap(response => {
-        console.log('✅ Login successful:', response);
+        // Response is now clean AuthResponse (thanks to interceptor)
         this.setTokens(response.accessToken, response.refreshToken);
         this.setUser(response.user);
-        // Normalize role for currentUserSubject too
         const normalizedUser = { ...response.user, role: response.user.role?.toLowerCase() || '' };
         this.currentUserSubject.next(normalizedUser);
       }),
       catchError(error => {
         console.error('❌ Login failed:', error);
-        console.error('❌ Error status:', error.status);
-        console.error('❌ Error message:', error.message);
         throw error;
       })
     );
@@ -98,11 +93,11 @@ export class AuthService {
       localStorage.removeItem(this.refreshTokenKey);
       localStorage.removeItem(this.userKey);
     }
-    
+
     this.currentUserSubject.next(null);
 
     // Redirect to login page
-    this.router.navigate(['/auth/login'], { 
+    this.router.navigate(['/auth/login'], {
       queryParams: { message: 'Đã đăng xuất thành công' }
     });
   }
@@ -119,8 +114,8 @@ export class AuthService {
     // Fallback to other possible keys if primary is not found
     if (!token) {
       token = localStorage.getItem('token') ||
-              localStorage.getItem('access_token') ||
-              localStorage.getItem('auth_token');
+        localStorage.getItem('access_token') ||
+        localStorage.getItem('auth_token');
     }
 
     return token;

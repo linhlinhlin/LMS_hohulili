@@ -126,3 +126,4 @@ export class ProgressBarComponent {
     return Math.min(Math.max(value, 0), 100);
   });
 }
+

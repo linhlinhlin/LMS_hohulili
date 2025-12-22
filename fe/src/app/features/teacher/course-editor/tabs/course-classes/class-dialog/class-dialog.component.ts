@@ -200,3 +200,4 @@ export class ClassDialogComponent implements OnInit {
         this.dialogRef.close();
     }
 }
+

@@ -95,3 +95,4 @@ export class LogisticsCategoryComponent implements OnInit {
     scriptEl.text = JSON.stringify(data);
   }
 }
+

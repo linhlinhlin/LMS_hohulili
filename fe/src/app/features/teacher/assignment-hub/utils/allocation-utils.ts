@@ -184,3 +184,4 @@ export function getAllocationStats(
 function generateId(): string {
   return `alloc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
+

@@ -107,3 +107,4 @@ function generateMessageId(): string {
 
 // Re-export types for convenience
 export type { ChatMessage, MessageMetadata, MessageSender, MessageStatus };
+

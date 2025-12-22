@@ -26,3 +26,4 @@ export class SectionApi {
     return this.api.getWithResponse<SectionDetail>(SECTION_ENDPOINTS.GET(sectionId));
   }
 }
+

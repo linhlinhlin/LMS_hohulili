@@ -276,3 +276,4 @@ export class SessionManagementService implements OnDestroy {
     this.storage.saveSession(session);
   }
 }
+

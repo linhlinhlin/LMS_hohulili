@@ -169,3 +169,4 @@ export class FooterComponent {
     }
   }
 }
+

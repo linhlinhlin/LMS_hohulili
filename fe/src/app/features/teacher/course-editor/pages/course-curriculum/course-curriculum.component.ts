@@ -1,4 +1,4 @@
-﻿import { Component, inject, signal, computed, effect, ViewEncapsulation } from '@angular/core';
+import { Component, inject, signal, computed, effect, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -51,8 +51,8 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path>
               </svg>
             </div>
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">Chọn nội dung để chỉnh sửa</h3>
-            <p class="text-gray-500 text-sm">Chọn một chương hoặc bài học từ sidebar bên trái</p>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Ch?n n?i dung d? ch?nh s?a</h3>
+            <p class="text-gray-500 text-sm">Ch?n m?t chuong ho?c b�i h?c t? sidebar b�n tr�i</p>
           </div>
         </div>
       }
@@ -67,21 +67,21 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
               </svg>
             </div>
             <div>
-              <h2 class="text-lg font-semibold text-gray-900">Chỉnh sửa chương</h2>
-              <p class="text-sm text-gray-500">Cập nhật thông tin chương</p>
+              <h2 class="text-lg font-semibold text-gray-900">Ch?nh s?a chuong</h2>
+              <p class="text-sm text-gray-500">C?p nh?t th�ng tin chuong</p>
             </div>
           </div>
           <div class="p-6 space-y-6">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Tên chương <span class="text-red-500">*</span></label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">T�n chuong <span class="text-red-500">*</span></label>
               <input type="text" [(ngModel)]="chapterTitle" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Mô tả</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">M� t?</label>
               <textarea [(ngModel)]="chapterDescription" rows="3" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"></textarea>
             </div>
             <div class="border-t border-gray-200 pt-6">
-              <h3 class="font-medium text-gray-900 mb-4">Bài học ({{ selectedChapterLessons().length }})</h3>
+              <h3 class="font-medium text-gray-900 mb-4">B�i h?c ({{ selectedChapterLessons().length }})</h3>
               @if (selectedChapterLessons().length > 0) {
                 <div class="space-y-2">
                   @for (lesson of selectedChapterLessons(); track lesson.id; let i = $index) {
@@ -95,14 +95,14 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
                   }
                 </div>
               } @else {
-                <div class="text-center py-8 bg-gray-50 rounded-lg"><p class="text-gray-500 text-sm">Chưa có bài học</p></div>
+                <div class="text-center py-8 bg-gray-50 rounded-lg"><p class="text-gray-500 text-sm">Chua c� b�i h?c</p></div>
               }
             </div>
           </div>
           <div class="px-6 py-4 border-t border-gray-200 flex justify-end flex-shrink-0">
             <button (click)="saveChapter()" [disabled]="isSaving()" class="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2">
-              @if (isSaving()) { <span class="animate-spin">⏳</span> }
-              Lưu thay đổi
+              @if (isSaving()) { <span class="animate-spin">?</span> }
+              Luu thay d?i
             </button>
           </div>
         </div>
@@ -131,9 +131,9 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
                </div>
                <div>
                  <h2 class="text-lg font-semibold text-gray-900">
-                    {{ newSectionType === 'TEXT' ? 'Văn bản' : newSectionType === 'VIDEO' ? 'Video' : newSectionType === 'FILE' ? 'Tài liệu' : 'Trắc nghiệm' }}
+                    {{ newSectionType === 'TEXT' ? 'Van b?n' : newSectionType === 'VIDEO' ? 'Video' : newSectionType === 'FILE' ? 'T�i li?u' : 'Tr?c nghi?m' }}
                  </h2>
-                 <p class="text-sm text-gray-500">{{ sectionTitle || 'Chưa có tiêu đề' }}</p>
+                 <p class="text-sm text-gray-500">{{ sectionTitle || 'Chua c� ti�u d?' }}</p>
                </div>
              </div>
           </div>
@@ -141,13 +141,13 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
           <div class="p-6 space-y-6">
              <!-- Reuse Form Logic -->
              <div>
-               <label class="block text-sm font-medium text-gray-700 mb-2">Tiêu đề mục <span class="text-red-500">*</span></label>
+               <label class="block text-sm font-medium text-gray-700 mb-2">Ti�u d? m?c <span class="text-red-500">*</span></label>
                <input type="text" [(ngModel)]="sectionTitle" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
              </div>
 
              <div class="flex items-center gap-2">
                 <input type="checkbox" [(ngModel)]="sectionIsRequired" id="reqSec" class="rounded text-blue-600 focus:ring-blue-500 w-4 h-4">
-                <label for="reqSec" class="text-sm text-gray-700 font-medium select-none cursor-pointer">Bắt buộc hoàn thành (Học viên phải xem nội dung này)</label>
+                <label for="reqSec" class="text-sm text-gray-700 font-medium select-none cursor-pointer">B?t bu?c ho�n th�nh (H?c vi�n ph?i xem n?i dung n�y)</label>
              </div>
 
              @if (newSectionType === 'VIDEO') {
@@ -167,7 +167,7 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
 
              @if (newSectionType === 'TEXT') {
                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Nội dung</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">N?i dung</label>
                   <div class="editor-container-wrapper border border-gray-300 rounded-lg bg-white relative shadow-sm" [style.height.px]="editorHeight()">
                       @if (isDataLoaded()) {
                         <ckeditor [editor]="Editor" [(ngModel)]="sectionContent" 
@@ -176,7 +176,7 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
                         </ckeditor>
                       } @else {
                         <div class="flex items-center justify-center h-full text-gray-400">
-                          <span class="animate-pulse">Đang tải trình soạn thảo...</span>
+                          <span class="animate-pulse">�ang t?i tr�nh so?n th?o...</span>
                         </div>
                       }
                   </div>
@@ -186,7 +186,7 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
              @if (newSectionType === 'FILE') {
                <div class="space-y-4">
                  <div>
-                   <label class="block text-sm font-medium text-gray-700 mb-2">Tài liệu đính kèm</label>
+                   <label class="block text-sm font-medium text-gray-700 mb-2">T�i li?u d�nh k�m</label>
                    
                    @if (sectionFileUrl()) {
                      <div class="p-4 border border-gray-200 rounded-lg bg-gray-50">
@@ -194,7 +194,7 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
                           <div class="aspect-[3/4] w-full bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
                             <embed [src]="getSafePdfUrl(editingSectionId()!)" type="application/pdf" class="w-full h-full" />
                           </div>
-                          <p class="text-xs text-center text-gray-500 mt-2">Đang hiển thị chế độ xem trước PDF</p>
+                          <p class="text-xs text-center text-gray-500 mt-2">�ang hi?n th? ch? d? xem tru?c PDF</p>
                        } @else {
                           <div class="flex items-center gap-3">
                             <div class="p-2 bg-orange-100 rounded-lg text-orange-600">
@@ -202,17 +202,17 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
                             </div>
                             <div class="flex-1 min-w-0">
                               <p class="text-sm font-medium text-gray-900 truncate">{{ sectionTitle }}</p>
-                              <p class="text-xs text-gray-500">File tài liệu</p>
+                              <p class="text-xs text-gray-500">File t�i li?u</p>
                             </div>
                             <a [href]="sectionFileUrl()" target="_blank" class="px-3 py-1.5 bg-white border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50">
-                              Tải xuống
+                              T?i xu?ng
                             </a>
                           </div>
                        }
                      </div>
                    } @else {
                       <div class="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
-                         <p class="text-gray-500 text-sm">Chưa có file nào được tải lên.</p>
+                         <p class="text-gray-500 text-sm">Chua c� file n�o du?c t?i l�n.</p>
                       </div>
                    }
                  </div>
@@ -222,19 +222,19 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
              @if (newSectionType === 'QUIZ') {
                 <div class="bg-indigo-50 border border-indigo-100 rounded-lg p-6 text-center">
                     <div class="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <span class="text-2xl">❓</span>
+                        <span class="text-2xl">?</span>
                     </div>
-                    <h3 class="text-lg font-bold text-gray-800 mb-2">Quản lý câu hỏi trắc nghiệm</h3>
+                    <h3 class="text-lg font-bold text-gray-800 mb-2">Qu?n l� c�u h?i tr?c nghi?m</h3>
                     <p class="text-gray-600 mb-4 text-sm max-w-lg mx-auto">
-                        Để thêm câu hỏi từ ngân hàng, chọn ngẫu nhiên hoặc cài đặt thời gian làm bài, 
-                        vui lòng sử dụng trình quản lý Quiz chuyên dụng.
+                        �? th�m c�u h?i t? ng�n h�ng, ch?n ng?u nhi�n ho?c c�i d?t th?i gian l�m b�i, 
+                        vui l�ng s? d?ng tr�nh qu?n l� Quiz chuy�n d?ng.
                     </p>
                     <button (click)="goToQuizBuilder()" 
                             class="px-5 py-2.5 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors shadow-sm inline-flex items-center gap-2">
-                        <span>🚀</span>
-                        Mở trình quản lý Quiz
+                        <span>??</span>
+                        M? tr�nh qu?n l� Quiz
                     </button>
-                    <p class="text-xs text-gray-500 mt-3">Thay đổi sẽ được lưu trước khi chuyển trang.</p>
+                    <p class="text-xs text-gray-500 mt-3">Thay d?i s? du?c luu tru?c khi chuy?n trang.</p>
                 </div>
              }
           </div>
@@ -242,12 +242,12 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
           <div class="px-6 py-4 border-t border-gray-200 flex justify-end gap-3 flex-shrink-0 bg-gray-50">
              <button (click)="editingSectionId() && deleteSection(editingSectionId()!)" 
                      class="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors mr-auto">
-                Xóa
+                X�a
              </button>
 
              <button (click)="saveSection()" [disabled]="isSaving() || !sectionTitle.trim()" class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2">
-               @if (isSaving()) { <span class="animate-spin">⏳</span> }
-               Lưu thay đổi
+               @if (isSaving()) { <span class="animate-spin">?</span> }
+               Luu thay d?i
              </button>
           </div>
         </div>
@@ -272,7 +272,7 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
 
           <div class="p-6 space-y-6">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Tiêu đề <span class="text-red-500">*</span></label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Ti�u d? <span class="text-red-500">*</span></label>
               <input type="text" [(ngModel)]="lessonTitle" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
             </div>
 
@@ -282,7 +282,7 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
                 <!-- Topic List -->
                 <div class="bg-gray-50 rounded-lg border border-gray-200 p-4">
                   <div class="flex items-center justify-between mb-4">
-                    <h3 class="font-medium text-gray-900">Nội dung bài học ({{ selectedLesson()?.sections?.length || 0 }} sections)</h3>
+                    <h3 class="font-medium text-gray-900">N?i dung b�i h?c ({{ selectedLesson()?.sections?.length || 0 }} sections)</h3>
                     <div class="flex gap-2">
                        <button (click)="openSectionEditor('TEXT')" class="px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-1">
                          <span>+ Text</span>
@@ -295,7 +295,7 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
                   
                   @if (selectedLesson()?.sections?.length === 0) {
                      <div class="text-center py-6 text-gray-500 text-sm italic">
-                        Chưa có nội dung. Hãy thêm Text hoặc Video.
+                        Chua c� n?i dung. H�y th�m Text ho?c Video.
                      </div>
                   } @else {
                      <div class="space-y-2" cdkDropList (cdkDropListDropped)="dropSection($event)">
@@ -336,21 +336,21 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
             @if (getLessonType(selectedLesson()) === 'QUIZ') {
               <div class="flex flex-col gap-6 animate-fade-in">
                 
-                <!-- SECTION 1: CẤU HÌNH LUẬT THI (SETTINGS) -->
+                <!-- SECTION 1: C?U H�NH LU?T THI (SETTINGS) -->
                 <div>
                   <h4 class="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-3 flex items-center gap-2">
                     <svg class="w-4 h-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
-                    Thiết lập chung
+                    Thi?t l?p chung
                   </h4>
                   
                   <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <!-- Time Limit -->
                     <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:border-purple-300 transition-colors group">
                       <div class="flex justify-between items-start mb-2">
-                        <label class="text-xs font-semibold text-gray-500 uppercase">Thời gian làm bài</label>
+                        <label class="text-xs font-semibold text-gray-500 uppercase">Th?i gian l�m b�i</label>
                         <span class="p-1.5 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-blue-100 transition-colors">
                           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -361,14 +361,14 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
                         <input type="number" [(ngModel)]="quizTimeLimit" min="1"
                                class="flex-1 text-2xl font-bold text-gray-900 border-none p-0 focus:ring-0 placeholder-gray-300 w-full"
                                placeholder="0">
-                        <span class="text-sm text-gray-500 font-medium">phút</span>
+                        <span class="text-sm text-gray-500 font-medium">ph�t</span>
                       </div>
                     </div>
 
                     <!-- Passing Score -->
                     <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:border-purple-300 transition-colors group">
                       <div class="flex justify-between items-start mb-2">
-                        <label class="text-xs font-semibold text-gray-500 uppercase">Điểm đạt tối thiểu</label>
+                        <label class="text-xs font-semibold text-gray-500 uppercase">�i?m d?t t?i thi?u</label>
                         <span class="p-1.5 bg-green-50 text-green-600 rounded-lg group-hover:bg-green-100 transition-colors">
                           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -386,7 +386,7 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
                     <!-- Max Attempts -->
                     <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:border-purple-300 transition-colors group">
                       <div class="flex justify-between items-start mb-2">
-                        <label class="text-xs font-semibold text-gray-500 uppercase">Số lần làm lại</label>
+                        <label class="text-xs font-semibold text-gray-500 uppercase">S? l?n l�m l?i</label>
                         <span class="p-1.5 bg-orange-50 text-orange-600 rounded-lg group-hover:bg-orange-100 transition-colors">
                           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -396,45 +396,45 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
                       <div class="flex items-baseline gap-2">
                         <input type="number" [(ngModel)]="quizMaxAttempts" min="1"
                                class="flex-1 text-2xl font-bold text-gray-900 border-none p-0 focus:ring-0 placeholder-gray-300 w-full"
-                               placeholder="∞">
-                        <span class="text-sm text-gray-500 font-medium">lần</span>
+                               placeholder="8">
+                        <span class="text-sm text-gray-500 font-medium">l?n</span>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <!-- SECTION 2: QUẢN LÝ CÂU HỎI (QUESTIONS MANAGER) -->
+                <!-- SECTION 2: QU?N L� C�U H?I (QUESTIONS MANAGER) -->
                 <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden flex flex-col h-[500px]">
                   
-                  <!-- TOOLBAR: Header chứa Actions -->
+                  <!-- TOOLBAR: Header ch?a Actions -->
                   <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-white">
                     <div>
                       <h4 class="text-base font-bold text-gray-800 flex items-center gap-2">
-                        Danh sách câu hỏi
+                        Danh s�ch c�u h?i
                         <span class="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full font-medium">
                           {{ quizQuestions().length }}
                         </span>
                       </h4>
-                      <p class="text-xs text-gray-500 mt-0.5">Quản lý các câu hỏi cho bài kiểm tra này</p>
+                      <p class="text-xs text-gray-500 mt-0.5">Qu?n l� c�c c�u h?i cho b�i ki?m tra n�y</p>
                     </div>
 
                     <div class="flex items-center gap-2">
-                      <!-- NÚT RANDOM MỚI -->
+                      <!-- N�T RANDOM M?I -->
                       <button (click)="openRandomizeModal()" 
                               class="group flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:border-purple-400 hover:text-purple-700 hover:bg-purple-50 transition-all shadow-sm">
                         <svg class="w-4 h-4 text-gray-400 group-hover:text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
                         </svg>
-                        <span>Tạo ngẫu nhiên</span>
+                        <span>T?o ng?u nhi�n</span>
                       </button>
 
-                      <!-- NÚT THÊM THỦ CÔNG -->
+                      <!-- N�T TH�M TH? C�NG -->
                       <button (click)="showAddQuestionsModal.set(true)" 
                               class="flex items-center gap-2 px-3 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 shadow-md shadow-purple-200 transition-all active:scale-95">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                         </svg>
-                        <span>Chọn từ ngân hàng</span>
+                        <span>Ch?n t? ng�n h�ng</span>
                       </button>
                     </div>
                   </div>
@@ -445,7 +445,7 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
                       <div class="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
                         <div class="flex flex-col items-center gap-3">
                           <div class="animate-spin w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full"></div>
-                          <span class="text-sm text-gray-500 font-medium">Đang tải dữ liệu...</span>
+                          <span class="text-sm text-gray-500 font-medium">�ang t?i d? li?u...</span>
                         </div>
                       </div>
                     } 
@@ -458,14 +458,14 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                           </svg>
                         </div>
-                        <h5 class="text-gray-900 font-medium mb-1">Chưa có câu hỏi nào</h5>
-                        <p class="text-gray-500 text-sm max-w-xs mb-6">Bắt đầu bằng cách chọn câu hỏi từ ngân hàng hoặc tạo danh sách ngẫu nhiên.</p>
+                        <h5 class="text-gray-900 font-medium mb-1">Chua c� c�u h?i n�o</h5>
+                        <p class="text-gray-500 text-sm max-w-xs mb-6">B?t d?u b?ng c�ch ch?n c�u h?i t? ng�n h�ng ho?c t?o danh s�ch ng?u nhi�n.</p>
                         <div class="flex gap-3">
                            <button (click)="openRandomizeModal()" class="text-purple-600 bg-purple-50 hover:bg-purple-100 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                             Thêm ngẫu nhiên
+                             Th�m ng?u nhi�n
                            </button>
                            <button (click)="showAddQuestionsModal.set(true)" class="text-white bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                             Thêm thủ công
+                             Th�m th? c�ng
                            </button>
                         </div>
                       </div>
@@ -495,11 +495,11 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
                                       [class.bg-red-50]="q.difficulty === 'HARD'" 
                                       [class.text-red-700]="q.difficulty === 'HARD'"
                                       [class.border-red-200]="q.difficulty === 'HARD'">
-                                  {{ q.difficulty === 'EASY' ? 'Dễ' : q.difficulty === 'MEDIUM' ? 'Trung bình' : 'Khó' }}
+                                  {{ q.difficulty === 'EASY' ? 'D?' : q.difficulty === 'MEDIUM' ? 'Trung b�nh' : 'Kh�' }}
                                 </span>
                                 <!-- Type Badge (Optional) -->
                                 <span class="text-[10px] text-gray-400 font-medium bg-gray-50 px-1.5 rounded border border-gray-100">
-                                   TRẮC NGHIỆM
+                                   TR?C NGHI?M
                                 </span>
                               </div>
                               <p class="text-sm text-gray-800 font-medium line-clamp-2 leading-relaxed group-hover:text-purple-900 transition-colors">
@@ -511,7 +511,7 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
                             <div class="flex items-center self-center opacity-0 group-hover:opacity-100 transition-opacity">
                               <button (click)="removeQuestionFromQuiz(q.id)" 
                                       class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" 
-                                      title="Xóa khỏi bài thi">
+                                      title="X�a kh?i b�i thi">
                                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
@@ -525,12 +525,12 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
                   
                   <!-- List Footer -->
                   <div class="bg-gray-50 px-4 py-2 border-t border-gray-200 text-xs text-gray-500 flex justify-between items-center">
-                    <span>Tổng thời gian dự kiến: {{ quizQuestions().length * 1.5 }} phút (tham khảo)</span>
+                    <span>T?ng th?i gian d? ki?n: {{ quizQuestions().length * 1.5 }} ph�t (tham kh?o)</span>
                     <button (click)="loadQuizQuestions()" class="hover:text-purple-700 flex items-center gap-1">
                       <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                       </svg>
-                      Làm mới danh sách
+                      L�m m?i danh s�ch
                     </button>
                   </div>
                 </div>
@@ -541,19 +541,19 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
             @if (getLessonType(selectedLesson()) === 'ASSIGNMENT') {
               <div class="space-y-4">
                 <div class="bg-green-50 rounded-lg p-4 border border-green-200">
-                  <h4 class="font-medium text-green-900 mb-3">Thông tin bài tập</h4>
+                  <h4 class="font-medium text-green-900 mb-3">Th�ng tin b�i t?p</h4>
                   <div class="space-y-4">
                     <div>
-                      <label class="block text-sm font-medium text-green-700 mb-1">Mô tả</label>
+                      <label class="block text-sm font-medium text-green-700 mb-1">M� t?</label>
                       <textarea [(ngModel)]="assignmentDescription" rows="3" class="w-full px-3 py-2 border border-green-200 rounded-lg bg-white resize-none"></textarea>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                       <div>
-                        <label class="block text-sm font-medium text-green-700 mb-1">Hạn nộp</label>
+                        <label class="block text-sm font-medium text-green-700 mb-1">H?n n?p</label>
                         <input type="datetime-local" [(ngModel)]="assignmentDueDate" class="w-full px-3 py-2 border border-green-200 rounded-lg bg-white">
                       </div>
                       <div>
-                        <label class="block text-sm font-medium text-green-700 mb-1">Điểm tối đa</label>
+                        <label class="block text-sm font-medium text-green-700 mb-1">�i?m t?i da</label>
                         <input type="number" [(ngModel)]="assignmentMaxScore" class="w-full px-3 py-2 border border-green-200 rounded-lg bg-white">
                       </div>
                     </div>
@@ -564,10 +564,10 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
           </div>
 
           <div class="px-6 py-4 border-t border-gray-200 flex justify-between items-center flex-shrink-0">
-            <button (click)="clearSelection()" class="text-gray-600 hover:text-gray-800 text-sm">← Quay lại</button>
+            <button (click)="clearSelection()" class="text-gray-600 hover:text-gray-800 text-sm">? Quay l?i</button>
             <button (click)="saveLesson()" [disabled]="isSaving()" class="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
-              @if (isSaving()) { <span class="animate-spin">⏳</span> }
-              Lưu thay đổi
+              @if (isSaving()) { <span class="animate-spin">?</span> }
+              Luu thay d?i
             </button>
           </div>
         </div>
@@ -580,18 +580,18 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
     <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
       <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all scale-100">
         <div class="p-5 border-b border-gray-100">
-          <h3 class="text-lg font-bold text-gray-900">Tạo câu hỏi ngẫu nhiên</h3>
-          <p class="text-sm text-gray-500 mt-1">Chọn gói câu hỏi và số lượng cần lấy.</p>
+          <h3 class="text-lg font-bold text-gray-900">T?o c�u h?i ng?u nhi�n</h3>
+          <p class="text-sm text-gray-500 mt-1">Ch?n g�i c�u h?i v� s? lu?ng c?n l?y.</p>
         </div>
         
         <div class="p-5 space-y-4">
           <!-- Select Package -->
           <div>
-             <label class="block text-sm font-medium text-gray-700 mb-1">Nguồn câu hỏi</label>
+             <label class="block text-sm font-medium text-gray-700 mb-1">Ngu?n c�u h?i</label>
              <select [(ngModel)]="selectedPackageId" (change)="onRandomPackageChange()" class="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-purple-500">
-                <option value="">-- Chọn gói câu hỏi --</option>
+                <option value="">-- Ch?n g�i c�u h?i --</option>
                 @for (pkg of quizPackages(); track pkg.id) {
-                  <option [value]="pkg.id">{{ pkg.name }} ({{ pkg.questionCount || 0 }} câu)</option>
+                  <option [value]="pkg.id">{{ pkg.name }} ({{ pkg.questionCount || 0 }} c�u)</option>
                 }
              </select>
           </div>
@@ -599,9 +599,9 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
           <!-- Quantity -->
           <div [class.opacity-50]="!selectedPackageId" [class.pointer-events-none]="!selectedPackageId">
             <label class="block text-sm font-medium text-gray-700 mb-1">
-              Số lượng câu hỏi 
+              S? lu?ng c�u h?i 
               @if(selectedPackageId) {
-                <span class="text-xs font-normal text-gray-500">(Tối đa: {{ getSelectedPackageCount() }})</span>
+                <span class="text-xs font-normal text-gray-500">(T?i da: {{ getSelectedPackageCount() }})</span>
               }
             </label>
             <div class="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-purple-500 focus-within:border-purple-500">
@@ -611,23 +611,23 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
             </div>
           </div>
           
-          <!-- Option nâng cao (nếu cần) -->
+          <!-- Option n�ng cao (n?u c?n) -->
           <div class="flex gap-2">
              <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
                 <input type="checkbox" class="rounded text-purple-600 focus:ring-purple-500">
-                <span>Ưu tiên câu hỏi chưa từng sử dụng</span>
+                <span>Uu ti�n c�u h?i chua t?ng s? d?ng</span>
              </label>
           </div>
         </div>
 
         <div class="p-4 bg-gray-50 flex justify-end gap-3">
           <button (click)="showRandomModal.set(false)" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
-            Hủy bỏ
+            H?y b?
           </button>
           <button (click)="generateRandomQuestions()" [disabled]="!selectedPackageId || quizQuestionsLoading()" 
                   class="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
-            @if (quizQuestionsLoading()) { <span class="animate-spin text-white">⏳</span> }
-            Tạo ngay
+            @if (quizQuestionsLoading()) { <span class="animate-spin text-white">?</span> }
+            T?o ngay
           </button>
         </div>
       </div>
@@ -639,26 +639,26 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
       <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" (click)="showAddQuestionsModal.set(false)">
         <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col" (click)="$event.stopPropagation()">
           <div class="p-5 border-b border-gray-200 flex items-center justify-between">
-            <h3 class="text-lg font-semibold text-gray-900">Thêm câu hỏi từ ngân hàng</h3>
-            <button (click)="showAddQuestionsModal.set(false)" class="p-1 text-gray-400 hover:text-gray-600 rounded">✕</button>
+            <h3 class="text-lg font-semibold text-gray-900">Th�m c�u h?i t? ng�n h�ng</h3>
+            <button (click)="showAddQuestionsModal.set(false)" class="p-1 text-gray-400 hover:text-gray-600 rounded">?</button>
           </div>
           <div class="p-5 space-y-4 overflow-y-auto flex-1">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Chọn gói câu hỏi</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Ch?n g�i c�u h?i</label>
               <select [(ngModel)]="selectedPackageId" (change)="loadPackageQuestions()" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 bg-white">
-                <option value="">-- Chọn gói câu hỏi --</option>
+                <option value="">-- Ch?n g�i c�u h?i --</option>
                 @for (pkg of quizPackages(); track pkg.id) {
-                  <option [value]="pkg.id">{{ pkg.name }} ({{ pkg.questionCount || 0 }} câu)</option>
+                  <option [value]="pkg.id">{{ pkg.name }} ({{ pkg.questionCount || 0 }} c�u)</option>
                 }
               </select>
             </div>
             @if (packageQuestions().length > 0) {
               <div class="border border-gray-200 rounded-lg overflow-hidden">
                 <div class="px-4 py-3 bg-gray-50 border-b flex items-center justify-between">
-                  <span class="text-sm font-medium">Danh sách câu hỏi</span>
+                  <span class="text-sm font-medium">Danh s�ch c�u h?i</span>
                   <div class="flex items-center gap-2">
-                    <button (click)="selectAllQuestions()" class="text-xs text-blue-600">Chọn tất cả</button>
-                    <button (click)="clearQuestionSelection()" class="text-xs text-gray-600">Bỏ chọn</button>
+                    <button (click)="selectAllQuestions()" class="text-xs text-blue-600">Ch?n t?t c?</button>
+                    <button (click)="clearQuestionSelection()" class="text-xs text-gray-600">B? ch?n</button>
                   </div>
                 </div>
                 <div class="max-h-64 overflow-y-auto p-3 space-y-2">
@@ -673,9 +673,9 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
             }
           </div>
           <div class="p-5 border-t border-gray-200 flex justify-end gap-3">
-            <button (click)="showAddQuestionsModal.set(false)" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">Hủy</button>
+            <button (click)="showAddQuestionsModal.set(false)" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">H?y</button>
             <button (click)="addSelectedQuestionsToQuiz()" [disabled]="selectedQuestionIds().size === 0" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50">
-              Thêm {{ selectedQuestionIds().size }} câu hỏi
+              Th�m {{ selectedQuestionIds().size }} c�u h?i
             </button>
           </div>
         </div>
@@ -686,18 +686,18 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
       <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 overflow-y-auto" (click)="showSectionModal.set(false)">
         <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl mx-4 my-8 flex flex-col max-h-[90vh]" (click)="$event.stopPropagation()">
           <div class="p-5 border-b border-gray-200 flex justify-between items-center">
-            <h3 class="text-lg font-semibold text-gray-900">{{ editingSectionId() ? 'Chỉnh sửa Section' : 'Thêm Section Mới' }}</h3>
-            <button (click)="showSectionModal.set(false)" class="text-gray-400 hover:text-gray-600">✕</button>
+            <h3 class="text-lg font-semibold text-gray-900">{{ editingSectionId() ? 'Ch?nh s?a Section' : 'Th�m Section M?i' }}</h3>
+            <button (click)="showSectionModal.set(false)" class="text-gray-400 hover:text-gray-600">?</button>
           </div>
           <div class="p-6 space-y-6 overflow-y-auto">
              <div>
-               <label class="block text-sm font-medium text-gray-700 mb-2">Tiêu đề Mục <span class="text-red-500">*</span></label>
+               <label class="block text-sm font-medium text-gray-700 mb-2">Ti�u d? M?c <span class="text-red-500">*</span></label>
                <input type="text" [(ngModel)]="sectionTitle" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
              </div>
 
              <div class="flex items-center gap-2">
                 <input type="checkbox" [(ngModel)]="sectionIsRequired" id="reqSec" class="rounded text-blue-600 focus:ring-blue-500 w-4 h-4">
-                <label for="reqSec" class="text-sm text-gray-700 font-medium select-none cursor-pointer">Bắt buộc hoàn thành (Học viên phải xem nội dung này)</label>
+                <label for="reqSec" class="text-sm text-gray-700 font-medium select-none cursor-pointer">B?t bu?c ho�n th�nh (H?c vi�n ph?i xem n?i dung n�y)</label>
              </div>
 
              @if (newSectionType === 'VIDEO') {
@@ -714,7 +714,7 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
 
              @if (newSectionType === 'TEXT') {
                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Nội dung</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">N?i dung</label>
                   <div class="editor-container-wrapper border border-gray-300 rounded-lg bg-white relative shadow-sm" [style.height.px]="editorHeight()">
                       <ckeditor [editor]="Editor" [(ngModel)]="sectionContent" 
                                 [config]="editorConfig" (ready)="onEditorReady($event)"
@@ -722,7 +722,7 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
                       </ckeditor>
                       <!-- Word count similar to previous -->
                       <div class="absolute bottom-0 left-0 right-0 h-8 bg-gray-50 border-t border-gray-200 flex items-center justify-between px-4 text-xs text-gray-500 z-10 select-none">
-                         <span class="font-medium">{{ wordCount() }} từ</span>
+                         <span class="font-medium">{{ wordCount() }} t?</span>
                       </div>
                       <div class="absolute bottom-0 right-0 w-6 h-6 cursor-ns-resize flex items-center justify-center hover:bg-gray-200 z-20 rounded-br-lg"
                            (mousedown)="startResize($event)">
@@ -734,7 +734,7 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
              
              @if (newSectionType === 'FILE') {
                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Tải lên tài liệu <span class="text-red-500">*</span></label>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">T?i l�n t�i li?u <span class="text-red-500">*</span></label>
                   <input type="file" (change)="onFileSelected($event)" 
                          class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-gray-300 rounded-lg p-1">
                   
@@ -744,7 +744,7 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
                       <div class="mt-3 rounded-lg border border-gray-200 overflow-hidden">
                         <div class="bg-gray-50 px-3 py-2 border-b flex items-center justify-between">
                           <span class="text-sm font-medium text-gray-700">{{ getFileNameFromUrl(sectionFileUrl()!) }}</span>
-                          <a [href]="sectionFileUrl()" target="_blank" class="text-xs text-blue-600 hover:underline">Mở tab mới ↗</a>
+                          <a [href]="sectionFileUrl()" target="_blank" class="text-xs text-blue-600 hover:underline">M? tab m?i ?</a>
                         </div>
                         <embed [src]="getSafePdfUrl(sectionFileUrl())" type="application/pdf" class="w-full h-96" />
                       </div>
@@ -762,11 +762,11 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
              }
           </div>
           <div class="p-5 border-t border-gray-200 flex justify-end gap-3 bg-gray-50">
-            <button (click)="showSectionModal.set(false)" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">Hủy</button>
+            <button (click)="showSectionModal.set(false)" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">H?y</button>
             <button (click)="saveSection()" [disabled]="isSaving() || !sectionTitle.trim() || (newSectionType === 'FILE' && !selectedFile && !sectionFileUrl())" 
                     class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2">
-              @if (isSaving()) { <span class="animate-spin">⏳</span> }
-              {{ editingSectionId() ? 'Cập nhật' : 'Tạo mới' }}
+              @if (isSaving()) { <span class="animate-spin">?</span> }
+              {{ editingSectionId() ? 'C?p nh?t' : 'T?o m?i' }}
             </button>
           </div>
         </div>
@@ -793,7 +793,7 @@ export class CourseCurriculumComponent {
 
   public editorConfig = {
     licenseKey: 'GPL',
-    // [QUAN TRỌNG] Phải nạp Plugins vào đây thì Toolbar mới hiện
+    // [QUAN TR?NG] Ph?i n?p Plugins v�o d�y th� Toolbar m?i hi?n
     plugins: [
       Essentials, Paragraph, Heading,
       Bold, Italic, Underline, Strikethrough, Subscript, Superscript, RemoveFormat,
@@ -803,11 +803,11 @@ export class CourseCurriculumComponent {
       Table, TableToolbar, MediaEmbed,
       SourceEditing, Autoformat,
 
-      // Plugin Upload ảnh Base64 của bạn
+      // Plugin Upload ?nh Base64 c?a b?n
       Base64UploadAdapterPlugin
     ],
 
-    // Cấu hình Toolbar (Thứ tự nút bấm)
+    // C?u h�nh Toolbar (Th? t? n�t b?m)
     toolbar: {
       items: [
         'undo', 'redo', '|',
@@ -818,13 +818,13 @@ export class CourseCurriculumComponent {
         'link', 'uploadImage', 'insertTable', 'mediaEmbed', 'blockQuote', '|',
         'sourceEditing'
       ],
-      shouldNotGroupWhenFull: true // Tự động gom nhóm nếu màn hình nhỏ
+      shouldNotGroupWhenFull: true // T? d?ng gom nh�m n?u m�n h�nh nh?
     },
 
-    // Cấu hình Font (Đưa Arial lên đầu để làm mặc định)
+    // C?u h�nh Font (�ua Arial l�n d?u d? l�m m?c d?nh)
     fontFamily: {
       options: [
-        'default', // Mặc định của theme
+        'default', // M?c d?nh c?a theme
         'Arial, Helvetica, sans-serif',
         'Times New Roman, Times, serif',
         'Courier New, Courier, monospace',
@@ -833,27 +833,27 @@ export class CourseCurriculumComponent {
       supportAllValues: true
     },
 
-    // Cấu hình Ảnh (Thanh công cụ khi click vào ảnh)
+    // C?u h�nh ?nh (Thanh c�ng c? khi click v�o ?nh)
     image: {
       toolbar: [
         'imageTextAlternative', // Alt text
-        'toggleImageCaption',   // Chú thích
+        'toggleImageCaption',   // Ch� th�ch
         '|',
-        'imageStyle:inline',    // Căn dòng
-        'imageStyle:block',     // Xuống dòng
-        'imageStyle:side',      // Đẩy sang bên
+        'imageStyle:inline',    // Can d�ng
+        'imageStyle:block',     // Xu?ng d�ng
+        'imageStyle:side',      // �?y sang b�n
         '|',
-        'resizeImage'           // Kéo giãn ảnh
+        'resizeImage'           // K�o gi�n ?nh
       ]
     },
 
-    // Cấu hình Bảng
+    // C?u h�nh B?ng
     table: {
       contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells']
     },
 
     // Placeholder
-    placeholder: 'Nhập nội dung bài học chi tiết tại đây (văn bản, hình ảnh, video)...'
+    placeholder: 'Nh?p n?i dung b�i h?c chi ti?t t?i d�y (van b?n, h�nh ?nh, video)...'
   };
 
 
@@ -865,7 +865,7 @@ export class CourseCurriculumComponent {
 
     const onMouseMove = (e: MouseEvent) => {
       const newHeight = startHeight + (e.clientY - startY);
-      if (newHeight > 200) { // Giới hạn chiều cao tối thiểu
+      if (newHeight > 200) { // Gi?i h?n chi?u cao t?i thi?u
         this.editorHeight.set(newHeight);
       }
     };
@@ -1017,10 +1017,10 @@ export class CourseCurriculumComponent {
 
   getLessonTypeLabel(type: string): string {
     switch (type) {
-      case 'LECTURE': return 'Bài giảng';
-      case 'QUIZ': return 'Trắc nghiệm';
-      case 'ASSIGNMENT': return 'Bài tập';
-      default: return 'Bài giảng';
+      case 'LECTURE': return 'B�i gi?ng';
+      case 'QUIZ': return 'Tr?c nghi?m';
+      case 'ASSIGNMENT': return 'B�i t?p';
+      default: return 'B�i gi?ng';
     }
   }
   onEditorReady(editor: any) {
@@ -1263,7 +1263,7 @@ export class CourseCurriculumComponent {
   async removeQuestionFromQuiz(questionId: string) {
     const lesson = this.selectedLesson();
     if (!lesson) return;
-    if (!confirm('Bạn có chắc muốn xóa câu hỏi này?')) return;
+    if (!confirm('B?n c� ch?c mu?n x�a c�u h?i n�y?')) return;
 
     try {
       await firstValueFrom(this.quizApi.removeQuestionFromQuiz(lesson.id, questionId));
@@ -1314,7 +1314,7 @@ export class CourseCurriculumComponent {
       // 1. Get all questions from the selected package
       const questions = await firstValueFrom(this.packageApi.getQuestionsInPackage(this.selectedPackageId));
       if (!questions || questions.length === 0) {
-        alert('Gói câu hỏi này không có dữ liệu!');
+        alert('G�i c�u h?i n�y kh�ng c� d? li?u!');
         return;
       }
 
@@ -1339,7 +1339,7 @@ export class CourseCurriculumComponent {
       this.selectedPackageId = ''; // Reset
     } catch (error) {
       console.error('Error generating random questions:', error);
-      alert('Có lỗi xảy ra khi tạo câu hỏi ngẫu nhiên.');
+      alert('C� l?i x?y ra khi t?o c�u h?i ng?u nhi�n.');
     } finally {
       this.quizQuestionsLoading.set(false);
     }
@@ -1457,14 +1457,14 @@ export class CourseCurriculumComponent {
       this.showSectionModal.set(false);
     } catch (e: any) {
       console.error('Error saving section:', e);
-      alert('Lỗi khi lưu Section: ' + (e?.error?.message || e.message));
+      alert('L?i khi luu Section: ' + (e?.error?.message || e.message));
     } finally {
       this.isSaving.set(false);
     }
   }
 
   async deleteSection(sectionId: string) {
-    if (!confirm('Bạn có chắc muốn xóa Section này?')) return;
+    if (!confirm('B?n c� ch?c mu?n x�a Section n�y?')) return;
     this.isSaving.set(true);
     try {
       await firstValueFrom(this.sectionApi.deleteSection(sectionId));
@@ -1492,12 +1492,12 @@ export class CourseCurriculumComponent {
 
   // [NEW] Extract filename from URL for display
   getFileNameFromUrl(url: string): string {
-    if (!url) return 'Tệp đính kèm';
+    if (!url) return 'T?p d�nh k�m';
     try {
       const urlObj = new URL(url);
       const pathname = urlObj.pathname;
       const fileName = pathname.substring(pathname.lastIndexOf('/') + 1);
-      return decodeURIComponent(fileName) || 'Tệp đính kèm';
+      return decodeURIComponent(fileName) || 'T?p d�nh k�m';
     } catch {
       // If URL parsing fails, try simple approach
       const lastSlash = url.lastIndexOf('/');
@@ -1535,3 +1535,4 @@ export class CourseCurriculumComponent {
     return this.sanitizer.bypassSecurityTrustResourceUrl(url);
   }
 }
+

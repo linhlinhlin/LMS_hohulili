@@ -570,3 +570,4 @@ export class ProfessionalLearningInterfaceComponent implements OnInit {
     console.error('Video error:', error);
   }
 }
+

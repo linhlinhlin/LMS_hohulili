@@ -60,3 +60,4 @@ export const learningRoutes: Routes = [
     title: 'Learning Path Detail - LMS Maritime'
   }
 ];
+

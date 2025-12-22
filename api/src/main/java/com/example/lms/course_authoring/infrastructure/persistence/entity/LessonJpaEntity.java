@@ -34,7 +34,7 @@ public class LessonJpaEntity {
     private String description;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "lesson_type")  // Actual DB column name, nullable in DB
     @Builder.Default
     private LessonType type = LessonType.VIDEO;
 

@@ -337,3 +337,4 @@ export class RubricEditorComponent implements OnInit {
     }, 1000);
   }
 }
+

@@ -379,3 +379,4 @@ export class AssignmentsComponent {
     this.currentPage.set(page);
   }
 }
+

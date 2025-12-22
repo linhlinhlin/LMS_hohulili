@@ -132,7 +132,7 @@ export class AssignmentApi {
 
   // Get assignments by course
   getAssignmentsByCourse(courseId: string, params?: { page?: number; limit?: number }) {
-    return this.api.getWithResponse<any>(`/api/v1/courses/${courseId}/assignments`, { params }).pipe(
+    return this.api.getWithResponse<any>(`/api/v3/courses/${courseId}/assignments`, { params }).pipe(
       map((res: ApiResponse<any>) => {
         const content: AssignmentSummary[] = res?.data?.content ?? [];
         return {
@@ -146,27 +146,27 @@ export class AssignmentApi {
 
   // Create assignment
   createAssignment(courseId: string, payload: CreateAssignmentRequest) {
-    return this.api.postWithResponse<AssignmentDetail>(`/api/v1/courses/${courseId}/assignments`, payload);
+    return this.api.postWithResponse<AssignmentDetail>(`/api/v3/courses/${courseId}/assignments`, payload);
   }
 
   // Get assignment detail
   getAssignmentById(assignmentId: string) {
-    return this.api.getWithResponse<AssignmentDetail>(`/api/v1/assignments/${assignmentId}`);
+    return this.api.getWithResponse<AssignmentDetail>(`/api/v3/assignments/${assignmentId}`);
   }
 
   // Update assignment
   updateAssignment(assignmentId: string, payload: UpdateAssignmentRequest) {
-    return this.api.putWithResponse<AssignmentDetail>(`/api/v1/assignments/${assignmentId}`, payload);
+    return this.api.putWithResponse<AssignmentDetail>(`/api/v3/assignments/${assignmentId}`, payload);
   }
 
   // Delete assignment
   deleteAssignment(assignmentId: string) {
-    return this.api.deleteWithResponse<string>(`/api/v1/assignments/${assignmentId}`);
+    return this.api.deleteWithResponse<string>(`/api/v3/assignments/${assignmentId}`);
   }
 
   // Get submissions by assignment
   getSubmissionsByAssignment(assignmentId: string, params?: { page?: number; limit?: number; status?: string }) {
-    return this.api.getWithResponse<any>(`/api/v1/assignments/${assignmentId}/submissions`, { params }).pipe(
+    return this.api.getWithResponse<any>(`/api/v3/assignments/${assignmentId}/submissions`, { params }).pipe(
       map((res: ApiResponse<any>) => {
         const content: SubmissionSummary[] = res?.data?.content ?? [];
         return {
@@ -180,39 +180,39 @@ export class AssignmentApi {
 
   // Submit assignment (student)
   submitAssignment(assignmentId: string, payload: CreateSubmissionRequest) {
-    return this.api.postWithResponse<SubmissionDetail>(`/api/v1/assignments/${assignmentId}/submissions`, payload);
+    return this.api.postWithResponse<SubmissionDetail>(`/api/v3/assignments/${assignmentId}/submissions`, payload);
   }
 
   // Get my submission (student)
   getMySubmission(assignmentId: string) {
-    return this.api.getWithResponse<SubmissionDetail>(`/api/v1/assignments/${assignmentId}/my-submission`);
+    return this.api.getWithResponse<SubmissionDetail>(`/api/v3/assignments/${assignmentId}/my-submission`);
   }
 
   // Grade submission (teacher)
   gradeSubmission(submissionId: string, payload: GradeSubmissionRequest) {
-    return this.api.patchWithResponse<SubmissionDetail>(`/api/v1/submissions/${submissionId}/grade`, payload);
+    return this.api.patchWithResponse<SubmissionDetail>(`/api/v3/submissions/${submissionId}/grade`, payload);
   }
 
   // Get submission detail by ID (teacher)
   getSubmissionById(submissionId: string) {
-    return this.api.getWithResponse<SubmissionDetail>(`/api/v1/submissions/${submissionId}`);
+    return this.api.getWithResponse<SubmissionDetail>(`/api/v3/submissions/${submissionId}`);
   }
 
   // Export submissions as Excel (teacher)
   exportSubmissions(assignmentId: string): Observable<Blob> {
-    return this.http.get(`/api/v1/assignments/${assignmentId}/submissions/export`, {
+    return this.http.get(`/api/v3/assignments/${assignmentId}/submissions/export`, {
       responseType: 'blob'
     });
   }
 
   // Get submissions for grading (alias for getSubmissionsByAssignment with full details)
   getSubmissions(assignmentId: string, params?: { page?: number; limit?: number; status?: string }) {
-    return this.api.getWithResponse<SubmissionDetail[]>(`/api/v1/assignments/${assignmentId}/submissions/details`, { params });
+    return this.api.getWithResponse<SubmissionDetail[]>(`/api/v3/assignments/${assignmentId}/submissions/details`, { params });
   }
 
   // Get all pending submissions across all assignments (for grading dashboard)
   getPendingSubmissions(params?: { page?: number; limit?: number }) {
-    return this.api.getWithResponse<SubmissionDetail[]>(`/api/v1/submissions/pending`, { params });
+    return this.api.getWithResponse<SubmissionDetail[]>(`/api/v3/submissions/pending`, { params });
   }
 
   // Get all teacher assignments (for management view)  
@@ -220,6 +220,6 @@ export class AssignmentApi {
   getTeacherAssignments(params?: { page?: number; limit?: number; courseId?: string; status?: string }) {
     // For now, we'll need to get assignments from all teacher's courses
     // This is a temporary solution until backend provides a dedicated endpoint
-    return this.api.getWithResponse<AssignmentSummary[]>(`/api/v1/assignments/teacher-summary`, { params });
+    return this.api.getWithResponse<AssignmentSummary[]>(`/api/v3/assignments/teacher-summary`, { params });
   }
 }

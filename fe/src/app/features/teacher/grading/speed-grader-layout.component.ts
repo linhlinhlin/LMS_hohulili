@@ -301,3 +301,4 @@ export class SpeedGraderLayoutComponent implements OnInit, OnDestroy {
     this.router.navigate(['../..'], { relativeTo: this.route });
   }
 }
+

@@ -496,3 +496,4 @@ export class AnalyticsService {
     return { grade: 'D', color: 'text-red-500' };
   }
 }
+

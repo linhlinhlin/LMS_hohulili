@@ -16,8 +16,15 @@ export class CourseApi {
     return this.api.postWithResponse<CourseDetail>(COURSE_ENDPOINTS.CREATE, payload);
   }
 
-  getCourseById(id: string) {
-    return this.api.getWithResponse<CourseDetail>(COURSE_ENDPOINTS.BY_ID(id));
+  getCourseById(id: string): Observable<ApiResponse<CourseDetail>> {
+    // apiResponseInterceptor unwraps response, we re-wrap for consumers
+    return this.api.get<CourseDetail>(COURSE_ENDPOINTS.BY_ID(id)).pipe(
+      map((data: CourseDetail) => ({
+        success: true,
+        data,
+        message: 'Course loaded'
+      } as ApiResponse<CourseDetail>))
+    );
   }
 
   updateCourse(id: string, payload: Partial<CreateCourseRequest>) {
@@ -30,13 +37,19 @@ export class CourseApi {
   }
 
   myCourses() {
-    // Unwrap Spring Page response to a flat array while preserving pagination
-    return this.api.getWithResponse<any>(COURSE_ENDPOINTS.MY_COURSES).pipe(
-      map((res: ApiResponse<any>) => {
-        const content: CourseSummary[] = res?.data?.content ?? [];
+    // apiResponseInterceptor unwraps response, so we receive raw Spring Page
+    return this.api.get<any>(COURSE_ENDPOINTS.MY_COURSES).pipe(
+      map((res: any) => {
+        const content: CourseSummary[] = res?.content ?? res?.data?.content ?? [];
+        const pagination = res?.totalElements !== undefined ? {
+          page: (res?.number ?? 0) + 1,
+          totalPages: res?.totalPages ?? 1,
+          totalItems: res?.totalElements ?? 0,
+          limit: res?.size ?? 10
+        } : res?.pagination;
         return {
           data: content,
-          pagination: res?.pagination,
+          pagination,
           message: res?.message
         } as ApiResponse<CourseSummary[]>;
       })
@@ -44,12 +57,18 @@ export class CourseApi {
   }
 
   publicCourses(params?: { page?: number; limit?: number; search?: string; teacher?: string }): Observable<ApiResponse<CourseSummary[]>> {
-    return this.api.getWithResponse<any>(COURSE_ENDPOINTS.BASE, { params }).pipe(
-      map((res: ApiResponse<any>) => {
-        const content: CourseSummary[] = res?.data?.content ?? [];
+    return this.api.get<any>(COURSE_ENDPOINTS.BASE, { params }).pipe(
+      map((res: any) => {
+        const content: CourseSummary[] = res?.content ?? res?.data?.content ?? [];
+        const pagination = res?.totalElements !== undefined ? {
+          page: (res?.number ?? 0) + 1,
+          totalPages: res?.totalPages ?? 1,
+          totalItems: res?.totalElements ?? 0,
+          limit: res?.size ?? 10
+        } : res?.pagination;
         return {
           data: content,
-          pagination: res?.pagination,
+          pagination,
           message: res?.message
         } as ApiResponse<CourseSummary[]>;
       })
@@ -57,20 +76,39 @@ export class CourseApi {
   }
 
   enrolledCourses(params?: { page?: number; limit?: number }): Observable<ApiResponse<CourseSummary[]>> {
-    return this.api.getWithResponse<any>(COURSE_ENDPOINTS.ENROLLED_COURSES, { params }).pipe(
-      map((res: ApiResponse<any>) => {
-        const content: CourseSummary[] = res?.data?.content ?? [];
+    // Note: apiResponseInterceptor unwraps {data} from backend
+    // So we receive raw Page<CourseSummary> directly
+    return this.api.get<any>(COURSE_ENDPOINTS.ENROLLED_COURSES, { params }).pipe(
+      map((res: any) => {
+        // Handle both: 
+        // 1. Unwrapped Spring Page: { content: [...], totalElements, ... }
+        // 2. Still wrapped (fallback): { data: { content: [...] } }
+        const content: CourseSummary[] = res?.content ?? res?.data?.content ?? [];
+        const pagination = res?.totalElements !== undefined ? {
+          page: (res?.number ?? 0) + 1,
+          totalPages: res?.totalPages ?? 1,
+          totalItems: res?.totalElements ?? 0,
+          limit: res?.size ?? 10
+        } : res?.pagination;
+
         return {
           data: content,
-          pagination: res?.pagination,
+          pagination,
           message: res?.message
         } as ApiResponse<CourseSummary[]>;
       })
     );
   }
 
-  getCourseContent(courseId: string) {
-    return this.api.getWithResponse<CourseContentChapter[]>(COURSE_ENDPOINTS.CONTENT(courseId));
+  getCourseContent(courseId: string): Observable<ApiResponse<CourseContentChapter[]>> {
+    // apiResponseInterceptor unwraps response, we re-wrap for consumers
+    return this.api.get<CourseContentChapter[]>(COURSE_ENDPOINTS.CONTENT(courseId)).pipe(
+      map((data: CourseContentChapter[]) => ({
+        success: true,
+        data,
+        message: 'Course content loaded'
+      } as ApiResponse<CourseContentChapter[]>))
+    );
   }
 
   enrollCourse(courseId: string, classId?: string) {
@@ -87,7 +125,7 @@ export class CourseApi {
   bulkEnrollStudents(courseId: string, file: File) {
     const formData = new FormData();
     formData.append('file', file);
-    return this.api.postWithResponse<any>(`/api/v1/courses/${courseId}/bulk-enroll`, formData).pipe(
+    return this.api.postWithResponse<any>(`/api/v3/courses/${courseId}/bulk-enroll`, formData).pipe(
       tap(() => this.invalidateEnrolledStudentsCache(courseId))
     );
   }
@@ -97,32 +135,34 @@ export class CourseApi {
   }
 
   submitForApproval(id: string) {
-    return this.api.postWithResponse<CourseDetail>(`/api/v1/courses/${id}/submit-for-approval`, {});
+    return this.api.postWithResponse<CourseDetail>(`/api/v3/courses/${id}/submit-for-approval`, {});
   }
 
   cancelApprovalRequest(id: string) {
-    return this.api.postWithResponse<CourseDetail>(`/api/v1/courses/${id}/cancel-approval`, {});
+    return this.api.postWithResponse<CourseDetail>(`/api/v3/courses/${id}/cancel-approval`, {});
   }
 
   getReviewStatus(id: string) {
-    return this.api.getWithResponse<CourseReviewStatus>(`/api/v1/courses/${id}/review-status`);
+    return this.api.getWithResponse<CourseReviewStatus>(`/api/v3/courses/${id}/review-status`);
   }
 
   getCourseProgress(courseId: string) {
-    return this.api.getWithResponse<any>(`/api/v1/student/progress/courses/${courseId}`);
+    // apiResponseInterceptor unwraps response, returns raw data
+    return this.api.get<any>(`/api/v3/student/progress/courses/${courseId}`);
   }
 
   getNextLesson(courseId: string) {
-    return this.api.getWithResponse<any>(`/api/v1/student/progress/courses/${courseId}/next-lesson`);
+    // apiResponseInterceptor unwraps response, returns raw data  
+    return this.api.get<any>(`/api/v3/student/progress/courses/${courseId}/next-lesson`);
   }
 
   getAvailableClasses(courseId: string) {
-    return this.api.getWithResponse<ClassSummary[]>(`/api/v1/courses/${courseId}/classes/available`);
+    return this.api.getWithResponse<ClassSummary[]>(`/api/v3/courses/${courseId}/classes/available`);
   }
 
   // Get available students for enrollment (not yet enrolled in this course)
   getAvailableStudents(courseId: string, params?: { page?: number; size?: number; search?: string }): Observable<ApiResponse<AvailableStudent[]>> {
-    return this.api.getWithResponse<any>(`/api/v1/courses/${courseId}/available-students`, { params }).pipe(
+    return this.api.getWithResponse<any>(`/api/v3/courses/${courseId}/available-students`, { params }).pipe(
       map((res: ApiResponse<any>) => {
         const content: AvailableStudent[] = res?.data?.content ?? [];
         return {
@@ -140,7 +180,7 @@ export class CourseApi {
 
     return this.cache.get(
       cacheKey,
-      () => this.api.getWithResponse<any>(`/api/v1/courses/${courseId}/students`, { params }).pipe(
+      () => this.api.getWithResponse<any>(`/api/v3/courses/${courseId}/students`, { params }).pipe(
         map((res: ApiResponse<any>) => {
           const content: EnrolledStudent[] = res?.data?.content ?? res?.data ?? [];
           return {
@@ -192,3 +232,4 @@ export interface ClassSummary {
   endDate?: string;
   maxStudents: number;
 }
+

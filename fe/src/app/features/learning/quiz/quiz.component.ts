@@ -406,3 +406,4 @@ export class QuizComponent implements OnInit {
     return 'Bạn cần học lại kiến thức về an toàn hàng hải.';
   }
 }
+

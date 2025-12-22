@@ -230,7 +230,7 @@ export interface HistoryPagination {
 }
 
 /**
- * Response from GET /api/v1/history/{user_id}
+ * Response from GET /api/v3/history/{user_id}
  */
 export interface HistoryResponse {
   data: HistoryMessage[];
@@ -383,3 +383,4 @@ export interface SessionState {
   userId: string;
   role: UserRole;
 }
+

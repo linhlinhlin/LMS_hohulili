@@ -206,3 +206,4 @@ export class LessonContentComponent {
     return labels[type] || type;
   }
 }
+

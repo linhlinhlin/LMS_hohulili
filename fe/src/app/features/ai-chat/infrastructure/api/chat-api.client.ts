@@ -23,7 +23,7 @@ import {
  * API Configuration
  */
 export const AI_CHAT_CONFIG = {
-  baseUrl: '/api/v1/ai', // LMS Backend Proxy
+  baseUrl: '/api/v3/ai', // LMS Backend Proxy
   timeout: 60000, // 60 seconds
   coldStartThreshold: 10000, // 10 seconds indicates cold start
 } as const;
@@ -169,7 +169,7 @@ export class ChatApiClient {
 
   /**
    * Get chat history from server (Server-Side Sync)
-   * API: GET /api/v1/history/{user_id}
+   * API: GET /api/v3/history/{user_id}
    */
   getChatHistory(userId: string, limit = 20, offset = 0): Observable<HistoryResponse> {
     return this.http
@@ -184,7 +184,7 @@ export class ChatApiClient {
 
   /**
    * Delete all chat history for a user
-   * API: DELETE /api/v1/history/{user_id}
+   * API: DELETE /api/v3/history/{user_id}
    */
   deleteChatHistory(userId: string): Observable<void> {
     return this.http
@@ -584,3 +584,4 @@ export class ChatApiClient {
     return throwError(() => apiError);
   }
 }
+

@@ -300,3 +300,4 @@ export class ChatMessageInputComponent {
     }
   }
 }
+

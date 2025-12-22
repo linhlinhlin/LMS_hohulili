@@ -1028,3 +1028,4 @@ export class StudentMyCoursesComponent implements OnInit {
     console.log('Filters applied');
   }
 }
+

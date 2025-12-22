@@ -416,3 +416,4 @@ export class QuizResultNewComponent implements OnInit {
     }).format(new Date(date));
   }
 }
+

@@ -203,3 +203,4 @@ export interface FileUploadResponse {
 export interface EnrollStudentRequest {
   email: string;
 }
+

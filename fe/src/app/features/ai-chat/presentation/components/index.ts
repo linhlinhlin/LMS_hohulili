@@ -9,3 +9,4 @@ export { ChatMessageInputComponent } from './chat-message-input/chat-message-inp
 export { FloatingChatBubbleComponent } from './floating-chat-bubble/floating-chat-bubble.component';
 export { ChatPanelComponent } from './chat-panel/chat-panel.component';
 export { ChatWidgetComponent } from './chat-widget/chat-widget.component';
+

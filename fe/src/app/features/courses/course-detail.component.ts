@@ -378,3 +378,4 @@ export class CourseDetailComponent implements OnInit {
     breadcrumbEl.text = JSON.stringify(breadcrumb);
   }
 }
+

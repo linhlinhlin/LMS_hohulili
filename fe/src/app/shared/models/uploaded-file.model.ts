@@ -9,3 +9,4 @@ export interface UploadedFile {
   category?: string;
   thumbnailUrl?: string;
 }
+

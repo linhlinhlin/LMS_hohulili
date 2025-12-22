@@ -286,3 +286,4 @@ export class SpeedGraderComponent implements OnInit {
     this.router.navigate(['/teacher/assignments', assignmentId, 'submissions']);
   }
 }
+

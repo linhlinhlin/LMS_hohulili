@@ -21,7 +21,12 @@ spring:
       hibernate:
         format_sql: true
   flyway:
-    enabled: false  # Disable Flyway to avoid migration issues
+    enabled: true
+    baseline-on-migrate: true  # Required for existing databases
+    baseline-version: 25       # Baseline after V25, apply V26+ migrations
+    locations: classpath:db/migration
+    validate-on-migrate: true
+    out-of-order: true         # Allow V26, V27 to run after V20251221
 
 management:
   endpoints:

@@ -238,3 +238,4 @@ export function isValidMaxScore(maxScore: number): boolean {
 export function isValidGrade(grade: number, maxScore: number): boolean {
   return typeof grade === 'number' && !isNaN(grade) && grade >= MIN_GRADE && grade <= maxScore;
 }
+

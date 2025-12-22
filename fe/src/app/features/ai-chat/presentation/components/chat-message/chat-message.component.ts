@@ -992,3 +992,4 @@ export class ChatMessageComponent {
     this.regenerate.emit();
   }
 }
+

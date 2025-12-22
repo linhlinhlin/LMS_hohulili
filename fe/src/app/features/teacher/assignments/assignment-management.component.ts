@@ -393,3 +393,4 @@ export class AssignmentManagementComponent implements OnInit {
     return classes[normalized] || 'bg-gray-100 text-gray-800';
   }
 }
+

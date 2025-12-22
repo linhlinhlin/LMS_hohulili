@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { ApiClient } from '../client/api-client';
 import { map } from 'rxjs/operators';
+import { API } from './api.config';
 
 export interface QuestionOption {
   id: string;
@@ -61,7 +62,7 @@ export class QuestionApi {
   private readonly apiClient = inject(ApiClient);
 
   getQuestionsByIds(request: GetQuestionsByIdsRequest) {
-    return this.apiClient.post<Question[]>('/api/v1/questions/by-ids', request);
+    return this.apiClient.post<Question[]>(`${API.BASE}/questions/by-ids`, request);
   }
 
   getQuestions(status?: string, difficulty?: string, tags?: string) {
@@ -70,11 +71,11 @@ export class QuestionApi {
     if (difficulty) params.difficulty = difficulty;
     if (tags) params.tags = tags;
 
-    return this.apiClient.get<Question[]>('/api/v1/questions', { params });
+    return this.apiClient.get<Question[]>(`${API.BASE}/questions`, { params });
   }
 
   getQuestionById(id: string) {
-    return this.apiClient.get<{ success: boolean; data: Question; message?: string }>(`/api/v1/questions/${id}`)
+    return this.apiClient.get<{ success: boolean; data: Question; message?: string }>(`${API.BASE}/questions/${id}`)
       .pipe(
         map((response: any) => {
           console.log('📦 getQuestionById raw response:', response);
@@ -92,7 +93,7 @@ export class QuestionApi {
   getMyQuestions(status?: string) {
     const params: any = {};
     if (status) params.status = status;
-    return this.apiClient.get<{ success: boolean; data: Question[]; message?: string }>('/api/v1/questions/my-questions', { params })
+    return this.apiClient.get<{ success: boolean; data: Question[]; message?: string }>(`${API.BASE}/questions/my-questions`, { params })
       .pipe(
         map((response: any) => {
           console.log('📦 getMyQuestions raw response:', response);
@@ -109,29 +110,29 @@ export class QuestionApi {
   }
 
   createQuestion(request: CreateQuestionRequest) {
-    return this.apiClient.post<Question>('/api/v1/questions', request);
+    return this.apiClient.post<Question>(`${API.BASE}/questions`, request);
   }
 
   updateQuestion(id: string, request: UpdateQuestionRequest) {
-    return this.apiClient.put<Question>(`/api/v1/questions/${id}`, request);
+    return this.apiClient.put<Question>(`${API.BASE}/questions/${id}`, request);
   }
 
   deleteQuestion(id: string) {
-    return this.apiClient.delete<{ message: string }>(`/api/v1/questions/${id}`);
+    return this.apiClient.delete<{ message: string }>(`${API.BASE}/questions/${id}`);
   }
 
   // Get questions by course
   getQuestionsByCourse(courseId: string, status?: string) {
     const params: any = {};
     if (status) params.status = status;
-    return this.apiClient.get<{ success: boolean; data: Question[]; message?: string }>(`/api/v1/questions/course/${courseId}`, { params });
+    return this.apiClient.get<{ success: boolean; data: Question[]; message?: string }>(`${API.BASE}/questions/course/${courseId}`, { params });
   }
 
   // NEW: Get my questions in a specific course
   getMyQuestionsInCourse(courseId: string, status?: string) {
     const params: any = {};
     if (status) params.status = status;
-    return this.apiClient.get<Question[]>(`/api/v1/questions/course/${courseId}/user`, { params });
+    return this.apiClient.get<Question[]>(`${API.BASE}/questions/course/${courseId}/user`, { params });
   }
 
   // Import questions from Excel file
@@ -140,8 +141,8 @@ export class QuestionApi {
     formData.append('file', file);
     formData.append('packageId', packageId);
     formData.append('difficulty', difficulty);
-    
-    return this.apiClient.post<QuestionImportResult>('/api/v1/questions/import/excel', formData);
+
+    return this.apiClient.post<QuestionImportResult>(`${API.BASE}/questions/import/excel`, formData);
   }
 }
 
@@ -153,3 +154,4 @@ export interface QuestionImportResult {
   errors: string[];
   message: string;
 }
+

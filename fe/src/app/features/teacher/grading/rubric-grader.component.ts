@@ -221,3 +221,4 @@ export class RubricGraderComponent {
     this.selectionsChange.emit([]);
   }
 }
+

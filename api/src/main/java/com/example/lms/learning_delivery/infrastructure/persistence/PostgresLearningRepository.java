@@ -3,21 +3,27 @@ package com.example.lms.learning_delivery.infrastructure.persistence;
 import com.example.lms.learning_delivery.domain.model.LearningClass;
 import com.example.lms.learning_delivery.domain.model.Enrollment;
 import com.example.lms.learning_delivery.domain.repo_port.LearningRepository;
-import com.example.lms.entity.User;
-import com.example.lms.repository.UserRepository; // Utilizing existing legacy repo for User
+import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * PostgreSQL implementation of LearningRepository.
+ * 
+ * Following DDD Anti-Corruption Layer pattern:
+ * - Uses UserJpaRepository from identity module to look up user IDs
+ * - Returns only UUIDs to maintain bounded context isolation
+ */
 @Component
 @RequiredArgsConstructor
 public class PostgresLearningRepository implements LearningRepository {
 
     private final JpaClassRepository jpaClassRepository;
     private final JpaEnrollmentRepository jpaEnrollmentRepository;
-    private final UserRepository userRepository; // Legacy repo
+    private final UserJpaRepository userJpaRepository; // From identity module
 
     @Override
     public LearningClass saveClass(LearningClass clazz) {
@@ -50,7 +56,8 @@ public class PostgresLearningRepository implements LearningRepository {
     }
 
     @Override
-    public Optional<User> findStudentByEmail(String email) {
-        return userRepository.findByEmail(email);
+    public Optional<UUID> findStudentIdByEmail(String email) {
+        return userJpaRepository.findByEmail(email)
+                .map(user -> user.getId());
     }
 }

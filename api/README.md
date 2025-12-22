@@ -68,7 +68,7 @@ curl http://localhost:8088/api/v1/health
 ## 🔗 Điểm truy cập dịch vụ / Service Endpoints
 
 ### **Các URL ứng dụng / Application URLs**
-- **API Base URL**: http://localhost:8088/api/v1
+- **API Base URL**: http://localhost:8088/api/v3
 - **Swagger UI**: http://localhost:8088/swagger-ui/index.html
 - **Health Check**: http://localhost:8088/api/v1/health
 - **pgAdmin**: http://localhost:8081
@@ -79,18 +79,18 @@ curl http://localhost:8088/api/v1/health
 
 ### **🔐 Xác thực & Quản lý người dùng / Authentication & User Management**
 ```
-POST   /api/v1/auth/register     - Đăng ký người dùng / User registration
-POST   /api/v1/auth/login        - Đăng nhập (JWT) / User login (JWT)
-POST   /api/v1/auth/logout       - Đăng xuất / User logout  
-POST   /api/v1/auth/refresh      - Làm mới JWT token / Refresh JWT token
-GET    /api/v1/auth/profile      - Lấy thông tin cá nhân / Get user profile
-PUT    /api/v1/auth/profile      - Cập nhật thông tin / Update user profile
+POST   /api/v3/auth/register     - Đăng ký người dùng / User registration
+POST   /api/v3/auth/login        - Đăng nhập (JWT) / User login (JWT)
+POST   /api/v3/auth/logout       - Đăng xuất / User logout  
+POST   /api/v3/auth/refresh      - Làm mới JWT token / Refresh JWT token
+GET    /api/v3/auth/profile      - Lấy thông tin cá nhân / Get user profile
+PUT    /api/v3/auth/profile      - Cập nhật thông tin / Update user profile
 
-GET    /api/v1/users             - Danh sách người dùng / List all users (ADMIN)
-GET    /api/v1/users/{id}        - Chi tiết người dùng / Get user details
-PUT    /api/v1/users/{id}        - Cập nhật người dùng / Update user
-DELETE /api/v1/users/{id}        - Xóa người dùng / Delete user (ADMIN)
-PUT    /api/v1/users/{id}/role   - Thay đổi vai trò / Change user role (ADMIN)
+GET    /api/v3/users             - Danh sách người dùng / List all users (ADMIN)
+GET    /api/v3/users/{id}        - Chi tiết người dùng / Get user details
+PUT    /api/v3/users/{id}        - Cập nhật người dùng / Update user
+DELETE /api/v3/users/{id}        - Xóa người dùng / Delete user (ADMIN)
+PUT    /api/v3/users/{id}/role   - Thay đổi vai trò / Change user role (ADMIN)
 ```
 
 ### **📚 Quản lý khóa học / Course Management**
@@ -345,7 +345,7 @@ services:
 - JWT secret được hard-code (nên dùng biến môi trường) / JWT secret is hard-coded (should use environment variable)
 - Thiếu giới hạn tốc độ cho API endpoints / Missing rate limiting for API endpoints
 - Cấu hình CORS cần tinh chỉnh / CORS configuration needs refinement
-- Không có chiến lược API versioning / No API versioning strategy
+- ✅ API versioning đã triển khai (V3) / API versioning implemented (V3)
 
 ### **🗄️ Cơ sở dữ liệu & Hiệu năng / Database & Performance**
 - Thiếu chiến lược indexing database / Missing database indexing strategy

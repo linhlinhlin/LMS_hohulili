@@ -146,8 +146,8 @@ export class AdminService {
   private authService = inject(AuthService);
   private errorService = inject(ErrorHandlingService);
 
-  // API Configuration
-  private readonly API_BASE_URL = 'http://localhost:8088/api/v1';
+  // API Configuration - FIXED: Use environment.apiUrl and /api/v3
+  private readonly API_BASE_URL = `${(typeof window !== 'undefined' && (window as any).__env?.apiUrl) || 'http://localhost:8088'}/api/v3`;
   private readonly ENDPOINTS = {
     users: '/users',
     courses: '/courses',
@@ -175,20 +175,20 @@ export class AdminService {
   readonly totalTeachers = computed(() => this._users().filter(user => user.role === 'teacher').length);
   readonly totalStudents = computed(() => this._users().filter(user => user.role === 'student').length);
   readonly totalAdmins = computed(() => this._users().filter(user => user.role === 'admin').length);
-  
-  readonly activeUsers = computed(() => 
+
+  readonly activeUsers = computed(() =>
     this._users().filter(user => user.isActive).length
   );
 
-  readonly pendingCourses = computed(() => 
+  readonly pendingCourses = computed(() =>
     this._courses().filter(course => course.status === 'pending').length
   );
 
-  readonly approvedCourses = computed(() => 
+  readonly approvedCourses = computed(() =>
     this._courses().filter(course => course.status === 'approved').length
   );
 
-  readonly totalRevenue = computed(() => 
+  readonly totalRevenue = computed(() =>
     this._courses().reduce((sum, course) => sum + course.revenue, 0)
   );
 
@@ -197,8 +197,8 @@ export class AdminService {
   }
 
   // User Management Methods
-  async getUsers(page: number = 1, limit: number = 10, search?: string): Promise<{users: AdminUser[], total: number}> {
-    console.log('AdminService: getUsers called with params:', { page, limit, search });
+  async getUsers(page: number = 1, limit: number = 10, search?: string): Promise<{ users: AdminUser[], total: number }> {
+    console.log('[ADMIN SERVICE] 🔍 Loading users with params:', { page, limit, search });
     this._isLoading.set(true);
     try {
       const params = new URLSearchParams({
@@ -210,39 +210,51 @@ export class AdminService {
       }
 
       const url = `${this.API_BASE_URL}${this.ENDPOINTS.users}?${params}`;
-      console.log('AdminService: Making API call to:', url);
+      console.log('[ADMIN SERVICE] Making API call to:', url);
 
       const response = await this.http.get<{
         success: boolean;
         message: string;
-        data: AdminUser[];
-        pagination: {totalItems: number};
+        data: {
+          content: AdminUser[];  // Spring Page wraps array in content
+          totalElements: number;
+          totalPages: number;
+        };
         timestamp: string
       }>(url).toPromise();
 
-      console.log('AdminService: API response received:', response);
+      console.log('[ADMIN SERVICE] ✅ Users loaded successfully:', response?.data);
 
       if (response?.success && response.data) {
-        const users = response.data;
-        console.log('AdminService: Processing users data:', users);
-        this._users.set(users);
-        const result = { users, total: response.pagination?.totalItems || 0 };
-        console.log('AdminService: Returning result:', result);
-        return result;
+        // Extract users from Spring Page.content
+        const users = response.data.content || [];
+        const total = response.data.totalElements || 0;
+
+        // Normalize users to ensure correct field mapping
+        const normalizedUsers = users.map(user => ({
+          ...user,
+          name: user.name || user.fullName || user.email?.split('@')[0] || 'Unknown',
+          isActive: user.isActive ?? user.enabled ?? true,
+          role: (user.role || 'student').toLowerCase() as any
+        }));
+
+        console.log('[ADMIN SERVICE] Normalized users:', normalizedUsers);
+        this._users.set(normalizedUsers);
+        return { users: normalizedUsers, total };
       } else {
-        console.warn('AdminService: API returned unsuccessful response:', response);
+        console.warn('[ADMIN SERVICE] API returned unsuccessful response:', response);
         throw new Error(response?.message || 'Failed to fetch users');
       }
     } catch (error) {
-      console.error('AdminService: API call failed:', error);
-      console.warn('AdminService: Using mock data due to API failure');
+      console.error('[ADMIN SERVICE] API call failed:', error);
+      console.warn('[ADMIN SERVICE] Using mock data due to API failure');
       this.errorService.showWarning('Đang sử dụng dữ liệu mẫu. Kết nối API sẽ được khôi phục sau.', 'api');
       const users = this.getMockUsers();
       this._users.set(users);
       return { users, total: users.length };
     } finally {
       this._isLoading.set(false);
-      console.log('AdminService: getUsers completed');
+      console.log('[ADMIN SERVICE] getUsers completed');
     }
   }
 
@@ -266,7 +278,7 @@ export class AdminService {
     }
   }
 
-  async createUser(userData: {username: string, email: string, password: string, fullName?: string, role: UserRole}): Promise<AdminUser> {
+  async createUser(userData: { username: string, email: string, password: string, fullName?: string, role: UserRole }): Promise<AdminUser> {
     this._isLoading.set(true);
     try {
       this.validateUserData(userData);
@@ -391,20 +403,20 @@ export class AdminService {
     this._isLoading.set(true);
     try {
       await this.simulateApiCall();
-      
-      this._courses.update(courses => 
-        courses.map(course => 
-          course.id === courseId 
-            ? { 
-                ...course, 
-                status: 'approved' as const, 
-                approvedAt: new Date(),
-                updatedAt: new Date() 
-              }
+
+      this._courses.update(courses =>
+        courses.map(course =>
+          course.id === courseId
+            ? {
+              ...course,
+              status: 'approved' as const,
+              approvedAt: new Date(),
+              updatedAt: new Date()
+            }
             : course
         )
       );
-      
+
       this.errorService.showSuccess('Khóa học đã được phê duyệt thành công!', 'course');
     } finally {
       this._isLoading.set(false);
@@ -415,20 +427,20 @@ export class AdminService {
     this._isLoading.set(true);
     try {
       await this.simulateApiCall();
-      
-      this._courses.update(courses => 
-        courses.map(course => 
-          course.id === courseId 
-            ? { 
-                ...course, 
-                status: 'rejected' as const, 
-                rejectionReason: reason,
-                updatedAt: new Date() 
-              }
+
+      this._courses.update(courses =>
+        courses.map(course =>
+          course.id === courseId
+            ? {
+              ...course,
+              status: 'rejected' as const,
+              rejectionReason: reason,
+              updatedAt: new Date()
+            }
             : course
         )
       );
-      
+
       this.errorService.showSuccess('Khóa học đã bị từ chối.', 'course');
     } finally {
       this._isLoading.set(false);
@@ -440,7 +452,7 @@ export class AdminService {
     this._isLoading.set(true);
     try {
       await this.simulateApiCall();
-      
+
       const analytics: AdminAnalytics = {
         totalUsers: this._users().length,
         totalTeachers: this.totalTeachers(),
@@ -496,7 +508,7 @@ export class AdminService {
     this._isLoading.set(true);
     try {
       await this.simulateApiCall();
-      
+
       const settings: SystemSettings = {
         general: {
           siteName: 'LMS Maritime',
@@ -539,12 +551,12 @@ export class AdminService {
     this._isLoading.set(true);
     try {
       await this.simulateApiCall();
-      
+
       this._settings.update(current => ({
         ...current!,
         ...settings
       }));
-      
+
       this.errorService.showSuccess('Cài đặt hệ thống đã được cập nhật thành công!', 'settings');
     } finally {
       this._isLoading.set(false);
@@ -563,7 +575,7 @@ export class AdminService {
   private validateUserData(userData: Partial<AdminUser>): void {
     const requiredFields = ['email', 'name', 'role'];
     const missingFields = requiredFields.filter(field => !userData[field as keyof AdminUser]);
-    
+
     if (missingFields.length > 0) {
       throw new Error(`Thiếu thông tin bắt buộc: ${missingFields.join(', ')}`);
     }
@@ -571,7 +583,7 @@ export class AdminService {
 
   private async createUserViaAPI(userData: Partial<AdminUser>): Promise<AdminUser> {
     await this.simulateApiCall();
-    
+
     const newUser: AdminUser = {
       id: this.generateId(),
       username: userData.username || userData.email?.split('@')[0] || '',
@@ -635,7 +647,7 @@ export class AdminService {
   private calculateMonthlyRevenue(): number {
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
-    
+
     return this._courses().reduce((sum, course) => {
       const courseDate = new Date(course.createdAt);
       if (courseDate.getMonth() === currentMonth && courseDate.getFullYear() === currentYear) {
@@ -648,7 +660,7 @@ export class AdminService {
   // Error handling
   private handleError(error: any, context: string): void {
     console.error(`AdminService Error [${context}]:`, error);
-    
+
     if (error instanceof HttpErrorResponse) {
       switch (error.status) {
         case 400:

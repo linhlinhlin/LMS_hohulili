@@ -56,3 +56,4 @@ export class CurriculumSelectionService {
         this.selectedSection.set(null);
     }
 }
+

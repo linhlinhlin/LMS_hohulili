@@ -190,9 +190,9 @@ export class TeacherService {
     this._error.set(null);
 
     try {
-      // Call real API: GET /api/v1/courses/my-courses
+      // Call real API: GET /api/v3/courses/my-courses
       const response = await firstValueFrom(
-        this.apiClient.get<any>(`/api/v1/courses/my-courses?page=${page}&limit=${limit}`)
+        this.apiClient.get<any>(`/api/v3/courses/my-courses?page=${page}&limit=${limit}`)
       );
       
       // Backend returns: { success: true, data: { content: [...], pageable: {...} } }
@@ -241,7 +241,7 @@ export class TeacherService {
 
     try {
       // TODO: Replace with real API call
-      // const response = await this.apiClient.get<TeacherStudent[]>('/api/v1/teacher/students');
+      // const response = await this.apiClient.get<TeacherStudent[]>('/api/v3/teacher/students');
       // this._students.set(response);
       await this.simulateApiCall();
       return this._students();
@@ -259,7 +259,7 @@ export class TeacherService {
 
     try {
       // TODO: Replace with real API call
-      // const response = await this.apiClient.get<TeacherAssignment[]>('/api/v1/teacher/assignments');
+      // const response = await this.apiClient.get<TeacherAssignment[]>('/api/v3/teacher/assignments');
       // this._assignments.set(response);
       await this.simulateApiCall();
       return this._assignments();
@@ -280,7 +280,7 @@ export class TeacherService {
       this.validateCourseData(course);
 
       // TODO: Replace with real API call
-      // const response = await this.apiClient.post<TeacherCourse>('/api/v1/teacher/courses', course);
+      // const response = await this.apiClient.post<TeacherCourse>('/api/v3/teacher/courses', course);
       await this.simulateApiCall();
 
       const newCourse: TeacherCourse = {
@@ -307,7 +307,7 @@ export class TeacherService {
 
     try {
       // TODO: Replace with real API call
-      // const response = await this.apiClient.put<TeacherCourse>(`/api/v1/teacher/courses/${courseId}`, updates);
+      // const response = await this.apiClient.put<TeacherCourse>(`/api/v3/teacher/courses/${courseId}`, updates);
       await this.simulateApiCall();
 
       this._courses.update(courses =>
@@ -336,7 +336,7 @@ export class TeacherService {
 
     try {
       // TODO: Replace with real API call
-      // await this.apiClient.delete(`/api/v1/teacher/courses/${courseId}`);
+      // await this.apiClient.delete(`/api/v3/teacher/courses/${courseId}`);
       await this.simulateApiCall();
 
       this._courses.update(courses => courses.filter(course => course.id !== courseId));
@@ -354,7 +354,7 @@ export class TeacherService {
 
     try {
       // TODO: Replace with real API call
-      // const response = await this.apiClient.post<TeacherAssignment>('/api/v1/teacher/assignments', assignment);
+      // const response = await this.apiClient.post<TeacherAssignment>('/api/v3/teacher/assignments', assignment);
       await this.simulateApiCall();
 
       const newAssignment: TeacherAssignment = {
@@ -380,7 +380,7 @@ export class TeacherService {
 
     try {
       // TODO: Replace with real API call
-      // const response = await this.apiClient.put<TeacherAssignment>(`/api/v1/teacher/assignments/${assignmentId}`, updates);
+      // const response = await this.apiClient.put<TeacherAssignment>(`/api/v3/teacher/assignments/${assignmentId}`, updates);
       await this.simulateApiCall();
 
       this._assignments.update(assignments =>
@@ -409,7 +409,7 @@ export class TeacherService {
 
     try {
       // TODO: Replace with real API call
-      // await this.apiClient.delete(`/api/v1/teacher/assignments/${assignmentId}`);
+      // await this.apiClient.delete(`/api/v3/teacher/assignments/${assignmentId}`);
       await this.simulateApiCall();
 
       this._assignments.update(assignments => assignments.filter(assignment => assignment.id !== assignmentId));

@@ -261,3 +261,4 @@ export class AiChatFullPageComponent {
     this.mobileSidebarOpen = false;
   }
 }
+

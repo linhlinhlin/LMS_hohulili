@@ -415,3 +415,4 @@ export class QuizAttemptNewComponent implements OnInit, OnDestroy {
     }
   }
 }
+

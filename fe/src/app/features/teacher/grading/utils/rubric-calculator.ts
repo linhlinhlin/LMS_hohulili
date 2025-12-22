@@ -414,3 +414,4 @@ export function createDefaultCriterion(
 export function generateRubricId(prefix: string = 'rubric'): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
+

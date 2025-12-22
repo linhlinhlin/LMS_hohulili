@@ -2,7 +2,7 @@ package com.example.lms.config;
 
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j; // Keeping import to avoid breaking if not used, but actually I should remove it.
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -19,7 +19,6 @@ public class DataFixInitializer {
     private static final Logger log = LoggerFactory.getLogger(DataFixInitializer.class);
 
     private final JdbcTemplate jdbcTemplate;
-    private final com.example.lms.service.AdminService adminService;
 
     @PostConstruct
     public void fixEnumValues() {
@@ -33,8 +32,8 @@ public class DataFixInitializer {
         fixLessonTypeValues();
         fixSectionTypeConstraint();
         
-        log.info("=== Checking for missing course versions ===");
-        adminService.fixMissingVersions();
+        // TODO: Move fixMissingVersions to a dedicated DDD service if needed
+        // log.info("=== Checking for missing course versions ===");
         
         log.info("=== Database enum value normalization completed ===");
     }

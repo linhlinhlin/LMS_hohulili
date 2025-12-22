@@ -165,3 +165,4 @@ export class HomeHeroComponent implements OnInit, AfterViewInit {
     });
   }
 }
+

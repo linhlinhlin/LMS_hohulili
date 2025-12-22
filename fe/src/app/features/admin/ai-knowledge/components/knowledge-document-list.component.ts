@@ -279,3 +279,4 @@ export class KnowledgeDocumentListComponent {
         this.delete.emit(doc);
     }
 }
+

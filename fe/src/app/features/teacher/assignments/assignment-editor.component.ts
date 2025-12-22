@@ -517,3 +517,4 @@ export class AssignmentEditorComponent implements OnInit {
     return classes[status || ''] || 'bg-gray-100 text-gray-800';
   }
 }
+
