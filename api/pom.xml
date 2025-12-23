@@ -31,9 +31,9 @@
     
     <!-- Database -->
     <dependency><groupId>org.postgresql</groupId><artifactId>postgresql</artifactId></dependency>
-    <!-- Flyway temporarily disabled for Supabase - schema already exists -->
-    <!-- <dependency><groupId>org.flywaydb</groupId><artifactId>flyway-core</artifactId></dependency> -->
-    <!-- <dependency><groupId>org.flywaydb</groupId><artifactId>flyway-database-postgresql</artifactId></dependency> -->
+    <!-- Flyway enabled for database migrations -->
+    <dependency><groupId>org.flywaydb</groupId><artifactId>flyway-core</artifactId></dependency>
+    <dependency><groupId>org.flywaydb</groupId><artifactId>flyway-database-postgresql</artifactId></dependency>
     
     <!-- JWT -->
     <dependency><groupId>io.jsonwebtoken</groupId><artifactId>jjwt-api</artifactId><version>${jjwt.version}</version></dependency>

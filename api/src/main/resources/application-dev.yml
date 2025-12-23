@@ -28,7 +28,11 @@ spring:
         format_sql: true
     open-in-view: true
   flyway:
-    enabled: true
+    enabled: false
+    baseline-on-migrate: true
+    baseline-version: 1
+    out-of-order: true
+    ignore-missing-migrations: true
 logging:
   level:
     org.springframework.web: DEBUG

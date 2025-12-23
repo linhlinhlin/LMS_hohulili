@@ -53,7 +53,8 @@ export class DistributionService {
     distributionType: DistributionType,
     studentIds: string[] | null,
     createdBy: string,
-    isIndividual: boolean = false
+    isIndividual: boolean = false,
+    classId: string | null = null
   ): Observable<AssignmentAllocation> {
     this.loading.set(true);
     this.error.set(null);
@@ -61,6 +62,7 @@ export class DistributionService {
     return this.allocationApi.createOrUpdateAllocation(assignmentId, {
       distributionType,
       studentIds: studentIds || undefined,
+      classId: classId || undefined,
       isIndividual
     }).pipe(
       map(response => {
@@ -93,7 +95,7 @@ export class DistributionService {
     // For ALL_STUDENTS, studentIds should be null (dynamic query at runtime)
     // For SPECIFIC_STUDENTS, studentIds should be the explicit list
     let studentIds: string[] | null = null;
-    
+
     if (response.distributionType === 'SPECIFIC_STUDENTS') {
       // Only set studentIds for SPECIFIC_STUDENTS
       if (response.studentIds && response.studentIds.length > 0) {
@@ -103,13 +105,14 @@ export class DistributionService {
       }
     }
     // For ALL_STUDENTS, keep studentIds as null (will be resolved dynamically)
-    
+
     return {
       id: response.id ? String(response.id) : `local-${Date.now()}`,
       assignmentId,
       courseId,
       distributionType: response.distributionType,
       studentIds,
+      classId: response.classId,
       createdBy,
       createdAt: response.createdAt || new Date().toISOString(),
       isIndividual: response.isIndividual
@@ -234,11 +237,11 @@ export class DistributionService {
       const status = calculateTaskStatus(
         submission
           ? {
-              id: submission.id,
-              assignmentId: submission.assignmentId,
-              status: submission.status,
-              grade: submission.grade,
-            }
+            id: submission.id,
+            assignmentId: submission.assignmentId,
+            status: submission.status,
+            grade: submission.grade,
+          }
           : null,
         assignment.dueDate,
         personalDeadline !== assignment.dueDate ? personalDeadline : undefined
@@ -492,7 +495,7 @@ export class DistributionService {
           '', // courseId will be fetched from assignment
           'current-teacher'
         );
-        
+
         // Update local state
         this.allocations.update(current => {
           const filtered = current.filter(a => a.assignmentId !== assignmentId);
@@ -516,7 +519,7 @@ export class DistributionService {
         console.error('Error assigning individual task:', err);
         this.error.set('Không thể giao bài tập riêng');
         this.loading.set(false);
-        
+
         // Fallback to local creation
         const allocation = createAllocation(
           assignmentId,
@@ -557,7 +560,7 @@ export class DistributionService {
         });
         // Remove deadline override if exists
         this.deadlineOverrides.update(current =>
-          current.filter(o => 
+          current.filter(o =>
             !(o.assignmentId === assignmentId && o.studentId === studentId)
           )
         );

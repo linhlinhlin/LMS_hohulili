@@ -1,5 +1,6 @@
 package com.example.lms.entity;
 
+import com.example.lms.learning_delivery.domain.model.LearningClass;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -33,6 +34,10 @@ public class AssignmentAllocation {
     @Column(name = "is_individual")
     private Boolean isIndividual = false;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "class_id")
+    private LearningClass learningClass;
+
     @OneToMany(mappedBy = "allocation", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<AssignmentAllocationStudent> allocatedStudents = new HashSet<>();
 
@@ -46,17 +51,19 @@ public class AssignmentAllocation {
 
     public enum DistributionType {
         ALL_STUDENTS,
-        SPECIFIC_STUDENTS
+        SPECIFIC_STUDENTS,
+        CLASS
     }
 
     public AssignmentAllocation() {}
 
-    public AssignmentAllocation(UUID id, Assignment assignment, DistributionType distributionType, User createdBy, Boolean isIndividual, Set<AssignmentAllocationStudent> allocatedStudents, Instant createdAt, Instant updatedAt) {
+    public AssignmentAllocation(UUID id, Assignment assignment, DistributionType distributionType, User createdBy, Boolean isIndividual, LearningClass learningClass, Set<AssignmentAllocationStudent> allocatedStudents, Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.assignment = assignment;
         this.distributionType = distributionType != null ? distributionType : DistributionType.ALL_STUDENTS;
         this.createdBy = createdBy;
         this.isIndividual = isIndividual != null ? isIndividual : false;
+        this.learningClass = learningClass;
         this.allocatedStudents = allocatedStudents != null ? allocatedStudents : new HashSet<>();
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
@@ -73,6 +80,8 @@ public class AssignmentAllocation {
     public void setCreatedBy(User createdBy) { this.createdBy = createdBy; }
     public Boolean getIsIndividual() { return isIndividual; }
     public void setIsIndividual(Boolean isIndividual) { this.isIndividual = isIndividual; }
+    public LearningClass getLearningClass() { return learningClass; }
+    public void setLearningClass(LearningClass learningClass) { this.learningClass = learningClass; }
     public Set<AssignmentAllocationStudent> getAllocatedStudents() { return allocatedStudents; }
     public void setAllocatedStudents(Set<AssignmentAllocationStudent> allocatedStudents) { this.allocatedStudents = allocatedStudents; }
     public Instant getCreatedAt() { return createdAt; }
@@ -108,6 +117,7 @@ public class AssignmentAllocation {
         public AssignmentAllocationBuilder distributionType(DistributionType d) { a.setDistributionType(d); return this; }
         public AssignmentAllocationBuilder createdBy(User u) { a.setCreatedBy(u); return this; }
         public AssignmentAllocationBuilder isIndividual(Boolean i) { a.setIsIndividual(i); return this; }
+        public AssignmentAllocationBuilder learningClass(LearningClass c) { a.setLearningClass(c); return this; }
         public AssignmentAllocationBuilder allocatedStudents(Set<AssignmentAllocationStudent> s) { a.setAllocatedStudents(s); return this; }
         public AssignmentAllocationBuilder createdAt(Instant c) { a.setCreatedAt(c); return this; }
         public AssignmentAllocationBuilder updatedAt(Instant u) { a.setUpdatedAt(u); return this; }

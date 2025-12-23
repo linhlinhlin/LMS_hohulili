@@ -27,7 +27,8 @@ import {
   FileText,
   Video,
   HelpCircle,
-  Code
+  Code,
+  Layout
 } from 'lucide-angular';
 
 // ✅ FIXED: Factory function to setup global state when app initializes
@@ -94,7 +95,8 @@ export const appConfig: ApplicationConfig = {
       FileText,
       Video,
       HelpCircle,
-      Code
+      Code,
+      Layout
     }))
   ]
 };

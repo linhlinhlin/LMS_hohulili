@@ -53,6 +53,11 @@ public interface AssignmentAllocationRepository extends JpaRepository<Assignment
     List<AssignmentAllocation> findAllStudentsAllocationsByCourseId(@Param("courseId") UUID courseId);
 
     /**
+     * Tìm allocations theo class ID
+     */
+    List<AssignmentAllocation> findByLearningClassId(UUID classId);
+
+    /**
      * Xóa allocation theo assignment ID
      */
     void deleteByAssignmentId(UUID assignmentId);

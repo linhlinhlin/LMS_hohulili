@@ -59,13 +59,16 @@ public class Assignment {
     @Column(name = "status")
     @Convert(converter = com.example.lms.entity.converter.AssignmentStatusConverter.class)
     @Builder.Default
-    private AssignmentStatus status = AssignmentStatus.DRAFT;
+    private AssignmentStatus status = AssignmentStatus.PUBLISHED;
     
     @OneToOne(mappedBy = "assignment")
     private LessonAssignment lessonAssignment;
 
     @OneToMany(mappedBy = "assignment", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Submission> submissions;
+
+    @OneToMany(mappedBy = "assignment", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<AssignmentAllocation> allocations;
 
     @OneToMany(mappedBy = "assignment", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<AssignmentAttachment> attachments;
@@ -114,6 +117,20 @@ public class Assignment {
     public void setLessonAssignment(LessonAssignment lessonAssignment) { this.lessonAssignment = lessonAssignment; }
     public List<Submission> getSubmissions() { return submissions; }
     public void setSubmissions(List<Submission> submissions) { this.submissions = submissions; }
+    public List<AssignmentAllocation> getAllocations() { return allocations; }
+    public void setAllocations(List<AssignmentAllocation> allocations) { this.allocations = allocations; }
+    
+    /**
+     * Helper to get the primary allocation for this assignment.
+     * In most cases, an assignment has one main distribution setting.
+     */
+    public AssignmentAllocation getAllocation() {
+        if (allocations == null || allocations.isEmpty()) {
+            return null;
+        }
+        return allocations.get(0);
+    }
+
     public List<AssignmentAttachment> getAttachments() { return attachments; }
     public void setAttachments(List<AssignmentAttachment> attachments) { this.attachments = attachments; }
     public List<AssignmentRubric> getRubrics() { return rubrics; }
@@ -139,6 +156,7 @@ public class Assignment {
         public AssignmentBuilder status(AssignmentStatus s) { a.setStatus(s); return this; }
         public AssignmentBuilder lessonAssignment(LessonAssignment l) { a.setLessonAssignment(l); return this; }
         public AssignmentBuilder submissions(List<Submission> s) { a.setSubmissions(s); return this; }
+        public AssignmentBuilder allocations(List<AssignmentAllocation> a) { this.a.setAllocations(a); return this; }
         public AssignmentBuilder attachments(List<AssignmentAttachment> at) { a.setAttachments(at); return this; }
         public AssignmentBuilder rubrics(List<AssignmentRubric> r) { a.setRubrics(r); return this; }
         public AssignmentBuilder createdAt(Instant c) { a.setCreatedAt(c); return this; }

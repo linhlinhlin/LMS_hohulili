@@ -301,7 +301,10 @@ export class AssignmentEditorComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.assignmentId = this.route.snapshot.paramMap.get('id') || '';
+    // Check current route params first, then parent route params (since this is a child route)
+    this.assignmentId = this.route.snapshot.paramMap.get('id') ||
+      this.route.parent?.snapshot.paramMap.get('id') || '';
+
     if (this.assignmentId) {
       this.loadAssignment();
     } else {
@@ -355,7 +358,7 @@ export class AssignmentEditorComponent implements OnInit {
       description: assignment.description || '',
       instructions: assignment.instructions || '',
       dueDate: dueDate,
-      maxScore: assignment.maxPoints || 100,
+      maxScore: assignment.maxScore || 100,
       status: status
     };
 
@@ -418,7 +421,9 @@ export class AssignmentEditorComponent implements OnInit {
       title: formValue.title || undefined,
       description: formValue.description || undefined,
       instructions: formValue.instructions || undefined,
-      dueDate: dueDateInstant
+      dueDate: dueDateInstant,
+      maxScore: formValue.maxScore || undefined,
+      status: formValue.status || undefined
     };
 
     this.assignmentState.updateAssignment(this.assignmentId, request).subscribe({

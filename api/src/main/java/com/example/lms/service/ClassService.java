@@ -110,14 +110,13 @@ public class ClassService {
     private UUID getLatestCourseVersionId(UUID courseId) {
         Integer maxVersion = courseVersionRepository.findMaxVersionByCourseId(courseId);
         if (maxVersion == null) {
-            // Fallback for development/testing: If no version exists, check if we can create a placeholder or throw reasonable error.
-            // For now, throw invalid state, but we might need to handle 'Draft' courses if they are allowed to have classes?
-            // Assuming classes are only for published content.
-            throw new IllegalStateException("Course has no published versions. Please publish the course before creating a class.");
+            // Fallback for development/testing: If no version exists, allow creating a class with null version.
+            // This enables teachers to create classes for draft courses.
+            return null;
         }
         return courseVersionRepository.findByCourseIdAndVersionNumber(courseId, maxVersion)
-                .orElseThrow(() -> new IllegalStateException("Latest version not found"))
-                .getId();
+                .map(com.example.lms.course_management.domain.model.CourseVersion::getId)
+                .orElse(null);
     }
 
     @Transactional

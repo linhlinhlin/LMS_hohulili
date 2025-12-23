@@ -1,7 +1,7 @@
 import { Component, ChangeDetectionStrategy, ViewEncapsulation, input, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { AssignmentApi } from '../../../api/client/assignment.api';
 import { AssignmentDetail, SubmissionSummary } from '../../../api/client/assignment.api';
 
@@ -28,6 +28,16 @@ import { AssignmentDetail, SubmissionSummary } from '../../../api/client/assignm
             </div>
           </div>
           <div class="flex items-center space-x-3">
+            @if (assignment()?.status === 'DRAFT' || assignment()?.status === 'pending') {
+              <button (click)="publishAssignment()"
+                      class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors">
+                Xuất bản
+              </button>
+            }
+            <button (click)="deleteAssignment()"
+                    class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors">
+              Xóa
+            </button>
             <a [routerLink]="'/teacher/assignments/' + assignmentId() + '/edit'" 
                class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
               Chỉnh sửa
@@ -151,7 +161,7 @@ import { AssignmentDetail, SubmissionSummary } from '../../../api/client/assignm
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   <span *ngIf="submission.grade !== null; else noGrade" class="font-medium">
-                    {{ submission.grade }}/{{ assignment()?.maxPoints || 100 }}
+                    {{ submission.grade }}/{{ assignment()?.maxScore || 100 }}
                   </span>
                   <ng-template #noGrade>-</ng-template>
                 </td>
@@ -199,25 +209,26 @@ import { AssignmentDetail, SubmissionSummary } from '../../../api/client/assignm
 export class AssignmentDetailComponent implements OnInit {
   // Input
   assignmentId = input.required<string>();
-  
+
   // Injected services
   private assignmentApi = inject(AssignmentApi);
-  
+  private router = inject(Router);
+
   // State
   loading = signal(true);
   assignment = signal<AssignmentDetail | null>(null);
   submissions = signal<SubmissionSummary[]>([]);
   filterStatus = signal('');
-  
+
   // Computed
   submissionStats = computed(() => {
     const subs = this.submissions();
     const total = this.assignment()?.totalStudents || 0;
-    
+
     const submitted = subs.filter(s => s.status !== 'pending').length;
     const graded = subs.filter(s => s.status === 'graded').length;
     const pending = total - submitted;
-    
+
     return { submitted, graded, pending, total };
   });
 
@@ -256,6 +267,42 @@ export class AssignmentDetailComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error loading submissions:', error);
+      }
+    });
+  }
+
+  publishAssignment() {
+    if (!confirm('Bạn có chắc chắn muốn xuất bản bài tập này?')) return;
+
+    this.loading.set(true);
+    this.assignmentApi.publishAssignment(this.assignmentId()).subscribe({
+      next: (response) => {
+        if (response.data) {
+          this.assignment.set(response.data);
+          this.loadSubmissions(); // Refresh to ensure everything is in sync
+        }
+      },
+      error: (error) => {
+        console.error('Error publishing assignment:', error);
+      },
+      complete: () => {
+        this.loading.set(false);
+      }
+    });
+  }
+
+  deleteAssignment() {
+    if (!confirm('Bạn có chắc chắn muốn xóa bài tập này? Thao tác này không thể hoàn tác.')) return;
+
+    this.loading.set(true);
+    this.assignmentApi.deleteAssignment(this.assignmentId()).subscribe({
+      next: () => {
+        // Navigate back to management page on success
+        this.router.navigate(['/teacher/assignments']);
+      },
+      error: (error) => {
+        console.error('Error deleting assignment:', error);
+        this.loading.set(false);
       }
     });
   }

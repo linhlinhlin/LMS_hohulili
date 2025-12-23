@@ -1,4 +1,4 @@
-﻿import { Component, inject, signal, computed, effect, ViewEncapsulation, OnDestroy, importProvidersFrom } from '@angular/core';
+import { Component, inject, signal, computed, effect, ViewEncapsulation, OnDestroy, importProvidersFrom } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -54,8 +54,8 @@ import {
             <div class="w-20 h-20 bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center mx-auto mb-6 rounded-2xl shadow-inner">
               <lucide-icon name="layout" [size]="40" class="text-slate-400"></lucide-icon>
             </div>
-            <h3 class="text-xl font-bold text-gray-900 mb-2">Chọn nội dung để chỉnh sửa</h3>
-            <p class="text-gray-500 text-sm mb-6">Chọn một chương, bài học hoặc mục nội dung từ sidebar bên trái để bắt đầu chỉnh sửa</p>
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Chá»n n?i dung �? ch?nh s?a</h3>
+            <p class="text-gray-500 text-sm mb-6">Chá»n m?t ch��ng, b�i h?c ho?c m?c n?i dung t? sidebar b�n tr�i �? b?t �?u ch?nh s?a</p>
             <div class="flex items-center justify-center gap-4 text-xs text-gray-400">
                 <div class="flex items-center gap-1.5">
                     <div class="w-2 h-2 rounded-full bg-blue-500"></div>
@@ -63,15 +63,15 @@ import {
                 </div>
                 <div class="flex items-center gap-1.5">
                     <div class="w-2 h-2 rounded-full bg-amber-500"></div>
-                    <span>Tài liệu</span>
+                    <span>T�i li?u</span>
                 </div>
                 <div class="flex items-center gap-1.5">
                     <div class="w-2 h-2 rounded-full bg-rose-500"></div>
-                    <span>Trắc nghiệm</span>
+                    <span>Tráº¯c nghiá»‡m</span>
                 </div>
                 <div class="flex items-center gap-1.5">
                     <div class="w-2 h-2 rounded-full bg-slate-400"></div>
-                    <span>Văn bản</span>
+                    <span>V�n b?n</span>
                 </div>
             </div>
           </div>
@@ -88,21 +88,21 @@ import {
               </svg>
             </div>
             <div>
-              <h2 class="text-lg font-semibold text-gray-900">Chỉnh sửa chương</h2>
-              <p class="text-sm text-gray-500">Cập nhật thông tin chương</p>
+              <h2 class="text-lg font-semibold text-gray-900">Chá»nh s?a ch��ng</h2>
+              <p class="text-sm text-gray-500">C?p nh?t th�ng tin ch��ng</p>
             </div>
           </div>
           <div class="p-6 space-y-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Tên chương <span class="text-red-500">*</span></label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">T�n ch��ng <span class="text-red-500">*</span></label>
               <input type="text" [(ngModel)]="chapterTitle" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Mô tả</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">M� t?</label>
               <textarea [(ngModel)]="chapterDescription" rows="3" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"></textarea>
             </div>
             <div class="border-t border-gray-200 pt-6">
-              <h3 class="font-medium text-gray-900 mb-4">Bài học ({{ selectedChapterLessons().length }})</h3>
+              <h3 class="font-medium text-gray-900 mb-4">B�i h?c ({{ selectedChapterLessons().length }})</h3>
               @if (selectedChapterLessons().length > 0) {
                 <div class="space-y-2">
                   @for (lesson of selectedChapterLessons(); track lesson.id; let i = $index) {
@@ -116,14 +116,14 @@ import {
                   }
                 </div>
               } @else {
-                <div class="text-center py-8 bg-gray-50 rounded-lg"><p class="text-gray-500 text-sm">Chưa có bài học</p></div>
+                <div class="text-center py-8 bg-gray-50 rounded-lg"><p class="text-gray-500 text-sm">Ch�a c� b�i h?c</p></div>
               }V
             </div>
           </div>
           <div class="px-6 py-4 border-t border-gray-200 flex justify-end flex-shrink-0">
             <button (click)="saveChapter()" [disabled]="isSaving()" class="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2">
               @if (isSaving()) { <span class="animate-spin">?</span> }
-              Lưu thay đổi
+              L�u thay �?i
             </button>
           </div>
         </div>
@@ -133,7 +133,7 @@ import {
       @if (selectedSectionId()) {
         <div class="bg-white shadow-sm border border-gray-200 flex-grow overflow-hidden flex flex-col h-[calc(100vh-200px)]">
           <div class="overflow-y-auto flex-grow h-full custom-scrollbar">
-          <!-- Header với Maritime Theme -->
+          <!-- Header v?i Maritime Theme -->
           <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-white to-slate-50">
              <div class="flex items-center gap-3">
                <!-- Maritime Theme Colors - Indicator Bar -->
@@ -162,9 +162,9 @@ import {
                </div>
                <div>
                  <h2 class="text-lg font-semibold text-gray-900">
-                    {{ newSectionType === 'TEXT' ? 'Văn bản bài giảng' : newSectionType === 'VIDEO' ? 'Video bài giảng' : newSectionType === 'FILE' ? 'Tài liệu kỹ thuật' : 'Đánh giá năng lực' }}
+                    {{ newSectionType === 'TEXT' ? 'V�n b?n b�i gi?ng' : newSectionType === 'VIDEO' ? 'Video b�i gi?ng' : newSectionType === 'FILE' ? 'T�i li?u k? thu?t' : '��nh gi� n�ng l?c' }}
                  </h2>
-                 <p class="text-sm text-gray-500">{{ sectionTitle || 'Chưa có tiêu đề' }}</p>
+                 <p class="text-sm text-gray-500">{{ sectionTitle || 'Ch�a c� ti�u �?' }}</p>
                </div>
              </div>
              <!-- Type Badge -->
@@ -184,20 +184,20 @@ import {
           <div class="p-6 space-y-6">
              <!-- Reuse Form Logic -->
              <div>
-               <label class="block text-sm font-medium text-gray-700 mb-2">Tiêu đề mục <span class="text-red-500">*</span></label>
+               <label class="block text-sm font-medium text-gray-700 mb-2">Ti�u �? m?c <span class="text-red-500">*</span></label>
                <input type="text" [(ngModel)]="sectionTitle" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
              </div>
 
              <div class="flex items-center gap-2">
                 <input type="checkbox" [(ngModel)]="sectionIsRequired" id="reqSec" class="rounded text-blue-600 focus:ring-blue-500 w-4 h-4">
-                <label for="reqSec" class="text-sm text-gray-700 font-medium select-none cursor-pointer">Bắt buộc hoàn thành (Học viên phải xem nội dung này)</label>
+                <label for="reqSec" class="text-sm text-gray-700 font-medium select-none cursor-pointer">Báº¯t buá»™c ho�n th�nh (H?c vi�n ph?i xem n?i dung n�y)</label>
              </div>
 
              @if (newSectionType === 'VIDEO') {
                <div class="space-y-4">
                     <div class="flex items-center justify-between">
                         <label class="block text-sm font-medium text-gray-700">Video URL <span class="text-red-500">*</span></label>
-                        <!-- NÚT - Maritime Theme -->
+                        <!-- N�T - Maritime Theme -->
                         <button type="button" (click)="toggleVideoPreview()" 
                                 class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
                                 [class.bg-blue-100]="isVideoPreviewVisible()"
@@ -206,14 +206,14 @@ import {
                                 [class.text-slate-600]="!isVideoPreviewVisible()"
                                 [class.hover:bg-blue-50]="!isVideoPreviewVisible()">
                             <lucide-icon [name]="isVideoPreviewVisible() ? 'eye-off' : 'eye'" [size]="14"></lucide-icon>
-                            {{ isVideoPreviewVisible() ? 'Ẩn xem trước' : 'Xem trước' }}
+                            {{ isVideoPreviewVisible() ? '?n xem tr�?c' : 'Xem tr�?c' }}
                         </button>
                     </div>
                     <input type="text" [(ngModel)]="sectionVideoUrl" (blur)="updateVideoPreview(sectionVideoUrl)"
                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
                            placeholder="https://youtube.com/watch?v=...">
                     
-                    <!-- VIDEO PREVIEW - Căn giữa + Rounded -->
+                    <!-- VIDEO PREVIEW - C�n gi?a + Rounded -->
                     @if (isVideoPreviewVisible() && safeVideoUrl()) {
                         <div class="flex justify-center">
                             <div class="w-full max-w-2xl aspect-video bg-slate-900 rounded-xl overflow-hidden shadow-lg border border-slate-200">
@@ -226,7 +226,7 @@ import {
 
              @if (newSectionType === 'TEXT') {
                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Nội dung bài giảng</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Ná»™i dung b�i gi?ng</label>
                   <div class="editor-container-wrapper border border-gray-300 rounded-lg bg-white relative shadow-sm" [style.height.px]="editorHeight()">
                       @if (isDataLoaded()) {
                         <ckeditor [editor]="Editor" [(ngModel)]="sectionContent" 
@@ -236,14 +236,14 @@ import {
                       } @else {
                         <div class="flex flex-col items-center justify-center h-full text-gray-400 gap-3">
                           <div class="w-8 h-8 border-2 border-slate-300 border-t-blue-500 rounded-full animate-spin"></div>
-                          <span class="text-sm font-medium">Đang tải trình soạn thảo...</span>
+                          <span class="text-sm font-medium">�ang t?i tr?nh so?n th?o...</span>
                         </div>
                       }
                   </div>
                   <!-- Word Count Footer -->
                   <div class="flex items-center justify-between mt-2 text-xs text-gray-500">
-                      <span>{{ wordCount() }} từ</span>
-                      <span class="text-gray-400">Ctrl+S để lưu nhanh</span>
+                      <span>{{ wordCount() }} t?</span>
+                      <span class="text-gray-400">Ctrl+S �? l�u nhanh</span>
                   </div>
                </div>
              }
@@ -251,10 +251,10 @@ import {
               @if (newSectionType === 'FILE') {
                <div class="space-y-4 p-5 bg-amber-50 rounded-xl border border-amber-200">
                    <div class="flex items-center justify-between">
-                       <label class="block text-xs font-black text-amber-800 uppercase">Tệp đính kèm</label>
+                       <label class="block text-xs font-black text-amber-800 uppercase">T?p ��nh k�m</label>
                        @if (sectionFileUrl()) {
                            <a [href]="sectionFileUrl()" target="_blank" class="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1">
-                               <lucide-icon name="download" [size]="12"></lucide-icon> Tải xuống hiện tại
+                               <lucide-icon name="download" [size]="12"></lucide-icon> T?i xu?ng hi?n t?i
                            </a>
                        }
                    </div>
@@ -269,7 +269,7 @@ import {
                                <div class="w-10 h-10 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-2">
                                    <lucide-icon name="upload-cloud" [size]="20"></lucide-icon>
                                </div>
-                               <p class="text-sm font-bold text-slate-700">Nhấn để tải lên tài liệu</p>
+                               <p class="text-sm font-bold text-slate-700">Nh?n �? t?i l�n t�i li?u</p>
                                <p class="text-xs text-slate-400 mt-1">PDF, Word, Excel, PowerPoint (Max 50MB)</p>
                            </div>
                        } @else {
@@ -291,7 +291,7 @@ import {
                        <div class="flex items-center gap-3 p-3 bg-white border border-amber-100 rounded-lg">
                            <lucide-icon name="check-circle" [size]="16" class="text-green-500"></lucide-icon>
                            <div class="flex-grow min-w-0">
-                               <p class="text-xs font-bold text-slate-700">Đã có tệp đính kèm:</p>
+                               <p class="text-xs font-bold text-slate-700">�? c� t?p ��nh k�m:</p>
                                <a [href]="sectionFileUrl()" target="_blank" class="text-xs text-blue-600 hover:underline truncate block max-w-full">
                                    {{ getFileNameFromUrl(sectionFileUrl()!) }}
                                </a>
@@ -303,7 +303,7 @@ import {
                    @if (safePdfUrl()) {
                       <div class="mt-4">
                          <div class="flex items-center justify-between mb-2">
-                             <label class="text-xs font-bold text-slate-600">Xem trước PDF (SOTA Stream)</label>
+                             <label class="text-xs font-bold text-slate-600">Xem tr�?c PDF (SOTA Stream)</label>
                          </div>
                          <div class="w-full h-[500px] border border-slate-200 rounded-lg overflow-hidden bg-slate-800 shadow-inner">
                              <iframe [src]="safePdfUrl()" class="w-full h-full" frameborder="0"></iframe>
@@ -331,8 +331,8 @@ import {
                                                  [class.text-gray-400]="sectionQuizType !== 'ASSESSMENT'"></lucide-icon>
                                 </div>
                                 <div class="text-left">
-                                    <p class="text-sm font-bold" [class.text-emerald-800]="sectionQuizType === 'ASSESSMENT'" [class.text-gray-700]="sectionQuizType !== 'ASSESSMENT'">Bài đánh giá</p>
-                                    <p class="text-xs text-gray-500">Chỉ cần đạt điểm tối thiểu</p>
+                                    <p class="text-sm font-bold" [class.text-emerald-800]="sectionQuizType === 'ASSESSMENT'" [class.text-gray-700]="sectionQuizType !== 'ASSESSMENT'">B�i ��nh gi�</p>
+                                    <p class="text-xs text-gray-500">Ch? c?n �?t �i?m t?i thi?u</p>
                                 </div>
                             </div>
                         </button>
@@ -350,8 +350,8 @@ import {
                                                  [class.text-gray-400]="sectionQuizType !== 'EXAM'"></lucide-icon>
                                 </div>
                                 <div class="text-left">
-                                    <p class="text-sm font-bold" [class.text-rose-800]="sectionQuizType === 'EXAM'" [class.text-gray-700]="sectionQuizType !== 'EXAM'">Bài kiểm tra</p>
-                                    <p class="text-xs text-gray-500">Giới hạn số lần làm bài</p>
+                                    <p class="text-sm font-bold" [class.text-rose-800]="sectionQuizType === 'EXAM'" [class.text-gray-700]="sectionQuizType !== 'EXAM'">B�i ki?m tra</p>
+                                    <p class="text-xs text-gray-500">Giá»›i háº¡n s? l?n l�m b�i</p>
                                 </div>
                             </div>
                         </button>
@@ -371,7 +371,7 @@ import {
                             <h4 class="text-sm font-black uppercase tracking-wide"
                                 [class.text-emerald-800]="sectionQuizType === 'ASSESSMENT'"
                                 [class.text-rose-800]="sectionQuizType === 'EXAM'">
-                                {{ sectionQuizType === 'ASSESSMENT' ? 'Thiết lập bài đánh giá' : 'Thiết lập bài kiểm tra' }}
+                                {{ sectionQuizType === 'ASSESSMENT' ? 'Thi?t l?p b�i ��nh gi�' : 'Thi?t l?p b�i ki?m tra' }}
                             </h4>
                         </div>
                         
@@ -380,7 +380,7 @@ import {
                             <div class="bg-white rounded-lg p-4 border"
                                  [class.border-emerald-100]="sectionQuizType === 'ASSESSMENT'"
                                  [class.border-rose-100]="sectionQuizType === 'EXAM'">
-                                <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Thời gian (phút)</label>
+                                <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Thá»i gian (ph�t)</label>
                                 <div class="flex items-center gap-2">
                                     <lucide-icon name="clock" [size]="16" 
                                                  [class.text-emerald-400]="sectionQuizType === 'ASSESSMENT'"
@@ -395,7 +395,7 @@ import {
                             <div class="bg-white rounded-lg p-4 border"
                                  [class.border-emerald-100]="sectionQuizType === 'ASSESSMENT'"
                                  [class.border-rose-100]="sectionQuizType === 'EXAM'">
-                                <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Điểm đạt (%)</label>
+                                <label class="block text-xs font-bold text-gray-500 uppercase mb-2">�i?m �?t (%)</label>
                                 <div class="flex items-center gap-2">
                                     <lucide-icon name="target" [size]="16" 
                                                  [class.text-emerald-400]="sectionQuizType === 'ASSESSMENT'"
@@ -409,7 +409,7 @@ import {
                             <!-- Max Attempts - Only for EXAM type -->
                             @if (sectionQuizType === 'EXAM') {
                                 <div class="bg-white rounded-lg p-4 border border-rose-100">
-                                    <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Số lần làm</label>
+                                    <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Sá»‘ láº§n l�m</label>
                                     <div class="flex items-center gap-2">
                                         <lucide-icon name="repeat" [size]="16" class="text-rose-400"></lucide-icon>
                                         <input type="number" [(ngModel)]="sectionQuizMaxAttempts" min="1" max="10"
@@ -428,7 +428,7 @@ import {
                                        [class.focus:ring-emerald-500]="sectionQuizType === 'ASSESSMENT'"
                                        [class.text-rose-600]="sectionQuizType === 'EXAM'"
                                        [class.focus:ring-rose-500]="sectionQuizType === 'EXAM'">
-                                <span>Xáo trộn câu hỏi</span>
+                                <span>X�o tr?n c�u h?i</span>
                             </label>
                             <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
                                 <input type="checkbox" [(ngModel)]="sectionQuizShuffleOptions" class="rounded focus:ring-offset-0"
@@ -436,7 +436,7 @@ import {
                                        [class.focus:ring-emerald-500]="sectionQuizType === 'ASSESSMENT'"
                                        [class.text-rose-600]="sectionQuizType === 'EXAM'"
                                        [class.focus:ring-rose-500]="sectionQuizType === 'EXAM'">
-                                <span>Xáo trộn đáp án</span>
+                                <span>X�o tr?n ��p �n</span>
                             </label>
                             <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
                                 <input type="checkbox" [(ngModel)]="sectionQuizShowResults" class="rounded focus:ring-offset-0"
@@ -444,7 +444,7 @@ import {
                                        [class.focus:ring-emerald-500]="sectionQuizType === 'ASSESSMENT'"
                                        [class.text-rose-600]="sectionQuizType === 'EXAM'"
                                        [class.focus:ring-rose-500]="sectionQuizType === 'EXAM'">
-                                <span>Hiện kết quả ngay</span>
+                                <span>Hi?n k?t qu? ngay</span>
                             </label>
                         </div>
                     </div>
@@ -454,7 +454,7 @@ import {
                         <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
                             <div class="flex items-center gap-2">
                                 <lucide-icon name="list-checks" [size]="18" class="text-gray-600"></lucide-icon>
-                                <h4 class="text-sm font-bold text-gray-800">Câu hỏi đã chọn</h4>
+                                <h4 class="text-sm font-bold text-gray-800">C�u h?i �? ch?n</h4>
                                 <span class="text-xs font-bold px-2 py-0.5 rounded-full"
                                       [class.bg-emerald-100]="sectionQuizType === 'ASSESSMENT'"
                                       [class.text-emerald-700]="sectionQuizType === 'ASSESSMENT'"
@@ -467,7 +467,7 @@ import {
                                 <button (click)="openSectionQuizRandomModal()" 
                                         class="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 hover:border-gray-300 transition-colors">
                                     <lucide-icon name="shuffle" [size]="14"></lucide-icon>
-                                    <span>Ngẫu nhiên</span>
+                                    <span>Ng?u nhi�n</span>
                                 </button>
                                 <button (click)="openSectionQuizBankModal()" 
                                         class="flex items-center gap-1.5 px-3 py-1.5 text-white rounded-lg text-xs font-bold transition-colors"
@@ -476,7 +476,7 @@ import {
                                         [class.bg-rose-600]="sectionQuizType === 'EXAM'"
                                         [class.hover:bg-rose-700]="sectionQuizType === 'EXAM'">
                                     <lucide-icon name="plus" [size]="14"></lucide-icon>
-                                    <span>Chọn từ ngân hàng</span>
+                                    <span>Chá»n t? ng�n h�ng</span>
                                 </button>
                             </div>
                         </div>
@@ -486,8 +486,8 @@ import {
                             @if (sectionQuizSelectedQuestions().length === 0) {
                                 <div class="py-12 text-center">
                                     <lucide-icon name="clipboard-list" [size]="40" class="mx-auto text-gray-300 mb-3"></lucide-icon>
-                                    <p class="text-sm font-medium text-gray-500">Chưa có câu hỏi nào</p>
-                                    <p class="text-xs text-gray-400 mt-1">Chọn từ ngân hàng hoặc tạo ngẫu nhiên</p>
+                                    <p class="text-sm font-medium text-gray-500">Ch�a c� c�u h?i n�o</p>
+                                    <p class="text-xs text-gray-400 mt-1">Chá»n t? ng�n h�ng ho?c t?o ng?u nhi�n</p>
                                 </div>
                             } @else {
                                 <div class="divide-y divide-gray-50">
@@ -510,7 +510,7 @@ import {
                                                           [class.text-yellow-700]="q.difficulty === 'MEDIUM'"
                                                           [class.bg-red-100]="q.difficulty === 'HARD'"
                                                           [class.text-red-700]="q.difficulty === 'HARD'">
-                                                        {{ q.difficulty === 'EASY' ? 'Dễ' : q.difficulty === 'MEDIUM' ? 'TB' : 'Khó' }}
+                                                        {{ q.difficulty === 'EASY' ? 'D?' : q.difficulty === 'MEDIUM' ? 'TB' : 'Kh�' }}
                                                     </span>
                                                 </div>
                                             </div>
@@ -532,20 +532,20 @@ import {
              <button (click)="editingSectionId() && deleteSection(editingSectionId()!)" 
                      class="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
                 <lucide-icon name="trash-2" [size]="16"></lucide-icon>
-                <span class="text-sm font-medium">Xóa mục này</span>
+                <span class="text-sm font-medium">X�a m?c n�y</span>
              </button>
 
              <div class="flex items-center gap-3">
                  <button (click)="clearSectionSelection()" 
                          class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors text-sm font-medium">
-                    Hủy
+                    Há»§y
                  </button>
                  <button (click)="saveSection()" [disabled]="isSaving() || !sectionTitle.trim()" 
                          class="px-5 py-2 bg-slate-900 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 flex items-center gap-2 transition-colors shadow-sm">
                    @if (isSaving()) { 
                      <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                    }
-                   <span class="font-medium">Lưu thay đổi</span>
+                   <span class="font-medium">L�u thay �?i</span>
                  </button>
              </div>
           </div>
@@ -572,7 +572,7 @@ import {
 
           <div class="p-6 space-y-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Tiêu đề <span class="text-red-500">*</span></label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Ti�u �? <span class="text-red-500">*</span></label>
               <input type="text" [(ngModel)]="lessonTitle" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
             </div>
 
@@ -582,7 +582,7 @@ import {
                 <!-- Topic List -->
                 <div class="bg-gray-50 rounded-lg border border-gray-200 p-4">
                   <div class="flex items-center justify-between mb-4">
-                    <h3 class="font-medium text-gray-900">Nội dung bài học ({{ selectedLesson()?.sections?.length || 0 }} sections)</h3>
+                    <h3 class="font-medium text-gray-900">Ná»™i dung b�i h?c ({{ selectedLesson()?.sections?.length || 0 }} sections)</h3>
                     <div class="flex gap-2">
                        <button (click)="openSectionEditor('TEXT')" class="px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-1">
                          <span>+ Text</span>
@@ -596,7 +596,7 @@ import {
                   @if (selectedLesson()?.sections?.length === 0) {
                      <div class="text-center py-8 text-gray-500 text-sm">
                         <lucide-icon name="inbox" [size]="32" class="mx-auto mb-2 text-gray-300"></lucide-icon>
-                        <p>Chưa có nội dung. Hãy thêm bài giảng, video hoặc tài liệu.</p>
+                        <p>Ch�a c� n?i dung. Há»§y th�m b�i gi?ng, video ho?c t�i li?u.</p>
                      </div>
                   } @else {
                      <div class="space-y-2" cdkDropList (cdkDropListDropped)="dropSection($event)">
@@ -649,7 +649,7 @@ import {
                 <button class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-50 hover:bg-blue-50 text-xs font-bold text-slate-600 hover:text-blue-600 transition-colors border border-slate-200 hover:border-blue-200"
                         (click)="openSectionEditor('TEXT'); $event.stopPropagation()">
                     <lucide-icon name="plus" [size]="14"></lucide-icon>
-                    <span>Bài giảng</span>
+                    <span>B�i gi?ng</span>
                 </button>
                 <button class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-50 hover:bg-blue-50 text-xs font-bold text-slate-600 hover:text-blue-600 transition-colors border border-slate-200 hover:border-blue-200"
                         (click)="openSectionEditor('VIDEO'); $event.stopPropagation()">
@@ -659,12 +659,12 @@ import {
                 <button class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-50 hover:bg-amber-50 text-xs font-bold text-slate-600 hover:text-amber-600 transition-colors border border-slate-200 hover:border-amber-200"
                         (click)="openSectionEditor('FILE'); $event.stopPropagation()">
                     <lucide-icon name="file-text" [size]="14"></lucide-icon>
-                    <span>Tài liệu</span>
+                    <span>T�i li?u</span>
                 </button>
                 <button class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-50 hover:bg-rose-50 text-xs font-bold text-slate-600 hover:text-rose-600 transition-colors border border-slate-200 hover:border-rose-200"
                         (click)="openSectionEditor('QUIZ'); $event.stopPropagation()">
                     <lucide-icon name="clipboard-check" [size]="14"></lucide-icon>
-                    <span>Trắc nghiệm</span>
+                    <span>Tráº¯c nghiá»‡m</span>
                 </button>
             </div>
 
@@ -672,21 +672,21 @@ import {
             @if (getLessonType(selectedLesson()) === 'QUIZ') {
               <div class="flex flex-col gap-6 animate-fade-in">
                 
-                <!-- SECTION 1: CÂU HỎI LUẬT THI (SETTINGS) -->
+                <!-- SECTION 1: C�U H?I LU?T THI (SETTINGS) -->
                 <div>
                   <h4 class="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-3 flex items-center gap-2">
                     <svg class="w-4 h-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
-                    Thiết lập chung
+                    Thi?t l?p chung
                   </h4>
                   
                   <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <!-- Time Limit -->
                     <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:border-purple-300 transition-colors group">
                       <div class="flex justify-between items-start mb-2">
-                        <label class="text-xs font-semibold text-gray-500 uppercase">Thời gian làm bài</label>
+                        <label class="text-xs font-semibold text-gray-500 uppercase">Thá»i gian l�m b�i</label>
                         <span class="p-1.5 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-blue-100 transition-colors">
                           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -697,14 +697,14 @@ import {
                         <input type="number" [(ngModel)]="quizTimeLimit" min="1"
                                class="flex-1 text-2xl font-bold text-gray-900 border-none p-0 focus:ring-0 placeholder-gray-300 w-full"
                                placeholder="0">
-                        <span class="text-sm text-gray-500 font-medium">phút</span>
+                        <span class="text-sm text-gray-500 font-medium">ph�t</span>
                       </div>
                     </div>
 
                     <!-- Passing Score -->
                     <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:border-purple-300 transition-colors group">
                       <div class="flex justify-between items-start mb-2">
-                        <label class="text-xs font-semibold text-gray-500 uppercase">Điểm đạt tối thiểu</label>
+                        <label class="text-xs font-semibold text-gray-500 uppercase">�i?m �?t t?i thi?u</label>
                         <span class="p-1.5 bg-green-50 text-green-600 rounded-lg group-hover:bg-green-100 transition-colors">
                           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -722,7 +722,7 @@ import {
                     <!-- Max Attempts -->
                     <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:border-purple-300 transition-colors group">
                       <div class="flex justify-between items-start mb-2">
-                        <label class="text-xs font-semibold text-gray-500 uppercase">Số lần làm lại</label>
+                        <label class="text-xs font-semibold text-gray-500 uppercase">Sá»‘ láº§n l�m l?i</label>
                         <span class="p-1.5 bg-orange-50 text-orange-600 rounded-lg group-hover:bg-orange-100 transition-colors">
                           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -733,44 +733,44 @@ import {
                         <input type="number" [(ngModel)]="quizMaxAttempts" min="1"
                                class="flex-1 text-2xl font-bold text-gray-900 border-none p-0 focus:ring-0 placeholder-gray-300 w-full"
                                placeholder="8">
-                        <span class="text-sm text-gray-500 font-medium">lần</span>
+                        <span class="text-sm text-gray-500 font-medium">l?n</span>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <!-- SECTION 2: QUẢN LÝ CÂU HỎI (QUESTIONS MANAGER) -->
+                <!-- SECTION 2: QU?N L? C�U H?I (QUESTIONS MANAGER) -->
                 <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden flex flex-col h-[500px]">
                   
-                  <!-- TOOLBAR: Header chứa Actions -->
+                  <!-- TOOLBAR: Header ch?a Actions -->
                   <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-white">
                     <div>
                       <h4 class="text-base font-bold text-gray-800 flex items-center gap-2">
-                        Danh sách câu hỏi
+                        Danh s�ch c�u h?i
                         <span class="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full font-medium">
                           {{ quizQuestions().length }}
                         </span>
                       </h4>
-                      <p class="text-xs text-gray-500 mt-0.5">Quản lý các câu hỏi cho bài kiểm tra này</p>
+                      <p class="text-xs text-gray-500 mt-0.5">Qu?n l? c�c c�u h?i cho b�i ki?m tra n�y</p>
                     </div>
 
                     <div class="flex items-center gap-2">
-                      <!-- Nút Random Mới -->
+                      <!-- N�t Random M?i -->
                       <button (click)="openRandomizeModal()" 
                               class="group flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:border-purple-400 hover:text-purple-700 hover:bg-purple-50 transition-all shadow-sm">
                         <svg class="w-4 h-4 text-gray-400 group-hover:text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
                         </svg>
-                        <span>Tạo ngẫu nhiên</span>
+                        <span>T?o ng?u nhi�n</span>
                       </button>
 
-                      <!-- Nút Thêm Thêm Câu Hỏi -->
+                      <!-- N�t Th�m Th�m C�u H?i -->
                       <button (click)="showAddQuestionsModal.set(true)" 
                               class="flex items-center gap-2 px-3 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 shadow-md shadow-purple-200 transition-all active:scale-95">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                         </svg>
-                        <span>Chọn từ ngân hàng</span>
+                        <span>Chá»n t? ng�n h�ng</span>
                       </button>
                     </div>
                   </div>
@@ -781,7 +781,7 @@ import {
                       <div class="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
                         <div class="flex flex-col items-center gap-3">
                           <div class="animate-spin w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full"></div>
-                          <span class="text-sm text-gray-500 font-medium">Đang tải dữ liệu...</span>
+                          <span class="text-sm text-gray-500 font-medium">�ang t?i d? li?u...</span>
                         </div>
                       </div>
                     } 
@@ -794,14 +794,14 @@ import {
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                           </svg>
                         </div>
-                        <h5 class="text-gray-900 font-medium mb-1">Chưa có câu hỏi nào</h5>
-                        <p class="text-gray-500 text-sm max-w-xs mb-6">Bắt đầu bằng cách chọn câu hỏi từ ngân hàng hoặc tạo danh sách ngẫu nhiên.</p>
+                        <h5 class="text-gray-900 font-medium mb-1">Ch�a c� c�u h?i n�o</h5>
+                        <p class="text-gray-500 text-sm max-w-xs mb-6">B?t �?u b?ng c�ch ch?n c�u h?i t? ng�n h�ng ho?c t?o danh s�ch ng?u nhi�n.</p>
                         <div class="flex gap-3">
                            <button (click)="openRandomizeModal()" class="text-purple-600 bg-purple-50 hover:bg-purple-100 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                             Thêm ngẫu nhiên
+                             Th�m ng?u nhi�n
                            </button>
                            <button (click)="showAddQuestionsModal.set(true)" class="text-white bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                             Thêm từ ngân hàng
+                             Th�m t? ng�n h�ng
                            </button>
                         </div>
                       </div>
@@ -831,11 +831,11 @@ import {
                                       [class.bg-red-50]="q.difficulty === 'HARD'" 
                                       [class.text-red-700]="q.difficulty === 'HARD'"
                                       [class.border-red-200]="q.difficulty === 'HARD'">
-                                  {{ q.difficulty === 'EASY' ? 'Dễ' : q.difficulty === 'MEDIUM' ? 'Trung bình' : 'Khó' }}
+                                  {{ q.difficulty === 'EASY' ? 'D?' : q.difficulty === 'MEDIUM' ? 'Trung b?nh' : 'Kh�' }}
                                 </span>
                                 <!-- Type Badge (Optional) -->
                                 <span class="text-[10px] text-gray-400 font-medium bg-gray-50 px-1.5 rounded border border-gray-100">
-                                   TRẮC NGHIỆM
+                                   TR?C NGHI?M
                                 </span>
                               </div>
                               <p class="text-sm text-gray-800 font-medium line-clamp-2 leading-relaxed group-hover:text-purple-900 transition-colors">
@@ -847,7 +847,7 @@ import {
                             <div class="flex items-center self-center opacity-0 group-hover:opacity-100 transition-opacity">
                               <button (click)="removeQuestionFromQuiz(q.id)" 
                                       class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" 
-                                      title="Xóa khỏi bài thi">
+                                      title="X�a kh?i b�i thi">
                                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
@@ -861,12 +861,12 @@ import {
                   
                   <!-- List Footer -->
                   <div class="bg-gray-50 px-4 py-2 border-t border-gray-200 text-xs text-gray-500 flex justify-between items-center">
-                    <span>Tăng thời gian làm bài: {{ quizQuestions().length * 1.5 }} phút (tham khảo)</span>
+                    <span>T�ng th?i gian l�m b�i: {{ quizQuestions().length * 1.5 }} ph�t (tham kh?o)</span>
                     <button (click)="loadQuizQuestions()" class="hover:text-purple-700 flex items-center gap-1">
                       <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                       </svg>
-                      Làm mới danh sách
+                      L�m m?i danh s�ch
                     </button>
                   </div>
                 </div>
@@ -877,19 +877,19 @@ import {
             @if (getLessonType(selectedLesson()) === 'ASSIGNMENT') {
               <div class="space-y-4">
                 <div class="bg-green-50 rounded-lg p-4 border border-green-200">
-                  <h4 class="font-medium text-green-900 mb-3">Thông tin bài tập</h4>
+                  <h4 class="font-medium text-green-900 mb-3">Th�ng tin b�i t?p</h4>
                   <div class="space-y-4">
                     <div>
-                      <label class="block text-sm font-medium text-green-700 mb-1">Mô tả</label>
+                      <label class="block text-sm font-medium text-green-700 mb-1">M� t?</label>
                       <textarea [(ngModel)]="assignmentDescription" rows="3" class="w-full px-3 py-2 border border-green-200 rounded-lg bg-white resize-none"></textarea>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                       <div>
-                        <label class="block text-sm font-medium text-green-700 mb-1">Hạn nộp</label>
+                        <label class="block text-sm font-medium text-green-700 mb-1">H?n n?p</label>
                         <input type="datetime-local" [(ngModel)]="assignmentDueDate" class="w-full px-3 py-2 border border-green-200 rounded-lg bg-white">
                       </div>
                       <div>
-                        <label class="block text-sm font-medium text-green-700 mb-1">Điểm tối đa</label>
+                        <label class="block text-sm font-medium text-green-700 mb-1">�i?m t?i �a</label>
                         <input type="number" [(ngModel)]="assignmentMaxScore" class="w-full px-3 py-2 border border-green-200 rounded-lg bg-white">
                       </div>
                     </div>
@@ -900,10 +900,10 @@ import {
           </div>
 
           <div class="px-6 py-4 border-t border-gray-200 flex justify-between items-center flex-shrink-0">
-            <button (click)="clearSelection()" class="text-gray-600 hover:text-gray-800 text-sm">Quay lại</button>
+            <button (click)="clearSelection()" class="text-gray-600 hover:text-gray-800 text-sm">Quay l?i</button>
             <button (click)="saveLesson()" [disabled]="isSaving()" class="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
               @if (isSaving()) { <span class="animate-spin">?</span> }
-              Lưu thay đổi
+              L�u thay �?i
             </button>
           </div>
         </div>
@@ -916,18 +916,18 @@ import {
     <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
       <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all scale-100">
         <div class="p-5 border-b border-gray-100">
-          <h3 class="text-lg font-bold text-gray-900">Tạo câu hỏi ngẫu nhiên</h3>
-          <p class="text-sm text-gray-500 mt-1">Chọn gói câu hỏi và số lượng cần lấy.</p>
+          <h3 class="text-lg font-bold text-gray-900">T?o c�u h?i ng?u nhi�n</h3>
+          <p class="text-sm text-gray-500 mt-1">Chá»n g�i c�u h?i v� s? l�?ng c?n l?y.</p>
         </div>
         
         <div class="p-5 space-y-4">
           <!-- Select Package -->
           <div>
-             <label class="block text-sm font-medium text-gray-700 mb-1">Nguồn câu hỏi</label>
+             <label class="block text-sm font-medium text-gray-700 mb-1">Ngu?n c�u h?i</label>
              <select [(ngModel)]="selectedPackageId" (change)="onRandomPackageChange()" class="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-purple-500">
-                <option value="">-- Chọn gói câu hỏi --</option>
+                <option value="">-- Chá»n g�i c�u h?i --</option>
                 @for (pkg of quizPackages(); track pkg.id) {
-                  <option [value]="pkg.id">{{ pkg.name }} ({{ pkg.questionCount || 0 }} câu)</option>
+                  <option [value]="pkg.id">{{ pkg.name }} ({{ pkg.questionCount || 0 }} c�u)</option>
                 }
              </select>
           </div>
@@ -935,9 +935,9 @@ import {
           <!-- Quantity -->
           <div [class.opacity-50]="!selectedPackageId" [class.pointer-events-none]="!selectedPackageId">
             <label class="block text-sm font-medium text-gray-700 mb-1">
-              Số lượng câu hỏi 
+              S? l�?ng c�u h?i 
               @if(selectedPackageId) {
-                <span class="text-xs font-normal text-gray-500">(Tối đa: {{ getSelectedPackageCount() }})</span>
+                <span class="text-xs font-normal text-gray-500">(T?i �a: {{ getSelectedPackageCount() }})</span>
               }
             </label>
             <div class="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-purple-500 focus-within:border-purple-500">
@@ -947,23 +947,23 @@ import {
             </div>
           </div>
           
-          <!-- Option n�ng cao (n?u c?n) -->
+          <!-- Option n?ng cao (n?u c?n) -->
           <div class="flex gap-2">
              <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
                 <input type="checkbox" class="rounded text-purple-600 focus:ring-purple-500" [(ngModel)]="randomUnique">
-                <span>Ưu tiên câu hỏi chưa từng sử dụng</span>
+                <span>�u ti�n c�u h?i ch�a t?ng s? d?ng</span>
              </label>
           </div>
         </div>
 
         <div class="p-4 bg-gray-50 flex justify-end gap-3">
           <button (click)="showRandomModal.set(false)" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
-            Hủy bỏ
+            Há»§y b?
           </button>
           <button (click)="generateRandomQuestions()" [disabled]="!selectedPackageId || quizQuestionsLoading()" 
                   class="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
             @if (quizQuestionsLoading()) { <span class="animate-spin text-white">?</span> }
-            Tạo ngay
+            T?o ngay
           </button>
         </div>
       </div>
@@ -975,26 +975,26 @@ import {
       <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" (click)="showAddQuestionsModal.set(false)">
         <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col" (click)="$event.stopPropagation()">
           <div class="p-5 border-b border-gray-200 flex items-center justify-between">
-            <h3 class="text-lg font-semibold text-gray-900">Thêm câu hỏi từ ngân hàng</h3>
+            <h3 class="text-lg font-semibold text-gray-900">Th�m c�u h?i t? ng�n h�ng</h3>
             <button (click)="showAddQuestionsModal.set(false)" class="p-1 text-gray-400 hover:text-gray-600 rounded">?</button>
           </div>
           <div class="p-5 space-y-4 overflow-y-auto flex-1">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Chọn gói câu hỏi</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Chá»n g�i c�u h?i</label>
               <select [(ngModel)]="selectedPackageId" (change)="loadPackageQuestions()" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 bg-white">
-                <option value="">-- Chọn gói câu hỏi --</option>
+                <option value="">-- Chá»n g�i c�u h?i --</option>
                 @for (pkg of quizPackages(); track pkg.id) {
-                  <option [value]="pkg.id">{{ pkg.name }} ({{ pkg.questionCount || 0 }} câu)</option>
+                  <option [value]="pkg.id">{{ pkg.name }} ({{ pkg.questionCount || 0 }} c�u)</option>
                 }
               </select>
             </div>
             @if (packageQuestions().length > 0) {
               <div class="border border-gray-200 rounded-lg overflow-hidden">
                 <div class="px-4 py-3 bg-gray-50 border-b flex items-center justify-between">
-                  <span class="text-sm font-medium">Danh sách câu hỏi</span>
+                  <span class="text-sm font-medium">Danh s�ch c�u h?i</span>
                   <div class="flex items-center gap-2">
-                    <button (click)="selectAllQuestions()" class="text-xs text-blue-600">Chọn tất cả</button>
-                    <button (click)="clearQuestionSelection()" class="text-xs text-gray-600">Bỏ chọn</button>
+                    <button (click)="selectAllQuestions()" class="text-xs text-blue-600">Chá»n t?t c?</button>
+                    <button (click)="clearQuestionSelection()" class="text-xs text-gray-600">B? ch?n</button>
                   </div>
                 </div>
                 <div class="max-h-64 overflow-y-auto p-3 space-y-2">
@@ -1009,9 +1009,9 @@ import {
             }
           </div>
           <div class="p-5 border-t border-gray-200 flex justify-end gap-3">
-            <button (click)="showAddQuestionsModal.set(false)" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">Hủy bỏ</button>
+            <button (click)="showAddQuestionsModal.set(false)" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">Há»§y b?</button>
             <button (click)="addSelectedQuestionsToQuiz()" [disabled]="selectedQuestionIds().size === 0" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50">
-              Thêm {{ selectedQuestionIds().size }} câu hỏi
+              Th�m {{ selectedQuestionIds().size }} c�u h?i
             </button>
           </div>
         </div>
@@ -1023,26 +1023,26 @@ import {
       <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" (click)="showSectionQuizBankModal.set(false)">
         <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col" (click)="$event.stopPropagation()">
           <div class="p-5 border-b border-gray-200 flex items-center justify-between">
-            <h3 class="text-lg font-semibold text-gray-900">Chọn câu hỏi từ ngân hàng</h3>
-            <button (click)="showSectionQuizBankModal.set(false)" class="p-1 text-gray-400 hover:text-gray-600 rounded">✕</button>
+            <h3 class="text-lg font-semibold text-gray-900">Chá»n c�u h?i t? ng�n h�ng</h3>
+            <button (click)="showSectionQuizBankModal.set(false)" class="p-1 text-gray-400 hover:text-gray-600 rounded">?</button>
           </div>
           <div class="p-5 space-y-4 overflow-y-auto flex-1">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Chọn gói câu hỏi</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Chá»n g�i c�u h?i</label>
               <select [(ngModel)]="selectedPackageId" (change)="loadPackageQuestions()" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 bg-white">
-                <option value="">-- Chọn gói câu hỏi --</option>
+                <option value="">-- Chá»n g�i c�u h?i --</option>
                 @for (pkg of quizPackages(); track pkg.id) {
-                  <option [value]="pkg.id">{{ pkg.name }} ({{ pkg.questionCount || 0 }} câu)</option>
+                  <option [value]="pkg.id">{{ pkg.name }} ({{ pkg.questionCount || 0 }} c�u)</option>
                 }
               </select>
             </div>
             @if (packageQuestions().length > 0) {
               <div class="border border-gray-200 rounded-lg overflow-hidden">
                 <div class="px-4 py-3 bg-gray-50 border-b flex items-center justify-between">
-                  <span class="text-sm font-medium">Danh sách câu hỏi</span>
+                  <span class="text-sm font-medium">Danh s�ch c�u h?i</span>
                   <div class="flex items-center gap-2">
-                    <button (click)="selectAllQuestions()" class="text-xs text-rose-600">Chọn tất cả</button>
-                    <button (click)="clearQuestionSelection()" class="text-xs text-gray-600">Bỏ chọn</button>
+                    <button (click)="selectAllQuestions()" class="text-xs text-rose-600">Chá»n t?t c?</button>
+                    <button (click)="clearQuestionSelection()" class="text-xs text-gray-600">B? ch?n</button>
                   </div>
                 </div>
                 <div class="max-h-64 overflow-y-auto p-3 space-y-2">
@@ -1058,7 +1058,7 @@ import {
                               [class.text-yellow-700]="q.difficulty === 'MEDIUM'"
                               [class.bg-red-100]="q.difficulty === 'HARD'"
                               [class.text-red-700]="q.difficulty === 'HARD'">
-                          {{ q.difficulty === 'EASY' ? 'Dễ' : q.difficulty === 'MEDIUM' ? 'TB' : 'Khó' }}
+                          {{ q.difficulty === 'EASY' ? 'D?' : q.difficulty === 'MEDIUM' ? 'TB' : 'Kh�' }}
                         </span>
                       </div>
                     </label>
@@ -1068,9 +1068,9 @@ import {
             }
           </div>
           <div class="p-5 border-t border-gray-200 flex justify-end gap-3">
-            <button (click)="showSectionQuizBankModal.set(false)" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">Hủy</button>
+            <button (click)="showSectionQuizBankModal.set(false)" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">Há»§y</button>
             <button (click)="addSectionQuizQuestionsFromBank()" [disabled]="selectedQuestionIds().size === 0" class="px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700 disabled:opacity-50">
-              Thêm {{ selectedQuestionIds().size }} câu hỏi
+              Th�m {{ selectedQuestionIds().size }} c�u h?i
             </button>
           </div>
         </div>
@@ -1082,21 +1082,21 @@ import {
       <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" (click)="showSectionQuizRandomModal.set(false)">
         <div class="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4" (click)="$event.stopPropagation()">
           <div class="p-5 border-b border-gray-100">
-            <h3 class="text-lg font-bold text-gray-900">Tạo câu hỏi ngẫu nhiên</h3>
-            <p class="text-sm text-gray-500 mt-1">Chọn gói và số lượng câu hỏi</p>
+            <h3 class="text-lg font-bold text-gray-900">T?o c�u h?i ng?u nhi�n</h3>
+            <p class="text-sm text-gray-500 mt-1">Chá»n g�i v� s? l�?ng c�u h?i</p>
           </div>
           <div class="p-5 space-y-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Nguồn câu hỏi</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Ngu?n c�u h?i</label>
               <select [(ngModel)]="selectedPackageId" class="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white">
-                <option value="">-- Chọn gói câu hỏi --</option>
+                <option value="">-- Chá»n g�i c�u h?i --</option>
                 @for (pkg of quizPackages(); track pkg.id) {
-                  <option [value]="pkg.id">{{ pkg.name }} ({{ pkg.questionCount || 0 }} câu)</option>
+                  <option [value]="pkg.id">{{ pkg.name }} ({{ pkg.questionCount || 0 }} c�u)</option>
                 }
               </select>
             </div>
             <div [class.opacity-50]="!selectedPackageId">
-              <label class="block text-sm font-medium text-gray-700 mb-1">Số lượng câu hỏi</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">S? l�?ng c�u h?i</label>
               <div class="flex items-center border border-gray-300 rounded-lg overflow-hidden">
                 <button class="px-3 py-2 bg-gray-50 hover:bg-gray-100 border-r" (click)="decreaseSectionQuizRandomCount()">-</button>
                 <input type="number" [ngModel]="sectionQuizRandomCount()" (ngModelChange)="sectionQuizRandomCount.set($event)" class="w-full text-center border-none focus:ring-0 p-2" min="1">
@@ -1105,9 +1105,9 @@ import {
             </div>
           </div>
           <div class="p-4 bg-gray-50 flex justify-end gap-3 rounded-b-xl">
-            <button (click)="showSectionQuizRandomModal.set(false)" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Hủy</button>
+            <button (click)="showSectionQuizRandomModal.set(false)" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Há»§y</button>
             <button (click)="generateSectionQuizRandomQuestions()" [disabled]="!selectedPackageId" class="px-4 py-2 text-sm font-medium text-white bg-rose-600 rounded-lg hover:bg-rose-700 disabled:opacity-50">
-              Tạo ngay
+              T?o ngay
             </button>
           </div>
         </div>
@@ -1119,18 +1119,18 @@ import {
       <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 overflow-y-auto" (click)="showSectionModal.set(false)">
         <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl mx-4 my-8 flex flex-col max-h-[90vh]" (click)="$event.stopPropagation()">
           <div class="p-5 border-b border-gray-200 flex justify-between items-center">
-            <h3 class="text-lg font-semibold text-gray-900">{{ editingSectionId() ? 'Chỉnh sửa Mục' : 'Thêm Mục Mới' }}</h3>
+            <h3 class="text-lg font-semibold text-gray-900">{{ editingSectionId() ? 'Chá»nh s?a M?c' : 'Th�m M?c M?i' }}</h3>
             <button (click)="showSectionModal.set(false)" class="text-gray-400 hover:text-gray-600">?</button>
           </div>
           <div class="p-6 space-y-4 overflow-y-auto">
              <div>
-               <label class="block text-sm font-medium text-gray-700 mb-2">Tiêu đề mục <span class="text-red-500">*</span></label>
+               <label class="block text-sm font-medium text-gray-700 mb-2">Ti�u �? m?c <span class="text-red-500">*</span></label>
                <input type="text" [(ngModel)]="sectionTitle" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
              </div>
 
              <div class="flex items-center gap-2">
                 <input type="checkbox" [(ngModel)]="sectionIsRequired" id="reqSec" class="rounded text-blue-600 focus:ring-blue-500 w-4 h-4">
-                <label for="reqSec" class="text-sm text-gray-700 font-medium select-none cursor-pointer">Bắt buộc hoàn thành (Học viên phải xem nội dung này)</label>
+                <label for="reqSec" class="text-sm text-gray-700 font-medium select-none cursor-pointer">Báº¯t buá»™c ho�n th�nh (H?c vi�n ph?i xem n?i dung n�y)</label>
              </div>
 
              @if (newSectionType === 'VIDEO') {
@@ -1147,7 +1147,7 @@ import {
 
              @if (newSectionType === 'TEXT') {
                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Nội dung</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Ná»™i dung</label>
                   <div class="editor-container-wrapper border border-gray-300 rounded-lg bg-white relative shadow-sm" [style.height.px]="editorHeight()">
                       <ckeditor [editor]="Editor" [(ngModel)]="sectionContent" 
                                 [config]="editorConfig" (ready)="onEditorReady($event)"
@@ -1155,7 +1155,7 @@ import {
                       </ckeditor>
                       <!-- Word count similar to previous -->
                       <div class="absolute bottom-0 left-0 right-0 h-8 bg-gray-50 border-t border-gray-200 flex items-center justify-between px-4 text-xs text-gray-500 z-10 select-none">
-                         <span class="font-medium">{{ wordCount() }} từ</span>
+                         <span class="font-medium">{{ wordCount() }} t?</span>
                       </div>
                       <div class="absolute bottom-0 right-0 w-6 h-6 cursor-ns-resize flex items-center justify-center hover:bg-gray-200 z-20 rounded-br-lg"
                            (mousedown)="startResize($event)">
@@ -1169,10 +1169,10 @@ import {
              @if (newSectionType === 'FILE') {
                <div class="space-y-4 p-5 bg-amber-50 rounded-xl border border-amber-200">
                    <div class="flex items-center justify-between">
-                       <label class="block text-xs font-black text-amber-800 uppercase">Tệp đính kèm</label>
+                       <label class="block text-xs font-black text-amber-800 uppercase">T?p ��nh k�m</label>
                        @if (sectionFileUrl()) {
                            <a [href]="sectionFileUrl()" target="_blank" class="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1">
-                               <lucide-icon name="download" [size]="12"></lucide-icon> Tải xuống hiện tại
+                               <lucide-icon name="download" [size]="12"></lucide-icon> T?i xu?ng hi?n t?i
                            </a>
                        }
                    </div>
@@ -1187,7 +1187,7 @@ import {
                                <div class="w-10 h-10 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-2">
                                    <lucide-icon name="upload-cloud" [size]="20"></lucide-icon>
                                </div>
-                               <p class="text-sm font-bold text-slate-700">Nhấn để tải lên tài liệu</p>
+                               <p class="text-sm font-bold text-slate-700">Nh?n �? t?i l�n t�i li?u</p>
                                <p class="text-xs text-slate-400 mt-1">PDF, Word, Excel, PowerPoint (Max 50MB)</p>
                            </div>
                        } @else {
@@ -1209,7 +1209,7 @@ import {
                        <div class="flex items-center gap-3 p-3 bg-white border border-amber-100 rounded-lg">
                            <lucide-icon name="check-circle" [size]="16" class="text-green-500"></lucide-icon>
                            <div class="flex-grow min-w-0">
-                               <p class="text-xs font-bold text-slate-700">Đã có tệp đính kèm:</p>
+                               <p class="text-xs font-bold text-slate-700">�? c� t?p ��nh k�m:</p>
                                <a [href]="sectionFileUrl()" target="_blank" class="text-xs text-blue-600 hover:underline truncate block max-w-full">
                                    {{ getFileNameFromUrl(sectionFileUrl()!) }}
                                </a>
@@ -1221,7 +1221,7 @@ import {
                    @if (safePdfUrl()) {
                       <div class="mt-4">
                          <div class="flex items-center justify-between mb-2">
-                             <label class="text-xs font-bold text-slate-600">Xem trước PDF (SOTA Stream)</label>
+                             <label class="text-xs font-bold text-slate-600">Xem tr�?c PDF (SOTA Stream)</label>
                          </div>
                          <div class="w-full h-[500px] border border-slate-200 rounded-lg overflow-hidden bg-slate-800 shadow-inner">
                              <iframe [src]="safePdfUrl()" class="w-full h-full" frameborder="0"></iframe>
@@ -1234,11 +1234,11 @@ import {
              }
           </div>
           <div class="p-5 border-t border-gray-200 flex justify-end gap-3 bg-gray-50">
-            <button (click)="showSectionModal.set(false)" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">Hủy</button>
+            <button (click)="showSectionModal.set(false)" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">Há»§y</button>
             <button (click)="saveSection()" [disabled]="isSaving() || !sectionTitle.trim() || (newSectionType === 'FILE' && !selectedFile && !sectionFileUrl())" 
                     class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2">
               @if (isSaving()) { <span class="animate-spin">?</span> }
-              {{ editingSectionId() ? 'Cập nhật' : 'Tạo mới' }}
+              {{ editingSectionId() ? 'C?p nh?t' : 'T?o m?i' }}
             </button>
           </div>
         </div>
@@ -1266,7 +1266,7 @@ export class CourseCurriculumComponent implements OnDestroy {
 
   public editorConfig = {
     licenseKey: 'GPL',
-    // [QUAN TRỌNG] Phải nạp Plugins vào đây thì Toolbar mới hiện
+    // [QUAN TR?NG] Ph?i n?p Plugins v�o ��y th? Toolbar m?i hi?n
     plugins: [
       Essentials, Paragraph, Heading,
       Bold, Italic, Underline, Strikethrough, Subscript, Superscript, RemoveFormat,
@@ -1276,11 +1276,11 @@ export class CourseCurriculumComponent implements OnDestroy {
       Table, TableToolbar, MediaEmbed,
       SourceEditing, Autoformat,
 
-      // Plugin Upload ảnh Base64 của bạn
+      // Plugin Upload ?nh Base64 c?a b?n
       Base64UploadAdapterPlugin
     ],
 
-    // Cấu hình Toolbar (Thiết lập nút bấm)
+    // C?u h?nh Toolbar (Thi?t l?p n�t b?m)
     toolbar: {
       items: [
         'undo', 'redo', '|',
@@ -1291,13 +1291,13 @@ export class CourseCurriculumComponent implements OnDestroy {
         'link', 'uploadImage', 'insertTable', 'mediaEmbed', 'blockQuote', '|',
         'sourceEditing'
       ],
-      shouldNotGroupWhenFull: true // Tăng nhóm nút nếu màn hình nhỏ
+      shouldNotGroupWhenFull: true // T�ng nh�m n�t n?u m�n h?nh nh?
     },
 
-    // Cấu hình Font (Cài đặt Arial làm mặc định)
+    // C?u h?nh Font (C�i �?t Arial l�m m?c �?nh)
     fontFamily: {
       options: [
-        'default', // Mặc định của theme
+        'default', // M?c �?nh c?a theme
         'Arial, Helvetica, sans-serif',
         'Times New Roman, Times, serif',
         'Courier New, Courier, monospace',
@@ -1306,27 +1306,27 @@ export class CourseCurriculumComponent implements OnDestroy {
       supportAllValues: true
     },
 
-    // Cấu hình ảnh (Thanh cung khi click vào ảnh)
+    // C?u h?nh ?nh (Thanh cung khi click v�o ?nh)
     image: {
       toolbar: [
         'imageTextAlternative', // Alt text
-        'toggleImageCaption',   // Chú thích
+        'toggleImageCaption',   // Ch� th�ch
         '|',
-        'imageStyle:inline',    // Căn dòng
-        'imageStyle:block',     // Xuống dòng
-        'imageStyle:side',      // �?y sang b�n
+        'imageStyle:inline',    // C�n d?ng
+        'imageStyle:block',     // Xu?ng d?ng
+        'imageStyle:side',      // ??y sang b?n
         '|',
-        'resizeImage'           // Kích thước ảnh
+        'resizeImage'           // K�ch th�?c ?nh
       ]
     },
 
-    // Cấu hình Bảng
+    // C?u h?nh B?ng
     table: {
       contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells']
     },
 
     // Placeholder
-    placeholder: 'Nhập nội dung bài học chi tiết tại đây (văn bản, hình ảnh, video)...'
+    placeholder: 'Nh?p n?i dung b�i h?c chi ti?t t?i ��y (v�n b?n, h?nh ?nh, video)...'
   };
 
 
@@ -1338,7 +1338,7 @@ export class CourseCurriculumComponent implements OnDestroy {
 
     const onMouseMove = (e: MouseEvent) => {
       const newHeight = startHeight + (e.clientY - startY);
-      if (newHeight > 200) { // Giới hạn chiều cao tối thiểu
+      if (newHeight > 200) { // Giá»›i háº¡n chi?u cao t?i thi?u
         this.editorHeight.set(newHeight);
       }
     };
@@ -1414,7 +1414,7 @@ export class CourseCurriculumComponent implements OnDestroy {
   randomUnique = false; // [NEW] Fix build error
 
   // Section Quiz Fields (for QUIZ type sections) [NEW]
-  sectionQuizType: 'ASSESSMENT' | 'EXAM' = 'ASSESSMENT'; // Bài đánh giá vs Bài kiểm tra
+  sectionQuizType: 'ASSESSMENT' | 'EXAM' = 'ASSESSMENT'; // B�i ��nh gi� vs B�i ki?m tra
   sectionQuizTimeLimit = 30;
   sectionQuizPassingScore = 60;
   sectionQuizMaxAttempts = 1;
@@ -1466,7 +1466,7 @@ export class CourseCurriculumComponent implements OnDestroy {
     effect(() => {
       const section = this.selectedSection();
       if (section) {
-        // Reset isDataLoaded trước khi load data mới
+        // Reset isDataLoaded tr�?c khi load data m?i
         this.isDataLoaded.set(false);
         
         this.editingSectionId.set(section.id);
@@ -1489,7 +1489,7 @@ export class CourseCurriculumComponent implements OnDestroy {
           }
           this.isDataLoaded.set(true);
         } else if (this.newSectionType === 'TEXT') {
-          // Delay để CKEditor có thời gian khởi tạo
+          // Delay �? CKEditor c� th?i gian kh?i t?o
           setTimeout(() => {
             this.isDataLoaded.set(true);
           }, 100);
@@ -1533,10 +1533,10 @@ export class CourseCurriculumComponent implements OnDestroy {
 
   getLessonTypeLabel(type: string): string {
     switch (type) {
-      case 'LECTURE': return 'Bài giảng';
-      case 'QUIZ': return 'Trắc nghiệm';
-      case 'ASSIGNMENT': return 'Bài tập';
-      default: return 'Bài giảng';
+      case 'LECTURE': return 'B�i gi?ng';
+      case 'QUIZ': return 'Tráº¯c nghiá»‡m';
+      case 'ASSIGNMENT': return 'B�i t?p';
+      default: return 'B�i gi?ng';
     }
   }
   onEditorReady(editor: any) {
@@ -1791,7 +1791,7 @@ toggleVideoPreview() {
   async removeQuestionFromQuiz(questionId: string) {
     const lesson = this.selectedLesson();
     if (!lesson) return;
-    if (!confirm('Bạn chắc chắn muốn xóa câu hỏi này?')) return;
+    if (!confirm('B?n ch?c ch?n mu?n x�a c�u h?i n�y?')) return;
 
     try {
       await firstValueFrom(this.quizApi.removeQuestionFromQuiz(lesson.id, questionId));
@@ -1842,7 +1842,7 @@ toggleVideoPreview() {
       // 1. Get all questions from the selected package
       const questions = await firstValueFrom(this.packageApi.getQuestionsInPackage(this.selectedPackageId));
       if (!questions || questions.length === 0) {
-        alert('Gói câu hỏi này không có dữ liệu!');
+        alert('G�i c�u h?i n�y kh�ng c� d? li?u!');
         return;
       }
 
@@ -1867,7 +1867,7 @@ toggleVideoPreview() {
       this.selectedPackageId = ''; // Reset
     } catch (error) {
       console.error('Error generating random questions:', error);
-      alert('Lỗi xảy ra khi tạo câu hỏi ngẫu nhiên.');
+      alert('L?i x?y ra khi t?o c�u h?i ng?u nhi�n.');
     } finally {
       this.quizQuestionsLoading.set(false);
     }
@@ -1987,7 +1987,7 @@ toggleVideoPreview() {
         formData.append('quizType', this.sectionQuizType);
         formData.append('quizTimeLimit', String(this.sectionQuizTimeLimit));
         formData.append('quizPassingScore', String(this.sectionQuizPassingScore));
-        // Chỉ gửi maxAttempts nếu là EXAM, ASSESSMENT không giới hạn
+        // Ch? g?i maxAttempts n?u l� EXAM, ASSESSMENT kh�ng gi?i h?n
         formData.append('quizMaxAttempts', this.sectionQuizType === 'EXAM' ? String(this.sectionQuizMaxAttempts) : '999');
         formData.append('quizShuffleQuestions', String(this.sectionQuizShuffleQuestions));
         formData.append('quizShuffleOptions', String(this.sectionQuizShuffleOptions));
@@ -2019,14 +2019,14 @@ toggleVideoPreview() {
       this.showSectionModal.set(false);
     } catch (e: any) {
       console.error('Error saving section:', e);
-      alert('Lỗi khi lưu Mục: ' + (e?.error?.message || e.message));
+      alert('L?i khi l�u M?c: ' + (e?.error?.message || e.message));
     } finally {
       this.isSaving.set(false);
     }
   }
 
   async deleteSection(sectionId: string) {
-    if (!confirm('Bạn chắc chắn muốn xóa Mục này?')) return;
+    if (!confirm('B?n ch?c ch?n mu?n x�a M?c n�y?')) return;
     this.isSaving.set(true);
     try {
       await firstValueFrom(this.sectionApi.deleteSection(sectionId));
@@ -2054,12 +2054,12 @@ toggleVideoPreview() {
 
   // [NEW] Extract filename from URL for display
   getFileNameFromUrl(url: string): string {
-    if (!url) return 'Tệp đính kèm';
+    if (!url) return 'T?p ��nh k�m';
     try {
       const urlObj = new URL(url);
       const pathname = urlObj.pathname;
       const fileName = pathname.substring(pathname.lastIndexOf('/') + 1);
-      return decodeURIComponent(fileName) || 'Tệp đính kèm';
+      return decodeURIComponent(fileName) || 'T?p ��nh k�m';
     } catch {
       // If URL parsing fails, try simple approach
       const lastSlash = url.lastIndexOf('/');
@@ -2157,7 +2157,7 @@ toggleVideoPreview() {
     try {
       const questions = await firstValueFrom(this.packageApi.getQuestionsInPackage(this.selectedPackageId));
       if (!questions || questions.length === 0) {
-        alert('Gói câu hỏi này không có dữ liệu!');
+        alert('G�i c�u h?i n�y kh�ng c� d? li?u!');
         return;
       }
 
@@ -2173,7 +2173,7 @@ toggleVideoPreview() {
       this.showSectionQuizRandomModal.set(false);
     } catch (error) {
       console.error('Error generating random questions:', error);
-      alert('Lỗi khi tạo câu hỏi ngẫu nhiên.');
+      alert('Lá»—i khi táº¡o c�u h?i ng?u nhi�n.');
     }
   }
 

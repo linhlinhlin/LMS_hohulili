@@ -126,7 +126,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                path.startsWith("/actuator") ||
                path.startsWith("/api/v1/auth") ||
                path.startsWith("/api/auth") ||
-               path.equals("/api/v1/ai/health") ||  // AI health check public
+               path.startsWith("/api/v1/auth") ||
+               path.equals("/api/v1/ai/health") ||
+               path.equals("/api/v1/ai/health") ||
                path.equals("/api/v1/ai/ping");      // AI ping public
     }
 }

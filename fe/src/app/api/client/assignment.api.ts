@@ -5,6 +5,8 @@ import { ApiResponse } from '../types/common.types';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
+export type AssignmentStatus = 'DRAFT' | 'PUBLISHED' | 'CLOSED' | 'pending' | 'published' | 'closed';
+
 export interface CreateAssignmentRequest {
   title: string;
   description?: string;
@@ -16,6 +18,9 @@ export interface CreateAssignmentRequest {
     fileName: string;
     fileUrl: string;
   }[];
+  classId?: string;
+  status?: AssignmentStatus;
+  assignmentConfig?: Record<string, any>;
 }
 
 export interface UpdateAssignmentRequest {
@@ -23,6 +28,10 @@ export interface UpdateAssignmentRequest {
   description?: string;
   instructions?: string;
   dueDate?: string;
+  maxScore?: number;
+  classId?: string;
+  status?: AssignmentStatus;
+  assignmentConfig?: Record<string, any>;
 }
 
 export interface AssignmentSummary {
@@ -32,7 +41,7 @@ export interface AssignmentSummary {
   dueDate?: string;
   courseId: string;
   courseTitle: string;
-  status: 'pending' | 'published' | 'closed';
+  status: AssignmentStatus;
   submissionsCount: number;
   totalStudents: number;
   createdAt: string;
@@ -47,12 +56,15 @@ export interface AssignmentDetail {
   dueDate?: string;
   courseId: string;
   courseTitle: string;
-  status: 'pending' | 'published' | 'closed';
+  status: AssignmentStatus;
   submissionsCount: number;
   totalStudents: number;
+  classId?: string;
+  className?: string;
   createdAt: string;
   updatedAt?: string;
-  maxPoints?: number;
+  maxScore?: number;
+  assignmentConfig?: Record<string, any>;
   attachments?: {
     fileId: string;
     fileName: string;
@@ -162,6 +174,11 @@ export class AssignmentApi {
   // Delete assignment
   deleteAssignment(assignmentId: string) {
     return this.api.deleteWithResponse<string>(`/api/v1/assignments/${assignmentId}`);
+  }
+
+  // Publish assignment
+  publishAssignment(assignmentId: string) {
+    return this.api.putWithResponse<AssignmentDetail>(`/api/v1/assignments/${assignmentId}/publish`, {});
   }
 
   // Get submissions by assignment

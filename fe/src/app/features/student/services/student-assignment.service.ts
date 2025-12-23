@@ -21,25 +21,25 @@ export interface StudentAssignment {
   courseId: string;
   courseTitle: string;
   instructorName?: string;
-  
+
   // Deadline
   dueDate: string;           // ISO date string
   personalDeadline?: string; // Deadline riêng nếu được gia hạn
-  
+
   // Status
   status: StudentTaskStatus;
   isOverdue: boolean;
   daysUntilDue: number;
-  
+
   // Submission
   submissionId?: string;
   submittedAt?: string;
-  
+
   // Grading
   grade?: number;
   maxScore: number;
   feedback?: string;
-  
+
   // Flags
   isIndividual: boolean;     // Bài tập giao riêng
 }
@@ -70,7 +70,7 @@ export class StudentAssignmentService {
     if (courseId) {
       return this.getAssignmentsForCourse(studentId, courseId);
     }
-    
+
     // Nếu không có courseId, lấy từ tất cả khóa học đã enroll
     return this.getAssignmentsFromAllCourses(studentId);
   }
@@ -82,11 +82,11 @@ export class StudentAssignmentService {
     return this.allocationApi.getStudentAllocatedAssignments(studentId, courseId).pipe(
       switchMap(response => {
         const assignmentIds = response.data || [];
-        
+
         if (assignmentIds.length === 0) {
           return of([]);
         }
-        
+
         // Lấy chi tiết từng assignment
         return this.fetchAssignmentDetails(assignmentIds, studentId);
       }),
@@ -105,18 +105,18 @@ export class StudentAssignmentService {
     return this.courseApi.enrolledCourses().pipe(
       switchMap((response: { data: any[] }) => {
         const courses = response.data || [];
-        
+
         if (courses.length === 0) {
           return of([]);
         }
-        
+
         // Lấy assignments từ mỗi course
-        const courseAssignments$ = courses.map((course: any) => 
+        const courseAssignments$ = courses.map((course: any) =>
           this.getAssignmentsForCourse(studentId, course.id).pipe(
             catchError(() => of([]))
           )
         );
-        
+
         return forkJoin(courseAssignments$).pipe(
           map((results: StudentAssignment[][]) => results.flat())
         );
@@ -132,7 +132,7 @@ export class StudentAssignmentService {
    * Lấy chi tiết từng assignment và submission
    */
   private fetchAssignmentDetails(assignmentIds: string[], studentId: string): Observable<StudentAssignment[]> {
-    const detailRequests$ = assignmentIds.map(assignmentId => 
+    const detailRequests$ = assignmentIds.map(assignmentId =>
       forkJoin({
         assignment: this.assignmentApi.getAssignmentById(assignmentId).pipe(
           map(res => res.data),
@@ -148,7 +148,7 @@ export class StudentAssignmentService {
         )
       })
     );
-    
+
     return forkJoin(detailRequests$).pipe(
       map(results => results
         .filter(r => r.assignment !== null)
@@ -173,11 +173,11 @@ export class StudentAssignmentService {
   ): StudentAssignment {
     const now = new Date();
     const dueDate = assignment.dueDate ? new Date(assignment.dueDate) : null;
-    
+
     // Tìm personal deadline nếu có
     let personalDeadline: string | undefined;
     let isIndividual = false;
-    
+
     if (allocation?.allocatedStudents) {
       const studentAllocation = allocation.allocatedStudents.find(
         s => s.studentId === studentId
@@ -186,23 +186,23 @@ export class StudentAssignmentService {
         personalDeadline = studentAllocation.customDeadline;
       }
     }
-    
+
     if (allocation?.isIndividual) {
       isIndividual = true;
     }
-    
+
     // Tính deadline thực tế (ưu tiên personal deadline)
     const effectiveDeadline = personalDeadline ? new Date(personalDeadline) : dueDate;
-    
+
     // Tính số ngày còn lại
-    const daysUntilDue = effectiveDeadline 
+    const daysUntilDue = effectiveDeadline
       ? Math.ceil((effectiveDeadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
       : 999;
-    
+
     // Xác định trạng thái
     const status = this.determineStatus(submission, effectiveDeadline, now);
     const isOverdue = status === 'OVERDUE';
-    
+
     // Lấy điểm từ submission
     let grade: number | undefined;
     if (submission?.grade) {
@@ -212,7 +212,7 @@ export class StudentAssignmentService {
         grade = submission.grade.score;
       }
     }
-    
+
     return {
       assignmentId: assignment.id,
       assignmentTitle: assignment.title,
@@ -227,7 +227,7 @@ export class StudentAssignmentService {
       submissionId: submission?.id,
       submittedAt: submission?.submittedAt,
       grade,
-      maxScore: assignment.maxPoints || 100,
+      maxScore: assignment.maxScore || 100,
       feedback: submission?.feedback,
       isIndividual
     };
@@ -245,22 +245,22 @@ export class StudentAssignmentService {
     if (submission?.status === 'graded' || submission?.gradedAt) {
       return 'GRADED';
     }
-    
+
     // Đã nộp
     if (submission?.status === 'submitted' || submission?.submittedAt) {
       return 'SUBMITTED';
     }
-    
+
     // Quá hạn chưa nộp
     if (deadline && now > deadline) {
       return 'OVERDUE';
     }
-    
+
     // Đang làm (có draft hoặc đã truy cập)
     if (submission?.content || submission?.attachments?.length) {
       return 'IN_PROGRESS';
     }
-    
+
     // Chưa bắt đầu
     return 'NOT_STARTED';
   }
