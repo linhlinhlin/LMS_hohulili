@@ -3,9 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { CourseApi } from '../../../api/client/course.api';
 import { CourseContentChapter, LessonSummary } from '../../../api/types/course.types';
-import { QuizApi } from '../../../api/endpoints/quiz.api';
 import { PaymentService, PaymentStatusResponse } from '../services/payment.service';
-import { catchError, of } from 'rxjs';
 
 interface CourseDetail {
   id: string;
@@ -59,7 +57,6 @@ export class CourseDetailComponent implements OnInit {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private courseApi = inject(CourseApi);
-  private quizApi = inject(QuizApi);
   private paymentService = inject(PaymentService);
 
   // Số bài học miễn phí
@@ -173,12 +170,8 @@ export class CourseDetailComponent implements OnInit {
 
         this.sections.set(mappedSections);
 
-        // Check for quizzes for each lesson
-        mappedSections.forEach(section => {
-          section.lessons.forEach(lesson => {
-            this.checkLessonQuiz(lesson.id);
-          });
-        });
+        // hasQuiz is already set from sections data (line 160)
+        // No need to call additional API to verify - this was causing 404 errors
 
         // Expand first section by default
         if (mappedSections.length > 0) {
@@ -274,34 +267,8 @@ export class CourseDetailComponent implements OnInit {
     return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
   }
 
-  checkLessonQuiz(lessonId: string): void {
-    this.quizApi.getQuizByLessonId(lessonId)
-      .pipe(
-        catchError((error) => {
-          console.log(`No quiz found for lesson ${lessonId}`, error);
-          return of(null);
-        })
-      )
-      .subscribe(response => {
-        console.log(`Quiz check for lesson ${lessonId}:`, response);
-
-        // Check if quiz exists
-        if (response && response.id) {
-          console.log(`✅ Quiz found for lesson ${lessonId}`, response);
-          // Update the lesson to mark it has a quiz
-          this.sections.update(sections => {
-            return sections.map(section => ({
-              ...section,
-              lessons: section.lessons.map(lesson =>
-                lesson.id === lessonId ? { ...lesson, hasQuiz: true } : lesson
-              )
-            }));
-          });
-        } else {
-          console.log(`❌ No quiz for lesson ${lessonId}`);
-        }
-      });
-  }
+  // Note: checkLessonQuiz removed - hasQuiz is set from sections mapping
+  // No additional API verification needed
 
   goToQuiz(lessonId: string, lessonTitle: string): void {
     // Navigate to quiz attempt with lesson ID

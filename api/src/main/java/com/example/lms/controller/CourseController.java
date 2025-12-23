@@ -193,22 +193,23 @@ public class CourseController {
 
     @GetMapping("/{courseId}")
     @Operation(summary = "Lấy thông tin chi tiết khóa học", description = "Lấy thông tin chi tiết của khóa học. Teacher có thể xem khóa học của mình dù chưa được duyệt.")
-    public ResponseEntity<ApiResponse<CourseDetail>> getCourseById(
+    public ResponseEntity<ApiResponse<com.example.lms.dto.CourseDetailDTO>> getCourseById(
             @PathVariable UUID courseId,
             @AuthenticationPrincipal User currentUser) {
         try {
-            Course course = courseService.getCourseById(courseId);
+            // SOTA: Use DTO Projection - no lazy loading issues
+            com.example.lms.dto.CourseDetailDTO courseDetail = courseService.getCourseDetailById(courseId);
             
+            // Check access permissions using DTO fields (no entity lazy loading)
             boolean isTeacherOfCourse = currentUser != null && 
-                                       course.getTeacher() != null && 
-                                       course.getTeacher().getId().equals(currentUser.getId());
+                                       courseDetail.getTeacherId() != null && 
+                                       courseDetail.getTeacherId().equals(currentUser.getId());
             
-            if (!isTeacherOfCourse && course.getStatus() != Course.CourseStatus.APPROVED) {
+            if (!isTeacherOfCourse && !"APPROVED".equals(courseDetail.getStatus())) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(ApiResponse.error("Khóa học đang được kiểm duyệt hoặc chưa được công khai"));
             }
             
-            CourseDetail courseDetail = convertToCourseDetail(course);
             return ResponseEntity.ok(ApiResponse.success(courseDetail));
         } catch (RuntimeException e) {
             String msg = e.getMessage() != null ? e.getMessage() : "Không tìm thấy khóa học";
