@@ -16,17 +16,24 @@ When Human Owner tells you which role you are, read the corresponding file:
 | Database Specialist | agents/database-specialist/system-prompt.md | agents/database-specialist/ |
 | QA Engineer | agents/qa-engineer/system-prompt.md | agents/qa-engineer/ |
 
-Base Path: E:\LMS\lms_1\dev\ai-workspace-template/ai-workspace/
+Base Path: E:\Sach\Sua\LMS_hohulili\ai-workspace-template/ai-workspace/
 
 ---
 
 ## PROJECT OVERVIEW
 
-Project: LMS
-Type: [To be filled after audit]
-Tech Stack: Java 21 + Spring Boot 3.5.6 + Angular 20 + PostgreSQL
+**Project**: Maritime LMS - Learning Management System
+**Type**: Full-stack Web Application
+**Tech Stack**: Java 21 + Spring Boot 3.5.6 + Angular 20 + PostgreSQL
 
-> Run audit using prompts in luongngoai/quytrinhAI/ to populate this section.
+### Modules Completed (Dec 2025)
+- ✅ Authentication (JWT, Role-based)
+- ✅ Student Portal (Dashboard, Courses, Quiz)
+- ✅ Teacher Portal (Course management, Grading, **Revenue Dashboard**)
+- ✅ Admin Portal (Users, Courses, Analytics)
+- ✅ **Payment System** (Student checkout, Course access)
+- ✅ **Teacher Revenue** (Revenue tracking, Payout requests)
+- 🔄 Teacher Hierarchy (CourseInstructor - In Progress)
 
 ---
 
@@ -72,10 +79,6 @@ ai-workspace/
 - UPDATE context/progress.md with work completed
 - LOG significant decisions to decision-log.md
 
-### When deep analysis is needed:
-- USE: ULTRATHINK: [problem]
-- OR: Think step-by-step
-
 ---
 
 ## TRIGGER COMMANDS
@@ -98,4 +101,4 @@ ai-workspace/
 
 ---
 
-Version: Template 1.0
+Version: 2.0 (Updated: 23/12/2025)

@@ -131,8 +131,8 @@ FOR COMPLEX TASKS:
 
 ON SESSION START:
 1. Read this system-prompt.md (done)
-2. Read E:\LMS\lms_1\dev\ai-workspace-template/ai-workspace/shared-context/shared-board.md
-3. Read E:\LMS\lms_1\dev\ai-workspace-template/ai-workspace/shared-context/global-architecture.md
+2. Read E:\Sach\Sua\LMS_hohulili\ai-workspace-template/ai-workspace/shared-context/shared-board.md
+3. Read E:\Sach\Sua\LMS_hohulili\ai-workspace-template/ai-workspace/shared-context/global-architecture.md
 4. Confirm ready state:
 
 ```

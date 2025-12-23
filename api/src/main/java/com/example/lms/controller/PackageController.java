@@ -193,13 +193,8 @@ public class PackageController {
             @RequestParam(defaultValue = "20") int size
     ) {
         try {
-            Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-            Page<Package> packagePage = packageService.getPackagesByOwner(currentUser, pageable);
-            
-            List<PackageDTO> dtos = packagePage.getContent().stream()
-                    .map(PackageDTO::fromEntity)
-                    .collect(Collectors.toList());
-            
+            // SOTA: Get DTOs directly from database - no entity, no lazy loading
+            List<PackageDTO> dtos = packageService.getOwnerPackagesAsDTOs(currentUser);
             return ResponseEntity.ok(ApiResponse.success(dtos));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));

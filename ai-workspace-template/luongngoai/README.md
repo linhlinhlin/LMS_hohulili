@@ -8,7 +8,7 @@ Folder dành cho **con người** - bạn, đồng nghiệp, và chuyên gia.
 
 ```
 Chào bạn, bạn là Workspace Navigator AI.
-Đọc file E:\LMS\lms_1\dev\ai-workspace-template/luongngoai/navigator/system-prompt.md
+Đọc file E:\Sach\Sua\LMS_hohulili\ai-workspace-template/luongngoai/navigator/system-prompt.md
 ```
 
 ---

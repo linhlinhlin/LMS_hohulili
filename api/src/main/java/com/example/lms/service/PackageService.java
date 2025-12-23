@@ -84,7 +84,8 @@ public class PackageService {
     }
 
     public Page<Package> getAccessiblePackages(User user, Pageable pageable) {
-        return packageRepository.findAccessiblePackages(user, pageable);
+        // SOTA: Use JOIN FETCH to avoid LazyInitializationException on owner
+        return packageRepository.findAccessiblePackagesWithOwner(user, pageable);
     }
 
     /**
@@ -95,7 +96,8 @@ public class PackageService {
     }
 
     public Page<Package> getPackagesByOwner(User owner, Pageable pageable) {
-        return packageRepository.findByOwner(owner, pageable);
+        // SOTA: Use JOIN FETCH to avoid LazyInitializationException on owner
+        return packageRepository.findByOwnerWithOwner(owner, pageable);
     }
 
     /**
@@ -110,6 +112,14 @@ public class PackageService {
      */
     public List<Object[]> getAccessiblePackagesWithCount(User user) {
         return packageRepository.findAccessiblePackagesWithQuestionCount(user);
+    }
+
+    /**
+     * SOTA: Get owner's packages as DTOs directly from database.
+     * No entity access, no lazy loading issues.
+     */
+    public java.util.List<com.example.lms.dto.PackageDTO> getOwnerPackagesAsDTOs(User user) {
+        return packageRepository.findPackageDTOsByOwner(user);
     }
 
     /**
@@ -252,10 +262,12 @@ public class PackageService {
 
     /**
      * Get questions in a package
+     * SOTA: Uses JOIN FETCH to eagerly load options and createdBy
      */
     public List<Question> getQuestionsInPackage(UUID packageId, User user) {
         Package packageEntity = getPackageByIdWithAccessCheck(packageId, user);
-        return questionRepository.findByPackageEntity(packageEntity);
+        // Use query with JOIN FETCH to avoid LazyInitializationException
+        return questionRepository.findByPackageWithOptionsAndCreatedBy(packageEntity);
     }
 
     /**

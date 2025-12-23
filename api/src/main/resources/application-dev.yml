@@ -3,30 +3,45 @@ spring:
     activate:
       on-profile: dev
   datasource:
-    # DB online
-    url: jdbc:postgresql://aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres
+    # ===============================================
+    # SUPABASE Pooler - Production/Cloud
+    # ===============================================
+    url: jdbc:postgresql://aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres?prepareThreshold=0
     username: postgres.rljldvpboqapokzecfff
     password: ho_hu_li_li_
     driver-class-name: org.postgresql.Driver
 
-    # DB local: 
+    # ===============================================
+    # LOCAL PostgreSQL - Development (fallback)
+    # ===============================================
+    # Install: https://www.postgresql.org/download/
+    # Or Docker: docker run --name lms-postgres -e POSTGRES_DB=lms -e POSTGRES_USER=lms -e POSTGRES_PASSWORD=lms -p 5432:5432 -d postgres:15
     # url: jdbc:postgresql://localhost:5432/lms
     # username: lms
     # password: lms
 
+    # SOTA HikariCP Configuration for Cloud PostgreSQL (Google/AWS patterns)
     hikari:
-      maximum-pool-size: 2
-      minimum-idle: 1
-      connection-timeout: 20000
-      idle-timeout: 300000
+      maximum-pool-size: 5
+      minimum-idle: 2
+      connection-timeout: 30000        # 30s - increased for network latency
+      idle-timeout: 600000             # 10 minutes
+      max-lifetime: 1800000            # 30 minutes - Supabase recommendation
+      keepalive-time: 30000            # 30s keepalive to prevent connection reset
+      validation-timeout: 5000         # 5s validation
+      connection-test-query: SELECT 1  # Validate connections before use
+      leak-detection-threshold: 60000  # Detect connection leaks
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: update    # Keep 'update' for dev - database may need schema changes
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
-    open-in-view: true
+        jdbc:
+          batch_size: 25
+          fetch_size: 50
+    open-in-view: false     # SOTA: Disable OSIV for better performance
   flyway:
     enabled: false
     baseline-on-migrate: true
@@ -39,4 +54,3 @@ logging:
 
 server:
   port: 8088
-

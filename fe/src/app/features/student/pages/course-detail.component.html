@@ -174,6 +174,47 @@
           }
         </div>
       </section>
+
+      <!-- Payment Status Card -->
+      @if (!hasPaid()) {
+      <section class="payment-notice-card">
+        <div class="payment-notice-header">
+          <svg class="payment-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
+            </path>
+          </svg>
+          <h3 class="payment-notice-title">Nâng cấp để truy cập đầy đủ</h3>
+        </div>
+        <p class="payment-notice-text">
+          Bạn đang xem bản dùng thử. Chỉ <strong>{{ FREE_LESSONS_COUNT }} bài đầu tiên</strong> được mở miễn phí.
+          Thanh toán để truy cập tất cả {{ totalLessons() }} bài học.
+        </p>
+        <div class="payment-notice-price">
+          <span class="price-label">Giá khóa học:</span>
+          <span class="price-value">{{ formatPrice(course()?.price || 0) }}</span>
+        </div>
+        <button (click)="goToCheckout()" class="btn-payment">
+          <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z">
+            </path>
+          </svg>
+          Thanh toán ngay
+        </button>
+      </section>
+      } @else {
+      <section class="payment-success-card">
+        <div class="payment-success-header">
+          <svg class="payment-success-icon" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+              clip-rule="evenodd"></path>
+          </svg>
+          <span class="payment-success-text">Đã thanh toán - Truy cập đầy đủ</span>
+        </div>
+      </section>
+      }
     </div>
 
     <!-- Right Column: Course Content -->
@@ -203,10 +244,19 @@
             @if (isSectionExpanded(section.id)) {
             <div class="lessons-list">
               @for (lesson of section.lessons; track lesson.id; let lessonIndex = $index) {
-              <div class="lesson-item-wrapper">
-                <button (click)="goToLesson(lesson.id)" class="lesson-item" [class.completed]="lesson.isCompleted">
+              @let globalIndex = getLessonGlobalIndex(sectionIndex, lessonIndex);
+              @let isLocked = !canAccessLesson(globalIndex);
+              <div class="lesson-item-wrapper" [class.locked]="isLocked">
+                <button (click)="isLocked ? goToCheckout() : goToLesson(lesson.id)" class="lesson-item"
+                  [class.completed]="lesson.isCompleted" [class.locked]="isLocked">
                   <div class="lesson-status">
-                    @if (lesson.isCompleted) {
+                    @if (isLocked) {
+                    <svg class="status-icon locked-icon" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd"
+                        d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
+                        clip-rule="evenodd"></path>
+                    </svg>
+                    } @else if (lesson.isCompleted) {
                     <svg class="status-icon completed" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd"
                         d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
@@ -219,12 +269,17 @@
                   <div class="lesson-content">
                     <span class="lesson-title">{{ lesson.title }}</span>
                     <div class="lesson-meta">
-                      @if (lesson.sections && lesson.sections.length > 0) {
-                      <span class="lesson-sections-count">{{ lesson.sections.length }} phần</span>
-                      }
-                      @if (lesson.durationMinutes) {
-                      <span class="lesson-duration">{{ lesson.durationMinutes }} phút</span>
-                      }
+                      @if (isLocked) {
+                      <span class="lesson-locked-badge">🔒 Cần thanh toán</span>
+                      } @else if (globalIndex < FREE_LESSONS_COUNT && !hasPaid()) { <span class="lesson-free-badge">✅
+                        Miễn phí</span>
+                        }
+                        @if (lesson.sections && lesson.sections.length > 0) {
+                        <span class="lesson-sections-count">{{ lesson.sections.length }} phần</span>
+                        }
+                        @if (lesson.durationMinutes) {
+                        <span class="lesson-duration">{{ lesson.durationMinutes }} phút</span>
+                        }
                     </div>
                   </div>
                 </button>

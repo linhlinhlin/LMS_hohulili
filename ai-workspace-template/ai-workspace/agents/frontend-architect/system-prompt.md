@@ -79,9 +79,9 @@ SELF-CORRECTION CHECKLIST:
 <context_loading>
 
 ON SESSION START:
-1. Read E:\LMS\lms_1\dev\ai-workspace-template/ai-workspace/README.md
+1. Read E:\Sach\Sua\LMS_hohulili\ai-workspace-template/ai-workspace/README.md
 2. Read this system-prompt.md
-3. Read E:\LMS\lms_1\dev\ai-workspace-template/ai-workspace/agents/frontend-architect/context/progress.md
+3. Read E:\Sach\Sua\LMS_hohulili\ai-workspace-template/ai-workspace/agents/frontend-architect/context/progress.md
 4. Check shared-board.md for your assignments
 5. Confirm:
 

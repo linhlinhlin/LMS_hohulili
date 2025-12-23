@@ -54,6 +54,13 @@ public class User implements UserDetails {
     
     @Column(nullable = false)
     private Boolean enabled = true;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "account_status", length = 20)
+    private AccountStatus accountStatus = AccountStatus.ACTIVE;
+
+    @Column(name = "status_reason", length = 500)
+    private String statusReason;
     
     @Column(nullable = false)
     private Instant createdAt = Instant.now();
@@ -130,7 +137,7 @@ public class User implements UserDetails {
     
     @Override
     public boolean isAccountNonLocked() {
-        return true;
+        return accountStatus == null || accountStatus != AccountStatus.BLOCKED;
     }
     
     @Override
@@ -166,6 +173,8 @@ public class User implements UserDetails {
     }
     
     public Boolean getEnabled() { return enabled; }
+    public AccountStatus getAccountStatus() { return accountStatus; }
+    public String getStatusReason() { return statusReason; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     
@@ -179,6 +188,8 @@ public class User implements UserDetails {
     public void setId(UUID id) { this.id = id; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
     public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+    public void setAccountStatus(AccountStatus accountStatus) { this.accountStatus = accountStatus; }
+    public void setStatusReason(String statusReason) { this.statusReason = statusReason; }
     public void setEnrolledCourses(Set<Course> enrolledCourses) { this.enrolledCourses = enrolledCourses; }
     public Set<Course> getEnrolledCourses() { return enrolledCourses; }
 
@@ -210,6 +221,22 @@ public class User implements UserDetails {
         public UserBuilder updatedAt(Instant updatedAt) { u.setUpdatedAt(updatedAt); return this; }
         public UserBuilder enrolledCourses(Set<Course> enrolledCourses) { u.setEnrolledCourses(enrolledCourses); return this; }
         public User build() { return u; }
+    }
+
+    public enum AccountStatus {
+        ACTIVE("Hoạt động"),
+        BLOCKED("Bị khóa"),
+        RESTRICTED("Hạn chế");
+        
+        private final String displayName;
+        
+        AccountStatus(String displayName) {
+            this.displayName = displayName;
+        }
+        
+        public String getDisplayName() {
+            return displayName;
+        }
     }
 
     public enum Role {

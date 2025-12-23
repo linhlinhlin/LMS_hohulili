@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Repository
@@ -50,6 +51,16 @@ public interface CourseRepository extends JpaRepository<Course, UUID> {
     Page<Course> findByEnrolledStudentsContaining(User student, Pageable pageable);
 
     /**
+     * Find enrolled courses with teacher eagerly loaded to avoid LazyInitializationException
+     */
+    @Query(value = "SELECT c FROM Course c " +
+           "LEFT JOIN FETCH c.teacher t " +
+           "JOIN c.enrolledStudents es " +
+           "WHERE es = :student",
+           countQuery = "SELECT COUNT(c) FROM Course c JOIN c.enrolledStudents es WHERE es = :student")
+    Page<Course> findEnrolledCoursesWithTeacher(@Param("student") User student, Pageable pageable);
+
+    /**
      * OPTIMIZED: DTO Projection query for teacher's courses.
      * Returns CourseSummaryDTO directly instead of Entity to avoid N+1 queries.
      * Single query fetches teacher name and enrolled count.
@@ -70,6 +81,34 @@ public interface CourseRepository extends JpaRepository<Course, UUID> {
     Page<Course> findByStatusAndTitleContainingIgnoreCase(Course.CourseStatus status, String title, Pageable pageable);
     
     Page<Course> findByTitleContainingIgnoreCase(String title, Pageable pageable);
+
+    /**
+     * SOTA: Admin query - find all courses with teacher eagerly loaded
+     */
+    @Query(value = "SELECT c FROM Course c LEFT JOIN FETCH c.teacher",
+           countQuery = "SELECT COUNT(c) FROM Course c")
+    Page<Course> findAllWithTeacher(Pageable pageable);
+
+    /**
+     * SOTA: Admin query - find by status with teacher eagerly loaded
+     */
+    @Query(value = "SELECT c FROM Course c LEFT JOIN FETCH c.teacher WHERE c.status = :status",
+           countQuery = "SELECT COUNT(c) FROM Course c WHERE c.status = :status")
+    Page<Course> findByStatusWithTeacher(@Param("status") Course.CourseStatus status, Pageable pageable);
+
+    /**
+     * SOTA: Admin query - find by status and title with teacher eagerly loaded
+     */
+    @Query(value = "SELECT c FROM Course c LEFT JOIN FETCH c.teacher WHERE c.status = :status AND LOWER(c.title) LIKE LOWER(CONCAT('%', :title, '%'))",
+           countQuery = "SELECT COUNT(c) FROM Course c WHERE c.status = :status AND LOWER(c.title) LIKE LOWER(CONCAT('%', :title, '%'))")
+    Page<Course> findByStatusAndTitleWithTeacher(@Param("status") Course.CourseStatus status, @Param("title") String title, Pageable pageable);
+
+    /**
+     * SOTA: Admin query - find by title with teacher eagerly loaded
+     */
+    @Query(value = "SELECT c FROM Course c LEFT JOIN FETCH c.teacher WHERE LOWER(c.title) LIKE LOWER(CONCAT('%', :title, '%'))",
+           countQuery = "SELECT COUNT(c) FROM Course c WHERE LOWER(c.title) LIKE LOWER(CONCAT('%', :title, '%'))")
+    Page<Course> findByTitleWithTeacher(@Param("title") String title, Pageable pageable);
     
     long countByTeacherAndStatusIn(User teacher, List<Course.CourseStatus> statuses);
     
@@ -100,11 +139,13 @@ public interface CourseRepository extends JpaRepository<Course, UUID> {
     int countEnrolledStudents(@Param("courseId") UUID courseId);
     
     /**
-     * Find course by ID with sections and lessons (eager loading for progress calculation)
+     * Find course by ID with teacher eagerly loaded.
+     * Note: Due to MultipleBagFetchException, we cannot JOIN FETCH all nested collections.
+     * Use Hibernate.initialize() in service layer for lessons and sections.
      */
-    @Query("SELECT DISTINCT c FROM Course c " +
-           "LEFT JOIN FETCH c.chapters ch " +
-           "LEFT JOIN FETCH ch.lessons l " +
+    @Query("SELECT c FROM Course c " +
+           "LEFT JOIN FETCH c.teacher " +
+           "LEFT JOIN FETCH c.chapters " +
            "WHERE c.id = :courseId")
     Optional<Course> findByIdWithSectionsAndLessons(@Param("courseId") UUID courseId);
     
@@ -129,4 +170,38 @@ public interface CourseRepository extends JpaRepository<Course, UUID> {
         @Param("teacherId") UUID teacherId,
         @Param("courseId") UUID courseId
     );
+
+    /**
+     * SOTA: DTO Projection for course detail page.
+     * Returns CourseDetailDTO directly - all data loaded in single query.
+     * Avoids LazyInitializationException by not exposing entity relationships.
+     * Pattern: Google/Netflix DTO Projection Architecture (2025)
+     */
+    @Query("SELECT new com.example.lms.dto.CourseDetailDTO(" +
+           "c.id, c.code, c.title, c.description, " +
+           "CAST(c.status AS string), t.id, t.fullName, " +
+           "SIZE(c.enrolledStudents), SIZE(c.chapters), " +
+           "c.createdAt, c.updatedAt, " +
+           "c.instructorId, cat.id, cat.name, " +
+           "c.welcomeMessage, c.courseInformation, c.benefits, " +
+           "c.introVideoUrl, c.credits, " +
+           "CAST(c.visibility AS string), CAST(c.priceType AS string), " +
+           "c.price, c.salePrice) " +
+           "FROM Course c " +
+           "LEFT JOIN c.teacher t " +
+           "LEFT JOIN c.category cat " +
+           "WHERE c.id = :courseId")
+    Optional<com.example.lms.dto.CourseDetailDTO> findCourseDetailById(@Param("courseId") UUID courseId);
+
+    /**
+     * Get teaching staff IDs for a course (loaded separately to avoid MultipleBagFetch)
+     */
+    @Query("SELECT ts FROM Course c JOIN c.teachingStaffIds ts WHERE c.id = :courseId")
+    Set<UUID> findTeachingStaffIdsByCourseId(@Param("courseId") UUID courseId);
+
+    /**
+     * Get tags for a course (loaded separately to avoid MultipleBagFetch)
+     */
+    @Query("SELECT tag FROM Course c JOIN c.tags tag WHERE c.id = :courseId")
+    Set<String> findTagsByCourseId(@Param("courseId") UUID courseId);
 }

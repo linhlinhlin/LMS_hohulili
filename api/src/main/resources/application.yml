@@ -37,6 +37,11 @@ spring:
     out-of-order: true
     ignore-missing-migrations: true
 
+  # SOTA: Enable case-insensitive enum deserialization
+  jackson:
+    mapper:
+      accept-case-insensitive-enums: true
+
 management:
   endpoints:
     web:

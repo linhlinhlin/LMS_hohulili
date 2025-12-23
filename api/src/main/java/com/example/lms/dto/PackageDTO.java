@@ -39,6 +39,32 @@ public class PackageDTO {
         this.updatedAt = updatedAt;
     }
 
+    /**
+     * SOTA: Constructor for JPQL DTO Projection.
+     * COUNT() returns Long, so we accept Long and convert.
+     * This enables direct DTO return from repository - no entity access needed.
+     */
+    public PackageDTO(UUID id, String name, String description, String subject, 
+                      UUID ownerId, String ownerName, String ownerEmail, 
+                      String visibility, Integer capacity, 
+                      Long questionCount, Boolean isFull, Boolean isDefault, 
+                      Instant createdAt, Instant updatedAt) {
+        this.id = id;
+        this.name = name;
+        this.description = description;
+        this.subject = subject;
+        this.ownerId = ownerId;
+        this.ownerName = ownerName;
+        this.ownerEmail = ownerEmail;
+        this.visibility = visibility;
+        this.capacity = capacity;
+        this.questionCount = questionCount != null ? questionCount.intValue() : 0;
+        this.isFull = isFull != null ? isFull : false;
+        this.isDefault = isDefault != null ? isDefault : false;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
+
     // Getters and Setters
     public UUID getId() { return id; } public void setId(UUID id) { this.id = id; }
     public String getName() { return name; } public void setName(String name) { this.name = name; }
@@ -76,6 +102,7 @@ public class PackageDTO {
     }
 
     // Convert from Entity to DTO
+    // SOTA: Avoid lazy loading by not accessing questions collection
     public static PackageDTO fromEntity(Package packageEntity) {
         if (packageEntity == null) return null;
 
@@ -89,8 +116,10 @@ public class PackageDTO {
                 .ownerEmail(packageEntity.getOwner() != null ? packageEntity.getOwner().getEmail() : null)
                 .visibility(packageEntity.getVisibility() != null ? packageEntity.getVisibility().name() : null)
                 .capacity(packageEntity.getCapacity())
-                .questionCount(packageEntity.getQuestionCount())
-                .isFull(packageEntity.isFull())
+                // SOTA Fix: Don't call getQuestionCount() - it triggers lazy loading on questions
+                // Set to 0 by default, use fromEntityWithCount() if count is needed
+                .questionCount(0)
+                .isFull(false)
                 .isDefault(packageEntity.isDefaultPackage())
                 .createdAt(packageEntity.getCreatedAt())
                 .updatedAt(packageEntity.getUpdatedAt())

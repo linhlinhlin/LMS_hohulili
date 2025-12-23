@@ -46,6 +46,17 @@ public interface QuestionRepository extends JpaRepository<Question, UUID> {
     List<Question> findByPackageEntity(com.example.lms.entity.Package packageEntity);
     
     List<Question> findByPackageEntityId(UUID packageId);
+
+    /**
+     * SOTA: Find questions by package with options and createdBy eagerly loaded.
+     * Avoids LazyInitializationException in QuestionDTO.fromEntity()
+     */
+    @Query("SELECT DISTINCT q FROM Question q " +
+           "LEFT JOIN FETCH q.options " +
+           "LEFT JOIN FETCH q.createdBy " +
+           "WHERE q.packageEntity = :packageEntity " +
+           "ORDER BY q.createdAt DESC")
+    List<Question> findByPackageWithOptionsAndCreatedBy(@Param("packageEntity") com.example.lms.entity.Package packageEntity);
     
     List<Question> findByPackageEntityIdAndStatus(UUID packageId, Question.Status status);
     
