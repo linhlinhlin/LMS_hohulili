@@ -114,6 +114,25 @@ export const teacherRoutes: Routes = [
         title: 'Phân tích giảng dạy'
       },
 
+      // Revenue Routes
+      {
+        path: 'revenue',
+        loadComponent: () => import('./revenue/teacher-revenue-dashboard.component').then(m => m.TeacherRevenueDashboardComponent),
+        title: 'Doanh thu'
+      },
+      {
+        path: 'revenue/payouts',
+        loadComponent: () => import('./revenue/teacher-payout-history.component').then(m => m.TeacherPayoutHistoryComponent),
+        title: 'Lịch sử rút tiền'
+      },
+
+      // Invitations Route
+      {
+        path: 'invitations',
+        loadComponent: () => import('./dashboard/my-invitations.component').then(m => m.MyInvitationsComponent),
+        title: 'Lời mời tham gia'
+      },
+
       // Grading Routes (redirect to unified Assignment Hub)
       {
         path: 'grading',

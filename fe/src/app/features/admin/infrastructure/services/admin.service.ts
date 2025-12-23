@@ -70,6 +70,19 @@ export interface PendingCourseSummary {
   createdAt: string;
 }
 
+// User Account Status for Admin Management
+export enum UserAccountStatus {
+  ACTIVE = 'ACTIVE',
+  BLOCKED = 'BLOCKED',
+  RESTRICTED = 'RESTRICTED'
+}
+
+// Request to update user status with reason
+export interface UpdateUserStatusRequest {
+  status: UserAccountStatus;
+  reason: string;
+}
+
 export interface AdminUser {
   id: string;
   email: string;
@@ -81,6 +94,8 @@ export interface AdminUser {
   createdAt: Date;
   updatedAt: Date;
   isActive: boolean;
+  accountStatus: UserAccountStatus; // NEW: ACTIVE, BLOCKED, RESTRICTED
+  statusReason?: string; // NEW: Reason for blocking/restricting
   lastLogin: Date;
   loginCount: number;
   coursesCreated?: number;
@@ -189,7 +204,7 @@ export class AdminService {
   // Reactive state
   private _isLoading = new BehaviorSubject<boolean>(false);
   readonly isLoading$ = this._isLoading.asObservable();
-  
+
   // Getter for loading state (better for template binding)
   get isLoading(): boolean {
     return this._isLoading.value;
@@ -299,23 +314,23 @@ export class AdminService {
   getUsers(params: any = {}): Observable<{ data: AdminUser[]; pagination: any }> {
     console.log('[ADMIN SERVICE] 🔍 Loading users with params:', params);
     this._isLoading.next(true);
-    
+
     return this.apiClient.getWithResponse<BackendUser[]>(ADMIN_ENDPOINTS.USERS, { params }).pipe(
       finalize(() => this._isLoading.next(false)),
       map(response => {
         console.log('[ADMIN SERVICE] ✅ Users loaded successfully:', response);
-        
+
         // Backend returns Spring Boot Page format: {data: {content: [...], totalElements: ...}, pagination: {...}}
         // Extract the actual user array from content
         const responseData = response.data as any;
-        const backendUsers: BackendUser[] = Array.isArray(response.data) 
-          ? response.data 
+        const backendUsers: BackendUser[] = Array.isArray(response.data)
+          ? response.data
           : (responseData?.content || responseData?.data || []);
-        
+
         // Convert BackendUser to AdminUser
         const users: AdminUser[] = backendUsers.map((u: BackendUser) => this.mapBackendUserToAdminUser(u));
         this._users.set(users);
-        
+
         return {
           data: users,
           pagination: response.pagination || {}
@@ -330,7 +345,7 @@ export class AdminService {
 
   getAllUsersNoPagination(): Observable<AdminUser[]> {
     console.log('[ADMIN SERVICE] 🔍 Loading all users (no pagination)');
-    
+
     return this.apiClient.get<BackendUser[]>(ADMIN_ENDPOINTS.ALL_USERS_NO_PAGINATION).pipe(
       map(users => {
         console.log('[ADMIN SERVICE] ✅ All users loaded:', users.length);
@@ -345,7 +360,7 @@ export class AdminService {
 
   getUserById(userId: string): Observable<AdminUser> {
     console.log('[ADMIN SERVICE] 🔍 Loading user by ID:', userId);
-    
+
     return this.apiClient.get<BackendUser>(ADMIN_ENDPOINTS.USER_DETAIL(userId)).pipe(
       map(user => {
         console.log('[ADMIN SERVICE] ✅ User loaded:', user);
@@ -361,16 +376,16 @@ export class AdminService {
   createUser(request: CreateUserRequest): Observable<{ message: string; data: AdminUser }> {
     console.log('[ADMIN SERVICE] 🔨 Creating user:', request);
     this._isLoading.next(true);
-    
+
     return this.apiClient.postWithResponse<BackendUser>(ADMIN_ENDPOINTS.CREATE_USER, request).pipe(
       finalize(() => this._isLoading.next(false)),
       map(response => {
         console.log('[ADMIN SERVICE] ✅ User created successfully:', response);
-        
+
         const user = this.mapBackendUserToAdminUser(response.data);
-        
+
         // ✅ No auto-refresh - let component handle it with correct params
-        
+
         return {
           message: response.message || 'User created successfully',
           data: user
@@ -386,16 +401,16 @@ export class AdminService {
   updateUser(userId: string, request: UpdateUserRequest): Observable<{ message: string; data: AdminUser }> {
     console.log('[ADMIN SERVICE] 🔨 Updating user:', userId, request);
     this._isLoading.next(true);
-    
+
     return this.apiClient.putWithResponse<BackendUser>(ADMIN_ENDPOINTS.UPDATE_USER(userId), request).pipe(
       finalize(() => this._isLoading.next(false)),
       map(response => {
         console.log('[ADMIN SERVICE] ✅ User updated successfully:', response);
-        
+
         const user = this.mapBackendUserToAdminUser(response.data);
-        
+
         // ✅ No auto-refresh - let component handle it with correct params
-        
+
         return {
           message: response.message || 'User updated successfully',
           data: user
@@ -411,14 +426,14 @@ export class AdminService {
   deleteUser(userId: string): Observable<{ message: string }> {
     console.log('[ADMIN SERVICE] 🗑️ Deleting user:', userId);
     this._isLoading.next(true);
-    
+
     return this.apiClient.deleteWithResponse<string>(ADMIN_ENDPOINTS.DELETE_USER(userId)).pipe(
       finalize(() => this._isLoading.next(false)),
       map(response => {
         console.log('[ADMIN SERVICE] ✅ User deleted successfully');
-        
+
         // ✅ No auto-refresh - let component handle it with correct params
-        
+
         return {
           message: response.message || 'User deleted successfully'
         };
@@ -433,16 +448,16 @@ export class AdminService {
   toggleUserStatus(userId: string): Observable<{ message: string; data: AdminUser }> {
     console.log('[ADMIN SERVICE] 🔄 Toggling user status:', userId);
     this._isLoading.next(true);
-    
+
     return this.apiClient.patchWithResponse<BackendUser>(ADMIN_ENDPOINTS.TOGGLE_USER_STATUS(userId), {}).pipe(
       finalize(() => this._isLoading.next(false)),
       map(response => {
         console.log('[ADMIN SERVICE] ✅ User status toggled successfully:', response);
-        
+
         const user = this.mapBackendUserToAdminUser(response.data);
-        
+
         // ✅ No auto-refresh - let component handle it with correct params
-        
+
         return {
           message: response.message || 'User status toggled successfully',
           data: user
@@ -455,12 +470,44 @@ export class AdminService {
     );
   }
 
+  /**
+   * Update user account status (ACTIVE, BLOCKED, RESTRICTED)
+   * NOTE: Backend endpoint may not exist yet - UI is prepared for future integration
+   */
+  updateUserStatus(userId: string, request: UpdateUserStatusRequest): Observable<{ message: string; data: AdminUser }> {
+    console.log('[ADMIN SERVICE] 🔄 Updating user status:', userId, request);
+    this._isLoading.next(true);
+
+    // TODO: Update endpoint when Backend implements it
+    // Current implementation uses toggle endpoint as fallback
+    return this.apiClient.patchWithResponse<BackendUser>(`/api/v1/admin/users/${userId}/status`, request).pipe(
+      finalize(() => this._isLoading.next(false)),
+      map(response => {
+        console.log('[ADMIN SERVICE] ✅ User status updated successfully:', response);
+        const user = this.mapBackendUserToAdminUser(response.data);
+        // Override with requested status since backend may not return it
+        user.accountStatus = request.status;
+        user.statusReason = request.reason;
+
+        return {
+          message: response.message || `User status updated to ${request.status}`,
+          data: user
+        };
+      }),
+      catchError(error => {
+        console.error('[ADMIN SERVICE] ❌ Error updating user status:', error);
+        // Fallback message for user
+        return throwError(() => error);
+      })
+    );
+  }
+
   bulkImportUsers(file: File, defaultRole: 'ADMIN' | 'TEACHER' | 'STUDENT' = 'STUDENT'): Observable<any> {
     console.log('[ADMIN SERVICE] 📤 Bulk importing users');
     const formData = new FormData();
     formData.append('file', file);
     formData.append('defaultRole', defaultRole);
-    
+
     return this.apiClient.postWithResponse(ADMIN_ENDPOINTS.BULK_IMPORT_USERS, formData).pipe(
       map(response => {
         console.log('[ADMIN SERVICE] ✅ Bulk import completed:', response);
@@ -487,6 +534,9 @@ export class AdminService {
       createdAt: new Date(backendUser.createdAt),
       updatedAt: backendUser.updatedAt ? new Date(backendUser.updatedAt) : new Date(),
       isActive: backendUser.enabled,
+      // Map enabled to accountStatus: enabled=true → ACTIVE, else BLOCKED
+      accountStatus: backendUser.enabled ? UserAccountStatus.ACTIVE : UserAccountStatus.BLOCKED,
+      statusReason: undefined, // TODO: Backend needs to return this field
       lastLogin: new Date(),
       loginCount: 0,
       permissions: this.getPermissionsForRole(backendUser.role)
@@ -525,19 +575,19 @@ export class AdminService {
 
   totalUsers = computed(() => this._users().length);
 
-  totalTeachers = computed(() => 
+  totalTeachers = computed(() =>
     this._users().filter(u => u.role === 'TEACHER').length
   );
 
-  totalStudents = computed(() => 
+  totalStudents = computed(() =>
     this._users().filter(u => u.role === 'STUDENT').length
   );
 
-  totalAdminsCount = computed(() => 
+  totalAdminsCount = computed(() =>
     this._users().filter(u => u.role === 'ADMIN').length
   );
 
-  activeUsersCount = computed(() => 
+  activeUsersCount = computed(() =>
     this._users().filter(u => u.isActive).length
   );
 }

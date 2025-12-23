@@ -790,3 +790,174 @@
     padding-top: 0;
   }
 }
+
+// ============================================
+// Payment Notice Card
+// ============================================
+.payment-notice-card {
+  background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+  border: 1px solid #F59E0B;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.payment-notice-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.payment-icon {
+  width: 28px;
+  height: 28px;
+  color: #D97706;
+  flex-shrink: 0;
+}
+
+.payment-notice-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #92400E;
+  margin: 0;
+}
+
+.payment-notice-text {
+  font-size: 0.9375rem;
+  color: #78350F;
+  line-height: 1.5;
+  margin: 0 0 16px 0;
+}
+
+.payment-notice-price {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: white;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.price-label {
+  font-size: 0.875rem;
+  color: #78350F;
+}
+
+.price-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #B45309;
+}
+
+.btn-payment {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 24px;
+  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 6px rgba(217, 119, 6, 0.25);
+
+  &:hover {
+    background: linear-gradient(135deg, #D97706 0%, #B45309 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 10px rgba(217, 119, 6, 0.35);
+  }
+
+  .btn-icon {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+// ============================================
+// Payment Success Card
+// ============================================
+.payment-success-card {
+  background-color: #ECFDF5;
+  border: 1px solid #10B981;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+}
+
+.payment-success-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.payment-success-icon {
+  width: 24px;
+  height: 24px;
+  color: #059669;
+  flex-shrink: 0;
+}
+
+.payment-success-text {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #047857;
+}
+
+// ============================================
+// Lesson Locked/Free Badges
+// ============================================
+.lesson-locked-badge {
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background-color: #FEE2E2;
+  color: #DC2626;
+  white-space: nowrap;
+}
+
+.lesson-free-badge {
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background-color: #D1FAE5;
+  color: #059669;
+  white-space: nowrap;
+}
+
+// Locked lesson styles
+.lesson-item-wrapper.locked {
+  .lesson-item {
+    background-color: #F9FAFB;
+    border-color: #E5E7EB;
+    opacity: 0.85;
+
+    &:hover {
+      border-color: #F59E0B;
+      background-color: #FFFBEB;
+      transform: translateX(4px);
+    }
+  }
+}
+
+.lesson-item.locked {
+  cursor: pointer;
+  
+  .lesson-title {
+    color: #6B7280;
+  }
+}
+
+.status-icon.locked-icon {
+  width: 24px;
+  height: 24px;
+  color: #9CA3AF;
+}

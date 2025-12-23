@@ -10,6 +10,7 @@ import com.example.lms.entity.User;
 import com.example.lms.service.AssignmentService;
 import com.example.lms.service.LessonProgressDomainService;
 import com.example.lms.service.LessonService;
+import com.example.lms.service.PaymentService;
 import java.util.List;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -36,6 +37,10 @@ public class LessonController {
     private final LessonService lessonService;
     private final AssignmentService assignmentService;
     private final LessonProgressDomainService progressDomainService;
+    private final PaymentService paymentService;
+
+    // Number of free lessons for unpaid users
+    private static final int FREE_LESSONS_COUNT = 2;
 
     @PostMapping("/{sectionId}/lessons")
     @Operation(summary = "Tạo bài học mới", description = "Giảng viên tạo bài học mới trong section")
@@ -108,6 +113,22 @@ public class LessonController {
     ) {
         try {
             Lesson lesson = lessonService.getLessonById(lessonId, currentUser);
+
+            // Payment check for students: if lesson orderIndex >= FREE_LESSONS_COUNT and not paid
+            if (currentUser != null && currentUser.getRole() == User.Role.STUDENT) {
+                int lessonOrder = lesson.getOrderIndex() != null ? lesson.getOrderIndex() : 0;
+                
+                if (lessonOrder >= FREE_LESSONS_COUNT) {
+                    UUID courseId = lesson.getChapter().getCourse().getId();
+                    boolean hasPaid = paymentService.hasValidPayment(currentUser.getId(), courseId);
+                    
+                    if (!hasPaid) {
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(ApiResponse.error("Bạn cần thanh toán khóa học để xem bài học này"));
+                    }
+                }
+            }
+
             LessonDetail lessonDetail = convertToLessonDetail(lesson, currentUser);
 
             return ResponseEntity.ok(ApiResponse.success(lessonDetail));

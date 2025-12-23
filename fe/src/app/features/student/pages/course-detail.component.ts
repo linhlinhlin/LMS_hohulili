@@ -4,6 +4,7 @@ import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { CourseApi } from '../../../api/client/course.api';
 import { CourseContentChapter, LessonSummary } from '../../../api/types/course.types';
 import { QuizApi } from '../../../api/endpoints/quiz.api';
+import { PaymentService, PaymentStatusResponse } from '../services/payment.service';
 import { catchError, of } from 'rxjs';
 
 interface CourseDetail {
@@ -12,8 +13,9 @@ interface CourseDetail {
   description: string;
   teacherName: string;
   enrolledCount: number;
-  chaptersCount: number; // Renamed
+  chaptersCount: number;
   progress?: number;
+  price?: number; // Thêm giá khóa học
 }
 
 interface Section {
@@ -58,6 +60,10 @@ export class CourseDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private courseApi = inject(CourseApi);
   private quizApi = inject(QuizApi);
+  private paymentService = inject(PaymentService);
+
+  // Số bài học miễn phí
+  readonly FREE_LESSONS_COUNT = 2;
 
   // State
   isLoading = signal(false);
@@ -65,6 +71,10 @@ export class CourseDetailComponent implements OnInit {
   sections = signal<Section[]>([]);
   expandedSections = signal<Set<string>>(new Set());
   isDescriptionExpanded = signal(false);
+
+  // Payment state
+  hasPaid = signal(false);
+  paymentLoading = signal(false);
 
   // Computed
   totalLessons = computed(() => {
@@ -91,10 +101,17 @@ export class CourseDetailComponent implements OnInit {
     }, 0);
   });
 
+  // Computed: Số bài học có thể truy cập (dựa trên payment)
+  accessibleLessonsCount = computed(() => {
+    if (this.hasPaid()) return this.totalLessons();
+    return Math.min(this.FREE_LESSONS_COUNT, this.totalLessons());
+  });
+
   ngOnInit(): void {
     const courseId = this.route.snapshot.paramMap.get('id');
     if (courseId) {
       this.loadCourse(courseId);
+      this.checkPaymentStatus(courseId);
     }
   }
 
@@ -103,7 +120,7 @@ export class CourseDetailComponent implements OnInit {
 
     // Load course info
     this.courseApi.getCourseById(courseId).subscribe({
-      next: (res) => {
+      next: (res: any) => {
         const detail = res?.data;
         this.course.set({
           id: courseId,
@@ -111,10 +128,11 @@ export class CourseDetailComponent implements OnInit {
           description: detail?.description || '',
           teacherName: detail?.teacherName || '',
           enrolledCount: detail?.enrolledCount || 0,
-          chaptersCount: (detail as any)?.chaptersCount || 0
+          chaptersCount: (detail as any)?.chaptersCount || 0,
+          price: detail?.price || 500000 // Default price
         });
       },
-      error: (err) => {
+      error: (err: any) => {
         console.error('Error loading course:', err);
       }
     });
@@ -288,5 +306,65 @@ export class CourseDetailComponent implements OnInit {
   goToQuiz(lessonId: string, lessonTitle: string): void {
     // Navigate to quiz attempt with lesson ID
     this.router.navigate(['/student/quiz/take', lessonId]);
+  }
+
+  // ============ Payment Methods ============
+
+  /**
+   * Kiểm tra trạng thái thanh toán khóa học
+   */
+  checkPaymentStatus(courseId: string): void {
+    this.paymentLoading.set(true);
+    this.paymentService.getPaymentStatus(courseId).subscribe({
+      next: (response) => {
+        if (response.data) {
+          this.hasPaid.set(response.data.hasPaid);
+        }
+        this.paymentLoading.set(false);
+      },
+      error: (err: any) => {
+        console.error('Error checking payment status:', err);
+        this.paymentLoading.set(false);
+      }
+    });
+  }
+
+  /**
+   * Kiểm tra bài học có được truy cập không
+   * @param lessonIndex index trong danh sách flatten (0-based)
+   */
+  canAccessLesson(lessonIndex: number): boolean {
+    if (this.hasPaid()) return true;
+    return lessonIndex < this.FREE_LESSONS_COUNT;
+  }
+
+  /**
+   * Lấy global index của lesson trong tất cả sections
+   */
+  getLessonGlobalIndex(sectionIndex: number, lessonIndexInSection: number): number {
+    let globalIndex = 0;
+    for (let i = 0; i < sectionIndex; i++) {
+      globalIndex += this.sections()[i]?.lessons.length || 0;
+    }
+    return globalIndex + lessonIndexInSection;
+  }
+
+  /**
+   * Điều hướng đến trang thanh toán
+   */
+  goToCheckout(): void {
+    const courseId = this.course()?.id;
+    if (!courseId) return;
+    this.router.navigate(['/student/checkout', courseId]);
+  }
+
+  /**
+   * Format giá tiền
+   */
+  formatPrice(price: number): string {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(price);
   }
 }

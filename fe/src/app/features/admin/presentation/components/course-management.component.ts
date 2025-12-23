@@ -161,125 +161,167 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
           </div>
         </div>
 
-        <!-- Courses Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          @for (course of filteredCourses(); track course.id) {
-            <div class="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group">
-              <!-- Course Thumbnail -->
-              <div class="relative h-48 overflow-hidden">
-                <img [src]="course.thumbnail" 
-                     [alt]="course.title"
-                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
-                <div class="absolute top-4 right-4">
-                  <span class="px-3 py-1 text-xs font-medium rounded-full"
-                        [class]="getStatusClass(course.status)">
-                    {{ getStatusText(course.status) }}
-                  </span>
-                </div>
-                <div class="absolute bottom-4 left-4">
-                  <span class="px-3 py-1 text-xs font-medium bg-white bg-opacity-90 rounded-full">
-                    {{ getLevelText(course.level || 'unknown') }}
-                  </span>
-                </div>
+        <!-- Courses Table -->
+        <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          @if (isLoading()) {
+            <div class="p-12 text-center">
+              <div class="inline-block">
+                <div class="w-12 h-12 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin"></div>
               </div>
-
-              <!-- Course Content -->
-              <div class="p-6">
-                <h3 class="text-xl font-semibold text-gray-900 mb-2 group-hover:text-red-600 transition-colors">
-                  {{ course.title }}
-                </h3>
-                <p class="text-gray-600 text-sm mb-4 line-clamp-2">
-                  {{ course.shortDescription }}
-                </p>
-
-                <!-- Instructor Info -->
-                <div class="flex items-center mb-4">
-                  <img src="/assets/images/default-avatar.png" [alt]="course.teacherName"
-                       class="w-8 h-8 rounded-full mr-3">
-                  <div>
-                    <div class="text-sm font-medium text-gray-900">{{ course.teacherName }}</div>
-                    <div class="text-xs text-gray-500">{{ course.teacherEmail }}</div>
-                  </div>
-                </div>
-
-                <!-- Course Stats -->
-                <div class="flex items-center justify-between text-sm text-gray-500 mb-4">
-                  <div class="flex items-center">
-                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 8v1h1.5a.5.5 0 01.5.5v9a.5.5 0 01-.5.5h-13a.5.5 0 01-.5-.5v-9a.5.5 0 01.5-.5H8v-1a5 5 0 00-5 5v1h9.93z"></path>
-                    </svg>
-                    {{ course.enrolledCount }} học viên
-                  </div>
-                  <div class="flex items-center">
-                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
-                    </svg>
-                    {{ course.rating }}/5
-                  </div>
-                </div>
-
-                <!-- Course Price -->
-                <div class="flex items-center justify-between mb-4">
-                  <span class="text-2xl font-bold text-red-600">{{ course.price ? formatCurrency(course.price) : '0' }}</span>
-                  <span class="text-sm text-gray-500">{{ course.revenue ? formatCurrency(course.revenue) : '0' }} doanh thu</span>
-                </div>
-
-                <!-- Course Actions -->
-                <div class="flex gap-2">
-                  @if (course.status.toUpperCase() === 'PENDING') {
-                    <button (click)="approveCourse(course.id)"
-                            class="flex-1 px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm font-medium">
-                      Phê duyệt
-                    </button>
-                    <button (click)="openRejectModal(course)"
-                            class="flex-1 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-sm font-medium">
-                      Từ chối
-                    </button>
-                  } @else if (course.status.toUpperCase() === 'APPROVED') {
-                    <button (click)="viewCourse(course.id)"
-                            class="w-full px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium">
-                      Xem chi tiết
-                    </button>
-                  } @else {
-                    <button (click)="viewCourse(course.id)"
-                            class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium">
-                      Xem chi tiết
-                    </button>
-                    <button (click)="editCourse(course.id)"
-                            class="flex-1 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium">
-                      Chỉnh sửa
-                    </button>
+              <p class="mt-4 text-sm text-gray-600">Đang tải danh sách khóa học...</p>
+            </div>
+          } @else if (filteredCourses().length > 0) {
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                      Khóa học
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                      Giảng viên
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                      Trạng thái
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                      Giá
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                      Học viên
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                      Ngày tạo
+                    </th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
+                      Thao tác
+                    </th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-100">
+                  @for (course of filteredCourses(); track course.id) {
+                    <tr class="hover:bg-gray-50 transition-colors">
+                      <!-- Course Info -->
+                      <td class="px-6 py-4">
+                        <div class="flex items-center">
+                          <img [src]="course.thumbnail || '/assets/images/course-placeholder.png'" 
+                               [alt]="course.title"
+                               class="w-12 h-12 rounded-lg object-cover mr-3 border border-gray-200">
+                          <div class="max-w-xs">
+                            <div class="text-sm font-medium text-gray-900 truncate">{{ course.title }}</div>
+                            <div class="text-xs text-gray-500 truncate">{{ course.shortDescription || 'Chưa có mô tả' }}</div>
+                            <div class="text-xs text-gray-400 mt-1">
+                              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                                {{ getLevelText(course.level || 'unknown') }}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <!-- Instructor -->
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                          <img src="/assets/images/default-avatar.png" 
+                               [alt]="course.teacherName"
+                               class="w-8 h-8 rounded-full border border-gray-200">
+                          <div class="ml-3">
+                            <div class="text-sm font-medium text-gray-900">{{ course.teacherName }}</div>
+                            <div class="text-xs text-gray-500">{{ course.teacherEmail }}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <!-- Status -->
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full"
+                              [class]="getStatusClass(course.status)">
+                          {{ getStatusText(course.status) }}
+                        </span>
+                        @if (course.rejectionReason) {
+                          <div class="text-xs text-red-500 mt-1 max-w-[150px] truncate" [title]="course.rejectionReason">
+                            {{ course.rejectionReason }}
+                          </div>
+                        }
+                      </td>
+                      <!-- Price -->
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-semibold text-gray-900">{{ course.price ? formatCurrency(course.price) : 'Miễn phí' }}</div>
+                        <div class="text-xs text-gray-500">{{ course.revenue ? formatCurrency(course.revenue) : '0 ₫' }} doanh thu</div>
+                      </td>
+                      <!-- Students -->
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center text-sm text-gray-600">
+                          <svg class="w-4 h-4 mr-1 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 8v1h1.5a.5.5 0 01.5.5v9a.5.5 0 01-.5.5h-13a.5.5 0 01-.5-.5v-9a.5.5 0 01.5-.5H8v-1a5 5 0 00-5 5v1h9.93z"></path>
+                          </svg>
+                          {{ course.enrolledCount || 0 }}
+                        </div>
+                        <div class="flex items-center text-xs text-gray-500 mt-1">
+                          <svg class="w-3 h-3 mr-1 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                          </svg>
+                          {{ course.rating || 0 }}/5
+                        </div>
+                      </td>
+                      <!-- Created Date -->
+                      <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-600">
+                        <div>{{ course.createdAt ? formatDate(course.createdAt) : 'N/A' }}</div>
+                        @if (course.submittedAt) {
+                          <div class="text-gray-400 mt-1">Nộp: {{ formatDate(course.submittedAt) }}</div>
+                        }
+                      </td>
+                      <!-- Actions -->
+                      <td class="px-6 py-4 whitespace-nowrap text-center">
+                        <div class="flex items-center justify-center space-x-2">
+                          @if (course.status.toUpperCase() === 'PENDING') {
+                            <button (click)="approveCourse(course.id)"
+                                    class="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded transition-colors"
+                                    title="Phê duyệt">
+                              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                              </svg>
+                            </button>
+                            <button (click)="openRejectModal(course)"
+                                    class="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors"
+                                    title="Từ chối">
+                              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                              </svg>
+                            </button>
+                          }
+                          <button (click)="viewCourse(course.id)"
+                                  class="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
+                                  title="Xem chi tiết">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path>
+                              <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"></path>
+                            </svg>
+                          </button>
+                          <button (click)="editCourse(course.id)"
+                                  class="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors"
+                                  title="Chỉnh sửa">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"></path>
+                            </svg>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
                   }
-                </div>
-
-                <!-- Submission Info -->
-                <div class="mt-4 pt-4 border-t border-gray-200">
-                  <div class="text-xs text-gray-500">
-                    <div>Nộp lúc: {{ course.submittedAt ? formatDate(course.submittedAt) : '' }}</div>
-                    @if (course.approvedAt) {
-                      <div>Phê duyệt: {{ formatDate(course.approvedAt!) }}</div>
-                    }
-                    @if (course.rejectionReason) {
-                      <div class="text-red-500">Lý do từ chối: {{ course.rejectionReason }}</div>
-                    }
-                  </div>
-                </div>
-              </div>
+                </tbody>
+              </table>
+            </div>
+          } @else if (!isLoading()) {
+            <!-- Empty State inside table container -->
+            <div class="p-12 text-center">
+              <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
+                <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
+              </svg>
+              <h3 class="text-base font-medium text-gray-900 mb-2">Không có khóa học nào</h3>
+              <p class="text-sm text-gray-600">Chưa có khóa học nào được nộp để phê duyệt hoặc phù hợp với bộ lọc</p>
             </div>
           }
         </div>
-
-        <!-- Empty State -->
-        @if (filteredCourses().length === 0) {
-          <div class="text-center py-12">
-            <svg class="w-24 h-24 text-gray-300 mx-auto mb-4" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
-              <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
-            </svg>
-            <h3 class="text-lg font-medium text-gray-900 mb-2">Không có khóa học nào</h3>
-            <p class="text-gray-500 mb-6">Chưa có khóa học nào được nộp để phê duyệt</p>
-          </div>
-        }
       </div>
     </div>
 

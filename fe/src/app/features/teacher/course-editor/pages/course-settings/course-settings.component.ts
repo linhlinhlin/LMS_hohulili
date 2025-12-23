@@ -2,16 +2,17 @@ import { Component, inject, signal, effect, untracked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CourseEditorStore } from '../../store/course-editor.store';
+import { CourseInstructorsComponent } from './course-instructors.component';
 
 @Component({
   selector: 'app-course-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, CourseInstructorsComponent],
   template: `
-<div class="bg-white shadow-sm max-w-10xl mx-auto pb-10">
+<div class="bg-white shadow-sm max-w-10xl mx-auto pb-10 space-y-6">
   
   <!-- Header -->
-  <div class="bg-white shadow-sm border border-gray-200 h-full flex pb-4 justify-between items-end px-8 py-4">
+  <div class="bg-white shadow-sm border border-gray-200 flex pb-4 justify-between items-end px-8 py-4 sticky top-0 z-10">
     <div>
         <h1 class="text-2xl font-bold text-gray-900">Cài đặt khóa học</h1>
         <p class="text-gray-500 mt-1">Quản lý quyền truy cập, lộ trình và các thiết lập vận hành.</p>
@@ -203,6 +204,11 @@ import { CourseEditorStore } from '../../store/course-editor.store';
       <input type="checkbox" [ngModel]="autoCertificate()" (ngModelChange)="autoCertificate.set($event)" class="sr-only peer">
       <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
     </label>
+  </section>
+
+  <!-- SECTION 4: GIẢNG VIÊN -->
+  <section class="bg-white shadow-sm border border-gray-200 px-8 py-4">
+    <app-course-instructors [courseId]="store.courseTree()?.id || ''"></app-course-instructors>
   </section>
 
   <!-- DANGER ZONE -->

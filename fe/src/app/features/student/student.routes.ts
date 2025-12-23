@@ -27,28 +27,35 @@ export const studentRoutes: Routes = [
         redirectTo: 'dashboard',
         pathMatch: 'full'
       },
-      
+
       // Dashboard - Trang chủ học viên
       {
         path: 'dashboard',
         loadComponent: () => import('./dashboard/student-dashboard.component').then(m => m.StudentDashboardComponent),
         title: 'Dashboard - Học viên'
       },
-      
+
       // My Courses - Khóa học của tôi (detailed list with modules)
       {
         path: 'my-courses',
         loadComponent: () => import('./student-my-courses.component').then(m => m.StudentMyCoursesComponent),
         title: 'Khóa học của tôi'
       },
-      
+
       // Course Detail - Chi tiết khóa học
       {
         path: 'course/:id',
         loadComponent: () => import('./pages/course-detail.component').then(m => m.CourseDetailComponent),
         title: 'Chi tiết khóa học'
       },
-      
+
+      // Checkout - Thanh toán khóa học
+      {
+        path: 'checkout/:courseId',
+        loadComponent: () => import('./pages/checkout.component').then(m => m.CheckoutComponent),
+        title: 'Thanh toán khóa học'
+      },
+
       // Assignment Routes - Unified page for all student assignments
       {
         path: 'assignments',
@@ -70,12 +77,12 @@ export const studentRoutes: Routes = [
           }
         ]
       },
-      
+
       // Learning Routes - Nested under student
-    {
-      path: 'learn',
-      loadChildren: () => import('../learning/learning.routes').then(m => m.learningRoutes)
-    },
+      {
+        path: 'learn',
+        loadChildren: () => import('../learning/learning.routes').then(m => m.learningRoutes)
+      },
       // Quiz Routes
       {
         path: 'quiz',
@@ -97,21 +104,21 @@ export const studentRoutes: Routes = [
           }
         ]
       },
-      
+
       // Analytics Routes
       {
         path: 'analytics',
         loadComponent: () => import('../analytics/student-analytics.component').then(m => m.StudentAnalyticsComponent),
         title: 'Phân tích học tập'
       },
-      
+
       // Profile Routes
       {
         path: 'profile',
         loadComponent: () => import('../profile/student-profile.component').then(m => m.StudentProfileComponent),
         title: 'Hồ sơ cá nhân'
       },
-      
+
       // Forum Routes
       {
         path: 'forum',
@@ -132,7 +139,7 @@ export const studentRoutes: Routes = [
         loadChildren: () => import('../ai-chat/ai-chat.routes').then(m => m.AI_CHAT_ROUTES),
         title: 'Trợ lý AI Hàng Hải'
       },
-      
+
     ]
   }
 ];
