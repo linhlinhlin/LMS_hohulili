@@ -48,6 +48,13 @@ export const studentRoutes: Routes = [
         loadComponent: () => import('./pages/course-detail.component').then(m => m.CourseDetailComponent),
         title: 'Chi tiết khóa học'
       },
+
+      // Lesson Viewer - Xem bài học với video tracking
+      {
+        path: 'lesson-viewer',
+        loadComponent: () => import('./lesson-viewer/lesson-viewer.component').then(m => m.LessonViewerComponent),
+        title: 'Xem bài học'
+      },
       
       // Assignment Routes - Unified page for all student assignments
       {

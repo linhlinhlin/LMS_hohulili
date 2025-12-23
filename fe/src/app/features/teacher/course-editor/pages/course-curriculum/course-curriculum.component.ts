@@ -38,11 +38,12 @@ import { PdfViewerService } from '../../../../../shared/services/pdf-viewer.serv
 import {
   LucideAngularModule
 } from 'lucide-angular';
+import { VideoUploadComponent, VideoUploadResult } from '../../../../../shared/components/video-upload/video-upload.component';
 
 @Component({
   selector: 'app-course-curriculum',
   standalone: true,
-  imports: [CommonModule, FormsModule, CKEditorModule, LucideAngularModule],
+  imports: [CommonModule, FormsModule, CKEditorModule, LucideAngularModule, VideoUploadComponent],
   styleUrl: './course-curriculum.component.scss',
   providers: [],
   template: `
@@ -195,32 +196,60 @@ import {
 
              @if (newSectionType === 'VIDEO') {
                <div class="space-y-4">
-                    <div class="flex items-center justify-between">
-                        <label class="block text-sm font-medium text-gray-700">Video URL <span class="text-red-500">*</span></label>
-                        <!-- NÚT - Maritime Theme -->
-                        <button type="button" (click)="toggleVideoPreview()" 
-                                class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-                                [class.bg-blue-100]="isVideoPreviewVisible()"
-                                [class.text-blue-700]="isVideoPreviewVisible()"
-                                [class.bg-slate-100]="!isVideoPreviewVisible()"
-                                [class.text-slate-600]="!isVideoPreviewVisible()"
-                                [class.hover:bg-blue-50]="!isVideoPreviewVisible()">
-                            <lucide-icon [name]="isVideoPreviewVisible() ? 'eye-off' : 'eye'" [size]="14"></lucide-icon>
-                            {{ isVideoPreviewVisible() ? 'Ẩn xem trước' : 'Xem trước' }}
-                        </button>
+                    <!-- Upload Video to R2 Storage -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Upload Video lên Cloudflare R2 <span class="text-blue-600">(Khuyến nghị)</span>
+                        </label>
+                        <app-video-upload 
+                            [initialVideoUrl]="sectionVideoUrl"
+                            [maxFileSize]="500 * 1024 * 1024"
+                            (videoUploaded)="onVideoUploaded($event)"
+                            (videoRemoved)="onVideoRemoved()">
+                        </app-video-upload>
+                        <p class="text-xs text-gray-500 mt-2">
+                            Video sẽ được lưu trữ trực tiếp trên Cloudflare R2 (10GB miễn phí). 
+                            Hỗ trợ MP4, AVI, MOV, MKV tối đa 500MB.
+                        </p>
                     </div>
-                    <input type="text" [(ngModel)]="sectionVideoUrl" (blur)="updateVideoPreview(sectionVideoUrl)"
-                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                           placeholder="https://youtube.com/watch?v=...">
-                    
-                    <!-- VIDEO PREVIEW - Căn giữa + Rounded -->
-                    @if (isVideoPreviewVisible() && safeVideoUrl()) {
-                        <div class="flex justify-center">
-                            <div class="w-full max-w-2xl aspect-video bg-slate-900 rounded-xl overflow-hidden shadow-lg border border-slate-200">
-                                <iframe class="w-full h-full" [src]="safeVideoUrl()" frameborder="0" allowfullscreen></iframe>
-                            </div>
+
+                    <!-- Hoặc nhập URL từ nơi khác -->
+                    <div class="relative">
+                        <div class="absolute inset-0 flex items-center" aria-hidden="true">
+                            <div class="w-full border-t border-gray-300"></div>
                         </div>
-                    }
+                        <div class="relative flex justify-center text-xs">
+                            <span class="bg-white px-2 text-gray-500">Hoặc nhập URL video từ YouTube/Vimeo</span>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <label class="block text-sm font-medium text-gray-700">Video URL</label>
+                            <button type="button" (click)="toggleVideoPreview()" 
+                                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                                    [class.bg-blue-100]="isVideoPreviewVisible()"
+                                    [class.text-blue-700]="isVideoPreviewVisible()"
+                                    [class.bg-slate-100]="!isVideoPreviewVisible()"
+                                    [class.text-slate-600]="!isVideoPreviewVisible()"
+                                    [class.hover:bg-blue-50]="!isVideoPreviewVisible()">
+                                <lucide-icon [name]="isVideoPreviewVisible() ? 'eye-off' : 'eye'" [size]="14"></lucide-icon>
+                                {{ isVideoPreviewVisible() ? 'Ẩn xem trước' : 'Xem trước' }}
+                            </button>
+                        </div>
+                        <input type="text" [(ngModel)]="sectionVideoUrl" (blur)="updateVideoPreview(sectionVideoUrl)"
+                               class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                               placeholder="https://youtube.com/watch?v=... hoặc https://vimeo.com/...">
+                        
+                        <!-- VIDEO PREVIEW - Căn giữa + Rounded -->
+                        @if (isVideoPreviewVisible() && safeVideoUrl()) {
+                            <div class="flex justify-center">
+                                <div class="w-full max-w-2xl aspect-video bg-slate-900 rounded-xl overflow-hidden shadow-lg border border-slate-200">
+                                    <iframe class="w-full h-full" [src]="safeVideoUrl()" frameborder="0" allowfullscreen></iframe>
+                                </div>
+                            </div>
+                        }
+                    </div>
                 </div>
              }
 
@@ -1613,6 +1642,24 @@ isVideoPreviewVisible = signal(false);
 toggleVideoPreview() {
   this.isVideoPreviewVisible.update(v => !v);
 }
+
+  // [NEW] Video Upload Handlers for R2 Storage
+  onVideoUploaded(result: VideoUploadResult) {
+    console.log('Video uploaded to R2:', result);
+    // Set the public URL from R2 as the video URL
+    this.sectionVideoUrl = result.publicUrl;
+    // Update preview
+    this.updateVideoPreview(result.publicUrl);
+    // Show preview automatically
+    this.isVideoPreviewVisible.set(true);
+  }
+
+  onVideoRemoved() {
+    console.log('Video removed');
+    this.sectionVideoUrl = '';
+    this.safeVideoUrl.set(null);
+    this.isVideoPreviewVisible.set(false);
+  }
 
   getYouTubeEmbedUrl(): SafeResourceUrl {
     const videoId = this.extractYouTubeId(this.lessonVideoUrl);

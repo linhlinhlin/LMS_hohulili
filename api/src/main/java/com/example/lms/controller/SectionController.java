@@ -17,6 +17,18 @@ import java.util.List;
 public class SectionController {
 
     private final SectionService sectionService;
+    
+    // Update video metadata for a Section (e.g., after uploading to R2)
+    @PatchMapping("/{sectionId}/video")
+    public ResponseEntity<Section> updateSectionVideo(
+            @PathVariable UUID sectionId,
+            @RequestParam(value = "videoType", required = false) String videoType,
+            @RequestParam(value = "videoUrl", required = false) String videoUrl,
+            @RequestParam(value = "cfObjectKey", required = false) String cfObjectKey
+    ) {
+        Section s = sectionService.updateSectionVideo(sectionId, videoType, videoUrl, cfObjectKey);
+        return ResponseEntity.ok(s);
+    }
 
     // API Đa năng: Tạo Section bới hỗ trợ Upload File
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

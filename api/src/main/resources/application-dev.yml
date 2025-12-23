@@ -36,3 +36,14 @@ logging:
 server:
   port: 8088
 
+# Cloudflare R2 Storage - PRODUCTION CREDENTIALS
+app:
+  r2:
+    enabled: true
+    account-id: 829c7bae5350f178db459b850395764f
+    access-key-id: e3c1ac7ccc5c1b7024c24a272f6a82ab
+    secret-access-key: 66580bd7a18dd4f811a41c77507dee52caca2ee2a1a25b1d0c24976319a992cb
+    bucket: lms-videos
+    endpoint: https://829c7bae5350f178db459b850395764f.r2.cloudflarestorage.com
+    public-base-url: https://pub-a9b1e20e911c45f69a1008c8a993fe7d.r2.dev
+    presign-ttl-seconds: 900

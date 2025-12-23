@@ -468,15 +468,16 @@
               // Match exact left padding of lesson-item (0.5rem)
               padding: 0.35rem 0.5rem 0.35rem 0.5rem !important;
               border: none;
-              background: transparent;
+                margin-top: 3.5rem; // Đảm bảo luôn cách xa đáy trang, không đè lên nội dung cuối
               text-align: left;
               cursor: pointer;
               display: flex;
               align-items: center;
               transition: all 0.1s;
               font-size: 0.8rem;
-              color: #4b5563;
-              border-left: 2px solid transparent; // Maintain border for active state alignment
+                position: static !important; /* Không sticky/absolute */
+                z-index: auto;
+                clear: both; /* Bảo đảm xuống dưới tất cả nội dung nổi */
               margin: 0 !important;
 
               // Ensure box model doesn't add unexpected space
@@ -492,6 +493,33 @@
                 color: #1e40af;
                 font-weight: 500;
                 border-left-color: #2563eb;
+              }
+
+              // Completed section styling
+              &.completed {
+                background: #f0fdf4;
+                color: #16a34a;
+                
+                .section-status-icon.completed {
+                  color: #16a34a;
+                }
+                
+                .section-title {
+                  text-decoration: line-through;
+                  opacity: 0.8;
+                }
+              }
+
+              .section-status-icon {
+                width: 16px;
+                height: 16px;
+                margin-right: 8px;
+                flex-shrink: 0;
+                color: #9ca3af;
+                
+                &.completed {
+                  color: #16a34a;
+                }
               }
 
               .section-icon {
@@ -719,12 +747,16 @@
     .lesson-navigation {
       padding: 1rem 1.5rem; // Reduced from 1.5rem 2rem
       margin-top: 1.5rem; // Reduced from 2rem
+      margin-bottom: 3rem; // Tạo khoảng cách an toàn với đáy trang
       border-top: 1px solid #e5e7eb;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 1rem;
       background: white;
+      position: static !important; // Không sticky/absolute
+      z-index: auto;
+      clear: both; // Đảm bảo không đè lên nội dung nổi
 
       .nav-btn {
         padding: 0.5rem 1.25rem; // Reduced from 0.75rem 1.5rem
@@ -872,6 +904,9 @@
       .lesson-navigation {
         flex-wrap: wrap;
         padding: 0.625rem 0.75rem;
+        position: static !important;
+        clear: both;
+        z-index: auto;
 
         .nav-btn,
         .btn-complete {
