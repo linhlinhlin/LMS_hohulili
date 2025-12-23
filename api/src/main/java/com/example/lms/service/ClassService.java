@@ -34,6 +34,16 @@ public class ClassService {
     }
 
     @Transactional(readOnly = true)
+    public List<com.example.lms.dto.ClassSummaryDTO> getOpenClassSummaries(UUID courseId) {
+        return classRepository.findSummariesByCourseIdAndStatus(courseId, LearningClass.ClassStatus.OPEN);
+    }
+
+    @Transactional(readOnly = true)
+    public List<com.example.lms.dto.ClassSummaryDTO> getAllClassSummaries(UUID courseId) {
+        return classRepository.findAllSummariesByCourseId(courseId);
+    }
+
+    @Transactional(readOnly = true)
     public org.springframework.data.domain.Page<com.example.lms.dto.ClassSummaryDTO> getClassesWithFilter(
             UUID courseId, String search, LearningClass.ClassStatus status, String semester, org.springframework.data.domain.Pageable pageable) {
         

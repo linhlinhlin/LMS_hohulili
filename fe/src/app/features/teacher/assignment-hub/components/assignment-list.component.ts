@@ -217,23 +217,27 @@ type FilterType = 'ALL' | 'NEEDS_GRADING' | 'GRADED' | 'DRAFT';
                   </div>
 
                   <!-- Actions -->
-                  <div class="flex items-center gap-2 mt-4 pt-4 border-t" (click)="$event.stopPropagation()">
+                  <div class="flex items-center gap-2 mt-4 pt-4 border-t">
                     <a [routerLink]="[assignment.id, 'overview']" 
+                       (click)="$event.stopPropagation()"
                        class="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50 transition-colors">
                       Xem chi tiết
                     </a>
                     <a [routerLink]="[assignment.id, 'submissions']"
+                       (click)="$event.stopPropagation()"
                        class="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50 transition-colors">
                       Xem bài nộp
                     </a>
                     
                     <a [routerLink]="[assignment.id, 'settings']"
+                       (click)="$event.stopPropagation()"
                        class="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50 transition-colors">
                       Chỉnh sửa
                     </a>
 
                     @if (assignment.pendingCount && assignment.pendingCount > 0) {
                       <a [routerLink]="[assignment.id, 'submissions']" [queryParams]="{filter: 'PENDING'}"
+                         (click)="$event.stopPropagation()"
                          class="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
                         Chấm điểm →
                       </a>

@@ -20,6 +20,7 @@ export interface CreateAssignmentRequest {
   }[];
   classId?: string;
   status?: AssignmentStatus;
+  studentIds?: string[]; // IDs of specific students if creating for specific students
   assignmentConfig?: Record<string, any>;
 }
 
@@ -31,6 +32,8 @@ export interface UpdateAssignmentRequest {
   maxScore?: number;
   classId?: string;
   status?: AssignmentStatus;
+  studentIds?: string[]; // IDs for specific student allocation
+  distributionType?: 'CLASS' | 'SPECIFIC_STUDENTS' | 'ALL_STUDENTS';
   assignmentConfig?: Record<string, any>;
 }
 
@@ -61,6 +64,8 @@ export interface AssignmentDetail {
   totalStudents: number;
   classId?: string;
   className?: string;
+  allocatedStudentIds?: string[];
+  distributionType?: 'CLASS' | 'SPECIFIC_STUDENTS' | 'ALL_STUDENTS';
   createdAt: string;
   updatedAt?: string;
   maxScore?: number;

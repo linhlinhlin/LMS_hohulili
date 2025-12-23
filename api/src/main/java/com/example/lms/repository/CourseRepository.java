@@ -116,14 +116,16 @@ public interface CourseRepository extends JpaRepository<Course, UUID> {
     
     /**
      * Find all enrolled students in a course with pagination
+     * Optimized: Query from User side to avoid lazy loading Course.enrolledStudents
      */
-    @Query("SELECT es FROM Course c JOIN c.enrolledStudents es WHERE c.id = :courseId ORDER BY es.fullName ASC")
+    @Query("SELECT u FROM User u JOIN u.enrolledCourses c WHERE c.id = :courseId ORDER BY u.fullName ASC")
     Page<User> findEnrolledStudents(@Param("courseId") UUID courseId, Pageable pageable);
     
     /**
      * Find enrolled students by search term (fullName or email)
+     * Optimized: Query from User side
      */
-    @Query("SELECT es FROM Course c JOIN c.enrolledStudents es WHERE c.id = :courseId AND (LOWER(es.fullName) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(es.email) LIKE LOWER(CONCAT('%', :search, '%'))) ORDER BY es.fullName ASC")
+    @Query("SELECT u FROM User u JOIN u.enrolledCourses c WHERE c.id = :courseId AND (LOWER(u.fullName) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%'))) ORDER BY u.fullName ASC")
     Page<User> searchEnrolledStudents(@Param("courseId") UUID courseId, @Param("search") String search, Pageable pageable);
 
     /**
@@ -204,4 +206,23 @@ public interface CourseRepository extends JpaRepository<Course, UUID> {
      */
     @Query("SELECT tag FROM Course c JOIN c.tags tag WHERE c.id = :courseId")
     Set<String> findTagsByCourseId(@Param("courseId") UUID courseId);
+
+    /**
+     * SOTA: DTO Projection for enrolled students.
+     * Avoids fetching full User entities and lazy loading issues.
+     */
+    @Query("SELECT new com.example.lms.dto.StudentSummaryDTO(" +
+           "u.id, u.fullName, u.email, u.createdAt, null, null) " +
+           "FROM User u JOIN u.enrolledCourses c " +
+           "WHERE c.id = :courseId " +
+           "ORDER BY u.fullName ASC")
+    Page<com.example.lms.dto.StudentSummaryDTO> findCourseStudentSummaries(@Param("courseId") UUID courseId, Pageable pageable);
+
+    @Query("SELECT new com.example.lms.dto.StudentSummaryDTO(" +
+           "u.id, u.fullName, u.email, u.createdAt, null, null) " +
+           "FROM User u JOIN u.enrolledCourses c " +
+           "WHERE c.id = :courseId " +
+           "AND (LOWER(u.fullName) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+           "ORDER BY u.fullName ASC")
+    Page<com.example.lms.dto.StudentSummaryDTO> searchCourseStudentSummaries(@Param("courseId") UUID courseId, @Param("search") String search, Pageable pageable);
 }

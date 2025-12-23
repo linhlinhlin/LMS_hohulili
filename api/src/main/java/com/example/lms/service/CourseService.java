@@ -431,4 +431,14 @@ public class CourseService {
         }
         return userRepository.findStudentsNotEnrolledInCourse(courseId, pageable);
     }
+
+    /**
+     * Get course students as DTOs to avoid LazyInitializationException
+     */
+    public Page<com.example.lms.dto.StudentSummaryDTO> getCourseStudentSummaries(UUID courseId, Pageable pageable, String search) {
+        if (search != null && !search.trim().isEmpty()) {
+            return courseRepository.searchCourseStudentSummaries(courseId, search.trim(), pageable);
+        }
+        return courseRepository.findCourseStudentSummaries(courseId, pageable);
+    }
 }

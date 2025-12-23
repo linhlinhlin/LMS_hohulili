@@ -2,8 +2,7 @@ import { Component, ChangeDetectionStrategy, ViewEncapsulation, input, inject, s
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
-import { AssignmentApi } from '../../../api/client/assignment.api';
-import { AssignmentDetail, SubmissionSummary } from '../../../api/client/assignment.api';
+import { AssignmentApi, AssignmentDetail, SubmissionSummary } from '../../../api/client/assignment.api';
 
 @Component({
   selector: 'app-assignment-detail',
@@ -25,6 +24,7 @@ import { AssignmentDetail, SubmissionSummary } from '../../../api/client/assignm
                 class="px-2 py-1 rounded text-xs font-medium">
                 {{ getStatusText(assignment()?.status) }}
               </span></div>
+              <div>Phân phối: <span class="font-medium">{{ getDistributionText(assignment()) }}</span></div>
             </div>
           </div>
           <div class="flex items-center space-x-3">
@@ -309,7 +309,6 @@ export class AssignmentDetailComponent implements OnInit {
 
   gradeSubmission(submissionId: string) {
     // Navigate to grading interface
-    // this.router.navigate(['/teacher/assignments', this.assignmentId(), 'submissions', submissionId, 'grade']);
   }
 
   exportSubmissions() {
@@ -384,5 +383,16 @@ export class AssignmentDetailComponent implements OnInit {
       case 'late': return 'Nộp muộn';
       default: return 'Không xác định';
     }
+  }
+
+  getDistributionText(assignment: AssignmentDetail | null): string {
+    if (!assignment) return '';
+    if (assignment.distributionType === 'SPECIFIC_STUDENTS') {
+      return `${assignment.allocatedStudentIds?.length || 0} học viên được chỉ định`;
+    }
+    if (assignment.distributionType === 'CLASS') {
+      return 'Cả lớp ' + (assignment.className || '');
+    }
+    return 'Tất cả học viên';
   }
 }

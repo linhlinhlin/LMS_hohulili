@@ -5,8 +5,17 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { AssignmentDetail, UpdateAssignmentRequest } from '../../../api/client/assignment.api';
 import { AssignmentStateService } from './services/assignment-state.service';
 import { validateMaxScore } from './utils/assignment-validators';
+import { DistributionSelectorComponent, DistributionSettings } from '../assignment-hub/components/distribution-selector.component';
+import { CourseApi } from '../../../api/client/course.api';
 
 type AssignmentStatus = 'pending' | 'published' | 'closed' | 'DRAFT' | 'PUBLISHED' | 'CLOSED';
+
+interface EnrolledStudentData {
+  id: string;
+  name: string;
+  email: string;
+  enrolledAt: string;
+}
 
 /**
  * Assignment Editor Component
@@ -18,7 +27,7 @@ type AssignmentStatus = 'pending' | 'published' | 'closed' | 'DRAFT' | 'PUBLISHE
  */
 @Component({
   selector: 'app-assignment-editor',
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterModule, DistributionSelectorComponent],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="max-w-3xl mx-auto p-6 space-y-6">
@@ -157,6 +166,27 @@ type AssignmentStatus = 'pending' | 'published' | 'closed' | 'DRAFT' | 'PUBLISHE
             </div>
           </div>
 
+          <!-- Distribution Section -->
+          <div class="p-6 space-y-5 border-b">
+            <h2 class="text-lg font-semibold text-gray-900">Phân phối học viên</h2>
+            
+            @if (loadingStudents()) {
+              <div class="p-8 text-center text-gray-500">
+                <div class="inline-block animate-spin rounded-full h-6 w-6 border-2 border-indigo-500 border-t-transparent mb-2"></div>
+                <p class="text-sm">Đang tải danh sách học viên...</p>
+              </div>
+            } @else {
+              <app-distribution-selector
+                [courseId]="assignment()?.courseId || ''"
+                [enrolledStudents]="enrolledStudents"
+                [initialDistributionType]="distributionSettings()?.distributionType || 'ALL_STUDENTS'"
+                [initialStudentIds]="distributionSettings()?.studentIds || []"
+                [initialClassId]="distributionSettings()?.classId ?? null"
+                (distributionChange)="onDistributionChange($event)"
+              ></app-distribution-selector>
+            }
+          </div>
+
           <!-- Metadata Section -->
           <div class="p-6 space-y-3 border-b bg-gray-50">
             <h3 class="text-sm font-medium text-gray-700">Thông tin bổ sung</h3>
@@ -209,7 +239,7 @@ type AssignmentStatus = 'pending' | 'published' | 'closed' | 'DRAFT' | 'PUBLISHE
               </button>
               <button 
                 type="submit" 
-                [disabled]="form.invalid || saving() || !hasChanges()" 
+                [disabled]="form.invalid || saving() // || !hasChanges() allow saving if only distribution changed" 
                 class="px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                 @if (saving()) {
                   <span class="flex items-center gap-2">
@@ -263,6 +293,7 @@ type AssignmentStatus = 'pending' | 'published' | 'closed' | 'DRAFT' | 'PUBLISHE
 })
 export class AssignmentEditorComponent implements OnInit {
   private assignmentState = inject(AssignmentStateService);
+  private courseApi = inject(CourseApi);
   private fb = inject(FormBuilder);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -280,8 +311,14 @@ export class AssignmentEditorComponent implements OnInit {
   success = signal('');
   showDeleteConfirm = signal(false);
 
+  // Distribution state
+  enrolledStudents = signal<EnrolledStudentData[]>([]);
+  loadingStudents = signal(false);
+  distributionSettings = signal<DistributionSettings | null>(null);
+
   // Original values for change detection
   private originalValues = signal<Record<string, unknown>>({});
+  private originalDistributionSettings = signal<DistributionSettings | null>(null);
 
   // Reactive form
   form = this.fb.group({
@@ -295,9 +332,18 @@ export class AssignmentEditorComponent implements OnInit {
 
   // Computed: Check if form has changes
   hasChanges = computed(() => {
-    const current = this.form.getRawValue();
-    const original = this.originalValues();
-    return JSON.stringify(current) !== JSON.stringify(original);
+    const currentForm = this.form.getRawValue();
+    const originalForm = this.originalValues();
+    const formChanged = JSON.stringify(currentForm) !== JSON.stringify(originalForm);
+
+    const currentDist = this.distributionSettings();
+    const originalDist = this.originalDistributionSettings();
+    const distChanged = JSON.stringify(currentDist) !== JSON.stringify(originalDist);
+
+    const result = formChanged || distChanged;
+    console.log('hasChanges check:', { formChanged, distChanged, result });
+    
+    return result;
   });
 
   ngOnInit(): void {
@@ -325,6 +371,7 @@ export class AssignmentEditorComponent implements OnInit {
         if (assignment) {
           this.assignment.set(assignment);
           this.populateForm(assignment);
+          this.loadEnrolledStudents(assignment.courseId);
         } else {
           this.error.set('Không tìm thấy bài tập');
         }
@@ -364,6 +411,15 @@ export class AssignmentEditorComponent implements OnInit {
 
     this.form.patchValue(values);
     this.originalValues.set(values);
+
+    // Set distribution settings
+    const distSettings: DistributionSettings = {
+      distributionType: (assignment.distributionType as 'CLASS' | 'SPECIFIC_STUDENTS' | 'ALL_STUDENTS') || 'ALL_STUDENTS',
+      studentIds: assignment.allocatedStudentIds || [],
+      classId: assignment.classId || null
+    };
+    this.distributionSettings.set(distSettings);
+    this.originalDistributionSettings.set(distSettings);
   }
 
   /**
@@ -385,7 +441,12 @@ export class AssignmentEditorComponent implements OnInit {
    * Handles form submission
    */
   onSubmit(): void {
-    if (this.form.invalid || !this.hasChanges()) {
+    console.log('onSubmit called');
+    console.log('Form valid:', this.form.valid);
+    console.log('Has changes:', this.hasChanges());
+    
+    if (this.form.invalid) {
+      console.log('Form invalid, returning');
       return;
     }
 
@@ -393,6 +454,7 @@ export class AssignmentEditorComponent implements OnInit {
     this.success.set('');
 
     const formValue = this.form.getRawValue();
+    console.log('Form value:', formValue);
 
     // Validate maxScore
     if (formValue.maxScore) {
@@ -417,24 +479,35 @@ export class AssignmentEditorComponent implements OnInit {
 
     this.saving.set(true);
 
+    const distSettings = this.distributionSettings();
+    console.log('Distribution settings:', distSettings);
+
     const request: UpdateAssignmentRequest = {
       title: formValue.title || undefined,
       description: formValue.description || undefined,
       instructions: formValue.instructions || undefined,
       dueDate: dueDateInstant,
       maxScore: formValue.maxScore || undefined,
-      status: formValue.status || undefined
+      status: formValue.status || undefined,
+      studentIds: distSettings?.distributionType === 'SPECIFIC_STUDENTS' ? distSettings.studentIds || [] : undefined,
+      distributionType: distSettings?.distributionType
     };
+
+    console.log('Update request:', request);
+    console.log('Assignment ID:', this.assignmentId);
 
     this.assignmentState.updateAssignment(this.assignmentId, request).subscribe({
       next: (result: unknown) => {
+        console.log('Update result:', result);
         if (result) {
           this.success.set('Đã lưu thay đổi!');
           // Update original values
           this.originalValues.set(this.form.getRawValue());
+          this.originalDistributionSettings.set(this.distributionSettings());
           // Clear success after 3 seconds
           setTimeout(() => this.success.set(''), 3000);
         } else {
+          console.error('Update failed:', this.assignmentState.error());
           this.formError.set(this.assignmentState.error() || 'Cập nhật thất bại');
         }
       },
@@ -443,6 +516,7 @@ export class AssignmentEditorComponent implements OnInit {
         this.formError.set('Cập nhật bài tập thất bại');
       },
       complete: () => {
+        console.log('Update complete');
         this.saving.set(false);
       }
     });
@@ -520,5 +594,40 @@ export class AssignmentEditorComponent implements OnInit {
       'closed': 'bg-gray-200 text-gray-800'
     };
     return classes[status || ''] || 'bg-gray-100 text-gray-800';
+  }
+
+  /**
+   * Loads enrolled students for the course
+   */
+  private loadEnrolledStudents(courseId: string): void {
+    if (!courseId) return;
+
+    this.loadingStudents.set(true);
+    this.courseApi.getEnrolledStudents(courseId).subscribe({
+      next: (response: { data?: any[] }) => {
+        if (response.data) {
+          const students: EnrolledStudentData[] = response.data.map(s => ({
+            id: s.id,
+            name: s.fullName || s.name || 'Unknown',
+            email: s.email || '',
+            enrolledAt: s.enrolledAt || new Date().toISOString()
+          }));
+          this.enrolledStudents.set(students);
+        }
+      },
+      error: (err: unknown) => {
+        console.error('Error loading enrolled students:', err);
+        this.enrolledStudents.set([]);
+      },
+      complete: () => {
+        this.loadingStudents.set(false);
+      }
+    });
+  }
+
+  // Distribution handlers
+  onDistributionChange(settings: DistributionSettings): void {
+    this.distributionSettings.set(settings);
+    // You might want to update form validity or touched state here if needed
   }
 }

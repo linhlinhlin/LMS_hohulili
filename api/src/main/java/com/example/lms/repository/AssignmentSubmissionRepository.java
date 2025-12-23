@@ -6,6 +6,7 @@ import com.example.lms.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -18,5 +19,6 @@ public interface AssignmentSubmissionRepository extends JpaRepository<Assignment
     
     Optional<AssignmentSubmission> findByAssignmentAndStudent(Assignment assignment, User student);
     
+    @EntityGraph(attributePaths = {"student", "assignment"})
     Page<AssignmentSubmission> findByAssignment(Assignment assignment, Pageable pageable);
 }

@@ -16,6 +16,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -34,6 +35,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
+@Slf4j
 @Tag(name = "Assignment Management", description = "API quản lý bài tập và nộp bài")
 @SecurityRequirement(name = "Bearer Authentication")
 public class AssignmentController {
@@ -96,8 +98,13 @@ public class AssignmentController {
             
             return ResponseEntity.ok(ApiResponse.success(assignmentDetail));
         } catch (RuntimeException e) {
+            log.error("Error retrieving assignment " + assignmentId, e);
+            if (e.getMessage().contains("không có quyền")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(ApiResponse.error(e.getMessage()));
+            }
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(ApiResponse.error("Không tìm thấy bài tập"));
+                    .body(ApiResponse.error(e.getMessage()));
         }
     }
 
@@ -278,12 +285,23 @@ public class AssignmentController {
     }
 
     private AssignmentDetail convertToAssignmentDetail(Assignment assignment) {
-        // Get allocated students count from AllocationService (query trực tiếp từ DB)
+        // Get allocation stats and details
         AllocationService.AllocationStats allocationStats = allocationService.getAllocationStatsForAssignment(
             assignment.getId(), 
             assignment.getCourse().getId()
         );
         int totalStudents = allocationStats.totalAllocated();
+
+        // Get detailed allocation info for edit form
+        List<UUID> allocatedStudentIds = new java.util.ArrayList<>();
+        String distributionType = allocationStats.distributionType();
+
+        com.example.lms.entity.AssignmentAllocation allocation = assignment.getAllocation();
+        if (allocation != null && allocation.getDistributionType() == com.example.lms.entity.AssignmentAllocation.DistributionType.SPECIFIC_STUDENTS) {
+            allocatedStudentIds = allocation.getAllocatedStudents().stream()
+                    .map(as -> as.getStudent().getId())
+                    .toList();
+        }
         
         return AssignmentDetail.builder()
                 .id(assignment.getId())
@@ -299,6 +317,8 @@ public class AssignmentController {
                 .totalStudents(totalStudents)
                 .classId(allocationStats.distributionType().equals("CLASS") && assignment.getAllocation() != null && assignment.getAllocation().getLearningClass() != null ? assignment.getAllocation().getLearningClass().getId() : null)
                 .className(allocationStats.distributionType().equals("CLASS") && assignment.getAllocation() != null && assignment.getAllocation().getLearningClass() != null ? assignment.getAllocation().getLearningClass().getName() : null)
+                .allocatedStudentIds(allocatedStudentIds)
+                .distributionType(distributionType)
                 .assignmentConfig(assignment.getAssignmentConfig())
                 .createdAt(assignment.getCreatedAt())
                 .updatedAt(assignment.getUpdatedAt())
@@ -575,6 +595,8 @@ public class AssignmentController {
         private int totalStudents;
         private UUID classId;
         private String className;
+        private List<UUID> allocatedStudentIds;
+        private String distributionType;
         private Object assignmentConfig;
         private Instant createdAt;
         private Instant updatedAt;
@@ -596,6 +618,8 @@ public class AssignmentController {
             private int totalStudents;
             private UUID classId;
             private String className;
+            private List<UUID> allocatedStudentIds;
+            private String distributionType;
             private Object assignmentConfig;
             private Instant createdAt;
             private Instant updatedAt;
@@ -612,6 +636,8 @@ public class AssignmentController {
             public AssignmentDetailBuilder totalStudents(int totalStudents) { this.totalStudents = totalStudents; return this; }
             public AssignmentDetailBuilder classId(UUID classId) { this.classId = classId; return this; }
             public AssignmentDetailBuilder className(String className) { this.className = className; return this; }
+            public AssignmentDetailBuilder allocatedStudentIds(List<UUID> allocatedStudentIds) { this.allocatedStudentIds = allocatedStudentIds; return this; }
+            public AssignmentDetailBuilder distributionType(String distributionType) { this.distributionType = distributionType; return this; }
             public AssignmentDetailBuilder assignmentConfig(Object assignmentConfig) { this.assignmentConfig = assignmentConfig; return this; }
             public AssignmentDetailBuilder createdAt(Instant createdAt) { this.createdAt = createdAt; return this; }
             public AssignmentDetailBuilder updatedAt(Instant updatedAt) { this.updatedAt = updatedAt; return this; }
@@ -630,6 +656,8 @@ public class AssignmentController {
                 assignment.totalStudents = this.totalStudents;
                 assignment.classId = this.classId;
                 assignment.className = this.className;
+                assignment.allocatedStudentIds = this.allocatedStudentIds;
+                assignment.distributionType = this.distributionType;
                 assignment.assignmentConfig = this.assignmentConfig;
                 assignment.createdAt = this.createdAt;
                 assignment.updatedAt = this.updatedAt;
@@ -650,6 +678,8 @@ public class AssignmentController {
         public int getTotalStudents() { return totalStudents; }
         public UUID getClassId() { return classId; }
         public String getClassName() { return className; }
+        public List<UUID> getAllocatedStudentIds() { return allocatedStudentIds; }
+        public String getDistributionType() { return distributionType; }
         public Object getAssignmentConfig() { return assignmentConfig; }
         public Instant getCreatedAt() { return createdAt; }
         public Instant getUpdatedAt() { return updatedAt; }
@@ -809,6 +839,7 @@ public class AssignmentController {
         private List<AttachmentRequest> attachments;
 
         private UUID classId;
+        private List<UUID> studentIds; // Added for specific student allocation
         private String status;
 
         // Getters and Setters
@@ -829,6 +860,8 @@ public class AssignmentController {
         public void setAttachments(List<AttachmentRequest> attachments) { this.attachments = attachments; }
         public UUID getClassId() { return classId; }
         public void setClassId(UUID classId) { this.classId = classId; }
+        public List<UUID> getStudentIds() { return studentIds; }
+        public void setStudentIds(List<UUID> studentIds) { this.studentIds = studentIds; }
         public String getStatus() { return status; }
         public void setStatus(String status) { this.status = status; }
 
@@ -861,6 +894,8 @@ public class AssignmentController {
         private Instant dueDate;
         private String assignmentConfig; // JSON string for assignment configuration
         private UUID classId;
+        private List<UUID> studentIds;
+        private String distributionType; // "CLASS", "SPECIFIC_STUDENTS", "ALL_STUDENTS"
         private String status;
 
         // Getters and Setters
@@ -880,6 +915,10 @@ public class AssignmentController {
         public void setAssignmentConfig(String assignmentConfig) { this.assignmentConfig = assignmentConfig; }
         public UUID getClassId() { return classId; }
         public void setClassId(UUID classId) { this.classId = classId; }
+        public List<UUID> getStudentIds() { return studentIds; }
+        public void setStudentIds(List<UUID> studentIds) { this.studentIds = studentIds; }
+        public String getDistributionType() { return distributionType; }
+        public void setDistributionType(String distributionType) { this.distributionType = distributionType; }
     }
 
     public static class CreateSubmissionRequest {

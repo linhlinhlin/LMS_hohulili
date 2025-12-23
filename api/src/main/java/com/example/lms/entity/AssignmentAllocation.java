@@ -52,7 +52,7 @@ public class AssignmentAllocation {
     public enum DistributionType {
         ALL_STUDENTS,
         SPECIFIC_STUDENTS,
-        CLASS
+        CLASS // Class distribution
     }
 
     public AssignmentAllocation() {}

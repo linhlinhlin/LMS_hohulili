@@ -73,12 +73,17 @@ public class AssignmentService {
 
         Assignment saved = assignmentRepository.save(assignment);
 
-        // If classId is provided, create an allocation automatically
-        if (request.getClassId() != null) {
+        // If classId or studentIds provided, create an allocation automatically
+        if (request.getClassId() != null || (request.getStudentIds() != null && !request.getStudentIds().isEmpty())) {
+            com.example.lms.entity.AssignmentAllocation.DistributionType type = 
+                request.getClassId() != null 
+                    ? com.example.lms.entity.AssignmentAllocation.DistributionType.CLASS 
+                    : com.example.lms.entity.AssignmentAllocation.DistributionType.SPECIFIC_STUDENTS;
+            
             allocationService.createOrUpdateAllocation(
                 saved.getId(),
-                com.example.lms.entity.AssignmentAllocation.DistributionType.CLASS,
-                null,
+                type,
+                request.getStudentIds(),
                 request.getClassId(),
                 currentUser,
                 false
@@ -89,8 +94,8 @@ public class AssignmentService {
     }
 
     public Assignment updateAssignment(UUID assignmentId, User currentUser, com.example.lms.controller.AssignmentController.UpdateAssignmentRequest request) {
-        // Use findQueryById to ensure we get the entity regardless of previous proxy/cache states
-        Assignment assignment = assignmentRepository.findQueryById(assignmentId)
+        // Use findById to ensure we get the entity
+        Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài tập với ID: " + assignmentId));
         
         if (!assignment.getCourse().getTeacher().getId().equals(currentUser.getId())) {
@@ -115,6 +120,48 @@ public class AssignmentService {
             assignment.setAssignmentConfig((java.util.Map<String, Object>) validateAndCoerceAssignmentConfig(request.getAssignmentConfig()));
         }
 
+
+        
+        // Handle allocation updates
+        // Note: allocationService.createOrUpdateAllocation handles logic for different types
+        com.example.lms.entity.AssignmentAllocation.DistributionType distributionType = null;
+        if (request.getDistributionType() != null) {
+            try {
+                distributionType = com.example.lms.entity.AssignmentAllocation.DistributionType.valueOf(request.getDistributionType());
+            } catch (IllegalArgumentException e) {
+                // Ignore invalid
+            }
+        }
+        
+        // If specific student IDs provided OR class ID provided OR explicit distribution type change
+        if (request.getStudentIds() != null || request.getClassId() != null || distributionType != null) {
+            
+            // Determine effective distribution type
+            if (distributionType == null) {
+                // Infer from inputs if not explicitly set
+                if (request.getClassId() != null) {
+                    distributionType = com.example.lms.entity.AssignmentAllocation.DistributionType.CLASS;
+                } else if (request.getStudentIds() != null && !request.getStudentIds().isEmpty()) {
+                    distributionType = com.example.lms.entity.AssignmentAllocation.DistributionType.SPECIFIC_STUDENTS;
+                } else {
+                     // Get existing to default? Or default to ALL if nothing else matches? 
+                     // For now, if user sends studentIds=[], we might mean SPECIFIC_STUDENTS with empty list (remove all). 
+                     // Let's rely on standard logic: if studentIds provided explicitly (even empty), treat as update.
+                }
+            }
+            
+            if (distributionType != null) {
+                 allocationService.createOrUpdateAllocation(
+                    assignment.getId(),
+                    distributionType,
+                    request.getStudentIds(),
+                    request.getClassId(),
+                    currentUser,
+                    false
+                );
+            }
+        }
+
         if (request.getStatus() != null) {
             log.info("Updating assignment status to: {}", request.getStatus());
             try {
@@ -129,7 +176,7 @@ public class AssignmentService {
     }
 
     public Assignment publishAssignment(UUID assignmentId, User currentUser) {
-        Assignment assignment = assignmentRepository.findQueryById(assignmentId)
+        Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài tập với ID: " + assignmentId));
         
         if (!assignment.getCourse().getTeacher().getId().equals(currentUser.getId())) {
@@ -141,7 +188,7 @@ public class AssignmentService {
     }
 
     public void deleteAssignment(UUID assignmentId, User currentUser) {
-        Assignment assignment = assignmentRepository.findQueryById(assignmentId)
+        Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài tập với ID: " + assignmentId));
         
         if (!assignment.getCourse().getTeacher().getId().equals(currentUser.getId())) {
@@ -157,14 +204,36 @@ public class AssignmentService {
     }
 
     public Assignment getAssignmentById(UUID assignmentId, User currentUser) {
-        Assignment assignment = assignmentRepository.findQueryById(assignmentId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy bài tập với ID: " + assignmentId));
+        log.info("Fetching assignment {} for user {}", assignmentId, currentUser.getId());
+        Assignment assignment = assignmentRepository.findById(assignmentId)
+                .orElseThrow(() -> {
+                    log.error("Assignment {} not found in repository", assignmentId);
+                    return new RuntimeException("Không tìm thấy bài tập với ID: " + assignmentId);
+                });
         
+        // Ensure lazy loaded data is available
+        org.hibernate.Hibernate.initialize(assignment.getCourse());
+        org.hibernate.Hibernate.initialize(assignment.getCourse().getTeacher());
+        org.hibernate.Hibernate.initialize(assignment.getSubmissions());
+        org.hibernate.Hibernate.initialize(assignment.getAllocations());
+        if (assignment.getAllocations() != null) {
+            for (com.example.lms.entity.AssignmentAllocation allocation : assignment.getAllocations()) {
+                org.hibernate.Hibernate.initialize(allocation.getAllocatedStudents());
+                if (allocation.getLearningClass() != null) {
+                     org.hibernate.Hibernate.initialize(allocation.getLearningClass());
+                }
+            }
+        }
+
         Course course = assignment.getCourse();
+        log.info("Checking access for assignment {}. Course: {}, Teacher: {}, Current User: {}", 
+                assignmentId, course.getId(), course.getTeacher().getId(), currentUser.getId());
+
         boolean hasAccess = course.getTeacher().getId().equals(currentUser.getId()) ||
-                          course.getEnrolledStudents().contains(currentUser);
+                          courseRepository.existsByEnrolledStudentAndCourse(currentUser.getId(), course.getId());
         
         if (!hasAccess) {
+            log.error("User {} denied access to assignment {}", currentUser.getId(), assignmentId);
             throw new RuntimeException("Bạn không có quyền truy cập bài tập này");
         }
 
@@ -176,7 +245,7 @@ public class AssignmentService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học với ID: " + courseId));
         
         boolean hasAccess = course.getTeacher().getId().equals(currentUser.getId()) ||
-                          course.getEnrolledStudents().contains(currentUser);
+                          courseRepository.existsByEnrolledStudentAndCourse(currentUser.getId(), courseId);
         
         if (!hasAccess) {
             throw new RuntimeException("Bạn không có quyền truy cập các bài tập của khóa học này");
@@ -219,7 +288,8 @@ public class AssignmentService {
         
         Course course = assignment.getCourse();
         // Here we just check enrollment, but for visibility we'll check status in AllocationService
-        if (!course.getEnrolledStudents().contains(currentUser)) {
+        // Efficient check for enrollment
+        if (!courseRepository.existsByEnrolledStudentAndCourse(currentUser.getId(), course.getId())) {
             throw new RuntimeException("Bạn chưa đăng ký khóa học này");
         }
 

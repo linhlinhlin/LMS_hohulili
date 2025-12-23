@@ -467,6 +467,7 @@ export class AssignmentCreationComponent implements OnInit {
         fileUrl: file.url || ''
       })),
       classId: settings.distributionType === 'CLASS' ? (settings.classId || undefined) : undefined,
+      studentIds: settings.distributionType === 'SPECIFIC_STUDENTS' ? (settings.studentIds || []) : undefined,
       status: formValue.isDraft ? 'DRAFT' : 'PUBLISHED',
       assignmentConfig: {
         allowLateSubmission: formValue.allowLateSubmission
@@ -479,12 +480,6 @@ export class AssignmentCreationComponent implements OnInit {
     this.assignmentState.createAssignment(formValue.courseId!, request).subscribe({
       next: (result: any) => {
         if (result) {
-          // Save distribution settings if assignment created successfully
-          const assignmentId = result.id || result.data?.id;
-          if (assignmentId) {
-            this.saveDistributionSettings(assignmentId, formValue.courseId!);
-          }
-
           this.success.set('Tạo bài tập thành công!');
           // Navigate after short delay to show success message
           setTimeout(() => {
@@ -504,30 +499,7 @@ export class AssignmentCreationComponent implements OnInit {
     });
   }
 
-  /**
-   * Saves distribution settings after assignment creation
-   */
-  private saveDistributionSettings(assignmentId: string, courseId: string): void {
-    const settings = this.distributionSettings();
-
-    this.distributionService.createAllocation(
-      assignmentId,
-      courseId,
-      settings.distributionType,
-      settings.studentIds,
-      'current-teacher', // TODO: Get from auth service
-      false,
-      settings.classId
-    ).subscribe({
-      next: () => {
-        console.log('Distribution settings saved successfully');
-      },
-      error: (err: any) => {
-        console.error('Error saving distribution settings:', err);
-        // Don't show error to user since assignment was created successfully
-      }
-    });
-  }
+  // File upload handlers
 
   // File upload handlers
   onFilesUploaded(files: UploadedFile[]): void {
