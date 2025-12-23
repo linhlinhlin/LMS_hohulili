@@ -81,6 +81,34 @@ public interface CourseRepository extends JpaRepository<Course, UUID> {
     Page<Course> findByStatusAndTitleContainingIgnoreCase(Course.CourseStatus status, String title, Pageable pageable);
     
     Page<Course> findByTitleContainingIgnoreCase(String title, Pageable pageable);
+
+    /**
+     * SOTA: Admin query - find all courses with teacher eagerly loaded
+     */
+    @Query(value = "SELECT c FROM Course c LEFT JOIN FETCH c.teacher",
+           countQuery = "SELECT COUNT(c) FROM Course c")
+    Page<Course> findAllWithTeacher(Pageable pageable);
+
+    /**
+     * SOTA: Admin query - find by status with teacher eagerly loaded
+     */
+    @Query(value = "SELECT c FROM Course c LEFT JOIN FETCH c.teacher WHERE c.status = :status",
+           countQuery = "SELECT COUNT(c) FROM Course c WHERE c.status = :status")
+    Page<Course> findByStatusWithTeacher(@Param("status") Course.CourseStatus status, Pageable pageable);
+
+    /**
+     * SOTA: Admin query - find by status and title with teacher eagerly loaded
+     */
+    @Query(value = "SELECT c FROM Course c LEFT JOIN FETCH c.teacher WHERE c.status = :status AND LOWER(c.title) LIKE LOWER(CONCAT('%', :title, '%'))",
+           countQuery = "SELECT COUNT(c) FROM Course c WHERE c.status = :status AND LOWER(c.title) LIKE LOWER(CONCAT('%', :title, '%'))")
+    Page<Course> findByStatusAndTitleWithTeacher(@Param("status") Course.CourseStatus status, @Param("title") String title, Pageable pageable);
+
+    /**
+     * SOTA: Admin query - find by title with teacher eagerly loaded
+     */
+    @Query(value = "SELECT c FROM Course c LEFT JOIN FETCH c.teacher WHERE LOWER(c.title) LIKE LOWER(CONCAT('%', :title, '%'))",
+           countQuery = "SELECT COUNT(c) FROM Course c WHERE LOWER(c.title) LIKE LOWER(CONCAT('%', :title, '%'))")
+    Page<Course> findByTitleWithTeacher(@Param("title") String title, Pageable pageable);
     
     long countByTeacherAndStatusIn(User teacher, List<Course.CourseStatus> statuses);
     

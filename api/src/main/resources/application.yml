@@ -33,6 +33,11 @@ spring:
   flyway:
     enabled: false  # Disable Flyway to avoid migration issues
 
+  # SOTA: Enable case-insensitive enum deserialization
+  jackson:
+    mapper:
+      accept-case-insensitive-enums: true
+
 management:
   endpoints:
     web:
