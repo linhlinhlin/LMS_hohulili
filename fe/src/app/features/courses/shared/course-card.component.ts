@@ -32,10 +32,10 @@ import { StudentEnrollmentService } from '../../../features/student/services/enr
   <p class="text-gray-600 text-sm mb-4 line-clamp-2">{{ course.description }}</p>
 
         <div class="flex items-center mb-4" role="group" [attr.aria-label]="'Thông tin giảng viên'">
-          <img [ngSrc]="course.instructor?.avatar || 'assets/avatar-default.png'" width="96" height="64" [alt]="'Ảnh đại diện giảng viên ' + (course.instructor?.name || '')" class="w-8 h-8 rounded-full mr-3" />
+          <img [ngSrc]="course.instructor.avatar || 'assets/avatar-default.png'" width="96" height="64" [alt]="'Ảnh đại diện giảng viên ' + (course.instructor.name || '')" class="w-8 h-8 rounded-full mr-3" />
           <div>
-            <p class="text-sm font-medium text-gray-900">{{ course.instructor?.name }}</p>
-            <p class="text-xs text-gray-500">{{ course.instructor?.title }}</p>
+            <p class="text-sm font-medium text-gray-900">{{ course.instructor.name }}</p>
+            <p class="text-xs text-gray-500">{{ course.instructor.title }}</p>
           </div>
         </div>
 

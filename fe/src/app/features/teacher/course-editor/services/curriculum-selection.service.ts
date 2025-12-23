@@ -55,4 +55,9 @@ export class CurriculumSelectionService {
         this.selectedSectionId.set(null);
         this.selectedSection.set(null);
     }
+
+    clearSectionSelection() {
+        this.selectedSectionId.set(null);
+        this.selectedSection.set(null);
+    }
 }

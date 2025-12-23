@@ -88,16 +88,24 @@ import { RichTextEditorComponent } from '../../../../../shared/components/rich-t
                     </select>
                 </div>
 
-                <!-- Instructor -->
-                <div class="space-y-2">
-                    <label class="block text-sm font-semibold text-gray-700">Giảng viên / Instructor</label>
-                    <select formControlName="instructorId" 
-                            class="w-full h-11 px-4 rounded-lg border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all cursor-pointer">
-                        <option value="">-- Chọn giảng viên --</option>
-                        <option *ngFor="let inst of instructors()" [value]="inst.id">
-                            {{ inst.fullName }} ({{ inst.email }})
-                        </option>
-                    </select>
+                <!-- Tags (Chip Input) -->
+                <div class="flex flex-col space-y-2">
+                    <label class="block text-sm font-semibold text-gray-700">Thẻ từ khóa (Tags)</label>
+                    <div class="min-h-[44px] p-2 rounded-lg border border-gray-300 bg-white focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition-all flex flex-wrap gap-2 items-center">
+                        <!-- Chips -->
+                        <div *ngFor="let tag of tagsList" class="bg-blue-100 text-blue-800 text-sm font-medium px-2.5 py-0.5 rounded flex items-center">
+                            {{ tag }}
+                            <button type="button" (click)="removeTag(tag)" class="ml-1.5 text-blue-600 hover:text-blue-900 focus:outline-none">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
+                        </div>
+                        <!-- Input -->
+                        <input #tagInput
+                            (keydown.enter)="$event.preventDefault(); addTag(tagInput.value); tagInput.value = ''"
+                            (blur)="addTag(tagInput.value); tagInput.value = ''"
+                            class="flex-1 min-w-[120px] outline-none focus:outline-none focus-visible:outline-none border-none bg-transparent text-sm placeholder:text-gray-400"
+                            placeholder="Nhập tag và nhấn Enter..." />
+                    </div>
                 </div>
 
                 <!-- Short Description (Full Width) -->
@@ -164,27 +172,6 @@ import { RichTextEditorComponent } from '../../../../../shared/components/rich-t
                                class="w-full h-11 px-4 rounded-lg border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" />
                     </div>
                 </div>
-
-                <!-- Tags (Chip Input) -->
-                <div class="md:col-span-2 space-y-2">
-                    <label class="block text-sm font-semibold text-gray-700">Thẻ từ khóa (Tags)</label>
-                    <div class="min-h-[44px] p-2 rounded-lg border border-gray-300 bg-white focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition-all flex flex-wrap gap-2 items-center">
-                        <!-- Chips -->
-                        <div *ngFor="let tag of tagsList" class="bg-blue-100 text-blue-800 text-sm font-medium px-2.5 py-0.5 rounded flex items-center">
-                            {{ tag }}
-                            <button type="button" (click)="removeTag(tag)" class="ml-1.5 text-blue-600 hover:text-blue-900 focus:outline-none">
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                            </button>
-                        </div>
-                        <!-- Input -->
-                        <input #tagInput
-                               (keydown.enter)="$event.preventDefault(); addTag(tagInput.value); tagInput.value = ''"
-                               (blur)="addTag(tagInput.value); tagInput.value = ''"
-                               class="flex-1 min-w-[120px] outline-none focus:outline-none focus-visible:outline-none border-none bg-transparent text-sm placeholder:text-gray-400"
-                               placeholder="Nhập tag và nhấn Enter..." />
-                    </div>
-                </div>
-
             </div>
         </div>
 
@@ -198,27 +185,7 @@ import { RichTextEditorComponent } from '../../../../../shared/components/rich-t
                 <app-rich-text-editor 
                     formControlName="courseInformation" 
                     placeholder="Nhập thông tin chi tiết..."
-                    [height]="300">
-                </app-rich-text-editor>
-            </div>
-
-            <div class="space-y-2">
-                <label class="block text-sm font-semibold text-gray-700">Lời chào đến với học phần</label>
-                <div class="text-xs text-gray-500 mb-1">Tin nhắn chào mừng hiển thị khi học viên vào khóa học.</div>
-                <app-rich-text-editor 
-                    formControlName="welcomeMessage" 
-                    placeholder="Nhập lời chào..."
-                    [height]="200">
-                </app-rich-text-editor>
-            </div>
-
-            <div class="space-y-2">
-                <label class="block text-sm font-semibold text-gray-700">Lợi ích của học phần</label>
-                <div class="text-xs text-gray-500 mb-1">Học viên sẽ nhận được gì sau khi hoàn thành.</div>
-                <app-rich-text-editor 
-                    formControlName="benefits" 
-                    placeholder="Liệt kê lợi ích..."
-                    [height]="250">
+                    [height]="500">
                 </app-rich-text-editor>
             </div>
         </div>

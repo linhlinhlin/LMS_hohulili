@@ -29,6 +29,20 @@
                 placeholder="Tìm theo tên lớp hoặc mã lớp...">
         </div>
 
+        <!-- Year Filter -->
+        <select (change)="onYearChange($event)"
+            class="block pl-3 pr-8 py-1.5 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+            <option *ngFor="let y of years" [value]="y" [selected]="y === selectedYear">Năm {{ y }} - {{ y + 1 }}
+            </option>
+        </select>
+
+        <!-- Semester Filter -->
+        <select (change)="onSemesterChange($event)"
+            class="block pl-3 pr-8 py-1.5 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+            <option value="">Tất cả học kỳ</option>
+            <option *ngFor="let s of semesters" [value]="s">{{ s }}</option>
+        </select>
+
         <!-- Status Filter -->
         <select (change)="onStatusChange($event)"
             class="block pl-3 pr-8 py-1.5 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
@@ -78,9 +92,9 @@
                         <div class="flex items-center text-sm text-gray-700">
                             <div
                                 class="h-6 w-6 rounded-full bg-gray-200 flex items-center justify-center text-xs mr-2 font-bold text-gray-600">
-                                {{ cls.teacherName.charAt(0) }}
+                                {{ (cls.teacherName || 'N')[0] }}
                             </div>
-                            {{ cls.teacherName }}
+                            {{ cls.teacherName || 'Chưa có giáo viên' }}
                         </div>
                     </td>
 
@@ -104,15 +118,23 @@
                     <!-- Compact Count -->
                     <td class="px-4 py-2 whitespace-nowrap text-center">
                         <span class="text-xs font-medium bg-gray-100 px-2 py-0.5 rounded text-gray-700">
-                            {{ cls.maxStudents }}
+                            {{ cls.currentStudents || 0 }} / {{ cls.maxStudents }}
                         </span>
                     </td>
 
                     <!-- Compact Actions -->
                     <td class="px-4 py-2 whitespace-nowrap text-right">
                         <div class="flex items-center justify-end space-x-2">
+                            <button (click)="quickEnroll(cls)"
+                                class="text-green-500 hover:text-green-700 transition-colors p-1" title="Thêm học viên">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                                </svg>
+                            </button>
                             <button (click)="viewStudents(cls.id)"
-                                class="text-blue-500 hover:text-blue-700 transition-colors p-1" title="Xem học viên">
+                                class="text-blue-500 hover:text-blue-700 transition-colors p-1"
+                                title="Xem danh sách học viên">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />

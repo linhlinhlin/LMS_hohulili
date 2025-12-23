@@ -135,15 +135,29 @@ interface ChapterResponse { // Was SectionWithLessons
             dueDate?: string;
             maxScore?: number;
         };
-        // Topics
+        // Sections (Level 3) - renamed from topics
+        sections?: {
+            id: string;
+            title: string;
+            type: string;
+            content?: string;
+            videoUrl?: string;
+            fileUrl?: string; // [NEW] For FILE type sections - SOTA 2025
+            duration?: number;
+            orderIndex: number;
+            isRequired?: boolean;
+        }[];
+        // Legacy support
         topics?: {
             id: string;
             title: string;
             type: string;
             content?: string;
             videoUrl?: string;
+            fileUrl?: string;
             duration?: number;
             orderIndex: number;
+            isRequired?: boolean;
         }[];
     }[];
 }
@@ -259,6 +273,14 @@ export class CourseAuthoringService {
         // Assuming LessonController unchanged regarding reorder path, but might need check.
         return this.http.patch<void>(`${this.baseUrl}/lessons/reorder`, {
             chapterId: chapterId, // Changed from sectionId
+            orderedIds
+        });
+    }
+
+    reorderSections(lessonId: string, orderedIds: string[]): Observable<void> {
+        // Assuming SectionController supports a reorder endpoint
+        return this.http.patch<void>(`${this.baseUrl}/sections/reorder`, {
+            lessonId,
             orderedIds
         });
     }

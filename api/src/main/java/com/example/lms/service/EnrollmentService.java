@@ -61,4 +61,32 @@ public class EnrollmentService {
 
         return enrollmentRepository.save(enrollment);
     }
+
+    @Transactional
+    public Enrollment enrollStudentByEmail(String email, UUID classId) {
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+        return enrollStudent(user.getId(), classId);
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.List<com.example.lms.dto.StudentSummaryDTO> getStudentsByClass(UUID classId) {
+        return enrollmentRepository.findByLearningClassId(classId).stream()
+            .map(e -> com.example.lms.dto.StudentSummaryDTO.builder()
+                .id(e.getStudent().getId())
+                .fullName(e.getStudent().getFullName())
+                .email(e.getStudent().getEmail())
+                .enrolledAt(e.getEnrolledAt())
+                .progress(e.getCompletionPercent())
+                .status(e.getStatus().name())
+                .build())
+            .collect(java.util.stream.Collectors.toList());
+    }
+
+    @Transactional
+    public void removeStudentFromClass(UUID classId, UUID studentId) {
+        Enrollment enrollment = enrollmentRepository.findByStudentIdAndLearningClassId(studentId, classId)
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy học viên trong lớp này"));
+        enrollmentRepository.delete(enrollment);
+    }
 }

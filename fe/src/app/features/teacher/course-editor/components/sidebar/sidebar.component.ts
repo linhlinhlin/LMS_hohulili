@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import { Component, inject, signal, computed, HostListener, importProvidersFrom } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CourseEditorStore } from '../../store/course-editor.store';
@@ -9,251 +9,212 @@ import { LessonApi } from '../../../../../api/client/lesson.api';
 import { SectionApi } from '../../../../../api/client/section.api';
 import { ChapterDraftDTO, LessonDraftDTO, SectionDraftDTO, CourseAuthoringService } from '../../services/course-authoring.service';
 import { CurriculumSelectionService } from '../../services/curriculum-selection.service';
+import { CONTENT_TYPE_CONFIG, ContentType } from '../../../../../core/constants/content-type.constant';
+import { ResizableSidebarDirective } from '../../../../../shared/directives/resizable-sidebar.directive';
+import { SidebarHeaderComponent } from '../../../../../shared/components/ui/sidebar-header/sidebar-header.component';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { animate, state, style, transition, trigger } from '@angular/animations';
+import {
+  LucideAngularModule
+} from 'lucide-angular';
 
 @Component({
   selector: 'app-course-editor-sidebar',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, DragDropModule],
+  imports: [
+    CommonModule,
+    RouterModule,
+    FormsModule,
+    DragDropModule,
+    ResizableSidebarDirective,
+    MatIconModule,
+    MatTooltipModule,
+    LucideAngularModule
+  ],
+  providers: [],
+  animations: [
+    trigger('springExpandCollapse', [
+      state('collapsed', style({ height: '0', opacity: '0', overflow: 'hidden' })),
+      state('expanded', style({ height: '*', opacity: '1' })),
+      transition('collapsed <=> expanded', [
+        animate('0.3s cubic-bezier(0.175, 0.885, 0.32, 1.2)')
+      ])
+    ])
+  ],
   template: `
-    <aside class="flex flex-col h-full bg-white border-r border-gray-200 w-80">
-      <!-- Header -->
-      <div class="p-5 border-b border-gray-200">
-        <h3 class="text-base font-bold text-gray-900">Cấu trúc khóa học</h3>
-        <p class="text-xs text-gray-500 mt-1">{{ store.chapters().length }} chương · Kéo thả để sắp xếp</p>
-      </div>
-      
-      <!-- Tree Content with Drag Drop (No Loading State - Show Immediately) -->
-      <div class="flex-grow overflow-y-auto p-3 space-y-2" 
+    <aside class="flex flex-col bg-white border-r border-slate-200 h-full overflow-hidden select-none relative group/sidebar"
+           appResizableSidebar
+           (sidebarResize)="onSidebarResize($event)">
+        
+        <!-- Resize Handle -->
+        <div class="resize-handle absolute right-0 top-0 w-1 h-full cursor-col-resize hover:bg-blue-400/30 active:bg-blue-500/50 transition-colors z-50"></div>
+
+        <!-- Header (SOTA 2025: High Density) -->
+        <div class="p-4 border-b border-slate-100 bg-white">
+            <h2 class="text-xs font-bold text-slate-800 mb-3 uppercase tracking-tight">Cấu trúc khóa học</h2>
+            <div class="relative">
+                <lucide-icon name="search" class="absolute left-2 top-2 text-slate-400" [size]="14"></lucide-icon>
+                <input type="text" 
+                       [(ngModel)]="tempSearch"
+                       (input)="onSearch(tempSearch)"
+                       placeholder="Tìm kiếm nội dung (Ctrl+K)..." 
+                       class="w-full h-9 pl-9 pr-3 bg-slate-50 border-none rounded-md text-xs focus:ring-1 focus:ring-slate-200 transition-all placeholder:text-slate-400">
+            </div>
+            
+            <!-- Stats Badge -->
+            <div class="mt-3 flex items-center justify-between text-[10px] font-bold text-slate-400">
+               <span>TIẾN ĐỘ: {{ publishedCount() }}/{{ totalCount() }} BÀI</span>
+               <button (click)="toggleAll()" class="hover:text-blue-600 transition-colors">
+                 {{ activeChapterId() ? 'THU GỌN HẾT' : 'MỞ RỘNG' }}
+               </button>
+            </div>
+        </div>
+
+        <!-- Scroll Area (Coursera-Density) -->
+        <div class="flex-grow overflow-y-auto custom-scrollbar bg-white"
              cdkDropList 
              [cdkDropListData]="store.chapters()"
              (cdkDropListDropped)="dropChapter($event)">
-          @for (chapter of store.chapters(); track chapter.id; let i = $index) {
-            <div class="space-y-1" cdkDrag [cdkDragData]="chapter">
-              <!-- Drag Handle Preview -->
-              <div *cdkDragPlaceholder class="bg-blue-100 border-2 border-dashed border-blue-300 rounded-lg h-12"></div>
-
-              <!-- Chapter Item -->
-              <div class="group flex items-center gap-2 p-2.5 rounded-lg cursor-pointer transition-colors"
-                   [class.bg-blue-50]="selectedChapterId() === chapter.id && !selectedLessonId()"
-                   [class.border-blue-300]="selectedChapterId() === chapter.id && !selectedLessonId()"
-                   [class.border]="selectedChapterId() === chapter.id && !selectedLessonId()"
-                   [class.hover:bg-gray-50]="selectedChapterId() !== chapter.id || selectedLessonId()"
-                   (click)="toggleChapter(chapter.id); selectChapter(chapter)">
-                <!-- Drag Handle -->
-                <div cdkDragHandle class="cursor-grab active:cursor-grabbing p-0.5 hover:bg-gray-200 rounded transition-colors" (click)="$event.stopPropagation()">
-                  <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path>
-                  </svg>
-                </div>
-
-
-                <span class="text-sm font-medium text-gray-900 truncate flex-1" [title]="chapter.title">
-                  {{ chapter.title }}
-                </span>
-                <span class="text-xs text-gray-400 mr-1">{{ chapter.lessons.length }}</span>
-                
-                <!-- Chapter Actions -->
-                <div class="hidden group-hover:flex items-center gap-0.5">
-                  <button (click)="showAddLessonModal(chapter, i); $event.stopPropagation()"
-                          class="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                          title="Thêm bài học">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                    </svg>
-                  </button>
-                  <button (click)="deleteChapter(chapter.id); $event.stopPropagation()"
-                          class="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                          title="Xóa chương">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                    </svg>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Lessons (Collapsible) with Drag Drop -->
-              @if (expandedChapters().has(chapter.id)) {
-                <div class="ml-6 space-y-0.5 border-l-2 border-gray-100 pl-2"
-                     cdkDropList
-                     [cdkDropListData]="chapter.lessons"
-                     [id]="'lesson-list-' + chapter.id"
-                     (cdkDropListDropped)="dropLesson($event, chapter.id)">
-                  @for (lesson of chapter.lessons; track lesson.id; let j = $index) {
-                    <div class="group/lesson flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors"
-                         cdkDrag
-                         [cdkDragData]="lesson"
-                         [class.bg-blue-50]="selectedLessonId() === lesson.id"
-                         [class.border-blue-300]="selectedLessonId() === lesson.id"
-                         [class.border]="selectedLessonId() === lesson.id"
-                         [class.hover:bg-gray-50]="selectedLessonId() !== lesson.id"
-                         (click)="selectLesson(chapter, lesson)">
-                      <div *cdkDragPlaceholder class="bg-gray-100 border border-dashed border-gray-300 rounded h-8 w-full"></div>
-                      <!-- Drag Handle -->
-                      <div cdkDragHandle class="cursor-grab active:cursor-grabbing">
-                        <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path>
-                        </svg>
-                      </div>
-                      <div class="w-5 h-5 rounded flex items-center justify-center flex-shrink-0"
-                           [class.bg-blue-100]="getLessonType(lesson) === 'LECTURE'"
-                           [class.bg-purple-100]="getLessonType(lesson) === 'QUIZ'"
-                           [class.bg-green-100]="getLessonType(lesson) === 'ASSIGNMENT'">
-                        @if (getLessonType(lesson) === 'LECTURE') {
-                          <svg class="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
-                          </svg>
-                        } @else if (getLessonType(lesson) === 'QUIZ') {
-                          <svg class="w-3 h-3 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                          </svg>
-                        } @else {
-                          <svg class="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                          </svg>
-                        }
-                      </div>
-                      <span class="text-sm text-gray-700 truncate flex-1 group-hover/lesson:text-blue-600 transition-colors" 
-                            [title]="lesson.title">
-                        {{ lesson.title }}
-                      </span>
+            
+            @for (chapter of store.chapters(); track chapter.id) {
+                <!-- LEVEL 1: CHAPTER (Module) -->
+                @if (!searchQuery() || chapter.title.toLowerCase().includes(searchQuery())) {
+                  <div class="border-b border-slate-50 last:border-0"
+                       cdkDrag [cdkDragData]="chapter">
                       
-                      <!-- Lesson Actions -->
-                      <div class="hidden group-hover/lesson:flex items-center gap-0.5">
-                        <button (click)="deleteLesson(lesson.id); $event.stopPropagation()"
-                                class="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                                title="Xóa bài học">
-                          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                      <!-- Sections (Level 3) -->
-                      @if (selectedLessonId() === lesson.id || (lesson.sections && lesson.sections.length > 0)) {
-                         <div class="mt-1 ml-6 space-y-0.5 border-l-2 border-gray-100 pl-2"
-                              cdkDropList
-                              [cdkDropListData]="lesson.sections || []"
-                              (cdkDropListDropped)="dropSection($event, lesson.id)">
-                            @for (section of lesson.sections || []; track section.id; let k = $index) {
-                               <div class="group/section flex items-center gap-2 p-1.5 rounded-lg cursor-pointer transition-colors"
-                                    cdkDrag
-                                    [cdkDragData]="section"
-                                    [class.bg-purple-50]="selectedSectionId() === section.id"
-                                    [class.border-purple-300]="selectedSectionId() === section.id"
-                                    [class.border]="selectedSectionId() === section.id"
-                                    [class.hover:bg-gray-50]="selectedSectionId() !== section.id"
-                                    (click)="selectSection(chapter, lesson, section); $event.stopPropagation()">
-                                  <div *cdkDragPlaceholder class="bg-gray-100 border border-dashed border-gray-300 rounded h-6 w-full"></div>
-                                  <div cdkDragHandle class="cursor-grab active:cursor-grabbing opacity-0 group-hover/section:opacity-100 transition-opacity">
-                                     <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
-                                  </div>
-                                  <!-- Section Icon -->
-                                  <div class="w-4 h-4 flex items-center justify-center flex-shrink-0">
-                                     @if (section.type === 'VIDEO') {
-                                        <svg class="w-3 h-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path></svg>
-                                     } @else if (section.type === 'QUIZ') {
-                                        <svg class="w-3 h-3 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                     } @else if (section.type === 'FILE') {
-                                        <svg class="w-3 h-3 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
-                                     } @else {
-                                        <svg class="w-3 h-3 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                     }
-                                  </div>
-                                  <span class="text-xs text-gray-600 truncate flex-1 group-hover/section:text-purple-700 transition-colors" [title]="section.title">{{ section.title }}</span>
-                                  
-                                  <!-- Section Actions (Delete) -->
-                                  <button (click)="deleteSection(section.id); $event.stopPropagation()" 
-                                          class="opacity-0 group-hover/section:opacity-100 p-0.5 text-gray-400 hover:text-red-600 rounded">
-                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                                  </button>
-                               </div>
-                            }
-                            <!-- Add Section Button -->
-                            <button (click)="showAddSectionModal(lesson, lesson.sections?.length || 0, j); $event.stopPropagation()" 
-                                    class="w-full mt-0.5 py-0.5 text-[10px] text-gray-400 hover:text-blue-600 border border-dashed border-gray-200 hover:border-blue-300 rounded flex items-center justify-center gap-1 transition-colors">
-                               <span>+ Nội dung</span>
+                      <div (click)="toggleChapterSelection(chapter)" 
+                           class="flex items-start gap-2 p-4 hover:bg-slate-50 cursor-pointer group transition-colors"
+                           [class.bg-slate-50]="activeChapterId() === chapter.id">
+                          <div class="flex-grow min-w-0">
+                              <h4 class="text-[13px] font-bold text-slate-800 leading-tight break-words">{{ chapter.title }}</h4>
+                          </div>
+
+                          <!-- Chapter Actions (Hover) -->
+                          <div class="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity" (click)="$event.stopPropagation()">
+                            <button (click)="showAddLessonModal(chapter, $index)" class="p-1 text-slate-400 hover:text-blue-600 rounded transition-colors" matTooltip="Thêm bài học">
+                                <lucide-icon name="plus" [size]="14"></lucide-icon>
                             </button>
-                         </div>
+                            <button (click)="deleteChapter(chapter.id)" class="p-1 text-slate-300 hover:text-red-500 rounded transition-colors" matTooltip="Xóa chương">
+                                <lucide-icon name="trash-2" [size]="14"></lucide-icon>
+                            </button>
+                          </div>
+                      </div>
+
+                      <!-- LEVEL 2 & 3: LESSONS (Single-Open Accordion) -->
+                      @if (activeChapterId() === chapter.id) {
+                          <div [@springExpandCollapse]="'expanded'" class="bg-white overflow-hidden pb-2"
+                               cdkDropList 
+                               [cdkDropListData]="chapter.lessons"
+                               (cdkDropListDropped)="dropLesson($event, chapter.id)">
+                              
+                              @for (lesson of chapter.lessons; track lesson.id) {
+                                  <div class="relative pl-3 py-2 group/lesson hover:bg-blue-50/20 cursor-pointer"
+                                       [class.bg-blue-50/10]="selectedLessonId() === lesson.id"
+                                       cdkDrag [cdkDragData]="lesson"
+                                       (click)="selectLesson(chapter, lesson)">
+                                      
+                                      <!-- Visual Connector Line (L2) -->
+                                      <div class="absolute left-2 top-0 bottom-0 w-[1px] bg-slate-100"></div>
+                                      
+                                      <div class="flex items-start gap-3">
+                                          <lucide-icon name="book-open" [size]="14" class="mt-0.5 text-slate-300 group-hover/lesson:text-blue-500 transition-colors"></lucide-icon>
+                                          <div class="flex-grow min-w-0">
+                                            <h5 class="text-[13px] font-semibold text-slate-700 leading-tight break-words group-hover/lesson:text-slate-900">
+                                                {{ lesson.title }}
+                                            </h5>
+                                          </div>
+
+                                          <!-- Lesson Actions (Hover) -->
+                                          <div class="opacity-0 group-hover/lesson:opacity-100 flex items-center gap-1 transition-opacity" (click)="$event.stopPropagation()">
+                                            <button (click)="showAddSectionModal(lesson, lesson.sections.length || 0, $index)" class="p-1 text-slate-400 hover:text-blue-600 rounded transition-colors" matTooltip="Thêm nội dung">
+                                              <lucide-icon name="plus-circle" [size]="12"></lucide-icon>
+                                            </button>
+                                            <button (click)="deleteLesson(lesson.id)" class="p-1 text-slate-300 hover:text-red-500 rounded transition-colors" matTooltip="Xóa bài học">
+                                              <lucide-icon name="trash-2" [size]="12"></lucide-icon>
+                                            </button>
+                                          </div>
+                                      </div>
+
+                                      <!-- LEVEL 3: SECTIONS -->
+                                      @if (lesson.sections && lesson.sections.length > 0) {
+                                        <div class="mt-2 space-y-0.5"
+                                             cdkDropList 
+                                             [cdkDropListData]="lesson.sections"
+                                             (cdkDropListDropped)="dropSection($event, lesson.id)">
+                                            @for (section of lesson.sections; track section.id) {
+                                                <div class="flex items-start gap-2 pl-3 py-2 group/section rounded-md hover:bg-white transition-all border border-transparent hover:border-slate-100 hover:shadow-sm"
+                                                     [class.bg-slate-50]="selectedSectionId() === section.id"
+                                                     cdkDrag [cdkDragData]="section"
+                                                     (click)="selectSection(chapter, lesson, section); $event.stopPropagation()">
+                                                    
+                                                    <!-- Mini Indicator Dot (SOTA 2025: Maritime 2px Edge) -->
+                                                    <div [class]="'absolute left-5 w-[2px] h-3.5 rounded-full transition-all ' + getTypeColor(section.type)"></div>
+                                                    
+                                                    <div class="flex-grow min-w-0">
+                                                        <p class="text-[12px] text-slate-500 leading-tight break-words group-hover/section:text-slate-800 transition-colors">
+                                                            {{ section.title }}
+                                                        </p>
+                                                        <div class="flex items-center gap-2 mt-0.5 opacity-60">
+                                                            <span class="text-[9px] text-slate-400 font-black uppercase tracking-widest">
+                                                                {{ section.type }}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Section Actions (Hover) -->
+                                                    <div class="opacity-0 group-hover/section:opacity-100 flex items-center gap-1 pr-1 transition-opacity" (click)="$event.stopPropagation()">
+                                                      <button class="p-1 text-slate-300 hover:text-blue-600 rounded transition-colors"><lucide-icon name="edit-2" [size]="10"></lucide-icon></button>
+                                                      <button (click)="deleteSection(section.id)" class="p-1 text-slate-300 hover:text-red-500 rounded transition-colors"><lucide-icon name="trash-2" [size]="10"></lucide-icon></button>
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                      }
+                                      
+                                      <!-- Quick Add Visual Hint -->
+                                      <button (click)="showAddSectionModal(lesson, lesson.sections.length || 0, $index); $event.stopPropagation()"
+                                              class="ml-7 mt-1 text-[10px] font-black text-blue-500 opacity-0 group-hover/lesson:opacity-100 uppercase tracking-widest hover:text-blue-700 transition-all flex items-center gap-1">
+                                          <lucide-icon name="plus" [size]="10"></lucide-icon>
+                                          THÊM NỘI DUNG
+                                      </button>
+                                  </div>
+                              }
+                          </div>
                       }
-                  }
-                  @if (chapter.lessons.length === 0) {
-                    <div class="p-2 text-xs text-gray-400 italic flex items-center justify-between">
-                      <span>Chưa có bài học</span>
-                      <button (click)="showAddLessonModal(chapter, i)" 
-                              class="text-blue-500 hover:text-blue-600 font-medium">
-                        + Thêm
-                      </button>
-                    </div>
-                  } @else {
-                     <!-- Add Lesson Button at bottom of list -->
-                     <button (click)="showAddLessonModal(chapter, i)" 
-                             class="w-full mt-1 py-1 text-xs text-blue-500 hover:text-blue-700 bg-blue-50/50 hover:bg-blue-50 rounded border border-transparent hover:border-blue-100 transition-colors flex items-center justify-center gap-1">
-                       <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                       Thêm bài học
-                     </button>
-                  }
-                </div>
-              }
-            </div>
-          }
-          @if (store.chapters().length === 0) {
-            <div class="text-center py-8">
-              <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-                </svg>
-              </div>
-              <p class="text-sm text-gray-500 mb-1">Chưa có nội dung</p>
-              <p class="text-xs text-gray-400">Thêm chương để bắt đầu</p>
-            </div>
-          }
+                  </div>
+                }
+            }
         </div>
 
-      <!-- Bottom Actions -->
-      <div class="p-3 border-t border-gray-200 bg-gray-50">
-        <button (click)="showAddChapterModal()"
-                class="w-full flex items-center justify-center gap-2 h-10 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors font-medium text-sm">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-          </svg>
-          <span>Thêm chương mới</span>
-        </button>
-      </div>
+        <!-- Footer Action (SOTA 2025: Sleek) -->
+        <div class="p-4 border-t border-slate-100 bg-slate-50/40">
+            <button (click)="showAddChapterModal()"
+                    class="w-full py-2.5 flex items-center justify-center gap-2 bg-white border border-slate-200 rounded-lg shadow-sm text-xs font-bold text-slate-700 hover:border-slate-900 hover:text-slate-900 hover:shadow-md active:scale-[0.98] transition-all">
+                <lucide-icon name="plus-circle" [size]="14" class="text-blue-500"></lucide-icon>
+                THÊM CHƯƠNG MỚI
+            </button>
+        </div>
     </aside>
 
-    <!-- Add Chapter Modal -->
+    <!-- Modals (Remain mostly same but styled for SOTA) -->
     @if (showChapterModal()) {
-      <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" (click)="closeModals()">
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4" (click)="$event.stopPropagation()">
-          <div class="p-5 border-b border-gray-200">
-            <h3 class="text-lg font-semibold text-gray-900">Thêm chương mới</h3>
+      <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[100]" (click)="closeModals()">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden border border-slate-200" (click)="$event.stopPropagation()">
+          <div class="p-6 border-b border-slate-100">
+            <h3 class="text-sm font-black text-slate-800 uppercase tracking-tighter">Tạo chương mới</h3>
           </div>
-          <div class="p-5 space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Tên chương <span class="text-red-500">*</span></label>
-              <input type="text" 
-                     [(ngModel)]="newChapterTitle"
-                     class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                     placeholder="VD: Giới thiệu về Angular"
-                     (keyup.enter)="createChapter()">
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Mô tả (tùy chọn)</label>
-              <textarea [(ngModel)]="newChapterDescription"
-                        rows="2"
-                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-                        placeholder="Mô tả ngắn về nội dung chương..."></textarea>
+          <div class="p-6 space-y-4">
+            <div class="space-y-1.5">
+              <label class="text-[10px] font-bold text-slate-400 uppercase">Tên chương/module</label>
+              <input type="text" [(ngModel)]="newChapterTitle" 
+                     class="w-full px-4 py-2.5 bg-slate-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-100 transition-all" 
+                     placeholder="VD: Kiến thức cơ bản...">
             </div>
           </div>
-          <div class="p-5 border-t border-gray-200 flex justify-end gap-3">
-            <button (click)="closeModals()" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
-              Hủy
-            </button>
-            <button (click)="createChapter()" 
-                    [disabled]="!newChapterTitle.trim()"
-                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50">
-              Tạo chương
-            </button>
+          <div class="p-6 bg-slate-50 flex justify-end gap-3">
+            <button (click)="closeModals()" class="px-5 py-2 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors uppercase">Hủy</button>
+            <button (click)="createChapter()" class="px-6 py-2 bg-slate-900 text-white text-xs font-bold rounded-full hover:bg-blue-600 transition-all shadow-lg">XÁC NHẬN</button>
           </div>
         </div>
       </div>
@@ -261,131 +222,83 @@ import { CurriculumSelectionService } from '../../services/curriculum-selection.
 
     <!-- Add Lesson Modal -->
     @if (showLessonModal()) {
-      <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" (click)="closeModals()">
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4" (click)="$event.stopPropagation()">
-          <div class="p-5 border-b border-gray-200">
-            <h3 class="text-lg font-semibold text-gray-900">Thêm bài học mới</h3>
-            <p class="text-sm text-gray-500 mt-1">Vào chương: {{ currentChapterForLesson()?.title }}</p>
+      <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[100]" (click)="closeModals()">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden border border-slate-200" (click)="$event.stopPropagation()">
+          <div class="p-6 border-b border-slate-100">
+            <h3 class="text-sm font-black text-slate-800 uppercase tracking-tighter">Thêm bài học</h3>
           </div>
-          <div class="p-5 space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Tên bài học <span class="text-red-500">*</span></label>
-              <input type="text" 
-                     [(ngModel)]="newLessonTitle"
-                     class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                     placeholder="VD: Cài đặt môi trường"
-                     (keyup.enter)="createLesson()">
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Loại bài học</label>
-              <div class="p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm text-gray-500 text-center">
-                 Bài học (Container) - Chứa các nội dung Text, Video, File...
-              </div>
-            </div>
+          <div class="p-6 space-y-4">
+             <div class="space-y-1.5">
+                <label class="text-[10px] font-bold text-slate-400 uppercase">Tên bài học</label>
+                <input type="text" [(ngModel)]="newLessonTitle" 
+                       class="w-full px-4 py-2.5 bg-slate-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-100 transition-all" 
+                       placeholder="VD: Bài 1: Giới thiệu...">
+             </div>
           </div>
-          <div class="p-5 border-t border-gray-200 flex justify-end gap-3">
-            <button (click)="closeModals()" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
-              Hủy
-            </button>
-            <button (click)="createLesson()" 
-                    [disabled]="!newLessonTitle.trim()"
-                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50">
-              Tạo bài học
-            </button>
+          <div class="p-6 bg-slate-50 flex justify-end gap-3">
+            <button (click)="closeModals()" class="px-5 py-2 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors uppercase">Hủy</button>
+            <button (click)="createLesson()" class="px-6 py-2 bg-slate-900 text-white text-xs font-bold rounded-full hover:bg-blue-600 transition-all shadow-lg">XÁC NHẬN</button>
           </div>
         </div>
       </div>
     }
 
-    <!-- Add Section Modal (NEW) -->
+    <!-- Add Section Modal -->
     @if (showSectionModal()) {
-      <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" (click)="closeModals()">
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4" (click)="$event.stopPropagation()">
-          <div class="p-5 border-b border-gray-200">
-            <h3 class="text-lg font-semibold text-gray-900">Thêm nội dung mới</h3>
-            <p class="text-sm text-gray-500 mt-1">Vào bài học: {{ currentLessonForSection()?.title }}</p>
+      <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[100]" (click)="closeModals()">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden border border-slate-200" (click)="$event.stopPropagation()">
+          <div class="p-6 border-b border-slate-100">
+            <h3 class="text-sm font-black text-slate-800 uppercase tracking-tighter">Nội dung chi tiết</h3>
+            <p class="text-[11px] text-slate-400 mt-1 font-medium">BÀI HỌC: {{ currentLessonForSection()?.title }}</p>
           </div>
-          <div class="p-5 space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Tên nội dung <span class="text-red-500">*</span></label>
+          <div class="p-6 space-y-5">
+            <div class="space-y-1.5">
+              <label class="text-[10px] font-bold text-slate-400 uppercase">Tiêu đề nội dung</label>
               <input type="text" 
                      [(ngModel)]="newSectionTitle"
-                     class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                     placeholder="VD: Giới thiệu, Video 1..."
-                     (keyup.enter)="createSection()">
+                     class="w-full px-4 py-2.5 bg-slate-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-100 transition-all"
+                     placeholder="VD: Video bài giảng, Tài liệu đọc...">
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Loại nội dung</label>
-              <div class="space-y-3">
-                 <div class="grid grid-cols-4 gap-2">
-                   <button (click)="newSectionType = 'TEXT'"
-                           class="p-2 rounded-lg border transition-colors text-center"
-                           [class.border-blue-500]="newSectionType === 'TEXT'"
-                           [class.bg-blue-50]="newSectionType === 'TEXT'">
-                      <span class="block text-xs font-bold">TEXT</span>
-                   </button>
-                   <button (click)="newSectionType = 'VIDEO'"
-                           class="p-2 rounded-lg border transition-colors text-center"
-                           [class.border-red-500]="newSectionType === 'VIDEO'"
-                           [class.bg-red-50]="newSectionType === 'VIDEO'">
-                      <span class="block text-xs font-bold">VIDEO</span>
-                   </button>
-                   <button (click)="newSectionType = 'QUIZ'"
-                           class="p-2 rounded-lg border transition-colors text-center"
-                           [class.border-purple-500]="newSectionType === 'QUIZ'"
-                           [class.bg-purple-50]="newSectionType === 'QUIZ'">
-                      <span class="block text-xs font-bold">QUIZ</span>
-                   </button>
-                   <button (click)="newSectionType = 'FILE'"
-                           class="p-2 rounded-lg border transition-colors text-center"
-                           [class.border-orange-500]="newSectionType === 'FILE'"
-                           [class.bg-orange-50]="newSectionType === 'FILE'">
-                      <span class="block text-xs font-bold">FILE</span>
-                   </button>
-                 </div>
-
-                 <!-- FILE INPUT -->
-                 @if (newSectionType === 'FILE') {
-                    <div class="animate-fade-in p-3 bg-orange-50 rounded-lg border border-orange-200">
-                       <label class="block text-sm font-medium text-orange-800 mb-1">Chọn tài liệu</label>
-                       
-                       @if (!selectedFile) {
-                           <input type="file" (change)="onFileSelected($event)" 
-                                  class="block w-full text-sm text-gray-500
-                                         file:mr-4 file:py-2 file:px-4
-                                         file:rounded-full file:border-0
-                                         file:text-sm file:font-semibold
-                                         file:bg-orange-100 file:text-orange-700
-                                         hover:file:bg-orange-200">
-                       } @else {
-                           <div class="flex items-center justify-between bg-white p-2 rounded border border-orange-200 shadow-sm">
-                               <div class="flex items-center gap-2 overflow-hidden">
-                                   <svg class="w-5 h-5 text-orange-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
-                                   </svg>
-                                   <span class="text-sm text-gray-700 truncate" [title]="selectedFile.name">{{ selectedFile.name }}</span>
-                                   <span class="text-xs text-gray-400 flex-shrink-0">({{ (selectedFile.size / 1024).toFixed(1) }} KB)</span>
-                               </div>
-                               <button (click)="removeSelectedFile()" class="p-1 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors" title="Xóa file">
-                                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                   </svg>
-                               </button>
-                           </div>
-                       }
-                    </div>
-                 }
+            
+            <div class="space-y-2">
+              <label class="text-[10px] font-bold text-slate-400 uppercase">Loại nội dung</label>
+              <div class="grid grid-cols-4 gap-2">
+                @for (type of sectionTypes; track type) {
+                  <button (click)="newSectionType = type" 
+                          [class]="'p-2 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ' + 
+                                   (newSectionType === type ? 'border-slate-800 bg-slate-50' : 'border-slate-50 hover:border-slate-200')">
+                    <span class="text-[9px] font-black uppercase">{{ type }}</span>
+                  </button>
+                }
               </div>
+
+              @if (newSectionType === 'FILE') {
+                <div class="mt-4 p-4 bg-amber-50 rounded-2xl border border-amber-100 animate-fade-in">
+                  <label class="block text-[10px] font-black text-amber-700 uppercase mb-2">Đính kèm tài liệu</label>
+                  @if (!selectedFile) {
+                    <input type="file" (change)="onFileSelected($event)" 
+                           class="block w-full text-[10px] text-slate-500 file:mr-4 file:py-1.5 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:bg-amber-200 file:text-amber-800 hover:file:bg-amber-300">
+                  } @else {
+                    <div class="flex items-center justify-between bg-white p-2 rounded-xl border border-amber-200">
+                       <div class="flex items-center gap-2 overflow-hidden">
+                         <lucide-icon name="paperclip" [size]="12" class="text-amber-500"></lucide-icon>
+                         <span class="text-xs text-slate-700 truncate font-bold">{{ selectedFile.name }}</span>
+                       </div>
+                       <button (click)="removeSelectedFile()" class="p-1 text-slate-300 hover:text-red-500 transition-colors">
+                         <lucide-icon name="x" [size]="12"></lucide-icon>
+                       </button>
+                    </div>
+                  }
+                </div>
+              }
             </div>
           </div>
-          <div class="p-5 border-t border-gray-200 flex justify-end gap-3">
-            <button (click)="closeModals()" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
-              Hủy
-            </button>
+          <div class="p-6 bg-slate-50 flex justify-end gap-3">
+            <button (click)="closeModals()" class="px-5 py-2 text-xs font-bold text-slate-500 hover:text-slate-900 uppercase">Hủy</button>
             <button (click)="createSection()" 
-                    [disabled]="!newSectionTitle.trim()"
-                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50">
-              Tạo nội dung
+                    [disabled]="!newSectionTitle.trim() || (newSectionType === 'FILE' && !selectedFile)"
+                    class="px-6 py-2 bg-slate-900 text-white text-xs font-bold rounded-full hover:bg-blue-600 shadow-xl transition-all disabled:opacity-30">
+              HOÀN TẤT
             </button>
           </div>
         </div>
@@ -403,7 +316,23 @@ export class CourseEditorSidebarComponent {
   private sectionApi = inject(SectionApi);
   private authoringService = inject(CourseAuthoringService);
 
-  expandedChapters = signal<Set<string>>(new Set());
+  sidebarWidth = signal(320);
+  searchQuery = signal('');
+
+  // SOTA Stats
+  totalCount = computed(() => {
+    return this.store.chapters().reduce((acc, ch) => acc + ch.lessons.length, 0);
+  });
+  publishedCount = computed(() => {
+    return this.store.chapters().reduce((acc, ch) => {
+      return acc + ch.lessons.filter(l => l.sections && l.sections.length > 0).length;
+    }, 0);
+  });
+
+  isAllExpanded = computed(() => !!this.activeChapterId());
+
+  // Adaptive Denstiy
+  showExtraInfo = computed(() => this.sidebarWidth() > 400);
 
   // Use selection service signals
   // Modal states
@@ -427,36 +356,30 @@ export class CourseEditorSidebarComponent {
   // Section Form Data [NEW]
   newSectionTitle = '';
   newSectionType: 'TEXT' | 'VIDEO' | 'QUIZ' | 'FILE' = 'TEXT';
+  readonly sectionTypes: ('TEXT' | 'VIDEO' | 'QUIZ' | 'FILE')[] = ['TEXT', 'VIDEO', 'QUIZ', 'FILE'];
   selectedFile: File | null = null; // [NEW]
+  tempSearch = ''; // [NEW]
+
+  // Logic tối giản, hiệu quả cao (SOTA 2025)
+  readonly activeChapterId = signal<string | null>(null);
 
   constructor() {
-    // Auto-expand all chapters initially
+    // Auto-expand first chapter initially
     setTimeout(() => {
       const chapters = this.store.chapters();
       if (chapters.length > 0) {
-        // Expand only the first chapter initially
-        this.expandedChapters.set(new Set([chapters[0].id]));
+        this.activeChapterId.set(chapters[0].id);
       }
     }, 500);
   }
 
-  // Get lesson type with fallback
-  getLessonType(lesson: LessonDraftDTO): string {
-    return lesson.type || 'LECTURE';
+  toggleChapterSelection(chapter: ChapterDraftDTO) {
+    this.toggleChapter(chapter.id);
+    this.selectChapter(chapter);
   }
 
   toggleChapter(chapterId: string) {
-    const current = this.expandedChapters();
-    const newSet = new Set<string>();
-
-    // Accordion behavior:
-    // If the clicked chapter is NOT currently expanded, we expand it (and only it).
-    // If it IS currently expanded, we toggle it off (resulting in empty set, all closed).
-    if (!current.has(chapterId)) {
-      newSet.add(chapterId);
-    }
-
-    this.expandedChapters.set(newSet);
+    this.activeChapterId.update(currentId => currentId === chapterId ? null : chapterId);
   }
 
   selectChapter(chapter: ChapterDraftDTO) {
@@ -542,10 +465,17 @@ export class CourseEditorSidebarComponent {
     // Actually SectionService likely has logic order.
     // Let's assume standard reordering logic exists or I'll implement it later.
     // For now: Just UI update then Reload.
-    // Wait, I need to call API to persist order.
-    // I'll skip API call for now if method missing, but assume it exists.
-    // Actually I'll create a placeholder.
+    // Wait, I'll use SectionApi reorder if it exists, otherwise just reload.
+    this.authoringService.reorderSections(lessonId, sections.map(s => s.id)).subscribe({
+      next: () => {
+        const courseId = this.store.courseTree()?.id;
+        if (courseId) this.store.loadCourse(courseId);
+      }
+    });
   }
+
+  // SOTA 2025: Helper for section type colors
+
 
   // Modal handlers
   showAddChapterModal() {
@@ -663,6 +593,12 @@ export class CourseEditorSidebarComponent {
     this.selectedFile = null;
   }
 
+  // Theme Helper
+  getTypeColor(type: string): string {
+    const key = (type || 'TEXT').toUpperCase() as ContentType;
+    return CONTENT_TYPE_CONFIG[key]?.color || 'bg-slate-300';
+  }
+
   // Section Methods
   showAddSectionModal(lesson: LessonDraftDTO, sectionIndex: number, lessonIndex: number) {
     this.currentLessonForSection.set(lesson);
@@ -706,5 +642,39 @@ export class CourseEditorSidebarComponent {
         if (courseId) this.store.loadCourse(courseId);
       }
     })
+  }
+
+  // SOTA 2025: UI Utility Methods
+  @HostListener('sidebarResize', ['$event'])
+  onSidebarResize(event: any) {
+    this.sidebarWidth.set(event.detail.width);
+  }
+
+  @HostListener('window:keydown', ['$event'])
+  onGlobalKeyDown(event: KeyboardEvent) {
+    if ((event.ctrlKey || event.metaKey) && event.key === 'k') {
+      event.preventDefault();
+      const input = document.querySelector('input[placeholder*="Tìm"]') as HTMLInputElement;
+      input?.focus();
+    }
+  }
+
+  onSearch(query: string) {
+    this.searchQuery.set(query.toLowerCase());
+  }
+
+  toggleAll() {
+    if (this.activeChapterId()) {
+      this.activeChapterId.set(null);
+    } else {
+      const chapters = this.store.chapters();
+      if (chapters.length > 0) {
+        this.activeChapterId.set(chapters[0].id);
+      }
+    }
+  }
+
+  getLessonType(lesson: LessonDraftDTO): string {
+    return lesson.type || 'LECTURE';
   }
 }

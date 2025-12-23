@@ -1,4 +1,4 @@
-﻿import { Component, inject, signal, computed, effect, ViewEncapsulation } from '@angular/core';
+﻿import { Component, inject, signal, computed, effect, ViewEncapsulation, OnDestroy, importProvidersFrom } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -6,6 +6,7 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { CourseEditorStore } from '../../store/course-editor.store';
 import { LessonDraftDTO, SectionDraftDTO } from '../../services/course-authoring.service';
 import { CurriculumSelectionService } from '../../services/curriculum-selection.service';
+import { CONTENT_TYPE_CONFIG } from '../../../../../core/constants/content-type.constant';
 import { LessonApi } from '../../../../../api/client/lesson.api';
 import { ChapterApi } from '../../../../../api/client/chapter.api';
 import { SectionApi } from '../../../../../api/client/section.api';
@@ -33,33 +34,53 @@ import {
 } from 'ckeditor5';
 import 'ckeditor5/ckeditor5.css';
 import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-upload-adapter';
+import { PdfViewerService } from '../../../../../shared/services/pdf-viewer.service';
+import {
+  LucideAngularModule
+} from 'lucide-angular';
 
 @Component({
   selector: 'app-course-curriculum',
   standalone: true,
-  imports: [CommonModule, FormsModule, CKEditorModule],
+  imports: [CommonModule, FormsModule, CKEditorModule, LucideAngularModule],
   styleUrl: './course-curriculum.component.scss',
-  // encapsulation: ViewEncapsulation.None, // Optimization: Removed per expert advice
+  providers: [],
   template: `
-    <div class="h-full">
-      <!-- Empty State -->
+    <div class="min-h-full flex flex-col pb-20">
+      <!-- Empty State - Maritime Theme -->
       @if (!selectedChapterId() && !selectedLessonId()) {
-        <div class="bg-white shadow-sm border border-gray-200 h-full flex items-center justify-center">
-          <div class="text-center p-8">
-            <div class="w-16 h-16 bg-gray-100 flex items-center justify-center mx-auto mb-4">
-              <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path>
-              </svg>
+        <div class="bg-white shadow-sm border border-gray-200 flex-grow flex items-center justify-center">
+          <div class="text-center p-8 max-w-md">
+            <div class="w-20 h-20 bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center mx-auto mb-6 rounded-2xl shadow-inner">
+              <lucide-icon name="layout" [size]="40" class="text-slate-400"></lucide-icon>
             </div>
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">Chọn nội dung để chỉnh sửa</h3>
-            <p class="text-gray-500 text-sm">Chọn một chương hoặc bài học từ sidebar bên trái</p>
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Chọn nội dung để chỉnh sửa</h3>
+            <p class="text-gray-500 text-sm mb-6">Chọn một chương, bài học hoặc mục nội dung từ sidebar bên trái để bắt đầu chỉnh sửa</p>
+            <div class="flex items-center justify-center gap-4 text-xs text-gray-400">
+                <div class="flex items-center gap-1.5">
+                    <div class="w-2 h-2 rounded-full bg-blue-500"></div>
+                    <span>Video</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <div class="w-2 h-2 rounded-full bg-amber-500"></div>
+                    <span>Tài liệu</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <div class="w-2 h-2 rounded-full bg-rose-500"></div>
+                    <span>Trắc nghiệm</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <div class="w-2 h-2 rounded-full bg-slate-400"></div>
+                    <span>Văn bản</span>
+                </div>
+            </div>
           </div>
         </div>
       }
 
       <!-- Chapter Editor -->
       @if (selectedChapterId() && !selectedLessonId()) {
-        <div class="bg-white shadow-sm border border-gray-200 overflow-y-auto h-full">
+        <div class="bg-white shadow-sm border border-gray-200 flex-grow overflow-hidden">
           <div class="px-6 py-4 border-b border-gray-200 flex items-center gap-3">
             <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
               <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -71,7 +92,7 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
               <p class="text-sm text-gray-500">Cập nhật thông tin chương</p>
             </div>
           </div>
-          <div class="p-6 space-y-6">
+          <div class="p-6 space-y-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">Tên chương <span class="text-red-500">*</span></label>
               <input type="text" [(ngModel)]="chapterTitle" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
@@ -96,12 +117,12 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
                 </div>
               } @else {
                 <div class="text-center py-8 bg-gray-50 rounded-lg"><p class="text-gray-500 text-sm">Chưa có bài học</p></div>
-              }
+              }V
             </div>
           </div>
           <div class="px-6 py-4 border-t border-gray-200 flex justify-end flex-shrink-0">
             <button (click)="saveChapter()" [disabled]="isSaving()" class="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2">
-              @if (isSaving()) { <span class="animate-spin">⏳</span> }
+              @if (isSaving()) { <span class="animate-spin">?</span> }
               Lưu thay đổi
             </button>
           </div>
@@ -110,32 +131,54 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
 
       <!-- Section Editor (Level 3) -->
       @if (selectedSectionId()) {
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-y-auto h-full">
-          <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+        <div class="bg-white shadow-sm border border-gray-200 flex-grow overflow-hidden flex flex-col h-[calc(100vh-200px)]">
+          <div class="overflow-y-auto flex-grow h-full custom-scrollbar">
+          <!-- Header với Maritime Theme -->
+          <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-white to-slate-50">
              <div class="flex items-center gap-3">
-               <!-- Icon based on type -->
-               <div class="w-10 h-10 rounded-lg flex items-center justify-center" 
-                    [class.bg-blue-100]="newSectionType === 'VIDEO'" 
-                    [class.bg-gray-100]="newSectionType === 'TEXT'"
-                    [class.bg-orange-100]="newSectionType === 'FILE'"
-                    [class.bg-purple-100]="newSectionType === 'QUIZ'">
-                 @if (newSectionType === 'VIDEO') {
-                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path></svg>
-                 } @else if (newSectionType === 'QUIZ') {
-                    <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                 } @else if (newSectionType === 'FILE') {
-                    <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                 } @else {
-                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                 }
+               <!-- Maritime Theme Colors - Indicator Bar -->
+               <div class="relative">
+                   <div class="w-10 h-10 rounded-lg flex items-center justify-center" 
+                        [class.bg-blue-100]="newSectionType === 'VIDEO'" 
+                        [class.bg-slate-100]="newSectionType === 'TEXT'"
+                        [class.bg-amber-100]="newSectionType === 'FILE'"
+                        [class.bg-rose-100]="newSectionType === 'QUIZ'">
+                     @if (newSectionType === 'VIDEO') {
+                        <lucide-icon name="play-circle" [size]="20" class="text-blue-500"></lucide-icon>
+                     } @else if (newSectionType === 'QUIZ') {
+                        <lucide-icon name="clipboard-check" [size]="20" class="text-rose-500"></lucide-icon>
+                     } @else if (newSectionType === 'FILE') {
+                        <lucide-icon name="file-text" [size]="20" class="text-amber-500"></lucide-icon>
+                     } @else {
+                        <lucide-icon name="file-text" [size]="20" class="text-slate-600"></lucide-icon>
+                     }
+                   </div>
+                   <!-- Maritime Indicator Line -->
+                   <div class="absolute -left-3 top-1/2 -translate-y-1/2 w-1 h-6 rounded-full"
+                        [class.bg-blue-500]="newSectionType === 'VIDEO'"
+                        [class.bg-slate-400]="newSectionType === 'TEXT'"
+                        [class.bg-amber-500]="newSectionType === 'FILE'"
+                        [class.bg-rose-500]="newSectionType === 'QUIZ'"></div>
                </div>
                <div>
                  <h2 class="text-lg font-semibold text-gray-900">
-                    {{ newSectionType === 'TEXT' ? 'Văn bản' : newSectionType === 'VIDEO' ? 'Video' : newSectionType === 'FILE' ? 'Tài liệu' : 'Trắc nghiệm' }}
+                    {{ newSectionType === 'TEXT' ? 'Văn bản bài giảng' : newSectionType === 'VIDEO' ? 'Video bài giảng' : newSectionType === 'FILE' ? 'Tài liệu kỹ thuật' : 'Đánh giá năng lực' }}
                  </h2>
                  <p class="text-sm text-gray-500">{{ sectionTitle || 'Chưa có tiêu đề' }}</p>
                </div>
              </div>
+             <!-- Type Badge -->
+             <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider"
+                   [class.bg-blue-100]="newSectionType === 'VIDEO'"
+                   [class.text-blue-700]="newSectionType === 'VIDEO'"
+                   [class.bg-slate-100]="newSectionType === 'TEXT'"
+                   [class.text-slate-700]="newSectionType === 'TEXT'"
+                   [class.bg-amber-100]="newSectionType === 'FILE'"
+                   [class.text-amber-700]="newSectionType === 'FILE'"
+                   [class.bg-rose-100]="newSectionType === 'QUIZ'"
+                   [class.text-rose-700]="newSectionType === 'QUIZ'">
+                {{ newSectionType }}
+             </span>
           </div>
 
           <div class="p-6 space-y-6">
@@ -151,23 +194,39 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
              </div>
 
              @if (newSectionType === 'VIDEO') {
-               <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Video URL <span class="text-red-500">*</span></label>
-                  <input type="text" [(ngModel)]="sectionVideoUrl" 
-                         (blur)="updateVideoPreview(sectionVideoUrl)"
-                         (keydown.enter)="updateVideoPreview(sectionVideoUrl); $event.preventDefault()"
-                         class="w-full px-4 py-2.5 border border-gray-300 rounded-lg" placeholder="https://youtube.com/...">
-                  @if (safeVideoUrl()) {
-                      <div class="mt-2 aspect-video bg-black rounded-lg overflow-hidden">
-                          <iframe class="w-full h-full" [src]="safeVideoUrl()" frameborder="0" allowfullscreen></iframe>
-                      </div>
-                  }
-               </div>
+               <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <label class="block text-sm font-medium text-gray-700">Video URL <span class="text-red-500">*</span></label>
+                        <!-- NÚT - Maritime Theme -->
+                        <button type="button" (click)="toggleVideoPreview()" 
+                                class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                                [class.bg-blue-100]="isVideoPreviewVisible()"
+                                [class.text-blue-700]="isVideoPreviewVisible()"
+                                [class.bg-slate-100]="!isVideoPreviewVisible()"
+                                [class.text-slate-600]="!isVideoPreviewVisible()"
+                                [class.hover:bg-blue-50]="!isVideoPreviewVisible()">
+                            <lucide-icon [name]="isVideoPreviewVisible() ? 'eye-off' : 'eye'" [size]="14"></lucide-icon>
+                            {{ isVideoPreviewVisible() ? 'Ẩn xem trước' : 'Xem trước' }}
+                        </button>
+                    </div>
+                    <input type="text" [(ngModel)]="sectionVideoUrl" (blur)="updateVideoPreview(sectionVideoUrl)"
+                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                           placeholder="https://youtube.com/watch?v=...">
+                    
+                    <!-- VIDEO PREVIEW - Căn giữa + Rounded -->
+                    @if (isVideoPreviewVisible() && safeVideoUrl()) {
+                        <div class="flex justify-center">
+                            <div class="w-full max-w-2xl aspect-video bg-slate-900 rounded-xl overflow-hidden shadow-lg border border-slate-200">
+                                <iframe class="w-full h-full" [src]="safeVideoUrl()" frameborder="0" allowfullscreen></iframe>
+                            </div>
+                        </div>
+                    }
+                </div>
              }
 
              @if (newSectionType === 'TEXT') {
                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Nội dung</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Nội dung bài giảng</label>
                   <div class="editor-container-wrapper border border-gray-300 rounded-lg bg-white relative shadow-sm" [style.height.px]="editorHeight()">
                       @if (isDataLoaded()) {
                         <ckeditor [editor]="Editor" [(ngModel)]="sectionContent" 
@@ -175,87 +234,328 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
                                   (change)="onEditorChange($event)">
                         </ckeditor>
                       } @else {
-                        <div class="flex items-center justify-center h-full text-gray-400">
-                          <span class="animate-pulse">Đang tải trình soạn thảo...</span>
+                        <div class="flex flex-col items-center justify-center h-full text-gray-400 gap-3">
+                          <div class="w-8 h-8 border-2 border-slate-300 border-t-blue-500 rounded-full animate-spin"></div>
+                          <span class="text-sm font-medium">Đang tải trình soạn thảo...</span>
                         </div>
                       }
+                  </div>
+                  <!-- Word Count Footer -->
+                  <div class="flex items-center justify-between mt-2 text-xs text-gray-500">
+                      <span>{{ wordCount() }} từ</span>
+                      <span class="text-gray-400">Ctrl+S để lưu nhanh</span>
                   </div>
                </div>
              }
 
-             @if (newSectionType === 'FILE') {
-               <div class="space-y-4">
-                 <div>
-                   <label class="block text-sm font-medium text-gray-700 mb-2">Tài liệu đính kèm</label>
-                   
-                   @if (sectionFileUrl()) {
-                     <div class="p-4 border border-gray-200 rounded-lg bg-gray-50">
-                       @if (isPdfFile(sectionFileUrl()!)) {
-                          <div class="aspect-[3/4] w-full bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
-                            <embed [src]="getSafePdfUrl(editingSectionId()!)" type="application/pdf" class="w-full h-full" />
-                          </div>
-                          <p class="text-xs text-center text-gray-500 mt-2">Đang hiển thị chế độ xem trước PDF</p>
-                       } @else {
-                          <div class="flex items-center gap-3">
-                            <div class="p-2 bg-orange-100 rounded-lg text-orange-600">
-                              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                            </div>
-                            <div class="flex-1 min-w-0">
-                              <p class="text-sm font-medium text-gray-900 truncate">{{ sectionTitle }}</p>
-                              <p class="text-xs text-gray-500">File tài liệu</p>
-                            </div>
-                            <a [href]="sectionFileUrl()" target="_blank" class="px-3 py-1.5 bg-white border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50">
-                              Tải xuống
-                            </a>
-                          </div>
+              @if (newSectionType === 'FILE') {
+               <div class="space-y-4 p-5 bg-amber-50 rounded-xl border border-amber-200">
+                   <div class="flex items-center justify-between">
+                       <label class="block text-xs font-black text-amber-800 uppercase">Tệp đính kèm</label>
+                       @if (sectionFileUrl()) {
+                           <a [href]="sectionFileUrl()" target="_blank" class="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1">
+                               <lucide-icon name="download" [size]="12"></lucide-icon> Tải xuống hiện tại
+                           </a>
                        }
-                     </div>
-                   } @else {
-                      <div class="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
-                         <p class="text-gray-500 text-sm">Chưa có file nào được tải lên.</p>
+                   </div>
+
+                   <!-- Upload Area -->
+                   <div class="border-2 border-dashed border-amber-300 rounded-xl p-6 flex flex-col items-center justify-center bg-white hover:bg-amber-50 cursor-pointer transition-colors relative">
+                       <input type="file" (change)="onFileSelected($event)" 
+                              class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                       
+                       @if (!selectedFile) {
+                           <div class="text-center pointer-events-none">
+                               <div class="w-10 h-10 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-2">
+                                   <lucide-icon name="upload-cloud" [size]="20"></lucide-icon>
+                               </div>
+                               <p class="text-sm font-bold text-slate-700">Nhấn để tải lên tài liệu</p>
+                               <p class="text-xs text-slate-400 mt-1">PDF, Word, Excel, PowerPoint (Max 50MB)</p>
+                           </div>
+                       } @else {
+                           <div class="flex items-center gap-3 w-full max-w-xs bg-amber-100 p-3 rounded-lg border border-amber-200 pointer-events-none">
+                               <lucide-icon name="file" [size]="20" class="text-amber-600 flex-shrink-0"></lucide-icon>
+                               <div class="flex-grow min-w-0">
+                                   <p class="text-xs font-bold text-slate-800 truncate">{{ selectedFile.name }}</p>
+                                   <p class="text--[10px] text-slate-500">{{ (selectedFile.size / 1024 / 1024).toFixed(2) }} MB</p>
+                               </div>
+                               <button (click)="$event.stopPropagation(); selectedFile = null" class="pointer-events-auto p-1 hover:bg-amber-200 rounded text-amber-700">
+                                   <lucide-icon name="x" [size]="14"></lucide-icon>
+                               </button>
+                           </div>
+                       }
+                   </div>
+
+                   <!-- Current File Display -->
+                   @if (sectionFileUrl() && !selectedFile) {
+                       <div class="flex items-center gap-3 p-3 bg-white border border-amber-100 rounded-lg">
+                           <lucide-icon name="check-circle" [size]="16" class="text-green-500"></lucide-icon>
+                           <div class="flex-grow min-w-0">
+                               <p class="text-xs font-bold text-slate-700">Đã có tệp đính kèm:</p>
+                               <a [href]="sectionFileUrl()" target="_blank" class="text-xs text-blue-600 hover:underline truncate block max-w-full">
+                                   {{ getFileNameFromUrl(sectionFileUrl()!) }}
+                               </a>
+                           </div>
+                       </div>
+                   }
+
+                   <!-- PDF Preview (Condition: Safe URL Exists) -->
+                   @if (safePdfUrl()) {
+                      <div class="mt-4">
+                         <div class="flex items-center justify-between mb-2">
+                             <label class="text-xs font-bold text-slate-600">Xem trước PDF (SOTA Stream)</label>
+                         </div>
+                         <div class="w-full h-[500px] border border-slate-200 rounded-lg overflow-hidden bg-slate-800 shadow-inner">
+                             <iframe [src]="safePdfUrl()" class="w-full h-full" frameborder="0"></iframe>
+                         </div>
                       </div>
                    }
-                 </div>
                </div>
-             }
+              }
 
              @if (newSectionType === 'QUIZ') {
-                <div class="bg-indigo-50 border border-indigo-100 rounded-lg p-6 text-center">
-                    <div class="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <span class="text-2xl">❓</span>
+                <div class="space-y-6">
+                    <!-- Quiz Type Selection -->
+                    <div class="flex gap-3">
+                        <button (click)="sectionQuizType = 'ASSESSMENT'" 
+                                class="flex-1 p-4 rounded-xl border-2 transition-all"
+                                [class.border-emerald-500]="sectionQuizType === 'ASSESSMENT'"
+                                [class.bg-emerald-50]="sectionQuizType === 'ASSESSMENT'"
+                                [class.border-gray-200]="sectionQuizType !== 'ASSESSMENT'">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-lg flex items-center justify-center"
+                                     [class.bg-emerald-100]="sectionQuizType === 'ASSESSMENT'"
+                                     [class.bg-gray-100]="sectionQuizType !== 'ASSESSMENT'">
+                                    <lucide-icon name="check-circle" [size]="20" 
+                                                 [class.text-emerald-600]="sectionQuizType === 'ASSESSMENT'"
+                                                 [class.text-gray-400]="sectionQuizType !== 'ASSESSMENT'"></lucide-icon>
+                                </div>
+                                <div class="text-left">
+                                    <p class="text-sm font-bold" [class.text-emerald-800]="sectionQuizType === 'ASSESSMENT'" [class.text-gray-700]="sectionQuizType !== 'ASSESSMENT'">Bài đánh giá</p>
+                                    <p class="text-xs text-gray-500">Chỉ cần đạt điểm tối thiểu</p>
+                                </div>
+                            </div>
+                        </button>
+                        <button (click)="sectionQuizType = 'EXAM'" 
+                                class="flex-1 p-4 rounded-xl border-2 transition-all"
+                                [class.border-rose-500]="sectionQuizType === 'EXAM'"
+                                [class.bg-rose-50]="sectionQuizType === 'EXAM'"
+                                [class.border-gray-200]="sectionQuizType !== 'EXAM'">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-lg flex items-center justify-center"
+                                     [class.bg-rose-100]="sectionQuizType === 'EXAM'"
+                                     [class.bg-gray-100]="sectionQuizType !== 'EXAM'">
+                                    <lucide-icon name="file-check" [size]="20" 
+                                                 [class.text-rose-600]="sectionQuizType === 'EXAM'"
+                                                 [class.text-gray-400]="sectionQuizType !== 'EXAM'"></lucide-icon>
+                                </div>
+                                <div class="text-left">
+                                    <p class="text-sm font-bold" [class.text-rose-800]="sectionQuizType === 'EXAM'" [class.text-gray-700]="sectionQuizType !== 'EXAM'">Bài kiểm tra</p>
+                                    <p class="text-xs text-gray-500">Giới hạn số lần làm bài</p>
+                                </div>
+                            </div>
+                        </button>
                     </div>
-                    <h3 class="text-lg font-bold text-gray-800 mb-2">Quản lý câu hỏi trắc nghiệm</h3>
-                    <p class="text-gray-600 mb-4 text-sm max-w-lg mx-auto">
-                        Để thêm câu hỏi từ ngân hàng, chọn ngẫu nhiên hoặc cài đặt thời gian làm bài, 
-                        vui lòng sử dụng trình quản lý Quiz chuyên dụng.
-                    </p>
-                    <button (click)="goToQuizBuilder()" 
-                            class="px-5 py-2.5 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors shadow-sm inline-flex items-center gap-2">
-                        <span>🚀</span>
-                        Mở trình quản lý Quiz
-                    </button>
-                    <p class="text-xs text-gray-500 mt-3">Thay đổi sẽ được lưu trước khi chuyển trang.</p>
+
+                    <!-- Quiz Settings Card -->
+                    <div class="rounded-xl p-5"
+                         [class.bg-emerald-50]="sectionQuizType === 'ASSESSMENT'"
+                         [class.border-emerald-100]="sectionQuizType === 'ASSESSMENT'"
+                         [class.bg-rose-50]="sectionQuizType === 'EXAM'"
+                         [class.border-rose-100]="sectionQuizType === 'EXAM'"
+                         [class.border]="true">
+                        <div class="flex items-center gap-2 mb-4">
+                            <lucide-icon name="settings" [size]="18" 
+                                         [class.text-emerald-600]="sectionQuizType === 'ASSESSMENT'"
+                                         [class.text-rose-600]="sectionQuizType === 'EXAM'"></lucide-icon>
+                            <h4 class="text-sm font-black uppercase tracking-wide"
+                                [class.text-emerald-800]="sectionQuizType === 'ASSESSMENT'"
+                                [class.text-rose-800]="sectionQuizType === 'EXAM'">
+                                {{ sectionQuizType === 'ASSESSMENT' ? 'Thiết lập bài đánh giá' : 'Thiết lập bài kiểm tra' }}
+                            </h4>
+                        </div>
+                        
+                        <div class="grid gap-4" [class.grid-cols-2]="sectionQuizType === 'ASSESSMENT'" [class.grid-cols-3]="sectionQuizType === 'EXAM'">
+                            <!-- Time Limit -->
+                            <div class="bg-white rounded-lg p-4 border"
+                                 [class.border-emerald-100]="sectionQuizType === 'ASSESSMENT'"
+                                 [class.border-rose-100]="sectionQuizType === 'EXAM'">
+                                <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Thời gian (phút)</label>
+                                <div class="flex items-center gap-2">
+                                    <lucide-icon name="clock" [size]="16" 
+                                                 [class.text-emerald-400]="sectionQuizType === 'ASSESSMENT'"
+                                                 [class.text-rose-400]="sectionQuizType === 'EXAM'"></lucide-icon>
+                                    <input type="number" [(ngModel)]="sectionQuizTimeLimit" min="1" max="180"
+                                           class="flex-1 text-lg font-bold text-gray-900 border-none p-0 focus:ring-0 bg-transparent w-full"
+                                           placeholder="30">
+                                </div>
+                            </div>
+
+                            <!-- Passing Score -->
+                            <div class="bg-white rounded-lg p-4 border"
+                                 [class.border-emerald-100]="sectionQuizType === 'ASSESSMENT'"
+                                 [class.border-rose-100]="sectionQuizType === 'EXAM'">
+                                <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Điểm đạt (%)</label>
+                                <div class="flex items-center gap-2">
+                                    <lucide-icon name="target" [size]="16" 
+                                                 [class.text-emerald-400]="sectionQuizType === 'ASSESSMENT'"
+                                                 [class.text-rose-400]="sectionQuizType === 'EXAM'"></lucide-icon>
+                                    <input type="number" [(ngModel)]="sectionQuizPassingScore" min="0" max="100"
+                                           class="flex-1 text-lg font-bold text-gray-900 border-none p-0 focus:ring-0 bg-transparent w-full"
+                                           placeholder="60">
+                                </div>
+                            </div>
+
+                            <!-- Max Attempts - Only for EXAM type -->
+                            @if (sectionQuizType === 'EXAM') {
+                                <div class="bg-white rounded-lg p-4 border border-rose-100">
+                                    <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Số lần làm</label>
+                                    <div class="flex items-center gap-2">
+                                        <lucide-icon name="repeat" [size]="16" class="text-rose-400"></lucide-icon>
+                                        <input type="number" [(ngModel)]="sectionQuizMaxAttempts" min="1" max="10"
+                                               class="flex-1 text-lg font-bold text-gray-900 border-none p-0 focus:ring-0 bg-transparent w-full"
+                                               placeholder="1">
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Quiz Options -->
+                        <div class="mt-4 flex flex-wrap gap-4">
+                            <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                                <input type="checkbox" [(ngModel)]="sectionQuizShuffleQuestions" class="rounded focus:ring-offset-0"
+                                       [class.text-emerald-600]="sectionQuizType === 'ASSESSMENT'"
+                                       [class.focus:ring-emerald-500]="sectionQuizType === 'ASSESSMENT'"
+                                       [class.text-rose-600]="sectionQuizType === 'EXAM'"
+                                       [class.focus:ring-rose-500]="sectionQuizType === 'EXAM'">
+                                <span>Xáo trộn câu hỏi</span>
+                            </label>
+                            <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                                <input type="checkbox" [(ngModel)]="sectionQuizShuffleOptions" class="rounded focus:ring-offset-0"
+                                       [class.text-emerald-600]="sectionQuizType === 'ASSESSMENT'"
+                                       [class.focus:ring-emerald-500]="sectionQuizType === 'ASSESSMENT'"
+                                       [class.text-rose-600]="sectionQuizType === 'EXAM'"
+                                       [class.focus:ring-rose-500]="sectionQuizType === 'EXAM'">
+                                <span>Xáo trộn đáp án</span>
+                            </label>
+                            <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                                <input type="checkbox" [(ngModel)]="sectionQuizShowResults" class="rounded focus:ring-offset-0"
+                                       [class.text-emerald-600]="sectionQuizType === 'ASSESSMENT'"
+                                       [class.focus:ring-emerald-500]="sectionQuizType === 'ASSESSMENT'"
+                                       [class.text-rose-600]="sectionQuizType === 'EXAM'"
+                                       [class.focus:ring-rose-500]="sectionQuizType === 'EXAM'">
+                                <span>Hiện kết quả ngay</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Question Selection Card -->
+                    <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                        <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
+                            <div class="flex items-center gap-2">
+                                <lucide-icon name="list-checks" [size]="18" class="text-gray-600"></lucide-icon>
+                                <h4 class="text-sm font-bold text-gray-800">Câu hỏi đã chọn</h4>
+                                <span class="text-xs font-bold px-2 py-0.5 rounded-full"
+                                      [class.bg-emerald-100]="sectionQuizType === 'ASSESSMENT'"
+                                      [class.text-emerald-700]="sectionQuizType === 'ASSESSMENT'"
+                                      [class.bg-rose-100]="sectionQuizType === 'EXAM'"
+                                      [class.text-rose-700]="sectionQuizType === 'EXAM'">
+                                    {{ sectionQuizSelectedQuestions().length }}
+                                </span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button (click)="openSectionQuizRandomModal()" 
+                                        class="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 hover:border-gray-300 transition-colors">
+                                    <lucide-icon name="shuffle" [size]="14"></lucide-icon>
+                                    <span>Ngẫu nhiên</span>
+                                </button>
+                                <button (click)="openSectionQuizBankModal()" 
+                                        class="flex items-center gap-1.5 px-3 py-1.5 text-white rounded-lg text-xs font-bold transition-colors"
+                                        [class.bg-emerald-600]="sectionQuizType === 'ASSESSMENT'"
+                                        [class.hover:bg-emerald-700]="sectionQuizType === 'ASSESSMENT'"
+                                        [class.bg-rose-600]="sectionQuizType === 'EXAM'"
+                                        [class.hover:bg-rose-700]="sectionQuizType === 'EXAM'">
+                                    <lucide-icon name="plus" [size]="14"></lucide-icon>
+                                    <span>Chọn từ ngân hàng</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Question List -->
+                        <div class="max-h-[300px] overflow-y-auto">
+                            @if (sectionQuizSelectedQuestions().length === 0) {
+                                <div class="py-12 text-center">
+                                    <lucide-icon name="clipboard-list" [size]="40" class="mx-auto text-gray-300 mb-3"></lucide-icon>
+                                    <p class="text-sm font-medium text-gray-500">Chưa có câu hỏi nào</p>
+                                    <p class="text-xs text-gray-400 mt-1">Chọn từ ngân hàng hoặc tạo ngẫu nhiên</p>
+                                </div>
+                            } @else {
+                                <div class="divide-y divide-gray-50">
+                                    @for (q of sectionQuizSelectedQuestions(); track q.id; let i = $index) {
+                                        <div class="px-4 py-3 flex items-start gap-3 hover:bg-gray-50 group">
+                                            <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                                                  [class.bg-emerald-100]="sectionQuizType === 'ASSESSMENT'"
+                                                  [class.text-emerald-700]="sectionQuizType === 'ASSESSMENT'"
+                                                  [class.bg-rose-100]="sectionQuizType === 'EXAM'"
+                                                  [class.text-rose-700]="sectionQuizType === 'EXAM'">
+                                                {{ i + 1 }}
+                                            </span>
+                                            <div class="flex-1 min-w-0">
+                                                <p class="text-sm text-gray-800 line-clamp-2">{{ q.content }}</p>
+                                                <div class="flex items-center gap-2 mt-1">
+                                                    <span class="text-[10px] px-1.5 py-0.5 rounded font-bold"
+                                                          [class.bg-green-100]="q.difficulty === 'EASY'"
+                                                          [class.text-green-700]="q.difficulty === 'EASY'"
+                                                          [class.bg-yellow-100]="q.difficulty === 'MEDIUM'"
+                                                          [class.text-yellow-700]="q.difficulty === 'MEDIUM'"
+                                                          [class.bg-red-100]="q.difficulty === 'HARD'"
+                                                          [class.text-red-700]="q.difficulty === 'HARD'">
+                                                        {{ q.difficulty === 'EASY' ? 'Dễ' : q.difficulty === 'MEDIUM' ? 'TB' : 'Khó' }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <button (click)="removeSectionQuizQuestion(q.id)" 
+                                                    class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100 transition-all">
+                                                <lucide-icon name="x" [size]="14"></lucide-icon>
+                                            </button>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
                 </div>
              }
           </div>
 
-          <div class="px-6 py-4 border-t border-gray-200 flex justify-end gap-3 flex-shrink-0 bg-gray-50">
+          <div class="px-6 py-4 border-t border-gray-200 flex justify-between items-center flex-shrink-0 bg-slate-50">
              <button (click)="editingSectionId() && deleteSection(editingSectionId()!)" 
-                     class="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors mr-auto">
-                Xóa
+                     class="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                <lucide-icon name="trash-2" [size]="16"></lucide-icon>
+                <span class="text-sm font-medium">Xóa mục này</span>
              </button>
 
-             <button (click)="saveSection()" [disabled]="isSaving() || !sectionTitle.trim()" class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2">
-               @if (isSaving()) { <span class="animate-spin">⏳</span> }
-               Lưu thay đổi
-             </button>
+             <div class="flex items-center gap-3">
+                 <button (click)="clearSectionSelection()" 
+                         class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors text-sm font-medium">
+                    Hủy
+                 </button>
+                 <button (click)="saveSection()" [disabled]="isSaving() || !sectionTitle.trim()" 
+                         class="px-5 py-2 bg-slate-900 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 flex items-center gap-2 transition-colors shadow-sm">
+                   @if (isSaving()) { 
+                     <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                   }
+                   <span class="font-medium">Lưu thay đổi</span>
+                 </button>
+             </div>
           </div>
+        </div>
         </div>
       }
 
       <!-- Lesson Editor -->
       @if (selectedLessonId() && !selectedSectionId()) {
-        <div class="bg-white overflow-y-auto h-full">
+        <div class="bg-white shadow-sm border border-gray-200 flex-grow overflow-hidden">
           <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
             <div class="flex items-center gap-3">
               <div class="w-10 h-10 rounded-lg flex items-center justify-center" [class.bg-blue-100]="getLessonType(selectedLesson()) === 'LECTURE'" [class.bg-purple-100]="getLessonType(selectedLesson()) === 'QUIZ'" [class.bg-green-100]="getLessonType(selectedLesson()) === 'ASSIGNMENT'">
@@ -270,7 +570,7 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
             </div>
           </div>
 
-          <div class="p-6 space-y-6">
+          <div class="p-6 space-y-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">Tiêu đề <span class="text-red-500">*</span></label>
               <input type="text" [(ngModel)]="lessonTitle" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
@@ -278,7 +578,7 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
 
             <!-- LECTURE fields (Refactored for Level 3 Topics) -->
             @if (getLessonType(selectedLesson()) === 'LECTURE') {
-              <div class="space-y-6">
+              <div class="space-y-4">
                 <!-- Topic List -->
                 <div class="bg-gray-50 rounded-lg border border-gray-200 p-4">
                   <div class="flex items-center justify-between mb-4">
@@ -294,35 +594,47 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
                   </div>
                   
                   @if (selectedLesson()?.sections?.length === 0) {
-                     <div class="text-center py-6 text-gray-500 text-sm italic">
-                        Chưa có nội dung. Hãy thêm Text hoặc Video.
+                     <div class="text-center py-8 text-gray-500 text-sm">
+                        <lucide-icon name="inbox" [size]="32" class="mx-auto mb-2 text-gray-300"></lucide-icon>
+                        <p>Chưa có nội dung. Hãy thêm bài giảng, video hoặc tài liệu.</p>
                      </div>
                   } @else {
                      <div class="space-y-2" cdkDropList (cdkDropListDropped)="dropSection($event)">
                         @for (section of selectedLesson()?.sections; track section.id) {
-                           <div class="bg-white p-3 rounded-lg border border-gray-200 flex items-center gap-3 cursor-pointer hover:border-blue-300 transition-all group"
+                           <div class="relative bg-white p-3 rounded-lg border border-gray-200 flex items-center gap-3 cursor-pointer hover:border-blue-300 hover:shadow-sm transition-all group"
                                 (click)="editSection(section)" cdkDrag>
-                              <div class="text-gray-400 cursor-move" cdkDragHandle>
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
+                              <!-- Maritime Indicator Line -->
+                              <div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full"
+                                   [class.bg-blue-500]="section.type === 'VIDEO'"
+                                   [class.bg-amber-500]="section.type === 'FILE'"
+                                   [class.bg-rose-500]="section.type === 'QUIZ'"
+                                   [class.bg-slate-400]="section.type === 'TEXT'"></div>
+                              
+                              <div class="text-gray-400 cursor-move ml-2" cdkDragHandle>
+                                <lucide-icon name="grip-vertical" [size]="16"></lucide-icon>
                               </div>
-                              <div class="w-8 h-8 rounded flex items-center justify-center flex-shrink-0" 
+                              <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" 
                                    [class.bg-blue-100]="section.type === 'VIDEO'" 
-                                   [class.bg-orange-100]="section.type === 'FILE'" 
-                                   [class.bg-gray-100]="section.type === 'TEXT'">
+                                   [class.bg-amber-100]="section.type === 'FILE'" 
+                                   [class.bg-rose-100]="section.type === 'QUIZ'"
+                                   [class.bg-slate-100]="section.type === 'TEXT'">
                                  @if (section.type === 'VIDEO') {
-                                   <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path></svg>
+                                   <lucide-icon name="play-circle" [size]="16" class="text-blue-600"></lucide-icon>
                                  } @else if (section.type === 'FILE') {
-                                   <svg class="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                   <lucide-icon name="file-text" [size]="16" class="text-amber-600"></lucide-icon>
+                                 } @else if (section.type === 'QUIZ') {
+                                   <lucide-icon name="clipboard-check" [size]="16" class="text-rose-600"></lucide-icon>
                                  } @else {
-                                   <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                   <lucide-icon name="file-text" [size]="16" class="text-slate-600"></lucide-icon>
                                  }
                               </div>
-                              <div class="flex-1">
-                                 <h4 class="text-sm font-medium text-gray-900">{{ section.title }}</h4>
-                                 <p class="text-xs text-gray-500 truncate max-w-md">{{ section.content || section.videoUrl || 'No content' }}</p>
+                              <div class="flex-1 min-w-0">
+                                 <h4 class="text-sm font-medium text-gray-900 truncate">{{ section.title }}</h4>
+                                 <p class="text-xs text-gray-400 truncate">{{ section.type }}</p>
                               </div>
-                              <button (click)="deleteSection(section.id); $event.stopPropagation()" class="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-600 rounded">
-                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                              <button (click)="deleteSection(section.id); $event.stopPropagation()" 
+                                      class="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all">
+                                 <lucide-icon name="trash-2" [size]="14"></lucide-icon>
                               </button>
                            </div>
                         }
@@ -332,11 +644,35 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
               </div>
             }
 
+            <!-- Actions -->
+            <div class="flex items-center gap-2 mt-4 pt-4 border-t border-slate-100">
+                <button class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-50 hover:bg-blue-50 text-xs font-bold text-slate-600 hover:text-blue-600 transition-colors border border-slate-200 hover:border-blue-200"
+                        (click)="openSectionEditor('TEXT'); $event.stopPropagation()">
+                    <lucide-icon name="plus" [size]="14"></lucide-icon>
+                    <span>Bài giảng</span>
+                </button>
+                <button class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-50 hover:bg-blue-50 text-xs font-bold text-slate-600 hover:text-blue-600 transition-colors border border-slate-200 hover:border-blue-200"
+                        (click)="openSectionEditor('VIDEO'); $event.stopPropagation()">
+                    <lucide-icon name="video" [size]="14"></lucide-icon>
+                    <span>Video</span>
+                </button>
+                <button class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-50 hover:bg-amber-50 text-xs font-bold text-slate-600 hover:text-amber-600 transition-colors border border-slate-200 hover:border-amber-200"
+                        (click)="openSectionEditor('FILE'); $event.stopPropagation()">
+                    <lucide-icon name="file-text" [size]="14"></lucide-icon>
+                    <span>Tài liệu</span>
+                </button>
+                <button class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-50 hover:bg-rose-50 text-xs font-bold text-slate-600 hover:text-rose-600 transition-colors border border-slate-200 hover:border-rose-200"
+                        (click)="openSectionEditor('QUIZ'); $event.stopPropagation()">
+                    <lucide-icon name="clipboard-check" [size]="14"></lucide-icon>
+                    <span>Trắc nghiệm</span>
+                </button>
+            </div>
+
             <!-- QUIZ fields -->
             @if (getLessonType(selectedLesson()) === 'QUIZ') {
               <div class="flex flex-col gap-6 animate-fade-in">
                 
-                <!-- SECTION 1: CẤU HÌNH LUẬT THI (SETTINGS) -->
+                <!-- SECTION 1: CÂU HỎI LUẬT THI (SETTINGS) -->
                 <div>
                   <h4 class="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-3 flex items-center gap-2">
                     <svg class="w-4 h-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -396,7 +732,7 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
                       <div class="flex items-baseline gap-2">
                         <input type="number" [(ngModel)]="quizMaxAttempts" min="1"
                                class="flex-1 text-2xl font-bold text-gray-900 border-none p-0 focus:ring-0 placeholder-gray-300 w-full"
-                               placeholder="∞">
+                               placeholder="8">
                         <span class="text-sm text-gray-500 font-medium">lần</span>
                       </div>
                     </div>
@@ -419,7 +755,7 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
                     </div>
 
                     <div class="flex items-center gap-2">
-                      <!-- NÚT RANDOM MỚI -->
+                      <!-- Nút Random Mới -->
                       <button (click)="openRandomizeModal()" 
                               class="group flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:border-purple-400 hover:text-purple-700 hover:bg-purple-50 transition-all shadow-sm">
                         <svg class="w-4 h-4 text-gray-400 group-hover:text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -428,7 +764,7 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
                         <span>Tạo ngẫu nhiên</span>
                       </button>
 
-                      <!-- NÚT THÊM THỦ CÔNG -->
+                      <!-- Nút Thêm Thêm Câu Hỏi -->
                       <button (click)="showAddQuestionsModal.set(true)" 
                               class="flex items-center gap-2 px-3 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 shadow-md shadow-purple-200 transition-all active:scale-95">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -465,7 +801,7 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
                              Thêm ngẫu nhiên
                            </button>
                            <button (click)="showAddQuestionsModal.set(true)" class="text-white bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                             Thêm thủ công
+                             Thêm từ ngân hàng
                            </button>
                         </div>
                       </div>
@@ -525,7 +861,7 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
                   
                   <!-- List Footer -->
                   <div class="bg-gray-50 px-4 py-2 border-t border-gray-200 text-xs text-gray-500 flex justify-between items-center">
-                    <span>Tổng thời gian dự kiến: {{ quizQuestions().length * 1.5 }} phút (tham khảo)</span>
+                    <span>Tăng thời gian làm bài: {{ quizQuestions().length * 1.5 }} phút (tham khảo)</span>
                     <button (click)="loadQuizQuestions()" class="hover:text-purple-700 flex items-center gap-1">
                       <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -564,9 +900,9 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
           </div>
 
           <div class="px-6 py-4 border-t border-gray-200 flex justify-between items-center flex-shrink-0">
-            <button (click)="clearSelection()" class="text-gray-600 hover:text-gray-800 text-sm">← Quay lại</button>
+            <button (click)="clearSelection()" class="text-gray-600 hover:text-gray-800 text-sm">Quay lại</button>
             <button (click)="saveLesson()" [disabled]="isSaving()" class="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
-              @if (isSaving()) { <span class="animate-spin">⏳</span> }
+              @if (isSaving()) { <span class="animate-spin">?</span> }
               Lưu thay đổi
             </button>
           </div>
@@ -611,10 +947,10 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
             </div>
           </div>
           
-          <!-- Option nâng cao (nếu cần) -->
+          <!-- Option n�ng cao (n?u c?n) -->
           <div class="flex gap-2">
              <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-                <input type="checkbox" class="rounded text-purple-600 focus:ring-purple-500">
+                <input type="checkbox" class="rounded text-purple-600 focus:ring-purple-500" [(ngModel)]="randomUnique">
                 <span>Ưu tiên câu hỏi chưa từng sử dụng</span>
              </label>
           </div>
@@ -626,7 +962,7 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
           </button>
           <button (click)="generateRandomQuestions()" [disabled]="!selectedPackageId || quizQuestionsLoading()" 
                   class="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
-            @if (quizQuestionsLoading()) { <span class="animate-spin text-white">⏳</span> }
+            @if (quizQuestionsLoading()) { <span class="animate-spin text-white">?</span> }
             Tạo ngay
           </button>
         </div>
@@ -640,7 +976,7 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
         <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col" (click)="$event.stopPropagation()">
           <div class="p-5 border-b border-gray-200 flex items-center justify-between">
             <h3 class="text-lg font-semibold text-gray-900">Thêm câu hỏi từ ngân hàng</h3>
-            <button (click)="showAddQuestionsModal.set(false)" class="p-1 text-gray-400 hover:text-gray-600 rounded">✕</button>
+            <button (click)="showAddQuestionsModal.set(false)" class="p-1 text-gray-400 hover:text-gray-600 rounded">?</button>
           </div>
           <div class="p-5 space-y-4 overflow-y-auto flex-1">
             <div>
@@ -673,7 +1009,7 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
             }
           </div>
           <div class="p-5 border-t border-gray-200 flex justify-end gap-3">
-            <button (click)="showAddQuestionsModal.set(false)" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">Hủy</button>
+            <button (click)="showAddQuestionsModal.set(false)" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">Hủy bỏ</button>
             <button (click)="addSelectedQuestionsToQuiz()" [disabled]="selectedQuestionIds().size === 0" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50">
               Thêm {{ selectedQuestionIds().size }} câu hỏi
             </button>
@@ -681,17 +1017,114 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
         </div>
       </div>
     }
+
+    <!-- Section Quiz Bank Modal -->
+    @if (showSectionQuizBankModal()) {
+      <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" (click)="showSectionQuizBankModal.set(false)">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col" (click)="$event.stopPropagation()">
+          <div class="p-5 border-b border-gray-200 flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-gray-900">Chọn câu hỏi từ ngân hàng</h3>
+            <button (click)="showSectionQuizBankModal.set(false)" class="p-1 text-gray-400 hover:text-gray-600 rounded">✕</button>
+          </div>
+          <div class="p-5 space-y-4 overflow-y-auto flex-1">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Chọn gói câu hỏi</label>
+              <select [(ngModel)]="selectedPackageId" (change)="loadPackageQuestions()" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 bg-white">
+                <option value="">-- Chọn gói câu hỏi --</option>
+                @for (pkg of quizPackages(); track pkg.id) {
+                  <option [value]="pkg.id">{{ pkg.name }} ({{ pkg.questionCount || 0 }} câu)</option>
+                }
+              </select>
+            </div>
+            @if (packageQuestions().length > 0) {
+              <div class="border border-gray-200 rounded-lg overflow-hidden">
+                <div class="px-4 py-3 bg-gray-50 border-b flex items-center justify-between">
+                  <span class="text-sm font-medium">Danh sách câu hỏi</span>
+                  <div class="flex items-center gap-2">
+                    <button (click)="selectAllQuestions()" class="text-xs text-rose-600">Chọn tất cả</button>
+                    <button (click)="clearQuestionSelection()" class="text-xs text-gray-600">Bỏ chọn</button>
+                  </div>
+                </div>
+                <div class="max-h-64 overflow-y-auto p-3 space-y-2">
+                  @for (q of packageQuestions(); track q.id) {
+                    <label class="flex items-start gap-3 p-3 rounded-lg border cursor-pointer" [class.border-rose-500]="selectedQuestionIds().has(q.id)" [class.bg-rose-50]="selectedQuestionIds().has(q.id)">
+                      <input type="checkbox" [checked]="selectedQuestionIds().has(q.id)" (change)="toggleQuestionSelection(q.id)" class="mt-1 h-4 w-4 text-rose-600 rounded">
+                      <div class="flex-1">
+                        <p class="text-sm text-gray-900">{{ q.content }}</p>
+                        <span class="text-[10px] px-1.5 py-0.5 rounded mt-1 inline-block"
+                              [class.bg-green-100]="q.difficulty === 'EASY'"
+                              [class.text-green-700]="q.difficulty === 'EASY'"
+                              [class.bg-yellow-100]="q.difficulty === 'MEDIUM'"
+                              [class.text-yellow-700]="q.difficulty === 'MEDIUM'"
+                              [class.bg-red-100]="q.difficulty === 'HARD'"
+                              [class.text-red-700]="q.difficulty === 'HARD'">
+                          {{ q.difficulty === 'EASY' ? 'Dễ' : q.difficulty === 'MEDIUM' ? 'TB' : 'Khó' }}
+                        </span>
+                      </div>
+                    </label>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+          <div class="p-5 border-t border-gray-200 flex justify-end gap-3">
+            <button (click)="showSectionQuizBankModal.set(false)" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">Hủy</button>
+            <button (click)="addSectionQuizQuestionsFromBank()" [disabled]="selectedQuestionIds().size === 0" class="px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700 disabled:opacity-50">
+              Thêm {{ selectedQuestionIds().size }} câu hỏi
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Section Quiz Random Modal -->
+    @if (showSectionQuizRandomModal()) {
+      <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" (click)="showSectionQuizRandomModal.set(false)">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4" (click)="$event.stopPropagation()">
+          <div class="p-5 border-b border-gray-100">
+            <h3 class="text-lg font-bold text-gray-900">Tạo câu hỏi ngẫu nhiên</h3>
+            <p class="text-sm text-gray-500 mt-1">Chọn gói và số lượng câu hỏi</p>
+          </div>
+          <div class="p-5 space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Nguồn câu hỏi</label>
+              <select [(ngModel)]="selectedPackageId" class="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white">
+                <option value="">-- Chọn gói câu hỏi --</option>
+                @for (pkg of quizPackages(); track pkg.id) {
+                  <option [value]="pkg.id">{{ pkg.name }} ({{ pkg.questionCount || 0 }} câu)</option>
+                }
+              </select>
+            </div>
+            <div [class.opacity-50]="!selectedPackageId">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Số lượng câu hỏi</label>
+              <div class="flex items-center border border-gray-300 rounded-lg overflow-hidden">
+                <button class="px-3 py-2 bg-gray-50 hover:bg-gray-100 border-r" (click)="decreaseSectionQuizRandomCount()">-</button>
+                <input type="number" [ngModel]="sectionQuizRandomCount()" (ngModelChange)="sectionQuizRandomCount.set($event)" class="w-full text-center border-none focus:ring-0 p-2" min="1">
+                <button class="px-3 py-2 bg-gray-50 hover:bg-gray-100 border-l" (click)="increaseSectionQuizRandomCount()">+</button>
+              </div>
+            </div>
+          </div>
+          <div class="p-4 bg-gray-50 flex justify-end gap-3 rounded-b-xl">
+            <button (click)="showSectionQuizRandomModal.set(false)" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Hủy</button>
+            <button (click)="generateSectionQuizRandomQuestions()" [disabled]="!selectedPackageId" class="px-4 py-2 text-sm font-medium text-white bg-rose-600 rounded-lg hover:bg-rose-700 disabled:opacity-50">
+              Tạo ngay
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
     <!-- Section Editor Modal (Level 3) -->
     @if (showSectionModal()) {
       <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 overflow-y-auto" (click)="showSectionModal.set(false)">
         <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl mx-4 my-8 flex flex-col max-h-[90vh]" (click)="$event.stopPropagation()">
           <div class="p-5 border-b border-gray-200 flex justify-between items-center">
-            <h3 class="text-lg font-semibold text-gray-900">{{ editingSectionId() ? 'Chỉnh sửa Section' : 'Thêm Section Mới' }}</h3>
-            <button (click)="showSectionModal.set(false)" class="text-gray-400 hover:text-gray-600">✕</button>
+            <h3 class="text-lg font-semibold text-gray-900">{{ editingSectionId() ? 'Chỉnh sửa Mục' : 'Thêm Mục Mới' }}</h3>
+            <button (click)="showSectionModal.set(false)" class="text-gray-400 hover:text-gray-600">?</button>
           </div>
-          <div class="p-6 space-y-6 overflow-y-auto">
+          <div class="p-6 space-y-4 overflow-y-auto">
              <div>
-               <label class="block text-sm font-medium text-gray-700 mb-2">Tiêu đề Mục <span class="text-red-500">*</span></label>
+               <label class="block text-sm font-medium text-gray-700 mb-2">Tiêu đề mục <span class="text-red-500">*</span></label>
                <input type="text" [(ngModel)]="sectionTitle" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
              </div>
 
@@ -732,40 +1165,79 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
                </div>
              }
              
+             <!-- FILE Type [NEW] -->
              @if (newSectionType === 'FILE') {
-               <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Tải lên tài liệu <span class="text-red-500">*</span></label>
-                  <input type="file" (change)="onFileSelected($event)" 
-                         class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-gray-300 rounded-lg p-1">
-                  
-                  @if (sectionFileUrl()) {
-                    <!-- PDF Inline Viewer -->
-                    @if (isPdfFile(sectionFileUrl())) {
-                      <div class="mt-3 rounded-lg border border-gray-200 overflow-hidden">
-                        <div class="bg-gray-50 px-3 py-2 border-b flex items-center justify-between">
-                          <span class="text-sm font-medium text-gray-700">{{ getFileNameFromUrl(sectionFileUrl()!) }}</span>
-                          <a [href]="sectionFileUrl()" target="_blank" class="text-xs text-blue-600 hover:underline">Mở tab mới ↗</a>
-                        </div>
-                        <embed [src]="getSafePdfUrl(sectionFileUrl())" type="application/pdf" class="w-full h-96" />
+               <div class="space-y-4 p-5 bg-amber-50 rounded-xl border border-amber-200">
+                   <div class="flex items-center justify-between">
+                       <label class="block text-xs font-black text-amber-800 uppercase">Tệp đính kèm</label>
+                       @if (sectionFileUrl()) {
+                           <a [href]="sectionFileUrl()" target="_blank" class="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1">
+                               <lucide-icon name="download" [size]="12"></lucide-icon> Tải xuống hiện tại
+                           </a>
+                       }
+                   </div>
+
+                   <!-- Upload Area -->
+                   <div class="border-2 border-dashed border-amber-300 rounded-xl p-6 flex flex-col items-center justify-center bg-white hover:bg-amber-50 cursor-pointer transition-colors relative">
+                       <input type="file" (change)="onFileSelected($event)" 
+                              class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                       
+                       @if (!selectedFile) {
+                           <div class="text-center pointer-events-none">
+                               <div class="w-10 h-10 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-2">
+                                   <lucide-icon name="upload-cloud" [size]="20"></lucide-icon>
+                               </div>
+                               <p class="text-sm font-bold text-slate-700">Nhấn để tải lên tài liệu</p>
+                               <p class="text-xs text-slate-400 mt-1">PDF, Word, Excel, PowerPoint (Max 50MB)</p>
+                           </div>
+                       } @else {
+                           <div class="flex items-center gap-3 w-full max-w-xs bg-amber-100 p-3 rounded-lg border border-amber-200 pointer-events-none">
+                               <lucide-icon name="file" [size]="20" class="text-amber-600 flex-shrink-0"></lucide-icon>
+                               <div class="flex-grow min-w-0">
+                                   <p class="text-xs font-bold text-slate-800 truncate">{{ selectedFile.name }}</p>
+                                   <p class="text--[10px] text-slate-500">{{ (selectedFile.size / 1024 / 1024).toFixed(2) }} MB</p>
+                               </div>
+                               <button (click)="$event.stopPropagation(); selectedFile = null" class="pointer-events-auto p-1 hover:bg-amber-200 rounded text-amber-700">
+                                   <lucide-icon name="x" [size]="14"></lucide-icon>
+                               </button>
+                           </div>
+                       }
+                   </div>
+
+                   <!-- Current File Display -->
+                   @if (sectionFileUrl() && !selectedFile) {
+                       <div class="flex items-center gap-3 p-3 bg-white border border-amber-100 rounded-lg">
+                           <lucide-icon name="check-circle" [size]="16" class="text-green-500"></lucide-icon>
+                           <div class="flex-grow min-w-0">
+                               <p class="text-xs font-bold text-slate-700">Đã có tệp đính kèm:</p>
+                               <a [href]="sectionFileUrl()" target="_blank" class="text-xs text-blue-600 hover:underline truncate block max-w-full">
+                                   {{ getFileNameFromUrl(sectionFileUrl()!) }}
+                               </a>
+                           </div>
+                       </div>
+                   }
+
+                   <!-- PDF Preview (Condition: Safe URL Exists) -->
+                   @if (safePdfUrl()) {
+                      <div class="mt-4">
+                         <div class="flex items-center justify-between mb-2">
+                             <label class="text-xs font-bold text-slate-600">Xem trước PDF (SOTA Stream)</label>
+                         </div>
+                         <div class="w-full h-[500px] border border-slate-200 rounded-lg overflow-hidden bg-slate-800 shadow-inner">
+                             <iframe [src]="safePdfUrl()" class="w-full h-full" frameborder="0"></iframe>
+                         </div>
                       </div>
-                    } @else {
-                      <!-- Other file types - download link -->
-                      <div class="mt-3 flex items-center p-3 bg-gray-50 rounded-lg border border-gray-200">
-                        <svg class="w-6 h-6 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                        <a [href]="sectionFileUrl()" target="_blank" class="text-blue-600 hover:underline text-sm font-medium truncate flex-1">
-                          {{ getFileNameFromUrl(sectionFileUrl()!) }}
-                        </a>
-                      </div>
-                    }
-                  }
+                   }
                </div>
+                  
+
              }
           </div>
           <div class="p-5 border-t border-gray-200 flex justify-end gap-3 bg-gray-50">
             <button (click)="showSectionModal.set(false)" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">Hủy</button>
             <button (click)="saveSection()" [disabled]="isSaving() || !sectionTitle.trim() || (newSectionType === 'FILE' && !selectedFile && !sectionFileUrl())" 
                     class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2">
-              @if (isSaving()) { <span class="animate-spin">⏳</span> }
+              @if (isSaving()) { <span class="animate-spin">?</span> }
               {{ editingSectionId() ? 'Cập nhật' : 'Tạo mới' }}
             </button>
           </div>
@@ -774,12 +1246,13 @@ import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-uplo
     }
   `,
 })
-export class CourseCurriculumComponent {
+export class CourseCurriculumComponent implements OnDestroy {
   readonly store = inject(CourseEditorStore);
   readonly selectionService = inject(CurriculumSelectionService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private lessonApi = inject(LessonApi);
+  private pdfService = inject(PdfViewerService);
   private chapterApi = inject(ChapterApi);
   private sectionApi = inject(SectionApi);
   private quizApi = inject(QuizApi);
@@ -807,7 +1280,7 @@ export class CourseCurriculumComponent {
       Base64UploadAdapterPlugin
     ],
 
-    // Cấu hình Toolbar (Thứ tự nút bấm)
+    // Cấu hình Toolbar (Thiết lập nút bấm)
     toolbar: {
       items: [
         'undo', 'redo', '|',
@@ -818,10 +1291,10 @@ export class CourseCurriculumComponent {
         'link', 'uploadImage', 'insertTable', 'mediaEmbed', 'blockQuote', '|',
         'sourceEditing'
       ],
-      shouldNotGroupWhenFull: true // Tự động gom nhóm nếu màn hình nhỏ
+      shouldNotGroupWhenFull: true // Tăng nhóm nút nếu màn hình nhỏ
     },
 
-    // Cấu hình Font (Đưa Arial lên đầu để làm mặc định)
+    // Cấu hình Font (Cài đặt Arial làm mặc định)
     fontFamily: {
       options: [
         'default', // Mặc định của theme
@@ -833,7 +1306,7 @@ export class CourseCurriculumComponent {
       supportAllValues: true
     },
 
-    // Cấu hình Ảnh (Thanh công cụ khi click vào ảnh)
+    // Cấu hình ảnh (Thanh cung khi click vào ảnh)
     image: {
       toolbar: [
         'imageTextAlternative', // Alt text
@@ -841,9 +1314,9 @@ export class CourseCurriculumComponent {
         '|',
         'imageStyle:inline',    // Căn dòng
         'imageStyle:block',     // Xuống dòng
-        'imageStyle:side',      // Đẩy sang bên
+        'imageStyle:side',      // �?y sang b�n
         '|',
-        'resizeImage'           // Kéo giãn ảnh
+        'resizeImage'           // Kích thước ảnh
       ]
     },
 
@@ -879,6 +1352,11 @@ export class CourseCurriculumComponent {
     document.addEventListener('mouseup', onMouseUp);
   }
 
+
+
+  // Constants
+  readonly TYPE_CONFIG = CONTENT_TYPE_CONFIG;
+
   // Selection signals
   selectedChapterId = this.selectionService.selectedChapterId;
   selectedLessonId = this.selectionService.selectedLessonId;
@@ -899,6 +1377,7 @@ export class CourseCurriculumComponent {
   sectionFileUrl = signal<string | null>(null); // [NEW] For FILE type sections
   selectedFile: File | null = null; // [NEW] For FILE upload
   safeVideoUrl = signal<SafeResourceUrl | null>(null); // [NEW]
+  safePdfUrl = signal<SafeResourceUrl | null>(null); // [NEW] SOTA 2025 Secure PDF
 
   // State
   isSaving = signal(false);
@@ -932,6 +1411,20 @@ export class CourseCurriculumComponent {
   // Random Questions
   showRandomModal = signal(false);
   randomCount = signal(10);
+  randomUnique = false; // [NEW] Fix build error
+
+  // Section Quiz Fields (for QUIZ type sections) [NEW]
+  sectionQuizType: 'ASSESSMENT' | 'EXAM' = 'ASSESSMENT'; // Bài đánh giá vs Bài kiểm tra
+  sectionQuizTimeLimit = 30;
+  sectionQuizPassingScore = 60;
+  sectionQuizMaxAttempts = 1;
+  sectionQuizShuffleQuestions = true;
+  sectionQuizShuffleOptions = true;
+  sectionQuizShowResults = true;
+  sectionQuizSelectedQuestions = signal<any[]>([]);
+  showSectionQuizBankModal = signal(false);
+  showSectionQuizRandomModal = signal(false);
+  sectionQuizRandomCount = signal(5);
 
   // Assignment fields
   assignmentDescription = '';
@@ -973,6 +1466,9 @@ export class CourseCurriculumComponent {
     effect(() => {
       const section = this.selectedSection();
       if (section) {
+        // Reset isDataLoaded trước khi load data mới
+        this.isDataLoaded.set(false);
+        
         this.editingSectionId.set(section.id);
         this.sectionTitle = section.title;
         this.newSectionType = (section.type as any) || 'TEXT';
@@ -981,6 +1477,26 @@ export class CourseCurriculumComponent {
         this.sectionFileUrl.set(section.fileUrl || null); // [NEW]
         this.sectionIsRequired = (section as any).isRequired || false;
         this.updateVideoPreview(this.sectionVideoUrl); // [NEW] Init preview
+
+        // Handle PDF Secure Streaming [SOTA 2025]
+        if (this.newSectionType === 'FILE') {
+          if (this.isPdfFile(section)) { // FIXED: Pass the section object, not just URL string
+            this.pdfService.getSafePdfUrl(section.fileUrl).subscribe(url => {
+              this.safePdfUrl.set(url);
+            });
+          } else {
+            this.safePdfUrl.set(null);
+          }
+          this.isDataLoaded.set(true);
+        } else if (this.newSectionType === 'TEXT') {
+          // Delay để CKEditor có thời gian khởi tạo
+          setTimeout(() => {
+            this.isDataLoaded.set(true);
+          }, 100);
+        } else {
+          this.safePdfUrl.set(null);
+          this.isDataLoaded.set(true);
+        }
       }
     });
 
@@ -1091,6 +1607,13 @@ export class CourseCurriculumComponent {
     return url.includes('youtube.com') || url.includes('youtu.be');
   }
 
+  // Trong Component Class
+isVideoPreviewVisible = signal(false);
+
+toggleVideoPreview() {
+  this.isVideoPreviewVisible.update(v => !v);
+}
+
   getYouTubeEmbedUrl(): SafeResourceUrl {
     const videoId = this.extractYouTubeId(this.lessonVideoUrl);
     if (videoId) {
@@ -1115,6 +1638,11 @@ export class CourseCurriculumComponent {
   // Navigation
   clearSelection() {
     this.selectionService.clearSelection();
+  }
+
+  clearSectionSelection() {
+    this.selectionService.clearSectionSelection();
+    this.isDataLoaded.set(false);
   }
 
   // Save methods
@@ -1263,7 +1791,7 @@ export class CourseCurriculumComponent {
   async removeQuestionFromQuiz(questionId: string) {
     const lesson = this.selectedLesson();
     if (!lesson) return;
-    if (!confirm('Bạn có chắc muốn xóa câu hỏi này?')) return;
+    if (!confirm('Bạn chắc chắn muốn xóa câu hỏi này?')) return;
 
     try {
       await firstValueFrom(this.quizApi.removeQuestionFromQuiz(lesson.id, questionId));
@@ -1339,7 +1867,7 @@ export class CourseCurriculumComponent {
       this.selectedPackageId = ''; // Reset
     } catch (error) {
       console.error('Error generating random questions:', error);
-      alert('Có lỗi xảy ra khi tạo câu hỏi ngẫu nhiên.');
+      alert('Lỗi xảy ra khi tạo câu hỏi ngẫu nhiên.');
     } finally {
       this.quizQuestionsLoading.set(false);
     }
@@ -1354,6 +1882,7 @@ export class CourseCurriculumComponent {
     this.sectionFileUrl.set(null);
     this.selectedFile = null;
     this.sectionIsRequired = false;
+    this.resetSectionQuizFields(); // Reset quiz fields for new section
     this.showSectionModal.set(true);
   }
 
@@ -1393,11 +1922,23 @@ export class CourseCurriculumComponent {
       // ... file logic
       if (section.fileUrl) {
         this.sectionFileUrl.set(section.fileUrl);
+        // Handle PDF secure streaming for preview in modal
+        if (this.isPdfFile(section)) {
+          console.log('[CourseCurriculum] Section is identified as PDF, requesting secure stream:', section.fileUrl);
+          this.pdfService.getSafePdfUrl(section.fileUrl).subscribe((url: SafeResourceUrl | null) => {
+            console.log('[CourseCurriculum] Received safeUrl for preview:', url ? 'SUCCESS' : 'NULL');
+            this.safePdfUrl.set(url);
+          });
+        }
       }
       this.isDataLoaded.set(true);
     } else {
       this.isDataLoaded.set(true);
     }
+  }
+
+  ngOnDestroy() {
+    this.pdfService.cleanup();
   }
 
   // Video Preview Logic [NEW]
@@ -1441,30 +1982,51 @@ export class CourseCurriculumComponent {
         if (this.selectedFile) {
           formData.append('file', this.selectedFile);
         }
+      } else if (this.newSectionType === 'QUIZ') {
+        // Quiz settings
+        formData.append('quizType', this.sectionQuizType);
+        formData.append('quizTimeLimit', String(this.sectionQuizTimeLimit));
+        formData.append('quizPassingScore', String(this.sectionQuizPassingScore));
+        // Chỉ gửi maxAttempts nếu là EXAM, ASSESSMENT không giới hạn
+        formData.append('quizMaxAttempts', this.sectionQuizType === 'EXAM' ? String(this.sectionQuizMaxAttempts) : '999');
+        formData.append('quizShuffleQuestions', String(this.sectionQuizShuffleQuestions));
+        formData.append('quizShuffleOptions', String(this.sectionQuizShuffleOptions));
+        formData.append('quizShowResults', String(this.sectionQuizShowResults));
+        // Question IDs
+        const questionIds = this.sectionQuizSelectedQuestions().map(q => q.id);
+        formData.append('questionIds', JSON.stringify(questionIds));
       }
 
       if (this.editingSectionId()) {
         // Update - Send FormData (Multipart)
-        await firstValueFrom(this.sectionApi.updateSection(this.editingSectionId()!, formData));
+        const res: any = await firstValueFrom(this.sectionApi.updateSection(this.editingSectionId()!, formData));
+        const updatedSection = res.data || res;
+        if (updatedSection?.fileUrl && this.newSectionType === 'FILE') {
+          this.sectionFileUrl.set(updatedSection.fileUrl);
+        }
       } else {
         // Create - Send FormData (Multipart)
         formData.append('lessonId', lesson.id);
         await firstValueFrom(this.sectionApi.createSection(formData));
       }
+
+      // Clear staged file after successful save
+      this.selectedFile = null;
+
       // Reload course to refresh tree
       const courseId = this.store.courseTree()?.id;
       if (courseId) this.store.loadCourse(courseId, true);
       this.showSectionModal.set(false);
     } catch (e: any) {
       console.error('Error saving section:', e);
-      alert('Lỗi khi lưu Section: ' + (e?.error?.message || e.message));
+      alert('Lỗi khi lưu Mục: ' + (e?.error?.message || e.message));
     } finally {
       this.isSaving.set(false);
     }
   }
 
   async deleteSection(sectionId: string) {
-    if (!confirm('Bạn có chắc muốn xóa Section này?')) return;
+    if (!confirm('Bạn chắc chắn muốn xóa Mục này?')) return;
     this.isSaving.set(true);
     try {
       await firstValueFrom(this.sectionApi.deleteSection(sectionId));
@@ -1523,15 +2085,125 @@ export class CourseCurriculumComponent {
     this.router.navigate(['/teacher/courses', courseId, 'lessons', lesson.id, 'quiz']);
   }
 
-  // [NEW] Check if file is a PDF
-  isPdfFile(url: string | null): boolean {
-    if (!url) return false;
-    return url.toLowerCase().endsWith('.pdf');
+  // [NEW] Check if file is a PDF [SOTA 2025 Refined Logic]
+  isPdfFile(sectionOrUrl: any): boolean {
+    if (!sectionOrUrl) return false;
+
+    // Case 1: Input is a string (URL)
+    if (typeof sectionOrUrl === 'string') {
+      return sectionOrUrl.toLowerCase().endsWith('.pdf') || sectionOrUrl.includes('/stream');
+    }
+
+    // Case 2: Input is a Section object
+    const section = sectionOrUrl;
+
+    // Priority 1: Check defined type (SOTA)
+    if (section.type === 'PDF' || section.type === 'DOCUMENT') return true;
+
+    // Priority 2: Check contentType metadata from Backend (if available)
+    if (section.attachment?.contentType === 'application/pdf') return true;
+
+    // Priority 3: Fallback for legacy URLs or stream naming convention
+    const url = section.fileUrl || '';
+    return (url && typeof url === 'string') ? (url.toLowerCase().endsWith('.pdf') || url.includes('/stream')) : false;
   }
 
   // [NEW] Get safe PDF URL for embed (bypass Angular security)
   getSafePdfUrl(url: string | null): any {
     if (!url) return null;
     return this.sanitizer.bypassSecurityTrustResourceUrl(url);
+  }
+
+  // ============================================
+  // Section Quiz Methods (for QUIZ type sections)
+  // ============================================
+
+  openSectionQuizBankModal() {
+    this.showSectionQuizBankModal.set(true);
+    this.selectedPackageId = '';
+    this.packageQuestions.set([]);
+    this.selectedQuestionIds.set(new Set());
+  }
+
+  openSectionQuizRandomModal() {
+    this.showSectionQuizRandomModal.set(true);
+    this.selectedPackageId = '';
+    this.sectionQuizRandomCount.set(5);
+  }
+
+  async addSectionQuizQuestionsFromBank() {
+    if (this.selectedQuestionIds().size === 0) return;
+
+    try {
+      const questionIds = Array.from(this.selectedQuestionIds());
+      const allQuestions = this.packageQuestions();
+      const selectedQuestions = allQuestions.filter(q => questionIds.includes(q.id));
+      
+      // Add to current selection (avoid duplicates)
+      const currentIds = new Set(this.sectionQuizSelectedQuestions().map(q => q.id));
+      const newQuestions = selectedQuestions.filter(q => !currentIds.has(q.id));
+      
+      this.sectionQuizSelectedQuestions.update(current => [...current, ...newQuestions]);
+      this.showSectionQuizBankModal.set(false);
+      this.selectedQuestionIds.set(new Set());
+    } catch (error) {
+      console.error('Error adding questions:', error);
+    }
+  }
+
+  async generateSectionQuizRandomQuestions() {
+    if (!this.selectedPackageId) return;
+
+    try {
+      const questions = await firstValueFrom(this.packageApi.getQuestionsInPackage(this.selectedPackageId));
+      if (!questions || questions.length === 0) {
+        alert('Gói câu hỏi này không có dữ liệu!');
+        return;
+      }
+
+      const count = this.sectionQuizRandomCount();
+      const shuffled = questions.sort(() => 0.5 - Math.random());
+      const selected = shuffled.slice(0, count);
+
+      // Add to current selection (avoid duplicates)
+      const currentIds = new Set(this.sectionQuizSelectedQuestions().map(q => q.id));
+      const newQuestions = selected.filter((q: any) => !currentIds.has(q.id));
+
+      this.sectionQuizSelectedQuestions.update(current => [...current, ...newQuestions]);
+      this.showSectionQuizRandomModal.set(false);
+    } catch (error) {
+      console.error('Error generating random questions:', error);
+      alert('Lỗi khi tạo câu hỏi ngẫu nhiên.');
+    }
+  }
+
+  removeSectionQuizQuestion(questionId: string) {
+    this.sectionQuizSelectedQuestions.update(current => 
+      current.filter(q => q.id !== questionId)
+    );
+  }
+
+  // Helper methods for template (Angular doesn't support arrow functions in templates)
+  decreaseSectionQuizRandomCount() {
+    const current = this.sectionQuizRandomCount();
+    if (current > 1) {
+      this.sectionQuizRandomCount.set(current - 1);
+    }
+  }
+
+  increaseSectionQuizRandomCount() {
+    this.sectionQuizRandomCount.update(v => v + 1);
+  }
+
+  // Reset section quiz fields when opening new section
+  private resetSectionQuizFields() {
+    this.sectionQuizType = 'ASSESSMENT';
+    this.sectionQuizTimeLimit = 30;
+    this.sectionQuizPassingScore = 60;
+    this.sectionQuizMaxAttempts = 1;
+    this.sectionQuizShuffleQuestions = true;
+    this.sectionQuizShuffleOptions = true;
+    this.sectionQuizShowResults = true;
+    this.sectionQuizSelectedQuestions.set([]);
   }
 }

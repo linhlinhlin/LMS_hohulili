@@ -2,6 +2,7 @@ package com.example.lms.learning_delivery.domain.model;
 
 import com.example.lms.entity.Course;
 import com.example.lms.entity.User;
+import com.example.lms.learning_delivery.domain.model.Enrollment;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
@@ -63,6 +64,9 @@ public class LearningClass {
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private Instant createdAt;
+
+    @OneToMany(mappedBy = "learningClass", fetch = FetchType.LAZY)
+    private java.util.List<Enrollment> enrollments;
 
     @UpdateTimestamp
     @Column(name = "updated_at")

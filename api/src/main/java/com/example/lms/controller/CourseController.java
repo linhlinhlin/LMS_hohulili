@@ -533,8 +533,9 @@ public class CourseController {
                             .id(section.getId())
                             .title(section.getTitle())
                             .type(section.getType().name())
-                            .content(null) // Optimization
-                            .videoUrl(null) // Optimization
+                            .content(section.getContent()) // Include content for editing
+                            .videoUrl(section.getVideoUrl()) // Include videoUrl for VIDEO type
+                            .fileUrl(section.getFileUrl()) // [NEW] Include fileUrl for FILE type - SOTA 2025
                             .duration(section.getDuration())
                             .orderIndex(section.getOrderIndex())
                             .isRequired(section.getIsRequired()) // Added
@@ -749,6 +750,7 @@ public class CourseController {
         private String type;
         private String content;
         private String videoUrl;
+        private String fileUrl; // [NEW] For FILE type sections - SOTA 2025
         private Integer duration;
         private Integer orderIndex;
         private Boolean isRequired;
@@ -759,6 +761,7 @@ public class CourseController {
         public String getType() { return type; } public void setType(String type) { this.type = type; }
         public String getContent() { return content; } public void setContent(String content) { this.content = content; }
         public String getVideoUrl() { return videoUrl; } public void setVideoUrl(String videoUrl) { this.videoUrl = videoUrl; }
+        public String getFileUrl() { return fileUrl; } public void setFileUrl(String fileUrl) { this.fileUrl = fileUrl; }
         public Integer getDuration() { return duration; } public void setDuration(Integer duration) { this.duration = duration; }
         public Integer getOrderIndex() { return orderIndex; } public void setOrderIndex(Integer orderIndex) { this.orderIndex = orderIndex; }
         public Boolean getIsRequired() { return isRequired; } public void setIsRequired(Boolean isRequired) { this.isRequired = isRequired; }
@@ -771,6 +774,7 @@ public class CourseController {
             public SectionSummaryBuilder type(String type) { s.setType(type); return this; }
             public SectionSummaryBuilder content(String content) { s.setContent(content); return this; }
             public SectionSummaryBuilder videoUrl(String videoUrl) { s.setVideoUrl(videoUrl); return this; }
+            public SectionSummaryBuilder fileUrl(String fileUrl) { s.setFileUrl(fileUrl); return this; }
             public SectionSummaryBuilder duration(Integer duration) { s.setDuration(duration); return this; }
             public SectionSummaryBuilder orderIndex(Integer orderIndex) { s.setOrderIndex(orderIndex); return this; }
             public SectionSummaryBuilder isRequired(Boolean isRequired) { s.setIsRequired(isRequired); return this; }

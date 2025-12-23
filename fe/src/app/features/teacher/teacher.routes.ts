@@ -93,6 +93,11 @@ export const teacherRoutes: Routes = [
         title: 'Quản lý học viên'
       },
       {
+        path: 'classes/:classId/students',
+        loadComponent: () => import('./course-editor/tabs/course-classes/class-students/class-students.component').then(m => m.ClassStudentsComponent),
+        title: 'Danh sách học viên'
+      },
+      {
         path: 'students/:id',
         loadComponent: () => import('./students/student-detail.component').then(m => m.StudentDetailComponent),
         title: 'Chi tiết học viên'

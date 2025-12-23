@@ -25,15 +25,25 @@ public interface LearningClassRepository extends JpaRepository<LearningClass, UU
     Optional<LearningClass> findDefaultClassByCourseId(@Param("courseId") UUID courseId);
 
     // Advanced Search with Filter and Pagination
-    @Query("SELECT c FROM LearningClass c " +
+    // SOTA Pattern: Exclude CANCELLED by default (like Coursera/Google)
+    @Query("SELECT new com.example.lms.dto.ClassSummaryDTO(" +
+           "c.id, c.name, c.code, t.fullName, " +
+           "c.startDate, c.endDate, c.maxStudents, " +
+           "CAST(c.scheduleType AS string), c.semester, CAST(c.status AS string), " +
+           "(SELECT COUNT(e) FROM Enrollment e WHERE e.learningClass.id = c.id AND e.status = com.example.lms.learning_delivery.domain.model.Enrollment.EnrollmentStatus.ACTIVE)" +
+           ") " +
+           "FROM LearningClass c " +
+           "LEFT JOIN c.teacher t " +
            "WHERE c.course.id = :courseId " +
            "AND (:search IS NULL OR LOWER(c.name) LIKE LOWER(CAST(:search AS string)) OR LOWER(c.code) LIKE LOWER(CAST(:search AS string))) " +
-           "AND (:status IS NULL OR c.status = :status) " +
+           "AND ((:status IS NULL AND c.status <> com.example.lms.learning_delivery.domain.model.LearningClass$ClassStatus.CANCELLED) OR c.status = :status) " +
+           "AND (:semester IS NULL OR c.semester LIKE CONCAT('%', CAST(:semester AS string), '%')) " +
            "ORDER BY c.startDate DESC")
-    org.springframework.data.domain.Page<LearningClass> searchClasses(
+    org.springframework.data.domain.Page<com.example.lms.dto.ClassSummaryDTO> searchClasses(
         @Param("courseId") UUID courseId,
         @Param("search") String search,
         @Param("status") LearningClass.ClassStatus status,
+        @Param("semester") String semester,
         org.springframework.data.domain.Pageable pageable
     );
 }

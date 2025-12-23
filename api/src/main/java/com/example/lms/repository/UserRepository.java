@@ -145,4 +145,6 @@ public interface UserRepository extends JpaRepository<User, UUID> {
         @Param("search") String search, 
         Pageable pageable
     );
+    
+    List<com.example.lms.entity.User> findByEmailIn(java.util.Collection<String> emails);
 }

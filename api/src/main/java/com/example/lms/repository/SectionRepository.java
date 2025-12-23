@@ -14,6 +14,8 @@ public interface SectionRepository extends JpaRepository<Section, UUID> {
     
     long countByLessonId(UUID lessonId);
 
+    List<Section> findByType(Section.SectionType type);
+
     @org.springframework.data.jpa.repository.Query("SELECT MAX(s.orderIndex) FROM Section s WHERE s.lesson.id = :lessonId")
     Integer findMaxOrderIndexByLessonId(@org.springframework.data.repository.query.Param("lessonId") UUID lessonId);
 }

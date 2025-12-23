@@ -1,8 +1,18 @@
 # ==== Common ====
 server:
   shutdown: graceful
+  servlet:
+    encoding:
+      charset: UTF-8
+      force: true
+      enabled: true
 
 spring:
+  http:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
   application:
     name: backend-lms-postgres
   threads:

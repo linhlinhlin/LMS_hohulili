@@ -9,6 +9,7 @@ import { ClassService } from '../../../../../state/class.service';
 import { ClassSummary } from '../../../../../shared/types/course.types';
 import { ClassDialogComponent } from './class-dialog/class-dialog.component';
 import { Page } from '../../../../../api/types/common.types';
+import { AddStudentDialogComponent } from './class-students/add-student-dialog/add-student-dialog.component';
 
 @Component({
     selector: 'app-course-classes',
@@ -29,6 +30,11 @@ export class CourseClassesComponent implements OnInit {
     // Filter Controls
     searchControl = new FormControl('');
     statusFilter = '';
+    selectedYear: number = new Date().getFullYear();
+    selectedSemester: string = '';
+
+    years: number[] = [];
+    semesters = ['HK1', 'HK2', 'Hè'];
 
     // Pagination State
     currentPage = 0;
@@ -48,6 +54,7 @@ export class CourseClassesComponent implements OnInit {
     }
 
     ngOnInit() {
+        this.generateYears();
         this.route.parent?.params.subscribe(params => {
             this.courseId = params['id'];
             if (this.courseId) {
@@ -63,6 +70,23 @@ export class CourseClassesComponent implements OnInit {
             this.currentPage = 0; // Reset to first page on search
             this.loadClasses();
         });
+    }
+
+    generateYears() {
+        const currentYear = new Date().getFullYear();
+        this.years = [currentYear - 1, currentYear, currentYear + 1];
+    }
+
+    onYearChange(event: any) {
+        this.selectedYear = Number(event.target.value);
+        this.currentPage = 0;
+        this.loadClasses();
+    }
+
+    onSemesterChange(event: any) {
+        this.selectedSemester = event.target.value;
+        this.currentPage = 0;
+        this.loadClasses();
     }
 
     onStatusChange(event: any) {
@@ -82,10 +106,17 @@ export class CourseClassesComponent implements OnInit {
         this.isLoading.set(true);
         const search = this.searchControl.value || '';
 
+        // Construct semester filter (e.g., "HK1-2024")
+        let semesterFilter = '';
+        if (this.selectedSemester && this.selectedYear) {
+            semesterFilter = `${this.selectedSemester}-${this.selectedYear}`;
+        }
+
         this.classService.searchClasses(
             this.courseId,
             search,
             this.statusFilter,
+            semesterFilter,
             this.currentPage,
             this.pageSize
         ).subscribe({
@@ -133,7 +164,17 @@ export class CourseClassesComponent implements OnInit {
     }
 
     viewStudents(classId: string) {
-        console.log("View students for", classId);
-        // Future: Navigate to student list
+        this.router.navigate(['/teacher/classes', classId, 'students']);
+    }
+
+    quickEnroll(cls: ClassSummary) {
+        const dialogRef = this.dialog.open(AddStudentDialogComponent, {
+            width: '500px',
+            data: { classId: cls.id }
+        });
+
+        dialogRef.afterClosed().subscribe(result => {
+            if (result) this.loadClasses();
+        });
     }
 }

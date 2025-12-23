@@ -1,4 +1,4 @@
-import { Component, signal, computed, inject, OnInit, input, ChangeDetectionStrategy } from '@angular/core';
+import { Component, signal, computed, inject, OnInit, OnDestroy, input, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -7,6 +7,9 @@ import { LessonAttachmentApi, LessonAttachment as ApiLessonAttachment } from '..
 import { ErrorHandlingService } from '../../../shared/services/error-handling.service';
 import { LoadingComponent } from '../../../shared/components/loading/loading.component';
 import { firstValueFrom } from 'rxjs';
+import { PdfViewerService } from '../../../shared/services/pdf-viewer.service';
+
+import { SectionSummary } from '../../../api/types/course.types';
 
 // Types for Lesson Content
 interface LessonDetailForStudent {
@@ -21,6 +24,7 @@ interface LessonDetailForStudent {
   order: number;
   resources?: LessonResource[];
   attachments?: LessonAttachment[];
+  sections?: SectionSummary[];
   videoUrl?: string;
   createdDate: string;
   lastModified: string;
@@ -177,6 +181,65 @@ type LessonAttachment = ApiLessonAttachment;
                   <div class="prose max-w-none">
                     <div [innerHTML]="getSafeContent(lesson.content)"></div>
                   </div>
+
+                  <!-- [NEW] Lesson Sections Rendering -->
+                  @if (lesson.sections && lesson.sections.length > 0) {
+                    <div class="mt-12 space-y-12 border-t pt-10">
+                      @for (section of lesson.sections; track section.id; let i = $index) {
+                        <div class="section-item animate-fade-in" [style.animation-delay]="(i * 100) + 'ms'">
+                          <div class="flex items-center gap-3 mb-6">
+                            <div class="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm">
+                              {{ i + 1 }}
+                            </div>
+                            <h3 class="text-xl font-bold text-gray-900">{{ section.title }}</h3>
+                          </div>
+
+                          <!-- Section Body based on Type -->
+                          <div class="bg-gray-50 rounded-xl p-6 border border-gray-100 shadow-sm">
+                            @if (section.type === 'TEXT') {
+                              <div class="prose prose-blue max-w-none" [innerHTML]="getSafeContent(section.content || '')"></div>
+                            }
+
+                            @if (section.type === 'VIDEO' && section.videoUrl) {
+                              <div class="aspect-video w-full rounded-lg overflow-hidden shadow-inner bg-black">
+                                <iframe class="w-full h-full" 
+                                        [src]="getSafeVideoUrl(getYouTubeEmbedUrl(section.videoUrl))" 
+                                        frameborder="0" allowfullscreen></iframe>
+                              </div>
+                            }
+
+                            @if (section.type === 'FILE' && section.fileUrl) {
+                              @if (isPdfFile(section)) {
+                                <div class="secure-pdf-container">
+                                  <div class="flex items-center justify-between mb-4 bg-white p-3 rounded-lg border">
+                                    <span class="text-sm font-medium text-gray-700 flex items-center gap-2">
+                                      <svg class="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4a2 2 0 012-2h4.586A1 1 0 0111 2.293l4.414 4.414a1 1 0 01.293.707V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"></path></svg>
+                                      {{ section.title }}.pdf
+                                    </span>
+                                  </div>
+                                  <div class="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm h-[600px] relative">
+                                    <app-loading [show]="!safePdfUrls[section.id]" text="Đang tải PDF bảo mật..." variant="normal"></app-loading>
+                                    @if (safePdfUrls[section.id]) {
+                                      <embed [src]="safePdfUrls[section.id]" type="application/pdf" class="w-full h-full" />
+                                    }
+                                  </div>
+                                </div>
+                              } @else {
+                                <div class="flex items-center p-4 bg-white rounded-lg border border-gray-200">
+                                  <svg class="w-8 h-8 text-blue-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                                  <div class="flex-1">
+                                    <div class="text-sm font-semibold text-gray-900">Tài liệu đính kèm</div>
+                                    <div class="text-xs text-gray-500">Bấm để tải về máy</div>
+                                  </div>
+                                  <a [href]="section.fileUrl" target="_blank" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700">Tải xuống</a>
+                                </div>
+                              }
+                            }
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  }
                   
                   <!-- Action Buttons -->
                   <div class="mt-8 pt-6 border-t border-gray-200">
@@ -376,7 +439,7 @@ type LessonAttachment = ApiLessonAttachment;
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class StudentLessonViewerComponent implements OnInit {
+export class StudentLessonViewerComponent implements OnInit, OnDestroy {
   // Dependencies
   private lessonApi = inject(LessonApi);
   private lessonAttachmentApi = inject(LessonAttachmentApi);
@@ -384,9 +447,11 @@ export class StudentLessonViewerComponent implements OnInit {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private sanitizer = inject(DomSanitizer);
+  private pdfService = inject(PdfViewerService);
 
   // Attachment viewer state
   expandedAttachment: number | null = null;
+  safePdfUrls: Record<string, SafeResourceUrl | null> = {};
 
   // Reactive state
   private _currentLesson = signal<LessonDetailForStudent | null>(null);
@@ -433,7 +498,7 @@ export class StudentLessonViewerComponent implements OnInit {
     // Get route parameters
     const courseId = this.route.snapshot.paramMap.get('courseId');
     const lessonId = this.route.snapshot.paramMap.get('lessonId');
-    
+
     if (courseId && lessonId) {
       this.loadLesson(lessonId, courseId);
     } else {
@@ -476,12 +541,30 @@ export class StudentLessonViewerComponent implements OnInit {
         order: lessonData.orderIndex,
         resources: [], // Placeholder for resources
         attachments: attachments,
+        sections: lessonData.sections || [],
         videoUrl: lessonData.videoUrl,
         createdDate: lessonData.createdAt,
         lastModified: lessonData.updatedAt || lessonData.createdAt
       });
 
       console.log('[SUCCESS] StudentLessonViewer: Lesson loaded successfully', this._currentLesson());
+
+      // Load secure PDF URLs for sections [SOTA 2025]
+      const data = lessonData as any;
+      if (data && data.sections) {
+        console.log('[StudentLessonViewer] Checking sections for PDFs:', data.sections.length);
+        data.sections.forEach((sec: any) => {
+          if (this.isPdfFile(sec)) {
+            console.log('[StudentLessonViewer] Section is identified as PDF, requesting secure stream:', sec.id, sec.fileUrl);
+            this.pdfService.getSafePdfUrl(sec.fileUrl).subscribe((safeUrl: SafeResourceUrl | null) => {
+              console.log('[StudentLessonViewer] Received safeUrl for section:', sec.id, safeUrl ? 'SUCCESS' : 'NULL');
+              this.safePdfUrls[sec.id] = safeUrl;
+            });
+          } else {
+            console.log('[StudentLessonViewer] Section is NOT a PDF:', sec.id, sec.type);
+          }
+        });
+      }
     } catch (error: any) {
       const errorMessage = error?.message || 'Không thể tải bài học';
       console.error('[ERROR] StudentLessonViewer: Error loading lesson:', error);
@@ -555,23 +638,33 @@ export class StudentLessonViewerComponent implements OnInit {
     return types[type.toLowerCase()] || 'Tài liệu';
   }
 
-  // File type checking methods
-  isPdfFile(fileName: string): boolean {
-    return fileName?.toLowerCase().endsWith('.pdf') || false;
+  // File type checking methods [SOTA 2025 Refined Logic]
+  isPdfFile(section: any): boolean {
+    if (!section) return false;
+
+    // Priority 1: Check defined type (SOTA)
+    if (section.type === 'PDF' || section.type === 'DOCUMENT') return true;
+
+    // Priority 2: Check contentType metadata from Backend (if available)
+    if (section.attachment?.contentType === 'application/pdf') return true;
+
+    // Priority 3: Fallback for legacy URLs or stream naming convention
+    const url = section.fileUrl || '';
+    return url.toLowerCase().endsWith('.pdf') || url.includes('/stream');
   }
 
   isOfficeFile(fileName: string): boolean {
     const lower = fileName?.toLowerCase() || '';
     return lower.endsWith('.doc') || lower.endsWith('.docx') ||
-           lower.endsWith('.xls') || lower.endsWith('.xlsx') ||
-           lower.endsWith('.ppt') || lower.endsWith('.pptx');
+      lower.endsWith('.xls') || lower.endsWith('.xlsx') ||
+      lower.endsWith('.ppt') || lower.endsWith('.pptx');
   }
 
   isImageFile(fileName: string): boolean {
     const lower = fileName?.toLowerCase() || '';
     return lower.endsWith('.jpg') || lower.endsWith('.jpeg') ||
-           lower.endsWith('.png') || lower.endsWith('.gif') ||
-           lower.endsWith('.bmp') || lower.endsWith('.webp');
+      lower.endsWith('.png') || lower.endsWith('.gif') ||
+      lower.endsWith('.bmp') || lower.endsWith('.webp');
   }
 
   // File utility methods
@@ -632,7 +725,7 @@ export class StudentLessonViewerComponent implements OnInit {
   retryLoading(): void {
     const courseId = this.route.snapshot.paramMap.get('courseId');
     const lessonId = this.route.snapshot.paramMap.get('lessonId');
-    
+
     if (courseId && lessonId) {
       this.loadLesson(lessonId, courseId);
     }
@@ -715,11 +808,15 @@ export class StudentLessonViewerComponent implements OnInit {
   }
 
   onVideoError(): void {
-  console.error('Video failed to load');
+    console.error('Video failed to load');
   }
 
   onCompleteButtonClick(): void {
     console.log('BUTTON CLICKED DIRECTLY - calling markAsCompleted');
     this.markAsCompleted();
+  }
+
+  ngOnDestroy() {
+    this.pdfService.cleanup();
   }
 }

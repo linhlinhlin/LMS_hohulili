@@ -29,4 +29,10 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, UUID> {
     
     // Find all enrollments for a student
     List<Enrollment> findByStudentId(UUID studentId);
+
+    // Find all active enrollments for a class
+    List<Enrollment> findByLearningClassId(UUID classId);
+
+    @Query("SELECT e FROM Enrollment e WHERE e.learningClass.id = :classId AND e.student.email IN :emails")
+    List<Enrollment> findByLearningClassIdAndStudentEmailIn(@Param("classId") UUID classId, @Param("emails") java.util.Collection<String> emails);
 }

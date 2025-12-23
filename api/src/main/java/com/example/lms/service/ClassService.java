@@ -34,15 +34,15 @@ public class ClassService {
     }
 
     @Transactional(readOnly = true)
-    public org.springframework.data.domain.Page<LearningClass> getClassesWithFilter(
-            UUID courseId, String search, LearningClass.ClassStatus status, org.springframework.data.domain.Pageable pageable) {
+    public org.springframework.data.domain.Page<com.example.lms.dto.ClassSummaryDTO> getClassesWithFilter(
+            UUID courseId, String search, LearningClass.ClassStatus status, String semester, org.springframework.data.domain.Pageable pageable) {
         
         String searchPattern = null;
         if (search != null && !search.trim().isEmpty()) {
             searchPattern = "%" + search.trim() + "%";
         }
         
-        return classRepository.searchClasses(courseId, searchPattern, status, pageable);
+        return classRepository.searchClasses(courseId, searchPattern, status, semester, pageable);
     }
 
     @Transactional

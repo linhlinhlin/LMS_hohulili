@@ -11,64 +11,48 @@ import { filter, take, map } from 'rxjs/operators';
   standalone: true,
   imports: [CommonModule, RouterOutlet, RouterModule, CourseEditorSidebarComponent, CourseEditorHeaderComponent],
   template: `
-    <div class="relative flex h-screen w-full flex-col overflow-hidden font-sans bg-gray-50 text-gray-900">
-      <!-- Header -->
-      <app-course-editor-header class="flex-shrink-0 z-10"></app-course-editor-header>
+    <div class="relative flex h-screen w-full flex-col overflow-hidden font-sans bg-white text-slate-900">
+      <!-- Header (SOTA 2025: Fixed height, subtle shadow) -->
+      <app-course-editor-header class="h-14 flex-shrink-0 z-20 border-b border-slate-200 shadow-sm bg-white"></app-course-editor-header>
 
-      <main class="flex-grow flex overflow-hidden">
-        <!-- Sidebar -->
-        <app-course-editor-sidebar class="w-[320px] flex-shrink-0 overflow-y-auto"></app-course-editor-sidebar>
+      <main class="flex-grow grid overflow-hidden relative" 
+            [style.grid-template-columns]="'var(--sidebar-width, 320px) 1fr'">
+        
+        <!-- Sidebar Container (Zero-Shift) -->
+        <div class="h-full overflow-hidden border-r border-slate-200 bg-white z-10">
+          <app-course-editor-sidebar class="h-full block"></app-course-editor-sidebar>
+        </div>
 
-        <!-- Main Content (Router Outlet) -->
-        <div class="flex-grow flex flex-col min-w-0 bg-gray-50">
-            <!-- Tabs -->
-           <div class="flex items-center gap-1 border-b border-gray-200 px-8 flex-shrink-0 bg-white z-10 w-full">
+        <!-- Main Content (SOTA 2025: min-width: 0 is CRITICAL for grid children with overflow) -->
+        <div class="flex flex-col min-w-0 bg-slate-50 relative">
+            <!-- Navigation Tabs (SOTA 2025: Sleek, high-density) -->
+            <nav class="flex items-center gap-1 border-b border-slate-200 px-6 h-12 flex-shrink-0 bg-white z-10 w-full overflow-x-auto scrollbar-hide">
                <a routerLink="info" 
-                  routerLinkActive="border-b-2 border-blue-600 text-blue-600 bg-blue-50/50" 
-                  class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors border-b-2 border-transparent rounded-t-lg flex items-center gap-2">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                  </svg>
+                  routerLinkActive="bg-slate-900 text-white shadow-md scale-105" 
+                  class="px-4 py-1.5 text-xs font-bold text-slate-500 hover:text-slate-900 transition-all rounded-full flex items-center gap-2">
                   Thông tin
                </a>
                <a routerLink="curriculum" 
-                  routerLinkActive="border-b-2 border-blue-600 text-blue-600 bg-blue-50/50"
-                  class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors border-b-2 border-transparent rounded-t-lg flex items-center gap-2">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-                  </svg>
+                  routerLinkActive="bg-slate-900 text-white shadow-md scale-105"
+                  class="px-4 py-1.5 text-xs font-bold text-slate-500 hover:text-slate-900 transition-all rounded-full flex items-center gap-2">
                   Nội dung
                </a>
-               <a routerLink="assignment" 
-                  routerLinkActive="border-b-2 border-blue-600 text-blue-600 bg-blue-50/50"
-                  class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors border-b-2 border-transparent rounded-t-lg flex items-center gap-2">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                  </svg>
-                  Học viên
-               </a>
                <a routerLink="classes" 
-                  routerLinkActive="border-b-2 border-blue-600 text-blue-600 bg-blue-50/50"
-                  class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors border-b-2 border-transparent rounded-t-lg flex items-center gap-2">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                  </svg>
+                  routerLinkActive="bg-slate-900 text-white shadow-md scale-105"
+                  class="px-4 py-1.5 text-xs font-bold text-slate-500 hover:text-slate-900 transition-all rounded-full flex items-center gap-2">
                   Lớp học
                </a>
                <a routerLink="settings" 
-                  routerLinkActive="border-b-2 border-blue-600 text-blue-600 bg-blue-50/50"
-                  class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors border-b-2 border-transparent rounded-t-lg flex items-center gap-2">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                  </svg>
+                  routerLinkActive="bg-slate-900 text-white shadow-md scale-105"
+                  class="px-4 py-1.5 text-xs font-bold text-slate-500 hover:text-slate-900 transition-all rounded-full flex items-center gap-2">
                   Cài đặt
                </a>
-           </div>
+            </nav>
 
-           <div class="flex-grow p-0 overflow-y-auto">
-               <router-outlet></router-outlet>
-           </div>
+            <!-- Workspace Area -->
+            <div class="flex-grow overflow-y-auto min-h-0 relative">
+                <router-outlet></router-outlet>
+            </div>
         </div>
       </main>
     </div>

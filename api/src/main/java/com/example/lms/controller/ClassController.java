@@ -2,7 +2,13 @@ package com.example.lms.controller;
 
 import com.example.lms.learning_delivery.domain.model.LearningClass;
 import com.example.lms.service.ClassService;
+import com.example.lms.service.EnrollmentService;
+import com.example.lms.service.BatchEnrollmentService;
 import com.example.lms.dto.ApiResponse;
+import com.example.lms.dto.ClassSummaryDTO;
+import com.example.lms.dto.StudentSummaryDTO;
+import com.example.lms.dto.ImportSummary;
+import com.example.lms.learning_delivery.domain.model.Enrollment;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -23,12 +29,23 @@ import java.util.stream.Collectors;
 public class ClassController {
 
     private final ClassService classService;
+    private final EnrollmentService enrollmentService;
+    private final BatchEnrollmentService batchEnrollmentService;
+
+    @PostMapping("/classes/{classId}/enrollments/import")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    public ResponseEntity<com.example.lms.dto.ImportSummary> importEnrollments(
+            @PathVariable UUID classId,
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+            @RequestParam(value = "preview", defaultValue = "false") boolean preview) throws java.io.IOException {
+        return ResponseEntity.ok(batchEnrollmentService.enrollFromStream(classId, file.getInputStream(), preview));
+    }
 
     @GetMapping("/courses/{courseId}/classes/available")
     @Operation(summary = "Lấy danh sách lớp học đang mở", description = "Lấy danh sách các lớp học trạng thái OPEN cho một khóa học")
-    public ResponseEntity<ApiResponse<List<ClassSummary>>> getAvailableClasses(@PathVariable UUID courseId) {
+    public ResponseEntity<ApiResponse<List<ClassSummaryDTO>>> getAvailableClasses(@PathVariable UUID courseId) {
         List<LearningClass> classes = classService.getOpenClasses(courseId);
-        List<ClassSummary> dtos = classes.stream()
+        List<ClassSummaryDTO> dtos = classes.stream()
             .map(this::mapToSummary)
             .collect(Collectors.toList());
             
@@ -37,9 +54,9 @@ public class ClassController {
 
     @GetMapping("/courses/{courseId}/classes")
     @Operation(summary = "Lấy danh sách tất cả lớp học", description = "Lấy danh sách tất cả các lớp học của khóa học (cho Teacher)")
-    public ResponseEntity<ApiResponse<List<ClassSummary>>> getAllClasses(@PathVariable UUID courseId) {
+    public ResponseEntity<ApiResponse<List<ClassSummaryDTO>>> getAllClasses(@PathVariable UUID courseId) {
         List<LearningClass> classes = classService.getAllClassesByCourse(courseId);
-        List<ClassSummary> dtos = classes.stream()
+        List<ClassSummaryDTO> dtos = classes.stream()
             .map(this::mapToSummary)
             .collect(Collectors.toList());
         return ResponseEntity.ok(ApiResponse.success(dtos));
@@ -48,15 +65,15 @@ public class ClassController {
     @GetMapping("/courses/{courseId}/classes/search")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Tìm kiếm lớp học", description = "Tìm kiếm, lọc và phân trang lớp học")
-    public ResponseEntity<ApiResponse<org.springframework.data.domain.Page<ClassSummary>>> searchClasses(
+    public ResponseEntity<ApiResponse<org.springframework.data.domain.Page<ClassSummaryDTO>>> searchClasses(
             @PathVariable UUID courseId,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) LearningClass.ClassStatus status,
+            @RequestParam(required = false) String semester,
             org.springframework.data.domain.Pageable pageable) {
             
-        org.springframework.data.domain.Page<LearningClass> page = classService.getClassesWithFilter(courseId, search, status, pageable);
-        
-        org.springframework.data.domain.Page<ClassSummary> dtoPage = page.map(this::mapToSummary);
+        // Use simpler service call which handles wildcard and returns DTOs directly
+        org.springframework.data.domain.Page<ClassSummaryDTO> dtoPage = classService.getClassesWithFilter(courseId, search, status, semester, pageable);
         
         return ResponseEntity.ok(ApiResponse.success(dtoPage));
     }
@@ -64,7 +81,7 @@ public class ClassController {
     @PostMapping("/classes")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Tạo lớp học mới", description = "Tạo một lớp học mới cho khóa học")
-    public ResponseEntity<ApiResponse<ClassSummary>> createClass(@RequestBody CreateClassRequest request) {
+    public ResponseEntity<ApiResponse<ClassSummaryDTO>> createClass(@RequestBody CreateClassRequest request) {
         System.out.println("DEBUG: Entering createClass controller method");
         System.out.println("DEBUG: Request payload: " + request);
         try {
@@ -90,7 +107,7 @@ public class ClassController {
 
     @PutMapping("/classes/{id}")
     @Operation(summary = "Cập nhật lớp học", description = "Cập nhật thông tin lớp học")
-    public ResponseEntity<ApiResponse<ClassSummary>> updateClass(@PathVariable UUID id, @RequestBody UpdateClassRequest request) {
+    public ResponseEntity<ApiResponse<ClassSummaryDTO>> updateClass(@PathVariable UUID id, @RequestBody UpdateClassRequest request) {
         LearningClass updated = classService.updateClass(
             id,
             request.name,
@@ -110,8 +127,41 @@ public class ClassController {
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 
-    private ClassSummary mapToSummary(LearningClass c) {
-        return ClassSummary.builder()
+    @PostMapping("/classes/{id}/enrollments")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    @Operation(summary = "Gán học viên vào lớp", description = "Thêm học viên vào lớp học bằng email")
+    public ResponseEntity<ApiResponse<Void>> enrollStudent(@PathVariable UUID id, @RequestBody EnrollStudentRequest request) {
+        enrollmentService.enrollStudentByEmail(request.getEmail(), id);
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    @GetMapping("/classes/{id}/students")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    @Operation(summary = "Lấy danh sách học viên", description = "Lấy danh sách học viên trong lớp học")
+    public ResponseEntity<ApiResponse<List<StudentSummaryDTO>>> getClassStudents(@PathVariable UUID id) {
+        List<StudentSummaryDTO> students = enrollmentService.getStudentsByClass(id);
+        return ResponseEntity.ok(ApiResponse.success(students));
+    }
+
+    @DeleteMapping("/classes/{classId}/enrollments/{studentId}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    @Operation(summary = "Xóa học viên khỏi lớp", description = "Hủy ghi danh học viên khỏi lớp học")
+    public ResponseEntity<ApiResponse<Void>> removeStudent(
+            @PathVariable UUID classId, 
+            @PathVariable UUID studentId) {
+        enrollmentService.removeStudentFromClass(classId, studentId);
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    private ClassSummaryDTO mapToSummary(LearningClass c) {
+        long currentStudents = 0;
+        if (c.getEnrollments() != null) {
+            currentStudents = c.getEnrollments().stream()
+                .filter(e -> e.getStatus() == Enrollment.EnrollmentStatus.ACTIVE)
+                .count();
+        }
+
+        return ClassSummaryDTO.builder()
             .id(c.getId())
             .name(c.getName())
             .code(c.getCode())
@@ -121,22 +171,14 @@ public class ClassController {
             .maxStudents(c.getMaxStudents())
             .scheduleType(c.getScheduleType().name())
             .semester(c.getSemester())
+            .status(c.getStatus().name())
+            .currentStudents(currentStudents)
             .build();
     }
 
     // DTOs
-    @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-    public static class ClassSummary {
-        private UUID id;
-        private String name;
-        private String code;
-        private String teacherName;
-        private Instant startDate;
-        private Instant endDate;
-        private Integer maxStudents;
-        private String scheduleType;
-        private String semester;
-    }
+    // DTOs moved to com.example.lms.dto package
+    // Removed inner ClassSummary class
 
     @Getter @Setter @NoArgsConstructor @AllArgsConstructor
     public static class CreateClassRequest {
@@ -160,5 +202,10 @@ public class ClassController {
         private Instant endDate;
         private String scheduleType;
         private String semester;
+    }
+
+    @Getter @Setter @NoArgsConstructor @AllArgsConstructor
+    public static class EnrollStudentRequest {
+        private String email;
     }
 }

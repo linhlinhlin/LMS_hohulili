@@ -1,5 +1,5 @@
-import { ApplicationConfig, provideBrowserGlobalErrorListeners, provideZonelessChangeDetection, isDevMode, LOCALE_ID, APP_INITIALIZER } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { ApplicationConfig, provideBrowserGlobalErrorListeners, provideZonelessChangeDetection, isDevMode, LOCALE_ID, APP_INITIALIZER, importProvidersFrom } from '@angular/core';
+import { provideRouter, withViewTransitions } from '@angular/router';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { registerLocaleData } from '@angular/common';
 import localeVi from '@angular/common/locales/vi';
@@ -12,6 +12,23 @@ import { authInterceptor } from './api/interceptors/auth.interceptor';
 import { errorInterceptor } from './api/interceptors/error.interceptor';
 import { baseUrlInterceptor } from './api/interceptors/base-url.interceptor';
 import { AuthService } from './core/services/auth.service';
+import {
+  LucideAngularModule,
+  Search,
+  BookOpen,
+  ChevronRight,
+  ChevronDown,
+  Plus,
+  PlusCircle,
+  Trash2,
+  Edit2,
+  Paperclip,
+  X,
+  FileText,
+  Video,
+  HelpCircle,
+  Code
+} from 'lucide-angular';
 
 // ✅ FIXED: Factory function to setup global state when app initializes
 function initializeApp(authService: AuthService): () => Promise<void> {
@@ -21,16 +38,16 @@ function initializeApp(authService: AuthService): () => Promise<void> {
       console.log('[APP INIT] Running in SSR context, skipping localStorage access');
       return Promise.resolve();
     }
-    
+
     console.log('[APP INIT] Initializing application...');
-    
+
     // If user is already authenticated (token in localStorage), restore context
     if (authService.isAuthenticated()) {
       console.log('[APP INIT] User already authenticated, restoring context...');
       const user = authService.getCurrentUser();
       console.log('[APP INIT] Restored user:', user?.fullName, 'role:', user?.role);
     }
-    
+
     return Promise.resolve();
   };
 }
@@ -39,7 +56,7 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideZonelessChangeDetection(),
-    provideRouter(routes),
+    provideRouter(routes, withViewTransitions()),
     provideClientHydration(withEventReplay()),
     provideAnimationsAsync(),
     provideHttpClient(
@@ -61,7 +78,24 @@ export const appConfig: ApplicationConfig = {
       useFactory: initializeApp,
       deps: [AuthService],
       multi: true
-    }
+    },
+    // ✅ NEW: SOTA 2025 Global Lucide Icon Provider
+    importProvidersFrom(LucideAngularModule.pick({
+      Search,
+      BookOpen,
+      ChevronRight,
+      ChevronDown,
+      Plus,
+      PlusCircle,
+      Trash2,
+      Edit2,
+      Paperclip,
+      X,
+      FileText,
+      Video,
+      HelpCircle,
+      Code
+    }))
   ]
 };
 

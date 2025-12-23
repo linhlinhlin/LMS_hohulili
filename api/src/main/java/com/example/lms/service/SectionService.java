@@ -49,11 +49,8 @@ public class SectionService {
                 // Lưu Section trước để có ID
                 section = sectionRepository.save(section);
                 if (file != null && !file.isEmpty()) {
-                    // Upload file và link vào Section ID
-                    // Assuming FileCategory.DOCUMENT for generic files, can be refined based on mime type
-                    fileService.uploadFile(file, section.getId(), "SECTION_MATERIAL", FileAttachment.FileCategory.DOCUMENT);
-                    // Có thể set fileUrl vào section để access nhanh nếu muốn
-                    section.setFileUrl("/api/v1/files/download/" + section.getId()); 
+                    FileAttachment attachment = fileService.uploadFile(file, section.getId(), "SECTION_MATERIAL", FileAttachment.FileCategory.DOCUMENT);
+                    section.setFileUrl("/api/v1/files/" + attachment.getId() + "/stream"); 
                 }
                 break;
             default:
@@ -84,8 +81,8 @@ public class SectionService {
             case FILE:
                 // If a NEW file is uploaded, replace the old one
                 if (file != null && !file.isEmpty()) {
-                     fileService.uploadFile(file, section.getId(), "SECTION_MATERIAL", FileAttachment.FileCategory.DOCUMENT);
-                     section.setFileUrl("/api/v1/files/download/" + section.getId());
+                     FileAttachment attachment = fileService.uploadFile(file, section.getId(), "SECTION_MATERIAL", FileAttachment.FileCategory.DOCUMENT);
+                     section.setFileUrl("/api/v1/files/" + attachment.getId() + "/stream");
                 }
                 break;
             default:
@@ -106,5 +103,21 @@ public class SectionService {
 
     public void deleteSection(UUID sectionId) {
         sectionRepository.deleteById(sectionId);
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    public void migrateLegacyFileUrls() {
+        List<Section> sections = sectionRepository.findByType(Section.SectionType.FILE);
+        for (Section section : sections) {
+            String url = section.getFileUrl();
+            if (url != null && url.contains("/download/")) {
+                List<com.example.lms.entity.FileAttachment> attachments = fileService.getFilesByEntity(section.getId(), "SECTION_MATERIAL");
+                if (!attachments.isEmpty()) {
+                    com.example.lms.entity.FileAttachment mainAttachment = attachments.get(0);
+                    section.setFileUrl("/api/v1/files/" + mainAttachment.getId() + "/stream");
+                    sectionRepository.save(section);
+                }
+            }
+        }
     }
 }

@@ -1,5 +1,7 @@
-import { Component, ChangeDetectionStrategy, ChangeDetectorRef, ViewEncapsulation, inject, signal, OnDestroy, ViewChild } from '@angular/core';
+import { Component, ChangeDetectionStrategy, ChangeDetectorRef, ViewEncapsulation, inject, signal, OnDestroy, ViewChild, resource } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../../environments/environment';
 import { ActivatedRoute, Router, RouterLink, NavigationEnd } from '@angular/router';
 import { filter, Subscription, take } from 'rxjs';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -680,12 +682,12 @@ import { SectionSmartEditorComponent } from './components/section-smart-editor/s
                   <button *ngIf="isPresentationFile(attachment.originalFileName)" 
                           (click)="toggleAttachmentViewer(i)"
                           class="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700">
-                    {{ expandedAttachment === i ? 'Thu gọn' : 'Xem slide' }}
+                    {{ expandedAttachment() === i ? 'Thu gọn' : 'Xem slide' }}
                   </button>
                   <button *ngIf="isPdfFile(attachment.originalFileName)" 
                           (click)="toggleAttachmentViewer(i)"
                           class="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700">
-                    {{ expandedAttachment === i ? 'Thu gọn' : 'Xem PDF' }}
+                    {{ expandedAttachment() === i ? 'Thu gọn' : 'Xem PDF' }}
                   </button>
                   <a [href]="attachment.fileUrl" target="_blank" 
                      class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">
@@ -699,15 +701,23 @@ import { SectionSmartEditorComponent } from './components/section-smart-editor/s
               </div>
               
               <!-- Inline File Viewer -->
-              <div *ngIf="expandedAttachment === i" class="p-4 bg-white">
+              <div *ngIf="expandedAttachment() === i" class="p-4 bg-white">
                 <!-- PDF Viewer - Simple như professional-learning -->
                 <div *ngIf="isPdfFile(attachment.originalFileName)" class="w-full">
-                  <iframe [src]="getSafeUrl(attachment.fileUrl)"
+                  <iframe *ngIf="pdfResource.value(); else loadingPdf"
+                          [src]="pdfResource.value()"
                           class="w-full border-0 rounded"
                           style="height: 600px;"
                           frameborder="0">
                     <p>Trình duyệt không hỗ trợ xem PDF. <a [href]="attachment.fileUrl" target="_blank">Tải về để xem</a></p>
                   </iframe>
+                  <ng-template #loadingPdf>
+                    <div class="flex flex-col items-center justify-center p-12 bg-gray-50 rounded border-2 border-dashed border-gray-200">
+                       <div class="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mb-4"></div>
+                       <p class="text-gray-500 font-medium">Đang tải tài liệu PDF an toàn...</p>
+                       <p class="text-xs text-gray-400 mt-2">Đang khởi tạo session xem trước</p>
+                    </div>
+                  </ng-template>
                   <!-- PDF Preview Controls -->
                   <div class="mt-2 flex items-center justify-between bg-gray-50 p-2 rounded">
                     <div class="text-sm text-gray-600">
@@ -1763,6 +1773,32 @@ import { SectionSmartEditorComponent } from './components/section-smart-editor/s
   // changeDetection: ChangeDetectionStrategy.OnPush  // Temporarily disabled for debugging
 })
 export class SectionEditorComponent implements OnDestroy {
+  // SOTA 2025 Resource Pattern for PDF Viewing with Memory Cleanup
+  pdfResource = (resource as any)({
+    request: () => {
+      const idx = this.expandedAttachment();
+      const s = this.selected();
+      if (idx !== null && s && s.attachments && s.attachments[idx]) {
+        const attachment = s.attachments[idx];
+        if (this.isPdfFile(attachment.originalFileName)) {
+          return attachment.id;
+        }
+      }
+      return null;
+    },
+    loader: async (params: any) => {
+      const id = params.request;
+      if (!id) return null;
+      try {
+        const blob = await firstValueFrom(this.http.get(`${environment.apiUrl}/api/v1/files/stream/${id}`, { responseType: 'blob' }));
+        const url = URL.createObjectURL(blob);
+        return this.sanitizer.bypassSecurityTrustResourceUrl(url);
+      } catch (err) {
+        console.error('❌ Error loading PDF blob:', err);
+        return null;
+      }
+    }
+  });
 
   @ViewChild(QuizEditModalComponent) quizEditModal!: QuizEditModalComponent;
   @ViewChild(QuizCreationModalComponent) quizCreationModal!: QuizCreationModalComponent;
@@ -1778,6 +1814,7 @@ export class SectionEditorComponent implements OnDestroy {
   private questionApi = inject(QuestionApi);
   private packageApi = inject(PackageApi);
   private sectionApi = inject(SectionApi);
+  private http = inject(HttpClient); // Inject HttpClient
 
   courseId: string = '';
   sectionId: string = '';
@@ -1857,9 +1894,6 @@ export class SectionEditorComponent implements OnDestroy {
 
   // Temporary storage for attachments before lesson creation
   tempAttachments: File[] = [];
-
-  // Attachment viewer state
-  expandedAttachment: number | null = null;
 
   // PDF fullscreen viewer state
   pdfFullscreenAttachment: any = null;
@@ -2206,7 +2240,7 @@ export class SectionEditorComponent implements OnDestroy {
     // Close viewer if open (only show one at a time)
     this.selected.set(null);
     this._sanitizedEmbed.set(null);
-    this.expandedAttachment = null;
+    this.expandedAttachment.set(null);
 
     this.editingId.set(l.id);
     this.editForm.patchValue({ title: l.title || '', content: l.content || '', videoUrl: l.videoUrl || '' });
@@ -2389,7 +2423,7 @@ export class SectionEditorComponent implements OnDestroy {
   closeViewer() {
     this.selected.set(null);
     this._sanitizedEmbed.set(null);
-    this.expandedAttachment = null;
+    this.expandedAttachment.set(null);
     this.closePdfFullscreen();
   }
 
@@ -3252,9 +3286,11 @@ export class SectionEditorComponent implements OnDestroy {
     return 'audio/mpeg';
   }
 
+  expandedAttachment = signal<number | null>(null);
+
   toggleAttachmentViewer(index: number) {
     // Simple toggle like professional-learning
-    this.expandedAttachment = this.expandedAttachment === index ? null : index;
+    this.expandedAttachment.set(this.expandedAttachment() === index ? null : index);
   }
 
 
