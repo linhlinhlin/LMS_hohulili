@@ -30,207 +30,242 @@ interface EnrolledStudentData {
  */
 @Component({
   selector: 'app-assignment-creation',
+  standalone: true,
   imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterModule, FileUploadComponent, DistributionSelectorComponent],
   encapsulation: ViewEncapsulation.None,
   template: `
-    <div class="max-w-3xl mx-auto p-6 space-y-6">
-      <!-- Header -->
-      <div class="flex items-center justify-between">
+    <div class="max-w-10xl mx-auto pb-20 p-8">
+      
+      <!-- Top Navigation & Header -->
+      <div class="flex items-center justify-between mb-8">
         <div>
-          <h1 class="text-2xl font-bold text-gray-900">Tạo bài tập mới</h1>
-          <p class="text-sm text-gray-500 mt-1">Điền thông tin bài tập cho học viên</p>
+          <nav class="flex items-center gap-2 text-xs text-gray-500 mb-2">
+            <a routerLink="/teacher/assignments" class="hover:text-blue-600 transition-colors">Bài tập</a>
+            <span>/</span>
+            <span class="text-gray-900 font-medium">Tạo mới</span>
+          </nav>
+          <h1 class="text-2xl font-bold text-gray-900">Thiết lập bài tập mới</h1>
         </div>
         <a routerLink="/teacher/assignments" 
-           class="text-gray-600 hover:text-gray-900 flex items-center gap-1">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-          </svg>
-          Quay lại
+           class="px-5 py-2.5 rounded-lg border border-gray-300 font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2 text-sm">
+          Hủy bỏ
         </a>
       </div>
 
-      <!-- Form -->
-      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="bg-white rounded-xl shadow-sm border">
-        <!-- Basic Info Section -->
-        <div class="p-6 space-y-5 border-b">
-          <h2 class="text-lg font-semibold text-gray-900">Thông tin cơ bản</h2>
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+        
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
-          <!-- Title -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Tiêu đề <span class="text-red-500">*</span>
-            </label>
-            <input 
-              formControlName="title" 
-              type="text" 
-              class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" 
-              placeholder="VD: Bài tập An toàn Hàng hải - Chương 1" />
-            @if (form.controls.title.invalid && form.controls.title.touched) {
-              <p class="text-sm text-red-600 mt-1">
-                @if (form.controls.title.errors?.['required']) {
-                  Tiêu đề bài tập là bắt buộc
-                } @else if (form.controls.title.errors?.['maxlength']) {
-                  Tiêu đề không được vượt quá 255 ký tự
-                }
-              </p>
-            }
-          </div>
+          <!-- LEFT COLUMN: Primary Fields (8 cols) -->
+          <div class="lg:col-span-8 space-y-6">
+            
+            <!-- Section: Primary Info -->
+            <div class="space-y-4">
+              <h2 class="text-sm font-bold text-gray-900 uppercase tracking-tight">Thông tin chính bài tập</h2>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+                
+                <!-- Title -->
+                <div class="md:col-span-2 space-y-2">
+                    <label class="block text-sm font-semibold text-gray-700">Tiêu đề bài tập <span class="text-red-500">*</span></label>
+                    <input 
+                      formControlName="title" 
+                      type="text" 
+                      class="w-full h-11 px-4 rounded-lg border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-gray-400 text-sm" 
+                      placeholder="VD: Phân tích An toàn Hàng hải - Chương III" />
+                    @if (form.controls.title.invalid && form.controls.title.touched) {
+                      <p class="text-xs text-red-500 mt-1 italic">Vui lòng nhập tiêu đề bài tập</p>
+                    }
+                </div>
 
-          <!-- Course Selection -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Khóa học <span class="text-red-500">*</span>
-            </label>
-            @if (loadingCourses()) {
-              <div class="w-full border rounded-lg px-3 py-2 bg-gray-50 text-gray-500">
-                Đang tải danh sách khóa học...
+                <!-- Course Selection -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-semibold text-gray-700">Khóa học <span class="text-red-500">*</span></label>
+                    <select 
+                      formControlName="courseId" 
+                      class="w-full h-11 px-4 rounded-lg border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all cursor-pointer text-sm">
+                      <option value="" disabled>-- Chọn khóa học --</option>
+                      @for (course of courses(); track course.id) {
+                        <option [value]="course.id">{{ course.title }}</option>
+                      }
+                    </select>
+                    @if (form.controls.courseId.invalid && form.controls.courseId.touched) {
+                      <p class="text-xs text-red-500 mt-1 italic">Vui lòng chọn khóa học</p>
+                    }
+                </div>
+
+                <!-- Points/Max Score -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-semibold text-gray-700">Cách tính điểm <span class="text-red-500">*</span></label>
+                    <div class="relative">
+                      <input 
+                        formControlName="maxScore" 
+                        type="number" 
+                        class="w-full h-11 px-4 pr-12 rounded-lg border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm" />
+                      <span class="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400 uppercase">Điểm</span>
+                    </div>
+                </div>
               </div>
-            } @else {
-              <select 
-                formControlName="courseId" 
-                class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                <option value="" disabled>Chọn khóa học</option>
-                @for (course of courses(); track course.id) {
-                  <option [value]="course.id">{{ course.title }}</option>
+            </div>
+
+            <hr class="border-gray-100 my-2">
+
+            <!-- Section: Requirements -->
+            <div class="space-y-4">
+              <h2 class="text-sm font-bold text-gray-900 uppercase tracking-tight">Nội dung & Yêu cầu</h2>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+                <!-- Description -->
+                <div class="md:col-span-2 space-y-2">
+                    <label class="block text-sm font-semibold text-gray-700">Tóm tắt mô tả</label>
+                    <textarea 
+                      formControlName="description" 
+                      rows="2" 
+                      class="w-full p-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-gray-400 resize-none text-sm" 
+                      placeholder="Giới thiệu nội dung bài tập..."></textarea>
+                </div>
+
+                <!-- Instructions -->
+                <div class="md:col-span-2 space-y-2">
+                    <label class="block text-sm font-semibold text-gray-700">Hướng dẫn chi tiết</label>
+                    <textarea 
+                      formControlName="instructions" 
+                      rows="8" 
+                      class="w-full p-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-gray-400 text-sm" 
+                      placeholder="Quy trình thực hiện, yêu cầu kỹ thuật và cách thức nộp bài..."></textarea>
+                </div>
+
+                <!-- Attachments -->
+                <div class="md:col-span-2 space-y-4">
+                   <div>
+                      <label class="block text-sm font-semibold text-gray-700">Tài liệu bổ trợ</label>
+                      <p class="text-[11px] text-gray-500 mt-1 leading-relaxed">
+                        Tải lên tài liệu hướng dẫn. Chấp nhận các định dạng: .pdf, .doc, .docx, .txt, .jpg, .png, .zip, .dwg, .dxf (Tối đa 50MB/file, tối đa 10 file)
+                      </p>
+                   </div>
+                   <app-file-upload
+                      [config]="fileUploadConfig()"
+                      [existingFiles]="attachedFiles()"
+                      (filesUploaded)="onFilesUploaded($event)"
+                      (fileDeleted)="onFileDeleted($event)"
+                      (uploadError)="onFileUploadError($event)">
+                    </app-file-upload>
+                </div>
+              </div>
+            </div>
+
+            <hr class="border-gray-100 my-2">
+
+            <!-- Section: Distribution -->
+            <div class="space-y-4">
+              <h2 class="text-sm font-bold text-gray-900 uppercase tracking-tight">Cấu hình phân phối</h2>
+              
+              @if (form.controls.courseId.value) {
+                @if (loadingStudents()) {
+                  <div class="p-10 bg-gray-50 border border-gray-200 rounded-lg flex flex-col items-center justify-center gap-3">
+                    <div class="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    <span class="text-xs font-medium text-gray-500">Đang tải danh sách học viên...</span>
+                  </div>
+                } @else {
+                  <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                    <app-distribution-selector
+                      #distributionSelector
+                      [courseId]="form.controls.courseId.value"
+                      [enrolledStudents]="enrolledStudents"
+                      [initialDistributionType]="'ALL_STUDENTS'"
+                      [initialStudentIds]="[]"
+                      (distributionChange)="onDistributionChange($event)"
+                    ></app-distribution-selector>
+                  </div>
                 }
-              </select>
-            }
-            @if (form.controls.courseId.invalid && form.controls.courseId.touched) {
-              <p class="text-sm text-red-600 mt-1">Vui lòng chọn khóa học</p>
-            }
-          </div>
-
-          <!-- Due Date & Max Score Row -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
-                Hạn nộp <span class="text-red-500">*</span>
-              </label>
-              <input 
-                formControlName="dueDate" 
-                type="datetime-local" 
-                class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
-              @if (form.controls.dueDate.invalid && form.controls.dueDate.touched) {
-                <p class="text-sm text-red-600 mt-1">Vui lòng chọn hạn nộp</p>
-              }
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
-                Điểm tối đa <span class="text-red-500">*</span>
-              </label>
-              <input 
-                formControlName="maxScore" 
-                type="number" 
-                min="1" 
-                max="1000" 
-                class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
-              @if (form.controls.maxScore.invalid && form.controls.maxScore.touched) {
-                <p class="text-sm text-red-600 mt-1">
-                  @if (form.controls.maxScore.errors?.['required']) {
-                    Điểm tối đa là bắt buộc
-                  } @else if (form.controls.maxScore.errors?.['min'] || form.controls.maxScore.errors?.['max']) {
-                    Điểm tối đa phải từ 1 đến 1000
-                  }
-                </p>
-              }
-            </div>
-          </div>
-        </div>
-
-        <!-- Content Section -->
-        <div class="p-6 space-y-5 border-b">
-          <h2 class="text-lg font-semibold text-gray-900">Nội dung bài tập</h2>
-          
-          <!-- Description -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Mô tả</label>
-            <textarea 
-              formControlName="description" 
-              rows="3" 
-              class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" 
-              placeholder="Mô tả ngắn gọn về bài tập..."></textarea>
-          </div>
-
-          <!-- Instructions -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Hướng dẫn làm bài</label>
-            <textarea 
-              formControlName="instructions" 
-              rows="6" 
-              class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" 
-              placeholder="Hướng dẫn chi tiết cách làm bài tập, yêu cầu nộp bài..."></textarea>
-          </div>
-        </div>
-
-        <!-- Attachments Section -->
-        <div class="p-6 space-y-4 border-b">
-          <h2 class="text-lg font-semibold text-gray-900">Tài liệu đính kèm</h2>
-          <p class="text-sm text-gray-500">Đính kèm file tài liệu, bản đồ hàng hải, hoặc file mô phỏng cho học viên tham khảo.</p>
-          <app-file-upload
-            [config]="fileUploadConfig()"
-            [existingFiles]="attachedFiles()"
-            (filesUploaded)="onFilesUploaded($event)"
-            (fileDeleted)="onFileDeleted($event)"
-            (uploadError)="onFileUploadError($event)">
-          </app-file-upload>
-        </div>
-
-        <!-- Distribution Section -->
-        @if (form.controls.courseId.value && enrolledStudents().length > 0) {
-          <div class="p-6 border-b">
-            <app-distribution-selector
-              #distributionSelector
-              [enrolledStudents]="enrolledStudents"
-              [initialDistributionType]="'ALL_STUDENTS'"
-              [initialStudentIds]="[]"
-              (distributionChange)="onDistributionChange($event)"
-            ></app-distribution-selector>
-          </div>
-        } @else if (form.controls.courseId.value && loadingStudents()) {
-          <div class="p-6 border-b">
-            <div class="flex items-center gap-2 text-gray-500">
-              <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Đang tải danh sách học viên...
-            </div>
-          </div>
-        }
-
-        <!-- Actions -->
-        <div class="p-6 bg-gray-50 rounded-b-xl flex items-center justify-between">
-          <a routerLink="/teacher/assignments" class="text-gray-600 hover:text-gray-900">
-            Hủy
-          </a>
-          <div class="flex items-center gap-4">
-            @if (success()) {
-              <span class="text-green-600 flex items-center gap-1">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                </svg>
-                {{ success() }}
-              </span>
-            }
-            @if (error()) {
-              <span class="text-red-600">{{ error() }}</span>
-            }
-            <button 
-              type="submit" 
-              [disabled]="form.invalid || submitting()" 
-              class="px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-              @if (submitting()) {
-                <span class="flex items-center gap-2">
-                  <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Đang tạo...
-                </span>
               } @else {
-                Tạo bài tập
+                 <div class="p-12 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center text-center">
+                    <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-4 text-gray-400">
+                      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                      </svg>
+                    </div>
+                    <p class="text-sm font-medium text-gray-500 max-w-xs">
+                      Chọn khóa học để thiết lập danh sách học viên
+                    </p>
+                 </div>
               }
-            </button>
+            </div>
+          </div>
+
+          <!-- RIGHT COLUMN: Settings & Actions (4 cols) -->
+          <div class="lg:col-span-4 space-y-6">
+            
+            <!-- Schedule Settings -->
+            <div class="space-y-4">
+              <h2 class="text-sm font-bold text-gray-900 uppercase tracking-tight">Thời gian thực hiện</h2>
+              <div class="p-5 bg-gray-50 rounded-lg border border-gray-200 space-y-6">
+                 
+                 <!-- Due Date -->
+                 <div class="space-y-2">
+                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-tight">Hạn chót nộp bài <span class="text-red-500">*</span></label>
+                    <input 
+                      formControlName="dueDate" 
+                      type="datetime-local" 
+                      class="w-full h-11 px-4 rounded-lg border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm" />
+                    @if (form.controls.dueDate.invalid && form.controls.dueDate.touched) {
+                      <p class="text-[10px] font-bold text-red-500 mt-1 uppercase">Vui lòng chọn hạn nộp</p>
+                    }
+                 </div>
+
+                 <!-- Options -->
+                 <div class="space-y-4 pt-2">
+                    <label class="flex items-center gap-3 cursor-pointer group">
+                      <input type="checkbox" formControlName="allowLateSubmission" 
+                             class="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                      <span class="text-sm text-gray-700 font-medium group-hover:text-blue-600 transition-colors">Cho phép nộp muộn</span>
+                    </label>
+                    
+                    <label class="flex items-center gap-3 cursor-pointer group">
+                      <input type="checkbox" formControlName="isDraft" 
+                             class="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                      <div class="flex flex-col">
+                        <span class="text-sm text-gray-700 font-medium group-hover:text-blue-600 transition-colors">Lưu dưới dạng nháp</span>
+                        <span class="text-[10px] text-gray-400 font-bold tracking-tight uppercase">Ẩn bài tập với học viên</span>
+                      </div>
+                    </label>
+                 </div>
+              </div>
+            </div>
+
+            <!-- Feedback Messages -->
+            @if (error()) {
+              <div class="p-4 bg-red-50 border border-red-100 rounded-lg text-red-700 text-xs font-semibold flex items-start gap-3">
+                <svg class="w-4 h-4 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
+                <span>{{ error() }}</span>
+              </div>
+            }
+
+            @if (success()) {
+              <div class="p-4 bg-green-50 border border-green-100 rounded-lg text-green-700 text-xs font-semibold flex items-start gap-3">
+                <svg class="w-4 h-4 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                <span>{{ success() }}</span>
+              </div>
+            }
+
+            <!-- Primary Action -->
+            <div class="pt-4">
+              <button 
+                type="submit" 
+                [disabled]="form.invalid || submitting()"
+                class="w-full h-12 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed uppercase text-xs tracking-wider">
+                @if (submitting()) {
+                  <div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>Đang xử lý...</span>
+                } @else {
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                  </svg>
+                  <span>Hoàn tất & Lưu bài tập</span>
+                }
+              </button>
+              <p class="mt-3 text-[11px] text-gray-400 text-center leading-relaxed">
+                Hệ thống sẽ tự động gán bài tập cho học viên đã chọn sau khi lưu thành công.
+              </p>
+            </div>
           </div>
         </div>
       </form>
@@ -254,7 +289,7 @@ export class AssignmentCreationComponent implements OnInit {
   courses = signal<CourseSummary[]>([]);
   loadingCourses = signal(false);
   attachedFiles = signal<UploadedFile[]>([]);
-  
+
   // Distribution state
   enrolledStudents = signal<EnrolledStudentData[]>([]);
   loadingStudents = signal(false);
@@ -289,14 +324,16 @@ export class AssignmentCreationComponent implements OnInit {
     dueDate: ['', [Validators.required]],
     maxScore: [100, [Validators.required, Validators.min(1), Validators.max(1000)]],
     description: [''],
-    instructions: ['']
+    instructions: [''],
+    isDraft: [false],
+    allowLateSubmission: [false]
   });
 
   ngOnInit(): void {
     this.loadCourses();
-    
+
     // Watch for course selection changes
-    this.form.controls.courseId.valueChanges.subscribe(courseId => {
+    this.form.controls.courseId.valueChanges.subscribe((courseId: string | null) => {
       if (courseId) {
         this.loadEnrolledStudents(courseId);
       } else {
@@ -310,7 +347,7 @@ export class AssignmentCreationComponent implements OnInit {
    */
   private loadCourses(): void {
     this.loadingCourses.set(true);
-    
+
     this.courseApi.myCourses().subscribe({
       next: (response: { data?: CourseSummary[] }) => {
         if (response.data) {
@@ -332,7 +369,7 @@ export class AssignmentCreationComponent implements OnInit {
    */
   private loadEnrolledStudents(courseId: string): void {
     this.loadingStudents.set(true);
-    
+
     this.courseApi.getEnrolledStudents(courseId).subscribe({
       next: (response: { data?: any[] }) => {
         if (response.data) {
@@ -408,7 +445,15 @@ export class AssignmentCreationComponent implements OnInit {
       }
     }
 
-    this.submitting.set(true);
+    const settings = this.distributionSettings();
+
+    // ENFORCE CLASS SELECTION: If distribution type is CLASS, classId MUST be provided
+    if (settings.distributionType === 'CLASS' && !settings.classId) {
+      this.error.set('VUI LÒNG CHỌN LỚP HỌC ĐỂ GIAO BÀI TẬP');
+      // Scroll to selector for visibility
+      this.distributionSelector?.validate();
+      return;
+    }
 
     const request: CreateAssignmentRequest = {
       title: formValue.title!,
@@ -420,19 +465,21 @@ export class AssignmentCreationComponent implements OnInit {
         fileId: file.id,
         fileName: file.originalName,
         fileUrl: file.url || ''
-      }))
+      })),
+      classId: settings.distributionType === 'CLASS' ? (settings.classId || undefined) : undefined,
+      studentIds: settings.distributionType === 'SPECIFIC_STUDENTS' ? (settings.studentIds || []) : undefined,
+      status: formValue.isDraft ? 'DRAFT' : 'PUBLISHED',
+      assignmentConfig: {
+        allowLateSubmission: formValue.allowLateSubmission
+      }
     };
+
+    this.submitting.set(true); // Ensure submitting is set BEFORE the call
 
     // Use AssignmentStateService for creation
     this.assignmentState.createAssignment(formValue.courseId!, request).subscribe({
       next: (result: any) => {
         if (result) {
-          // Save distribution settings if assignment created successfully
-          const assignmentId = result.id || result.data?.id;
-          if (assignmentId) {
-            this.saveDistributionSettings(assignmentId, formValue.courseId!);
-          }
-          
           this.success.set('Tạo bài tập thành công!');
           // Navigate after short delay to show success message
           setTimeout(() => {
@@ -452,28 +499,7 @@ export class AssignmentCreationComponent implements OnInit {
     });
   }
 
-  /**
-   * Saves distribution settings after assignment creation
-   */
-  private saveDistributionSettings(assignmentId: string, courseId: string): void {
-    const settings = this.distributionSettings();
-    
-    this.distributionService.createAllocation(
-      assignmentId,
-      courseId,
-      settings.distributionType,
-      settings.studentIds,
-      'current-teacher' // TODO: Get from auth service
-    ).subscribe({
-      next: () => {
-        console.log('Distribution settings saved successfully');
-      },
-      error: (err) => {
-        console.error('Error saving distribution settings:', err);
-        // Don't show error to user since assignment was created successfully
-      }
-    });
-  }
+  // File upload handlers
 
   // File upload handlers
   onFilesUploaded(files: UploadedFile[]): void {

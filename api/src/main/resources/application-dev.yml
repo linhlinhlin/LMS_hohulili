@@ -43,7 +43,11 @@ spring:
           fetch_size: 50
     open-in-view: false     # SOTA: Disable OSIV for better performance
   flyway:
-    enabled: true
+    enabled: false
+    baseline-on-migrate: true
+    baseline-version: 1
+    out-of-order: true
+    ignore-missing-migrations: true
 logging:
   level:
     org.springframework.web: DEBUG

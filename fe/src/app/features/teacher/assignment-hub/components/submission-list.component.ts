@@ -167,7 +167,7 @@ import { SubmissionGrade } from '../../../../api/client/assignment.api';
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Điểm</label>
                 <input type="number" [(ngModel)]="batchScore" class="w-full px-3 py-2 border rounded-lg"
-                       [min]="0" [max]="assignmentStore.assignment()?.maxPoints || 100"/>
+                       [min]="0" [max]="assignmentStore.assignment()?.maxScore || 100"/>
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Nhận xét (tùy chọn)</label>

@@ -37,10 +37,10 @@ public class FileUploadService {
         "xls", "xlsx", "zip", "rar", "mp4", "avi", "mov", "mp3", "wav"
     );
 
-    public com.example.lms.controller.FileUploadController.FileUploadResponse uploadFile(
+    public com.example.lms.dto.FileUploadDTOs.FileUploadResponse uploadFile(
             MultipartFile file, 
             User currentUser, 
-            com.example.lms.controller.FileUploadController.FileUploadRequest request) {
+            com.example.lms.dto.FileUploadDTOs.FileUploadRequest request) {
         
         validateFile(file);
         
@@ -70,7 +70,7 @@ public class FileUploadService {
             // Generate file URL
             String fileUrl = baseUrl + "/api/v1/files/" + subDir + "/" + fileName;
 
-            return com.example.lms.controller.FileUploadController.FileUploadResponse.builder()
+            return com.example.lms.dto.FileUploadDTOs.FileUploadResponse.builder()
                     .fileName(fileName)
                     .originalFileName(originalFileName)
                     .fileUrl(fileUrl)
@@ -84,9 +84,9 @@ public class FileUploadService {
         }
     }
 
-    public com.example.lms.controller.FileUploadController.SignedUrlResponse generateSignedUrl(
+    public com.example.lms.dto.FileUploadDTOs.SignedUrlResponse generateSignedUrl(
             User currentUser,
-            com.example.lms.controller.FileUploadController.GenerateSignedUrlRequest request) {
+            com.example.lms.dto.FileUploadDTOs.GenerateSignedUrlRequest request) {
         
         // Validate file extension
         String fileExtension = getFileExtension(request.getFileName());
@@ -109,11 +109,11 @@ public class FileUploadService {
         String uploadUrl = baseUrl + "/api/v1/files/upload-signed/" + subDir + "/" + fileName;
         String fileUrl = baseUrl + "/api/v1/files/" + subDir + "/" + fileName;
 
-        return com.example.lms.controller.FileUploadController.SignedUrlResponse.builder()
+        return com.example.lms.dto.FileUploadDTOs.SignedUrlResponse.builder()
                 .uploadUrl(uploadUrl)
                 .fileUrl(fileUrl)
-                .fileName(fileName)
-                .expiresAt(LocalDateTime.now().plusHours(1)) // URL expires in 1 hour
+                .fileId(fileName)
+                .expiresAt(LocalDateTime.now().plusHours(1).atZone(java.time.ZoneId.systemDefault()).toEpochSecond())
                 .build();
     }
 
@@ -181,12 +181,12 @@ public class FileUploadService {
         }
     }
 
-    public boolean validateUpload(User currentUser, com.example.lms.controller.FileUploadController.ValidateUploadRequest request) {
+    public boolean validateUpload(User currentUser, com.example.lms.dto.FileUploadDTOs.ValidateUploadRequest request) {
         // Simple validation - in a real implementation, this would verify the upload
         return request.getFileUrl() != null && !request.getFileUrl().trim().isEmpty();
     }
 
-    public void deleteFile(User currentUser, com.example.lms.controller.FileUploadController.DeleteFileRequest request) {
+    public void deleteFile(User currentUser, com.example.lms.dto.FileUploadDTOs.DeleteFileRequest request) {
         // In a real implementation, this would delete the file from storage
         // For now, we'll just validate the file URL
         if (request.getFileUrl() == null || request.getFileUrl().trim().isEmpty()) {

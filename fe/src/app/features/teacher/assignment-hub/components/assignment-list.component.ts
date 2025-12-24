@@ -217,21 +217,36 @@ type FilterType = 'ALL' | 'NEEDS_GRADING' | 'GRADED' | 'DRAFT';
                   </div>
 
                   <!-- Actions -->
-                  <div class="flex items-center gap-2 mt-4 pt-4 border-t" (click)="$event.stopPropagation()">
+                  <div class="flex items-center gap-2 mt-4 pt-4 border-t">
                     <a [routerLink]="[assignment.id, 'overview']" 
+                       (click)="$event.stopPropagation()"
                        class="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50 transition-colors">
                       Xem chi tiết
                     </a>
                     <a [routerLink]="[assignment.id, 'submissions']"
+                       (click)="$event.stopPropagation()"
                        class="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50 transition-colors">
                       Xem bài nộp
                     </a>
+                    
+                    <a [routerLink]="[assignment.id, 'settings']"
+                       (click)="$event.stopPropagation()"
+                       class="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50 transition-colors">
+                      Chỉnh sửa
+                    </a>
+
                     @if (assignment.pendingCount && assignment.pendingCount > 0) {
                       <a [routerLink]="[assignment.id, 'submissions']" [queryParams]="{filter: 'PENDING'}"
+                         (click)="$event.stopPropagation()"
                          class="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
                         Chấm điểm →
                       </a>
                     }
+                    
+                    <button (click)="deleteAssignment(assignment.id, $event)" 
+                            class="px-4 py-2 text-sm border border-red-200 text-red-600 rounded-lg hover:bg-red-50 transition-colors ml-auto">
+                      Xóa
+                    </button>
                   </div>
                 </div>
               </div>
@@ -269,7 +284,7 @@ export class AssignmentListComponent implements OnInit {
   // Computed
   filteredAssignments = computed(() => {
     let result = this.assignments();
-    
+
     // Apply filter
     switch (this.filter()) {
       case 'NEEDS_GRADING':
@@ -282,20 +297,20 @@ export class AssignmentListComponent implements OnInit {
         result = result.filter(a => a.status === 'pending');
         break;
     }
-    
+
     // Apply search
     if (this.searchQuery.trim()) {
       const query = this.searchQuery.toLowerCase();
-      result = result.filter(a => 
-        a.title.toLowerCase().includes(query) || 
+      result = result.filter(a =>
+        a.title.toLowerCase().includes(query) ||
         a.courseTitle?.toLowerCase().includes(query)
       );
     }
-    
+
     return result;
   });
 
-  needsGradingCount = computed(() => 
+  needsGradingCount = computed(() =>
     this.assignments().filter(a => (a.pendingCount || 0) > 0).length
   );
 
@@ -315,6 +330,22 @@ export class AssignmentListComponent implements OnInit {
     this.router.navigate(['/teacher/assignments', id, 'overview']);
   }
 
+  deleteAssignment(id: string, event: Event): void {
+    event.stopPropagation();
+    if (confirm('Bạn có chắc chắn muốn xóa bài tập này không? Hành động này không thể hoàn tác.')) {
+      this.assignmentApi.deleteAssignment(id).subscribe({
+        next: () => {
+          // Remove from local list to avoid full reload flicker
+          this.assignments.update(current => current.filter(a => a.id !== id));
+        },
+        error: (err) => {
+          console.error('Error deleting assignment:', err);
+          this.error.set('Không thể xóa bài tập. ' + (err.error?.message || 'Vui lòng thử lại.'));
+        }
+      });
+    }
+  }
+
   error = signal<string | null>(null);
 
   ngOnInit(): void {
@@ -324,7 +355,7 @@ export class AssignmentListComponent implements OnInit {
   loadAssignments(): void {
     this.loading.set(true);
     this.error.set(null);
-    
+
     this.assignmentApi.getTeacherAssignments().subscribe({
       next: (response) => {
         const data = response.data || [];

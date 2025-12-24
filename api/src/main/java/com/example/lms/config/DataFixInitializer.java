@@ -32,6 +32,8 @@ public class DataFixInitializer {
         fixUserRoleValues();
         fixLessonTypeValues();
         fixSectionTypeConstraint();
+        fixDistributionTypeConstraint();
+        fixDistributionTypeValues();
         
         log.info("=== Checking for missing course versions ===");
         adminService.fixMissingVersions();
@@ -165,6 +167,33 @@ public class DataFixInitializer {
             log.info("Successfully updated sections_type_check constraint");
         } catch (Exception e) {
             log.warn("Could not fix sections type constraint: {}", e.getMessage());
+        }
+    }
+
+    private void fixDistributionTypeConstraint() {
+        log.info("Fixing assignment_allocations_distribution_type_check constraint...");
+        try {
+            // Drop existing constraint
+            jdbcTemplate.execute("ALTER TABLE assignment_allocations DROP CONSTRAINT IF EXISTS assignment_allocations_distribution_type_check");
+            // Add new constraint including CLASS
+            jdbcTemplate.execute("ALTER TABLE assignment_allocations ADD CONSTRAINT assignment_allocations_distribution_type_check " +
+                              "CHECK (distribution_type IN ('ALL_STUDENTS', 'SPECIFIC_STUDENTS', 'CLASS'))");
+            log.info("Successfully updated assignment_allocations_distribution_type_check constraint");
+        } catch (Exception e) {
+            log.warn("Could not fix distribution type constraint: {}", e.getMessage());
+        }
+    }
+
+    private void fixDistributionTypeValues() {
+        log.info("Checking distribution_type values...");
+        try {
+            int updated = 0;
+            updated += safeUpdate("UPDATE assignment_allocations SET distribution_type = 'ALL_STUDENTS' WHERE LOWER(distribution_type) = 'all_students'");
+            updated += safeUpdate("UPDATE assignment_allocations SET distribution_type = 'SPECIFIC_STUDENTS' WHERE LOWER(distribution_type) = 'specific_students'");
+            updated += safeUpdate("UPDATE assignment_allocations SET distribution_type = 'CLASS' WHERE LOWER(distribution_type) = 'class'");
+            logResult("distribution_type", updated);
+        } catch (Exception e) {
+            log.warn("Could not fix distribution_type values: {}", e.getMessage());
         }
     }
 

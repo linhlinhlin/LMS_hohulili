@@ -363,23 +363,21 @@ public class CourseController {
             @PathVariable UUID courseId,
             @AuthenticationPrincipal User currentUser
     ) {
-        try {
-            Course course = courseService.getCourseById(courseId);
-            
-            List<EnrolledStudentInfo> students = course.getEnrolledStudents().stream()
-                    .map(student -> EnrolledStudentInfo.builder()
-                            .id(student.getId())
-                            .fullName(student.getFullName())
-                            .email(student.getEmail())
-                            .enrolledAt(student.getCreatedAt())
-                            .build())
-                    .collect(Collectors.toList());
-            
-            return ResponseEntity.ok(ApiResponse.success(students));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(ApiResponse.error(e.getMessage()));
-        }
+        // Use service method that uses DTO projection to avoid LazyInitializationException
+        // Fetch all students (unpaged/large page)
+        Pageable pageable = PageRequest.of(0, 1000);
+        Page<com.example.lms.dto.StudentSummaryDTO> studentPage = courseService.getCourseStudentSummaries(courseId, pageable, null);
+        
+        List<EnrolledStudentInfo> students = studentPage.getContent().stream()
+                .map(student -> EnrolledStudentInfo.builder()
+                        .id(student.getId())
+                        .fullName(student.getFullName())
+                        .email(student.getEmail())
+                        .enrolledAt(student.getEnrolledAt()) 
+                        .build())
+                .collect(Collectors.toList());
+        
+        return ResponseEntity.ok(ApiResponse.success(students));
     }
 
     @GetMapping("/{courseId}/content")

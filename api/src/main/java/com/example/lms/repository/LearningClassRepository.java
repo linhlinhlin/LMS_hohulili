@@ -46,4 +46,28 @@ public interface LearningClassRepository extends JpaRepository<LearningClass, UU
         @Param("semester") String semester,
         org.springframework.data.domain.Pageable pageable
     );
+
+    @Query("SELECT new com.example.lms.dto.ClassSummaryDTO(" +
+           "c.id, c.name, c.code, t.fullName, " +
+           "c.startDate, c.endDate, c.maxStudents, " +
+           "CAST(c.scheduleType AS string), c.semester, CAST(c.status AS string), " +
+           "(SELECT COUNT(e) FROM Enrollment e WHERE e.learningClass.id = c.id AND e.status = com.example.lms.learning_delivery.domain.model.Enrollment.EnrollmentStatus.ACTIVE)" +
+           ") " +
+           "FROM LearningClass c " +
+           "LEFT JOIN c.teacher t " +
+           "WHERE c.course.id = :courseId AND c.status = :status " +
+           "ORDER BY c.startDate DESC")
+    List<com.example.lms.dto.ClassSummaryDTO> findSummariesByCourseIdAndStatus(@Param("courseId") UUID courseId, @Param("status") LearningClass.ClassStatus status);
+
+    @Query("SELECT new com.example.lms.dto.ClassSummaryDTO(" +
+           "c.id, c.name, c.code, t.fullName, " +
+           "c.startDate, c.endDate, c.maxStudents, " +
+           "CAST(c.scheduleType AS string), c.semester, CAST(c.status AS string), " +
+           "(SELECT COUNT(e) FROM Enrollment e WHERE e.learningClass.id = c.id AND e.status = com.example.lms.learning_delivery.domain.model.Enrollment.EnrollmentStatus.ACTIVE)" +
+           ") " +
+           "FROM LearningClass c " +
+           "LEFT JOIN c.teacher t " +
+           "WHERE c.course.id = :courseId " +
+           "ORDER BY c.startDate DESC")
+    List<com.example.lms.dto.ClassSummaryDTO> findAllSummariesByCourseId(@Param("courseId") UUID courseId);
 }

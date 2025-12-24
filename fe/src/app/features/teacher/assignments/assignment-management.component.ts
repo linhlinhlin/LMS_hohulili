@@ -3,9 +3,9 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AssignmentApi, AssignmentSummary } from '../../../api/client/assignment.api';
-import { 
-  filterAssignments, 
-  sortAssignments, 
+import {
+  filterAssignments,
+  sortAssignments,
   paginateAssignments,
   getPaginationInfo,
   AssignmentSortColumn,
@@ -172,10 +172,23 @@ import {
                          class="text-blue-600 hover:text-blue-900 transition-colors">
                         Xem bài nộp
                       </a>
+                      
+                      @if (assignment.status === 'DRAFT' || assignment.status === 'pending') {
+                        <button (click)="publishAssignment(assignment.id)"
+                                class="text-green-600 hover:text-green-900 transition-colors">
+                          Xuất bản
+                        </button>
+                      }
+                      
                       <a [routerLink]="['/teacher/assignments', assignment.id, 'edit']" 
                          class="text-indigo-600 hover:text-indigo-900 transition-colors">
                         Sửa
                       </a>
+                      
+                      <button (click)="deleteAssignment(assignment.id)"
+                              class="text-red-600 hover:text-red-900 transition-colors">
+                        Xóa
+                      </button>
                     </td>
                   </tr>
                 }
@@ -248,20 +261,20 @@ import {
 })
 export class AssignmentManagementComponent implements OnInit {
   private assignmentApi = inject(AssignmentApi);
-  
+
   // State signals
   assignments = signal<AssignmentSummary[]>([]);
   loading = signal(false);
   error = signal('');
-  
+
   // Filter signals
   filterKeyword = signal('');
   filterStatus = signal<'' | 'pending' | 'published' | 'closed'>('');
-  
+
   // Sort signals
   sortColumn = signal<AssignmentSortColumn>('dueDate');
   sortDirection = signal<SortDirection>('desc');
-  
+
   // Pagination signals
   pageIndex = signal(1);
   pageSize = signal(10);
@@ -273,12 +286,12 @@ export class AssignmentManagementComponent implements OnInit {
   }));
 
   // Computed: Filtered assignments
-  private filteredAssignments = computed(() => 
+  private filteredAssignments = computed(() =>
     filterAssignments(this.assignments(), this.filterCriteria())
   );
 
   // Computed: Sorted assignments
-  private sortedAssignments = computed(() => 
+  private sortedAssignments = computed(() =>
     sortAssignments(this.filteredAssignments(), {
       column: this.sortColumn(),
       direction: this.sortDirection()
@@ -286,7 +299,7 @@ export class AssignmentManagementComponent implements OnInit {
   );
 
   // Computed: Paginated assignments
-  pagedAssignments = computed(() => 
+  pagedAssignments = computed(() =>
     paginateAssignments(this.sortedAssignments(), this.pageIndex(), this.pageSize())
   );
 
@@ -294,7 +307,7 @@ export class AssignmentManagementComponent implements OnInit {
   total = computed(() => this.filteredAssignments().length);
 
   // Computed: Pagination info
-  paginationInfo = computed(() => 
+  paginationInfo = computed(() =>
     getPaginationInfo(this.total(), this.pageIndex(), this.pageSize())
   );
 
@@ -380,6 +393,44 @@ export class AssignmentManagementComponent implements OnInit {
       'CLOSED': 'Đã đóng'
     };
     return labels[status] || status;
+  }
+
+  /**
+   * Publishes a draft assignment
+   */
+  publishAssignment(assignmentId: string): void {
+    if (!confirm('Bạn có chắc chắn muốn xuất bản bài tập này?')) return;
+
+    this.loading.set(true);
+    this.assignmentApi.publishAssignment(assignmentId).subscribe({
+      next: () => {
+        this.loadAssignments();
+      },
+      error: (err: unknown) => {
+        console.error('Error publishing assignment:', err);
+        this.error.set('Không thể xuất bản bài tập. Vui lòng thử lại.');
+        this.loading.set(false);
+      }
+    });
+  }
+
+  /**
+   * Deletes an assignment
+   */
+  deleteAssignment(assignmentId: string): void {
+    if (!confirm('Bạn có chắc chắn muốn xóa bài tập này? Thao tác này không thể hoàn tác.')) return;
+
+    this.loading.set(true);
+    this.assignmentApi.deleteAssignment(assignmentId).subscribe({
+      next: () => {
+        this.loadAssignments();
+      },
+      error: (err: unknown) => {
+        console.error('Error deleting assignment:', err);
+        this.error.set('Không thể xóa bài tập. Vui lòng thử lại.');
+        this.loading.set(false);
+      }
+    });
   }
 
   getStatusClasses(status: string): string {

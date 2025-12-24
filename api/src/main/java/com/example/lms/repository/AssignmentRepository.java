@@ -26,6 +26,8 @@ public interface AssignmentRepository extends JpaRepository<Assignment, UUID> {
     @Query("SELECT a FROM Assignment a WHERE a.id = :assignmentId AND a.course.teacher.id = :teacherId")
     Optional<Assignment> findByIdAndTeacherId(@Param("assignmentId") UUID assignmentId, @Param("teacherId") UUID teacherId);
     
+
+    
     List<Assignment> findByCourseOrderByCreatedAtAsc(Course course);
     
     @Query("SELECT COUNT(a) FROM Assignment a WHERE a.course.id = :courseId")

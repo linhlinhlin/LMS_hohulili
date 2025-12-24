@@ -10,6 +10,10 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { inject } from '@angular/core';
+import { ClassService } from '../../../../state/class.service';
+import { firstValueFrom } from 'rxjs';
+import { ClassSummary } from '../../../../shared/types/course.types';
 import {
   DistributionType,
   EnrolledStudent,
@@ -18,6 +22,7 @@ import {
 export interface DistributionSettings {
   distributionType: DistributionType;
   studentIds: string[] | null;
+  classId?: string | null;
 }
 
 export type ViewMode = 'assigned' | 'manage';
@@ -40,29 +45,36 @@ export type ViewMode = 'assigned' | 'manage';
   imports: [CommonModule, FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="bg-white rounded-lg shadow overflow-hidden">
-      <!-- Header with tabs -->
-      <div class="border-b border-gray-200">
-        <div class="flex items-center justify-between px-6 py-4">
-          <h3 class="text-lg font-semibold text-gray-900">
-            {{ viewMode() === 'assigned' ? 'Học viên được giao bài' : 'Quản lý phân phối' }}
-          </h3>
-          <div class="flex items-center gap-3">
-            <span class="text-sm text-gray-500">
-              {{ selectedCount() }}/{{ enrolledStudents().length }} học viên
-            </span>
-            <button
-              type="button"
-              (click)="toggleViewMode()"
-              class="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors"
-              [class.bg-blue-100]="viewMode() === 'manage'"
-              [class.text-blue-700]="viewMode() === 'manage'"
-              [class.bg-gray-100]="viewMode() === 'assigned'"
-              [class.text-gray-700]="viewMode() === 'assigned'"
-            >
-              {{ viewMode() === 'assigned' ? 'Chỉnh sửa' : 'Xem danh sách' }}
-            </button>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <!-- Header -->
+      <div class="border-b border-gray-100 bg-gray-50 px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-6">
+          <div>
+            <h3 class="text-sm font-semibold text-gray-900">
+              {{ viewMode() === 'assigned' ? 'Học viên được giao bài' : 'Cấu hình phân phối' }}
+            </h3>
+            <p class="text-xs text-gray-500 mt-1">Xác định đối tượng nhận bài tập trong khóa học</p>
           </div>
+          <!-- Vertical divider -->
+          <div class="h-8 w-px bg-gray-200 hidden md:block"></div>
+          <!-- Student stats -->
+          <div class="flex flex-col items-start">
+            <span class="text-xs font-bold text-gray-900">{{ selectedCount() }}/{{ enrolledStudents().length }}</span>
+            <span class="text-[10px] text-gray-400 font-semibold uppercase tracking-tight">Học viên</span>
+          </div>
+        </div>
+        
+        <div class="flex items-center gap-4">
+          <button
+            type="button"
+            (click)="toggleViewMode()"
+            class="px-4 py-2 text-xs font-semibold rounded-lg transition-all"
+            [class]="viewMode() === 'manage' 
+              ? 'bg-blue-600 text-white shadow-sm' 
+              : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'"
+          >
+            {{ viewMode() === 'assigned' ? 'Chỉnh sửa' : 'Xem danh sách' }}
+          </button>
         </div>
       </div>
 
@@ -72,50 +84,54 @@ export type ViewMode = 'assigned' | 'manage';
           <!-- Distribution Type Badge -->
           <div class="flex items-center gap-2">
             @if (distributionType() === 'ALL_STUDENTS') {
-              <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100">
+                <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path>
                 </svg>
-                Tất cả học viên trong khóa học
+                Tất cả học viên
               </span>
-            } @else {
-              <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-orange-100 text-orange-800">
-                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                </svg>
+            } @else if (distributionType() === 'SPECIFIC_STUDENTS') {
+              <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-100">
                 Học viên được chọn ({{ selectedStudentIds().length }})
+              </span>
+            } @else if (distributionType() === 'CLASS') {
+              <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-10V4m-5 2V4m6 2V4m-6 17v-4a1 1 0 011-1h2a1 1 0 011 1v4m-5 0h6"></path>
+                </svg>
+                Lớp học: {{ selectedClassName() }}
               </span>
             }
           </div>
 
           <!-- Assigned Students Table -->
-          <div class="border rounded-lg overflow-hidden">
-            <table class="min-w-full divide-y divide-gray-200">
+          <div class="border border-gray-100 rounded-lg overflow-hidden shadow-sm">
+            <table class="min-w-full divide-y divide-gray-100">
               <thead class="bg-gray-50">
                 <tr>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Học viên</th>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                  <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
+                  <th class="px-4 py-3 text-left text-[11px] font-bold text-gray-500 uppercase tracking-tight">Học viên</th>
+                  <th class="px-4 py-3 text-left text-[11px] font-bold text-gray-500 uppercase tracking-tight">Email</th>
+                  <th class="px-4 py-3 text-center text-[11px] font-bold text-gray-500 uppercase tracking-tight">Trạng thái</th>
                   @if (distributionType() === 'SPECIFIC_STUDENTS') {
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
+                    <th class="px-4 py-3 text-center text-[11px] font-bold text-gray-500 uppercase tracking-tight">Thao tác</th>
                   }
                 </tr>
               </thead>
-              <tbody class="bg-white divide-y divide-gray-200">
+              <tbody class="bg-white divide-y divide-gray-100">
                 @for (student of assignedStudents(); track student.id) {
-                  <tr class="hover:bg-gray-50">
+                  <tr class="hover:bg-gray-50 transition-colors">
                     <td class="px-4 py-3">
                       <div class="flex items-center">
-                        <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-medium text-sm">
+                        <div class="w-8 h-8 bg-gray-100 border border-gray-200 rounded-full flex items-center justify-center text-gray-600 font-semibold text-xs">
                           {{ getInitials(student.name) }}
                         </div>
-                        <span class="ml-3 font-medium text-gray-900">{{ student.name }}</span>
+                        <span class="ml-3 font-semibold text-gray-900 text-xs">{{ student.name }}</span>
                       </div>
                     </td>
-                    <td class="px-4 py-3 text-sm text-gray-500">{{ student.email }}</td>
+                    <td class="px-4 py-3 text-xs text-gray-500 font-medium">{{ student.email }}</td>
                     <td class="px-4 py-3 text-center">
-                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Đã giao
+                      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-50 text-green-700 border border-green-100">
+                        ĐÃ GIAO
                       </span>
                     </td>
                     @if (distributionType() === 'SPECIFIC_STUDENTS') {
@@ -123,7 +139,7 @@ export type ViewMode = 'assigned' | 'manage';
                         <button
                           type="button"
                           (click)="removeStudent(student.id)"
-                          class="text-red-600 hover:text-red-800 text-sm font-medium"
+                          class="text-red-500 hover:text-red-700 text-xs font-semibold transition-colors"
                         >
                           Bỏ giao
                         </button>
@@ -132,15 +148,17 @@ export type ViewMode = 'assigned' | 'manage';
                   </tr>
                 } @empty {
                   <tr>
-                    <td colspan="4" class="px-4 py-8 text-center text-gray-500">
-                      <svg class="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
-                      </svg>
-                      <p>Chưa có học viên nào được giao bài tập</p>
+                    <td colspan="4" class="px-4 py-12 text-center text-gray-500">
+                      <div class="w-12 h-12 mx-auto bg-gray-50 rounded-full flex items-center justify-center mb-3">
+                        <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                        </svg>
+                      </div>
+                      <p class="text-sm font-medium">Chưa có học viên nào được giao bài tập</p>
                       <button
                         type="button"
                         (click)="toggleViewMode()"
-                        class="mt-2 text-blue-600 hover:text-blue-800 font-medium"
+                        class="mt-3 text-blue-600 hover:text-blue-800 text-xs font-semibold"
                       >
                         Giao bài ngay →
                       </button>
@@ -154,17 +172,17 @@ export type ViewMode = 'assigned' | 'manage';
           <!-- Quick Stats -->
           @if (assignedStudents().length > 0) {
             <div class="grid grid-cols-3 gap-4 pt-2">
-              <div class="text-center p-3 bg-blue-50 rounded-lg">
-                <p class="text-2xl font-bold text-blue-600">{{ assignedStudents().length }}</p>
-                <p class="text-xs text-gray-600">Đã giao</p>
+              <div class="text-center p-3 bg-blue-50 rounded-lg border border-blue-100">
+                <p class="text-xl font-bold text-blue-600">{{ assignedStudents().length }}</p>
+                <p class="text-[10px] text-blue-700 font-bold uppercase">Đã giao</p>
               </div>
-              <div class="text-center p-3 bg-gray-50 rounded-lg">
-                <p class="text-2xl font-bold text-gray-600">{{ unassignedStudents().length }}</p>
-                <p class="text-xs text-gray-600">Chưa giao</p>
+              <div class="text-center p-3 bg-gray-50 rounded-lg border border-gray-100">
+                <p class="text-xl font-bold text-gray-600">{{ unassignedStudents().length }}</p>
+                <p class="text-[10px] text-gray-500 font-bold uppercase">Chưa giao</p>
               </div>
-              <div class="text-center p-3 bg-green-50 rounded-lg">
-                <p class="text-2xl font-bold text-green-600">{{ enrolledStudents().length }}</p>
-                <p class="text-xs text-gray-600">Tổng học viên</p>
+              <div class="text-center p-3 bg-green-50 rounded-lg border border-green-100">
+                <p class="text-xl font-bold text-green-600">{{ enrolledStudents().length }}</p>
+                <p class="text-[10px] text-green-700 font-bold uppercase">Tổng số</p>
               </div>
             </div>
           }
@@ -175,66 +193,117 @@ export type ViewMode = 'assigned' | 'manage';
       @if (viewMode() === 'manage') {
         <div class="p-6 space-y-4">
           <!-- Distribution Type Selection -->
-          <div class="space-y-3">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
             <label
-              class="flex items-center p-4 border rounded-lg cursor-pointer transition-all"
-              [class.border-blue-500]="distributionType() === 'ALL_STUDENTS'"
-              [class.bg-blue-50]="distributionType() === 'ALL_STUDENTS'"
-              [class.border-gray-200]="distributionType() !== 'ALL_STUDENTS'"
+              class="flex flex-col group p-4 border rounded-xl cursor-pointer transition-all hover:border-blue-400 relative overflow-hidden"
+              [class]="distributionType() === 'ALL_STUDENTS' ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600' : 'border-gray-200 bg-white'"
             >
-              <input
-                type="radio"
-                name="distributionType"
-                value="ALL_STUDENTS"
-                [checked]="distributionType() === 'ALL_STUDENTS'"
-                (change)="onDistributionTypeChange('ALL_STUDENTS')"
-                class="w-4 h-4 text-blue-600"
-              />
-              <div class="ml-3 flex-1">
-                <span class="font-medium text-gray-900">Tất cả học viên</span>
-                <p class="text-sm text-gray-500 mt-1">
-                  Tự động giao cho tất cả {{ enrolledStudents().length }} học viên
-                  trong khóa học (bao gồm học viên mới đăng ký sau)
-                </p>
+              <div class="flex items-start justify-between mb-2">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+                     [class]="distributionType() === 'ALL_STUDENTS' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500 group-hover:bg-gray-200'">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  </svg>
+                </div>
+                <input
+                  type="radio"
+                  name="distributionType"
+                  value="ALL_STUDENTS"
+                  [checked]="distributionType() === 'ALL_STUDENTS'"
+                  (change)="onDistributionTypeChange('ALL_STUDENTS')"
+                  class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                />
               </div>
-              <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                </svg>
-              </div>
+              <span class="text-xs font-bold text-gray-900 uppercase">Khóa học</span>
+              <p class="text-[10px] text-gray-500 mt-1 leading-relaxed">
+                Giao bài cho toàn bộ học viên.
+              </p>
             </label>
 
             <label
-              class="flex items-center p-4 border rounded-lg cursor-pointer transition-all"
-              [class.border-blue-500]="distributionType() === 'SPECIFIC_STUDENTS'"
-              [class.bg-blue-50]="distributionType() === 'SPECIFIC_STUDENTS'"
-              [class.border-gray-200]="distributionType() !== 'SPECIFIC_STUDENTS'"
+              class="flex flex-col group p-4 border rounded-xl cursor-pointer transition-all hover:border-blue-400 relative overflow-hidden"
+              [class]="distributionType() === 'CLASS' ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600' : 'border-gray-200 bg-white'"
             >
-              <input
-                type="radio"
-                name="distributionType"
-                value="SPECIFIC_STUDENTS"
-                [checked]="distributionType() === 'SPECIFIC_STUDENTS'"
-                (change)="onDistributionTypeChange('SPECIFIC_STUDENTS')"
-                class="w-4 h-4 text-blue-600"
-              />
-              <div class="ml-3 flex-1">
-                <span class="font-medium text-gray-900">Học viên cụ thể</span>
-                <p class="text-sm text-gray-500 mt-1">
-                  Chọn từng học viên để giao bài tập riêng
-                </p>
+              <div class="flex items-start justify-between mb-2">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+                     [class]="distributionType() === 'CLASS' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500 group-hover:bg-gray-200'">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-10V4m-5 2V4m6 2V4m-6 17v-4a1 1 0 011-1h2a1 1 0 011 1v4m-5 0h6"></path>
+                  </svg>
+                </div>
+                <input
+                  type="radio"
+                  name="distributionType"
+                  value="CLASS"
+                  [checked]="distributionType() === 'CLASS'"
+                  (change)="onDistributionTypeChange('CLASS')"
+                  class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                />
               </div>
-              <div class="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                </svg>
+              <span class="text-xs font-bold text-gray-900 uppercase">Theo lớp</span>
+              <p class="text-[10px] text-gray-500 mt-1 leading-relaxed">
+                Giao cho một lớp học cụ thể.
+              </p>
+            </label>
+
+            <label
+              class="flex flex-col group p-4 border rounded-xl cursor-pointer transition-all hover:border-blue-400 relative overflow-hidden"
+              [class]="distributionType() === 'SPECIFIC_STUDENTS' ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600' : 'border-gray-200 bg-white'"
+            >
+              <div class="flex items-start justify-between mb-2">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+                     [class]="distributionType() === 'SPECIFIC_STUDENTS' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500 group-hover:bg-gray-200'">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                  </svg>
+                </div>
+                <input
+                  type="radio"
+                  name="distributionType"
+                  value="SPECIFIC_STUDENTS"
+                  [checked]="distributionType() === 'SPECIFIC_STUDENTS'"
+                  (change)="onDistributionTypeChange('SPECIFIC_STUDENTS')"
+                  class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                />
               </div>
+              <span class="text-xs font-bold text-gray-900 uppercase">Học viên lẻ</span>
+              <p class="text-[10px] text-gray-500 mt-1 leading-relaxed">
+                Chọn danh sách thủ công.
+              </p>
             </label>
           </div>
 
+          <!-- Class Selection (only shown when CLASS) -->
+          @if (distributionType() === 'CLASS') {
+            <div class="bg-gray-50 border border-gray-200 rounded-xl p-6 mt-4">
+              <div class="flex items-center gap-3 mb-4">
+                <div class="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center">
+                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-10V4m-5 2V4m6 2V4m-6 17v-4a1 1 0 011-1h2a1 1 0 011 1v4m-5 0h6"></path>
+                  </svg>
+                </div>
+                <div>
+                  <h4 class="text-xs font-bold text-gray-900 uppercase">Lớp học mục tiêu</h4>
+                  <p class="text-[10px] text-gray-500">Bài tập sẽ thuộc về toàn bộ học viên trong lớp</p>
+                </div>
+              </div>
+              
+              <select
+                [(ngModel)]="selectedClassId"
+                (ngModelChange)="onClassChange($event)"
+                class="w-full h-11 px-4 text-sm font-medium border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm appearance-none cursor-pointer"
+              >
+                <option [value]="null" disabled>-- Chọn lớp học --</option>
+                @for (cls of availableClasses(); track cls.id) {
+                  <option [value]="cls.id">{{ cls.name }} ({{ cls.semester }})</option>
+                }
+              </select>
+            </div>
+          }
+
           <!-- Student Selection (only shown when SPECIFIC_STUDENTS) -->
           @if (distributionType() === 'SPECIFIC_STUDENTS') {
-            <div class="border-t pt-4 space-y-3">
+            <div class="border-t border-gray-100 pt-4 space-y-3">
               <!-- Search Input -->
               <div class="relative">
                 <input
@@ -242,9 +311,9 @@ export type ViewMode = 'assigned' | 'manage';
                   [(ngModel)]="searchQuery"
                   (ngModelChange)="onSearchChange($event)"
                   placeholder="Tìm kiếm học viên..."
-                  class="w-full px-4 py-2 pl-10 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  class="w-full h-11 px-4 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-gray-400 text-sm"
                 />
-                <svg class="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                 </svg>
               </div>
@@ -254,86 +323,71 @@ export type ViewMode = 'assigned' | 'manage';
                 <button
                   type="button"
                   (click)="selectAll()"
-                  class="px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded"
+                  class="px-3 py-1.5 text-[11px] font-bold uppercase text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-transparent hover:border-blue-200"
                 >
                   Chọn tất cả
                 </button>
                 <button
                   type="button"
                   (click)="deselectAll()"
-                  class="px-3 py-1 text-sm text-gray-600 hover:bg-gray-50 rounded"
+                  class="px-3 py-1.5 text-[11px] font-bold uppercase text-gray-500 hover:bg-gray-50 rounded-lg transition-colors border border-transparent hover:border-gray-200"
                 >
                   Bỏ chọn tất cả
                 </button>
               </div>
 
               <!-- Student List -->
-              <div class="max-h-64 overflow-y-auto border rounded-lg divide-y">
+              <div class="max-h-64 overflow-y-auto border border-gray-100 rounded-xl divide-y divide-gray-50">
                 @for (student of filteredStudents(); track student.id) {
-                  <label class="flex items-center p-3 hover:bg-gray-50 cursor-pointer">
+                  <label class="flex items-center p-3 hover:bg-gray-50 cursor-pointer transition-colors group">
                     <input
                       type="checkbox"
                       [checked]="isSelected(student.id)"
                       (change)="toggleStudent(student.id)"
-                      class="w-4 h-4 text-blue-600 rounded"
+                      class="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                     />
                     <div class="ml-3 flex-1">
-                      <span class="font-medium text-gray-900">{{ student.name }}</span>
-                      <span class="text-sm text-gray-500 ml-2">{{ student.email }}</span>
+                      <p class="text-xs font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">{{ student.name }}</p>
+                      <p class="text-[10px] text-gray-500">{{ student.email }}</p>
                     </div>
                     @if (isSelected(student.id)) {
-                      <span class="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">
-                        Đã chọn
+                      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-green-50 text-green-700 border border-green-100 uppercase">
+                        ĐÃ CHỌN
                       </span>
                     }
                   </label>
                 } @empty {
-                  <div class="p-4 text-center text-gray-500">
-                    Không tìm thấy học viên nào
+                  <div class="p-8 text-center">
+                    <p class="text-xs font-medium text-gray-400">Không tìm thấy học viên nào</p>
                   </div>
                 }
               </div>
-
-              <!-- Selected Count -->
-              @if (selectedStudentIds().length > 0) {
-                <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                  <span class="text-sm text-blue-700">
-                    Đã chọn {{ selectedStudentIds().length }} học viên
-                  </span>
-                  <button
-                    type="button"
-                    (click)="deselectAll()"
-                    class="text-sm text-blue-600 hover:underline"
-                  >
-                    Xóa tất cả
-                  </button>
-                </div>
-              }
             </div>
           }
 
           <!-- Validation Error -->
           @if (showError()) {
-            <div class="p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p class="text-sm text-red-600">{{ errorMessage() }}</p>
+            <div class="p-3 bg-red-50 border border-red-100 rounded-lg flex items-center gap-2">
+              <svg class="w-4 h-4 text-red-500 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
+              <p class="text-xs font-semibold text-red-700">{{ errorMessage() }}</p>
             </div>
           }
 
           <!-- Action Buttons -->
-          <div class="flex justify-end gap-3 pt-4 border-t">
+          <div class="flex justify-end gap-3 pt-6 border-t border-gray-100">
             <button
               type="button"
               (click)="toggleViewMode()"
-              class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 font-medium"
+              class="px-5 py-2.5 text-xs font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all font-medium"
             >
               Hủy
             </button>
             <button
               type="button"
               (click)="saveAndViewAssigned()"
-              class="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 font-medium"
+              class="px-5 py-2.5 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-all shadow-sm active:scale-[0.98]"
             >
-              Lưu thay đổi
+              Lưu cấu hình
             </button>
           </div>
         </div>
@@ -347,13 +401,19 @@ export class DistributionSelectorComponent implements OnInit {
   @Input() initialDistributionType: DistributionType = 'ALL_STUDENTS';
   @Input() initialStudentIds: string[] = [];
   @Input() individualStudentIds: string[] = []; // Students with individual assignments
+  @Input() courseId: string | null = null;
+  @Input() initialClassId: string | null = null;
 
   @Output() distributionChange = new EventEmitter<DistributionSettings>();
+
+  private classService = inject(ClassService);
 
   // State
   viewMode = signal<ViewMode>('assigned');
   distributionType = signal<DistributionType>('ALL_STUDENTS');
   selectedStudentIds = signal<string[]>([]);
+  availableClasses = signal<ClassSummary[]>([]);
+  selectedClassId = signal<string | null>(null);
   searchQuery = '';
   searchSignal = signal('');
   showError = signal(false);
@@ -367,7 +427,7 @@ export class DistributionSelectorComponent implements OnInit {
     if (!query) return students;
 
     return students.filter(
-      (s) =>
+      (s: EnrolledStudent) =>
         s.name.toLowerCase().includes(query) ||
         s.email.toLowerCase().includes(query)
     );
@@ -378,8 +438,21 @@ export class DistributionSelectorComponent implements OnInit {
     if (this.distributionType() === 'ALL_STUDENTS') {
       return students;
     }
+    if (this.distributionType() === 'CLASS') {
+      // In a real app, we might want to filter enrolled students by the selected class
+      // However, for just viewing, we might need to fetch students of that class specifically
+      // or just show "All students in local class"
+      // For now, let's just return empty or a placeholder if we don't have the enrollment info here
+      return [];
+    }
     const selectedIds = this.selectedStudentIds();
-    return students.filter((s) => selectedIds.includes(s.id));
+    return students.filter((s: EnrolledStudent) => selectedIds.includes(s.id));
+  });
+
+  selectedClassName = computed(() => {
+    const classId = this.selectedClassId();
+    const cls = this.availableClasses().find((c: ClassSummary) => c.id === classId);
+    return cls ? cls.name : 'Chưa chọn lớp';
   });
 
   unassignedStudents = computed(() => {
@@ -388,7 +461,7 @@ export class DistributionSelectorComponent implements OnInit {
       return [];
     }
     const selectedIds = this.selectedStudentIds();
-    return students.filter((s) => !selectedIds.includes(s.id));
+    return students.filter((s: EnrolledStudent) => !selectedIds.includes(s.id));
   });
 
   selectedCount = computed(() => {
@@ -401,12 +474,26 @@ export class DistributionSelectorComponent implements OnInit {
   ngOnInit(): void {
     this.distributionType.set(this.initialDistributionType);
     this.selectedStudentIds.set(this.initialStudentIds);
-    
+    this.selectedClassId.set(this.initialClassId);
+
+    if (this.courseId) {
+      this.loadClasses(this.courseId);
+    }
+
     // Start in assigned view if there are already assigned students
-    if (this.initialStudentIds.length > 0 || this.initialDistributionType === 'ALL_STUDENTS') {
+    if (this.initialStudentIds.length > 0 || this.initialClassId || this.initialDistributionType === 'ALL_STUDENTS') {
       this.viewMode.set('assigned');
     } else {
       this.viewMode.set('manage');
+    }
+  }
+
+  private async loadClasses(courseId: string) {
+    try {
+      const classes = await firstValueFrom(this.classService.getClassesByCourse(courseId));
+      this.availableClasses.set(classes);
+    } catch (error) {
+      console.error('Failed to load classes for distribution selector:', error);
     }
   }
 
@@ -425,7 +512,7 @@ export class DistributionSelectorComponent implements OnInit {
 
   removeStudent(studentId: string): void {
     const current = this.selectedStudentIds();
-    this.selectedStudentIds.set(current.filter((id) => id !== studentId));
+    this.selectedStudentIds.set(current.filter((id: string) => id !== studentId));
     this.emitChange();
   }
 
@@ -436,15 +523,25 @@ export class DistributionSelectorComponent implements OnInit {
     }
   }
 
+
   onDistributionTypeChange(type: DistributionType): void {
     this.distributionType.set(type);
     this.showError.set(false);
 
-    if (type === 'ALL_STUDENTS') {
+    if (type !== 'SPECIFIC_STUDENTS') {
       this.selectedStudentIds.set([]);
     }
 
+    if (type !== 'CLASS') {
+      this.selectedClassId.set(null);
+    }
+
     this.emitChange();
+  }
+
+  onClassChange(classId: string): void {
+    this.selectedClassId.set(classId);
+    this.validateAndEmit();
   }
 
   onSearchChange(query: string): void {
@@ -458,7 +555,7 @@ export class DistributionSelectorComponent implements OnInit {
     if (index === -1) {
       this.selectedStudentIds.set([...current, studentId]);
     } else {
-      this.selectedStudentIds.set(current.filter((id) => id !== studentId));
+      this.selectedStudentIds.set(current.filter((id: string) => id !== studentId));
     }
 
     this.validateAndEmit();
@@ -473,9 +570,9 @@ export class DistributionSelectorComponent implements OnInit {
   }
 
   selectAll(): void {
-    const allIds = this.filteredStudents().map((s) => s.id);
+    const allIds = this.filteredStudents().map((s: EnrolledStudent) => s.id);
     const current = new Set(this.selectedStudentIds());
-    allIds.forEach((id) => current.add(id));
+    allIds.forEach((id: string) => current.add(id));
     this.selectedStudentIds.set(Array.from(current));
     this.validateAndEmit();
   }
@@ -492,6 +589,12 @@ export class DistributionSelectorComponent implements OnInit {
     ) {
       this.showError.set(true);
       this.errorMessage.set('Vui lòng chọn ít nhất một học viên');
+    } else if (
+      this.distributionType() === 'CLASS' &&
+      !this.selectedClassId()
+    ) {
+      this.showError.set(true);
+      this.errorMessage.set('Vui lòng chọn một lớp học');
     } else {
       this.showError.set(false);
     }
@@ -503,9 +606,10 @@ export class DistributionSelectorComponent implements OnInit {
     this.distributionChange.emit({
       distributionType: this.distributionType(),
       studentIds:
-        this.distributionType() === 'ALL_STUDENTS'
-          ? null
-          : this.selectedStudentIds(),
+        this.distributionType() === 'SPECIFIC_STUDENTS'
+          ? this.selectedStudentIds()
+          : null,
+      classId: this.selectedClassId(),
     });
   }
 
@@ -519,6 +623,14 @@ export class DistributionSelectorComponent implements OnInit {
       this.errorMessage.set('Vui lòng chọn ít nhất một học viên');
       return false;
     }
+    if (
+      this.distributionType() === 'CLASS' &&
+      !this.selectedClassId()
+    ) {
+      this.showError.set(true);
+      this.errorMessage.set('Vui lòng chọn một lớp học');
+      return false;
+    }
     return true;
   }
 
@@ -527,9 +639,10 @@ export class DistributionSelectorComponent implements OnInit {
     return {
       distributionType: this.distributionType(),
       studentIds:
-        this.distributionType() === 'ALL_STUDENTS'
-          ? null
-          : this.selectedStudentIds(),
+        this.distributionType() === 'SPECIFIC_STUDENTS'
+          ? this.selectedStudentIds()
+          : null,
+      classId: this.selectedClassId(),
     };
   }
 }

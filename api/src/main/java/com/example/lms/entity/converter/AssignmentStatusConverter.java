@@ -22,7 +22,7 @@ public class AssignmentStatusConverter implements AttributeConverter<AssignmentS
     @Override
     public AssignmentStatus convertToEntityAttribute(String dbData) {
         if (dbData == null || dbData.isEmpty()) {
-            return AssignmentStatus.DRAFT; // default value
+            return AssignmentStatus.PUBLISHED; // default value
         }
         
         // Normalize: convert to uppercase
@@ -40,8 +40,8 @@ public class AssignmentStatusConverter implements AttributeConverter<AssignmentS
             }
             
             // Log warning and return default
-            System.err.println("WARNING: Unknown AssignmentStatus value in database: '" + dbData + "', defaulting to DRAFT");
-            return AssignmentStatus.DRAFT;
+            System.err.println("WARNING: Unknown AssignmentStatus value in database: '" + dbData + "', defaulting to PUBLISHED");
+            return AssignmentStatus.PUBLISHED;
         }
     }
 }

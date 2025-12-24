@@ -258,6 +258,11 @@ export interface AssignmentTemplate {
             </app-file-upload>
           </div>
 
+          <div class="flex items-center mt-4 mb-4">
+            <input type="checkbox" id="saveAsDraft" formControlName="saveAsDraft" class="mr-2">
+            <label for="saveAsDraft" class="text-sm font-medium text-gray-700">Lưu dưới dạng bản nháp (Draft)</label>
+          </div>
+
           <div class="flex justify-between mt-6">
             <button type="button" (click)="prevStep()"
                     class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50">
@@ -266,7 +271,7 @@ export interface AssignmentTemplate {
             <button type="submit" 
                     [disabled]="form.invalid || submitting()"
                     class="px-4 py-2 bg-green-600 text-white rounded disabled:opacity-50 hover:bg-green-700">
-              {{ submitting() ? 'Đang tạo...' : 'Tạo bài tập' }}
+              {{ submitting() ? 'Đang tạo...' : (form.value.saveAsDraft ? 'Lưu bản nháp' : 'Tạo bài tập') }}
             </button>
           </div>
         </div>
@@ -399,6 +404,7 @@ export class EnhancedAssignmentCreationComponent {
     maxScore: [100, [Validators.required, Validators.min(1), Validators.max(1000)]],
     description: [''],
     instructions: [''],
+    saveAsDraft: [false],
 
     // Lesson linking
     linkToLesson: [false],
@@ -456,7 +462,7 @@ export class EnhancedAssignmentCreationComponent {
   // Template selection
   selectTemplate(template: AssignmentTemplate) {
     this.selectedTemplate.set(template);
-    
+
     // Apply default configuration
     this.form.patchValue({
       maxScore: template.defaultConfig.maxScore,
@@ -620,7 +626,8 @@ export class EnhancedAssignmentCreationComponent {
         fileId: file.id,
         fileName: file.originalName,
         fileUrl: file.url || ''
-      }))
+      })),
+      status: formValue.saveAsDraft ? 'DRAFT' : 'PUBLISHED'
     };
 
     // If linking to lesson, use lesson assignment API

@@ -20,20 +20,20 @@ export class AssignmentStateService {
 
   /** All assignments for the current teacher */
   private _assignments = signal<AssignmentSummary[]>([]);
-  
+
   /** Currently selected/editing assignment */
   private _currentAssignment = signal<AssignmentDetail | null>(null);
-  
+
   /** Loading states */
   private _loading = signal(false);
   private _saving = signal(false);
-  
+
   /** Error state */
   private _error = signal<string | null>(null);
-  
+
   /** Cache timestamp for invalidation */
   private _lastFetched = signal<number | null>(null);
-  
+
   /** Cache duration in milliseconds (5 minutes) */
   private readonly CACHE_DURATION = 5 * 60 * 1000;
 
@@ -43,16 +43,16 @@ export class AssignmentStateService {
 
   /** Read-only assignments list */
   readonly assignments = this._assignments.asReadonly();
-  
+
   /** Read-only current assignment */
   readonly currentAssignment = this._currentAssignment.asReadonly();
-  
+
   /** Read-only loading state */
   readonly loading = this._loading.asReadonly();
-  
+
   /** Read-only saving state */
   readonly saving = this._saving.asReadonly();
-  
+
   /** Read-only error state */
   readonly error = this._error.asReadonly();
 
@@ -60,15 +60,15 @@ export class AssignmentStateService {
   readonly totalCount = computed(() => this._assignments().length);
 
   /** Pending assignments (draft status) */
-  readonly pendingAssignments = computed(() => 
-    this._assignments().filter((a: AssignmentSummary) => 
+  readonly pendingAssignments = computed(() =>
+    this._assignments().filter((a: AssignmentSummary) =>
       a.status === 'pending' || a.status === 'DRAFT' as unknown as typeof a.status
     )
   );
 
   /** Published assignments */
-  readonly publishedAssignments = computed(() => 
-    this._assignments().filter((a: AssignmentSummary) => 
+  readonly publishedAssignments = computed(() =>
+    this._assignments().filter((a: AssignmentSummary) =>
       a.status === 'published' || a.status === 'PUBLISHED' as unknown as typeof a.status
     )
   );
@@ -114,7 +114,7 @@ export class AssignmentStateService {
       }),
       finalize(() => this._loading.set(false)),
       // Map to just the data array
-      tap(() => {}),
+      tap(() => { }),
     ) as unknown as Observable<AssignmentSummary[]>;
   }
 
@@ -171,7 +171,7 @@ export class AssignmentStateService {
             createdAt: response.data.createdAt,
             updatedAt: response.data.updatedAt
           };
-          
+
           this._assignments.update((list: AssignmentSummary[]) => [...list, newSummary]);
           this._currentAssignment.set(response.data);
         }
@@ -202,15 +202,15 @@ export class AssignmentStateService {
     const previousCurrent = this._currentAssignment();
 
     // Optimistic update
-    this._assignments.update((list: AssignmentSummary[]) => 
-      list.map((a: AssignmentSummary) => a.id === assignmentId ? { ...a, ...data } : a)
+    this._assignments.update((list: AssignmentSummary[]) =>
+      list.map((a: AssignmentSummary) => a.id === assignmentId ? { ...a, ...data } as AssignmentSummary : a)
     );
 
     return this.assignmentApi.updateAssignment(assignmentId, data).pipe(
       tap((response: { data?: AssignmentDetail }) => {
         if (response.data) {
           // Update with actual server response
-          this._assignments.update((list: AssignmentSummary[]) => 
+          this._assignments.update((list: AssignmentSummary[]) =>
             list.map((a: AssignmentSummary) => a.id === assignmentId ? {
               ...a,
               title: response.data!.title,
@@ -227,7 +227,7 @@ export class AssignmentStateService {
         // Rollback on error
         this._assignments.set(previousAssignments);
         this._currentAssignment.set(previousCurrent);
-        
+
         const errorMessage = err instanceof Error ? err.message : 'Không thể cập nhật bài tập';
         this._error.set(errorMessage);
         console.error('Error updating assignment:', err);
@@ -263,7 +263,7 @@ export class AssignmentStateService {
       catchError((err: unknown) => {
         // Rollback on error
         this._assignments.set(previousAssignments);
-        
+
         const errorMessage = err instanceof Error ? err.message : 'Không thể xóa bài tập';
         this._error.set(errorMessage);
         console.error('Error deleting assignment:', err);

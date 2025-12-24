@@ -54,6 +54,8 @@ export interface TeacherAssignment {
   status: 'pending' | 'submitted' | 'graded' | 'overdue';
   submissions: number;
   totalStudents: number;
+  classId?: string;
+  className?: string;
   maxScore?: number;
   averageScore?: number;
   createdAt: string;

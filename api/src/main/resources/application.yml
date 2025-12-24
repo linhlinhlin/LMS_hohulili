@@ -31,7 +31,11 @@ spring:
       hibernate:
         format_sql: true
   flyway:
-    enabled: false  # Disable Flyway to avoid migration issues
+    enabled: false
+    baseline-on-migrate: true
+    baseline-version: 1
+    out-of-order: true
+    ignore-missing-migrations: true
 
   # SOTA: Enable case-insensitive enum deserialization
   jackson:
