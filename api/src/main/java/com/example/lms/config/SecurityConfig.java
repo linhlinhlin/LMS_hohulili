@@ -50,6 +50,9 @@ public class SecurityConfig {
                     "/api/v1/ai/health",
                     "/api/v1/ai/ping"
                 ).permitAll()
+                // Public course catalog - accessible without authentication (SOTA: Coursera/Udemy pattern)
+                .requestMatchers(HttpMethod.GET, "/api/v1/courses").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/courses/{courseId}").permitAll()
                 .anyRequest().authenticated()
             )
             .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

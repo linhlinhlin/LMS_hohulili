@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { teacherGuard } from '../../core/guards/role.guard';
+import { teacherGuard, teacherOnlyGuard } from '../../core/guards/role.guard';
 import { quizRoutes, quizStandaloneRoutes } from './quiz/quiz.routes';
 
 /**
@@ -36,11 +36,11 @@ export const teacherRoutes: Routes = [
     title: 'Quản lý bài học'
   },
 
-  // Layout routes (có sidebar)
+  // Layout routes (có sidebar) - ONLY for Teachers, Admin blocked
   {
     path: '',
     loadComponent: () => import('./shared/teacher-layout-simple.component').then(m => m.TeacherLayoutSimpleComponent),
-    canActivate: [teacherGuard],
+    canActivate: [teacherOnlyGuard],
     children: [
       // Default redirect to dashboard
       {

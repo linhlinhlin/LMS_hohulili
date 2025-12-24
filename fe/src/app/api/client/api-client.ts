@@ -12,14 +12,14 @@ export class ApiClient {
   private http = inject(HttpClient);
   private readonly baseUrl = environment.apiUrl;  // ✅ Sử dụng environment
 
-  constructor() {}
+  constructor() { }
 
   // Generic GET request
   get<T>(endpoint: string, options?: any): Observable<T> {
     const fullUrl = `${this.baseUrl}${endpoint}`;
     console.log('[API CLIENT] 🌐 GET Request:', fullUrl);
     console.log('[API CLIENT] 📦 Options:', options);
-    
+
     return this.http.get(fullUrl, options).pipe(
       map(response => {
         console.log('[API CLIENT] ✅ GET Response for', endpoint, ':', response);
@@ -37,7 +37,7 @@ export class ApiClient {
     const fullUrl = `${this.baseUrl}${endpoint}`;
     console.log('[API CLIENT] 🌐 POST Request:', fullUrl);
     console.log('[API CLIENT] 📦 Data:', JSON.stringify(data));
-    
+
     return this.http.post(fullUrl, data, options).pipe(
       map(response => {
         console.log('[API CLIENT] ✅ POST Response for', endpoint, ':', response);
@@ -128,11 +128,14 @@ export class ApiClient {
     );
   }
 
-  // Error handling
+  // Error handling - SSR-compatible
   private handleError(error: HttpErrorResponse): Observable<never> {
     let errorMessage = 'An unknown error occurred';
 
-    if (error.error instanceof ErrorEvent) {
+    // SSR-safe: Check if ErrorEvent exists before using instanceof
+    const isClientError = typeof ErrorEvent !== 'undefined' && error.error instanceof ErrorEvent;
+
+    if (isClientError) {
       // Client-side error
       errorMessage = `Client Error: ${error.error.message}`;
     } else {

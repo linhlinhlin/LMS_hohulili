@@ -1,146 +1,198 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
-import { 
-  ExtendedCourse, 
-  CourseReview, 
-  FAQ, 
-  CourseModule, 
-  RelatedCourse, 
+import { firstValueFrom } from 'rxjs';
+import {
+  ExtendedCourse,
+  CourseReview,
+  FAQ,
+  CourseModule,
+  RelatedCourse,
   CourseEnrollment,
   CourseDetailState,
-  CourseCategory 
+  CourseCategory
 } from '../../../../shared/types/course.types';
+import { CourseRepositoryImpl } from '../../infrastructure/repositories/course.repository.impl';
+import { Course } from '../../domain/entities/course.entity';
 
 /**
  * Repository Pattern cho Course Data Access
+ * Uses real API via CourseRepositoryImpl
  */
 @Injectable({ providedIn: 'root' })
 export class CourseRepository {
+  private courseRepoImpl = inject(CourseRepositoryImpl);
+
   async getCourseById(id: string): Promise<ExtendedCourse | null> {
-    // Mock implementation - sẽ được thay thế bằng real API
-    await this.simulateApiCall();
-    return this.getMockCourseById(id);
+    try {
+      const course = await firstValueFrom(this.courseRepoImpl.findById(id as any));
+      if (!course) return null;
+      return this.mapDomainToExtended(course);
+    } catch (error) {
+      console.error('Error fetching course by ID:', error);
+      return null;
+    }
   }
 
   async getRelatedCourses(courseId: string, category: string, limit: number = 4): Promise<RelatedCourse[]> {
-    await this.simulateApiCall();
-    return this.getMockRelatedCourses(courseId, category, limit);
+    try {
+      const result = await firstValueFrom(
+        this.courseRepoImpl.findByCategory(category, undefined, undefined, { page: 1, limit: limit + 1 })
+      );
+      return result.items
+        .filter(course => course.id !== courseId)
+        .slice(0, limit)
+        .map(course => this.mapDomainToRelated(course));
+    } catch (error) {
+      console.error('Error fetching related courses:', error);
+      return [];
+    }
   }
 
-  private getMockCourseById(id: string): ExtendedCourse | null {
-    const mockCourses = this.getMockCourses();
-    return mockCourses.find(course => course.id === id) || null;
-  }
-
-  private getMockRelatedCourses(courseId: string, category: string, limit: number): RelatedCourse[] {
-    const mockCourses = this.getMockCourses();
-    return mockCourses
-      .filter(course => course.id !== courseId && course.category === category)
-      .slice(0, limit)
-      .map(course => ({
-        id: course.id,
-        title: course.title,
-        thumbnail: course.thumbnail,
-        level: course.level,
-        duration: course.duration,
-        rating: course.rating,
-        studentsCount: course.studentsCount,
-        price: course.price,
-        category: course.category,
-        similarity: Math.random() * 0.3 + 0.7 // 0.7-1.0 similarity
-      }));
-  }
-
-  private getMockCourses(): ExtendedCourse[] {
-    return [
-      {
-        id: '1',
-        isEnrolled: false,
-        title: 'Kỹ thuật Tàu biển Cơ bản',
-        description: 'Khóa học cung cấp kiến thức cơ bản về kỹ thuật tàu biển, cấu trúc tàu và hệ thống động lực. Học viên sẽ được trang bị kiến thức từ cơ bản đến nâng cao về các hệ thống trên tàu.',
-        shortDescription: 'Khóa học cơ bản về kỹ thuật tàu biển',
-        thumbnail: 'https://via.placeholder.com/800x400/0288D1/FFFFFF?text=Kỹ+thuật+Tàu+biển',
-        instructor: {
-          id: '1',
-          name: 'ThS. Nguyễn Văn Hải',
-          avatar: 'https://via.placeholder.com/150',
-          title: 'Giảng viên Khoa Hàng hải',
-          credentials: ['Thạc sĩ Kỹ thuật Hàng hải', '15 năm kinh nghiệm'],
-          experience: 15,
-          rating: 4.8,
-          studentsCount: 1200
-        },
-        category: CourseCategory.MARINE_ENGINEERING,
-        level: 'beginner',
-        duration: '30h',
-        students: 856,
-        reviews: 120,
-        price: 0,
-        rating: 4.7,
-        tags: ['Kỹ thuật', 'Tàu biển', 'Cơ bản'],
-        skills: ['Kỹ thuật tàu', 'Hệ thống động lực'],
-        prerequisites: ['Toán học cơ bản'],
-        certificate: {
-          type: 'Professional',
-          description: 'Chứng chỉ Kỹ thuật Tàu biển'
-        },
-        curriculum: {
-          modules: 6,
-          lessons: 12,
-          duration: '30 giờ'
-        },
-        studentsCount: 856,
-        lessonsCount: 12,
-        isPublished: true
+  private mapDomainToExtended(course: Course): ExtendedCourse {
+    return {
+      id: course.id as string,
+      isEnrolled: course.metadata?.isEnrolled ?? false,
+      title: course.title,
+      description: course.description,
+      shortDescription: course.shortDescription,
+      thumbnail: course.thumbnail || '/assets/images/courses/placeholder.png',
+      instructor: {
+        id: course.instructorId as string,
+        name: course.instructorId as string, // Will be populated from API
+        avatar: '/assets/images/avatar-placeholder.png',
+        title: 'Giảng viên',
+        credentials: [],
+        experience: 0,
+        rating: 4.5,
+        studentsCount: 0
       },
-      {
-        id: '2',
-        isEnrolled: false,
-        title: 'Hàng hải và Định vị',
-        description: 'Khóa học về kỹ thuật hàng hải, định vị GPS, và quy tắc an toàn trên biển. Bao gồm các kỹ thuật điều hướng hiện đại và truyền thống.',
-        shortDescription: 'Kỹ thuật hàng hải và định vị',
-        thumbnail: 'https://via.placeholder.com/800x400/2E7D32/FFFFFF?text=Hàng+hải',
-        instructor: {
-          id: '2',
-          name: 'TS. Lê Minh Đức',
-          avatar: 'https://via.placeholder.com/150',
-          title: 'Giảng viên Khoa Hàng hải',
-          credentials: ['Tiến sĩ Hàng hải', '20 năm kinh nghiệm'],
-          experience: 20,
-          rating: 4.9,
-          studentsCount: 1500
-        },
-        category: CourseCategory.NAVIGATION,
-        level: 'intermediate',
-        duration: '40h',
-        students: 1200,
-        reviews: 180,
-        price: 2500000,
-        rating: 4.8,
-        tags: ['Hàng hải', 'Định vị', 'GPS'],
-        skills: ['Định vị GPS', 'Quy tắc hàng hải'],
-        prerequisites: ['Toán học', 'Vật lý cơ bản'],
-        certificate: {
-          type: 'Professional',
-          description: 'Chứng chỉ Hàng hải'
-        },
-        curriculum: {
-          modules: 8,
-          lessons: 16,
-          duration: '40 giờ'
-        },
-        studentsCount: 1200,
-        lessonsCount: 16,
-        isPublished: true
-      }
-    ];
+      category: course.category as CourseCategory,
+      level: course.specifications?.level || 'beginner',
+      duration: `${course.specifications?.durationHours || 0}h`,
+      students: course.metadata?.studentsCount || 0,
+      reviews: course.metadata?.reviewsCount || 0,
+      price: course.specifications?.price || 0,
+      rating: course.metadata?.rating || 4.5,
+      tags: course.tags || [],
+      skills: [],
+      prerequisites: course.specifications?.prerequisites || [],
+      certificate: {
+        type: course.specifications?.certificateType || 'completion',
+        description: 'Chứng chỉ hoàn thành khóa học'
+      },
+      curriculum: {
+        modules: course.specifications?.modulesCount || 0,
+        lessons: course.specifications?.lessonsCount || 0,
+        duration: `${course.specifications?.durationHours || 0} giờ`
+      },
+      studentsCount: course.metadata?.studentsCount || 0,
+      lessonsCount: course.specifications?.lessonsCount || 0,
+      isPublished: course.status === 'published'
+    };
   }
 
-  private simulateApiCall(): Promise<void> {
-    return new Promise((resolve) => {
-      setTimeout(resolve, 300);
-    });
+  private mapDomainToRelated(course: Course): RelatedCourse {
+    return {
+      id: course.id as string,
+      title: course.title,
+      thumbnail: course.thumbnail || '/assets/images/courses/placeholder.png',
+      level: course.specifications?.level || 'beginner',
+      duration: `${course.specifications?.durationHours || 0}h`,
+      rating: course.metadata?.rating || 4.5,
+      studentsCount: course.metadata?.studentsCount || 0,
+      price: course.specifications?.price || 0,
+      category: course.category,
+      similarity: 0.8
+    };
   }
 }
+
+// Keep mock courses for fallback (unused now but kept for reference)
+function getMockCourses(): ExtendedCourse[] {
+  return [
+    {
+      id: '1',
+      isEnrolled: false,
+      title: 'Kỹ thuật Tàu biển Cơ bản',
+      description: 'Khóa học cung cấp kiến thức cơ bản về kỹ thuật tàu biển, cấu trúc tàu và hệ thống động lực. Học viên sẽ được trang bị kiến thức từ cơ bản đến nâng cao về các hệ thống trên tàu.',
+      shortDescription: 'Khóa học cơ bản về kỹ thuật tàu biển',
+      thumbnail: 'https://via.placeholder.com/800x400/0288D1/FFFFFF?text=Kỹ+thuật+Tàu+biển',
+      instructor: {
+        id: '1',
+        name: 'ThS. Nguyễn Văn Hải',
+        avatar: 'https://via.placeholder.com/150',
+        title: 'Giảng viên Khoa Hàng hải',
+        credentials: ['Thạc sĩ Kỹ thuật Hàng hải', '15 năm kinh nghiệm'],
+        experience: 15,
+        rating: 4.8,
+        studentsCount: 1200
+      },
+      category: CourseCategory.MARINE_ENGINEERING,
+      level: 'beginner',
+      duration: '30h',
+      students: 856,
+      reviews: 120,
+      price: 0,
+      rating: 4.7,
+      tags: ['Kỹ thuật', 'Tàu biển', 'Cơ bản'],
+      skills: ['Kỹ thuật tàu', 'Hệ thống động lực'],
+      prerequisites: ['Toán học cơ bản'],
+      certificate: {
+        type: 'Professional',
+        description: 'Chứng chỉ Kỹ thuật Tàu biển'
+      },
+      curriculum: {
+        modules: 6,
+        lessons: 12,
+        duration: '30 giờ'
+      },
+      studentsCount: 856,
+      lessonsCount: 12,
+      isPublished: true
+    },
+    {
+      id: '2',
+      isEnrolled: false,
+      title: 'Hàng hải và Định vị',
+      description: 'Khóa học về kỹ thuật hàng hải, định vị GPS, và quy tắc an toàn trên biển. Bao gồm các kỹ thuật điều hướng hiện đại và truyền thống.',
+      shortDescription: 'Kỹ thuật hàng hải và định vị',
+      thumbnail: 'https://via.placeholder.com/800x400/2E7D32/FFFFFF?text=Hàng+hải',
+      instructor: {
+        id: '2',
+        name: 'TS. Lê Minh Đức',
+        avatar: 'https://via.placeholder.com/150',
+        title: 'Giảng viên Khoa Hàng hải',
+        credentials: ['Tiến sĩ Hàng hải', '20 năm kinh nghiệm'],
+        experience: 20,
+        rating: 4.9,
+        studentsCount: 1500
+      },
+      category: CourseCategory.NAVIGATION,
+      level: 'intermediate',
+      duration: '40h',
+      students: 1200,
+      reviews: 180,
+      price: 2500000,
+      rating: 4.8,
+      tags: ['Hàng hải', 'Định vị', 'GPS'],
+      skills: ['Định vị GPS', 'Quy tắc hàng hải'],
+      prerequisites: ['Toán học', 'Vật lý cơ bản'],
+      certificate: {
+        type: 'Professional',
+        description: 'Chứng chỉ Hàng hải'
+      },
+      curriculum: {
+        modules: 8,
+        lessons: 16,
+        duration: '40 giờ'
+      },
+      studentsCount: 1200,
+      lessonsCount: 16,
+      isPublished: true
+    }
+  ];
+}
+
+
 
 @Injectable({ providedIn: 'root' })
 export class ReviewRepository {
@@ -347,11 +399,11 @@ export class CourseDetailService {
   readonly enrollmentStatus = computed(() => {
     const enrollment = this._enrollment();
     const course = this._course();
-    
+
     if (!course) return 'not-enrolled';
     if (!enrollment) return 'not-enrolled';
     if (!enrollment.isActive) return 'expired';
-    
+
     return 'enrolled';
   });
 
@@ -450,7 +502,7 @@ export class CourseDetailService {
     try {
       // Mock enrollment logic
       await this.simulateApiCall();
-      
+
       const enrollment: CourseEnrollment = {
         id: `enrollment-${courseId}-${userId}`,
         courseId,

@@ -7,6 +7,7 @@ import com.example.lms.repository.CourseRepository;
 import com.example.lms.repository.UserRepository;
 import com.example.lms.repository.EnrollmentRepository;
 import com.example.lms.learning_delivery.domain.model.LearningClass;
+import com.example.lms.util.AuthorizationHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -59,8 +60,8 @@ public class AllocationService {
         Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new RuntimeException("Assignment not found"));
 
-        // Kiểm tra quyền: chỉ giáo viên của khóa học mới được giao bài
-        if (!assignment.getCourse().getTeacher().getId().equals(createdBy.getId())) {
+        // SOTA: Admin super access + Owner check
+        if (!AuthorizationHelper.isOwnerOrAdmin(assignment.getCourse(), createdBy)) {
             throw new RuntimeException("Bạn không có quyền giao bài tập này");
         }
 
@@ -197,8 +198,8 @@ public class AllocationService {
         User student = userRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
 
-        // Kiểm tra quyền
-        if (!assignment.getCourse().getTeacher().getId().equals(assignedBy.getId())) {
+        // SOTA: Admin super access + Owner check
+        if (!AuthorizationHelper.isOwnerOrAdmin(assignment.getCourse(), assignedBy)) {
             throw new RuntimeException("Bạn không có quyền giao bài tập này");
         }
 
@@ -239,8 +240,8 @@ public class AllocationService {
         AssignmentAllocation allocation = allocationRepository.findByAssignmentId(assignmentId)
                 .orElseThrow(() -> new RuntimeException("Allocation not found"));
 
-        // Kiểm tra quyền
-        if (!allocation.getAssignment().getCourse().getTeacher().getId().equals(removedBy.getId())) {
+        // SOTA: Admin super access + Owner check
+        if (!AuthorizationHelper.isOwnerOrAdmin(allocation.getAssignment().getCourse(), removedBy)) {
             throw new RuntimeException("Bạn không có quyền thực hiện thao tác này");
         }
 
@@ -261,8 +262,8 @@ public class AllocationService {
         AssignmentAllocation allocation = allocationRepository.findByAssignmentId(assignmentId)
                 .orElseThrow(() -> new RuntimeException("Allocation not found"));
 
-        // Kiểm tra quyền
-        if (!allocation.getAssignment().getCourse().getTeacher().getId().equals(updatedBy.getId())) {
+        // SOTA: Admin super access + Owner check
+        if (!AuthorizationHelper.isOwnerOrAdmin(allocation.getAssignment().getCourse(), updatedBy)) {
             throw new RuntimeException("Bạn không có quyền thực hiện thao tác này");
         }
 

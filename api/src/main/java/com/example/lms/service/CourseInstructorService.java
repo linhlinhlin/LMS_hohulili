@@ -93,7 +93,9 @@ public class CourseInstructorService {
         CourseInstructor saved = instructorRepository.save(instructor);
         log.info("Instructor invited: instructorId={}", saved.getId());
 
-        return saved;
+        // SOTA: Reload with JOIN FETCH to ensure user/course are loaded before returning
+        return instructorRepository.findByIdWithUserAndCourse(saved.getId())
+                .orElseThrow(() -> new RuntimeException("Failed to reload instructor"));
     }
 
     /**
@@ -110,7 +112,10 @@ public class CourseInstructorService {
         CourseInstructor saved = instructorRepository.save(instructor);
 
         log.info("Invitation accepted: instructorId={}", saved.getId());
-        return saved;
+        
+        // SOTA: Reload with JOIN FETCH to ensure user/course are loaded
+        return instructorRepository.findByIdWithUserAndCourse(saved.getId())
+                .orElseThrow(() -> new RuntimeException("Failed to reload instructor"));
     }
 
     /**
@@ -127,7 +132,10 @@ public class CourseInstructorService {
         CourseInstructor saved = instructorRepository.save(instructor);
 
         log.info("Invitation rejected: instructorId={}", saved.getId());
-        return saved;
+        
+        // SOTA: Reload with JOIN FETCH to ensure user/course are loaded
+        return instructorRepository.findByIdWithUserAndCourse(saved.getId())
+                .orElseThrow(() -> new RuntimeException("Failed to reload instructor"));
     }
 
     // ============ Permission Management ============
@@ -172,7 +180,10 @@ public class CourseInstructorService {
 
         CourseInstructor saved = instructorRepository.save(instructor);
         log.info("Permissions updated: instructorId={}", saved.getId());
-        return saved;
+        
+        // SOTA: Reload with JOIN FETCH to ensure user/course are loaded
+        return instructorRepository.findByIdWithUserAndCourse(saved.getId())
+                .orElseThrow(() -> new RuntimeException("Failed to reload instructor"));
     }
 
     /**
@@ -199,18 +210,20 @@ public class CourseInstructorService {
 
     /**
      * Get all instructors for a course
+     * SOTA: Uses JOIN FETCH to avoid LazyInitializationException
      */
     @Transactional(readOnly = true)
     public List<CourseInstructor> getInstructors(UUID courseId) {
-        return instructorRepository.findByCourseIdOrderByRoleAscCreatedAtAsc(courseId);
+        return instructorRepository.findByCourseIdWithDetails(courseId);
     }
 
     /**
      * Get active instructors for a course
+     * SOTA: Uses JOIN FETCH to avoid LazyInitializationException
      */
     @Transactional(readOnly = true)
     public List<CourseInstructor> getActiveInstructors(UUID courseId) {
-        return instructorRepository.findByCourseIdAndStatus(courseId, InstructorStatus.ACCEPTED);
+        return instructorRepository.findByCourseIdAndStatusWithDetails(courseId, InstructorStatus.ACCEPTED);
     }
 
     /**

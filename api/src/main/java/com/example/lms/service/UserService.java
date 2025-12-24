@@ -1,7 +1,10 @@
 package com.example.lms.service;
 
 import com.example.lms.entity.User;
+import com.example.lms.entity.CourseInstructor;
 import com.example.lms.repository.UserRepository;
+import com.example.lms.repository.CourseRepository;
+import com.example.lms.repository.CourseInstructorRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -21,6 +24,8 @@ public class UserService implements UserDetailsService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final CourseRepository courseRepository;
+    private final CourseInstructorRepository courseInstructorRepository;
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
@@ -218,5 +223,39 @@ public class UserService implements UserDetailsService {
             return getAllUsers(pageable, search);
         }
         return userRepository.searchByRole(role, search, pageable);
+    }
+
+    /**
+     * Count courses created by a teacher
+     */
+    public Integer countCoursesCreatedByUser(UUID userId) {
+        try {
+            return courseRepository.countByTeacherId(userId);
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Count courses enrolled by a student
+     */
+    public Integer countCoursesEnrolledByUser(UUID userId) {
+        try {
+            return courseRepository.countEnrollmentsByStudentId(userId);
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Count co-op courses for a teacher (courses where they are invited as CO_INSTRUCTOR)
+     * Uses efficient count query - includes both ACCEPTED and PENDING status
+     */
+    public Integer countCoursesCoopedByUser(UUID userId) {
+        try {
+            return courseInstructorRepository.countCoopCoursesByUserId(userId);
+        } catch (Exception e) {
+            return 0;
+        }
     }
 }

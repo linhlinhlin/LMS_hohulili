@@ -23,6 +23,12 @@ export const ADMIN_ENDPOINTS = {
   BULK_IMPORT_USERS: '/api/v1/users/bulk-import',
   IMPORT_TEMPLATE: '/api/v1/users/bulk-import/template',
 
+  // User Courses (Admin view)
+  USER_ENROLLED_COURSES: (userId: string) => `/api/v1/admin/users/${userId}/enrolled-courses`,
+  USER_MANAGED_COURSES: (userId: string) => `/api/v1/admin/users/${userId}/managed-courses`,
+  USER_COOP_COURSES: (userId: string) => `/api/v1/admin/users/${userId}/coop-courses`,
+  UPDATE_USER_STATUS: (userId: string) => `/api/v1/admin/users/${userId}/status`,
+
   // File Upload
   SIGNED_URL: '/api/v1/uploads/signed-url',
   VALIDATE_UPLOAD: '/api/v1/uploads/validate',

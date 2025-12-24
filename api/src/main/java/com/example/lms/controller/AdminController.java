@@ -23,9 +23,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -41,6 +43,8 @@ public class AdminController {
     private final com.example.lms.repository.ChapterRepository chapterRepository;
     private final AssignmentRepository assignmentRepository;
     private final UserRepository userRepository;
+    private final com.example.lms.repository.CourseRepository courseRepository;
+    private final com.example.lms.repository.CourseInstructorRepository courseInstructorRepository;
 
     @GetMapping("/courses/pending")
     @Operation(summary = "Lấy danh sách khóa học chờ duyệt", description = "Admin lấy tất cả khóa học đang chờ duyệt")
@@ -222,6 +226,98 @@ public class AdminController {
 
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    // ============ USER COURSES MANAGEMENT ============
+
+    @GetMapping("/users/{userId}/enrolled-courses")
+    @Operation(summary = "Lấy khóa học đã đăng ký của học viên", description = "Admin lấy danh sách khóa học mà học viên đã đăng ký")
+    @Transactional(readOnly = true)
+    public ResponseEntity<ApiResponse<List<AdminCourseSummary>>> getStudentEnrolledCourses(
+            @PathVariable UUID userId
+    ) {
+        try {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User không tồn tại: " + userId));
+
+            // SOTA: Use JOIN FETCH query to avoid LazyInitializationException
+            List<Course> courses = courseRepository.findEnrolledCoursesByStudentIdWithTeacher(userId);
+            
+            List<AdminCourseSummary> courseSummaries = courses.stream()
+                    .map(this::convertToAdminCourseSummary)
+                    .toList();
+
+            return ResponseEntity.ok(ApiResponse.success(courseSummaries));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Lỗi khi lấy danh sách khóa học: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping("/users/{userId}/managed-courses")
+    @Operation(summary = "Lấy khóa học của giảng viên", description = "Admin lấy danh sách khóa học mà giảng viên đang quản lý")
+    @Transactional(readOnly = true)
+    public ResponseEntity<ApiResponse<List<AdminCourseSummary>>> getTeacherManagedCourses(
+            @PathVariable UUID userId
+    ) {
+        try {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User không tồn tại: " + userId));
+
+            // SOTA: Use JOIN FETCH query to avoid LazyInitializationException
+            List<Course> courses = courseRepository.findByTeacherIdWithTeacher(userId);
+            
+            List<AdminCourseSummary> courseSummaries = courses.stream()
+                    .map(this::convertToAdminCourseSummary)
+                    .toList();
+
+            return ResponseEntity.ok(ApiResponse.success(courseSummaries));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Lỗi khi lấy danh sách khóa học: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Get co-op courses for a teacher (courses where they are invited as co-instructor)
+     * Uses CourseInstructor entity which stores instructor relationships with status
+     */
+    @GetMapping("/users/{userId}/coop-courses")
+    @Operation(summary = "Lấy khóa học co-op của giảng viên", description = "Admin lấy danh sách khóa học mà giảng viên được mời cộng tác")
+    @Transactional(readOnly = true)
+    public ResponseEntity<ApiResponse<List<AdminCourseSummary>>> getTeacherCoopCourses(
+            @PathVariable UUID userId
+    ) {
+        try {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User không tồn tại: " + userId));
+
+            // SOTA: Query CourseInstructor table for courses where user is CO_INSTRUCTOR
+            // Include both PENDING and ACCEPTED status to show all co-op courses
+            List<com.example.lms.entity.CourseInstructor> coopInstructors = courseInstructorRepository
+                    .findByUserIdAndStatus(userId, com.example.lms.entity.CourseInstructor.InstructorStatus.ACCEPTED);
+            
+            // Also include PENDING invitations
+            List<com.example.lms.entity.CourseInstructor> pendingInstructors = courseInstructorRepository
+                    .findByUserIdAndStatus(userId, com.example.lms.entity.CourseInstructor.InstructorStatus.PENDING);
+            
+            // Combine and filter to only CO_INSTRUCTOR role (not OWNER)
+            java.util.stream.Stream<com.example.lms.entity.CourseInstructor> allCoopInstructors = 
+                java.util.stream.Stream.concat(coopInstructors.stream(), pendingInstructors.stream())
+                    .filter(ci -> ci.getRole() == com.example.lms.entity.CourseInstructor.InstructorRole.CO_INSTRUCTOR);
+            
+            List<AdminCourseSummary> courseSummaries = allCoopInstructors
+                    .map(ci -> {
+                        Course course = ci.getCourse();
+                        return convertToAdminCourseSummary(course);
+                    })
+                    .toList();
+
+            return ResponseEntity.ok(ApiResponse.success(courseSummaries));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Lỗi khi lấy danh sách khóa học co-op: " + e.getMessage()));
         }
     }
 

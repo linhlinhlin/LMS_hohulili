@@ -1,0 +1,758 @@
+import { Component, signal, computed, inject, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { forkJoin } from 'rxjs';
+import { AdminService, AdminUser, UserAccountStatus, UpdateUserStatusRequest } from '../../infrastructure/services/admin.service';
+
+/**
+ * Teacher Management Component
+ * SOTA: Coursera-inspired design with role change, status actions, and course statistics
+ */
+@Component({
+  selector: 'app-teacher-management',
+  standalone: true,
+  imports: [CommonModule, RouterModule, FormsModule],
+  styles: [`
+    select.role-select {
+      cursor: pointer;
+      transition: all 0.2s ease;
+      min-width: 120px;
+      appearance: auto;
+    }
+    select.role-select:hover { border-color: #9CA3AF; }
+  `],
+  template: `
+    <div class="min-h-screen bg-white">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <!-- Header -->
+        <div class="mb-8">
+          <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div>
+              <h1 class="text-2xl font-bold text-gray-900 mb-1">Quản lý Giảng viên</h1>
+              <p class="text-sm text-gray-600">Quản lý các tài khoản giảng viên trong hệ thống</p>
+            </div>
+            <button (click)="openCreateModal()" class="inline-flex items-center px-4 py-2.5 bg-purple-600 text-white text-sm font-medium rounded hover:bg-purple-700 transition-colors">
+              <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+              Thêm Giảng viên
+            </button>
+          </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
+          <div class="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-start justify-between">
+              <div>
+                <p class="text-xs font-medium text-gray-500 uppercase mb-2">Tổng Giảng viên</p>
+                <p class="text-2xl font-bold text-gray-900">{{ totalTeachers() }}</p>
+                <p class="text-xs text-gray-600 mt-2">{{ activeTeachers() }} đang hoạt động</p>
+              </div>
+              <div class="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center">
+                <svg class="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
+                  <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5z" clip-rule="evenodd"></path>
+                </svg>
+              </div>
+            </div>
+          </div>
+          <div class="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-start justify-between">
+              <div>
+                <p class="text-xs font-medium text-gray-500 uppercase mb-2">Khóa học</p>
+                <p class="text-2xl font-bold text-gray-900">{{ totalCourses() }}</p>
+                <p class="text-xs text-gray-600 mt-2">Đang giảng dạy</p>
+              </div>
+              <div class="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center">
+                <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3z"></path>
+                </svg>
+              </div>
+            </div>
+          </div>
+          <div class="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-start justify-between">
+              <div>
+                <p class="text-xs font-medium text-gray-500 uppercase mb-2">Bị khóa</p>
+                <p class="text-2xl font-bold text-gray-900">{{ blockedTeachers() }}</p>
+                <p class="text-xs text-gray-600 mt-2">Tài khoản bị khóa</p>
+              </div>
+              <div class="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center">
+                <svg class="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2z" clip-rule="evenodd"></path>
+                </svg>
+              </div>
+            </div>
+          </div>
+          <div class="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-start justify-between">
+              <div>
+                <p class="text-xs font-medium text-gray-500 uppercase mb-2">Hoạt động gần đây</p>
+                <p class="text-2xl font-bold text-gray-900">{{ recentlyActive() }}</p>
+                <p class="text-xs text-gray-600 mt-2">Trong 7 ngày qua</p>
+              </div>
+              <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+                <svg class="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Search & Filter -->
+        <div class="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+          <div class="flex flex-col lg:flex-row gap-4">
+            <div class="flex-1 relative">
+              <svg class="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
+              </svg>
+              <input type="text" [value]="searchQuery()" (input)="onSearchInput($any($event.target).value)"
+                     placeholder="Tìm kiếm theo tên hoặc email..."
+                     class="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+            </div>
+            <select [value]="statusFilter()" (change)="onStatusFilterChange($any($event.target).value)"
+                    class="px-3 py-2 text-sm border border-gray-300 rounded bg-white focus:ring-2 focus:ring-purple-500">
+              <option value="">Tất cả trạng thái</option>
+              <option value="ACTIVE">Đang hoạt động</option>
+              <option value="BLOCKED">Bị khóa</option>
+              <option value="RESTRICTED">Hạn chế</option>
+            </select>
+          </div>
+          <div class="mt-3 pt-3 border-t border-gray-200">
+            <p class="text-xs text-gray-600">
+              Hiển thị <span class="font-medium text-gray-900">{{ filteredTeachers().length }}</span>
+              trong tổng số <span class="font-medium text-gray-900">{{ totalTeachers() }}</span> giảng viên
+            </p>
+          </div>
+        </div>
+
+        <!-- Teachers Table -->
+        <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          @if (isLoading()) {
+            <div class="p-12 text-center">
+              <div class="w-12 h-12 border-4 border-gray-200 border-t-purple-600 rounded-full animate-spin mx-auto"></div>
+              <p class="mt-4 text-sm text-gray-600">Đang tải danh sách giảng viên...</p>
+            </div>
+          } @else if (filteredTeachers().length === 0) {
+            <div class="p-12 text-center">
+              <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
+                <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5z" clip-rule="evenodd"></path>
+              </svg>
+              <h3 class="text-base font-medium text-gray-900 mb-2">Không tìm thấy giảng viên</h3>
+              <p class="text-sm text-gray-600">Thử điều chỉnh bộ lọc hoặc tìm kiếm với từ khóa khác</p>
+            </div>
+          } @else {
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Giảng viên</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Vai trò</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Trạng thái</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Khóa học</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Hoạt động</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-100">
+                  @for (teacher of filteredTeachers(); track teacher.id) {
+                    <tr class="hover:bg-gray-50 transition-colors">
+                      <!-- User Info -->
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                          <img [src]="getDefaultAvatar(teacher.email)" class="w-10 h-10 rounded-full border border-gray-200">
+                          <div class="ml-3">
+                            <div class="text-sm font-medium text-gray-900">{{ teacher.name }}</div>
+                            <div class="text-xs text-gray-500">{{ teacher.email }}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <!-- Role Change -->
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <select [ngModel]="getRoleValue(teacher.role)"
+                                (ngModelChange)="onRoleChange(teacher.id, $event)"
+                                class="role-select px-2 py-1 text-xs font-medium rounded border border-gray-300 bg-white focus:ring-2 focus:ring-purple-500">
+                          <option value="STUDENT">Học viên</option>
+                          <option value="TEACHER">Giảng viên</option>
+                          <option value="ADMIN">Quản trị viên</option>
+                        </select>
+                      </td>
+                      <!-- Status -->
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded" [class]="getStatusBadgeClass(teacher.accountStatus)">
+                          <span class="w-1.5 h-1.5 rounded-full mr-1.5" [class]="getStatusDotClass(teacher.accountStatus)"></span>
+                          {{ getStatusLabel(teacher.accountStatus) }}
+                        </span>
+                      </td>
+                      <!-- Courses - Clickable to view managed courses -->
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <button (click)="viewTeacherCourses(teacher)"
+                                class="flex flex-col items-start text-sm cursor-pointer hover:bg-gray-50 -m-2 p-2 rounded transition-colors">
+                          <div class="flex items-center text-purple-600 hover:text-purple-800">
+                            <svg class="w-4 h-4 mr-1.5 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3z"></path>
+                            </svg>
+                            <span class="font-medium">{{ teacher.coursesCreated || 0 }}</span>
+                            <span class="ml-1 text-gray-500 text-xs">sở hữu</span>
+                          </div>
+                          @if ((teacher.coursesCooped || 0) > 0) {
+                            <div class="flex items-center text-blue-600 mt-0.5 ml-5.5">
+                              <span class="font-medium">{{ teacher.coursesCooped }}</span>
+                              <span class="ml-1 text-gray-500 text-xs">cộng tác</span>
+                            </div>
+                          }
+                        </button>
+                      </td>
+                      <!-- Last Login -->
+                      <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-600">
+                        {{ teacher.lastLogin ? formatDateValue(teacher.lastLogin) : 'Chưa đăng nhập' }}
+                      </td>
+                      <!-- Actions -->
+                      <td class="px-6 py-4 whitespace-nowrap text-center">
+                        <div class="flex items-center justify-center space-x-1">
+                          <!-- Status Actions -->
+                          <select (change)="onStatusActionChange(teacher, $any($event.target).value); $any($event.target).value = ''"
+                                  class="text-xs px-2 py-1 border border-gray-300 rounded bg-white cursor-pointer hover:border-gray-400">
+                            <option value="" disabled selected>Trạng thái</option>
+                            @if (teacher.accountStatus !== 'ACTIVE') {
+                              <option value="ACTIVE">✓ Kích hoạt</option>
+                            }
+                            @if (teacher.accountStatus !== 'BLOCKED') {
+                              <option value="BLOCKED">🔒 Khóa</option>
+                            }
+                            @if (teacher.accountStatus !== 'RESTRICTED') {
+                              <option value="RESTRICTED">⚠️ Hạn chế</option>
+                            }
+                          </select>
+                          <!-- Delete -->
+                          <button (click)="deleteUser(teacher.id)"
+                                  class="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                                  title="Vô hiệu hóa tài khoản">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                            </svg>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Create Teacher Modal -->
+    @if (showCreateModal()) {
+      <div class="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-40" (click)="closeCreateModal()">
+        <div class="flex items-center justify-center min-h-screen p-4">
+          <div class="bg-white rounded-lg shadow-xl max-w-md w-full" (click)="$event.stopPropagation()">
+            <div class="flex items-center justify-between p-6 border-b">
+              <h3 class="text-xl font-semibold text-gray-900">Thêm Giảng viên mới</h3>
+              <button (click)="closeCreateModal()" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
+            </div>
+            <div class="p-6 space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Tên đầy đủ <span class="text-red-500">*</span></label>
+                <input type="text" [(ngModel)]="newTeacherName" placeholder="Nhập họ và tên"
+                       class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Email <span class="text-red-500">*</span></label>
+                <input type="email" [(ngModel)]="newTeacherEmail" placeholder="email@example.com"
+                       class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+              </div>
+              <div class="bg-purple-50 border border-purple-200 rounded p-3">
+                <p class="text-xs text-purple-700">
+                  <span class="font-medium">Mật khẩu mặc định:</span> Password123! - Giảng viên nên đổi sau khi đăng nhập.
+                </p>
+              </div>
+            </div>
+            <div class="flex justify-end gap-3 px-6 py-4 bg-gray-50 border-t">
+              <button (click)="closeCreateModal()" class="px-4 py-2 text-sm text-gray-700 bg-white border rounded hover:bg-gray-50">Hủy</button>
+              <button (click)="createTeacher()" [disabled]="!newTeacherName() || !newTeacherEmail()"
+                      class="px-4 py-2 text-sm text-white bg-purple-600 rounded hover:bg-purple-700 disabled:opacity-50">
+                Thêm giảng viên
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- View Courses Modal -->
+    @if (showCoursesModal() && selectedTeacher()) {
+      <div class="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-40" (click)="closeCoursesModal()">
+        <div class="flex items-center justify-center min-h-screen p-4">
+          <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden" (click)="$event.stopPropagation()">
+            <div class="flex items-center justify-between p-6 border-b bg-purple-50">
+              <div>
+                <h3 class="text-xl font-semibold text-gray-900">Khóa học đang quản lý</h3>
+                <p class="text-sm text-gray-600 mt-1">{{ selectedTeacher()?.name }} - {{ selectedTeacher()?.email }}</p>
+              </div>
+              <button (click)="closeCoursesModal()" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
+            </div>
+            <div class="p-6 overflow-y-auto max-h-[60vh]">
+              @if (isLoadingCourses()) {
+                <div class="text-center py-8">
+                  <div class="w-8 h-8 border-4 border-gray-200 border-t-purple-600 rounded-full animate-spin mx-auto"></div>
+                  <p class="mt-2 text-sm text-gray-600">Đang tải khóa học...</p>
+                </div>
+              } @else if (teacherCourses().length === 0 && coopCourses().length === 0) {
+                <div class="text-center py-8">
+                  <svg class="w-12 h-12 text-gray-300 mx-auto mb-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3z"></path>
+                  </svg>
+                  <p class="text-gray-600">Giảng viên chưa có khóa học nào</p>
+                </div>
+              } @else {
+                <!-- Owned Courses Section -->
+                @if (teacherCourses().length > 0) {
+                  <div class="mb-6">
+                    <h4 class="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                      <svg class="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3z"></path>
+                      </svg>
+                      Khóa học sở hữu ({{ teacherCourses().length }})
+                    </h4>
+                    <div class="space-y-3">
+                      @for (course of teacherCourses(); track course.id) {
+                        <div class="p-4 bg-purple-50 rounded-lg border border-purple-200 hover:bg-purple-100 transition-colors">
+                          <div class="flex items-start justify-between">
+                            <div class="flex-1 min-w-0">
+                              <h4 class="font-medium text-gray-900">{{ course.title }}</h4>
+                              <div class="flex flex-wrap items-center gap-2 mt-1">
+                                <span class="text-xs px-2 py-0.5 rounded-full bg-purple-200 text-purple-800">Chủ sở hữu</span>
+                                <span class="text-xs px-2 py-0.5 rounded-full"
+                                      [class]="course.status?.toUpperCase() === 'PUBLISHED' ? 'bg-green-100 text-green-700' : 
+                                               course.status?.toUpperCase() === 'PENDING' ? 'bg-yellow-100 text-yellow-700' : 
+                                               'bg-gray-100 text-gray-700'">
+                                  {{ course.status?.toUpperCase() === 'PUBLISHED' ? 'Đã xuất bản' : 
+                                     course.status?.toUpperCase() === 'PENDING' ? 'Chờ duyệt' : 'Bản nháp' }}
+                                </span>
+                                <span class="text-xs text-gray-500">{{ formatDateValue(course.createdAt) }}</span>
+                                <span class="text-xs text-purple-600 font-medium">{{ course.enrolledCount }} học viên</span>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <!-- Action buttons -->
+                          <div class="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-purple-200">
+                            @if (course.status?.toUpperCase() === 'PENDING') {
+                              <button (click)="approveCourse(course.id)"
+                                      class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded hover:bg-green-700 transition-colors">
+                                <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                Phê duyệt
+                              </button>
+                              <button (click)="rejectCourse(course.id)"
+                                      class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-red-600 rounded hover:bg-red-700 transition-colors">
+                                <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                                Từ chối
+                              </button>
+                            }
+                            <a [routerLink]="['/admin/courses']" [queryParams]="{search: course.title}"
+                               class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 rounded hover:bg-indigo-100 transition-colors">
+                              <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                              </svg>
+                              Chi tiết
+                            </a>
+                            <button (click)="openFullCourseView(course.id)"
+                                    class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-purple-700 bg-purple-100 rounded hover:bg-purple-200 transition-colors">
+                              <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                              </svg>
+                              Xem đầy đủ
+                            </button>
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
+                
+                <!-- Co-op Courses Section -->
+                @if (coopCourses().length > 0) {
+                  <div>
+                    <h4 class="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                      <svg class="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path>
+                      </svg>
+                      Khóa học cộng tác ({{ coopCourses().length }})
+                    </h4>
+                    <div class="space-y-3">
+                      @for (course of coopCourses(); track course.id) {
+                        <div class="p-4 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors">
+                          <div class="flex items-start justify-between">
+                            <div class="flex-1 min-w-0">
+                              <h4 class="font-medium text-gray-900">{{ course.title }}</h4>
+                              <div class="flex flex-wrap items-center gap-2 mt-1">
+                                <span class="text-xs px-2 py-0.5 rounded-full bg-blue-200 text-blue-800">Cộng tác viên</span>
+                                <span class="text-xs text-gray-500">Chủ sở hữu: {{ course.teacherName }}</span>
+                                <span class="text-xs px-2 py-0.5 rounded-full"
+                                      [class]="course.status?.toUpperCase() === 'PUBLISHED' ? 'bg-green-100 text-green-700' : 
+                                               course.status?.toUpperCase() === 'PENDING' ? 'bg-yellow-100 text-yellow-700' : 
+                                               'bg-gray-100 text-gray-700'">
+                                  {{ course.status?.toUpperCase() === 'PUBLISHED' ? 'Đã xuất bản' : 
+                                     course.status?.toUpperCase() === 'PENDING' ? 'Chờ duyệt' : 'Bản nháp' }}
+                                </span>
+                                <span class="text-xs text-blue-600 font-medium">{{ course.enrolledCount }} học viên</span>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <!-- Action buttons for co-op (no approve/reject) -->
+                          <div class="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-blue-200">
+                            <a [routerLink]="['/admin/courses']" [queryParams]="{search: course.title}"
+                               class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 rounded hover:bg-indigo-100 transition-colors">
+                              <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                              </svg>
+                              Chi tiết
+                            </a>
+                            <button (click)="openFullCourseView(course.id)"
+                                    class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-100 rounded hover:bg-blue-200 transition-colors">
+                              <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                              </svg>
+                              Xem đầy đủ
+                            </button>
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
+              }
+            </div>
+            <div class="px-6 py-4 bg-gray-50 border-t">
+              <button (click)="closeCoursesModal()" class="w-full px-4 py-2 text-sm text-gray-700 bg-white border rounded hover:bg-gray-50">
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+  `
+})
+export class TeacherManagementComponent implements OnInit {
+  private adminService = inject(AdminService);
+
+  // State
+  allUsers = signal<AdminUser[]>([]);
+  isLoading = signal(false);
+  searchQuery = signal('');
+  statusFilter = signal('');
+  showCreateModal = signal(false);
+  newTeacherName = signal('');
+  newTeacherEmail = signal('');
+
+  // Courses modal state
+  showCoursesModal = signal(false);
+  selectedTeacher = signal<AdminUser | null>(null);
+  teacherCourses = signal<any[]>([]);  // Owned courses
+  coopCourses = signal<any[]>([]);     // Co-op courses (invited as teaching staff)
+  isLoadingCourses = signal(false);
+
+  // Computed - filter for teachers (UserRole.TEACHER = 'teacher')
+  teacherUsers = computed(() => this.allUsers().filter(u => u.role === 'teacher'));
+
+  filteredTeachers = computed(() => {
+    let teachers = this.teacherUsers();
+    const query = this.searchQuery().toLowerCase();
+    const status = this.statusFilter();
+
+    if (query) {
+      teachers = teachers.filter(t =>
+        t.name.toLowerCase().includes(query) ||
+        t.email.toLowerCase().includes(query)
+      );
+    }
+
+    if (status) {
+      teachers = teachers.filter(t => t.accountStatus === status);
+    }
+
+    return teachers;
+  });
+
+  // Stats
+  totalTeachers = computed(() => this.teacherUsers().length);
+  activeTeachers = computed(() => this.teacherUsers().filter(t => t.accountStatus === 'ACTIVE').length);
+  blockedTeachers = computed(() => this.teacherUsers().filter(t => t.accountStatus === 'BLOCKED').length);
+  totalCourses = computed(() => this.teacherUsers().reduce((sum, t) => sum + (t.coursesCreated || 0), 0));
+  recentlyActive = computed(() => {
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    return this.teacherUsers().filter(t => t.lastLogin && new Date(t.lastLogin) > weekAgo).length;
+  });
+
+  ngOnInit() {
+    this.loadUsers();
+  }
+
+  loadUsers() {
+    this.isLoading.set(true);
+    this.adminService.getUsers({ page: 1, limit: 1000 }).subscribe({
+      next: (response) => {
+        this.allUsers.set(response.data || []);
+        this.isLoading.set(false);
+      },
+      error: () => this.isLoading.set(false)
+    });
+  }
+
+  onSearchInput(value: string) {
+    this.searchQuery.set(value);
+  }
+
+  onStatusFilterChange(value: string) {
+    this.statusFilter.set(value);
+  }
+
+  openCreateModal() {
+    this.showCreateModal.set(true);
+  }
+
+  closeCreateModal() {
+    this.showCreateModal.set(false);
+    this.newTeacherName.set('');
+    this.newTeacherEmail.set('');
+  }
+
+  createTeacher() {
+    if (!this.newTeacherName() || !this.newTeacherEmail()) return;
+
+    this.adminService.createUser({
+      username: this.newTeacherEmail().split('@')[0],
+      email: this.newTeacherEmail(),
+      password: 'Password123!',
+      fullName: this.newTeacherName(),
+      role: 'TEACHER'
+    }).subscribe({
+      next: () => {
+        this.closeCreateModal();
+        this.loadUsers();
+      }
+    });
+  }
+
+  // Role change handler
+  onRoleChange(userId: string, newRole: string) {
+    if (!confirm(`Bạn có chắc muốn thay đổi vai trò người dùng này thành ${this.getRoleLabel(newRole)}?`)) {
+      this.loadUsers(); // Reload to reset dropdown
+      return;
+    }
+
+    this.adminService.updateUser(userId, { role: newRole as 'ADMIN' | 'TEACHER' | 'STUDENT' }).subscribe({
+      next: () => this.loadUsers()
+    });
+  }
+
+  // Status action handler
+  onStatusActionChange(user: AdminUser, newStatus: string) {
+    if (!newStatus) return;
+
+    const statusLabel = this.getStatusLabel(newStatus);
+    const reason = prompt(`Nhập lý do ${statusLabel.toLowerCase()} tài khoản (tùy chọn):`);
+
+    this.adminService.updateUserStatus(user.id, {
+      status: newStatus as UserAccountStatus,
+      reason: reason || ''
+    }).subscribe({
+      next: () => this.loadUsers(),
+      error: () => {
+        // Fallback to toggle if updateUserStatus not implemented
+        this.adminService.toggleUserStatus(user.id).subscribe({
+          next: () => this.loadUsers()
+        });
+      }
+    });
+  }
+
+  deleteUser(userId: string) {
+    if (!confirm('Bạn có chắc muốn vô hiệu hóa tài khoản này?')) return;
+
+    this.adminService.deleteUser(userId).subscribe({
+      next: () => this.loadUsers()
+    });
+  }
+
+  // View managed courses for a teacher (including owned and co-op)
+  viewTeacherCourses(teacher: AdminUser) {
+    this.selectedTeacher.set(teacher);
+    this.teacherCourses.set([]);
+    this.coopCourses.set([]);
+    this.showCoursesModal.set(true);
+    this.isLoadingCourses.set(true);
+
+    // Fetch both owned courses and co-op courses simultaneously
+    forkJoin({
+      owned: this.adminService.getUserManagedCourses(teacher.id),
+      coop: this.adminService.getUserCoopCourses(teacher.id)
+    }).subscribe({
+      next: ({ owned, coop }) => {
+        // Map owned courses
+        const mappedOwned = owned.map(c => ({
+          id: c.id,
+          title: c.title,
+          status: c.status?.toLowerCase() || 'draft',
+          enrolledCount: c.enrolledCount || 0,
+          createdAt: c.createdAt ? new Date(c.createdAt) : new Date(),
+          isOwned: true
+        }));
+
+        // Map co-op courses
+        const mappedCoop = coop.map(c => ({
+          id: c.id,
+          title: c.title,
+          status: c.status?.toLowerCase() || 'draft',
+          enrolledCount: c.enrolledCount || 0,
+          createdAt: c.createdAt ? new Date(c.createdAt) : new Date(),
+          teacherName: c.teacherName || 'N/A',
+          isOwned: false
+        }));
+
+        this.teacherCourses.set(mappedOwned);
+        this.coopCourses.set(mappedCoop);
+        this.isLoadingCourses.set(false);
+      },
+      error: () => {
+        this.teacherCourses.set([]);
+        this.coopCourses.set([]);
+        this.isLoadingCourses.set(false);
+      }
+    });
+  }
+
+  closeCoursesModal() {
+    this.showCoursesModal.set(false);
+    this.selectedTeacher.set(null);
+    this.teacherCourses.set([]);
+    this.coopCourses.set([]);
+  }
+
+  /**
+   * Open course in teacher editor for FULL content view
+   * This provides 100% course details: chapters, lessons, students, quiz, etc.
+   */
+  openFullCourseView(courseId: string): void {
+    window.open(`/teacher/courses/${courseId}/editor`, '_blank');
+  }
+
+  /**
+   * Approve a pending course
+   */
+  approveCourse(courseId: string): void {
+    if (!confirm('Bạn có chắc muốn phê duyệt khóa học này?')) return;
+
+    this.adminService.approveCourse(courseId).subscribe({
+      next: () => {
+        // Update local state
+        const courses = this.teacherCourses();
+        const updatedCourses = courses.map(c =>
+          c.id === courseId ? { ...c, status: 'PUBLISHED' } : c
+        );
+        this.teacherCourses.set(updatedCourses);
+      },
+      error: (err) => {
+        alert('Lỗi khi phê duyệt: ' + (err.message || 'Vui lòng thử lại'));
+      }
+    });
+  }
+
+  /**
+   * Reject a pending course
+   */
+  rejectCourse(courseId: string): void {
+    const reason = prompt('Nhập lý do từ chối (bắt buộc):');
+    if (!reason) {
+      alert('Vui lòng nhập lý do từ chối');
+      return;
+    }
+
+    this.adminService.rejectCourse(courseId, reason).subscribe({
+      next: () => {
+        // Remove from list or update status
+        const courses = this.teacherCourses();
+        const updatedCourses = courses.map(c =>
+          c.id === courseId ? { ...c, status: 'REJECTED' } : c
+        );
+        this.teacherCourses.set(updatedCourses);
+      },
+      error: (err) => {
+        alert('Lỗi khi từ chối: ' + (err.message || 'Vui lòng thử lại'));
+      }
+    });
+  }
+
+  // Helpers
+  getRoleValue(role: string): string {
+    return role.toUpperCase();
+  }
+
+  getRoleLabel(role: string): string {
+    switch (role.toUpperCase()) {
+      case 'ADMIN': return 'Quản trị viên';
+      case 'TEACHER': return 'Giảng viên';
+      case 'STUDENT': return 'Học viên';
+      default: return role;
+    }
+  }
+
+  formatDateValue(date: Date | string): string {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    return d.toLocaleDateString('vi-VN', {
+      day: '2-digit', month: '2-digit', year: 'numeric'
+    });
+  }
+
+  getDefaultAvatar(email: string): string {
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(email)}&background=9333ea&color=fff`;
+  }
+
+  getStatusBadgeClass(status: string): string {
+    switch (status) {
+      case 'ACTIVE': return 'bg-green-100 text-green-800';
+      case 'BLOCKED': return 'bg-red-100 text-red-800';
+      case 'RESTRICTED': return 'bg-yellow-100 text-yellow-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  }
+
+  getStatusDotClass(status: string): string {
+    switch (status) {
+      case 'ACTIVE': return 'bg-green-500';
+      case 'BLOCKED': return 'bg-red-500';
+      case 'RESTRICTED': return 'bg-yellow-500';
+      default: return 'bg-gray-500';
+    }
+  }
+
+  getStatusLabel(status: string): string {
+    switch (status) {
+      case 'ACTIVE': return 'Hoạt động';
+      case 'BLOCKED': return 'Bị khóa';
+      case 'RESTRICTED': return 'Hạn chế';
+      default: return 'Chờ xác thực';
+    }
+  }
+}

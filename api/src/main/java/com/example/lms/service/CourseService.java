@@ -3,11 +3,13 @@ package com.example.lms.service;
 import com.example.lms.entity.Course;
 import com.example.lms.entity.Section;
 import com.example.lms.entity.User;
-import com.example.lms.entity.Category; // Added
-import com.example.lms.repository.CategoryRepository; // Added
+import com.example.lms.entity.Category;
+import com.example.lms.entity.AdminAuditLog;
+import com.example.lms.repository.CategoryRepository;
 import com.example.lms.repository.CourseRepository;
 import com.example.lms.repository.UserRepository;
 import com.example.lms.dto.response.BulkEnrollmentResponse;
+import com.example.lms.util.AuthorizationHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -24,7 +26,8 @@ public class CourseService {
 
     private final CourseRepository courseRepository;
     private final UserRepository userRepository;
-    private final CategoryRepository categoryRepository; // Added
+    private final CategoryRepository categoryRepository;
+    private final AdminAuditService adminAuditService;
 
     public Page<Course> getApprovedCourses(Pageable pageable, String search, String teacher) {
         if (search != null && !search.trim().isEmpty()) {
@@ -77,10 +80,11 @@ public class CourseService {
 
     /**
      * OPTIMIZED: Get courses with DTO Projection (single query).
-     * Use this instead of getCoursesByTeacher when only CourseSummary fields are needed.
+     * SOTA: Now includes both OWNED courses AND courses where user is ACCEPTED CO-INSTRUCTOR.
      */
     public Page<com.example.lms.dto.CourseSummaryDTO> getCoursesSummaryByTeacher(User teacher, Pageable pageable) {
-        return courseRepository.findCourseSummariesByTeacher(teacher, pageable);
+        // SOTA: Use combined query that includes co-instructor courses
+        return courseRepository.findCourseSummariesByTeacherOrInstructor(teacher, pageable);
     }
 
     public Page<Course> getEnrolledCourses(User student, Pageable pageable) {
@@ -309,13 +313,24 @@ public class CourseService {
         Course course = courseRepository.findByIdWithSectionsAndLessons(courseId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học với ID: " + courseId));
         
-        // Check access permissions
-        boolean isTeacher = course.getTeacher() != null && course.getTeacher().getId().equals(currentUser.getId());
+        // Authorization check using AuthorizationHelper
+        boolean isAdmin = AuthorizationHelper.isAdmin(currentUser);
         boolean isEnrolled = courseRepository.existsByEnrolledStudentAndCourse(currentUser.getId(), courseId);
-        boolean hasAccess = isTeacher || isEnrolled;
         
-        if (!hasAccess) {
+        if (!AuthorizationHelper.canViewCourse(course, currentUser, isEnrolled)) {
             throw new RuntimeException("Bạn không có quyền truy cập nội dung khóa học này");
+        }
+        
+        // AUDIT LOG: Log when Admin views Teacher's course content
+        if (isAdmin && course.getTeacher() != null && 
+            !course.getTeacher().getId().equals(currentUser.getId())) {
+            adminAuditService.logAction(
+                currentUser,
+                AdminAuditLog.AuditAction.VIEW_COURSE_CONTENT,
+                AdminAuditLog.TargetType.COURSE,
+                courseId,
+                course.getTeacher()
+            );
         }
 
         // Chapters are loaded via JOIN FETCH, sort them

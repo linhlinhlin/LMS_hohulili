@@ -6,6 +6,7 @@ import com.example.lms.entity.LessonAttachment;
 import com.example.lms.entity.User;
 import com.example.lms.repository.LessonAttachmentRepository;
 import com.example.lms.repository.LessonRepository;
+import com.example.lms.util.AuthorizationHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,11 +45,10 @@ public class LessonAttachmentService {
         System.out.println("Course Teacher ID: " + lesson.getChapter().getCourse().getTeacher().getId());
         System.out.println("Course Teacher Email: " + lesson.getChapter().getCourse().getTeacher().getEmail());
 
-        // Check permissions
-        if (!lesson.getChapter().getCourse().getTeacher().getId().equals(currentUser.getId())) {
-            System.out.println("PERMISSION DENIED: Teacher ID mismatch");
-            System.out.println("Expected: " + lesson.getChapter().getCourse().getTeacher().getId());
-            System.out.println("Actual: " + currentUser.getId());
+        // SOTA: Admin super access + Owner check
+        Course course = lesson.getChapter().getCourse();
+        if (!AuthorizationHelper.isOwnerOrAdmin(course, currentUser)) {
+            System.out.println("PERMISSION DENIED: Not owner or admin");
             throw new RuntimeException("Không có quyền thêm file đính kèm");
         }
         
@@ -94,12 +94,11 @@ public class LessonAttachmentService {
         Lesson lesson = lessonRepository.findById(lessonId)
             .orElseThrow(() -> new RuntimeException("Không tìm thấy bài học"));
 
-        // Check permissions
+        // SOTA: Admin super access + Owner + Enrolled check
         Course course = lesson.getChapter().getCourse();
-        boolean hasAccess = course.getTeacher().getId().equals(currentUser.getId()) ||
-                           course.getEnrolledStudents().contains(currentUser);
+        boolean isEnrolled = course.getEnrolledStudents().contains(currentUser);
 
-        if (!hasAccess) {
+        if (!AuthorizationHelper.canViewCourse(course, currentUser, isEnrolled)) {
             throw new RuntimeException("Không có quyền truy cập file đính kèm");
         }
 
@@ -110,8 +109,8 @@ public class LessonAttachmentService {
         LessonAttachment attachment = attachmentRepository.findById(attachmentId)
             .orElseThrow(() -> new RuntimeException("Không tìm thấy file đính kèm"));
 
-        // Check permissions
-        if (!attachment.getLesson().getChapter().getCourse().getTeacher().getId().equals(currentUser.getId())) {
+        // SOTA: Admin super access + Owner check
+        if (!AuthorizationHelper.isOwnerOrAdmin(attachment.getLesson().getChapter().getCourse(), currentUser)) {
             throw new RuntimeException("Không có quyền xóa file đính kèm");
         }
 
@@ -122,8 +121,8 @@ public class LessonAttachmentService {
         LessonAttachment attachment = attachmentRepository.findById(attachmentId)
             .orElseThrow(() -> new RuntimeException("Không tìm thấy file đính kèm"));
 
-        // Check permissions
-        if (!attachment.getLesson().getChapter().getCourse().getTeacher().getId().equals(currentUser.getId())) {
+        // SOTA: Admin super access + Owner check
+        if (!AuthorizationHelper.isOwnerOrAdmin(attachment.getLesson().getChapter().getCourse(), currentUser)) {
             throw new RuntimeException("Không có quyền chỉnh sửa file đính kèm");
         }
 

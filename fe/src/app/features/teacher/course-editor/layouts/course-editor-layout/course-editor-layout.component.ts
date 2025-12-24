@@ -1,9 +1,10 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterModule, ActivatedRoute } from '@angular/router';
 import { CourseEditorSidebarComponent } from '../../components/sidebar/sidebar.component';
 import { CourseEditorHeaderComponent } from '../../components/header/header.component';
 import { CourseEditorStore } from '../../store/course-editor.store';
+import { AuthService } from '../../../../../core/services/auth.service';
 import { filter, take, map } from 'rxjs/operators';
 
 @Component({
@@ -12,6 +13,17 @@ import { filter, take, map } from 'rxjs/operators';
   imports: [CommonModule, RouterOutlet, RouterModule, CourseEditorSidebarComponent, CourseEditorHeaderComponent],
   template: `
     <div class="relative flex h-screen w-full flex-col overflow-hidden font-sans bg-white text-slate-900">
+      <!-- Admin View-Only Mode Banner -->
+      @if (isAdminViewMode()) {
+        <div class="flex-shrink-0 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-2 flex items-center justify-center gap-3 text-sm font-medium shadow-md z-30">
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path>
+            <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"></path>
+          </svg>
+          <span>🔒 Chế độ xem - Admin chỉ có quyền xem, không thể chỉnh sửa nội dung</span>
+        </div>
+      }
+      
       <!-- Header (SOTA 2025: Fixed height, subtle shadow) -->
       <app-course-editor-header class="h-14 flex-shrink-0 z-20 border-b border-slate-200 shadow-sm bg-white"></app-course-editor-header>
 
@@ -49,8 +61,21 @@ import { filter, take, map } from 'rxjs/operators';
                </a>
             </nav>
 
-            <!-- Workspace Area -->
+            <!-- Workspace Area with SOTA Readonly Overlay Pattern -->
             <div class="flex-grow overflow-y-auto min-h-0 relative">
+                <!-- SOTA: Invisible overlay for readonly mode (Google Docs/Figma pattern)
+                     - Overlay captures ALL click events (pointer-events: auto)
+                     - Scroll works because wheel events propagate to parent scrollable container
+                     - z-index ensures it's above all child component content -->
+                @if (isAdminViewMode()) {
+                  <div class="absolute inset-0 z-50 cursor-not-allowed"
+                       style="background: transparent;"
+                       (click)="$event.stopPropagation(); $event.preventDefault()"
+                       (mousedown)="$event.stopPropagation(); $event.preventDefault()"
+                       (touchstart)="$event.stopPropagation(); $event.preventDefault()">
+                  </div>
+                }
+                
                 <router-outlet></router-outlet>
             </div>
         </div>
@@ -61,6 +86,14 @@ import { filter, take, map } from 'rxjs/operators';
 export class CourseEditorLayoutComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private store = inject(CourseEditorStore);
+  private authService = inject(AuthService);
+
+  /**
+   * Check if current user is Admin viewing Teacher's course (view-only mode)
+   */
+  isAdminViewMode = computed(() => {
+    return this.authService.userRole() === 'admin';
+  });
 
   ngOnInit() {
     // FIXED: Extract course ID once from route hierarchy, load only once

@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, Input } from '@angular/core';
+import { Component, inject, OnInit, OnChanges, SimpleChanges, signal, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CourseInstructorService, CourseInstructor, InstructorPermissions, DEFAULT_PERMISSIONS } from '../../services/course-instructor.service';
@@ -207,7 +207,7 @@ import { CourseInstructorService, CourseInstructor, InstructorPermissions, DEFAU
     }
   `
 })
-export class CourseInstructorsComponent implements OnInit {
+export class CourseInstructorsComponent implements OnChanges {
   @Input() courseId!: string;
 
   protected instructorService = inject(CourseInstructorService);
@@ -229,8 +229,14 @@ export class CourseInstructorsComponent implements OnInit {
   // Edit permissions form
   editPermissions: InstructorPermissions = { ...DEFAULT_PERMISSIONS };
 
-  ngOnInit(): void {
-    if (this.courseId) {
+  // SOTA Fix: Use ngOnChanges to detect when @Input courseId becomes available
+  private loadedCourseId: string | null = null;
+
+  ngOnChanges(changes: SimpleChanges): void {
+    // Only load if courseId has changed and has a value
+    if (changes['courseId'] && this.courseId && this.courseId !== this.loadedCourseId) {
+      console.log('[CourseInstructors] 📋 Loading instructors for course:', this.courseId);
+      this.loadedCourseId = this.courseId;
       this.loadInstructors();
     }
   }

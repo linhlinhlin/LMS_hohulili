@@ -36,11 +36,14 @@ export class AuthInterceptor implements HttpInterceptor {
 export const authInterceptor = (req: HttpRequest<any>, next: HttpHandlerFn): Observable<HttpEvent<any>> => {
   const authService = inject(AuthService);
 
-  // 🔍 DEBUG: Try multiple token keys
-  let token = authService.getToken(); // Primary: lms_access_token
+  // SSR-safe: Check if running in browser before accessing localStorage
+  const isBrowser = typeof localStorage !== 'undefined';
 
-  if (!token) {
-    // Fallback: check other possible keys
+  // 🔍 DEBUG: Try multiple token keys
+  let token = authService.getToken(); // Primary: lms_access_token (already has SSR guard)
+
+  if (!token && isBrowser) {
+    // Fallback: check other possible keys (only in browser)
     token = localStorage.getItem('token') ||
       localStorage.getItem('access_token') ||
       localStorage.getItem('auth_token');
@@ -53,8 +56,8 @@ export const authInterceptor = (req: HttpRequest<any>, next: HttpHandlerFn): Obs
   if (token) {
     console.log('🔗 AuthInterceptor: Adding Authorization header, token length:', token.length);
 
-    // 🔍 DEBUG: Decode JWT payload for student endpoints
-    if (req.url.includes('/student/')) {
+    // 🔍 DEBUG: Decode JWT payload for student endpoints (only in browser with atob)
+    if (isBrowser && req.url.includes('/student/')) {
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
         console.log('🔗 AuthInterceptor: JWT Payload for student endpoint:', {
@@ -76,7 +79,10 @@ export const authInterceptor = (req: HttpRequest<any>, next: HttpHandlerFn): Obs
     console.log('🔗 AuthInterceptor: Request cloned with Authorization header');
   } else {
     console.log('🔗 AuthInterceptor: ⚠️  NO TOKEN FOUND - Request will be sent WITHOUT Authorization header');
-    console.log('🔗 AuthInterceptor: Available localStorage keys:', Object.keys(localStorage));
+    // SSR-safe: Only access localStorage.keys in browser
+    if (isBrowser) {
+      console.log('🔗 AuthInterceptor: Available localStorage keys:', Object.keys(localStorage));
+    }
   }
 
   return next(req).pipe(
@@ -94,7 +100,10 @@ export const authInterceptor = (req: HttpRequest<any>, next: HttpHandlerFn): Obs
       if (status === 401) {
         console.log('🔗 AuthInterceptor: 401 Unauthorized - Logging out and redirecting to login');
         authService.logout();
-        window.location.href = '/login';
+        // SSR-safe: Only redirect in browser
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login';
+        }
       }
       return throwError(error);
     })

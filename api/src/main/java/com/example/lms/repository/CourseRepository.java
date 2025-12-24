@@ -35,8 +35,22 @@ public interface CourseRepository extends JpaRepository<Course, UUID> {
     @Query("SELECT c FROM Course c WHERE c.teacher.id = :teacherId")
     Page<Course> findByTeacherId(@Param("teacherId") UUID teacherId, Pageable pageable);
     
+    /**
+     * SOTA: Find courses by teacher with teacher eagerly loaded (Admin view)
+     * Avoids N+1 problem and LazyInitializationException
+     */
+    @Query("SELECT c FROM Course c LEFT JOIN FETCH c.teacher WHERE c.teacher.id = :teacherId")
+    List<Course> findByTeacherIdWithTeacher(@Param("teacherId") UUID teacherId);
+    
     @Query("SELECT c FROM Course c JOIN c.enrolledStudents s WHERE s.id = :studentId")
     List<Course> findEnrolledCoursesByStudentId(@Param("studentId") UUID studentId);
+    
+    /**
+     * SOTA: Find enrolled courses by student with teacher eagerly loaded (Admin view)
+     * Avoids N+1 problem and LazyInitializationException
+     */
+    @Query("SELECT c FROM Course c LEFT JOIN FETCH c.teacher JOIN c.enrolledStudents s WHERE s.id = :studentId")
+    List<Course> findEnrolledCoursesByStudentIdWithTeacher(@Param("studentId") UUID studentId);
     
     @Query("SELECT c FROM Course c WHERE c.title LIKE %:keyword% OR c.description LIKE %:keyword% OR c.code LIKE %:keyword%")
     List<Course> searchCourses(@Param("keyword") String keyword);
@@ -78,6 +92,26 @@ public interface CourseRepository extends JpaRepository<Course, UUID> {
         @Param("teacher") User teacher, 
         Pageable pageable);
 
+    /**
+     * SOTA: Get courses where user is OWNER or ACCEPTED CO-INSTRUCTOR.
+     * This enables co-instructors to see courses they were invited to.
+     */
+    @Query(value = "SELECT new com.example.lms.dto.CourseSummaryDTO(" +
+           "c.id, c.code, c.title, c.description, " +
+           "CAST(c.status AS string), t.fullName, " +
+           "SIZE(c.enrolledStudents), " +
+           "c.createdAt, CAST(null AS boolean)) " +
+           "FROM Course c " +
+           "LEFT JOIN c.teacher t " +
+           "LEFT JOIN CourseInstructor ci ON ci.course = c " +
+           "WHERE c.teacher = :user " +
+           "   OR (ci.user = :user AND ci.status = com.example.lms.entity.CourseInstructor$InstructorStatus.ACCEPTED) " +
+           "GROUP BY c.id, c.code, c.title, c.description, c.status, t.fullName, c.createdAt",
+           countQuery = "SELECT COUNT(DISTINCT c) FROM Course c LEFT JOIN CourseInstructor ci ON ci.course = c " +
+                        "WHERE c.teacher = :user OR (ci.user = :user AND ci.status = com.example.lms.entity.CourseInstructor$InstructorStatus.ACCEPTED)")
+    Page<com.example.lms.dto.CourseSummaryDTO> findCourseSummariesByTeacherOrInstructor(
+        @Param("user") User user, 
+        Pageable pageable);
     Page<Course> findByStatusAndTitleContainingIgnoreCase(Course.CourseStatus status, String title, Pageable pageable);
     
     Page<Course> findByTitleContainingIgnoreCase(String title, Pageable pageable);
@@ -225,4 +259,29 @@ public interface CourseRepository extends JpaRepository<Course, UUID> {
            "AND (LOWER(u.fullName) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%'))) " +
            "ORDER BY u.fullName ASC")
     Page<com.example.lms.dto.StudentSummaryDTO> searchCourseStudentSummaries(@Param("courseId") UUID courseId, @Param("search") String search, Pageable pageable);
+
+    /**
+     * Count courses created by a teacher (for admin dashboard)
+     */
+    @Query("SELECT COUNT(c) FROM Course c WHERE c.teacher.id = :teacherId")
+    int countByTeacherId(@Param("teacherId") UUID teacherId);
+
+    /**
+     * Count course enrollments for a student (for admin dashboard)
+     */
+    @Query("SELECT COUNT(c) FROM Course c JOIN c.enrolledStudents es WHERE es.id = :studentId")
+    int countEnrollmentsByStudentId(@Param("studentId") UUID studentId);
+
+    /**
+     * SOTA: Find courses where a user is in the teaching staff (co-op courses)
+     * For admin view - shows courses a teacher has been invited to collaborate on
+     */
+    @Query("SELECT c FROM Course c LEFT JOIN FETCH c.teacher JOIN c.teachingStaffIds ts WHERE ts = :staffId")
+    List<Course> findCoopCoursesByStaffId(@Param("staffId") UUID staffId);
+
+    /**
+     * Count co-op courses for a teacher (for admin dashboard)
+     */
+    @Query("SELECT COUNT(c) FROM Course c JOIN c.teachingStaffIds ts WHERE ts = :staffId")
+    int countCoopCoursesByStaffId(@Param("staffId") UUID staffId);
 }
