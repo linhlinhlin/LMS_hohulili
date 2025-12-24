@@ -863,9 +863,6 @@ export class CourseManagementComponent implements OnInit {
         return 'Không xác định';
     }
   }
-<<<<<<< HEAD
-}
-=======
 
   // Helper methods for status checking (handles various status naming conventions)
   isPendingStatus(status: string): boolean {
@@ -894,4 +891,3 @@ export class CourseManagementComponent implements OnInit {
     }
   }
 }
->>>>>>> 05bb7d9 (feat: Admin Teacher Co-op Courses Display + Course Editor Readonly Mode)

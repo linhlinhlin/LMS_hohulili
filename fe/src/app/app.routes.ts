@@ -74,17 +74,24 @@ export const routes: Routes = [
         title: 'Chứng chỉ Chuyên môn - LMS Maritime',
         data: { category: 'certificates' }
       },
-      // Fallback dynamic route for any other categories
+      // Course Detail - Must come BEFORE category fallback to properly match UUIDs
+      // Uses canMatch guard to distinguish UUID from category name
+      {
+        path: 'courses/:id',
+        canMatch: [(route, segments) => {
+          // UUID pattern: 8-4-4-4-12 hex digits (e.g., 82701937-2199-48c7-9314-abc123def456)
+          const id = segments[1]?.path || '';
+          const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+          return isUUID;
+        }],
+        loadComponent: () => import('./features/courses/course-detail.component').then(m => m.CourseDetailComponent),
+        title: 'Chi tiết khóa học - LMS Maritime'
+      },
+      // Fallback dynamic route for any other categories (non-UUID paths)
       {
         path: 'courses/:category',
         loadComponent: () => import('./features/courses/category/configurable-category.component').then(m => m.ConfigurableCategoryComponent),
         title: 'Khóa học - LMS Maritime'
-      },
-      // Course detail should be after specific category routes to avoid capturing them as IDs
-      {
-        path: 'courses/:id',
-        loadComponent: () => import('./features/courses/course-detail/course-detail-enhanced.component').then(m => m.CourseDetailEnhancedComponent),
-        title: 'Chi tiết khóa học - LMS Maritime'
       },
       {
         path: 'about',
@@ -108,12 +115,12 @@ export const routes: Routes = [
       }
     ]
   },
-  
-  
+
+
   // ========================================
   // ROLE-BASED ROUTES (Separate Route Files)
   // ========================================
-  
+
   // Teacher Routes - Sử dụng route file riêng
   {
     path: 'teacher',
@@ -121,10 +128,10 @@ export const routes: Routes = [
   },
 
   // Student Routes - Sử dụng route file riêng
-        {
-          path: 'student',
-          loadChildren: () => import('./features/student/student.routes').then(m => m.studentRoutes)
-        },
+  {
+    path: 'student',
+    loadChildren: () => import('./features/student/student.routes').then(m => m.studentRoutes)
+  },
 
   // Admin Routes - Sử dụng route file riêng
   {
@@ -135,7 +142,7 @@ export const routes: Routes = [
   // ========================================
   // OTHER AUTHENTICATED ROUTES
   // ========================================
-  
+
   {
     path: 'learn',
     loadChildren: () => import('./features/learning/learning.routes').then(m => m.learningRoutes),
@@ -154,11 +161,11 @@ export const routes: Routes = [
     title: 'Trợ lý AI Hàng Hải'
   },
 
-  
+
   // ========================================
   // FALLBACK ROUTE
   // ========================================
-  
+
   {
     path: '**',
     redirectTo: ''

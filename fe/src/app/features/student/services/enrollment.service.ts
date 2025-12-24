@@ -73,6 +73,14 @@ export class StudentEnrollmentService {
     this._enrolledCourses().filter(course => course.progress === 0)
   );
 
+  /**
+   * Set of enrolled course IDs for reactive UI binding
+   * Course cards can use this signal to reactively check enrollment status
+   */
+  readonly enrolledCourseIds = computed(() =>
+    new Set(this._enrolledCourses().map(course => course.id))
+  );
+
   // === PUBLIC METHODS ===
 
   /**
@@ -95,7 +103,7 @@ export class StudentEnrollmentService {
         this._currentPage.set(safePage);
         this._totalPages.set(1);
         this._totalCount.set(MOCK_ENROLLED_COURSES.length);
-        
+
         console.log('🧪 StudentEnrollmentService: Mock enrolled courses loaded for testing', {
           count: MOCK_ENROLLED_COURSES.length
         });
@@ -103,7 +111,7 @@ export class StudentEnrollmentService {
       }
 
       // PRODUCTION MODE: Use real API
-        const response = await firstValueFrom(this.courseApi.enrolledCourses({ page: safePage, limit }));
+      const response = await firstValueFrom(this.courseApi.enrolledCourses({ page: safePage, limit }));
 
       if (response?.data) {
         // Fetch progress for each course and map to EnrolledCourse
@@ -114,7 +122,7 @@ export class StudentEnrollmentService {
           })
         );
         this._enrolledCourses.set(enrolledCourses);
-        
+
         // Update pagination info
         if (response.pagination) {
           this._currentPage.set(response.pagination.page || page);
@@ -131,7 +139,7 @@ export class StudentEnrollmentService {
       const errorMessage = error?.message || 'Không thể tải danh sách khóa học đã đăng ký';
       this._error.set(errorMessage);
       this.errorService.handleApiError(error, 'enrollment');
-      
+
       console.error('[ERROR] StudentEnrollmentService: Error loading enrolled courses:', error);
     } finally {
       this._isLoading.set(false);
@@ -155,20 +163,20 @@ export class StudentEnrollmentService {
       if (this.isDevelopmentMode()) {
         const { MOCK_COURSES_FOR_TESTING } = await import('../../../shared/test-data/mock-courses');
         let filteredCourses = MOCK_COURSES_FOR_TESTING;
-        
+
         // Apply search filter if provided
         if (filters?.search) {
-          filteredCourses = filteredCourses.filter(course => 
+          filteredCourses = filteredCourses.filter(course =>
             course.title.toLowerCase().includes(filters.search!.toLowerCase()) ||
             course.description.toLowerCase().includes(filters.search!.toLowerCase())
           );
         }
-        
+
         this._availableCourses.set(filteredCourses);
         this._currentPage.set(page);
         this._totalPages.set(1);
         this._totalCount.set(filteredCourses.length);
-        
+
         console.log('🧪 StudentEnrollmentService: Mock courses loaded for testing', {
           count: filteredCourses.length
         });
@@ -176,15 +184,15 @@ export class StudentEnrollmentService {
       }
 
       // PRODUCTION MODE: Use real API
-      const response = await firstValueFrom(this.courseApi.publicCourses({ 
-        page, 
-        limit, 
-        ...filters 
+      const response = await firstValueFrom(this.courseApi.publicCourses({
+        page,
+        limit,
+        ...filters
       }));
 
       if (response?.data) {
         this._availableCourses.set(response.data);
-        
+
         console.log('[SUCCESS] StudentEnrollmentService: Available courses loaded successfully', {
           count: response.data.length
         });
@@ -193,7 +201,7 @@ export class StudentEnrollmentService {
       const errorMessage = error?.message || 'Không thể tải danh sách khóa học';
       this._error.set(errorMessage);
       this.errorService.handleApiError(error, 'enrollment');
-      
+
       console.error('[ERROR] StudentEnrollmentService: Error loading available courses:', error);
     } finally {
       this._isLoading.set(false);
@@ -202,28 +210,56 @@ export class StudentEnrollmentService {
 
   /**
    * Enroll vào một course
+   * Nếu course có nhiều lớp, sẽ throw error để UI hiển thị class picker
    */
-  async enrollInCourse(courseId: string): Promise<boolean> {
+  async enrollInCourse(courseId: string, classId?: string): Promise<boolean> {
     this._isLoading.set(true);
     this._error.set(null);
 
     try {
       console.log('🔄 StudentEnrollmentService: Enrolling in course...', courseId);
 
-      await firstValueFrom(this.courseApi.enrollCourse(courseId));
-      
+      // If no classId provided, check available classes first
+      if (!classId) {
+        const classesResponse = await firstValueFrom(this.courseApi.getAvailableClasses(courseId));
+        const classes = classesResponse?.data || [];
+
+        if (classes.length === 0) {
+          throw new Error('Không có lớp học nào đang mở đăng ký cho khóa học này');
+        }
+
+        if (classes.length === 1) {
+          // Auto-select the only available class
+          classId = classes[0].id;
+          console.log('🎯 Auto-selecting single class:', classId);
+        } else {
+          // Multiple classes - throw special error with class info
+          const error: any = new Error('Khóa học có nhiều lớp học đang mở. Vui lòng chọn lớp.');
+          error.availableClasses = classes;
+          error.courseId = courseId;
+          throw error;
+        }
+      }
+
+      await firstValueFrom(this.courseApi.enrollCourse(courseId, classId));
+
       // Reload enrolled courses after successful enrollment
       await this.loadEnrolledCourses();
 
       this.errorService.showSuccess('Đăng ký khóa học thành công!', 'enrollment');
-      
+
       console.log('[SUCCESS] StudentEnrollmentService: Successfully enrolled in course:', courseId);
       return true;
     } catch (error: any) {
+      // If error has availableClasses, re-throw for UI to handle
+      if (error.availableClasses) {
+        throw error;
+      }
+
       const errorMessage = error?.message || 'Không thể đăng ký khóa học';
       this._error.set(errorMessage);
       this.errorService.handleApiError(error, 'enrollment');
-      
+
       console.error('[ERROR] StudentEnrollmentService: Error enrolling in course:', error);
       return false;
     } finally {

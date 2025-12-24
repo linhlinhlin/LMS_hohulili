@@ -99,12 +99,8 @@ public class AssignmentService {
         Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài tập với ID: " + assignmentId));
         
-<<<<<<< HEAD
-        if (!assignment.getCourse().getTeacher().getId().equals(currentUser.getId())) {
-=======
         // SOTA: Admin super access + Owner check
         if (!AuthorizationHelper.isOwnerOrAdmin(assignment.getCourse(), currentUser)) {
->>>>>>> 05bb7d9 (feat: Admin Teacher Co-op Courses Display + Course Editor Readonly Mode)
             throw new RuntimeException("Bạn không có quyền chỉnh sửa bài tập này");
         }
 
@@ -197,12 +193,8 @@ public class AssignmentService {
         Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài tập với ID: " + assignmentId));
         
-<<<<<<< HEAD
-        if (!assignment.getCourse().getTeacher().getId().equals(currentUser.getId())) {
-=======
         // SOTA: Admin super access + Owner check
         if (!AuthorizationHelper.isOwnerOrAdmin(assignment.getCourse(), currentUser)) {
->>>>>>> 05bb7d9 (feat: Admin Teacher Co-op Courses Display + Course Editor Readonly Mode)
             throw new RuntimeException("Bạn không có quyền xóa bài tập này");
         }
 
@@ -222,7 +214,6 @@ public class AssignmentService {
                     return new RuntimeException("Không tìm thấy bài tập với ID: " + assignmentId);
                 });
         
-<<<<<<< HEAD
         // Ensure lazy loaded data is available
         org.hibernate.Hibernate.initialize(assignment.getCourse());
         org.hibernate.Hibernate.initialize(assignment.getCourse().getTeacher());
@@ -237,22 +228,11 @@ public class AssignmentService {
             }
         }
 
-        Course course = assignment.getCourse();
-        log.info("Checking access for assignment {}. Course: {}, Teacher: {}, Current User: {}", 
-                assignmentId, course.getId(), course.getTeacher().getId(), currentUser.getId());
-
-        boolean hasAccess = course.getTeacher().getId().equals(currentUser.getId()) ||
-                          courseRepository.existsByEnrolledStudentAndCourse(currentUser.getId(), course.getId());
-        
-        if (!hasAccess) {
-            log.error("User {} denied access to assignment {}", currentUser.getId(), assignmentId);
-=======
         // SOTA: Admin super access + Owner + Enrolled check
         Course course = assignment.getCourse();
         boolean isEnrolled = course.getEnrolledStudents().contains(currentUser);
         
         if (!AuthorizationHelper.canViewCourse(course, currentUser, isEnrolled)) {
->>>>>>> 05bb7d9 (feat: Admin Teacher Co-op Courses Display + Course Editor Readonly Mode)
             throw new RuntimeException("Bạn không có quyền truy cập bài tập này");
         }
 
@@ -263,13 +243,8 @@ public class AssignmentService {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học với ID: " + courseId));
         
-<<<<<<< HEAD
-        boolean hasAccess = course.getTeacher().getId().equals(currentUser.getId()) ||
-                          courseRepository.existsByEnrolledStudentAndCourse(currentUser.getId(), courseId);
-=======
         // SOTA: Admin super access + Owner + Enrolled check
         boolean isEnrolled = course.getEnrolledStudents().contains(currentUser);
->>>>>>> 05bb7d9 (feat: Admin Teacher Co-op Courses Display + Course Editor Readonly Mode)
         
         if (!AuthorizationHelper.canViewCourse(course, currentUser, isEnrolled)) {
             throw new RuntimeException("Bạn không có quyền truy cập các bài tập của khóa học này");
@@ -341,12 +316,8 @@ public class AssignmentService {
         Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài tập với ID: " + assignmentId));
         
-<<<<<<< HEAD
-        if (!assignment.getCourse().getTeacher().getId().equals(currentUser.getId())) {
-=======
         // SOTA: Admin super access + Owner check
         if (!AuthorizationHelper.isOwnerOrAdmin(assignment.getCourse(), currentUser)) {
->>>>>>> 05bb7d9 (feat: Admin Teacher Co-op Courses Display + Course Editor Readonly Mode)
             throw new RuntimeException("Bạn không có quyền xem các bài nộp của bài tập này");
         }
 
@@ -357,14 +328,9 @@ public class AssignmentService {
         AssignmentSubmission submission = submissionRepository.findById(submissionId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài nộp với ID: " + submissionId));
         
-<<<<<<< HEAD
-        User teacher = submission.getAssignment().getCourse().getTeacher();
-        if (teacher == null || !teacher.getId().equals(currentUser.getId())) {
-=======
         // SOTA: Admin super access + Owner check
         Course course = submission.getAssignment().getCourse();
         if (!AuthorizationHelper.isOwnerOrAdmin(course, currentUser)) {
->>>>>>> 05bb7d9 (feat: Admin Teacher Co-op Courses Display + Course Editor Readonly Mode)
             throw new RuntimeException("Bạn không có quyền chấm điểm bài nộp này");
         }
 
@@ -398,12 +364,8 @@ public class AssignmentService {
         AssignmentSubmission submission = submissionRepository.findById(submissionId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài nộp với ID: " + submissionId));
         
-<<<<<<< HEAD
-        if (!submission.getAssignment().getCourse().getTeacher().getId().equals(currentUser.getId())) {
-=======
         // SOTA: Admin super access + Owner check
         if (!AuthorizationHelper.isOwnerOrAdmin(submission.getAssignment().getCourse(), currentUser)) {
->>>>>>> 05bb7d9 (feat: Admin Teacher Co-op Courses Display + Course Editor Readonly Mode)
             throw new RuntimeException("Bạn không có quyền xem bài nộp này");
         }
 

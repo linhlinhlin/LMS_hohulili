@@ -43,7 +43,7 @@ import { StudentEnrollmentService } from '../../../features/student/services/enr
               🔥 HOT
             </span>
           }
-          @if (course.isEnrolled) {
+          @if (isEnrolledInCourse(course.id)) {
             <span class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-2.5 py-1 rounded-full text-xs font-bold shadow-sm">
               ✓ Enrolled
             </span>
@@ -107,16 +107,16 @@ import { StudentEnrollmentService } from '../../../features/student/services/enr
         <!-- Action Button -->
         <div class="flex gap-2">
           @if (authService.isAuthenticated() && authService.userRole() === 'student') {
-            @if (course.isEnrolled) {
+            @if (isEnrolledInCourse(course.id)) {
               <a [routerLink]="['/student/learn/course', course.id]"
                  class="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold text-center transition-all shadow-sm hover:shadow-md">
                 Tiếp tục học →
               </a>
             } @else {
-              <button (click)="enrollInCourse(course.id)"
-                      class="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md">
+              <a [routerLink]="['/courses', course.id]"
+                 class="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold text-center transition-all shadow-sm hover:shadow-md">
                 Đăng ký ngay
-              </button>
+              </a>
             }
           } @else {
             <a [routerLink]="['/courses', course.id]"
@@ -159,17 +159,9 @@ export class CourseCardComponent {
 
   isEnrolledInCourse(courseId?: string): boolean {
     if (!courseId) return false;
-    // Use the component's isEnrolled method if available, otherwise fallback to service
-    const coursesComponent = this.getCoursesComponent();
-    if (coursesComponent && typeof coursesComponent.isEnrolled === 'function') {
-      const isEnrolled = coursesComponent.isEnrolled(courseId);
-      console.log(`[COURSE CARD] Course ${courseId} enrolled status:`, isEnrolled);
-      return isEnrolled;
-    }
-    // Fallback to service method
-    const isEnrolled = this.enrollmentService.isEnrolledInCourse(courseId);
-    console.log(`[COURSE CARD] Course ${courseId} enrolled status (fallback):`, isEnrolled);
-    return isEnrolled;
+    // Use reactive signal from enrollmentService for proper change detection
+    // enrolledCourseIds is a computed signal that updates when enrolledCourses changes
+    return this.enrollmentService.enrolledCourseIds().has(courseId);
   }
 
   private getCoursesComponent(): any {
@@ -183,22 +175,63 @@ export class CourseCardComponent {
   async enrollInCourse(courseId?: string): Promise<void> {
     if (!courseId) return;
 
-    const success = await this.enrollmentService.enrollInCourse(courseId);
-    if (success) {
-      // Enrollment successful - update the course's isEnrolled property
-      this.course.isEnrolled = true;
-
-      // Also update the parent CoursesComponent's enrolledCourseIds Set if available
-      const coursesComponent = this.getCoursesComponent();
-      if (coursesComponent && typeof coursesComponent.enrolledCourseIds?.add === 'function') {
-        coursesComponent.enrolledCourseIds.add(courseId);
-        console.log(`[COURSE CARD] Updated enrolled course IDs in parent component:`, Array.from(coursesComponent.enrolledCourseIds));
+    try {
+      const success = await this.enrollmentService.enrollInCourse(courseId);
+      if (success) {
+        this.handleEnrollmentSuccess(courseId);
       }
+    } catch (error: any) {
+      // Handle multiple classes case
+      if (error.availableClasses && error.availableClasses.length > 0) {
+        this.showClassPicker(courseId, error.availableClasses);
+      } else {
+        console.error('Enrollment error:', error);
+        alert(error.message || 'Không thể đăng ký khóa học. Vui lòng thử lại.');
+      }
+    }
+  }
 
-      // Navigate to learning page after successful enrollment
-      this.router.navigate(['/student/learn/course', courseId]).catch(error => {
-        console.error('Navigation error after enrollment:', error);
-      });
+  private handleEnrollmentSuccess(courseId: string): void {
+    // Enrollment successful - update the course's isEnrolled property
+    this.course.isEnrolled = true;
+
+    // Also update the parent CoursesComponent's enrolledCourseIds Set if available
+    const coursesComponent = this.getCoursesComponent();
+    if (coursesComponent && typeof coursesComponent.enrolledCourseIds?.add === 'function') {
+      coursesComponent.enrolledCourseIds.add(courseId);
+      console.log(`[COURSE CARD] Updated enrolled course IDs in parent component:`, Array.from(coursesComponent.enrolledCourseIds));
+    }
+
+    // Navigate to learning page after successful enrollment
+    this.router.navigate(['/student/learn/course', courseId]).catch(error => {
+      console.error('Navigation error after enrollment:', error);
+    });
+  }
+
+  private async showClassPicker(courseId: string, classes: any[]): Promise<void> {
+    // Create a simple prompt with class options
+    const options = classes.map((c, i) => `${i + 1}. ${c.name} (${c.code})`).join('\n');
+    const message = `Khóa học có nhiều lớp học. Vui lòng chọn (nhập số):\n\n${options}`;
+
+    const choice = window.prompt(message);
+    if (choice) {
+      const index = parseInt(choice, 10) - 1;
+      if (index >= 0 && index < classes.length) {
+        const selectedClass = classes[index];
+        console.log('🎯 User selected class:', selectedClass);
+
+        // Retry enrollment with selected classId
+        try {
+          const success = await this.enrollmentService.enrollInCourse(courseId, selectedClass.id);
+          if (success) {
+            this.handleEnrollmentSuccess(courseId);
+          }
+        } catch (err: any) {
+          alert(err.message || 'Không thể đăng ký. Vui lòng thử lại.');
+        }
+      } else {
+        alert('Lựa chọn không hợp lệ. Vui lòng thử lại.');
+      }
     }
   }
 }

@@ -206,7 +206,7 @@ export class CoursesComponent implements OnInit {
     private meta: Meta,
     @Inject(DOCUMENT) private document: Document,
     @Inject(PLATFORM_ID) private platformId: Object
-  ) {}
+  ) { }
 
   courses = signal<ExtendedCourse[]>([]);
   isLoading = signal<boolean>(false);
@@ -218,7 +218,7 @@ export class CoursesComponent implements OnInit {
     hasNext: false,
     hasPrevious: false
   });
-  
+
   // Make CourseCategory and LEVEL_LABELS available in template
   CourseCategory = CourseCategory;
   LEVEL_LABELS = LEVEL_LABELS;
@@ -249,6 +249,11 @@ export class CoursesComponent implements OnInit {
     // Make this component accessible globally for course cards (only in browser)
     if (isPlatformBrowser(this.platformId)) {
       (window as any).coursesComponent = this;
+    }
+
+    // Preload enrolled courses for logged-in students to enable isEnrolled check
+    if (this.authService.isAuthenticated() && this.authService.userRole() === 'student') {
+      this.enrollmentService.loadEnrolledCourses(1, 100); // Load enough courses for cache
     }
 
 
@@ -313,20 +318,20 @@ export class CoursesComponent implements OnInit {
       )
       .subscribe({
         next: (response: PaginatedResult<DomainCourse>) => {
-            // Log API sample for debugging
-            console.log('[courses] api sample:', response.items[0]);
+          // Log API sample for debugging
+          console.log('[courses] api sample:', response.items[0]);
 
-            // Convert domain courses to UI courses using dedicated mapper
-            const uiCourses = response.items.map(domainCourse =>
-              this.mapDomainToExtendedCourse(domainCourse)
-            );
+          // Convert domain courses to UI courses using dedicated mapper
+          const uiCourses = response.items.map(domainCourse =>
+            this.mapDomainToExtendedCourse(domainCourse)
+          );
 
 
-            // Log UI sample for debugging
-            console.log('[courses] ui sample:', uiCourses[0]);
+          // Log UI sample for debugging
+          console.log('[courses] ui sample:', uiCourses[0]);
 
-            // Set courses data to signal with new reference for OnPush
-            this.courses.set([...uiCourses]);
+          // Set courses data to signal with new reference for OnPush
+          this.courses.set([...uiCourses]);
 
           // Update pagination info
           this.paginationInfo.set({
@@ -581,7 +586,7 @@ export class CoursesComponent implements OnInit {
       studentsCount: studentsCount,
       lessonsCount: specifications?.lessonsCount ?? 0,
       isPublished: isPublished,
-      isEnrolled: rawCourse?.metadata?.isEnrolled ?? false
+      isEnrolled: rawCourse?.metadata?.isEnrolled ?? this.enrollmentService.isEnrolledInCourse(rawCourse?.id) ?? false
     };
   }
 

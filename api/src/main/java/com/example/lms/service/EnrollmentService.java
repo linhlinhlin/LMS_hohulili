@@ -50,7 +50,7 @@ public class EnrollmentService {
         User student = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // 4. Proceed
+        // 4. Proceed - Create enrollment record
         Enrollment enrollment = Enrollment.builder()
             .student(student)
             .learningClass(lClass)
@@ -59,7 +59,24 @@ public class EnrollmentService {
             .completionPercent(0)
             .build();
 
-        return enrollmentRepository.save(enrollment);
+        enrollment = enrollmentRepository.save(enrollment);
+        
+        // 5. SYNC: Also add to Course.enrolledStudents for authorization compatibility
+        // This ensures AuthorizationHelper.canViewCourse() works correctly
+        com.example.lms.entity.Course course = lClass.getCourse();
+        if (course != null) {
+            java.util.Set<User> enrolledStudents = course.getEnrolledStudents();
+            if (enrolledStudents == null) {
+                enrolledStudents = new java.util.HashSet<>();
+                course.setEnrolledStudents(enrolledStudents);
+            }
+            if (!enrolledStudents.contains(student)) {
+                enrolledStudents.add(student);
+                // Course will be saved due to cascade or we can explicitly save
+            }
+        }
+
+        return enrollment;
     }
 
     @Transactional

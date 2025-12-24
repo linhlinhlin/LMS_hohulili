@@ -1,73 +1,17 @@
-E:\Sach\Sua\LMS_hohulili\api>mvn spring-boot:run 
-[INFO] Scanning for projects...
-[INFO] 
-[INFO] ------------------< com.example:backend-lms-postgres >------------------
-[INFO] Building backend-lms-postgres 0.0.1-SNAPSHOT
-[INFO]   from pom.xml
-[INFO] --------------------------------[ jar ]---------------------------------
-[INFO] 
-[INFO] >>> spring-boot:3.5.6:run (default-cli) > test-compile @ backend-lms-postgres >>>
-[INFO] 
-[INFO] --- resources:3.3.1:resources (default-resources) @ backend-lms-postgres ---
-[INFO] Copying 3 resources from src\main\resources to target\classes
-[INFO] Copying 35 resources from src\main\resources to target\classes
-[INFO]
-[INFO] --- compiler:3.11.0:compile (default-compile) @ backend-lms-postgres ---
-[INFO] Changes detected - recompiling the module! :source
-[INFO] Compiling 262 source files with javac [debug release 21] to target\classes
-[INFO] /E:/Sach/Sua/LMS_hohulili/api/src/main/java/com/example/lms/service/LessonService.java: Some input files use or override a deprecated API.
-[INFO] /E:/Sach/Sua/LMS_hohulili/api/src/main/java/com/example/lms/service/LessonService.java: Recompile with -Xlint:deprecation for details.
-[INFO] /E:/Sach/Sua/LMS_hohulili/api/src/main/java/com/example/lms/service/AssignmentService.java: E:\Sach\Sua\LMS_hohulili\api\src\main\java\com\example\lms\service\AssignmentService.java uses unchecked or unsafe operations. 
-[INFO] /E:/Sach/Sua/LMS_hohulili/api/src/main/java/com/example/lms/service/AssignmentService.java: Recompile with -Xlint:unchecked for details.
-[INFO] -------------------------------------------------------------
-[WARNING] COMPILATION WARNING :
-[INFO] -------------------------------------------------------------
-[WARNING] /E:/Sach/Sua/LMS_hohulili/api/src/main/java/com/example/lms/entity/Course.java:[46,5] @Builder.Default requires @Builder or @SuperBuilder on the class for it to mean anything.
-[WARNING] /E:/Sach/Sua/LMS_hohulili/api/src/main/java/com/example/lms/entity/Course.java:[55,5] @Builder.Default requires @Builder or @SuperBuilder on the class for it to mean anything.
-[WARNING] /E:/Sach/Sua/LMS_hohulili/api/src/main/java/com/example/lms/entity/Course.java:[61,5] @Builder.Default requires @Builder or @SuperBuilder on the class for it to mean anything.
-[WARNING] /E:/Sach/Sua/LMS_hohulili/api/src/main/java/com/example/lms/entity/Course.java:[66,5] @Builder.Default requires @Builder or @SuperBuilder on the class for it to mean anything.
-[WARNING] /E:/Sach/Sua/LMS_hohulili/api/src/main/java/com/example/lms/entity/Course.java:[71,5] @Builder.Default requires @Builder or @SuperBuilder on the class for it to mean anything.
-[WARNING] /E:/Sach/Sua/LMS_hohulili/api/src/main/java/com/example/lms/entity/Course.java:[85,5] @Builder.Default requires @Builder or @SuperBuilder on the class for it to mean anything.
-[WARNING] /E:/Sach/Sua/LMS_hohulili/api/src/main/java/com/example/lms/entity/Course.java:[95,5] @Builder.Default requires @Builder or @SuperBuilder on the class for it to mean anything.
-[WARNING] /E:/Sach/Sua/LMS_hohulili/api/src/main/java/com/example/lms/entity/Course.java:[114,5] @Builder.Default requires @Builder or @SuperBuilder on the class for it to mean anything.
-[WARNING] /E:/Sach/Sua/LMS_hohulili/api/src/main/java/com/example/lms/entity/Course.java:[118,5] @Builder.Default requires @Builder or @SuperBuilder on the class for it to mean anything.
-[WARNING] /E:/Sach/Sua/LMS_hohulili/api/src/main/java/com/example/lms/entity/StudentLessonProgress.java:[54,5] @Builder.Default requires @Builder or @SuperBuilder on the class for it to mean anything.
-[WARNING] /E:/Sach/Sua/LMS_hohulili/api/src/main/java/com/example/lms/entity/Package.java:[40,5] @Builder.Default requires @Builder or @SuperBuilder on the class for it to mean anything.
-[WARNING] /E:/Sach/Sua/LMS_hohulili/api/src/main/java/com/example/lms/entity/Package.java:[47,5] @Builder.Default requires @Builder or @SuperBuilder on the class for it to mean anything.
-[WARNING] /E:/Sach/Sua/LMS_hohulili/api/src/main/java/com/example/lms/entity/Quiz.java:[31,20] Not generating setTitle(): A method with that name already exists
-[WARNING] /E:/Sach/Sua/LMS_hohulili/api/src/main/java/com/example/lms/entity/Quiz.java:[35,20] Not generating setDescription(): A method with that name already exists
-[WARNING] /E:/Sach/Sua/LMS_hohulili/api/src/main/java/com/example/lms/entity/Quiz.java:[64,21] Not generating setTimeLimitMinutes(): A method with that name already exists
-[WARNING] /E:/Sach/Sua/LMS_hohulili/api/src/main/java/com/example/lms/entity/Quiz.java:[69,21] Not generating setMaxAttempts(): A method with that name already exists
-[WARNING] /E:/Sach/Sua/LMS_hohulili/api/src/main/java/com/example/lms/entity/Quiz.java:[74,21] Not generating setPassingScore(): A method with that name already exists
-[WARNING] /E:/Sach/Sua/LMS_hohulili/api/src/main/java/com/example/lms/entity/Quiz.java:[79,21] Not generating setShuffleQuestions(): A method with that name already exists
-[WARNING] /E:/Sach/Sua/LMS_hohulili/api/src/main/java/com/example/lms/entity/Quiz.java:[84,21] Not generating setShuffleOptions(): A method with that name already exists
-[WARNING] /E:/Sach/Sua/LMS_hohulili/api/src/main/java/com/example/lms/entity/Quiz.java:[89,21] Not generating setShowResultsImmediately(): A method with that name already exists
-[WARNING] /E:/Sach/Sua/LMS_hohulili/api/src/main/java/com/example/lms/entity/Quiz.java:[94,21] Not generating setShowCorrectAnswers(): A method with that name already exists
-[INFO] 21 warnings
-[INFO] -------------------------------------------------------------
-[INFO] -------------------------------------------------------------
-[ERROR] COMPILATION ERROR :
-[INFO] -------------------------------------------------------------
-[ERROR] /E:/Sach/Sua/LMS_hohulili/api/src/main/java/com/example/lms/controller/AdminController.java:[316,36] cannot find symbol
-  symbol:   method setReviewComment(java.lang.String)
-  location: variable summary of type com.example.lms.controller.AdminController.AdminCourseSummary
-[INFO] 1 error
-[INFO] -------------------------------------------------------------
-[INFO] ------------------------------------------------------------------------
-[INFO] BUILD FAILURE
-[INFO] ------------------------------------------------------------------------
-[INFO] Total time:  11.294 s
-[INFO] Finished at: 2025-12-24T13:24:17+07:00
-[INFO] ------------------------------------------------------------------------
+E:\Sach\Sua\LMS_hohulili\api>cd /d E:\Sach\Sua\LMS_hohulili\api && mvn compile -q
+[ERROR] COMPILATION ERROR : 
+[ERROR] /E:/Sach/Sua/LMS_hohulili/api/src/main/java/com/example/lms/service/CourseService.java:[331,13] cannot find symbol
+  symbol:   variable isAdmin
+  location: class com.example.lms.service.CourseService
 [ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.11.0:compile (default-compile) on project backend-lms-postgres: Compilation failure
-[ERROR] /E:/Sach/Sua/LMS_hohulili/api/src/main/java/com/example/lms/controller/AdminController.java:[316,36] cannot find symbol
-[ERROR]   symbol:   method setReviewComment(java.lang.String)
-[ERROR]   location: variable summary of type com.example.lms.controller.AdminController.AdminCourseSummary       
+[ERROR] /E:/Sach/Sua/LMS_hohulili/api/src/main/java/com/example/lms/service/CourseService.java:[331,13] cannot find symbol
+[ERROR]   symbol:   variable isAdmin
+[ERROR]   location: class com.example.lms.service.CourseService
 [ERROR]
 [ERROR] -> [Help 1]
 [ERROR]
 [ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
 [ERROR] Re-run Maven using the -X switch to enable full debug logging.
 [ERROR]
-[ERROR] For more information about the errors and possible solutions, please read the following articles:        
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
 [ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException

@@ -181,17 +181,13 @@ public class LessonService {
         Lesson lesson = lessonRepository.findByIdWithSections(lessonId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài học với ID: " + lessonId));
         
-<<<<<<< HEAD
         // [FIX] Manually trigger lazy loading of attachments within transaction
         // This avoids MultipleBagFetchException from fetching multiple collections at once
         if (lesson.getAttachments() != null) {
             lesson.getAttachments().size(); // Force initialization
         }
         
-        // Check if user has access (is teacher or enrolled student)
-=======
         // SOTA: Admin super access + Owner + Enrolled check
->>>>>>> 05bb7d9 (feat: Admin Teacher Co-op Courses Display + Course Editor Readonly Mode)
         Course course = lesson.getChapter().getCourse();
         boolean isEnrolled = course.getEnrolledStudents().contains(currentUser);
         
