@@ -69,6 +69,7 @@ public class Section {
 
     @OneToMany(mappedBy = "section", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
+    @JsonIgnore
     private List<Quiz> quizzes = new ArrayList<>();
 
     public enum SectionType {

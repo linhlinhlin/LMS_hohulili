@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, effect, ViewEncapsulation, OnDestroy, importProvidersFrom } from '@angular/core';
+﻿import { Component, inject, signal, computed, effect, ViewEncapsulation, OnDestroy, importProvidersFrom } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -54,8 +54,8 @@ import {
             <div class="w-20 h-20 bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center mx-auto mb-6 rounded-2xl shadow-inner">
               <lucide-icon name="layout" [size]="40" class="text-slate-400"></lucide-icon>
             </div>
-            <h3 class="text-xl font-bold text-gray-900 mb-2">Chá»n n?i dung �? ch?nh s?a</h3>
-            <p class="text-gray-500 text-sm mb-6">Chá»n m?t ch��ng, b�i h?c ho?c m?c n?i dung t? sidebar b�n tr�i �? b?t �?u ch?nh s?a</p>
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Chọn nội dung để chỉnh sửa</h3>
+            <p class="text-gray-500 text-sm mb-6">Chọn chương, bài học hoặc mục nội dung từ sidebar để bắt đầu chỉnh sửa</p>
             <div class="flex items-center justify-center gap-4 text-xs text-gray-400">
                 <div class="flex items-center gap-1.5">
                     <div class="w-2 h-2 rounded-full bg-blue-500"></div>
@@ -63,15 +63,15 @@ import {
                 </div>
                 <div class="flex items-center gap-1.5">
                     <div class="w-2 h-2 rounded-full bg-amber-500"></div>
-                    <span>T�i li?u</span>
+                    <span>Tài liệu</span>
                 </div>
                 <div class="flex items-center gap-1.5">
                     <div class="w-2 h-2 rounded-full bg-rose-500"></div>
-                    <span>Tráº¯c nghiá»‡m</span>
+                    <span>Trắc nghiệm</span>
                 </div>
                 <div class="flex items-center gap-1.5">
                     <div class="w-2 h-2 rounded-full bg-slate-400"></div>
-                    <span>V�n b?n</span>
+                    <span>Văn bản</span>
                 </div>
             </div>
           </div>
@@ -88,21 +88,21 @@ import {
               </svg>
             </div>
             <div>
-              <h2 class="text-lg font-semibold text-gray-900">Chá»nh s?a ch��ng</h2>
-              <p class="text-sm text-gray-500">C?p nh?t th�ng tin ch��ng</p>
+              <h2 class="text-lg font-semibold text-gray-900">Chỉnh sửa chương</h2>
+              <p class="text-sm text-gray-500">Cập nhật thông tin chương</p>
             </div>
           </div>
           <div class="p-6 space-y-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">T�n ch��ng <span class="text-red-500">*</span></label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Tên chương <span class="text-red-500">*</span></label>
               <input type="text" [(ngModel)]="chapterTitle" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">M� t?</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Mô tả</label>
               <textarea [(ngModel)]="chapterDescription" rows="3" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"></textarea>
             </div>
             <div class="border-t border-gray-200 pt-6">
-              <h3 class="font-medium text-gray-900 mb-4">B�i h?c ({{ selectedChapterLessons().length }})</h3>
+              <h3 class="font-medium text-gray-900 mb-4">Bài học ({{ selectedChapterLessons().length }})</h3>
               @if (selectedChapterLessons().length > 0) {
                 <div class="space-y-2">
                   @for (lesson of selectedChapterLessons(); track lesson.id; let i = $index) {
@@ -116,14 +116,14 @@ import {
                   }
                 </div>
               } @else {
-                <div class="text-center py-8 bg-gray-50 rounded-lg"><p class="text-gray-500 text-sm">Ch�a c� b�i h?c</p></div>
-              }V
+                <div class="text-center py-8 bg-gray-50 rounded-lg"><p class="text-gray-500 text-sm">Chưa có bài học</p></div>
+              }
             </div>
           </div>
           <div class="px-6 py-4 border-t border-gray-200 flex justify-end flex-shrink-0">
             <button (click)="saveChapter()" [disabled]="isSaving()" class="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2">
               @if (isSaving()) { <span class="animate-spin">?</span> }
-              L�u thay �?i
+              Lưu thay đổi
             </button>
           </div>
         </div>
@@ -133,7 +133,7 @@ import {
       @if (selectedSectionId()) {
         <div class="bg-white shadow-sm border border-gray-200 flex-grow overflow-hidden flex flex-col h-[calc(100vh-200px)]">
           <div class="overflow-y-auto flex-grow h-full custom-scrollbar">
-          <!-- Header v?i Maritime Theme -->
+          <!-- Header với Maritime Theme -->
           <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-white to-slate-50">
              <div class="flex items-center gap-3">
                <!-- Maritime Theme Colors - Indicator Bar -->
@@ -162,9 +162,9 @@ import {
                </div>
                <div>
                  <h2 class="text-lg font-semibold text-gray-900">
-                    {{ newSectionType === 'TEXT' ? 'V�n b?n b�i gi?ng' : newSectionType === 'VIDEO' ? 'Video b�i gi?ng' : newSectionType === 'FILE' ? 'T�i li?u k? thu?t' : '��nh gi� n�ng l?c' }}
+                    {{ newSectionType === 'TEXT' ? 'Nội dung bài giảng' : newSectionType === 'VIDEO' ? 'Video bài giảng' : newSectionType === 'FILE' ? 'Tài liệu không thuần' : 'Chính sách nâng cấp' }}
                  </h2>
-                 <p class="text-sm text-gray-500">{{ sectionTitle || 'Ch�a c� ti�u �?' }}</p>
+                 <p class="text-sm text-gray-500">{{ sectionTitle || 'Chưa có tiêu đề' }}</p>
                </div>
              </div>
              <!-- Type Badge -->
@@ -184,7 +184,7 @@ import {
           <div class="p-6 space-y-6">
              <!-- Reuse Form Logic -->
              <div>
-               <label class="block text-sm font-medium text-gray-700 mb-2">Ti�u �? m?c <span class="text-red-500">*</span></label>
+               <label class="block text-sm font-medium text-gray-700 mb-2">Tiêu đề mục <span class="text-red-500">*</span></label>
                <input type="text" [(ngModel)]="sectionTitle" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
              </div>
 
@@ -206,14 +206,14 @@ import {
                                 [class.text-slate-600]="!isVideoPreviewVisible()"
                                 [class.hover:bg-blue-50]="!isVideoPreviewVisible()">
                             <lucide-icon [name]="isVideoPreviewVisible() ? 'eye-off' : 'eye'" [size]="14"></lucide-icon>
-                            {{ isVideoPreviewVisible() ? '?n xem tr�?c' : 'Xem tr�?c' }}
+                            {{ isVideoPreviewVisible() ? 'Ẩn xem trước' : 'Xem trước' }}
                         </button>
                     </div>
                     <input type="text" [(ngModel)]="sectionVideoUrl" (blur)="updateVideoPreview(sectionVideoUrl)"
                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
                            placeholder="https://youtube.com/watch?v=...">
                     
-                    <!-- VIDEO PREVIEW - C�n gi?a + Rounded -->
+                    <!-- VIDEO PREVIEW - Căn giữa + Rounded -->
                     @if (isVideoPreviewVisible() && safeVideoUrl()) {
                         <div class="flex justify-center">
                             <div class="w-full max-w-2xl aspect-video bg-slate-900 rounded-xl overflow-hidden shadow-lg border border-slate-200">
@@ -226,7 +226,7 @@ import {
 
              @if (newSectionType === 'TEXT') {
                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Ná»™i dung b�i gi?ng</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Nội dung bài giảng</label>
                   <div class="editor-container-wrapper border border-gray-300 rounded-lg bg-white relative shadow-sm" [style.height.px]="editorHeight()">
                       @if (isDataLoaded()) {
                         <ckeditor [editor]="Editor" [(ngModel)]="sectionContent" 
@@ -236,14 +236,14 @@ import {
                       } @else {
                         <div class="flex flex-col items-center justify-center h-full text-gray-400 gap-3">
                           <div class="w-8 h-8 border-2 border-slate-300 border-t-blue-500 rounded-full animate-spin"></div>
-                          <span class="text-sm font-medium">�ang t?i tr?nh so?n th?o...</span>
+                          <span class="text-sm font-medium">Đang tải trình soạn thảo...</span>
                         </div>
                       }
                   </div>
                   <!-- Word Count Footer -->
                   <div class="flex items-center justify-between mt-2 text-xs text-gray-500">
-                      <span>{{ wordCount() }} t?</span>
-                      <span class="text-gray-400">Ctrl+S �? l�u nhanh</span>
+                      <span>{{ wordCount() }} từ</span>
+                      <span class="text-gray-400">Ctrl+S lưu nhanh</span>
                   </div>
                </div>
              }
@@ -251,10 +251,10 @@ import {
               @if (newSectionType === 'FILE') {
                <div class="space-y-4 p-5 bg-amber-50 rounded-xl border border-amber-200">
                    <div class="flex items-center justify-between">
-                       <label class="block text-xs font-black text-amber-800 uppercase">T?p ��nh k�m</label>
+                       <label class="block text-xs font-black text-amber-800 uppercase">Tập tin kèm theo</label>
                        @if (sectionFileUrl()) {
                            <a [href]="sectionFileUrl()" target="_blank" class="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1">
-                               <lucide-icon name="download" [size]="12"></lucide-icon> T?i xu?ng hi?n t?i
+                               <lucide-icon name="download" [size]="12"></lucide-icon> Tải xuống hiện tại
                            </a>
                        }
                    </div>
@@ -269,7 +269,7 @@ import {
                                <div class="w-10 h-10 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-2">
                                    <lucide-icon name="upload-cloud" [size]="20"></lucide-icon>
                                </div>
-                               <p class="text-sm font-bold text-slate-700">Nh?n �? t?i l�n t�i li?u</p>
+                               <p class="text-sm font-bold text-slate-700">Nhấn để tải lên tài liệu</p>
                                <p class="text-xs text-slate-400 mt-1">PDF, Word, Excel, PowerPoint (Max 50MB)</p>
                            </div>
                        } @else {
@@ -291,7 +291,7 @@ import {
                        <div class="flex items-center gap-3 p-3 bg-white border border-amber-100 rounded-lg">
                            <lucide-icon name="check-circle" [size]="16" class="text-green-500"></lucide-icon>
                            <div class="flex-grow min-w-0">
-                               <p class="text-xs font-bold text-slate-700">�? c� t?p ��nh k�m:</p>
+                               <p class="text-xs font-bold text-slate-700">Đã chọn tệp kèm:</p>
                                <a [href]="sectionFileUrl()" target="_blank" class="text-xs text-blue-600 hover:underline truncate block max-w-full">
                                    {{ getFileNameFromUrl(sectionFileUrl()!) }}
                                </a>
@@ -303,7 +303,7 @@ import {
                    @if (safePdfUrl()) {
                       <div class="mt-4">
                          <div class="flex items-center justify-between mb-2">
-                             <label class="text-xs font-bold text-slate-600">Xem tr�?c PDF (SOTA Stream)</label>
+                             <label class="text-xs font-bold text-slate-600">Xem trước PDF (SOTA Stream)</label>
                          </div>
                          <div class="w-full h-[500px] border border-slate-200 rounded-lg overflow-hidden bg-slate-800 shadow-inner">
                              <iframe [src]="safePdfUrl()" class="w-full h-full" frameborder="0"></iframe>
@@ -331,8 +331,8 @@ import {
                                                  [class.text-gray-400]="sectionQuizType !== 'ASSESSMENT'"></lucide-icon>
                                 </div>
                                 <div class="text-left">
-                                    <p class="text-sm font-bold" [class.text-emerald-800]="sectionQuizType === 'ASSESSMENT'" [class.text-gray-700]="sectionQuizType !== 'ASSESSMENT'">B�i ��nh gi�</p>
-                                    <p class="text-xs text-gray-500">Ch? c?n �?t �i?m t?i thi?u</p>
+                                    <p class="text-sm font-bold" [class.text-emerald-800]="sectionQuizType === 'ASSESSMENT'" [class.text-gray-700]="sectionQuizType !== 'ASSESSMENT'">Bài kiểm tra</p>
+                                    <p class="text-xs text-gray-500">Chọn bài kiểm tra</p>
                                 </div>
                             </div>
                         </button>
@@ -351,7 +351,6 @@ import {
                                 </div>
                                 <div class="text-left">
                                     <p class="text-sm font-bold" [class.text-rose-800]="sectionQuizType === 'EXAM'" [class.text-gray-700]="sectionQuizType !== 'EXAM'">B�i ki?m tra</p>
-                                    <p class="text-xs text-gray-500">Giá»›i háº¡n s? l?n l�m b�i</p>
                                 </div>
                             </div>
                         </button>
@@ -371,7 +370,7 @@ import {
                             <h4 class="text-sm font-black uppercase tracking-wide"
                                 [class.text-emerald-800]="sectionQuizType === 'ASSESSMENT'"
                                 [class.text-rose-800]="sectionQuizType === 'EXAM'">
-                                {{ sectionQuizType === 'ASSESSMENT' ? 'Thi?t l?p b�i ��nh gi�' : 'Thi?t l?p b�i ki?m tra' }}
+                                {{ sectionQuizType === 'ASSESSMENT' ? 'Thiết lập bài đánh giá' : 'Thiết lập bài kiểm tra' }}
                             </h4>
                         </div>
                         
@@ -380,7 +379,7 @@ import {
                             <div class="bg-white rounded-lg p-4 border"
                                  [class.border-emerald-100]="sectionQuizType === 'ASSESSMENT'"
                                  [class.border-rose-100]="sectionQuizType === 'EXAM'">
-                                <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Thá»i gian (ph�t)</label>
+                                <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Thời gian (phút)</label>
                                 <div class="flex items-center gap-2">
                                     <lucide-icon name="clock" [size]="16" 
                                                  [class.text-emerald-400]="sectionQuizType === 'ASSESSMENT'"
@@ -395,7 +394,7 @@ import {
                             <div class="bg-white rounded-lg p-4 border"
                                  [class.border-emerald-100]="sectionQuizType === 'ASSESSMENT'"
                                  [class.border-rose-100]="sectionQuizType === 'EXAM'">
-                                <label class="block text-xs font-bold text-gray-500 uppercase mb-2">�i?m �?t (%)</label>
+                                <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Điểm đạt (%)</label>
                                 <div class="flex items-center gap-2">
                                     <lucide-icon name="target" [size]="16" 
                                                  [class.text-emerald-400]="sectionQuizType === 'ASSESSMENT'"
@@ -409,7 +408,7 @@ import {
                             <!-- Max Attempts - Only for EXAM type -->
                             @if (sectionQuizType === 'EXAM') {
                                 <div class="bg-white rounded-lg p-4 border border-rose-100">
-                                    <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Sá»‘ láº§n l�m</label>
+                                    <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Số lần làm</label>
                                     <div class="flex items-center gap-2">
                                         <lucide-icon name="repeat" [size]="16" class="text-rose-400"></lucide-icon>
                                         <input type="number" [(ngModel)]="sectionQuizMaxAttempts" min="1" max="10"
@@ -428,7 +427,7 @@ import {
                                        [class.focus:ring-emerald-500]="sectionQuizType === 'ASSESSMENT'"
                                        [class.text-rose-600]="sectionQuizType === 'EXAM'"
                                        [class.focus:ring-rose-500]="sectionQuizType === 'EXAM'">
-                                <span>X�o tr?n c�u h?i</span>
+                                <span>Xáo trộn câu hỏi</span>
                             </label>
                             <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
                                 <input type="checkbox" [(ngModel)]="sectionQuizShuffleOptions" class="rounded focus:ring-offset-0"
@@ -436,7 +435,7 @@ import {
                                        [class.focus:ring-emerald-500]="sectionQuizType === 'ASSESSMENT'"
                                        [class.text-rose-600]="sectionQuizType === 'EXAM'"
                                        [class.focus:ring-rose-500]="sectionQuizType === 'EXAM'">
-                                <span>X�o tr?n ��p �n</span>
+                                <span>Xáo trộn đáp án</span>
                             </label>
                             <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
                                 <input type="checkbox" [(ngModel)]="sectionQuizShowResults" class="rounded focus:ring-offset-0"
@@ -444,7 +443,7 @@ import {
                                        [class.focus:ring-emerald-500]="sectionQuizType === 'ASSESSMENT'"
                                        [class.text-rose-600]="sectionQuizType === 'EXAM'"
                                        [class.focus:ring-rose-500]="sectionQuizType === 'EXAM'">
-                                <span>Hi?n k?t qu? ngay</span>
+                                <span>Hiển thị kết quả ngay</span>
                             </label>
                         </div>
                     </div>
@@ -454,7 +453,7 @@ import {
                         <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
                             <div class="flex items-center gap-2">
                                 <lucide-icon name="list-checks" [size]="18" class="text-gray-600"></lucide-icon>
-                                <h4 class="text-sm font-bold text-gray-800">C�u h?i �? ch?n</h4>
+                                <h4 class="text-sm font-bold text-gray-800">Câu hỏi đã chọn</h4>
                                 <span class="text-xs font-bold px-2 py-0.5 rounded-full"
                                       [class.bg-emerald-100]="sectionQuizType === 'ASSESSMENT'"
                                       [class.text-emerald-700]="sectionQuizType === 'ASSESSMENT'"
@@ -467,7 +466,7 @@ import {
                                 <button (click)="openSectionQuizRandomModal()" 
                                         class="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 hover:border-gray-300 transition-colors">
                                     <lucide-icon name="shuffle" [size]="14"></lucide-icon>
-                                    <span>Ng?u nhi�n</span>
+                                    <span>Ngẫu nhiên</span>
                                 </button>
                                 <button (click)="openSectionQuizBankModal()" 
                                         class="flex items-center gap-1.5 px-3 py-1.5 text-white rounded-lg text-xs font-bold transition-colors"
@@ -476,7 +475,7 @@ import {
                                         [class.bg-rose-600]="sectionQuizType === 'EXAM'"
                                         [class.hover:bg-rose-700]="sectionQuizType === 'EXAM'">
                                     <lucide-icon name="plus" [size]="14"></lucide-icon>
-                                    <span>Chá»n t? ng�n h�ng</span>
+                                    <span>Chọn từ ngân hàng</span>
                                 </button>
                             </div>
                         </div>
@@ -486,8 +485,8 @@ import {
                             @if (sectionQuizSelectedQuestions().length === 0) {
                                 <div class="py-12 text-center">
                                     <lucide-icon name="clipboard-list" [size]="40" class="mx-auto text-gray-300 mb-3"></lucide-icon>
-                                    <p class="text-sm font-medium text-gray-500">Ch�a c� c�u h?i n�o</p>
-                                    <p class="text-xs text-gray-400 mt-1">Chá»n t? ng�n h�ng ho?c t?o ng?u nhi�n</p>
+                                    <p class="text-sm font-medium text-gray-500">Chưa có câu hỏi nào</p>
+                                    <p class="text-xs text-gray-400 mt-1">Chọn từ ngân hàng hoặc tạo ngẫu nhiên</p>
                                 </div>
                             } @else {
                                 <div class="divide-y divide-gray-50">
@@ -510,7 +509,7 @@ import {
                                                           [class.text-yellow-700]="q.difficulty === 'MEDIUM'"
                                                           [class.bg-red-100]="q.difficulty === 'HARD'"
                                                           [class.text-red-700]="q.difficulty === 'HARD'">
-                                                        {{ q.difficulty === 'EASY' ? 'D?' : q.difficulty === 'MEDIUM' ? 'TB' : 'Kh�' }}
+                                                        {{ q.difficulty === 'EASY' ? 'Dễ' : q.difficulty === 'MEDIUM' ? 'Trung bình' : 'Khó' }}
                                                     </span>
                                                 </div>
                                             </div>
@@ -532,7 +531,7 @@ import {
              <button (click)="editingSectionId() && deleteSection(editingSectionId()!)" 
                      class="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
                 <lucide-icon name="trash-2" [size]="16"></lucide-icon>
-                <span class="text-sm font-medium">X�a m?c n�y</span>
+                <span class="text-sm font-medium">Xóa mục này</span>
              </button>
 
              <div class="flex items-center gap-3">
@@ -545,7 +544,7 @@ import {
                    @if (isSaving()) { 
                      <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                    }
-                   <span class="font-medium">L�u thay �?i</span>
+                   <span class="font-medium">Lưu thay đổi</span>
                  </button>
              </div>
           </div>
@@ -572,7 +571,7 @@ import {
 
           <div class="p-6 space-y-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Ti�u �? <span class="text-red-500">*</span></label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Tiêu đề <span class="text-red-500">*</span></label>
               <input type="text" [(ngModel)]="lessonTitle" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
             </div>
 
@@ -582,7 +581,7 @@ import {
                 <!-- Topic List -->
                 <div class="bg-gray-50 rounded-lg border border-gray-200 p-4">
                   <div class="flex items-center justify-between mb-4">
-                    <h3 class="font-medium text-gray-900">Ná»™i dung b�i h?c ({{ selectedLesson()?.sections?.length || 0 }} sections)</h3>
+                    <h3 class="font-medium text-gray-900">Nội dung bài học ({{ selectedLesson()?.sections?.length || 0 }} sections)</h3>
                     <div class="flex gap-2">
                        <button (click)="openSectionEditor('TEXT')" class="px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-1">
                          <span>+ Text</span>
@@ -596,7 +595,7 @@ import {
                   @if (selectedLesson()?.sections?.length === 0) {
                      <div class="text-center py-8 text-gray-500 text-sm">
                         <lucide-icon name="inbox" [size]="32" class="mx-auto mb-2 text-gray-300"></lucide-icon>
-                        <p>Ch�a c� n?i dung. Há»§y th�m b�i gi?ng, video ho?c t�i li?u.</p>
+                        <p>Chưa có nội dung. Hãy thêm bài giảng, video hoặc tài liệu.</p>
                      </div>
                   } @else {
                      <div class="space-y-2" cdkDropList (cdkDropListDropped)="dropSection($event)">
@@ -649,7 +648,7 @@ import {
                 <button class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-50 hover:bg-blue-50 text-xs font-bold text-slate-600 hover:text-blue-600 transition-colors border border-slate-200 hover:border-blue-200"
                         (click)="openSectionEditor('TEXT'); $event.stopPropagation()">
                     <lucide-icon name="plus" [size]="14"></lucide-icon>
-                    <span>B�i gi?ng</span>
+                    <span>Bài giảng</span>
                 </button>
                 <button class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-50 hover:bg-blue-50 text-xs font-bold text-slate-600 hover:text-blue-600 transition-colors border border-slate-200 hover:border-blue-200"
                         (click)="openSectionEditor('VIDEO'); $event.stopPropagation()">
@@ -659,12 +658,12 @@ import {
                 <button class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-50 hover:bg-amber-50 text-xs font-bold text-slate-600 hover:text-amber-600 transition-colors border border-slate-200 hover:border-amber-200"
                         (click)="openSectionEditor('FILE'); $event.stopPropagation()">
                     <lucide-icon name="file-text" [size]="14"></lucide-icon>
-                    <span>T�i li?u</span>
+                    <span>Tài liệu</span>
                 </button>
                 <button class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-50 hover:bg-rose-50 text-xs font-bold text-slate-600 hover:text-rose-600 transition-colors border border-slate-200 hover:border-rose-200"
                         (click)="openSectionEditor('QUIZ'); $event.stopPropagation()">
                     <lucide-icon name="clipboard-check" [size]="14"></lucide-icon>
-                    <span>Tráº¯c nghiá»‡m</span>
+                    <span>Trắc nghiệm</span>
                 </button>
             </div>
 
@@ -672,21 +671,21 @@ import {
             @if (getLessonType(selectedLesson()) === 'QUIZ') {
               <div class="flex flex-col gap-6 animate-fade-in">
                 
-                <!-- SECTION 1: C�U H?I LU?T THI (SETTINGS) -->
+                <!-- SECTION 1: CÂU HỎI LUẬT THI (SETTINGS) -->
                 <div>
                   <h4 class="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-3 flex items-center gap-2">
                     <svg class="w-4 h-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
-                    Thi?t l?p chung
+                    Thiết lập chung
                   </h4>
                   
                   <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <!-- Time Limit -->
                     <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:border-purple-300 transition-colors group">
                       <div class="flex justify-between items-start mb-2">
-                        <label class="text-xs font-semibold text-gray-500 uppercase">Thá»i gian l�m b�i</label>
+                        <label class="text-xs font-semibold text-gray-500 uppercase">Thời gian làm bài</label>
                         <span class="p-1.5 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-blue-100 transition-colors">
                           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -704,7 +703,7 @@ import {
                     <!-- Passing Score -->
                     <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:border-purple-300 transition-colors group">
                       <div class="flex justify-between items-start mb-2">
-                        <label class="text-xs font-semibold text-gray-500 uppercase">�i?m �?t t?i thi?u</label>
+                        <label class="text-xs font-semibold text-gray-500 uppercase">Điểm tối thiểu</label>
                         <span class="p-1.5 bg-green-50 text-green-600 rounded-lg group-hover:bg-green-100 transition-colors">
                           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -722,7 +721,7 @@ import {
                     <!-- Max Attempts -->
                     <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:border-purple-300 transition-colors group">
                       <div class="flex justify-between items-start mb-2">
-                        <label class="text-xs font-semibold text-gray-500 uppercase">Sá»‘ láº§n l�m l?i</label>
+                        <label class="text-xs font-semibold text-gray-500 uppercase">Số lần làm lại</label>
                         <span class="p-1.5 bg-orange-50 text-orange-600 rounded-lg group-hover:bg-orange-100 transition-colors">
                           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -733,7 +732,7 @@ import {
                         <input type="number" [(ngModel)]="quizMaxAttempts" min="1"
                                class="flex-1 text-2xl font-bold text-gray-900 border-none p-0 focus:ring-0 placeholder-gray-300 w-full"
                                placeholder="8">
-                        <span class="text-sm text-gray-500 font-medium">l?n</span>
+                        <span class="text-sm text-gray-500 font-medium">lần</span>
                       </div>
                     </div>
                   </div>
@@ -746,12 +745,12 @@ import {
                   <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-white">
                     <div>
                       <h4 class="text-base font-bold text-gray-800 flex items-center gap-2">
-                        Danh s�ch c�u h?i
+                        Danh sách câu hỏi
                         <span class="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full font-medium">
                           {{ quizQuestions().length }}
                         </span>
                       </h4>
-                      <p class="text-xs text-gray-500 mt-0.5">Qu?n l? c�c c�u h?i cho b�i ki?m tra n�y</p>
+                      <p class="text-xs text-gray-500 mt-0.5">Quản lý các câu hỏi cho bài kiểm tra này</p>
                     </div>
 
                     <div class="flex items-center gap-2">
@@ -761,16 +760,16 @@ import {
                         <svg class="w-4 h-4 text-gray-400 group-hover:text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
                         </svg>
-                        <span>T?o ng?u nhi�n</span>
+                        <span>Tạo ngẫu nhiên</span>
                       </button>
 
-                      <!-- N�t Th�m Th�m C�u H?i -->
+                      <!-- Nút Thêm Thêm Câu Hỏi -->
                       <button (click)="showAddQuestionsModal.set(true)" 
                               class="flex items-center gap-2 px-3 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 shadow-md shadow-purple-200 transition-all active:scale-95">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                         </svg>
-                        <span>Chá»n t? ng�n h�ng</span>
+                        <span>Chọn từ ngân hàng</span>
                       </button>
                     </div>
                   </div>
@@ -781,7 +780,7 @@ import {
                       <div class="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
                         <div class="flex flex-col items-center gap-3">
                           <div class="animate-spin w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full"></div>
-                          <span class="text-sm text-gray-500 font-medium">�ang t?i d? li?u...</span>
+                          <span class="text-sm text-gray-500 font-medium">Đang tải dữ liệu...</span>
                         </div>
                       </div>
                     } 
@@ -794,11 +793,11 @@ import {
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                           </svg>
                         </div>
-                        <h5 class="text-gray-900 font-medium mb-1">Ch�a c� c�u h?i n�o</h5>
-                        <p class="text-gray-500 text-sm max-w-xs mb-6">B?t �?u b?ng c�ch ch?n c�u h?i t? ng�n h�ng ho?c t?o danh s�ch ng?u nhi�n.</p>
+                        <h5 class="text-gray-900 font-medium mb-1">Chưa có câu hỏi nào</h5>
+                        <p class="text-gray-500 text-sm max-w-xs mb-6">Bắt đầu bằng cách chọn câu hỏi từ ngân hàng hoặc tạo danh sách ngẫu nhiên.</p>
                         <div class="flex gap-3">
                            <button (click)="openRandomizeModal()" class="text-purple-600 bg-purple-50 hover:bg-purple-100 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                             Th�m ng?u nhi�n
+                             Thêm ngẫu nhiên
                            </button>
                            <button (click)="showAddQuestionsModal.set(true)" class="text-white bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                              Th�m t? ng�n h�ng
@@ -1130,7 +1129,7 @@ import {
 
              <div class="flex items-center gap-2">
                 <input type="checkbox" [(ngModel)]="sectionIsRequired" id="reqSec" class="rounded text-blue-600 focus:ring-blue-500 w-4 h-4">
-                <label for="reqSec" class="text-sm text-gray-700 font-medium select-none cursor-pointer">Báº¯t buá»™c ho�n th�nh (H?c vi�n ph?i xem n?i dung n�y)</label>
+                <label for="reqSec" class="text-sm text-gray-700 font-medium select-none cursor-pointer">Bắt buộc hoàn thành (Học viên phải xem nội dung này)</label>
              </div>
 
              @if (newSectionType === 'VIDEO') {
@@ -1238,7 +1237,7 @@ import {
             <button (click)="saveSection()" [disabled]="isSaving() || !sectionTitle.trim() || (newSectionType === 'FILE' && !selectedFile && !sectionFileUrl())" 
                     class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2">
               @if (isSaving()) { <span class="animate-spin">?</span> }
-              {{ editingSectionId() ? 'C?p nh?t' : 'T?o m?i' }}
+              {{ editingSectionId() ? 'Cập nhật' : 'Tạo mới' }}
             </button>
           </div>
         </div>
@@ -1306,17 +1305,17 @@ export class CourseCurriculumComponent implements OnDestroy {
       supportAllValues: true
     },
 
-    // C?u h?nh ?nh (Thanh cung khi click v�o ?nh)
+    // C?u h?nh ?nh (Thanh cung khi click vào ảnh)
     image: {
       toolbar: [
         'imageTextAlternative', // Alt text
-        'toggleImageCaption',   // Ch� th�ch
+        'toggleImageCaption',   // Chú thích
         '|',
-        'imageStyle:inline',    // C�n d?ng
-        'imageStyle:block',     // Xu?ng d?ng
-        'imageStyle:side',      // ??y sang b?n
+        'imageStyle:inline',    // Căn dòng
+        'imageStyle:block',     // Xuống dòng
+        'imageStyle:side',
         '|',
-        'resizeImage'           // K�ch th�?c ?nh
+        'resizeImage'           // Kích thước ảnh
       ]
     },
 
@@ -1326,7 +1325,7 @@ export class CourseCurriculumComponent implements OnDestroy {
     },
 
     // Placeholder
-    placeholder: 'Nh?p n?i dung b�i h?c chi ti?t t?i ��y (v�n b?n, h?nh ?nh, video)...'
+    placeholder: 'Nhập nội dung bài học chi tiết tại đây (văn bản, hình ảnh, video)...'
   };
 
 
@@ -1468,7 +1467,7 @@ export class CourseCurriculumComponent implements OnDestroy {
       if (section) {
         // Reset isDataLoaded tr�?c khi load data m?i
         this.isDataLoaded.set(false);
-        
+
         this.editingSectionId.set(section.id);
         this.sectionTitle = section.title;
         this.newSectionType = (section.type as any) || 'TEXT';
@@ -1533,10 +1532,10 @@ export class CourseCurriculumComponent implements OnDestroy {
 
   getLessonTypeLabel(type: string): string {
     switch (type) {
-      case 'LECTURE': return 'B�i gi?ng';
-      case 'QUIZ': return 'Tráº¯c nghiá»‡m';
-      case 'ASSIGNMENT': return 'B�i t?p';
-      default: return 'B�i gi?ng';
+      case 'LECTURE': return 'Bài giảng';
+      case 'QUIZ': return 'Trắc nghiệm';
+      case 'ASSIGNMENT': return 'Bài tập';
+      default: return 'Bài giảng';
     }
   }
   onEditorReady(editor: any) {
@@ -1608,11 +1607,11 @@ export class CourseCurriculumComponent implements OnDestroy {
   }
 
   // Trong Component Class
-isVideoPreviewVisible = signal(false);
+  isVideoPreviewVisible = signal(false);
 
-toggleVideoPreview() {
-  this.isVideoPreviewVisible.update(v => !v);
-}
+  toggleVideoPreview() {
+    this.isVideoPreviewVisible.update(v => !v);
+  }
 
   getYouTubeEmbedUrl(): SafeResourceUrl {
     const videoId = this.extractYouTubeId(this.lessonVideoUrl);
@@ -2138,11 +2137,11 @@ toggleVideoPreview() {
       const questionIds = Array.from(this.selectedQuestionIds());
       const allQuestions = this.packageQuestions();
       const selectedQuestions = allQuestions.filter(q => questionIds.includes(q.id));
-      
+
       // Add to current selection (avoid duplicates)
       const currentIds = new Set(this.sectionQuizSelectedQuestions().map(q => q.id));
       const newQuestions = selectedQuestions.filter(q => !currentIds.has(q.id));
-      
+
       this.sectionQuizSelectedQuestions.update(current => [...current, ...newQuestions]);
       this.showSectionQuizBankModal.set(false);
       this.selectedQuestionIds.set(new Set());
@@ -2178,7 +2177,7 @@ toggleVideoPreview() {
   }
 
   removeSectionQuizQuestion(questionId: string) {
-    this.sectionQuizSelectedQuestions.update(current => 
+    this.sectionQuizSelectedQuestions.update(current =>
       current.filter(q => q.id !== questionId)
     );
   }

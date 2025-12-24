@@ -20,7 +20,7 @@ public class SectionController {
 
     // API Đa năng: Tạo Section bới hỗ trợ Upload File
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> createSection(
+    public ResponseEntity<com.example.lms.dto.response.SectionResponse> createSection(
             @RequestParam("lessonId") UUID lessonId,
             @RequestParam("title") String title,
             @RequestParam("type") String typeStr, // "TEXT", "VIDEO", "FILE"
@@ -35,11 +35,11 @@ public class SectionController {
         
         Section newSection = sectionService.createSection(lessonId, title, type, finalContent, isRequired, file);
         
-        return ResponseEntity.ok(newSection);
+        return ResponseEntity.ok(com.example.lms.dto.response.SectionResponse.fromEntity(newSection));
     }
 
     @PutMapping(value = "/{sectionId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> updateSection(
+    public ResponseEntity<com.example.lms.dto.response.SectionResponse> updateSection(
             @PathVariable UUID sectionId,
             @RequestParam("title") String title,
             @RequestParam("type") String typeStr,
@@ -52,12 +52,16 @@ public class SectionController {
         String finalContent = (type == Section.SectionType.VIDEO && (content == null || content.isEmpty())) ? videoUrl : content;
         
         Section updatedSection = sectionService.updateSection(sectionId, title, type, finalContent, isRequired, file);
-        return ResponseEntity.ok(updatedSection);
+        return ResponseEntity.ok(com.example.lms.dto.response.SectionResponse.fromEntity(updatedSection));
     }
     
     @GetMapping("/lesson/{lessonId}")
-    public ResponseEntity<List<Section>> getSectionsByLesson(@PathVariable UUID lessonId) {
-        return ResponseEntity.ok(sectionService.getSectionsByLessonId(lessonId));
+    public ResponseEntity<List<com.example.lms.dto.response.SectionResponse>> getSectionsByLesson(@PathVariable UUID lessonId) {
+        List<Section> sections = sectionService.getSectionsByLessonId(lessonId);
+        List<com.example.lms.dto.response.SectionResponse> responses = sections.stream()
+                .map(com.example.lms.dto.response.SectionResponse::fromEntity)
+                .collect(java.util.stream.Collectors.toList());
+        return ResponseEntity.ok(responses);
     }
 
     @DeleteMapping("/{sectionId}")
