@@ -60,6 +60,18 @@ public class Enrollment {
     @Column(name = "last_accessed_at")
     private Instant lastAccessedAt;
 
+    // === PAYMENT FIELDS ===
+
+    @Column(name = "is_paid")
+    @Builder.Default
+    private Boolean isPaid = false;
+
+    @Column(name = "paid_at")
+    private Instant paidAt;
+
+    @Column(name = "payment_id")
+    private UUID paymentId;
+
     @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
     public static class LessonProgress {
         private String status; // LOCKED, UNLOCKED, COMPLETED

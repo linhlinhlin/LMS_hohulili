@@ -35,4 +35,18 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, UUID> {
 
     @Query("SELECT e FROM Enrollment e WHERE e.learningClass.id = :classId AND e.student.email IN :emails")
     List<Enrollment> findByLearningClassIdAndStudentEmailIn(@Param("classId") UUID classId, @Param("emails") java.util.Collection<String> emails);
+
+    // Find all enrollments for a student in a course (via learning class)
+    @Query("SELECT e FROM Enrollment e " +
+           "WHERE e.student.id = :studentId " +
+           "AND e.learningClass.course.id = :courseId")
+    List<Enrollment> findByStudentIdAndCourseId(@Param("studentId") UUID studentId, @Param("courseId") UUID courseId);
+
+    // Check if student has paid for course
+    @Query("SELECT CASE WHEN COUNT(e) > 0 THEN true ELSE false END " +
+           "FROM Enrollment e " +
+           "WHERE e.student.id = :studentId " +
+           "AND e.learningClass.course.id = :courseId " +
+           "AND e.isPaid = true")
+    boolean hasValidPaymentViaEnrollment(@Param("studentId") UUID studentId, @Param("courseId") UUID courseId);
 }

@@ -143,6 +143,10 @@ export interface ExtendedCourse extends Course {
     rating: number;
     studentsCount: number;
   };
+  // Price extensions (Dec 2025)
+  priceType?: 'FREE' | 'PAID' | 'SUBSCRIPTION';
+  salePrice?: number;
+  categoryName?: string;
 }
 
 // Course Review interface
