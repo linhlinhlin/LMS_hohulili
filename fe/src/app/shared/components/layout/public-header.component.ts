@@ -1,8 +1,9 @@
-import { Component, signal, ChangeDetectionStrategy, ViewEncapsulation, inject, OnInit, OnDestroy, HostListener, HostBinding, Inject, PLATFORM_ID } from '@angular/core';
+import { Component, signal, ChangeDetectionStrategy, ViewEncapsulation, inject, OnInit, OnDestroy, HostListener, HostBinding, Inject, PLATFORM_ID, computed } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MegaMenuComponent } from './mega-menu/mega-menu.component';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-public-header',
@@ -196,16 +197,80 @@ import { MegaMenuComponent } from './mega-menu/mega-menu.component';
               </div>
             </div>
 
-            <!-- Right: Auth Buttons Only -->
+            <!-- Right: Auth Buttons OR User Menu (Coursera SOTA Pattern) -->
             <div class="flex items-center space-x-3">
-              <a routerLink="/auth/login"
-                 class="text-gray-700 hover:text-blue-600 px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200">
-                Đăng nhập
-              </a>
-              <a routerLink="/auth/register"
-                 class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md text-sm font-semibold transition-all duration-200 hover:shadow-md">
-                Tham gia miễn phí
-              </a>
+              @if (isLoggedIn()) {
+                <!-- Authenticated User Menu -->
+                <div class="relative">
+                  <button (click)="toggleUserMenu()" 
+                          class="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors duration-200">
+                    <!-- User Avatar -->
+                    <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 text-white flex items-center justify-center text-sm font-semibold shadow-sm">
+                      {{ getUserInitials() }}
+                    </div>
+                    <!-- Username + Dropdown Arrow -->
+                    <span class="hidden md:block text-sm font-medium text-gray-700 max-w-32 truncate">{{ userName() }}</span>
+                    <svg class="w-4 h-4 text-gray-500 transition-transform duration-200" 
+                         [class.rotate-180]="showUserMenu()"
+                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                  </button>
+                  
+                  <!-- Dropdown Menu -->
+                  @if (showUserMenu()) {
+                    <div class="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 animate-fadeIn"
+                         (click)="$event.stopPropagation()">
+                      <!-- User Info Header -->
+                      <div class="px-4 py-3 border-b border-gray-100">
+                        <p class="text-sm font-semibold text-gray-900">{{ userName() }}</p>
+                        <p class="text-xs text-gray-500 capitalize">{{ userRole() }}</p>
+                      </div>
+                      
+                      <!-- Quick Links -->
+                      <div class="py-1">
+                        <a [routerLink]="getMyCoursesRoute()" 
+                           (click)="closeUserMenu()"
+                           class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                          <svg class="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                          </svg>
+                          Khóa học của tôi
+                        </a>
+                        <a [routerLink]="getDashboardRoute()" 
+                           (click)="closeUserMenu()"
+                           class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                          <svg class="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                          </svg>
+                          Bảng điều khiển
+                        </a>
+                      </div>
+                      
+                      <!-- Divider + Logout -->
+                      <div class="border-t border-gray-100 mt-1 pt-1">
+                        <button (click)="logout()"
+                                class="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors">
+                          <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                          </svg>
+                          Đăng xuất
+                        </button>
+                      </div>
+                    </div>
+                  }
+                </div>
+              } @else {
+                <!-- Guest: Login/Register Buttons -->
+                <a routerLink="/auth/login"
+                   class="text-gray-700 hover:text-blue-600 px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200">
+                  Đăng nhập
+                </a>
+                <a routerLink="/auth/register"
+                   class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md text-sm font-semibold transition-all duration-200 hover:shadow-md">
+                  Tham gia miễn phí
+                </a>
+              }
             </div>
           </div>
 
@@ -333,18 +398,51 @@ import { MegaMenuComponent } from './mega-menu/mega-menu.component';
                 </nav>
               </div>
 
-              <!-- Mobile Auth Buttons -->
-              <div class="border-t border-gray-200 p-4 space-y-3">
-                <a routerLink="/auth/login" 
-                   (click)="closeMobileMenu()"
-                   class="block w-full text-center px-4 py-2 border border-gray-300 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50 transition-colors duration-200">
-                  Đăng nhập
-                </a>
-                <a routerLink="/auth/register" 
-                   (click)="closeMobileMenu()"
-                   class="block w-full text-center px-4 py-2 bg-blue-600 text-white rounded-md text-base font-medium hover:bg-blue-700 transition-colors duration-200">
-                  Tham gia miễn phí
-                </a>
+              <!-- Mobile Auth Buttons OR User Info -->
+              <div class="border-t border-gray-200 p-4">
+                @if (isLoggedIn()) {
+                  <!-- Authenticated User Info -->
+                  <div class="flex items-center space-x-3 mb-4 pb-4 border-b border-gray-100">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 text-white flex items-center justify-center text-sm font-semibold">
+                      {{ getUserInitials() }}
+                    </div>
+                    <div>
+                      <p class="text-sm font-semibold text-gray-900">{{ userName() }}</p>
+                      <p class="text-xs text-gray-500 capitalize">{{ userRole() }}</p>
+                    </div>
+                  </div>
+                  <!-- User Navigation -->
+                  <div class="space-y-2">
+                    <a [routerLink]="getMyCoursesRoute()" 
+                       (click)="closeMobileMenu()"
+                       class="block w-full text-left px-4 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50">
+                      📚 Khóa học của tôi
+                    </a>
+                    <a [routerLink]="getDashboardRoute()" 
+                       (click)="closeMobileMenu()"
+                       class="block w-full text-left px-4 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50">
+                      🏠 Bảng điều khiển
+                    </a>
+                    <button (click)="logout(); closeMobileMenu()"
+                            class="block w-full text-left px-4 py-2 rounded-md text-base font-medium text-red-600 hover:bg-red-50">
+                      🚪 Đăng xuất
+                    </button>
+                  </div>
+                } @else {
+                  <!-- Guest: Login/Register -->
+                  <div class="space-y-3">
+                    <a routerLink="/auth/login" 
+                       (click)="closeMobileMenu()"
+                       class="block w-full text-center px-4 py-2 border border-gray-300 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50 transition-colors duration-200">
+                      Đăng nhập
+                    </a>
+                    <a routerLink="/auth/register" 
+                       (click)="closeMobileMenu()"
+                       class="block w-full text-center px-4 py-2 bg-blue-600 text-white rounded-md text-base font-medium hover:bg-blue-700 transition-colors duration-200">
+                      Tham gia miễn phí
+                    </a>
+                  </div>
+                }
               </div>
             </div>
           </div>
@@ -364,14 +462,70 @@ export class PublicHeaderComponent implements OnInit, OnDestroy {
   selectedUserType = signal('personal');
   searchSuggestions = signal<string[]>([]);
   isScrolled = signal(false);
-  
+
   // Scroll management
   private lastScrollY = 0;
   private scrollThreshold = 10;
 
-  constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
+  // Auth service and user menu
+  protected authService = inject(AuthService);
+  showUserMenu = signal(false);
+
+  // Reactive user state signal - updated via subscription
+  private currentUser = signal<any>(null);
+  private userSubscription: any;
+
+  // Computed: Check if user is logged in based on reactive signal
+  isLoggedIn = computed(() => !!this.currentUser());
+
+  // User info getters - only return value if user exists
+  userName = () => this.currentUser()?.fullName || this.currentUser()?.name || '';
+  userRole = () => this.currentUser()?.role || '';
+
+  getUserInitials(): string {
+    const name = this.userName();
+    if (!name || name.length === 0) return '';
+    return name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
+  }
+
+  toggleUserMenu(): void {
+    this.showUserMenu.set(!this.showUserMenu());
+  }
+
+  closeUserMenu(): void {
+    this.showUserMenu.set(false);
+  }
+
+  logout(): void {
+    this.closeUserMenu();
+    this.authService.logout();
+  }
+
+  getDashboardRoute(): string {
+    const role = this.userRole();
+    switch (role) {
+      case 'admin': return '/admin/dashboard';
+      case 'teacher': return '/teacher/dashboard';
+      default: return '/student/dashboard';
+    }
+  }
+
+  getMyCoursesRoute(): string {
+    const role = this.userRole();
+    switch (role) {
+      case 'teacher': return '/teacher/courses';
+      default: return '/student/my-courses';
+    }
+  }
+
+  constructor(@Inject(PLATFORM_ID) private platformId: Object) { }
 
   ngOnInit(): void {
+    // Subscribe to auth state changes for reactive updates
+    this.userSubscription = this.authService.currentUser$.subscribe(user => {
+      this.currentUser.set(user);
+    });
+
     // Initialize scroll state only in browser
     if (isPlatformBrowser(this.platformId)) {
       this.lastScrollY = window.scrollY;
@@ -380,7 +534,10 @@ export class PublicHeaderComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    // Cleanup if needed
+    // Cleanup subscription to prevent memory leaks
+    if (this.userSubscription) {
+      this.userSubscription.unsubscribe();
+    }
   }
 
   @HostListener('window:scroll')
@@ -401,11 +558,11 @@ export class PublicHeaderComponent implements OnInit, OnDestroy {
     }
 
     const currentScrollY = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
-    
+
     // Determine scroll direction
     const isScrollingDown = currentScrollY > this.lastScrollY;
     const isScrollingUp = currentScrollY < this.lastScrollY;
-    
+
     // Only update state if scroll is significant enough
     if (Math.abs(currentScrollY - this.lastScrollY) > this.scrollThreshold) {
       if (isScrollingDown && currentScrollY > 50) {
@@ -415,7 +572,7 @@ export class PublicHeaderComponent implements OnInit, OnDestroy {
         // Scrolling up or near top - show top bar
         this.isScrolled.set(false);
       }
-      
+
       this.lastScrollY = currentScrollY;
     }
   }
@@ -427,14 +584,14 @@ export class PublicHeaderComponent implements OnInit, OnDestroy {
     'An toàn & Cứu sinh – Chứng chỉ SOLAS',
     'Quản lý cảng biển hiện đại – ĐH Hàng hải VN',
     'GMDSS – Thông tin liên lạc tàu biển – Bộ GTVT',
-    
+
     // Đang phổ biến hiện nay
     'ECDIS',
     'Radar ARPA',
     'STCW cơ bản',
     'Quản lý đội tàu',
     'MARPOL',
-    
+
     // CTA định hướng
     'Không chắc nên bắt đầu từ đâu? → Làm bài kiểm tra định hướng lộ trình học'
   ];
@@ -443,10 +600,10 @@ export class PublicHeaderComponent implements OnInit, OnDestroy {
     const target = event.target as HTMLInputElement;
     const query = target.value;
     this.searchQuery.set(query);
-    
+
     // Filter suggestions based on query
     if (query.length > 0) {
-      const filtered = this.suggestions.filter(s => 
+      const filtered = this.suggestions.filter(s =>
         s.toLowerCase().includes(query.toLowerCase())
       );
       this.searchSuggestions.set(filtered.slice(0, 5));
@@ -471,8 +628,8 @@ export class PublicHeaderComponent implements OnInit, OnDestroy {
   }
 
   getSearchInputClass(): string {
-    return this.isSearchFocused() 
-      ? 'ring-2 ring-yellow-400 ring-opacity-50' 
+    return this.isSearchFocused()
+      ? 'ring-2 ring-yellow-400 ring-opacity-50'
       : '';
   }
 
@@ -480,7 +637,7 @@ export class PublicHeaderComponent implements OnInit, OnDestroy {
     this.searchQuery.set(suggestion);
     this.searchSuggestions.set([]);
     this.isSearchFocused.set(false);
-    
+
     // Navigate to search results or specific course
     this.navigateToSearch(suggestion);
   }
@@ -516,8 +673,8 @@ export class PublicHeaderComponent implements OnInit, OnDestroy {
   }
 
   getUserTypeClass(type: string): string {
-    return this.selectedUserType() === type 
-      ? 'bg-white/20 text-white' 
+    return this.selectedUserType() === type
+      ? 'bg-white/20 text-white'
       : 'text-slate-300 hover:text-white';
   }
 

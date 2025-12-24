@@ -861,11 +861,12 @@ export class UserManagementComponent implements OnInit {
   isLoadingUsers = signal(false);
   isDeletingUser = signal(false);
 
-  totalUsers = this.adminService.totalUsers;
-  totalTeachers = this.adminService.totalTeachers;
-  totalStudents = this.adminService.totalStudents;
-  totalAdmins = this.adminService.totalAdminsCount;
-  activeUsers = this.adminService.activeUsersCount;
+  // Stats computed from local users (roles are UPPERCASE after normalization)
+  totalUsers = computed(() => this._localUsers().length);
+  totalTeachers = computed(() => this._localUsers().filter(u => u.role === 'TEACHER').length);
+  totalStudents = computed(() => this._localUsers().filter(u => u.role === 'STUDENT').length);
+  totalAdmins = computed(() => this._localUsers().filter(u => u.role === 'ADMIN').length);
+  activeUsers = computed(() => this._localUsers().filter(u => u.accountStatus === 'ACTIVE').length);
 
   // Client-side filtering (because backend doesn't support it)
   filteredUsers = computed(() => {

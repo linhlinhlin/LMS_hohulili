@@ -28,7 +28,8 @@
             ],
             "styles": [
               "src/styles/critical.scss",
-              "src/styles.scss"
+              "src/styles.scss",
+              "node_modules/video.js/dist/video-js.min.css"
             ],
             "server": "src/main.server.ts",
             "prerender": false,

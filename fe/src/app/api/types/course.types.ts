@@ -47,6 +47,8 @@ export interface SectionSummary {
   type: 'TEXT' | 'VIDEO' | 'QUIZ' | 'FILE';
   content?: string;
   videoUrl?: string;
+  videoType?: 'YOUTUBE' | 'CLOUDFLARE';
+  cfObjectKey?: string;
   fileUrl?: string;
   duration?: number;
   orderIndex: number;
@@ -153,6 +155,8 @@ export interface SectionDetail { // New L3 Section
   type: string;
   content: string;
   videoUrl: string;
+  videoType?: 'YOUTUBE' | 'CLOUDFLARE';
+  cfObjectKey?: string;
   fileUrl: string;
   duration: number;
   orderIndex: number;

@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { BehaviorSubject, Observable, tap } from 'rxjs';
+import { BehaviorSubject, Observable, tap, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { AUTH_ENDPOINTS } from '../../api/endpoints/auth.endpoints';
 
@@ -98,29 +98,37 @@ export class AuthService {
       localStorage.removeItem(this.refreshTokenKey);
       localStorage.removeItem(this.userKey);
     }
-    
+
     this.currentUserSubject.next(null);
 
     // Redirect to login page
-    this.router.navigate(['/auth/login'], { 
+    this.router.navigate(['/auth/login'], {
       queryParams: { message: 'Đã đăng xuất thành công' }
     });
   }
 
   private setTokens(accessToken: string, refreshToken: string): void {
-    localStorage.setItem(this.tokenKey, accessToken);
-    localStorage.setItem(this.refreshTokenKey, refreshToken);
+    // SSR guard: Only access localStorage in browser context
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(this.tokenKey, accessToken);
+      localStorage.setItem(this.refreshTokenKey, refreshToken);
+    }
   }
 
   getToken(): string | null {
+    // SSR guard: Only access localStorage in browser context
+    if (typeof localStorage === 'undefined') {
+      return null;
+    }
+
     // Primary token key
     let token = localStorage.getItem(this.tokenKey);
 
     // Fallback to other possible keys if primary is not found
     if (!token) {
       token = localStorage.getItem('token') ||
-              localStorage.getItem('access_token') ||
-              localStorage.getItem('auth_token');
+        localStorage.getItem('access_token') ||
+        localStorage.getItem('auth_token');
     }
 
     return token;
@@ -169,6 +177,11 @@ export class AuthService {
   }
 
   refreshToken(): Observable<AuthResponse> {
+    // SSR guard: Only access localStorage in browser context
+    if (typeof localStorage === 'undefined') {
+      return throwError(() => new Error('Cannot refresh token in SSR context'));
+    }
+
     const refreshToken = localStorage.getItem(this.refreshTokenKey);
     return this.http.post<AuthResponse>(AUTH_ENDPOINTS.REFRESH, { refreshToken }).pipe(
       tap(response => {

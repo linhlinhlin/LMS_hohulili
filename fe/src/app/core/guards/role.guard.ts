@@ -40,7 +40,7 @@ export const roleGuard = (allowedRoles: UserRole[]): CanActivateFn => {
 
     if (userRole && allowedRoles.includes(userRole as UserRole)) {
       console.log('✅ RoleGuard: Access granted');
-      
+
       // ✅ FIXED: Ensure role-specific service is initialized before component loads
       try {
         await ensureRoleServiceInitialized(userRole as UserRole, injector);
@@ -49,7 +49,7 @@ export const roleGuard = (allowedRoles: UserRole[]): CanActivateFn => {
         console.error('⚠️ RoleGuard: Service initialization failed:', error);
         // Continue anyway - component will handle missing data
       }
-      
+
       return true;
     }
 
@@ -79,14 +79,14 @@ export const roleGuard = (allowedRoles: UserRole[]): CanActivateFn => {
 // Uses Injector.get() instead of inject() to avoid NG0203 error
 async function ensureRoleServiceInitialized(role: UserRole | string, injector: Injector): Promise<void> {
   const normalizedRole = typeof role === 'string' ? role.toLowerCase() : role;
-  
+
   if (normalizedRole === 'teacher' || normalizedRole === UserRole.TEACHER) {
     try {
       // Lazy import to avoid circular dependencies
       const { TeacherService } = await import('../../features/teacher/infrastructure/services/teacher.service');
       // ✅ Use injector.get() instead of inject() - valid in async function
       const teacherService = injector.get(TeacherService);
-      
+
       if (!teacherService.courses().length && !teacherService.isLoading()) {
         console.log('🔄 RoleGuard: Loading teacher service data...');
         await teacherService.loadMyCourses();
@@ -109,9 +109,17 @@ async function ensureRoleServiceInitialized(role: UserRole | string, injector: I
 export const studentGuard: CanActivateFn = roleGuard([UserRole.STUDENT]);
 
 /**
- * Teacher Guard - Only allows teachers
+ * Teacher Only Guard - ONLY teachers (Admin blocked)
+ * Use for: dashboard, courses list, revenue - teacher-specific features
  */
-export const teacherGuard: CanActivateFn = roleGuard([UserRole.TEACHER]);
+export const teacherOnlyGuard: CanActivateFn = roleGuard([UserRole.TEACHER]);
+
+/**
+ * Teacher Guard - Allows teachers AND admins (SOTA: Admin super access pattern)
+ * Following Google/Amazon RBAC best practice: Admin inherits all permissions of lower roles
+ * Use for: course editor (Admin can VIEW course content for moderation)
+ */
+export const teacherGuard: CanActivateFn = roleGuard([UserRole.TEACHER, UserRole.ADMIN]);
 
 /**
  * Admin Guard - Only allows admins
@@ -119,6 +127,6 @@ export const teacherGuard: CanActivateFn = roleGuard([UserRole.TEACHER]);
 export const adminGuard: CanActivateFn = roleGuard([UserRole.ADMIN]);
 
 /**
- * Teacher or Admin Guard - Allows both teachers and admins
+ * Teacher or Admin Guard - Alias for teacherGuard
  */
 export const teacherOrAdminGuard: CanActivateFn = roleGuard([UserRole.TEACHER, UserRole.ADMIN]);

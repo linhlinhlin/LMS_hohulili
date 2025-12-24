@@ -76,6 +76,7 @@ public class SectionService {
                 break;
             case VIDEO:
                 section.setVideoUrl(contentOrUrl);
+                // If coming from legacy update, keep videoType unchanged
                 section.setContent(null);
                 break;
             case FILE:
@@ -89,6 +90,22 @@ public class SectionService {
                 break;
         }
 
+        return sectionRepository.save(section);
+    }
+
+    @Transactional
+    public Section updateSectionVideo(UUID sectionId, String videoType, String videoUrl, String cfObjectKey) {
+        Section section = getSectionById(sectionId);
+        section.setType(Section.SectionType.VIDEO);
+        if (videoType != null) {
+            section.setVideoType(videoType);
+        }
+        if (videoUrl != null) {
+            section.setVideoUrl(videoUrl);
+        }
+        if (cfObjectKey != null) {
+            section.setCfObjectKey(cfObjectKey);
+        }
         return sectionRepository.save(section);
     }
 

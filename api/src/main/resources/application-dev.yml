@@ -4,9 +4,12 @@ spring:
       on-profile: dev
   datasource:
     # ===============================================
-    # SUPABASE Pooler - Production/Cloud
+    # SUPABASE Pooler - TRANSACTION MODE (Port 6543)
     # ===============================================
-    url: jdbc:postgresql://aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres?prepareThreshold=0
+    # SOTA: Use Transaction Mode for web APIs (Google/AWS/Supabase best practice)
+    # - Port 5432 = Session Mode (holds connection permanently) ❌
+    # - Port 6543 = Transaction Mode (connection per transaction) ✅
+    url: jdbc:postgresql://aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres?prepareThreshold=0
     username: postgres.rljldvpboqapokzecfff
     password: ho_hu_li_li_
     driver-class-name: org.postgresql.Driver
@@ -20,12 +23,12 @@ spring:
     # username: lms
     # password: lms
 
-    # SOTA HikariCP Configuration for Cloud PostgreSQL (Google/AWS patterns)
+    # SOTA HikariCP Configuration for Transaction Mode (optimized)
     hikari:
-      maximum-pool-size: 5
-      minimum-idle: 2
-      connection-timeout: 30000        # 30s - increased for network latency
-      idle-timeout: 600000             # 10 minutes
+      maximum-pool-size: 3             # Lower for Transaction Mode - connections are quickly returned
+      minimum-idle: 1                  # Minimal idle - Transaction Mode efficiently reuses
+      connection-timeout: 20000        # 20s - faster fail for cloud latency
+      idle-timeout: 300000             # 5 minutes - shorter for Transaction Mode
       max-lifetime: 1800000            # 30 minutes - Supabase recommendation
       keepalive-time: 30000            # 30s keepalive to prevent connection reset
       validation-timeout: 5000         # 5s validation
@@ -54,3 +57,15 @@ logging:
 
 server:
   port: 8088
+
+# Cloudflare R2 Storage - PRODUCTION CREDENTIALS
+app:
+  r2:
+    enabled: true
+    account-id: 829c7bae5350f178db459b850395764f
+    access-key-id: e3c1ac7ccc5c1b7024c24a272f6a82ab
+    secret-access-key: 66580bd7a18dd4f811a41c77507dee52caca2ee2a1a25b1d0c24976319a992cb
+    bucket: lms-videos
+    endpoint: https://829c7bae5350f178db459b850395764f.r2.cloudflarestorage.com
+    public-base-url: https://pub-a9b1e20e911c45f69a1008c8a993fe7d.r2.dev
+    presign-ttl-seconds: 900

@@ -49,6 +49,13 @@ export const studentRoutes: Routes = [
         title: 'Chi tiết khóa học'
       },
 
+      // Lesson Viewer - Xem bài học với video tracking
+      {
+        path: 'lesson-viewer',
+        loadComponent: () => import('./lesson-viewer/lesson-viewer.component').then(m => m.LessonViewerComponent),
+        title: 'Xem bài học'
+      },
+      
       // Checkout - Thanh toán khóa học
       {
         path: 'checkout/:courseId',

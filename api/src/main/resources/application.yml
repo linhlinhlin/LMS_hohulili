@@ -72,6 +72,21 @@ app:
     secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
     expiration: 86400000  # 24 hours in milliseconds
     refresh-expiration: 604800000  # 7 days in milliseconds
+  # Cloudflare R2 configuration (S3 compatible)
+  r2:
+    # Toggle Cloudflare R2 integration. When false/missing, R2 beans/controllers are disabled.
+    enabled: ${R2_ENABLED:false}
+    account-id: ${R2_ACCOUNT_ID:}
+    access-key-id: ${R2_ACCESS_KEY_ID:}
+    secret-access-key: ${R2_SECRET_ACCESS_KEY:}
+    bucket: ${R2_BUCKET:}
+    # Endpoint examples:
+    # - https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+    # - https://<your-public-bucket>.r2.dev (for public access)
+    endpoint: ${R2_ENDPOINT:https://example.r2.dev}
+    # Public base URL for serving files (no auth). If using a private bucket, leave blank.
+    public-base-url: ${R2_PUBLIC_BASE_URL:}
+    presign-ttl-seconds: ${R2_PRESIGN_TTL:900}
 
 # AI Service Configuration
 # Updated: 10/12/2025 - API Key từ Team AI

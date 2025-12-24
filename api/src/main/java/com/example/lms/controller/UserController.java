@@ -34,7 +34,7 @@ public class UserController {
     @GetMapping
     @Operation(summary = "Lấy danh sách người dùng", description = "Admin lấy danh sách tất cả người dùng với phân trang")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<Page<UserSummary>>> getAllUsers(
+    public ResponseEntity<ApiResponse<Page<com.example.lms.dto.AdminUserDTO>>> getAllUsers(
             @Parameter(description = "Số trang (bắt đầu từ 1)") @RequestParam(defaultValue = "1") int page,
             @Parameter(description = "Số lượng item trên mỗi trang") @RequestParam(defaultValue = "10") int limit,
             @Parameter(description = "Tìm kiếm theo tên hoặc email") @RequestParam(required = false) String search
@@ -43,17 +43,20 @@ public class UserController {
             Pageable pageable = PageRequest.of(page - 1, limit);
             Page<User> users = userService.getAllUsers(pageable, search);
             
-            Page<UserSummary> userSummaries = users.map(user -> UserSummary.builder()
-                    .id(user.getId())
-                    .username(user.getUsername())
-                    .email(user.getEmail())
-                    .fullName(user.getFullName())
-                    .role(user.getRole().name())
-                    .enabled(user.getEnabled())
-                    .createdAt(user.getCreatedAt())
-                    .build());
+            // Convert to AdminUserDTO with full data including lastLogin, loginCount
+            Page<com.example.lms.dto.AdminUserDTO> userDTOs = users.map(user -> {
+                com.example.lms.dto.AdminUserDTO dto = com.example.lms.dto.AdminUserDTO.fromUser(user);
+                // Aggregated data: coursesCreated + coursesCooped for TEACHER, coursesEnrolled for STUDENT
+                if (user.getRole() == User.Role.TEACHER) {
+                    dto.setCoursesCreated(userService.countCoursesCreatedByUser(user.getId()));
+                    dto.setCoursesCooped(userService.countCoursesCoopedByUser(user.getId()));
+                } else if (user.getRole() == User.Role.STUDENT) {
+                    dto.setCoursesEnrolled(userService.countCoursesEnrolledByUser(user.getId()));
+                }
+                return dto;
+            });
             
-            return ResponseEntity.ok(ApiResponse.success(userSummaries));
+            return ResponseEntity.ok(ApiResponse.success(userDTOs));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.error("Lỗi khi lấy danh sách người dùng: " + e.getMessage()));

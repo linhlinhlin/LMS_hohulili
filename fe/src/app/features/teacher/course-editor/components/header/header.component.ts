@@ -1,8 +1,9 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { CourseEditorStore } from '../../store/course-editor.store';
 import { CourseAuthoringService } from '../../services/course-authoring.service';
+import { AuthService } from '../../../../../core/services/auth.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
 @Component({
@@ -32,41 +33,55 @@ import { MatSnackBar } from '@angular/material/snack-bar';
                     <h1 class="text-base font-semibold text-gray-900 truncate max-w-md">
                         {{ store.courseInfo()?.title || 'Đang tải...' }}
                     </h1>
-                    <p class="text-xs text-gray-500">Chỉnh sửa khóa học</p>
+                    <p class="text-xs text-gray-500">
+                        {{ isAdminViewMode() ? 'Xem khóa học (Admin)' : 'Chỉnh sửa khóa học' }}
+                    </p>
                 </div>
             </div>
         </div>
 
         <div class="flex items-center gap-3">
-             <!-- Save Status -->
-             @if (store.isSaving()) {
-                <div class="text-xs text-blue-600 font-medium flex items-center gap-1 mr-4">
-                    <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+             <!-- Only show actions for Teacher (not Admin view mode) -->
+             @if (!isAdminViewMode()) {
+                 <!-- Save Status -->
+                 @if (store.isSaving()) {
+                    <div class="text-xs text-blue-600 font-medium flex items-center gap-1 mr-4">
+                        <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Đang lưu...</span>
+                    </div>
+                 } @else {
+                    <div class="text-xs text-green-600 font-medium flex items-center gap-1 mr-4">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span>Đã lưu</span>
+                    </div>
+                 }
+
+                 <button class="h-9 px-4 rounded-lg bg-white border border-gray-300 font-medium text-gray-700 text-sm hover:bg-gray-50 transition-colors">
+                     Xem trước
+                 </button>
+
+                 <button class="h-9 px-4 rounded-lg bg-blue-600 text-white font-medium text-sm hover:bg-blue-700 transition-colors shadow-sm flex items-center gap-2"
+                    (click)="publish()">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                     </svg>
-                    <span>Đang lưu...</span>
-                </div>
+                    Xuất bản
+                 </button>
              } @else {
-                <div class="text-xs text-green-600 font-medium flex items-center gap-1 mr-4">
-                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                    </svg>
-                    <span>Đã lưu</span>
-                </div>
+                 <!-- Admin view mode indicator -->
+                 <div class="text-xs text-amber-600 font-medium flex items-center gap-2 px-3 py-1.5 bg-amber-50 rounded-lg">
+                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                         <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path>
+                         <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"></path>
+                     </svg>
+                     <span>Chế độ xem</span>
+                 </div>
              }
-
-             <button class="h-9 px-4 rounded-lg bg-white border border-gray-300 font-medium text-gray-700 text-sm hover:bg-gray-50 transition-colors">
-                 Xem trước
-             </button>
-
-             <button class="h-9 px-4 rounded-lg bg-blue-600 text-white font-medium text-sm hover:bg-blue-700 transition-colors shadow-sm flex items-center gap-2"
-                (click)="publish()">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                </svg>
-                Xuất bản
-             </button>
         </div>
     </header>
   `
@@ -75,10 +90,25 @@ export class CourseEditorHeaderComponent {
     store = inject(CourseEditorStore);
     private router = inject(Router);
     private service = inject(CourseAuthoringService);
+    private authService = inject(AuthService);
     private toast = inject(MatSnackBar);
 
+    /**
+     * Check if current user is Admin (view-only mode)
+     */
+    isAdminViewMode = computed(() => {
+        return this.authService.userRole() === 'admin';
+    });
+
+    /**
+     * Role-based navigation: Admin -> /admin/courses, Teacher -> /teacher/courses
+     */
     goBack() {
-        this.router.navigate(['/teacher/courses']);
+        if (this.isAdminViewMode()) {
+            this.router.navigate(['/admin/courses']);
+        } else {
+            this.router.navigate(['/teacher/courses']);
+        }
     }
 
     publish() {
@@ -96,3 +126,4 @@ export class CourseEditorHeaderComponent {
         }
     }
 }
+

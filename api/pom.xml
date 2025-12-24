@@ -57,6 +57,13 @@
         <artifactId>hypersistence-utils-hibernate-63</artifactId>
         <version>3.7.0</version>
     </dependency>
+
+    <!-- Cloudflare R2 via AWS SDK v2 (S3 compatible) -->
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>s3</artifactId>
+      <version>2.25.62</version>
+    </dependency>
     
     <!-- Testing -->
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-test</artifactId><scope>test</scope></dependency>

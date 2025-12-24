@@ -30,14 +30,34 @@ export const adminRoutes: Routes = [
         title: 'Dashboard - Quản trị'
       },
 
-      // User Management Routes
+      // User Management Routes - Tách theo vai trò
       {
         path: 'users',
         children: [
           {
             path: '',
+            redirectTo: 'all',
+            pathMatch: 'full'
+          },
+          {
+            path: 'all',
             loadComponent: () => import('./presentation/components/user-management.component').then(m => m.UserManagementComponent),
-            title: 'Quản lý người dùng'
+            title: 'Tất cả người dùng'
+          },
+          {
+            path: 'admins',
+            loadComponent: () => import('./presentation/components/admin-user-management.component').then(m => m.AdminUserManagementComponent),
+            title: 'Quản lý Quản trị viên'
+          },
+          {
+            path: 'teachers',
+            loadComponent: () => import('./presentation/components/teacher-management.component').then(m => m.TeacherManagementComponent),
+            title: 'Quản lý Giảng viên'
+          },
+          {
+            path: 'students',
+            loadComponent: () => import('./presentation/components/student-management.component').then(m => m.StudentManagementComponent),
+            title: 'Quản lý Học viên'
           }
         ]
       },

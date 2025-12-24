@@ -98,13 +98,14 @@ export interface AdminUser {
   statusReason?: string; // NEW: Reason for blocking/restricting
   lastLogin: Date;
   loginCount: number;
-  coursesCreated?: number;
-  coursesEnrolled?: number;
+  coursesCreated?: number;  // For TEACHER: courses they own
+  coursesCooped?: number;   // For TEACHER: courses they are invited as co-op
+  coursesEnrolled?: number; // For STUDENT
   totalSpent?: number;
   permissions: string[];
 }
 
-// Backend User interface
+// Backend User interface - matches AdminUserDTO from backend
 export interface BackendUser {
   id: string;
   username: string;
@@ -112,6 +113,13 @@ export interface BackendUser {
   fullName: string;
   role: 'ADMIN' | 'TEACHER' | 'STUDENT';
   enabled: boolean;
+  accountStatus?: string;  // ACTIVE, BLOCKED, RESTRICTED
+  statusReason?: string;
+  lastLogin?: string;      // ISO timestamp
+  loginCount?: number;
+  coursesCreated?: number;  // For TEACHER: courses they own
+  coursesCooped?: number;   // For TEACHER: courses they are invited as co-op
+  coursesEnrolled?: number; // For STUDENT
   createdAt: string;
   updatedAt?: string;
 }
@@ -320,12 +328,20 @@ export class AdminService {
       map(response => {
         console.log('[ADMIN SERVICE] ✅ Users loaded successfully:', response);
 
-        // Backend returns Spring Boot Page format: {data: {content: [...], totalElements: ...}, pagination: {...}}
         // Extract the actual user array from content
         const responseData = response.data as any;
         const backendUsers: BackendUser[] = Array.isArray(response.data)
           ? response.data
           : (responseData?.content || responseData?.data || []);
+
+        // DEBUG: Log raw data to verify coursesCooped is coming from backend
+        console.log('[ADMIN SERVICE DEBUG] Raw backend users (first 2):',
+          backendUsers.slice(0, 2).map(u => ({
+            fullName: u.fullName,
+            coursesCreated: u.coursesCreated,
+            coursesCooped: u.coursesCooped
+          }))
+        );
 
         // Convert BackendUser to AdminUser
         const users: AdminUser[] = backendUsers.map((u: BackendUser) => this.mapBackendUserToAdminUser(u));
@@ -522,10 +538,73 @@ export class AdminService {
   }
 
   // ============================================
+  // USER COURSES (Admin view)
+  // ============================================
+
+  /**
+   * Get enrolled courses for a student (Admin view)
+   */
+  getUserEnrolledCourses(userId: string): Observable<AdminCourseSummary[]> {
+    console.log('[ADMIN SERVICE] 📚 Getting enrolled courses for user:', userId);
+    return this.apiClient.getWithResponse<AdminCourseSummary[]>(ADMIN_ENDPOINTS.USER_ENROLLED_COURSES(userId)).pipe(
+      map(response => {
+        console.log('[ADMIN SERVICE] ✅ Enrolled courses loaded:', response.data);
+        return response.data || [];
+      }),
+      catchError(error => {
+        console.error('[ADMIN SERVICE] ❌ Error loading enrolled courses:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Get managed courses for a teacher (Admin view)
+   */
+  getUserManagedCourses(userId: string): Observable<AdminCourseSummary[]> {
+    console.log('[ADMIN SERVICE] 📚 Getting managed courses for user:', userId);
+    return this.apiClient.getWithResponse<AdminCourseSummary[]>(ADMIN_ENDPOINTS.USER_MANAGED_COURSES(userId)).pipe(
+      map(response => {
+        console.log('[ADMIN SERVICE] ✅ Managed courses loaded:', response.data);
+        return response.data || [];
+      }),
+      catchError(error => {
+        console.error('[ADMIN SERVICE] ❌ Error loading managed courses:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Get co-op courses for a teacher (courses where they are invited as teaching staff)
+   */
+  getUserCoopCourses(userId: string): Observable<AdminCourseSummary[]> {
+    console.log('[ADMIN SERVICE] 📚 Getting co-op courses for user:', userId);
+    return this.apiClient.getWithResponse<AdminCourseSummary[]>(ADMIN_ENDPOINTS.USER_COOP_COURSES(userId)).pipe(
+      map(response => {
+        console.log('[ADMIN SERVICE] ✅ Co-op courses loaded:', response.data);
+        return response.data || [];
+      }),
+      catchError(error => {
+        console.error('[ADMIN SERVICE] ❌ Error loading co-op courses:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  // ============================================
   // HELPER METHODS
   // ============================================
 
   private mapBackendUserToAdminUser(backendUser: BackendUser): AdminUser {
+    // Map accountStatus from backend or derive from enabled flag
+    let accountStatus = UserAccountStatus.ACTIVE;
+    if (backendUser.accountStatus) {
+      accountStatus = backendUser.accountStatus as UserAccountStatus;
+    } else if (!backendUser.enabled) {
+      accountStatus = UserAccountStatus.BLOCKED;
+    }
+
     return {
       id: backendUser.id,
       email: backendUser.email,
@@ -534,11 +613,14 @@ export class AdminService {
       createdAt: new Date(backendUser.createdAt),
       updatedAt: backendUser.updatedAt ? new Date(backendUser.updatedAt) : new Date(),
       isActive: backendUser.enabled,
-      // Map enabled to accountStatus: enabled=true → ACTIVE, else BLOCKED
-      accountStatus: backendUser.enabled ? UserAccountStatus.ACTIVE : UserAccountStatus.BLOCKED,
-      statusReason: undefined, // TODO: Backend needs to return this field
-      lastLogin: new Date(),
-      loginCount: 0,
+      accountStatus: accountStatus,
+      statusReason: backendUser.statusReason,
+      // Use actual data from backend instead of hardcoded values
+      lastLogin: backendUser.lastLogin ? new Date(backendUser.lastLogin) : new Date(),
+      loginCount: backendUser.loginCount ?? 0,
+      coursesCreated: backendUser.coursesCreated ?? 0,
+      coursesCooped: backendUser.coursesCooped ?? 0,
+      coursesEnrolled: backendUser.coursesEnrolled ?? 0,
       permissions: this.getPermissionsForRole(backendUser.role)
     };
   }

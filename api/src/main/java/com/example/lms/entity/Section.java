@@ -44,6 +44,15 @@ public class Section {
     @Column(name = "video_url", length = 500)
     private String videoUrl;
 
+    // Cloudflare R2 integration fields
+    // videoType: YOUTUBE | CLOUDFLARE (optional for backward compatibility)
+    @Column(name = "video_type", length = 20)
+    private String videoType;
+
+    // Object key in R2 bucket, e.g., lessons/{lessonId}/{uuid}.mp4
+    @Column(name = "cf_object_key", length = 512)
+    private String cfObjectKey;
+
     @Column(name = "file_url", length = 500)
     private String fileUrl;
     

@@ -9,6 +9,7 @@ interface NavigationItem {
   route: string;
   badge?: string | number;
   isActive?: boolean;
+  isExpanded?: boolean;
   children?: NavigationItem[];
 }
 
@@ -56,22 +57,70 @@ interface NavigationItem {
       <!-- Navigation với scrolling -->
       <nav class="sidebar-nav">
         @for (item of navigationItems(); track item.route) {
-          <a [routerLink]="item.route"
-             routerLinkActive="nav-item-active"
-             [routerLinkActiveOptions]="{exact: false}"
-             class="nav-item">
-            <div class="flex items-center space-x-3">
-              <div class="nav-icon" [class]="getIconBgClass(item)">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" [attr.d]="item.icon"></path>
+          @if (item.children && item.children.length > 0) {
+            <!-- Parent with children (dropdown) -->
+            <div class="nav-group">
+              <button (click)="toggleSubmenu(item)" 
+                      class="nav-item nav-parent w-full"
+                      [class.nav-parent-active]="isParentActive(item)">
+                <div class="flex items-center space-x-3">
+                  <div class="nav-icon" [class]="getIconBgClass(item)">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" [attr.d]="item.icon"></path>
+                    </svg>
+                  </div>
+                  <span class="nav-label">{{ item.label }}</span>
+                </div>
+                <svg class="w-4 h-4 transition-transform duration-200" 
+                     [class.rotate-180]="item.isExpanded"
+                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                 </svg>
-              </div>
-              <span class="nav-label">{{ item.label }}</span>
+              </button>
+              
+              <!-- Submenu -->
+              @if (item.isExpanded) {
+                <div class="nav-submenu">
+                  @for (child of item.children; track child.route) {
+                    <a [routerLink]="child.route"
+                       routerLinkActive="nav-item-active"
+                       [routerLinkActiveOptions]="{exact: true}"
+                       class="nav-subitem">
+                      <div class="flex items-center space-x-3">
+                        <div class="nav-subicon" [class]="getSubIconClass(child)">
+                          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" [attr.d]="child.icon"></path>
+                          </svg>
+                        </div>
+                        <span class="nav-sublabel">{{ child.label }}</span>
+                      </div>
+                      @if (child.badge) {
+                        <span class="nav-badge-small">{{ child.badge }}</span>
+                      }
+                    </a>
+                  }
+                </div>
+              }
             </div>
-            @if (item.badge) {
-              <span class="nav-badge">{{ item.badge }}</span>
-            }
-          </a>
+          } @else {
+            <!-- Regular nav item -->
+            <a [routerLink]="item.route"
+               routerLinkActive="nav-item-active"
+               [routerLinkActiveOptions]="{exact: false}"
+               class="nav-item">
+              <div class="flex items-center space-x-3">
+                <div class="nav-icon" [class]="getIconBgClass(item)">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" [attr.d]="item.icon"></path>
+                  </svg>
+                </div>
+                <span class="nav-label">{{ item.label }}</span>
+              </div>
+              @if (item.badge) {
+                <span class="nav-badge">{{ item.badge }}</span>
+              }
+            </a>
+          }
         }
       </nav>
 
@@ -303,6 +352,120 @@ interface NavigationItem {
       background: #f1f5f9;
       color: #64748b;
     }
+
+    /* Dropdown Navigation Styles */
+    .nav-group {
+      margin-bottom: 0.25rem;
+    }
+
+    .nav-parent {
+      border: none;
+      background: transparent;
+      text-align: left;
+    }
+
+    .nav-parent-active {
+      background: #f1f5f9;
+      color: #0369a1;
+    }
+
+    .nav-submenu {
+      margin-left: 1rem;
+      padding-left: 0.75rem;
+      border-left: 2px solid #e2e8f0;
+      margin-top: 0.25rem;
+      animation: slideDown 0.2s ease-out;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .nav-subitem {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.5rem 0.75rem;
+      margin-bottom: 0.125rem;
+      border-radius: 0.375rem;
+      color: #64748b;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .nav-subitem:hover {
+      background: #f1f5f9;
+      color: #0369a1;
+    }
+
+    .nav-subitem.nav-item-active {
+      background: linear-gradient(135deg, #0c4a6e 0%, #0369a1 100%);
+      color: white;
+    }
+
+    .nav-subicon {
+      width: 1.5rem;
+      height: 1.5rem;
+      border-radius: 0.375rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+
+    .nav-sublabel {
+      flex: 1;
+      margin-left: 0.5rem;
+    }
+
+    .nav-badge-small {
+      padding: 0.0625rem 0.375rem;
+      background: #ef4444;
+      color: white;
+      font-size: 0.625rem;
+      font-weight: 700;
+      border-radius: 9999px;
+    }
+
+    /* Subicon Colors */
+    .subicon-all {
+      background: #dbeafe;
+      color: #2563eb;
+    }
+
+    .subicon-admin {
+      background: #fef3c7;
+      color: #d97706;
+    }
+
+    .subicon-teacher {
+      background: #d1fae5;
+      color: #059669;
+    }
+
+    .subicon-student {
+      background: #e0e7ff;
+      color: #4f46e5;
+    }
+
+    .subicon-default {
+      background: #f1f5f9;
+      color: #64748b;
+    }
+
+    .rotate-180 {
+      transform: rotate(180deg);
+    }
   `]
 })
 export class AdminSidebarComponent {
@@ -329,7 +492,29 @@ export class AdminSidebarComponent {
       label: 'Người dùng',
       icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M15 7a3 3 0 11-6 0 3 3 0 016 0z',
       route: '/admin/users',
-      isActive: false
+      isExpanded: false,
+      children: [
+        {
+          label: 'Tất cả người dùng',
+          icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z',
+          route: '/admin/users/all'
+        },
+        {
+          label: 'Quản trị viên',
+          icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z',
+          route: '/admin/users/admins'
+        },
+        {
+          label: 'Giảng viên',
+          icon: 'M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z',
+          route: '/admin/users/teachers'
+        },
+        {
+          label: 'Học viên',
+          icon: 'M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222',
+          route: '/admin/users/students'
+        }
+      ]
     },
     {
       label: 'Khóa học',
@@ -398,6 +583,32 @@ export class AdminSidebarComponent {
       '/admin/ai-knowledge': 'icon-courses'
     };
     return routeColorMap[item.route] || 'icon-default';
+  }
+
+  getSubIconClass(item: NavigationItem): string {
+    const routeColorMap: { [key: string]: string } = {
+      '/admin/users/all': 'subicon-all',
+      '/admin/users/admins': 'subicon-admin',
+      '/admin/users/teachers': 'subicon-teacher',
+      '/admin/users/students': 'subicon-student'
+    };
+    return routeColorMap[item.route] || 'subicon-default';
+  }
+
+  toggleSubmenu(item: NavigationItem): void {
+    // Toggle isExpanded for the clicked item
+    const items = this.navigationItems();
+    const updatedItems = items.map(navItem => {
+      if (navItem.route === item.route) {
+        return { ...navItem, isExpanded: !navItem.isExpanded };
+      }
+      return navItem;
+    });
+    this.navigationItems.set(updatedItems);
+  }
+
+  isParentActive(item: NavigationItem): boolean {
+    return this.router.url.startsWith(item.route);
   }
 
   isSubMenuOpen(item: NavigationItem): boolean {

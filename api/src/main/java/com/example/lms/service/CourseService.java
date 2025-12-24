@@ -3,11 +3,14 @@ package com.example.lms.service;
 import com.example.lms.entity.Course;
 import com.example.lms.entity.Section;
 import com.example.lms.entity.User;
-import com.example.lms.entity.Category; // Added
-import com.example.lms.repository.CategoryRepository; // Added
+import com.example.lms.entity.Category;
+import com.example.lms.entity.AdminAuditLog;
+import com.example.lms.repository.CategoryRepository;
 import com.example.lms.repository.CourseRepository;
 import com.example.lms.repository.UserRepository;
+import com.example.lms.repository.EnrollmentRepository;
 import com.example.lms.dto.response.BulkEnrollmentResponse;
+import com.example.lms.util.AuthorizationHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -24,7 +27,9 @@ public class CourseService {
 
     private final CourseRepository courseRepository;
     private final UserRepository userRepository;
-    private final CategoryRepository categoryRepository; // Added
+    private final CategoryRepository categoryRepository;
+    private final AdminAuditService adminAuditService;
+    private final EnrollmentRepository enrollmentRepository;
 
     public Page<Course> getApprovedCourses(Pageable pageable, String search, String teacher) {
         if (search != null && !search.trim().isEmpty()) {
@@ -77,15 +82,45 @@ public class CourseService {
 
     /**
      * OPTIMIZED: Get courses with DTO Projection (single query).
-     * Use this instead of getCoursesByTeacher when only CourseSummary fields are needed.
+     * SOTA: Now includes both OWNED courses AND courses where user is ACCEPTED CO-INSTRUCTOR.
      */
     public Page<com.example.lms.dto.CourseSummaryDTO> getCoursesSummaryByTeacher(User teacher, Pageable pageable) {
-        return courseRepository.findCourseSummariesByTeacher(teacher, pageable);
+        // SOTA: Use combined query that includes co-instructor courses
+        return courseRepository.findCourseSummariesByTeacherOrInstructor(teacher, pageable);
     }
 
     public Page<Course> getEnrolledCourses(User student, Pageable pageable) {
-        // Use query with JOIN FETCH to eagerly load teacher and avoid LazyInitializationException
-        return courseRepository.findEnrolledCoursesWithTeacher(student, pageable);
+        // SOTA: Check BOTH enrollment mechanisms and merge results
+        // 1. Old: Course.enrolledStudents (direct many-to-many)
+        Page<Course> coursesOldWay = courseRepository.findEnrolledCoursesWithTeacher(student, pageable);
+        
+        // 2. New: Enrollment table via LearningClass
+        // Get courses where student has an active enrollment in any of the class
+        java.util.List<UUID> courseIdsFromEnrollment = enrollmentRepository
+            .findByStudentId(student.getId())
+            .stream()
+            .map(e -> e.getLearningClass().getCourse().getId())
+            .distinct()
+            .collect(java.util.stream.Collectors.toList());
+        
+        // Merge: Add courses from new way to the result
+        java.util.Set<UUID> existingCourseIds = coursesOldWay.getContent().stream()
+            .map(Course::getId)
+            .collect(java.util.stream.Collectors.toSet());
+        
+        java.util.List<Course> allCourses = new java.util.ArrayList<>(coursesOldWay.getContent());
+        
+        // Add courses that are only enrolled via LearningClass (not in enrolledStudents)
+        for (UUID courseId : courseIdsFromEnrollment) {
+            if (!existingCourseIds.contains(courseId)) {
+                courseRepository.findById(courseId).ifPresent(allCourses::add);
+            }
+        }
+        
+        // Return as Page (simplified - full pagination would need more complex handling)
+        return new org.springframework.data.domain.PageImpl<>(
+            allCourses, pageable, allCourses.size() + coursesOldWay.getTotalElements() - coursesOldWay.getContent().size()
+        );
     }
 
     public Course getCourseById(UUID courseId) {
@@ -309,13 +344,29 @@ public class CourseService {
         Course course = courseRepository.findByIdWithSectionsAndLessons(courseId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học với ID: " + courseId));
         
-        // Check access permissions
-        boolean isTeacher = course.getTeacher() != null && course.getTeacher().getId().equals(currentUser.getId());
-        boolean isEnrolled = courseRepository.existsByEnrolledStudentAndCourse(currentUser.getId(), courseId);
-        boolean hasAccess = isTeacher || isEnrolled;
+        // Authorization check using AuthorizationHelper
+        // Check BOTH enrollment mechanisms:
+        // 1. Old: Course.enrolledStudents (direct many-to-many)
+        // 2. New: Enrollment table via LearningClass
+        boolean isAdmin = AuthorizationHelper.isAdmin(currentUser);
+        boolean isEnrolledOldWay = courseRepository.existsByEnrolledStudentAndCourse(currentUser.getId(), courseId);
+        boolean isEnrolledNewWay = enrollmentRepository.existsByStudentIdAndClassCourseId(currentUser.getId(), courseId);
+        boolean isEnrolled = isEnrolledOldWay || isEnrolledNewWay;
         
-        if (!hasAccess) {
+        if (!AuthorizationHelper.canViewCourse(course, currentUser, isEnrolled)) {
             throw new RuntimeException("Bạn không có quyền truy cập nội dung khóa học này");
+        }
+        
+        // AUDIT LOG: Log when Admin views Teacher's course content
+        if (isAdmin && course.getTeacher() != null && 
+            !course.getTeacher().getId().equals(currentUser.getId())) {
+            adminAuditService.logAction(
+                currentUser,
+                AdminAuditLog.AuditAction.VIEW_COURSE_CONTENT,
+                AdminAuditLog.TargetType.COURSE,
+                courseId,
+                course.getTeacher()
+            );
         }
 
         // Chapters are loaded via JOIN FETCH, sort them

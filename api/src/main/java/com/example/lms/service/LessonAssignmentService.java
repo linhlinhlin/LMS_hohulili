@@ -7,6 +7,7 @@ import com.example.lms.entity.User;
 import com.example.lms.repository.AssignmentRepository;
 import com.example.lms.repository.LessonAssignmentRepository;
 import com.example.lms.repository.LessonRepository;
+import com.example.lms.util.AuthorizationHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,8 +34,8 @@ public class LessonAssignmentService {
         Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài tập với ID: " + assignmentId));
 
-        // Permission check: only the teacher who owns the course can link assignments
-        if (!lesson.getChapter().getCourse().getTeacher().getId().equals(currentUser.getId())) {
+        // SOTA: Admin super access + Owner check
+        if (!AuthorizationHelper.isOwnerOrAdmin(lesson.getChapter().getCourse(), currentUser)) {
             throw new RuntimeException("Bạn không có quyền liên kết bài tập với bài học này");
         }
 
@@ -58,8 +59,8 @@ public class LessonAssignmentService {
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài học với ID: " + lessonId));
 
-        // Permission check
-        if (!lesson.getChapter().getCourse().getTeacher().getId().equals(currentUser.getId())) {
+        // SOTA: Admin super access + Owner check
+        if (!AuthorizationHelper.isOwnerOrAdmin(lesson.getChapter().getCourse(), currentUser)) {
             throw new RuntimeException("Bạn không có quyền hủy liên kết bài tập với bài học này");
         }
 
@@ -73,8 +74,8 @@ public class LessonAssignmentService {
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài học với ID: " + lessonId));
 
-        // Permission check
-        if (!lesson.getChapter().getCourse().getTeacher().getId().equals(currentUser.getId())) {
+        // SOTA: Admin super access + Owner check
+        if (!AuthorizationHelper.isOwnerOrAdmin(lesson.getChapter().getCourse(), currentUser)) {
             throw new RuntimeException("Bạn không có quyền xem danh sách bài tập của bài học này");
         }
 

@@ -61,6 +61,13 @@ public class User implements UserDetails {
 
     @Column(name = "status_reason", length = 500)
     private String statusReason;
+
+    // Activity tracking fields
+    @Column(name = "last_login")
+    private Instant lastLogin;
+
+    @Column(name = "login_count")
+    private Integer loginCount = 0;
     
     @Column(nullable = false)
     private Instant createdAt = Instant.now();
@@ -175,6 +182,8 @@ public class User implements UserDetails {
     public Boolean getEnabled() { return enabled; }
     public AccountStatus getAccountStatus() { return accountStatus; }
     public String getStatusReason() { return statusReason; }
+    public Instant getLastLogin() { return lastLogin; }
+    public Integer getLoginCount() { return loginCount != null ? loginCount : 0; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     
@@ -191,6 +200,14 @@ public class User implements UserDetails {
     public void setAccountStatus(AccountStatus accountStatus) { this.accountStatus = accountStatus; }
     public void setStatusReason(String statusReason) { this.statusReason = statusReason; }
     public void setEnrolledCourses(Set<Course> enrolledCourses) { this.enrolledCourses = enrolledCourses; }
+    public void setLastLogin(Instant lastLogin) { this.lastLogin = lastLogin; }
+    public void setLoginCount(Integer loginCount) { this.loginCount = loginCount; }
+    
+    // Helper method to record login
+    public void recordLogin() {
+        this.lastLogin = Instant.now();
+        this.loginCount = (this.loginCount != null ? this.loginCount : 0) + 1;
+    }
     public Set<Course> getEnrolledCourses() { return enrolledCourses; }
 
     @Override

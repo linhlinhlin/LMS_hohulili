@@ -115,7 +115,7 @@ export class StudentDashboardComponent implements OnInit {
       progress: course.progress,
       completedLessons: course.completedLessons,
       totalLessons: course.totalLessons,
-      status: course.status as 'in-progress' | 'completed',
+      status: (course.status === 'enrolled' ? 'in-progress' : course.status) as 'in-progress' | 'completed',
       estimatedCompletion: course.status === 'completed' ? 'Completed' : 'Đang học',
       showModules: expanded.has(course.id),
       nextItem: {
@@ -241,17 +241,17 @@ export class StudentDashboardComponent implements OnInit {
     }
   ]);
 
-  // Computed - Get 2 recent in-progress + 2 recent completed
+  // Computed - Get recent in-progress + enrolled courses (show more for dashboard)
   recentInProgress = computed(() =>
     this.courses()
-      .filter(c => c.status === 'in-progress')
-      .slice(0, 2)
+      .filter(c => c.status === 'in-progress') // enrolled is already normalized to in-progress
+      .slice(0, 10) // Show up to 10 courses on dashboard
   );
 
   recentCompleted = computed(() =>
     this.courses()
       .filter(c => c.status === 'completed')
-      .slice(0, 2)
+      .slice(0, 5) // Show up to 5 completed courses
   );
 
   // Use enrollment service stats as computed signals
