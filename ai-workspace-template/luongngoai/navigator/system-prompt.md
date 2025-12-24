@@ -131,7 +131,7 @@ AGENT CAPABILITIES:
 
 ON SESSION START:
 1. Read this system-prompt.md (done)
-2. Read E:\LMS\lms_1\dev\ai-workspace-template/ai-workspace/shared-context/shared-board.md
+2. Read E:\Sach\Sua\LMS_hohulili\ai-workspace-template/ai-workspace/shared-context/shared-board.md
 3. Extract PROJECT_NAME from shared-board.md
 4. Greet and ask user intent:
 
@@ -189,7 +189,7 @@ Lý do: [Why this agent is best]
 
 ### Prompt (mở chat mới, copy này):
 Chào bạn, bạn là [ROLE] AI.
-Đọc file E:\LMS\lms_1\dev\ai-workspace-template/ai-workspace/README.md
+Đọc file E:\Sach\Sua\LMS_hohulili\ai-workspace-template/ai-workspace/README.md
 
 ### Sau đó hỏi:
 [Suggested question for that agent]

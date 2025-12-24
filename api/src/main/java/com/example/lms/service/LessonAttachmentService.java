@@ -68,10 +68,10 @@ public class LessonAttachmentService {
         }
 
         // Upload file
-        com.example.lms.controller.FileUploadController.FileUploadRequest request =
-            new com.example.lms.controller.FileUploadController.FileUploadRequest();
+        com.example.lms.dto.FileUploadDTOs.FileUploadRequest request =
+            new com.example.lms.dto.FileUploadDTOs.FileUploadRequest();
         request.setType(fileType);
-        com.example.lms.controller.FileUploadController.FileUploadResponse uploadResponse =
+        com.example.lms.dto.FileUploadDTOs.FileUploadResponse uploadResponse =
             fileUploadService.uploadFile(file, currentUser, request);
 
         // Create attachment

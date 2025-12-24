@@ -44,21 +44,16 @@ public class ClassController {
     @GetMapping("/courses/{courseId}/classes/available")
     @Operation(summary = "Lấy danh sách lớp học đang mở", description = "Lấy danh sách các lớp học trạng thái OPEN cho một khóa học")
     public ResponseEntity<ApiResponse<List<ClassSummaryDTO>>> getAvailableClasses(@PathVariable UUID courseId) {
-        List<LearningClass> classes = classService.getOpenClasses(courseId);
-        List<ClassSummaryDTO> dtos = classes.stream()
-            .map(this::mapToSummary)
-            .collect(Collectors.toList());
-            
+        // Use optimized service method that returns DTOs directly - avoids LazyInitializationException
+        List<ClassSummaryDTO> dtos = classService.getOpenClassSummaries(courseId);
         return ResponseEntity.ok(ApiResponse.success(dtos));
     }
 
     @GetMapping("/courses/{courseId}/classes")
     @Operation(summary = "Lấy danh sách tất cả lớp học", description = "Lấy danh sách tất cả các lớp học của khóa học (cho Teacher)")
     public ResponseEntity<ApiResponse<List<ClassSummaryDTO>>> getAllClasses(@PathVariable UUID courseId) {
-        List<LearningClass> classes = classService.getAllClassesByCourse(courseId);
-        List<ClassSummaryDTO> dtos = classes.stream()
-            .map(this::mapToSummary)
-            .collect(Collectors.toList());
+        // Use optimized service method that returns DTOs directly - avoids LazyInitializationException
+        List<ClassSummaryDTO> dtos = classService.getAllClassSummaries(courseId);
         return ResponseEntity.ok(ApiResponse.success(dtos));
     }
 

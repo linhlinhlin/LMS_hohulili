@@ -301,19 +301,24 @@ interface BulkImportProgress {
                       <!-- Thao tác -->
                       <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                         <div class="flex items-center justify-center space-x-1">
-                          <button (click)="toggleUserStatus(user.id)"
-                                  [class]="user.isActive ? 'p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors' : 'p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded transition-colors'"
-                                  [title]="user.isActive ? 'Khóa tài khoản' : 'Mở khóa tài khoản'">
-                            @if (user.isActive) {
-                              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"></path>
-                              </svg>
-                            } @else {
-                              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                              </svg>
-                            }
-                          </button>
+                          <!-- Status Actions Dropdown -->
+                          <div class="relative inline-block">
+                            <select 
+                                    (change)="onStatusActionChange(user, $any($event.target).value); $any($event.target).value = ''"
+                                    class="text-xs px-2 py-1 border border-gray-300 rounded bg-white cursor-pointer hover:border-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                    title="Thay đổi trạng thái">
+                              <option value="" disabled selected>Trạng thái</option>
+                              @if (user.accountStatus !== 'ACTIVE') {
+                                <option value="ACTIVE">✓ Kích hoạt</option>
+                              }
+                              @if (user.accountStatus !== 'BLOCKED') {
+                                <option value="BLOCKED">🔒 Khóa</option>
+                              }
+                              @if (user.accountStatus !== 'RESTRICTED') {
+                                <option value="RESTRICTED">⚠️ Hạn chế</option>
+                              }
+                            </select>
+                          </div>
                           <button (click)="deleteUser(user.id)"
                                   class="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                                   title="Vô hiệu hóa tài khoản">
@@ -326,11 +331,16 @@ interface BulkImportProgress {
                       <!-- Trạng thái -->
                       <td class="px-6 py-4 whitespace-nowrap">
                         <span class="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded"
-                              [class]="user.isActive ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-gray-50 text-gray-700 border border-gray-200'">
+                              [class]="getStatusBadgeClass(user.accountStatus)">
                           <span class="w-1.5 h-1.5 rounded-full mr-1.5"
-                                [class]="user.isActive ? 'bg-green-500' : 'bg-gray-400'"></span>
-                          {{ user.isActive ? 'Hoạt động' : 'Không hoạt động' }}
+                                [class]="getStatusDotClass(user.accountStatus)"></span>
+                          {{ getStatusLabel(user.accountStatus) }}
                         </span>
+                        @if (user.statusReason) {
+                          <div class="text-xs text-gray-500 mt-1 max-w-[120px] truncate" [title]="user.statusReason">
+                            {{ user.statusReason }}
+                          </div>
+                        }
                       </td>
                       <!-- Hoạt động cuối -->
                       <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-600">
@@ -805,7 +815,7 @@ export class UserManagementComponent implements OnInit {
     { value: 'TEACHER', label: 'Giảng viên' },
     { value: 'STUDENT', label: 'Học viên' }
   ] as const;
-  
+
   // Make UserRole available in template
   UserRole = UserRole;
 
@@ -850,7 +860,7 @@ export class UserManagementComponent implements OnInit {
   // Computed properties
   isLoadingUsers = signal(false);
   isDeletingUser = signal(false);
-  
+
   totalUsers = this.adminService.totalUsers;
   totalTeachers = this.adminService.totalTeachers;
   totalStudents = this.adminService.totalStudents;
@@ -898,7 +908,7 @@ export class UserManagementComponent implements OnInit {
   loadUsers(page: number = 1, limit: number = 10): void {
     this.currentPage.set(page);
     this.isLoadingUsers.set(true);
-    
+
     const params: any = {
       page: page,
       limit: limit
@@ -932,18 +942,18 @@ export class UserManagementComponent implements OnInit {
       next: (response) => {
         console.log('✅ Users loaded successfully:', response);
         console.log('📊 First user role:', response.data?.[0]?.role, 'Type:', typeof response.data?.[0]?.role);
-        
+
         // Normalize roles to uppercase
         const normalizedUsers = (response.data || []).map((user: any) => ({
           ...user,
           role: user.role?.toUpperCase() || user.role
         }));
-        
+
         console.log('📊 After normalize:', normalizedUsers[0]?.role);
-        
+
         // Update local users signal
         this._localUsers.set(normalizedUsers);
-        
+
         // Update pagination info
         if (response.pagination) {
           this.pagination.set({
@@ -955,7 +965,7 @@ export class UserManagementComponent implements OnInit {
             last: page === (response.pagination.totalPages || 1)
           });
         }
-        
+
         this.isLoadingUsers.set(false);
       },
       error: (error) => {
@@ -1138,12 +1148,12 @@ export class UserManagementComponent implements OnInit {
       next: (response) => {
         const currentPageInfo = this.pagination();
         const currentFilteredCount = this.filteredUsers().length;
-        
+
         let targetPage = this.currentPage();
         if (currentFilteredCount === 1 && currentPageInfo && currentPageInfo.page > 1) {
           targetPage = currentPageInfo.page - 1;
         }
-        
+
         this.loadUsers(targetPage);
         this.isDeletingUser.set(false);
         alert('Người dùng đã được vô hiệu hóa');
@@ -1158,7 +1168,7 @@ export class UserManagementComponent implements OnInit {
 
   onRoleChange(userId: string, oldRole: string, newRole: string): void {
     console.log('[ROLE CHANGE]', { userId, oldRole, newRole, oldType: typeof oldRole, newType: typeof newRole });
-    
+
     // If role didn't actually change, do nothing
     if (oldRole === newRole) {
       console.log('[ROLE CHANGE] No change detected');
@@ -1181,7 +1191,7 @@ export class UserManagementComponent implements OnInit {
       next: (response) => {
         console.log('User role updated:', response);
         alert(`Vai trò đã được thay đổi thành ${this.getRoleText(newRole)} thành công!`);
-        
+
         // Update local state for smooth UI
         const users = this._localUsers();
         const idx = users.findIndex(u => u.id === userId);
@@ -1189,14 +1199,14 @@ export class UserManagementComponent implements OnInit {
           users[idx] = { ...users[idx], role: newRole };
           this._localUsers.set([...users]);
         }
-        
+
         // Optional: reload to sync with backend
         // this.loadUsers(this.currentPage());
       },
       error: (error) => {
         console.error('Error updating user role:', error);
         alert('Không thể thay đổi vai trò. Vui lòng thử lại.');
-        
+
         // Revert to old role on error
         const users = this._localUsers();
         const idx = users.findIndex(u => u.id === userId);
@@ -1413,7 +1423,7 @@ export class UserManagementComponent implements OnInit {
     this.adminService.bulkImportUsers(file, this.defaultImportRole() as 'ADMIN' | 'TEACHER' | 'STUDENT').subscribe({
       next: (response: any) => {
         console.log('Bulk import completed:', response);
-        
+
         this.bulkImportProgress.set({
           isImporting: false,
           progress: 100,
@@ -1521,6 +1531,102 @@ export class UserManagementComponent implements OnInit {
     }
   }
 
+  // ============================================
+  // STATUS BADGE HELPERS - BLOCKED/RESTRICTED/ACTIVE
+  // ============================================
+
+  getStatusBadgeClass(status: string): string {
+    switch (status) {
+      case 'ACTIVE':
+        return 'bg-green-50 text-green-700 border border-green-200';
+      case 'BLOCKED':
+        return 'bg-red-50 text-red-700 border border-red-200';
+      case 'RESTRICTED':
+        return 'bg-yellow-50 text-yellow-700 border border-yellow-200';
+      default:
+        return 'bg-gray-50 text-gray-700 border border-gray-200';
+    }
+  }
+
+  getStatusDotClass(status: string): string {
+    switch (status) {
+      case 'ACTIVE':
+        return 'bg-green-500';
+      case 'BLOCKED':
+        return 'bg-red-500';
+      case 'RESTRICTED':
+        return 'bg-yellow-500';
+      default:
+        return 'bg-gray-400';
+    }
+  }
+
+  getStatusLabel(status: string): string {
+    switch (status) {
+      case 'ACTIVE':
+        return 'Hoạt động';
+      case 'BLOCKED':
+        return 'Đã khóa';
+      case 'RESTRICTED':
+        return 'Hạn chế';
+      default:
+        return 'Không xác định';
+    }
+  }
+
+  onStatusActionChange(user: AdminUser, newStatus: string): void {
+    if (!newStatus) return;
+
+    const statusLabels: { [key: string]: string } = {
+      'ACTIVE': 'Kích hoạt',
+      'BLOCKED': 'Khóa',
+      'RESTRICTED': 'Hạn chế'
+    };
+
+    const statusLabel = statusLabels[newStatus] || newStatus;
+    const reasonPrompt = newStatus !== 'ACTIVE'
+      ? `\n\nVui lòng nhập lý do ${statusLabel.toLowerCase()}:`
+      : '';
+
+    // Simple confirmation with prompt for reason
+    const confirmed = window.confirm(
+      `Bạn có chắc muốn ${statusLabel.toLowerCase()} tài khoản của "${user.name}"?${reasonPrompt}`
+    );
+
+    if (!confirmed) return;
+
+    // Get reason if blocking/restricting
+    let reason = '';
+    if (newStatus !== 'ACTIVE') {
+      reason = window.prompt(`Nhập lý do ${statusLabel.toLowerCase()} tài khoản:`) || '';
+      if (!reason) {
+        alert('Vui lòng nhập lý do!');
+        return;
+      }
+    }
+
+    // Call service (will fail if backend not ready, but UI is prepared)
+    console.log(`[UserManagement] Updating user ${user.id} status to ${newStatus}, reason: ${reason}`);
+
+    // TODO: Uncomment when backend is ready
+    // this.adminService.updateUserStatus(user.id, { status: newStatus as any, reason }).subscribe({
+    //   next: (response) => {
+    //     alert(`Đã ${statusLabel.toLowerCase()} tài khoản thành công!`);
+    //     this.loadUsers();
+    //   },
+    //   error: (error) => {
+    //     alert(`Lỗi: ${error.message || 'Không thể cập nhật trạng thái'}`);
+    //   }
+    // });
+
+    // Temporary: Use toggleUserStatus as fallback for ACTIVE/BLOCKED
+    if (newStatus === 'ACTIVE' || newStatus === 'BLOCKED') {
+      this.toggleUserStatus(user.id);
+    } else {
+      alert(`Chức năng "${statusLabel}" đang phát triển. Backend chưa hỗ trợ.`);
+    }
+  }
+
   getRoleText(role: string): string {
     return this.ROLE_OPTIONS.find(r => r.value === role)?.label ?? role;
   }
@@ -1542,7 +1648,7 @@ export class UserManagementComponent implements OnInit {
   formatBulkImportError(error: any, email: string): string {
     // Extract meaningful error message from API response
     let errorMessage = '';
-    
+
     // Try to get error from different possible locations
     if (error?.error?.message) {
       errorMessage = error.error.message;
@@ -1565,7 +1671,7 @@ export class UserManagementComponent implements OnInit {
       const username = email.split('@')[0];
       return `Email "${email}" đã được sử dụng (username: ${username})`;
     }
-    
+
     if (errorMessage.includes('Email đã tồn tại') || errorMessage.includes('email already exists')) {
       return `Email "${email}" đã tồn tại trong hệ thống`;
     }

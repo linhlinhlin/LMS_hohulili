@@ -67,10 +67,10 @@ import { AssignmentApi, AssignmentDetail, SubmissionDetail, CreateSubmissionRequ
                     {{ formatDate(assignment()?.dueDate) }}
                   </p>
                 </div>
-                @if (assignment()?.maxPoints) {
+                @if (assignment()?.maxScore) {
                   <div class="text-right">
                     <p class="text-sm text-gray-600">Điểm tối đa</p>
-                    <p class="text-lg font-semibold text-gray-900">{{ assignment()?.maxPoints }} điểm</p>
+                    <p class="text-lg font-semibold text-gray-900">{{ assignment()?.maxScore }} điểm</p>
                   </div>
                 }
               </div>
@@ -111,7 +111,7 @@ import { AssignmentApi, AssignmentDetail, SubmissionDetail, CreateSubmissionRequ
                         <div class="text-right">
                           <span class="text-sm text-gray-600">Điểm:</span>
                           <span class="ml-2 text-2xl font-bold text-green-600">
-                            {{ getGradeScore(mySubmission()?.grade) }}/{{ assignment()?.maxPoints || 100 }}
+                            {{ getGradeScore(mySubmission()?.grade) }}/{{ assignment()?.maxScore || 100 }}
                           </span>
                         </div>
                       }
@@ -235,7 +235,7 @@ import { AssignmentApi, AssignmentDetail, SubmissionDetail, CreateSubmissionRequ
                   
                   <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Điểm tối đa</label>
-                    <span class="text-lg font-semibold text-gray-900">{{ assignment()?.maxPoints || 100 }} điểm</span>
+                    <span class="text-lg font-semibold text-gray-900">{{ assignment()?.maxScore || 100 }} điểm</span>
                   </div>
                   
                   <div>
@@ -250,7 +250,7 @@ import { AssignmentApi, AssignmentDetail, SubmissionDetail, CreateSubmissionRequ
                     <div>
                       <label class="block text-sm font-medium text-gray-700 mb-1">Điểm của bạn</label>
                       <span class="text-2xl font-bold text-green-600">
-                        {{ getGradeScore(mySubmission()?.grade) }}/{{ assignment()?.maxPoints || 100 }}
+                        {{ getGradeScore(mySubmission()?.grade) }}/{{ assignment()?.maxScore || 100 }}
                       </span>
                     </div>
                   }
@@ -446,8 +446,8 @@ export class AssignmentWorkComponent implements OnInit {
     const submission = this.mySubmission();
     if (!submission) return false;
     // Check direct score or grade object
-    return (submission.score !== undefined && submission.score !== null) || 
-           (submission.grade !== undefined && submission.grade !== null);
+    return (submission.score !== undefined && submission.score !== null) ||
+      (submission.grade !== undefined && submission.grade !== null);
   }
 
   canSubmit(): boolean {

@@ -20,14 +20,14 @@
 
 ```
 Chào bạn, bạn là Workspace Navigator AI.
-Đọc file E:\LMS\lms_1\dev\ai-workspace-template/luongngoai/navigator/system-prompt.md
+Đọc file E:\Sach\Sua\LMS_hohulili\ai-workspace-template/luongngoai/navigator/system-prompt.md
 ```
 
 ### Cách 2: Trực tiếp với Agent
 
 ```
 Chào bạn, bạn là [ROLE] AI.
-Đọc file E:\LMS\lms_1\dev\ai-workspace-template/ai-workspace/README.md
+Đọc file E:\Sach\Sua\LMS_hohulili\ai-workspace-template/ai-workspace/README.md
 ```
 
 ---

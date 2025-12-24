@@ -102,7 +102,8 @@ public class LessonService {
     }
 
     public Lesson updateLesson(UUID lessonId, User currentUser, com.example.lms.controller.LessonController.UpdateLessonRequest request) {
-        Lesson lesson = lessonRepository.findById(lessonId)
+        // [FIX] Use JOIN FETCH to eagerly load sections
+        Lesson lesson = lessonRepository.findByIdWithSections(lessonId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài học với ID: " + lessonId));
         
         // Check if user is the teacher of this course
@@ -175,8 +176,15 @@ public class LessonService {
     }
 
     public Lesson getLessonById(UUID lessonId, User currentUser) {
-        Lesson lesson = lessonRepository.findById(lessonId)
+        // [FIX] Use JOIN FETCH to eagerly load sections and avoid lazy loading exception
+        Lesson lesson = lessonRepository.findByIdWithSections(lessonId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài học với ID: " + lessonId));
+        
+        // [FIX] Manually trigger lazy loading of attachments within transaction
+        // This avoids MultipleBagFetchException from fetching multiple collections at once
+        if (lesson.getAttachments() != null) {
+            lesson.getAttachments().size(); // Force initialization
+        }
         
         // Check if user has access (is teacher or enrolled student)
         Course course = lesson.getChapter().getCourse();

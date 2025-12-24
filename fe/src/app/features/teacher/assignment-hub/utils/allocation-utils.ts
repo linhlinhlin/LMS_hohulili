@@ -8,14 +8,15 @@
  */
 
 // Types
-export type DistributionType = 'ALL_STUDENTS' | 'SPECIFIC_STUDENTS';
+export type DistributionType = 'ALL_STUDENTS' | 'SPECIFIC_STUDENTS' | 'CLASS';
 
 export interface AssignmentAllocation {
   id: string;
   assignmentId: string;
   courseId: string;
   distributionType: DistributionType;
-  studentIds: string[] | null; // null for ALL_STUDENTS (dynamic query)
+  studentIds: string[] | null; // null for ALL_STUDENTS or CLASS
+  classId?: string | null;
   isIndividual?: boolean;
   createdAt: string;
   createdBy: string;

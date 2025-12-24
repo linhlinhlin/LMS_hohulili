@@ -5,6 +5,8 @@ import com.example.lms.repository.AssignmentAllocationRepository;
 import com.example.lms.repository.AssignmentRepository;
 import com.example.lms.repository.CourseRepository;
 import com.example.lms.repository.UserRepository;
+import com.example.lms.repository.EnrollmentRepository;
+import com.example.lms.learning_delivery.domain.model.LearningClass;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,12 +20,29 @@ import java.util.UUID;
  */
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class AllocationService {
 
     private final AssignmentAllocationRepository allocationRepository;
     private final AssignmentRepository assignmentRepository;
     private final CourseRepository courseRepository;
     private final UserRepository userRepository;
+    private final EnrollmentRepository enrollmentRepository;
+    private final com.example.lms.repository.LearningClassRepository classRepository;
+
+    /**
+     * Tạo hoặc cập nhật allocation cho bài tập (Overloaded for backward compatibility)
+     */
+    @Transactional
+    public AssignmentAllocation createOrUpdateAllocation(
+            UUID assignmentId,
+            AssignmentAllocation.DistributionType distributionType,
+            List<UUID> studentIds,
+            User createdBy,
+            boolean isIndividual
+    ) {
+        return createOrUpdateAllocation(assignmentId, distributionType, studentIds, null, createdBy, isIndividual);
+    }
 
     /**
      * Tạo hoặc cập nhật allocation cho bài tập
@@ -33,6 +52,7 @@ public class AllocationService {
             UUID assignmentId,
             AssignmentAllocation.DistributionType distributionType,
             List<UUID> studentIds,
+            UUID classId,
             User createdBy,
             boolean isIndividual
     ) {
@@ -54,16 +74,29 @@ public class AllocationService {
         allocation.setDistributionType(distributionType);
         allocation.setIsIndividual(isIndividual);
 
-        // Xóa danh sách học viên cũ
-        allocation.getAllocatedStudents().clear();
-
-        // Nếu là SPECIFIC_STUDENTS, thêm danh sách học viên
-        if (distributionType == AssignmentAllocation.DistributionType.SPECIFIC_STUDENTS && studentIds != null) {
+        // Xử lý theo từng loại distribution
+        if (distributionType == AssignmentAllocation.DistributionType.CLASS && classId != null) {
+            LearningClass learningClass = classRepository.findById(classId)
+                    .orElseThrow(() -> new RuntimeException("Class not found: " + classId));
+            allocation.setLearningClass(learningClass);
+            allocation.getAllocatedStudents().clear(); // Clear individual students if switching to CLASS
+        } else if (distributionType == AssignmentAllocation.DistributionType.SPECIFIC_STUDENTS && studentIds != null) {
+            allocation.setLearningClass(null);
+            // Xóa danh sách học viên cũ
+            allocation.getAllocatedStudents().clear();
             for (UUID studentId : studentIds) {
                 User student = userRepository.findById(studentId)
                         .orElseThrow(() -> new RuntimeException("Student not found: " + studentId));
                 allocation.addStudent(student, null);
             }
+        } else if (distributionType == AssignmentAllocation.DistributionType.CLASS && classId == null) {
+            // Safety fallback: if CLASS but no classId, revert to ALL_STUDENTS or something safe
+            allocation.setDistributionType(AssignmentAllocation.DistributionType.ALL_STUDENTS);
+            allocation.setLearningClass(null);
+            allocation.getAllocatedStudents().clear();
+        } else {
+            allocation.setLearningClass(null);
+            allocation.getAllocatedStudents().clear();
         }
 
         return allocationRepository.save(allocation);
@@ -94,6 +127,14 @@ public class AllocationService {
                     .anyMatch(student -> student.getId().equals(studentId));
         }
 
+        if (allocation.getDistributionType() == AssignmentAllocation.DistributionType.CLASS) {
+            // Kiểm tra học viên có enrolled trong lớp này không
+            if (allocation.getLearningClass() == null) {
+                return false;
+            }
+            return enrollmentRepository.findByStudentIdAndLearningClassId(studentId, allocation.getLearningClass().getId()).isPresent();
+        }
+
         // SPECIFIC_STUDENTS: kiểm tra trong danh sách
         return allocation.hasStudent(studentId);
     }
@@ -110,13 +151,31 @@ public class AllocationService {
         List<AssignmentAllocation> specificAllocations = 
                 allocationRepository.findByStudentId(studentId);
 
-        // Kết hợp và trả về danh sách assignments
+        // Lấy tất cả bài tập giao cho học viên thông qua các lớp học
+        List<com.example.lms.learning_delivery.domain.model.Enrollment> enrollments = enrollmentRepository.findByStudentId(studentId);
+        List<AssignmentAllocation> classAllocations = enrollments.stream()
+                .flatMap(e -> allocationRepository.findByLearningClassId(e.getLearningClass().getId()).stream())
+                .toList();
+
+        // Kết hợp và trả về danh sách assignments được phép hiển thị (PUBLISHED)
         java.util.Set<Assignment> assignments = new java.util.HashSet<>();
         
-        allStudentsAllocations.forEach(a -> assignments.add(a.getAssignment()));
+        allStudentsAllocations.stream()
+                .map(AssignmentAllocation::getAssignment)
+                .filter(a -> a.getStatus() == Assignment.AssignmentStatus.PUBLISHED)
+                .forEach(assignments::add);
+
         specificAllocations.stream()
                 .filter(a -> a.getAssignment().getCourse().getId().equals(courseId))
-                .forEach(a -> assignments.add(a.getAssignment()));
+                .map(AssignmentAllocation::getAssignment)
+                .filter(a -> a.getStatus() == Assignment.AssignmentStatus.PUBLISHED)
+                .forEach(assignments::add);
+
+        classAllocations.stream()
+                .filter(a -> a.getAssignment().getCourse().getId().equals(courseId))
+                .map(AssignmentAllocation::getAssignment)
+                .filter(a -> a.getStatus() == Assignment.AssignmentStatus.PUBLISHED)
+                .forEach(assignments::add);
 
         return new java.util.ArrayList<>(assignments);
     }
@@ -257,6 +316,13 @@ public class AllocationService {
         if (allocation.getDistributionType() == AssignmentAllocation.DistributionType.ALL_STUDENTS) {
             // Giao cho tất cả học viên enrolled
             totalAllocated = totalEnrolledStudents;
+        } else if (allocation.getDistributionType() == AssignmentAllocation.DistributionType.CLASS) {
+            // Giao cho tất cả học viên trong lớp
+            if (allocation.getLearningClass() == null) {
+                totalAllocated = 0;
+            } else {
+                totalAllocated = (int) enrollmentRepository.countByLearningClassId(allocation.getLearningClass().getId());
+            }
         } else {
             // SPECIFIC_STUDENTS: lấy số học viên được chọn cụ thể
             totalAllocated = allocation.getAllocatedStudents().size();

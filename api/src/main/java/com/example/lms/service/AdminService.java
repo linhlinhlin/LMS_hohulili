@@ -261,17 +261,18 @@ public class AdminService {
     }
 
     public Page<Course> getAllCourses(String search, Course.CourseStatus status, Pageable pageable) {
+        // SOTA: Use queries with JOIN FETCH to avoid LazyInitializationException
         if (search != null && !search.trim().isEmpty()) {
             if (status != null) {
-                return courseRepository.findByStatusAndTitleContainingIgnoreCase(status, search, pageable);
+                return courseRepository.findByStatusAndTitleWithTeacher(status, search, pageable);
             } else {
-                return courseRepository.findByTitleContainingIgnoreCase(search, pageable);
+                return courseRepository.findByTitleWithTeacher(search, pageable);
             }
         } else {
             if (status != null) {
-                return courseRepository.findByStatus(status, pageable);
+                return courseRepository.findByStatusWithTeacher(status, pageable);
             } else {
-                return courseRepository.findAll(pageable);
+                return courseRepository.findAllWithTeacher(pageable);
             }
         }
     }

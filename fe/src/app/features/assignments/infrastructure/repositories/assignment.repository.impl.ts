@@ -56,17 +56,17 @@ export class AssignmentRepositoryImpl implements IAssignmentRepository {
       map(response => {
         if (!response.data) return [];
         let assignments = response.data.map(item => this.mapSummaryToEntity(item));
-        
+
         // Apply client-side filters if needed
         if (filters) {
           assignments = this.applyFilters(assignments, filters);
         }
-        
+
         // Apply client-side sorting if needed
         if (sort) {
           assignments = this.applySorting(assignments, sort);
         }
-        
+
         return assignments;
       }),
       catchError(err => {
@@ -127,7 +127,7 @@ export class AssignmentRepositoryImpl implements IAssignmentRepository {
 
   update(id: AssignmentId, updates: Partial<Assignment>): Observable<Assignment> {
     const payload: any = {};
-    
+
     if (updates.title) payload.title = updates.title;
     if (updates.description) payload.description = updates.description;
     if (updates.instructions) payload.instructions = updates.instructions;
@@ -172,7 +172,7 @@ export class AssignmentRepositoryImpl implements IAssignmentRepository {
       map(assignments => {
         const now = new Date();
         const futureDate = new Date(now.getTime() + daysAhead * 24 * 60 * 60 * 1000);
-        
+
         return assignments.filter(assignment => {
           const dueDate = assignment.specifications.dueDate;
           return dueDate >= now && dueDate <= futureDate;
@@ -228,7 +228,7 @@ export class AssignmentRepositoryImpl implements IAssignmentRepository {
     overdue: number;
     completionRate: number;
   }> {
-    const source$ = courseId 
+    const source$ = courseId
       ? this.findByCourseId(courseId)
       : this.findByStudentId(studentId);
 
@@ -236,16 +236,16 @@ export class AssignmentRepositoryImpl implements IAssignmentRepository {
       map(assignments => {
         const total = assignments.length;
         const now = new Date();
-        
+
         // Calculate based on status and due dates
-        const overdue = assignments.filter(a => 
+        const overdue = assignments.filter(a =>
           a.specifications.dueDate < now && a.status !== AssignmentStatus.ARCHIVED
         ).length;
-        
-        const completed = assignments.filter(a => 
+
+        const completed = assignments.filter(a =>
           a.status === AssignmentStatus.ARCHIVED
         ).length;
-        
+
         const inProgress = total - completed - overdue;
 
         return {
@@ -263,13 +263,13 @@ export class AssignmentRepositoryImpl implements IAssignmentRepository {
   private mapSummaryToEntity(summary: AssignmentSummary): Assignment {
     const now = new Date();
     // Set due date to future to avoid validation error
-    const dueDate = summary.dueDate 
-      ? new Date(summary.dueDate) 
+    const dueDate = summary.dueDate
+      ? new Date(summary.dueDate)
       : new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-    
+
     // Ensure due date is in the future for validation
     const safeDueDate = dueDate > now ? dueDate : new Date(now.getTime() + 24 * 60 * 60 * 1000);
-    
+
     const specifications = new AssignmentSpecifications(
       AssignmentType.ASSIGNMENT, // default type
       safeDueDate,
@@ -311,17 +311,17 @@ export class AssignmentRepositoryImpl implements IAssignmentRepository {
   // Helper: Map API AssignmentDetail to Domain Entity
   private mapDetailToEntity(detail: AssignmentDetail): Assignment {
     const now = new Date();
-    const dueDate = detail.dueDate 
-      ? new Date(detail.dueDate) 
+    const dueDate = detail.dueDate
+      ? new Date(detail.dueDate)
       : new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-    
+
     // Ensure due date is in the future for validation
     const safeDueDate = dueDate > now ? dueDate : new Date(now.getTime() + 24 * 60 * 60 * 1000);
-    
+
     const specifications = new AssignmentSpecifications(
       AssignmentType.ASSIGNMENT,
       safeDueDate,
-      detail.maxPoints || 100,
+      detail.maxScore || 100,
       1,
       undefined, // time limit
       undefined, // word count
@@ -329,7 +329,7 @@ export class AssignmentRepositoryImpl implements IAssignmentRepository {
     );
 
     // Create rubric with default criterion
-    const defaultCriterion = new RubricCriterion('default', 'Điểm tổng', detail.maxPoints || 100, 1);
+    const defaultCriterion = new RubricCriterion('default', 'Điểm tổng', detail.maxScore || 100, 1);
     const rubric = new Rubric([defaultCriterion]);
 
     const metadata: AssignmentMetadata = {

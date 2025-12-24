@@ -38,6 +38,8 @@ public class SectionController {
             @RequestParam("type") String typeStr, // "TEXT", "VIDEO", "FILE"
             @RequestParam(value = "content", required = false) String content, // HTML
             @RequestParam(value = "videoUrl", required = false) String videoUrl, // Explicit videoUrl param
+            @RequestParam(value = "videoType", required = false) String videoType, // [NEW] "YOUTUBE" or "CLOUDFLARE"
+            @RequestParam(value = "cfObjectKey", required = false) String cfObjectKey, // [NEW] R2 object key
             @RequestParam(value = "isRequired", required = false, defaultValue = "false") Boolean isRequired,
             @RequestParam(value = "file", required = false) MultipartFile file // Chỉ dùng khi type=FILE
     ) {
@@ -46,6 +48,11 @@ public class SectionController {
         String finalContent = (type == Section.SectionType.VIDEO && (content == null || content.isEmpty())) ? videoUrl : content;
         
         Section newSection = sectionService.createSection(lessonId, title, type, finalContent, isRequired, file);
+        
+        // [NEW] Update video metadata if Cloudflare R2 is used
+        if (type == Section.SectionType.VIDEO && videoType != null && cfObjectKey != null) {
+            newSection = sectionService.updateSectionVideo(newSection.getId(), videoType, videoUrl, cfObjectKey);
+        }
         
         return ResponseEntity.ok(newSection);
     }
@@ -57,6 +64,8 @@ public class SectionController {
             @RequestParam("type") String typeStr,
             @RequestParam(value = "content", required = false) String content,
             @RequestParam(value = "videoUrl", required = false) String videoUrl,
+            @RequestParam(value = "videoType", required = false) String videoType, // [NEW] "YOUTUBE" or "CLOUDFLARE"
+            @RequestParam(value = "cfObjectKey", required = false) String cfObjectKey, // [NEW] R2 object key
             @RequestParam(value = "isRequired", required = false, defaultValue = "false") Boolean isRequired,
             @RequestParam(value = "file", required = false) MultipartFile file
     ) {
@@ -64,6 +73,12 @@ public class SectionController {
         String finalContent = (type == Section.SectionType.VIDEO && (content == null || content.isEmpty())) ? videoUrl : content;
         
         Section updatedSection = sectionService.updateSection(sectionId, title, type, finalContent, isRequired, file);
+        
+        // [NEW] Update video metadata if Cloudflare R2 is used
+        if (type == Section.SectionType.VIDEO && videoType != null && cfObjectKey != null) {
+            updatedSection = sectionService.updateSectionVideo(sectionId, videoType, videoUrl, cfObjectKey);
+        }
+        
         return ResponseEntity.ok(updatedSection);
     }
     

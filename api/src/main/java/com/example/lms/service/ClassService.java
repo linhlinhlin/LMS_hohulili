@@ -34,6 +34,16 @@ public class ClassService {
     }
 
     @Transactional(readOnly = true)
+    public List<com.example.lms.dto.ClassSummaryDTO> getOpenClassSummaries(UUID courseId) {
+        return classRepository.findSummariesByCourseIdAndStatus(courseId, LearningClass.ClassStatus.OPEN);
+    }
+
+    @Transactional(readOnly = true)
+    public List<com.example.lms.dto.ClassSummaryDTO> getAllClassSummaries(UUID courseId) {
+        return classRepository.findAllSummariesByCourseId(courseId);
+    }
+
+    @Transactional(readOnly = true)
     public org.springframework.data.domain.Page<com.example.lms.dto.ClassSummaryDTO> getClassesWithFilter(
             UUID courseId, String search, LearningClass.ClassStatus status, String semester, org.springframework.data.domain.Pageable pageable) {
         
@@ -110,14 +120,13 @@ public class ClassService {
     private UUID getLatestCourseVersionId(UUID courseId) {
         Integer maxVersion = courseVersionRepository.findMaxVersionByCourseId(courseId);
         if (maxVersion == null) {
-            // Fallback for development/testing: If no version exists, check if we can create a placeholder or throw reasonable error.
-            // For now, throw invalid state, but we might need to handle 'Draft' courses if they are allowed to have classes?
-            // Assuming classes are only for published content.
-            throw new IllegalStateException("Course has no published versions. Please publish the course before creating a class.");
+            // Fallback for development/testing: If no version exists, allow creating a class with null version.
+            // This enables teachers to create classes for draft courses.
+            return null;
         }
         return courseVersionRepository.findByCourseIdAndVersionNumber(courseId, maxVersion)
-                .orElseThrow(() -> new IllegalStateException("Latest version not found"))
-                .getId();
+                .map(com.example.lms.course_management.domain.model.CourseVersion::getId)
+                .orElse(null);
     }
 
     @Transactional

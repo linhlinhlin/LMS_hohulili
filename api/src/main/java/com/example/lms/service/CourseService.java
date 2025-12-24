@@ -84,7 +84,8 @@ public class CourseService {
     }
 
     public Page<Course> getEnrolledCourses(User student, Pageable pageable) {
-        return courseRepository.findByEnrolledStudentsContaining(student, pageable);
+        // Use query with JOIN FETCH to eagerly load teacher and avoid LazyInitializationException
+        return courseRepository.findEnrolledCoursesWithTeacher(student, pageable);
     }
 
     public Course getCourseById(UUID courseId) {
@@ -105,6 +106,22 @@ public class CourseService {
         }
         
         return course;
+    }
+
+    /**
+     * SOTA: Get course detail using DTO Projection.
+     * Returns CourseDetailDTO directly - all data loaded upfront, no lazy loading issues.
+     * Pattern: Google/Netflix DTO Projection Architecture (2025)
+     */
+    public com.example.lms.dto.CourseDetailDTO getCourseDetailById(UUID courseId) {
+        com.example.lms.dto.CourseDetailDTO dto = courseRepository.findCourseDetailById(courseId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học với ID: " + courseId));
+        
+        // Load collections separately (SOTA pattern to avoid MultipleBagFetch)
+        dto.setTeachingStaffIds(courseRepository.findTeachingStaffIdsByCourseId(courseId));
+        dto.setTags(courseRepository.findTagsByCourseId(courseId));
+        
+        return dto;
     }
 
     public Course updateCourse(UUID courseId, User currentUser, com.example.lms.controller.CourseController.UpdateCourseRequest request) {
@@ -288,11 +305,11 @@ public class CourseService {
     }
 
     public List<com.example.lms.entity.Chapter> getCourseContent(UUID courseId, User currentUser) {
-        // OPTIMIZED: Use JOIN FETCH query to load course with chapters and lessons in single query
+        // Load course with teacher and chapters (first level)
         Course course = courseRepository.findByIdWithSectionsAndLessons(courseId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học với ID: " + courseId));
         
-        // OPTIMIZED: Use database query instead of lazy loading enrolledStudents collection
+        // Check access permissions
         boolean isTeacher = course.getTeacher() != null && course.getTeacher().getId().equals(currentUser.getId());
         boolean isEnrolled = courseRepository.existsByEnrolledStudentAndCourse(currentUser.getId(), courseId);
         boolean hasAccess = isTeacher || isEnrolled;
@@ -301,7 +318,7 @@ public class CourseService {
             throw new RuntimeException("Bạn không có quyền truy cập nội dung khóa học này");
         }
 
-        // Chapters are already loaded via JOIN FETCH, just sort them
+        // Chapters are loaded via JOIN FETCH, sort them
         java.util.Set<com.example.lms.entity.Chapter> chapterSet = course.getChapters();
         java.util.List<com.example.lms.entity.Chapter> chapters = chapterSet == null ? 
                 java.util.Collections.emptyList() : new java.util.ArrayList<>(chapterSet);
@@ -310,10 +327,26 @@ public class CourseService {
                 c2.getOrderIndex() != null ? c2.getOrderIndex() : 0
         ));
         
-        // Lessons are also already loaded, just ensure they're initialized
+        // Initialize nested collections within this transaction to avoid LazyInitializationException
         for (com.example.lms.entity.Chapter c : chapters) {
-            if (c.getLessons() == null) {
-                c.setLessons(new java.util.ArrayList<>());
+            // Initialize lessons
+            org.hibernate.Hibernate.initialize(c.getLessons());
+            if (c.getLessons() != null) {
+                for (com.example.lms.entity.Lesson lesson : c.getLessons()) {
+                    // Initialize sections for each lesson
+                    org.hibernate.Hibernate.initialize(lesson.getSections());
+                    // Initialize quizzes within sections if needed
+                    if (lesson.getSections() != null) {
+                        for (com.example.lms.entity.Section section : lesson.getSections()) {
+                            org.hibernate.Hibernate.initialize(section.getQuizzes());
+                        }
+                    }
+                    // Initialize assignment if exists
+                    org.hibernate.Hibernate.initialize(lesson.getLessonAssignment());
+                    if (lesson.getLessonAssignment() != null) {
+                        org.hibernate.Hibernate.initialize(lesson.getLessonAssignment().getAssignment());
+                    }
+                }
             }
         }
         return chapters;
@@ -397,5 +430,15 @@ public class CourseService {
             return userRepository.findStudentsNotEnrolledInCourseWithSearch(courseId, search.trim(), pageable);
         }
         return userRepository.findStudentsNotEnrolledInCourse(courseId, pageable);
+    }
+
+    /**
+     * Get course students as DTOs to avoid LazyInitializationException
+     */
+    public Page<com.example.lms.dto.StudentSummaryDTO> getCourseStudentSummaries(UUID courseId, Pageable pageable, String search) {
+        if (search != null && !search.trim().isEmpty()) {
+            return courseRepository.searchCourseStudentSummaries(courseId, search.trim(), pageable);
+        }
+        return courseRepository.findCourseStudentSummaries(courseId, pageable);
     }
 }

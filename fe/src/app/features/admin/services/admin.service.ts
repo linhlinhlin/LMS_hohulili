@@ -175,20 +175,20 @@ export class AdminService {
   readonly totalTeachers = computed(() => this._users().filter(user => user.role === 'teacher').length);
   readonly totalStudents = computed(() => this._users().filter(user => user.role === 'student').length);
   readonly totalAdmins = computed(() => this._users().filter(user => user.role === 'admin').length);
-  
-  readonly activeUsers = computed(() => 
+
+  readonly activeUsers = computed(() =>
     this._users().filter(user => user.isActive).length
   );
 
-  readonly pendingCourses = computed(() => 
+  readonly pendingCourses = computed(() =>
     this._courses().filter(course => course.status === 'pending').length
   );
 
-  readonly approvedCourses = computed(() => 
+  readonly approvedCourses = computed(() =>
     this._courses().filter(course => course.status === 'approved').length
   );
 
-  readonly totalRevenue = computed(() => 
+  readonly totalRevenue = computed(() =>
     this._courses().reduce((sum, course) => sum + course.revenue, 0)
   );
 
@@ -197,7 +197,7 @@ export class AdminService {
   }
 
   // User Management Methods
-  async getUsers(page: number = 1, limit: number = 10, search?: string): Promise<{users: AdminUser[], total: number}> {
+  async getUsers(page: number = 1, limit: number = 10, search?: string): Promise<{ users: AdminUser[], total: number }> {
     console.log('AdminService: getUsers called with params:', { page, limit, search });
     this._isLoading.set(true);
     try {
@@ -216,7 +216,7 @@ export class AdminService {
         success: boolean;
         message: string;
         data: AdminUser[];
-        pagination: {totalItems: number};
+        pagination: { totalItems: number };
         timestamp: string
       }>(url).toPromise();
 
@@ -266,7 +266,7 @@ export class AdminService {
     }
   }
 
-  async createUser(userData: {username: string, email: string, password: string, fullName?: string, role: UserRole}): Promise<AdminUser> {
+  async createUser(userData: { username: string, email: string, password: string, fullName?: string, role: UserRole }): Promise<AdminUser> {
     this._isLoading.set(true);
     try {
       this.validateUserData(userData);
@@ -391,20 +391,20 @@ export class AdminService {
     this._isLoading.set(true);
     try {
       await this.simulateApiCall();
-      
-      this._courses.update(courses => 
-        courses.map(course => 
-          course.id === courseId 
-            ? { 
-                ...course, 
-                status: 'approved' as const, 
-                approvedAt: new Date(),
-                updatedAt: new Date() 
-              }
+
+      this._courses.update(courses =>
+        courses.map(course =>
+          course.id === courseId
+            ? {
+              ...course,
+              status: 'approved' as const,
+              approvedAt: new Date(),
+              updatedAt: new Date()
+            }
             : course
         )
       );
-      
+
       this.errorService.showSuccess('Khóa học đã được phê duyệt thành công!', 'course');
     } finally {
       this._isLoading.set(false);
@@ -415,20 +415,20 @@ export class AdminService {
     this._isLoading.set(true);
     try {
       await this.simulateApiCall();
-      
-      this._courses.update(courses => 
-        courses.map(course => 
-          course.id === courseId 
-            ? { 
-                ...course, 
-                status: 'rejected' as const, 
-                rejectionReason: reason,
-                updatedAt: new Date() 
-              }
+
+      this._courses.update(courses =>
+        courses.map(course =>
+          course.id === courseId
+            ? {
+              ...course,
+              status: 'rejected' as const,
+              rejectionReason: reason,
+              updatedAt: new Date()
+            }
             : course
         )
       );
-      
+
       this.errorService.showSuccess('Khóa học đã bị từ chối.', 'course');
     } finally {
       this._isLoading.set(false);
@@ -440,7 +440,7 @@ export class AdminService {
     this._isLoading.set(true);
     try {
       await this.simulateApiCall();
-      
+
       const analytics: AdminAnalytics = {
         totalUsers: this._users().length,
         totalTeachers: this.totalTeachers(),
@@ -496,7 +496,7 @@ export class AdminService {
     this._isLoading.set(true);
     try {
       await this.simulateApiCall();
-      
+
       const settings: SystemSettings = {
         general: {
           siteName: 'LMS Maritime',
@@ -539,12 +539,12 @@ export class AdminService {
     this._isLoading.set(true);
     try {
       await this.simulateApiCall();
-      
+
       this._settings.update(current => ({
         ...current!,
         ...settings
       }));
-      
+
       this.errorService.showSuccess('Cài đặt hệ thống đã được cập nhật thành công!', 'settings');
     } finally {
       this._isLoading.set(false);
@@ -563,7 +563,7 @@ export class AdminService {
   private validateUserData(userData: Partial<AdminUser>): void {
     const requiredFields = ['email', 'name', 'role'];
     const missingFields = requiredFields.filter(field => !userData[field as keyof AdminUser]);
-    
+
     if (missingFields.length > 0) {
       throw new Error(`Thiếu thông tin bắt buộc: ${missingFields.join(', ')}`);
     }
@@ -571,7 +571,7 @@ export class AdminService {
 
   private async createUserViaAPI(userData: Partial<AdminUser>): Promise<AdminUser> {
     await this.simulateApiCall();
-    
+
     const newUser: AdminUser = {
       id: this.generateId(),
       username: userData.username || userData.email?.split('@')[0] || '',
@@ -635,7 +635,7 @@ export class AdminService {
   private calculateMonthlyRevenue(): number {
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
-    
+
     return this._courses().reduce((sum, course) => {
       const courseDate = new Date(course.createdAt);
       if (courseDate.getMonth() === currentMonth && courseDate.getFullYear() === currentYear) {
@@ -648,7 +648,7 @@ export class AdminService {
   // Error handling
   private handleError(error: any, context: string): void {
     console.error(`AdminService Error [${context}]:`, error);
-    
+
     if (error instanceof HttpErrorResponse) {
       switch (error.status) {
         case 400:

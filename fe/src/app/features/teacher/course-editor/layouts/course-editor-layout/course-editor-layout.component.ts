@@ -23,8 +23,8 @@ import { filter, take, map } from 'rxjs/operators';
           <app-course-editor-sidebar class="h-full block"></app-course-editor-sidebar>
         </div>
 
-        <!-- Main Content (SOTA 2025: min-width: 0 is CRITICAL for grid children with overflow) -->
-        <div class="flex flex-col min-w-0 bg-slate-50 relative">
+        <!-- Main Content (SOTA 2025: h-full + overflow-hidden constrains height for child scroll) -->
+        <div class="flex flex-col min-w-0 h-full overflow-hidden bg-slate-50 relative">
             <!-- Navigation Tabs (SOTA 2025: Sleek, high-density) -->
             <nav class="flex items-center gap-1 border-b border-slate-200 px-6 h-12 flex-shrink-0 bg-white z-10 w-full overflow-x-auto scrollbar-hide">
                <a routerLink="info" 

@@ -3,9 +3,11 @@ package com.example.lms.controller;
 import com.example.lms.dto.ApiResponse;
 import com.example.lms.entity.Course;
 import com.example.lms.entity.User;
+import com.example.lms.entity.User.AccountStatus;
 import com.example.lms.service.AdminService;
 import com.example.lms.repository.SectionRepository;
 import com.example.lms.repository.AssignmentRepository;
+import com.example.lms.repository.UserRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -38,6 +40,7 @@ public class AdminController {
     private final AdminService adminService;
     private final com.example.lms.repository.ChapterRepository chapterRepository;
     private final AssignmentRepository assignmentRepository;
+    private final UserRepository userRepository;
 
     @GetMapping("/courses/pending")
     @Operation(summary = "Lấy danh sách khóa học chờ duyệt", description = "Admin lấy tất cả khóa học đang chờ duyệt")
@@ -173,6 +176,52 @@ public class AdminController {
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    // ============ USER STATUS MANAGEMENT ============
+
+    @PutMapping("/users/{userId}/status")
+    @Operation(summary = "Cập nhật trạng thái tài khoản", description = "Admin thay đổi trạng thái tài khoản user (ACTIVE, BLOCKED, RESTRICTED)")
+    public ResponseEntity<ApiResponse<UserStatusResponse>> updateUserStatus(
+            @PathVariable UUID userId,
+            @Valid @RequestBody UserStatusRequest request,
+            @AuthenticationPrincipal User currentAdmin
+    ) {
+        try {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User không tồn tại: " + userId));
+
+            // Don't allow admin to block themselves
+            if (userId.equals(currentAdmin.getId()) && request.getStatus() == AccountStatus.BLOCKED) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("Bạn không thể tự khóa tài khoản của mình"));
+            }
+
+            // Update status
+            user.setAccountStatus(request.getStatus());
+            user.setStatusReason(request.getReason());
+            User savedUser = userRepository.save(user);
+
+            UserStatusResponse response = new UserStatusResponse(
+                    savedUser.getId(),
+                    savedUser.getUsername(),
+                    savedUser.getEmail(),
+                    savedUser.getFullName(),
+                    savedUser.getAccountStatus(),
+                    savedUser.getStatusReason()
+            );
+
+            String message = switch (request.getStatus()) {
+                case BLOCKED -> "Tài khoản đã bị khóa";
+                case RESTRICTED -> "Tài khoản đã bị hạn chế";
+                case ACTIVE -> "Tài khoản đã được kích hoạt";
+            };
+
+            return ResponseEntity.ok(ApiResponse.success(response, message));
+
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
 
@@ -618,4 +667,29 @@ public class AdminController {
             this.reason = reason;
         }
     }
+
+    // DTO for user status update
+    public static class UserStatusRequest {
+        @NotNull(message = "Trạng thái không được để trống")
+        private AccountStatus status;
+        
+        private String reason;
+
+        public UserStatusRequest() {}
+
+        public AccountStatus getStatus() { return status; }
+        public void setStatus(AccountStatus status) { this.status = status; }
+        public String getReason() { return reason; }
+        public void setReason(String reason) { this.reason = reason; }
+    }
+
+    // Response DTO for user status update
+    public record UserStatusResponse(
+            UUID id,
+            String username,
+            String email,
+            String fullName,
+            AccountStatus accountStatus,
+            String statusReason
+    ) {}
 }

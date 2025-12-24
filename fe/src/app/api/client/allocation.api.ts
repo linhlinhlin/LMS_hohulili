@@ -3,11 +3,12 @@ import { Observable } from 'rxjs';
 import { ApiClient } from './api-client';
 import { ApiResponse } from '../types/common.types';
 
-export type DistributionType = 'ALL_STUDENTS' | 'SPECIFIC_STUDENTS';
+export type DistributionType = 'ALL_STUDENTS' | 'SPECIFIC_STUDENTS' | 'CLASS';
 
 export interface CreateAllocationRequest {
   distributionType: DistributionType;
   studentIds?: string[];
+  classId?: string;
   isIndividual?: boolean;
 }
 
@@ -35,6 +36,7 @@ export interface AllocationResponse {
   distributionType: DistributionType;
   isIndividual: boolean;
   studentIds?: string[];
+  classId?: string;
   allocatedStudents?: AllocatedStudentInfo[];
   createdAt?: string;
 }
