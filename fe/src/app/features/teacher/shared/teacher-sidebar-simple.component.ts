@@ -25,7 +25,7 @@ import { AuthService } from '../../../core/services/auth.service';
       </div>
 
       <!-- Navigation Menu -->
-      <nav class="flex-1 px-4 py-6 space-y-2">
+      <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
         <!-- Dashboard -->
         <a routerLink="/teacher/dashboard" 
            routerLinkActive="bg-blue-100 text-blue-700"
@@ -47,25 +47,48 @@ import { AuthService } from '../../../core/services/auth.service';
           <span class="font-medium">Khóa học</span>
         </a>
 
-        <!-- Assignments -->
-        <a routerLink="/teacher/assignments" 
-           routerLinkActive="bg-blue-100 text-blue-700"
-           class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors">
-          <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-          </svg>
-          <span class="font-medium">Bài tập</span>
-        </a>
+        <!-- Assessments Section (Expanded) -->
+        <div class="space-y-1">
+          <div class="flex items-center px-4 py-3 text-gray-900 rounded-lg bg-gray-50">
+            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+            </svg>
+            <span class="font-semibold">Bài tập & Chấm điểm</span>
+          </div>
+          
+          <div class="pl-12 space-y-1">
+            <!-- 1.1 Bài tập tự luận -->
+            <a routerLink="/teacher/assessments/assignments" 
+               routerLinkActive="text-blue-700 font-medium"
+               class="block py-2 text-sm text-gray-600 hover:text-blue-600">
+              1.1 Bài tập tự luận
+            </a>
 
-        <!-- Ngân hàng câu hỏi -->
-        <a routerLink="/teacher/quiz/quiz-bank" 
-           routerLinkActive="bg-blue-100 text-blue-700"
-           class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors">
-          <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-          </svg>
-          <span class="font-medium">Ngân hàng câu hỏi</span>
-        </a>
+            <!-- 1.2 Thư viện Rubric -->
+            <a routerLink="/teacher/assessments/rubrics" 
+               routerLinkActive="text-blue-700 font-medium"
+               class="block py-2 text-sm text-gray-600 hover:text-blue-600">
+              1.2 Thư viện Rubric
+            </a>
+
+            <!-- Divider -->
+            <div class="my-2 border-t border-gray-200"></div>
+
+            <!-- 1.3 Ngân hàng câu hỏi -->
+            <a routerLink="/teacher/assessments/question-bank" 
+               routerLinkActive="text-blue-700 font-medium"
+               class="block py-2 text-sm text-gray-600 hover:text-blue-600">
+              1.3 Ngân hàng câu hỏi
+            </a>
+
+            <!-- 1.4 Bài tập trắc nghiệm -->
+            <a routerLink="/teacher/assessments/quizzes" 
+               routerLinkActive="text-blue-700 font-medium"
+               class="block py-2 text-sm text-gray-600 hover:text-blue-600">
+              1.4 Bài tập trắc nghiệm
+            </a>
+          </div>
+        </div>
 
         <!-- Students -->
         <a routerLink="/teacher/students" 
@@ -77,16 +100,6 @@ import { AuthService } from '../../../core/services/auth.service';
           <span class="font-medium">Học viên</span>
         </a>
 
-        <!-- Grading System -->
-        <a routerLink="/teacher/grading" 
-           routerLinkActive="bg-blue-100 text-blue-700"
-           class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors">
-          <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-          </svg>
-          <span class="font-medium">Chấm điểm</span>
-        </a>
-
         <!-- Analytics -->
         <a routerLink="/teacher/analytics" 
            routerLinkActive="bg-blue-100 text-blue-700"
@@ -96,8 +109,6 @@ import { AuthService } from '../../../core/services/auth.service';
           </svg>
           <span class="font-medium">Phân tích</span>
         </a>
-
-
       </nav>
 
       <!-- Footer -->

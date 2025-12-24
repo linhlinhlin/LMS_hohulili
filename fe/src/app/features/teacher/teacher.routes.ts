@@ -70,8 +70,13 @@ export const teacherRoutes: Routes = [
 
       // Assignment Hub Routes (Unified Assignment + Grading)
       {
-        path: 'assignments',
+        path: 'assessments',
         loadChildren: () => import('./assignment-hub/assignment-hub.routes').then(m => m.assignmentHubRoutes)
+      },
+      {
+        path: 'assignments',
+        redirectTo: 'assessments',
+        pathMatch: 'full'
       },
 
       // Legacy routes (backward compatibility)
@@ -136,7 +141,7 @@ export const teacherRoutes: Routes = [
       // Grading Routes (redirect to unified Assignment Hub)
       {
         path: 'grading',
-        redirectTo: 'assignments',
+        redirectTo: 'assessments',
         pathMatch: 'full'
       },
       {

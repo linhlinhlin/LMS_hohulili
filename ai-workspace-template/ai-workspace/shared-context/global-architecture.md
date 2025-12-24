@@ -1,6 +1,6 @@
 # GLOBAL ARCHITECTURE - LMS
 
-Learning Management System Architecture
+Learning Management System Architecture - *Verified 2025*
 
 ---
 
@@ -12,98 +12,59 @@ Learning Management System Architecture
 | **Type** | Full-stack Web Application |
 | **Tech Stack** | Java 21 + Spring Boot 3.5.6 + Angular 20 + PostgreSQL |
 | **Path** | `E:\LMS\lms_1\dev` |
+| **Backend Package** | `com.example.lms` |
+| **Artifact** | `backend-lms-postgres` |
 
 ---
 
 ## ARCHITECTURE DIAGRAM
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         FRONTEND                                 │
-│                      Angular 20 + SSR                            │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │                    FEATURE MODULES                        │  │
-│  │  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ │  │
-│  │  │  Auth  │ │Teacher │ │Student │ │ Admin  │ │Courses │ │  │
-│  │  │        │ │(12 sub)│ │(9 sub) │ │        │ │        │ │  │
-│  │  └────────┘ └────────┘ └────────┘ └────────┘ └────────┘ │  │
-│  ├──────────────────────────────────────────────────────────┤  │
-│  │                    SHARED LAYER                           │  │
-│  │  components (17) / directives / services / models         │  │
-│  ├──────────────────────────────────────────────────────────┤  │
-│  │                     API LAYER                             │  │
-│  │  quiz.api (V2-DDD) / course / question / package         │  │
-│  └──────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                         HTTP/REST
-                              │
-┌─────────────────────────────────────────────────────────────────┐
-│                          BACKEND                                 │
-│                    Spring Boot 3.5.6                             │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │                   CONTROLLER LAYER (34)                   │  │
-│  │  CourseController (1016) | QuizController | AdminController│  │
-│  ├──────────────────────────────────────────────────────────┤  │
-│  │                    SERVICE LAYER (29)                     │  │
-│  │  QuizService (1086) | CourseService | AssignmentService   │  │
-│  ├──────────────────────────────────────────────────────────┤  │
-│  │                   REPOSITORY LAYER (26)                   │  │
-│  │  CourseRepository | QuizRepository | UserRepository       │  │
-│  ├──────────────────────────────────────────────────────────┤  │
-│  │                    ENTITY LAYER (31)                      │  │
-│  │  User | Course | Quiz | Assignment | Chapter | Lesson     │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                              │                                   │
-│  ┌────────────────┐  ┌──────────────┐  ┌─────────────────┐     │
-│  │  JWT Security  │  │   Flyway     │  │  Swagger/OpenAPI│     │
-│  └────────────────┘  └──────────────┘  └─────────────────┘     │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                         JPA/Hibernate
-                              │
-┌─────────────────────────────────────────────────────────────────┐
-│                         DATABASE                                 │
-│                        PostgreSQL                                │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐           │
-│  │  users   │ │ courses  │ │ quizzes  │ │assignments│           │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘           │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐           │
-│  │ chapters │ │ lessons  │ │ sections │ │ attempts │           │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘           │
-│                   30 Flyway Migrations                           │
-└─────────────────────────────────────────────────────────────────┘
-```
+```mermaid
+graph TD
+    subgraph Frontend["FRONTEND (Angular 20 + SSR)"]
+        FE_Core[Core Module]
+        FE_Shared[Shared Components]
+        FE_State[Global Signals State]
+        
+        subgraph Features
+            Auth[Auth]
+            Teacher[Teacher Portal]
+            Student[Student Portal]
+            Admin[Admin Portal]
+            Assess[Assessment Hub]
+        end
+    end
 
----
+    subgraph Backend["BACKEND (Spring Boot 3.5.6)"]
+        API[REST Controllers]
+        
+        subgraph Layers
+            Services[Service Layer]
+            Repos[JPA Repositories]
+            Entities[JPA Entities]
+        end
+        
+        subgraph Domains["Domain Modules (Hybrid)"]
+            CM[Course Management]
+            LD[Learning Delivery]
+        end
+    end
 
-## DOMAIN MODEL
+    subgraph Database["DATABASE (PostgreSQL)"]
+        Users[users]
+        Courses[courses]
+        Assign[assignments]
+        Quiz[quizzes]
+        Enroll[enrollments]
+    end
 
-### Core Aggregates
-
-```
-USER AGGREGATE
-└── User (root)
-    ├── Roles: ADMIN, TEACHER, STUDENT
-    └── Relationships: courses, enrollments
-
-COURSE AGGREGATE
-└── Course (root)
-    ├── Status: DRAFT → PENDING → APPROVED/REJECTED
-    ├── Chapter (1:N)
-    │   └── Lesson (1:N)
-    │       └── Section (1:N) → Quiz/Video/File
-    └── Assignment (1:N)
-
-QUIZ AGGREGATE
-└── Quiz (root)
-    ├── Types: LESSON_QUIZ, ASSIGNMENT
-    ├── Question (M:N via question_ids)
-    └── QuizAttempt (1:N per student)
-
-ENROLLMENT AGGREGATE
-└── LearningClass (root)
-    └── ClassEnrollment (student + class)
+    Frontend -->|HTTP/REST| API
+    API --> Services
+    Services --> Repos
+    Repos --> Entities
+    Entities --> Database
+    CM -.-> Services
+    LD -.-> Services
 ```
 
 ---
@@ -112,31 +73,63 @@ ENROLLMENT AGGREGATE
 
 ```
 E:\LMS\lms_1\dev/
-├── api/                           # BACKEND
-│   └── src/main/java/.../lms/
-│       ├── controller/            # 34 REST controllers
-│       ├── service/               # 29 services
-│       ├── entity/                # 31 JPA entities
-│       ├── repository/            # 26 repositories
-│       ├── dto/                   # Request/Response DTOs
-│       ├── config/                # Security, CORS, OpenAPI
-│       └── exception/             # Error handlers
+├── api/                                # BACKEND
+│   ├── pom.xml                         # Spring Boot 3.5.6
+│   └── src/main/java/com/example/lms/
+│       ├── controller/                 # REST Controllers
+│       ├── service/                    # Business Logic
+│       ├── repository/                 # Data Access
+│       ├── entity/                     # JPA Model
+│       ├── dto/                        # Data Transfer Objects
+│       ├── config/                     # App Config
+│       ├── course_management/          # Domain: Course Creation
+│       ├── learning_delivery/          # Domain: Learning Process
+│       ├── infrastructure/             # External Integrations
+│       └── BackendLmsPostgresApplication.java
 │
-├── fe/                            # FRONTEND
+├── fe/                                 # FRONTEND
+│   ├── package.json                    # Angular 20 + Tailwind 4
 │   └── src/app/
-│       ├── features/              # 17 feature modules
-│       │   ├── teacher/ (12)
-│       │   ├── student/ (9)
-│       │   └── admin, auth, courses...
-│       ├── api/                   # HTTP layer (12 endpoints)
-│       ├── core/                  # Guards, interceptors
-│       ├── shared/                # 17 component folders
-│       └── state/                 # Signal-based state
+│       ├── core/                       # Guards, Interceptors
+│       ├── features/                   # Lazy Loaded Modules
+│       │   ├── teacher/                # Assessment Hub inside
+│       │   ├── student/
+│       │   └── admin/
+│       ├── shared/                     # Reusable Components
+│       ├── state/                      # Global Signals
+│       └── app.routes.ts               # Role-based Routing
 │
-└── ai-workspace-template/         # AI AGENT SYSTEM
-    ├── ai-workspace/              # Agent prompts/context
-    └── luongngoai/                # Human interface
+└── ai-workspace-template/              # AI AGENT SYSTEM
+    ├── ai-workspace/                   # Agent prompts
+    │   ├── agents/                     # Specialist personas
+    │   └── shared-context/             # This documentation
+    └── luongngoai/                     # Human Interface
 ```
+
+---
+
+## DOMAIN MODEL (Verified from Schema)
+
+### User & Auth
+- **Users**: Core identity (Student, Teacher, Admin).
+- **Roles**: Enum-based role management.
+
+### Course Catalog
+- **Courses**: The central product unit.
+- **Chapters/Lessons**: Hierarchical content structure.
+- **CourseVersions**: Version control for course content.
+
+### Assessment Hub
+- **Assignments**: Coursework and Tasks.
+- **Quizzes**: Multiple choice assessments.
+- **Rubrics**: Grading criteria.
+- **Submissions**: Student work artifacts.
+- **Grades**: Scoring and feedback.
+
+### Learning Engine
+- **Enrollments**: Student access to classes/courses.
+- **LearningClasses**: Scheduled delivery of courses.
+- **Progress**: Tracking completion status.
 
 ---
 
@@ -144,14 +137,11 @@ E:\LMS\lms_1\dev/
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| Backend Framework | Spring Boot 3.5.6 | Enterprise-ready, great ecosystem |
-| Frontend Framework | Angular 20 | Modern signals, great tooling |
-| Database | PostgreSQL | JSONB support, reliability |
-| Auth | JWT stateless | Scalability, simplicity |
-| Styling | Tailwind v4 | Utility-first, rapid development |
-| Quiz Storage | JSONB question_ids | Flexible ordering, deduplication |
+| **Backend Arch** | Hybrid Layered + Domain | Evolving DDD while keeping standard Spring conventions. |
+| **Frontend State**| Angular Signals | High performance, fine-grained reactivity (2025 standard). |
+| **Database** | PostgreSQL + Supabase | Robust relational data with JSONB flexibility for flexible content. |
+| **API Style** | REST | Standard, cacheable, easy to document with OpenAPI. |
 
 ---
 
-**Last Updated**: 2025-12-23
-**Audit Level**: Deep (code-level analysis)
+**Last Updated**: 2025-12-23 (Full Stack Audit)

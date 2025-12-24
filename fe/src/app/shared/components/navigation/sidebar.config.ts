@@ -63,30 +63,30 @@ export const teacherSidebarConfig: SidebarConfig = {
     },
     {
       label: 'Bài tập & Chấm điểm',
-      route: '/teacher/assignments',
+      route: '/teacher/assessments',
       icon: 'M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2H9zm0 0a2 2 0 002 2h2a2 2 0 002-2',
       children: [
         {
-          label: 'Danh sách bài tập',
-          route: '/teacher/assignments',
+          label: 'Bài tập tự luận',
+          route: '/teacher/assessments/assignments',
           icon: 'M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2H9zm0 0a2 2 0 002 2h2a2 2 0 002-2'
         },
         {
           label: 'Thư viện Rubric',
-          route: '/teacher/assignments/rubrics',
+          route: '/teacher/assessments/rubrics',
           icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2'
+        },
+        {
+          label: 'Ngân hàng câu hỏi',
+          route: '/teacher/assessments/question-bank',
+          icon: 'M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
+        },
+        {
+          label: 'Bài tập trắc nghiệm',
+          route: '/teacher/assessments/quizzes',
+          icon: 'M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2'
         }
       ]
-    },
-    {
-      label: 'Học viên',
-      route: '/teacher/students',
-      icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M15 7a3 3 0 11-6 0 3 3 0 016 0z'
-    },
-    {
-      label: 'Ngân hàng câu hỏi',
-      route: '/teacher/quiz/quiz-bank',
-      icon: 'M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
     },
 
     {

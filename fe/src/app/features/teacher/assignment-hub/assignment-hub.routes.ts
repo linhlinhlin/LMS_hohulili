@@ -19,97 +19,121 @@ import { Routes } from '@angular/router';
  * - /assignments/rubrics (Rubric Library)
  */
 export const assignmentHubRoutes: Routes = [
-  // Assignment List
+  // Default redirect
   {
     path: '',
-    loadComponent: () => import('./components/assignment-list.component').then(m => m.AssignmentListComponent),
-    title: 'Quan ly Bai tap'
+    redirectTo: 'assignments',
+    pathMatch: 'full'
   },
-  
-  // Create Assignment
+
+  // 1.1 Bài tập tự luận (Assignments)
   {
-    path: 'create',
-    loadComponent: () => import('../assignments/assignment-creation.component').then(m => m.AssignmentCreationComponent),
-    title: 'Tao bai tap moi'
+    path: 'assignments',
+    loadComponent: () => import('./components/assignment-list.component').then(m => m.AssignmentListComponent),
+    title: 'Bài tập tự luận'
   },
-  
-  // Rubric Library (Global)
+
+  // 1.2 Thư viện Rubric (Rubrics)
   {
     path: 'rubrics',
     loadComponent: () => import('../grading/rubric-manager.component').then(m => m.RubricManagerComponent),
-    title: 'Thu vien Rubric'
+    title: 'Thư viện Rubric'
   },
+
+  // 1.3 Ngân hàng câu hỏi (Question Bank)
+  // Reusing existing QuizBankComponent
+  {
+    path: 'question-bank',
+    loadComponent: () => import('../quiz/quiz-bank.component').then(m => m.QuizBankComponent),
+    title: 'Ngân hàng câu hỏi'
+  },
+
+  // 1.4 Bài tập trắc nghiệm (Quizzes - New Aggregated View)
+  {
+    path: 'quizzes',
+    loadComponent: () => import('./components/quiz-list.component').then(m => m.QuizListComponent),
+    title: 'Bài tập trắc nghiệm'
+  },
+
+  // =========================================================
+  // ACTIONS & DETAILS
+  // =========================================================
+
+  // Create Assignment
+  {
+    path: 'assignments/create',
+    loadComponent: () => import('../assignments/assignment-creation.component').then(m => m.AssignmentCreationComponent),
+    title: 'Tạo bài tập mới'
+  },
+
+  // Create Quiz (Redirect to Quiz Creation Wizard if needed, or keep here)
+  {
+    path: 'quizzes/create',
+    loadComponent: () => import('../quiz/quiz-create.component').then(m => m.QuizCreateComponent),
+    title: 'Tạo bài trắc nghiệm'
+  },
+
+  // Rubric Actions
   {
     path: 'rubrics/create',
     loadComponent: () => import('../grading/rubric-creator.component').then(m => m.RubricCreatorComponent),
-    title: 'Tao Rubric moi'
+    title: 'Tạo Rubric mới'
   },
   {
     path: 'rubrics/edit/:rubricId',
     loadComponent: () => import('../grading/rubric-editor.component').then(m => m.RubricEditorComponent),
-    title: 'Chinh sua Rubric'
+    title: 'Chỉnh sửa Rubric'
   },
-  
+
   // Assignment Detail with Tabs
   {
-    path: ':id',
+    path: 'assignments/:id',
     loadComponent: () => import('./components/assignment-detail-layout.component').then(m => m.AssignmentDetailLayoutComponent),
     children: [
-      // Default redirect to overview
       {
         path: '',
         redirectTo: 'overview',
         pathMatch: 'full'
       },
-      
-      // Overview Tab
       {
         path: 'overview',
         loadComponent: () => import('./components/assignment-overview.component').then(m => m.AssignmentOverviewComponent),
-        title: 'Tong quan bai tap'
+        title: 'Tổng quan bài tập'
       },
-      
-      // Submissions Tab
       {
         path: 'submissions',
         loadComponent: () => import('./components/submission-list.component').then(m => m.SubmissionListComponent),
-        title: 'Danh sach bai nop'
+        title: 'Danh sách bài nộp'
       },
-      
-      // Settings Tab
       {
         path: 'settings',
         loadComponent: () => import('../assignments/assignment-editor.component').then(m => m.AssignmentEditorComponent),
-        title: 'Cai dat bai tap'
+        title: 'Cài đặt bài tập'
       },
-      
-      // Rubric Tab (Assignment-specific)
       {
         path: 'rubric',
         loadComponent: () => import('./components/assignment-rubric.component').then(m => m.AssignmentRubricComponent),
-        title: 'Rubric bai tap'
+        title: 'Rubric bài tập'
       },
-      
-      // Audit Log Tab (STCW Compliance)
       {
         path: 'audit-log',
         loadComponent: () => import('./components/assignment-audit-log.component').then(m => m.AssignmentAuditLogComponent),
-        title: 'Lich su thao tac'
+        title: 'Lịch sử thao tác'
       }
     ]
   },
-  
-  // SpeedGrader (Full screen mode)
+
+  // SpeedGrader
   {
-    path: ':id/grade/:submissionId',
+    path: 'assignments/:id/grade/:submissionId',
     loadComponent: () => import('./components/speed-grader.component').then(m => m.SpeedGraderComponent),
-    title: 'Cham diem'
+    title: 'Chấm điểm'
   },
-  
-  // Legacy route: /assignments/:id/edit -> redirect to settings
+
+  // Legacy redirects
   {
-    path: ':id/edit',
-    redirectTo: ':id/settings',
+    path: ':id/edit', // Old pattern
+    redirectTo: 'assignments/:id/settings',
     pathMatch: 'full'
   }
 ];

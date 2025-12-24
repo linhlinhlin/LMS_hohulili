@@ -62,23 +62,7 @@ export const serverRoutes: ServerRoute[] = [
     renderMode: RenderMode.Client
   },
   {
-    path: 'teacher/assignments',
-    renderMode: RenderMode.Client
-  },
-  {
-    path: 'teacher/assignment-creation',
-    renderMode: RenderMode.Client
-  },
-  {
-    path: 'teacher/assignments/:id/edit',
-    renderMode: RenderMode.Client
-  },
-  {
-    path: 'teacher/assignments/:id/submissions',
-    renderMode: RenderMode.Client
-  },
-  {
-    path: 'teacher/courses/:courseId/sections/:sectionId/assignments/:assignmentId/submissions',
+    path: 'teacher/assessments',
     renderMode: RenderMode.Client
   },
   {
