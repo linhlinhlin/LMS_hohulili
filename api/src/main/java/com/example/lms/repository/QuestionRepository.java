@@ -17,7 +17,21 @@ public interface QuestionRepository extends JpaRepository<Question, UUID> {
     List<Question> findByStatus(Question.Status status);
 
     // Find all questions created by a specific user (any status)
+    List<Question> findByCreatedBy(com.example.lms.entity.User createdBy);
+    
+    // Legacy: Find by ID (Restored for QuizService compatibility)
     List<Question> findByCreatedById(UUID createdById);
+
+    // Find all questions created by a specific user with status
+    List<Question> findByCreatedByAndStatus(com.example.lms.entity.User createdBy, Question.Status status);
+
+    @Query("SELECT DISTINCT q FROM Question q " +
+           "LEFT JOIN FETCH q.options " +
+           "LEFT JOIN FETCH q.createdBy " +
+           "WHERE q.createdBy = :createdBy " +
+           "AND (:status IS NULL OR q.status = :status) " +
+           "ORDER BY q.createdAt DESC")
+    List<Question> findByCreatedByWithOptionsAndStatus(@Param("createdBy") com.example.lms.entity.User createdBy, @Param("status") Question.Status status);
 
     @Query("SELECT q FROM Question q WHERE q.status = :status AND " +
            "(:difficulty IS NULL OR q.difficulty = :difficulty) AND " +
@@ -28,6 +42,9 @@ public interface QuestionRepository extends JpaRepository<Question, UUID> {
 
     @Query("SELECT q FROM Question q WHERE q.id IN :ids")
     List<Question> findByIds(@Param("ids") List<UUID> ids);
+
+    @Query("SELECT q FROM Question q LEFT JOIN FETCH q.options LEFT JOIN FETCH q.createdBy WHERE q.id = :id")
+    java.util.Optional<Question> findByIdWithOptions(@Param("id") UUID id);
 
     // NEW: Find questions by course
     List<Question> findByCourseId(UUID courseId);

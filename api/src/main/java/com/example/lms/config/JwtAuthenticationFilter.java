@@ -45,18 +45,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
         
         final String authHeader = request.getHeader("Authorization");
-        final String jwt;
+        String jwt = null;
         final String username;
 
-        // Check if Authorization header exists and starts with "Bearer "
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            System.out.println("JWT DEBUG: No Bearer token found in request to " + request.getRequestURI());
+        // Check Authorization header
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            jwt = authHeader.substring(7);
+        } 
+        // fallback to query parameter (SOTA for <img> tags)
+        else if (request.getParameter("token") != null) {
+            jwt = request.getParameter("token");
+        }
+        else if (request.getParameter("access_token") != null) {
+            jwt = request.getParameter("access_token");
+        }
+
+        if (jwt == null) {
+            // System.out.println("JWT DEBUG: No Bearer token found in request to " + request.getRequestURI());
             filterChain.doFilter(request, response);
             return;
         }
 
-        // Extract JWT token
-        jwt = authHeader.substring(7);
+        // Extract JWT token (already done above)
+        // jwt = authHeader.substring(7); // REMOVED
         
         // Enhanced JWT debugging for question endpoints
         if (request.getRequestURI().contains("/questions")) {

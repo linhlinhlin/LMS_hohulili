@@ -22,6 +22,10 @@
         </div>
 
         <div class="bulk-actions">
+            <button type="button" class="btn-primary-sm" (click)="createNew.emit()">
+                <i class="fas fa-plus"></i> Tạo mới
+            </button>
+            <span class="separator">|</span>
             <button type="button" class="btn-link" (click)="selectAll()" [disabled]="filteredQuestions().length === 0">
                 Chọn tất cả
             </button>

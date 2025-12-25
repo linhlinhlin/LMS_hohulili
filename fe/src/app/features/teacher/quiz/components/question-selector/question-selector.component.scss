@@ -88,6 +88,24 @@
     margin-left: auto;
 }
 
+.btn-primary-sm {
+    padding: 0.5rem 1rem;
+    background: var(--primary-color, #4f46e5);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    &:hover {
+        background: #4338ca;
+    }
+}
+
 .btn-link {
     background: none;
     border: none;

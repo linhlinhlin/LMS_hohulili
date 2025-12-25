@@ -53,6 +53,8 @@ public class SecurityConfig {
                 // Public course catalog - accessible without authentication (SOTA: Coursera/Udemy pattern)
                 .requestMatchers(HttpMethod.GET, "/api/v1/courses").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/courses/{courseId}").permitAll()
+                // Secure File Access (SOTA: Authenticated Stream)
+                .requestMatchers("/api/v1/files/view/**", "/api/v1/files/stream/**").authenticated()
                 .anyRequest().authenticated()
             )
             .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -91,19 +93,5 @@ public class SecurityConfig {
         return source;
     }
     
-    /**
-     * Completely bypass security for Swagger/OpenAPI endpoints
-     * This ensures these endpoints are not processed by the security filter chain at all
-     */
-    @Bean
-    public WebSecurityCustomizer webSecurityCustomizer() {
-        return (web) -> web.ignoring().requestMatchers(
-            "/v3/api-docs/**",
-            "/v3/api-docs",
-            "/swagger-ui/**",
-            "/swagger-ui.html",
-            "/swagger-resources/**",
-            "/webjars/**"
-        );
-    }
+
 }

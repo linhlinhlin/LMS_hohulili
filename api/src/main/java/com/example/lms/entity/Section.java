@@ -40,6 +40,10 @@ public class Section {
     
     @Column(columnDefinition = "TEXT")
     private String content;
+
+    @Column(name = "structured_content", columnDefinition = "jsonb")
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    private java.util.Map<String, Object> structuredContent;
     
     @Column(name = "video_url", length = 500)
     private String videoUrl;

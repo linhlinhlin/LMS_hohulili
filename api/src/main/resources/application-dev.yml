@@ -9,7 +9,7 @@ spring:
     # SOTA: Use Transaction Mode for web APIs (Google/AWS/Supabase best practice)
     # - Port 5432 = Session Mode (holds connection permanently) ❌
     # - Port 6543 = Transaction Mode (connection per transaction) ✅
-    url: jdbc:postgresql://aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres?prepareThreshold=0
+    url: jdbc:postgresql://aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres?prepareThreshold=0&useUnicode=true&characterEncoding=UTF-8
     username: postgres.rljldvpboqapokzecfff
     password: ho_hu_li_li_
     driver-class-name: org.postgresql.Driver
@@ -19,7 +19,7 @@ spring:
     # ===============================================
     # Install: https://www.postgresql.org/download/
     # Or Docker: docker run --name lms-postgres -e POSTGRES_DB=lms -e POSTGRES_USER=lms -e POSTGRES_PASSWORD=lms -p 5432:5432 -d postgres:15
-    # url: jdbc:postgresql://localhost:5432/lms
+    url: jdbc:postgresql://localhost:5432/lms_db?useUnicode=true&characterEncoding=UTF-8
     # username: lms
     # password: lms
 
@@ -39,7 +39,7 @@ spring:
       ddl-auto: update    # Keep 'update' for dev - database may need schema changes
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+
         format_sql: true
         jdbc:
           batch_size: 25

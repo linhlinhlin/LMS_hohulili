@@ -38,6 +38,7 @@ export class QuizFormComponent implements OnInit {
     // New outputs for package handling
     @Output() onPackageSelect = new EventEmitter<string>();
     @Output() onUseMyQuestions = new EventEmitter<void>();
+    @Output() onRequestCreateQuestion = new EventEmitter<void>();
 
     quizForm!: FormGroup;
     currentStep = signal(1);
@@ -138,6 +139,16 @@ export class QuizFormComponent implements OnInit {
         this.selectedPackageId.set(packageId);
         if (packageId) {
             this.onPackageSelect.emit(packageId);
+        }
+    }
+
+    // Public API for parent components
+    selectQuestion(questionId: string) {
+        const current = this.selectedQuestionIds();
+        if (!current.includes(questionId)) {
+            const updated = [...current, questionId];
+            this.selectedQuestionIds.set(updated);
+            this.questionsChanged.emit(updated);
         }
     }
 

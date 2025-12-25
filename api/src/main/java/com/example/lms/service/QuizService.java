@@ -1,6 +1,7 @@
 package com.example.lms.service;
 
 import com.example.lms.dto.QuizDTO;
+import com.example.lms.domain.ContentBlock;
 import com.example.lms.entity.*;
 import com.example.lms.repository.*;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -1028,7 +1029,7 @@ public class QuizService {
         
         for (String[] data : sampleData) {
             Question question = Question.builder()
-                    .content(data[0])
+                    .contentBlocks(ContentBlock.fromText(data[0]))
                     .difficulty(Question.Difficulty.MEDIUM)
                     .status(Question.Status.ACTIVE)
                     .correctOption(data[5])
@@ -1043,7 +1044,7 @@ public class QuizService {
                 QuestionOption option = QuestionOption.builder()
                         .question(question)
                         .optionKey(optionKeys[i])
-                        .content(data[i + 1])
+                        .contentBlocks(ContentBlock.fromText(data[i + 1]))
                         .displayOrder(i + 1)
                         .build();
                 options.add(option);

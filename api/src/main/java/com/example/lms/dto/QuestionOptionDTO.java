@@ -9,6 +9,8 @@ public class QuestionOptionDTO {
     private String content;
     private Integer displayOrder;
 
+    private java.util.List<com.example.lms.domain.ContentBlock> blocks;
+
     public QuestionOptionDTO() {}
 
     // Manual Getters/Setters
@@ -18,6 +20,8 @@ public class QuestionOptionDTO {
     public void setOptionKey(String optionKey) { this.optionKey = optionKey; }
     public String getContent() { return content; }
     public void setContent(String content) { this.content = content; }
+    public java.util.List<com.example.lms.domain.ContentBlock> getBlocks() { return blocks; }
+    public void setBlocks(java.util.List<com.example.lms.domain.ContentBlock> blocks) { this.blocks = blocks; }
     public Integer getDisplayOrder() { return displayOrder; }
     public void setDisplayOrder(Integer displayOrder) { this.displayOrder = displayOrder; }
 
@@ -27,6 +31,7 @@ public class QuestionOptionDTO {
         public QuestionOptionDTOBuilder id(UUID id) { dto.setId(id); return this; }
         public QuestionOptionDTOBuilder optionKey(String k) { dto.setOptionKey(k); return this; }
         public QuestionOptionDTOBuilder content(String c) { dto.setContent(c); return this; }
+        public QuestionOptionDTOBuilder blocks(java.util.List<com.example.lms.domain.ContentBlock> b) { dto.setBlocks(b); return this; }
         public QuestionOptionDTOBuilder displayOrder(Integer d) { dto.setDisplayOrder(d); return this; }
         public QuestionOptionDTO build() { return dto; }
     }
@@ -36,8 +41,18 @@ public class QuestionOptionDTO {
         return builder()
                 .id(option.getId())
                 .optionKey(option.getOptionKey())
-                .content(option.getContent())
+                .content(extractContent(option.getContentBlocks())) // Logic moved here
+                .blocks(option.getContentBlocks()) // New blocks getter
                 .displayOrder(option.getDisplayOrder())
                 .build();
+    }
+
+    private static String extractContent(java.util.List<com.example.lms.domain.ContentBlock> blocks) {
+        if (blocks == null || blocks.isEmpty()) return "";
+        return blocks.stream()
+                .filter(b -> "text".equals(b.getType()) && b.getData() != null)
+                .map(b -> (String) b.getData().get("html"))
+                .findFirst()
+                .orElse("");
     }
 }

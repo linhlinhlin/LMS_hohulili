@@ -95,7 +95,7 @@ public class QuestionResponse {
     public static QuestionResponse fromEntity(Question question) {
         return QuestionResponse.builder()
                 .id(question.getId())
-                .content(question.getContent())
+                .content(extractContent(question.getContentBlocks()))
                 .difficulty(question.getDifficulty().name())
                 .tags(question.getTags())
                 .status(question.getStatus().name())
@@ -109,7 +109,7 @@ public class QuestionResponse {
                         .map(option -> QuestionOptionResponse.builder()
                                 .id(option.getId())
                                 .optionKey(option.getOptionKey())
-                                .optionText(option.getContent())
+                                .optionText(extractContent(option.getContentBlocks()))
                                 .questionId(question.getId().toString())
                                 .displayOrder(option.getDisplayOrder())
                                 .build())
@@ -117,5 +117,14 @@ public class QuestionResponse {
                 .createdAt(question.getCreatedAt())
                 .updatedAt(question.getUpdatedAt())
                 .build();
+    }
+
+    private static String extractContent(java.util.List<com.example.lms.domain.ContentBlock> blocks) {
+        if (blocks == null || blocks.isEmpty()) return "";
+        return blocks.stream()
+                .filter(b -> "text".equals(b.getType()) && b.getData() != null)
+                .map(b -> (String) b.getData().get("html"))
+                .findFirst()
+                .orElse("");
     }
 }

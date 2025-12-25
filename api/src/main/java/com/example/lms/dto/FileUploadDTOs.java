@@ -1,6 +1,7 @@
 package com.example.lms.dto;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Builder;
 import lombok.Data;
@@ -70,6 +71,7 @@ public class FileUploadDTOs {
     @AllArgsConstructor
     @Builder
     public static class FileUploadResponse {
+        private UUID id;
         private String fileName;
         private String originalFileName;
         private String fileUrl;

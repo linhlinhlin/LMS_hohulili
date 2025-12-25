@@ -16,4 +16,7 @@ public interface FileAttachmentRepository extends JpaRepository<FileAttachment, 
         String entityType, 
         String status
     );
+
+    // Clean up TEMP files
+    List<FileAttachment> findByStatusAndUploadedAtBefore(String status, java.time.LocalDateTime uploadedAt);
 }

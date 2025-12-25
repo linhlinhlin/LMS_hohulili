@@ -155,7 +155,8 @@
       </p>
 
       <app-question-selector [questions]="questions" [selectedIds]="selectedQuestionIds()"
-        (selectionChange)="onQuestionsSelected($event)"></app-question-selector>
+        (selectionChange)="onQuestionsSelected($event)" (createNew)="onRequestCreateQuestion.emit()">
+      </app-question-selector>
 
       <div class="alert alert-warning" *ngIf="selectedQuestionIds().length === 0">
         <i class="fas fa-exclamation-triangle"></i>

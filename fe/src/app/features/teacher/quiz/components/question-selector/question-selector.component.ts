@@ -27,6 +27,7 @@ export class QuestionSelectorComponent {
     @Input() questions: Question[] = [];
     @Input() selectedIds: string[] = [];
     @Output() selectionChange = new EventEmitter<string[]>();
+    @Output() createNew = new EventEmitter<void>();
 
     searchTerm = signal('');
     filterDifficulty = signal<string>('all');

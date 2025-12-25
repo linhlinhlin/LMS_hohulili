@@ -45,6 +45,8 @@ export interface CreateQuestionRequest {
   tags: string;
   courseId?: string;  // Optional courseId
   packageId?: string;  // Optional packageId
+  contentBlocks?: any[];
+  optionBlocks?: any[];
 }
 
 export interface UpdateQuestionRequest {
@@ -140,7 +142,7 @@ export class QuestionApi {
     formData.append('file', file);
     formData.append('packageId', packageId);
     formData.append('difficulty', difficulty);
-    
+
     return this.apiClient.post<QuestionImportResult>('/api/v1/questions/import/excel', formData);
   }
 }

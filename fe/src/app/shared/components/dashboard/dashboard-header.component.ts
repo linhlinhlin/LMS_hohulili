@@ -3,6 +3,7 @@ import { CommonModule } from "@angular/common"
 import { RouterModule, Router } from "@angular/router"
 import { FormsModule } from "@angular/forms"
 import { AuthService } from "../../../core/services/auth.service"
+import { PwaService } from "../../../core/services/pwa.service"
 import { SmartBreadcrumbsComponent } from "../navigation/smart-breadcrumbs.component"
 
 @Component({
@@ -41,6 +42,18 @@ import { SmartBreadcrumbsComponent } from "../navigation/smart-breadcrumbs.compo
 
         <!-- Top Bar Actions -->
         <div class="flex items-center space-x-6">
+          <!-- Install App Button (PWA) -->
+          @if (pwaService.showInstallButton()) {
+            <button 
+              (click)="pwaService.installPwa()"
+              class="hidden md:flex items-center space-x-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-xl hover:bg-blue-100 transition-colors duration-200">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+              </svg>
+              <span class="font-medium text-sm">Cài đặt App</span>
+            </button>
+          }
+
           <!-- Search với thiết kế đẹp -->
           <div class="relative hidden lg:block">
             <input type="text" 
@@ -159,6 +172,7 @@ import { SmartBreadcrumbsComponent } from "../navigation/smart-breadcrumbs.compo
 })
 export class DashboardHeaderComponent {
   protected authService = inject(AuthService)
+  protected pwaService = inject(PwaService)
   protected router = inject(Router)
 
   mobileMenuToggle = output<void>()
@@ -201,12 +215,12 @@ export class DashboardHeaderComponent {
   onSearch(event: Event): void {
     const target = event.target as HTMLInputElement
     this.searchQuery.set(target.value)
-    
+
     // Implement search functionality
     if (this.searchQuery().trim()) {
       // Navigate to search results page
-      this.router.navigate(['/search'], { 
-        queryParams: { q: this.searchQuery().trim() } 
+      this.router.navigate(['/search'], {
+        queryParams: { q: this.searchQuery().trim() }
       });
     }
   }
