@@ -189,7 +189,10 @@ public class QuestionService {
             }
         }
 
-        return questionRepository.save(question);
+        Question saved = questionRepository.save(question);
+        // Force initialization of lazy relationships
+        org.hibernate.Hibernate.initialize(saved.getCreatedBy());
+        return saved;
     }
 
     @Transactional

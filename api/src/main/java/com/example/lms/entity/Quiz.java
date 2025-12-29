@@ -39,6 +39,11 @@ public class Quiz {
     @Builder.Default
     private QuizType type = QuizType.LESSON_QUIZ;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private Status status = Status.DRAFT;
+
     // Modified: Section instead of Lesson
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "section_id")
@@ -50,6 +55,12 @@ public class Quiz {
     @JoinColumn(name = "course_id")
     @JsonIgnore
     private Course course;
+
+    // Optional: for Class-specific Assignment Quiz
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "class_id")
+    @JsonIgnore
+    private com.example.lms.learning_delivery.domain.model.LearningClass learningClass;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", nullable = false)
@@ -141,8 +152,18 @@ public class Quiz {
             throw new IllegalStateException("Cannot modify quiz content after it has been published and attempted.");
         }
         UUID expectedCourseId = getExpectedCourseId();
-        if (expectedCourseId != null && !question.belongsToCourse(expectedCourseId)) {
-            throw new IllegalArgumentException("Question must belong to the same course as the quiz.");
+        
+        // SOTA 2025: Relaxed Validation
+        // 1. Same Course
+        boolean isSameCourse = expectedCourseId != null && question.belongsToCourse(expectedCourseId);
+        // 2. Global (No Course)
+        boolean isGlobal = question.getCourse() == null;
+        // 3. Same Owner (Teacher reusing own questions)
+        boolean isSameOwner = this.createdBy != null && question.getCreatedBy() != null 
+                              && this.createdBy.getId().equals(question.getCreatedBy().getId());
+
+        if (!isSameCourse && !isGlobal && !isSameOwner) {
+             throw new IllegalArgumentException("Question " + question.getId() + " must belong to the same course, be global, or be owned by you.");
         }
         boolean alreadyExists = this.quizQuestions.stream()
             .anyMatch(qq -> qq.getQuestion().getId().equals(question.getId()));
@@ -153,6 +174,9 @@ public class Quiz {
             .quiz(this)
             .question(question)
             .displayOrder(displayOrder)
+            .questionContent(question.getContent())
+            .type("MULTIPLE_CHOICE") // Defaulting as Question entity lacks type field
+            .contentBlocks(question.getContentBlocks())
             .build();
         this.quizQuestions.add(link);
     }
@@ -198,8 +222,10 @@ public class Quiz {
     private UUID getExpectedCourseId() {
         if (this.type == QuizType.LESSON_QUIZ && this.section != null) {
             return this.section.getLesson().getChapter().getCourse().getId();
-        } else if (this.type == QuizType.ASSIGNMENT && this.course != null) {
-            return this.course.getId();
+        } else if (this.type == QuizType.ASSIGNMENT) {
+            if (this.course != null) return this.course.getId();
+            // Fallback for class-based if course not explicitly set (though it should be)
+            if (this.learningClass != null) return this.learningClass.getCourse().getId();
         }
         return null;
     }
@@ -209,5 +235,9 @@ public class Quiz {
     public enum QuizType {
         LESSON_QUIZ,  // Quiz gắn với lesson
         ASSIGNMENT    // Quiz độc lập (bài tập giao thêm)
+    }
+
+    public enum Status {
+        DRAFT, ACTIVE, ARCHIVED
     }
 }

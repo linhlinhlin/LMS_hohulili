@@ -11,7 +11,8 @@ export interface TextBlockData {
 }
 
 export interface ImageBlockData {
-    url: string;
+    url?: string;
+    file?: { url: string };
     caption?: string;
     width?: number;
     height?: number;

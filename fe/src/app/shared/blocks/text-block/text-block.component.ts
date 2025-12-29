@@ -8,7 +8,7 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
     standalone: true,
     imports: [CommonModule],
     template: `
-    <div class="prose max-w-none text-gray-800 dark:text-gray-200" [innerHTML]="safeHtml"></div>
+    <div class="prose max-w-none" [innerHTML]="safeHtml"></div>
   `,
     changeDetection: ChangeDetectionStrategy.OnPush,
     encapsulation: ViewEncapsulation.None

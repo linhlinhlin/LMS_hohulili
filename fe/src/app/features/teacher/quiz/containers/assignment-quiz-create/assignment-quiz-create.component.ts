@@ -1,15 +1,16 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { QuizApi, CreateAssignmentQuizRequest } from '../../../../../api/endpoints/quiz.api';
 import { QuestionApi, Question } from '../../../../../api/endpoints/question.api';
-import { CourseApi } from '../../../../../api/client/course.api';
+import { CourseApi, ClassSummary } from '../../../../../api/client/course.api';
 import { QuizFormComponent, QuizFormConfig, QuizFormData } from '../../components/quiz-form/quiz-form.component';
 
 @Component({
     selector: 'app-assignment-quiz-create',
     standalone: true,
-    imports: [CommonModule, QuizFormComponent],
+    imports: [CommonModule, FormsModule, QuizFormComponent],
     template: `
     <div class="container mx-auto px-4 py-8">
       <div class="mb-6">
@@ -21,13 +22,48 @@ import { QuizFormComponent, QuizFormConfig, QuizFormData } from '../../component
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
       </div>
 
-      <app-quiz-form
-        *ngIf="!isLoading()"
-        [config]="formConfig"
-        [questions]="questions()"
-        (onSubmit)="handleSubmit($event)"
-        (onCancel)="handleCancel()">
-      </app-quiz-form>
+      <ng-container *ngIf="!isLoading()">
+          <!-- Scope Selection -->
+          <div class="bg-white p-6 rounded-lg shadow-sm mb-6 border border-gray-100">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Phạm vi giao bài</h3>
+            
+            <div class="flex gap-6 mb-4">
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="scope" [value]="'COURSE'" [checked]="scope() === 'COURSE'" (change)="scope.set('COURSE')" class="w-4 h-4 text-blue-600">
+                <span>Toàn bộ khóa học</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="scope" [value]="'CLASS'" [checked]="scope() === 'CLASS'" (change)="scope.set('CLASS')" class="w-4 h-4 text-blue-600">
+                <span>Lớp học cụ thể</span>
+              </label>
+            </div>
+
+            <!-- Class Selector -->
+            <div *ngIf="scope() === 'CLASS'" class="animate-fade-in">
+               <label class="block text-sm font-medium text-gray-700 mb-1">Chọn lớp học</label>
+               <select 
+                 [value]="selectedClassId()"
+                 (change)="selectedClassId.set($any($event.target).value)" 
+                 class="w-full md:w-1/2 px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-white"
+                >
+                 <option value="" disabled>-- Chọn lớp --</option>
+                 <option *ngFor="let cls of classes()" [value]="cls.id">
+                   {{ cls.name }} (Code: {{ cls.code }})
+                 </option>
+               </select>
+               <p *ngIf="classes().length === 0" class="text-orange-500 text-sm mt-2">
+                 ⚠️ Khóa học này chưa có lớp nào đang hoạt động.
+               </p>
+            </div>
+          </div>
+
+          <app-quiz-form
+            [config]="formConfig"
+            [questions]="questions()"
+            (onSubmit)="handleSubmit($event)"
+            (onCancel)="handleCancel()">
+          </app-quiz-form>
+      </ng-container>
     </div>
   `
 })
@@ -42,6 +78,11 @@ export class AssignmentQuizCreateComponent implements OnInit {
     courseTitle = signal<string>('');
     questions = signal<Question[]>([]);
     isLoading = signal<boolean>(true);
+
+    // Scope Logic
+    scope = signal<'COURSE' | 'CLASS'>('COURSE');
+    classes = signal<ClassSummary[]>([]);
+    selectedClassId = signal<string>('');
 
     formConfig: QuizFormConfig = {
         showDates: true, // Assignment needs dates
@@ -69,7 +110,12 @@ export class AssignmentQuizCreateComponent implements OnInit {
     private loadData(courseId: string) {
         this.isLoading.set(true);
 
-        // 1. Get Course Details
+        // Parallel Loading
+        // 1. Course Details for Title
+        // 2. Questions
+        // 3. Classes (for Scope)
+
+        // 1. Get Course & Classes
         this.courseApi.getCourseById(courseId).subscribe({
             next: (response: any) => {
                 if (response.success && response.data) {
@@ -79,9 +125,15 @@ export class AssignmentQuizCreateComponent implements OnInit {
             error: (err: any) => console.error('Failed to load course:', err)
         });
 
+        // Load Classes
+        this.courseApi.getAvailableClasses(courseId).subscribe({
+            next: (res: any) => {
+                this.classes.set(res.data || []);
+            },
+            error: (err) => console.error('Failed to load classes', err)
+        });
+
         // 2. Load Questions (My Questions)
-        // Ideally we should filter by course, but for now load all teacher's questions
-        // Ideally we should filter by course, but for now load all teacher's questions
         this.questionApi.getMyQuestions().subscribe({
             next: (questions: Question[]) => {
                 this.questions.set(questions);
@@ -95,6 +147,12 @@ export class AssignmentQuizCreateComponent implements OnInit {
     }
 
     handleSubmit(formData: QuizFormData) {
+        // Validation
+        if (this.scope() === 'CLASS' && !this.selectedClassId()) {
+            alert('Vui lòng chọn lớp học!');
+            return;
+        }
+
         const request: CreateAssignmentQuizRequest = {
             title: formData.title,
             description: formData.description,
@@ -108,19 +166,21 @@ export class AssignmentQuizCreateComponent implements OnInit {
             startDate: formData.startDate,
             endDate: formData.endDate,
             questionIds: formData.questionIds,
-            publishImmediately: formData.publishImmediately
+            publishImmediately: formData.publishImmediately,
+            // Class ID (Optional)
+            classId: this.scope() === 'CLASS' ? this.selectedClassId() : undefined
         };
 
         this.quizApi.createAssignmentQuizV2(this.courseId(), request)
             .subscribe({
                 next: (response: any) => {
-                    // Prompt to assign now
-                    if (confirm('Bài tập đã được tạo thành công! Bạn có muốn giao bài cho học viên ngay bây giờ không?')) {
-                        // Navigate to assign page (we need to implement this route/component later)
-                        // For now, let's assume the route is /teacher/quiz/assignments/:quizId/assign
+                    const msg = this.scope() === 'CLASS'
+                        ? 'Bài tập cho lớp đã được tạo thành công!'
+                        : 'Bài tập khóa học đã được tạo thành công!';
+
+                    if (confirm(msg + ' Bạn có muốn giao bài ngay bây giờ không?')) {
                         this.router.navigate(['/teacher/quiz/assignments', response.data.id, 'assign']);
                     } else {
-                        // Navigate back to course
                         this.handleCancel();
                     }
                 },

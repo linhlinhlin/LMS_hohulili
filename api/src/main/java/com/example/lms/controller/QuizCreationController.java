@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -148,6 +149,7 @@ public class QuizCreationController {
      * POST /api/v2/quizzes/courses/{courseId}
      */
     @PostMapping("/courses/{courseId}")
+    @PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
     @Operation(
         summary = "Tạo quiz assignment (DDD)",
         description = "Tạo quiz độc lập cho course - sử dụng DDD approach"

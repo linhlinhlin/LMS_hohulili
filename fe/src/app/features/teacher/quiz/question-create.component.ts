@@ -121,7 +121,7 @@ import { AuthImagePipe } from '../../../shared/pipes/auth-image.pipe';
                   
                   <!-- Mini Preview for Option Image -->
                   <div *ngIf="hasImageTag(options.at(i).get('content')?.value)" class="absolute right-14 top-2 z-10">
-                       <img [src]="extractFileId(options.at(i).get('content')?.value) | authImage | async" 
+                       <img [src]="extractFileId(options.at(i).get('content')?.value) | authImage" 
                             class="w-10 h-10 rounded border shadow-sm object-cover bg-white hover:scale-150 transition-transform origin-top-right cursor-zoom-in" 
                             title="Image attached">
                   </div>
@@ -343,11 +343,11 @@ export class QuestionCreateComponent implements OnInit {
 
     const request: any = { // Cast to any to bypass interface strictness for now
       content: this.extractTextFromBlocks(this.questionBlocks()), // Fallback text
-      contentBlocks: this.questionBlocks(), // NEW
+      blocks: this.transformToBackendBlocks(this.questionBlocks()), // NEW: Transform to backend format
 
       correctOption: formValue.correctOption,
       options: optionsList,
-      optionBlocks: optionBlocksList, // Sending blocks for options
+      optionBlocks: optionBlocksList.map(bl => this.transformToBackendBlocks(bl)), // Sending transformed blocks
 
       difficulty: formValue.difficulty,
       tags: formValue.tags,
@@ -384,6 +384,32 @@ export class QuestionCreateComponent implements OnInit {
 
   private extractTextFromBlocks(blocks: ContentBlock[]): string {
     return blocks.map(b => (b as any).content || '').join(' ');
+  }
+
+  private transformToBackendBlocks(blocks: ContentBlock[]): any[] {
+    return blocks.map(b => {
+      const { id, type, ...rest } = b as any;
+      let data: any = {};
+
+      if (type === 'text') {
+        data.html = rest.content || '';
+      } else if (type === 'formula') {
+        data.latex = rest.content || '';
+        data.format = rest.format || 'inline';
+      } else if (type === 'image') {
+        data.url = rest.url || '';
+        data.caption = rest.caption;
+        data.width = rest.width;
+      } else {
+        Object.assign(data, rest);
+      }
+
+      return {
+        id,
+        type,
+        data
+      };
+    });
   }
 
   onCancel(): void {

@@ -139,6 +139,7 @@ export interface CreateAssignmentQuizRequest {
   showCorrectAnswers: boolean;
   startDate?: string;  // Only for Assignment
   endDate?: string;    // Only for Assignment
+  classId?: string;
   questionIds: string[];
   publishImmediately: boolean;
 }

@@ -40,6 +40,17 @@ public class SecurityConfig {
         http
             .cors(org.springframework.security.config.Customizer.withDefaults()) // Enable CORS using the Bean
             .csrf(AbstractHttpConfigurer::disable) // Disable CSRF
+            .headers(headers -> headers
+                .contentSecurityPolicy(csp -> csp
+                    .policyDirectives("default-src 'self'; " +
+                         "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; " +
+                         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+                         "img-src 'self' data: blob: http://localhost:8088; " +
+                         "font-src 'self' https://fonts.gstatic.com data:; " +
+                         "connect-src 'self' http://localhost:8088; " +
+                         "frame-src 'self' https://www.youtube.com;")
+                )
+            )
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                     "/v3/api-docs/**",

@@ -1,0 +1,24 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------< com.example:backend-lms-postgres >------------------
+[INFO] Building backend-lms-postgres 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ backend-lms-postgres ---
+[INFO] Copying 3 resources from src\main\resources to target\classes
+[INFO] Copying 43 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ backend-lms-postgres ---
+[INFO] Changes detected - recompiling the module! :source
+[INFO] Compiling 279 source files with javac [debug release 21] to target\classes
+[INFO] /E:/LMS/lms_1/dev/api/src/main/java/com/example/lms/service/LessonAssignmentService.java: Some input files use or override a deprecated API.
+[INFO] /E:/LMS/lms_1/dev/api/src/main/java/com/example/lms/service/LessonAssignmentService.java: Recompile with -Xlint:deprecation for details.
+[INFO] /E:/LMS/lms_1/dev/api/src/main/java/com/example/lms/service/AssignmentService.java: E:\LMS\lms_1\dev\api\src\main\java\com\example\lms\service\AssignmentService.java uses unchecked or unsafe operations.
+[INFO] /E:/LMS/lms_1/dev/api/src/main/java/com/example/lms/service/AssignmentService.java: Recompile with -Xlint:unchecked for details.
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  21.100 s
+[INFO] Finished at: 2025-12-29T14:06:58+07:00
+[INFO] ------------------------------------------------------------------------

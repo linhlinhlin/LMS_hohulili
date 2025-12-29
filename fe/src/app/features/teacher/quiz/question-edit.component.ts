@@ -310,10 +310,21 @@ export class QuestionEditComponent implements OnInit {
 
     // Add options from question (with null check)
     if (question.options && Array.isArray(question.options)) {
-      question.options.forEach((option, index) => {
-        this.options.push(this.createOptionGroup(option.optionKey, option.content));
-        // If question has option blocks (future), we'd load them here
-        // this.optionBlocksMap.set(index, option.contentBlocks);
+      question.options.forEach((option: any, index) => {
+        let optionText = option.content || '';
+        // Backend might send 'contentBlocks' or 'blocks' (nested data)
+        const rawOptBlocks = option.contentBlocks || option.blocks;
+
+        if (rawOptBlocks && rawOptBlocks.length > 0) {
+          const transformed = this.transformFromBackendBlocks(rawOptBlocks);
+          this.updateOptionBlocks(index, transformed);
+
+          // Reconstruct hybrid text for EnrichedInput ([IMG:uuid], $latex$)
+          // This ensures images appear in the input preview
+          optionText = this.blocksToString(transformed);
+        }
+
+        this.options.push(this.createOptionGroup(option.optionKey, optionText));
       });
     } else {
       ['A', 'B', 'C', 'D'].forEach(key => {
@@ -332,16 +343,40 @@ export class QuestionEditComponent implements OnInit {
     // Set Question Content Blocks
     // If backend provides blocks, use them. Else parse text.
     // Assuming backend might not yet send `contentBlocks` or generic `question` interface doesn't have it typed fully in FE
-    const blocks = (question as any).contentBlocks || this.parseRawText(question.content);
+    // Set Question Content Blocks
+    // Backend returns nested 'data' map, Frontend needs flat properties
+    const rawBlocks = (question as any).blocks || (question as any).contentBlocks;
+    let blocks: ContentBlock[] = [];
+
+    if (rawBlocks && rawBlocks.length > 0) {
+      blocks = this.transformFromBackendBlocks(rawBlocks);
+    } else {
+      blocks = this.parseRawText(question.content);
+    }
     this.questionBlocks.set(blocks);
-
-    // Defer updating editor execution until view init - actually BlockEditor needs input binding or method call
-    // We used #blockEditor ViewChild in Create, but here the data comes later.
-    // Rely on template binding [initialBlocks]
-
   }
 
-  // Temporary parser (shared with Create - ideally util)
+  private transformFromBackendBlocks(backendBlocks: any[]): ContentBlock[] {
+    return backendBlocks.map(b => {
+      const { data, ...rest } = b;
+      let block: any = { ...rest };
+
+      // Flatten data based on type
+      if (b.type === 'text') {
+        block.content = data?.html || '';
+      } else if (b.type === 'formula') {
+        block.content = data?.latex || '';
+        block.format = data?.format || 'inline';
+      } else if (b.type === 'image') {
+        block.url = data?.url || '';
+        block.caption = data?.caption;
+        block.width = data?.width;
+      }
+      return block as ContentBlock;
+    });
+  }
+
+  // Temporary parser for legacy text content
   private parseRawText(text: string): ContentBlock[] {
     if (!text) return [];
     const blocks: ContentBlock[] = [];
@@ -438,10 +473,16 @@ export class QuestionEditComponent implements OnInit {
 
     const request: any = { // Use any for DTO mismatch
       content: fallbackContent,
-      contentBlocks: this.questionBlocks(),
+      blocks: this.transformToBackendBlocks(this.questionBlocks()), // FIXED to match backend DTO
 
       correctOption: formValue.correctOption,
       options: optionsList,
+
+      // Map option blocks
+      optionBlocks: this.options.controls.map((_, i) =>
+        this.transformToBackendBlocks(this.optionBlocksMap.get(i) || [])
+      ),
+
       difficulty: formValue.difficulty,
       tags: formValue.tags,
       status: formValue.status
@@ -449,10 +490,11 @@ export class QuestionEditComponent implements OnInit {
 
     this.questionApi.updateQuestion(this.questionId, request).subscribe({
       next: () => {
-        this.router.navigate(['../quiz-bank'], { relativeTo: this.route });
+        this.router.navigate(['/teacher/quiz/quiz-bank']);
       },
       error: (error) => {
         console.error('Failed to update question:', error);
+        alert('Lỗi khi cập nhật câu hỏi: ' + (error?.error?.message || error?.message)); // Show alert
         this.isLoading = false;
       },
       complete: () => {
@@ -461,7 +503,45 @@ export class QuestionEditComponent implements OnInit {
     });
   }
 
+  private transformToBackendBlocks(blocks: ContentBlock[]): any[] {
+    return blocks.map(b => {
+      const { id, type, ...rest } = b as any;
+      let data: any = {};
+
+      if (type === 'text') {
+        data.html = rest.content || '';
+      } else if (type === 'formula') {
+        data.latex = rest.content || '';
+        data.format = rest.format || 'inline';
+      } else if (type === 'image') {
+        data.url = rest.url || '';
+        data.caption = rest.caption;
+        data.width = rest.width;
+      } else {
+        Object.assign(data, rest);
+      }
+
+      return {
+        id,
+        type,
+        data
+      };
+    });
+  }
+
+  private blocksToString(blocks: ContentBlock[]): string {
+    return blocks.map(b => {
+      if (b.type === 'text') return (b as any).content || '';
+      if (b.type === 'formula') {
+        const content = (b as any).content;
+        return (b as any).format === 'display' ? `$$${content}$$` : `$${content}$`;
+      }
+      if (b.type === 'image') return ` ${(b as any).url ? `[IMG:${(b as any).url}]` : ''} `;
+      return '';
+    }).join('');
+  }
+
   onCancel(): void {
-    this.router.navigate(['../quiz-bank'], { relativeTo: this.route });
+    this.router.navigate(['/teacher/quiz/quiz-bank']);
   }
 }

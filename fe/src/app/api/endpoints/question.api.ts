@@ -45,7 +45,7 @@ export interface CreateQuestionRequest {
   tags: string;
   courseId?: string;  // Optional courseId
   packageId?: string;  // Optional packageId
-  contentBlocks?: any[];
+  blocks?: any[];      // Renamed from contentBlocks to match Backend DTO
   optionBlocks?: any[];
 }
 
@@ -56,6 +56,8 @@ export interface UpdateQuestionRequest {
   difficulty: 'EASY' | 'MEDIUM' | 'HARD';
   tags: string;
   status: 'DRAFT' | 'ACTIVE' | 'INACTIVE';
+  blocks?: any[];      // Added to match Backend DTO
+  optionBlocks?: any[];
 }
 
 @Injectable({ providedIn: 'root' })

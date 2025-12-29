@@ -2099,51 +2099,50 @@ export class CourseCurriculumComponent implements OnDestroy {
 
     this.isSaving.set(true);
     try {
-      const formData = new FormData();
-      formData.append('title', this.sectionTitle.trim());
-      formData.append('type', this.newSectionType);
-      formData.append('isRequired', String(this.sectionIsRequired));
+      // Construction of DTO Payload
+      const payload: any = {
+        lessonId: lesson.id,
+        title: this.sectionTitle.trim(),
+        type: this.newSectionType,
+        isRequired: this.sectionIsRequired
+      };
 
       if (this.newSectionType === 'TEXT') {
-        formData.append('content', this.sectionContent);
+        payload.content = this.sectionContent;
       } else if (this.newSectionType === 'VIDEO') {
-        formData.append('videoUrl', this.sectionVideoUrl);
-        // [NEW] Include Cloudflare metadata if available
-        if (this.sectionVideoType) {
-          formData.append('videoType', this.sectionVideoType);
-        }
-        if (this.sectionCfObjectKey) {
-          formData.append('cfObjectKey', this.sectionCfObjectKey);
-        }
-      } else if (this.newSectionType === 'FILE') {
-        if (this.selectedFile) {
-          formData.append('file', this.selectedFile);
-        }
+        payload.videoUrl = this.sectionVideoUrl;
+        payload.videoType = this.sectionVideoType;
+        payload.cfObjectKey = this.sectionCfObjectKey;
       } else if (this.newSectionType === 'QUIZ') {
-        // Quiz settings
-        formData.append('quizType', this.sectionQuizType);
-        formData.append('quizTimeLimit', String(this.sectionQuizTimeLimit));
-        formData.append('quizPassingScore', String(this.sectionQuizPassingScore));
-        // Ch? g?i maxAttempts n?u l� EXAM, ASSESSMENT kh�ng gi?i h?n
-        formData.append('quizMaxAttempts', this.sectionQuizType === 'EXAM' ? String(this.sectionQuizMaxAttempts) : '999');
-        formData.append('quizShuffleQuestions', String(this.sectionQuizShuffleQuestions));
-        formData.append('quizShuffleOptions', String(this.sectionQuizShuffleOptions));
-        formData.append('quizShowResults', String(this.sectionQuizShowResults));
-        // Question IDs
-        const questionIds = this.sectionQuizSelectedQuestions().map(q => q.id);
-        formData.append('questionIds', JSON.stringify(questionIds));
+        payload.quizData = {
+          // Mapping variables to DTO fields
+          quizType: this.sectionQuizType,
+          timeLimitMinutes: this.sectionQuizTimeLimit,
+          passingScore: this.sectionQuizPassingScore,
+          maxAttempts: this.sectionQuizType === 'EXAM' ? this.sectionQuizMaxAttempts : 999,
+          shuffleQuestions: this.sectionQuizShuffleQuestions,
+          shuffleOptions: this.sectionQuizShuffleOptions,
+          showResultsImmediately: this.sectionQuizShowResults,
+          questionIds: this.sectionQuizSelectedQuestions().map(q => q.id)
+        };
+      }
+
+      const formData = new FormData();
+      // append JSON data as a Blob with application/json type
+      formData.append('data', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
+
+      // append File if existing
+      if (this.newSectionType === 'FILE' && this.selectedFile) {
+        formData.append('file', this.selectedFile);
       }
 
       if (this.editingSectionId()) {
-        // Update - Send FormData (Multipart)
         const res: any = await firstValueFrom(this.sectionApi.updateSection(this.editingSectionId()!, formData));
         const updatedSection = res.data || res;
         if (updatedSection?.fileUrl && this.newSectionType === 'FILE') {
           this.sectionFileUrl.set(updatedSection.fileUrl);
         }
       } else {
-        // Create - Send FormData (Multipart)
-        formData.append('lessonId', lesson.id);
         await firstValueFrom(this.sectionApi.createSection(formData));
       }
 
@@ -2156,7 +2155,7 @@ export class CourseCurriculumComponent implements OnDestroy {
       this.showSectionModal.set(false);
     } catch (e: any) {
       console.error('Error saving section:', e);
-      alert('L?i khi l�u M?c: ' + (e?.error?.message || e.message));
+      alert('Lỗi khi lưu Mục: ' + (e?.error?.message || e.message));
     } finally {
       this.isSaving.set(false);
     }

@@ -19,7 +19,7 @@ spring:
     # ===============================================
     # Install: https://www.postgresql.org/download/
     # Or Docker: docker run --name lms-postgres -e POSTGRES_DB=lms -e POSTGRES_USER=lms -e POSTGRES_PASSWORD=lms -p 5432:5432 -d postgres:15
-    url: jdbc:postgresql://localhost:5432/lms_db?useUnicode=true&characterEncoding=UTF-8
+    # url: jdbc:postgresql://localhost:5432/lms_db?useUnicode=true&characterEncoding=UTF-8
     # username: lms
     # password: lms
 

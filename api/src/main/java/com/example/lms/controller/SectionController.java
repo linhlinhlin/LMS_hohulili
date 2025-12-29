@@ -30,54 +30,23 @@ public class SectionController {
         return ResponseEntity.ok(s);
     }
 
-    // API Đa năng: Tạo Section bới hỗ trợ Upload File
+    // API Đa năng: Tạo Section bới hỗ trợ Upload File (Updated for Unified Aggregate Save)
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<com.example.lms.dto.response.SectionResponse> createSection(
-            @RequestParam("lessonId") UUID lessonId,
-            @RequestParam("title") String title,
-            @RequestParam("type") String typeStr, // "TEXT", "VIDEO", "FILE"
-            @RequestParam(value = "content", required = false) String content, // HTML
-            @RequestParam(value = "videoUrl", required = false) String videoUrl, // Explicit videoUrl param
-            @RequestParam(value = "videoType", required = false) String videoType, // [NEW] "YOUTUBE" or "CLOUDFLARE"
-            @RequestParam(value = "cfObjectKey", required = false) String cfObjectKey, // [NEW] R2 object key
-            @RequestParam(value = "isRequired", required = false, defaultValue = "false") Boolean isRequired,
-            @RequestParam(value = "file", required = false) MultipartFile file // Chỉ dùng khi type=FILE
+            @RequestPart("data") com.example.lms.dto.request.SectionRequest request,
+            @RequestPart(value = "file", required = false) MultipartFile file
     ) {
-        Section.SectionType type = Section.SectionType.valueOf(typeStr.toUpperCase());
-        // Use videoUrl if content is null/empty and type is VIDEO
-        String finalContent = (type == Section.SectionType.VIDEO && (content == null || content.isEmpty())) ? videoUrl : content;
-        
-        Section newSection = sectionService.createSection(lessonId, title, type, finalContent, isRequired, file);
-        
-        // [NEW] Update video metadata if Cloudflare R2 is used
-        if (type == Section.SectionType.VIDEO && videoType != null && cfObjectKey != null) {
-            newSection = sectionService.updateSectionVideo(newSection.getId(), videoType, videoUrl, cfObjectKey);
-        }
-        
+        Section newSection = sectionService.createSection(request, file);
         return ResponseEntity.ok(com.example.lms.dto.response.SectionResponse.fromEntity(newSection));
     }
 
     @PutMapping(value = "/{sectionId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<com.example.lms.dto.response.SectionResponse> updateSection(
             @PathVariable UUID sectionId,
-            @RequestParam("title") String title,
-            @RequestParam("type") String typeStr,
-            @RequestParam(value = "content", required = false) String content,
-            @RequestParam(value = "videoUrl", required = false) String videoUrl,
-            @RequestParam(value = "videoType", required = false) String videoType, // [NEW] "YOUTUBE" or "CLOUDFLARE"
-            @RequestParam(value = "cfObjectKey", required = false) String cfObjectKey, // [NEW] R2 object key
-            @RequestParam(value = "isRequired", required = false, defaultValue = "false") Boolean isRequired,
-            @RequestParam(value = "file", required = false) MultipartFile file
+            @RequestPart("data") com.example.lms.dto.request.SectionRequest request,
+            @RequestPart(value = "file", required = false) MultipartFile file
     ) {
-        Section.SectionType type = Section.SectionType.valueOf(typeStr.toUpperCase());
-        String finalContent = (type == Section.SectionType.VIDEO && (content == null || content.isEmpty())) ? videoUrl : content;
-        
-        Section updatedSection = sectionService.updateSection(sectionId, title, type, finalContent, isRequired, file);
-        // [NEW] Update video metadata if Cloudflare R2 is used
-        if (type == Section.SectionType.VIDEO && videoType != null && cfObjectKey != null) {
-            updatedSection = sectionService.updateSectionVideo(sectionId, videoType, videoUrl, cfObjectKey);
-        }
-        
+        Section updatedSection = sectionService.updateSection(sectionId, request, file);
         return ResponseEntity.ok(com.example.lms.dto.response.SectionResponse.fromEntity(updatedSection));
     }
     
