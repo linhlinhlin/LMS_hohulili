@@ -9,6 +9,7 @@ import List from '@editorjs/list';
 import Quote from '@editorjs/quote';
 // @ts-ignore
 import ImageTool from '@editorjs/image';
+import { environment } from '../../../../environments/environment';
 
 @Component({
     selector: 'app-block-editor',
@@ -88,8 +89,7 @@ export class BlockEditorComponent implements AfterViewInit, OnDestroy, ControlVa
                     class: ImageTool as any,
                     config: {
                         endpoints: {
-                            byFile: 'http://localhost:8088/api/v1/files/upload/editor', // Adjust based on your actual upload endpoint
-                            byUrl: 'http://localhost:8088/api/v1/files/fetchUrl', // If supported
+                            byFile: `${environment.apiUrl}/api/v1/files/upload/editor`,
                         },
                         field: 'file',
                         // Retrieve token from local storage if needed for Auth
@@ -98,7 +98,7 @@ export class BlockEditorComponent implements AfterViewInit, OnDestroy, ControlVa
                         }
                     }
                 }
-            },
+            } as any, // Cast to any to avoid strict type issues
             data: this.value || undefined,
             onChange: async () => {
                 const data = await this.editor.save();

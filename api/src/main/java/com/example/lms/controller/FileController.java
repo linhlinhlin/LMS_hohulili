@@ -57,6 +57,48 @@ public class FileController {
         }
     }
 
+    @PostMapping("/upload/editor")
+    @Operation(summary = "Upload for EditorJS", description = "Upload file formatted for EditorJS Image Tool")
+    public ResponseEntity<java.util.Map<String, Object>> uploadEditorFile(
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.lms.entity.User currentUser,
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file
+    ) {
+        try {
+            com.example.lms.dto.FileUploadDTOs.FileUploadRequest req = new com.example.lms.dto.FileUploadDTOs.FileUploadRequest();
+            req.setType("editor-image");
+            
+            com.example.lms.dto.FileUploadDTOs.FileUploadResponse res = fileUploadService.uploadFile(file, currentUser, req);
+            
+            // Format for EditorJS: { success: 1, file: { url: ... } }
+            // Note: URL usually needs to be accessible. We return the View URL.
+            // Assuming res.getUrl() is a full URL or relative path. 
+            // If it returns a UUID/Path, we need to construct the view URL.
+            // Based on VIEW endpoint: /api/v1/files/view/{fileId}
+            
+            String fileUrl = res.getFileUrl(); // Usually contains the full URL or we can construct it using ID.
+            if (res.getId() != null) {
+                 // Construct absolute URL ideally, or relative if FE handles it.
+                 // Using relative path for now as it's cleaner.
+                 // EditorJS might need full URL if sanitizer is strict.
+                 fileUrl = "http://localhost:8088/api/v1/files/view/" + res.getId();
+            }
+
+            java.util.Map<String, Object> response = new java.util.HashMap<>();
+            response.put("success", 1);
+            
+            java.util.Map<String, String> fileData = new java.util.HashMap<>();
+            fileData.put("url", fileUrl);
+            response.put("file", fileData);
+            
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            log.error("Editor Upload failed: {}", e.getMessage(), e);
+            java.util.Map<String, Object> error = new java.util.HashMap<>();
+            error.put("success", 0);
+            return ResponseEntity.ok(error); // EditorJS expects 200 even on error sometimes, or handles 0 success
+        }
+    }
+
     @PostMapping("/signed-url")
     public ResponseEntity<com.example.lms.dto.ApiResponse<com.example.lms.dto.FileUploadDTOs.SignedUrlResponse>> getSignedUrl(
             @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.lms.entity.User currentUser,
