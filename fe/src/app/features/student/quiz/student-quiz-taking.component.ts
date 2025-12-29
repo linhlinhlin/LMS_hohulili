@@ -3,21 +3,22 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { QuizApi } from '../../../api/endpoints/quiz.api';
 import { firstValueFrom } from 'rxjs';
+import { IconComponent } from '../../../shared/components/ui/icon/icon.component';
+import { BlockRendererComponent } from '../../../shared/blocks/block-renderer/block-renderer.component';
 
 interface QuizQuestion {
   id: string;
   content: string;
+  contentBlocks: any[];
   difficulty: string;
-  options: { key: string; content: string }[];
+  options: { key: string; content: string; contentBlocks?: any[] }[];
   correctOption: string;
 }
-
-import { IconComponent } from '../../../shared/components/ui/icon/icon.component';
 
 @Component({
   selector: 'app-student-quiz-taking',
   standalone: true,
-  imports: [CommonModule, IconComponent],
+  imports: [CommonModule, IconComponent, BlockRendererComponent],
   templateUrl: './student-quiz-taking.component.html',
   styles: [`
     @keyframes scale-in {
@@ -40,7 +41,7 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private quizApi = inject(QuizApi);
-  
+
   // Expose Math for template
   Math = Math;
 
@@ -54,7 +55,7 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
   answers = signal<Record<string, string>>({});
   showResults = signal(false);
   showResultsModal = signal(true);
-  
+
   // Sidebar visibility
   sidebarVisible = signal(true);
 
@@ -70,7 +71,7 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
 
   // Computed for pagination
   totalPages = computed(() => Math.ceil(this.questions().length / this.QUESTIONS_PER_PAGE));
-  
+
   currentPageQuestions = computed(() => {
     const start = this.currentPage() * this.QUESTIONS_PER_PAGE;
     const end = start + this.QUESTIONS_PER_PAGE;
@@ -83,7 +84,7 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
   }
 
   answeredCount = computed(() => Object.keys(this.answers()).length);
-  
+
   correctCount = computed(() => {
     const ans = this.answers();
     return this.questions().filter(q => ans[q.id] === q.correctOption).length;
@@ -107,7 +108,7 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
     this.lessonId = this.route.snapshot.paramMap.get('id') || '';
     this.quizTitle.set(this.route.snapshot.queryParamMap.get('title') || 'Bài kiểm tra');
     this.returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') || '/student/learn/course';
-    
+
     if (this.lessonId) {
       this.loadQuiz();
     }
@@ -152,12 +153,29 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
       this.questions.set(questions.map((q: any) => ({
         id: q.id,
         content: q.content,
+        contentBlocks: q.contentBlocks || q.structuredContent || [],
         difficulty: q.difficulty,
         correctOption: q.correctOption,
-        options: (q.options || []).map((opt: any) => ({
-          key: opt.optionKey || opt.key,
-          content: opt.content
-        })).sort((a: any, b: any) => a.key.localeCompare(b.key))
+        options: (q.options || []).map((opt: any) => {
+          let blocks = opt.contentBlocks || [];
+
+          // Fallback: Try parsing content if blocks are empty and content looks like JSON
+          if (!blocks.length && typeof opt.content === 'string' && opt.content.trim().startsWith('[')) {
+            try {
+              blocks = JSON.parse(opt.content);
+            } catch (e) {
+              blocks = [{ type: 'text', data: { text: opt.content } }];
+            }
+          } else if (!blocks.length && opt.content) {
+            blocks = [{ type: 'text', data: { text: opt.content } }];
+          }
+
+          return {
+            key: opt.optionKey || opt.key,
+            content: opt.content,
+            contentBlocks: blocks
+          };
+        }).sort((a: any, b: any) => a.key.localeCompare(b.key))
       })));
 
       this.startTimer();
@@ -175,7 +193,7 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
     this.timerInterval = setInterval(() => {
       this.timeRemaining.update(t => Math.max(0, t - 1));
       this.timeSpent.set(Math.floor((Date.now() - this.startTime) / 1000));
-      
+
       if (this.timeRemaining() === 0) {
         this.submitQuiz();
       }
