@@ -41,17 +41,7 @@ import { QuestionImportModalComponent } from './components/question-import-modal
             </div>
           </div>
 
-          <!-- Tabs -->
-          <div class="flex border-b border-gray-200 mb-6">
-            <a routerLink="/teacher/quiz/quiz-bank"
-               class="px-4 py-3 text-sm font-semibold border-b-2 border-blue-600 text-blue-600">
-              Ngân hàng câu hỏi
-            </a>
-            <a routerLink="/teacher/quiz/create"
-               class="px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent">
-              Tạo bài kiểm tra
-            </a>
-          </div>
+          <!-- Tabs removed -->
 
           <!-- Main Content Card -->
           <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
@@ -68,7 +58,7 @@ import { QuestionImportModalComponent } from './components/question-import-modal
                       [(ngModel)]="selectedPackageId" 
                       (ngModelChange)="onPackageChange()"
                       class="w-full h-11 pl-10 pr-10 rounded-lg border-2 border-gray-300 bg-white text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer hover:border-gray-400 transition-colors">
-                      <option value="">Chọn gói câu hỏi...</option>
+                      <option value="ALL">Tất cả câu hỏi</option>
                       <option *ngFor="let pkg of packages()" [value]="pkg.id">
                         {{ pkg.name }} ({{ pkg.questionCount }} câu)
                       </option>
@@ -113,7 +103,6 @@ import { QuestionImportModalComponent } from './components/question-import-modal
                   
                   <!-- Add question button -->
                   <button (click)="createNewQuestion()" 
-                          [disabled]="!selectedPackage()"
                           class="flex items-center justify-center gap-2 h-11 px-5 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors whitespace-nowrap">
                     <span class="material-symbols-outlined text-base">add</span>
                     <span>Thêm câu hỏi</span>
@@ -141,7 +130,7 @@ import { QuestionImportModalComponent } from './components/question-import-modal
             </div>
 
             <!-- Filters -->
-            <div *ngIf="selectedPackage()" class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+            <div *ngIf="selectedPackageId" class="px-6 py-4 bg-gray-50 border-b border-gray-200">
               <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div class="relative md:col-span-2">
                   <input type="text" 
@@ -163,7 +152,7 @@ import { QuestionImportModalComponent } from './components/question-import-modal
             </div>
 
             <!-- Empty state -->
-            <div *ngIf="!selectedPackage()" class="p-16 text-center">
+            <div *ngIf="!selectedPackageId" class="p-16 text-center">
               <span class="material-symbols-outlined text-gray-300" style="font-size: 80px;">folder_open</span>
               <p class="text-gray-500 text-lg mt-4 mb-2">Chọn một gói câu hỏi để bắt đầu</p>
               <p class="text-gray-400 text-sm mb-6">Hoặc tạo gói mới để tổ chức câu hỏi của bạn</p>
@@ -175,7 +164,7 @@ import { QuestionImportModalComponent } from './components/question-import-modal
             </div>
 
             <!-- Questions table -->
-            <div *ngIf="selectedPackage()" class="overflow-x-auto">
+            <div *ngIf="selectedPackageId" class="overflow-x-auto">
               <table class="w-full text-left text-sm">
                 <thead class="bg-gray-50 text-gray-600 border-b border-gray-200">
                   <tr>
@@ -436,7 +425,7 @@ export class QuizBankComponent implements OnInit {
   private quizApi = inject(QuizApi);
 
   packages = signal<PackageDTO[]>([]);
-  selectedPackageId = '';
+  selectedPackageId = 'ALL';
   selectedPackage = signal<PackageDTO | null>(null);
   questions = signal<Question[]>([]);
   filteredQuestions = signal<Question[]>([]);
@@ -468,12 +457,12 @@ export class QuizBankComponent implements OnInit {
     this.route.queryParams.subscribe(params => {
       this.addToQuizLessonId = params['addToQuiz'] || null;
       this.returnUrl = params['returnUrl'] || null;
-      
+
       if (this.addToQuizLessonId) {
         console.log('📝 Add to Quiz mode - Lesson ID:', this.addToQuizLessonId);
       }
     });
-    
+
     await this.loadPackages();
   }
 
@@ -481,27 +470,49 @@ export class QuizBankComponent implements OnInit {
     try {
       const packages = await firstValueFrom(this.packageApi.getMyPackages());
       this.packages.set(packages);
-      
-      // Auto-select first package if available
-      if (packages.length > 0 && !this.selectedPackageId) {
-        this.selectedPackageId = packages[0].id;
-        await this.onPackageChange();
+
+      // Auto-select 'ALL' if nothing selected
+      if (!this.selectedPackageId) {
+        this.selectedPackageId = 'ALL';
       }
+      // Always trigger change to load questions
+      await this.onPackageChange();
     } catch (error) {
       console.error('Error loading packages:', error);
     }
   }
 
   async onPackageChange() {
-    const pkg = this.packages().find(p => p.id === this.selectedPackageId);
-    if (pkg) {
-      this.selectedPackage.set(pkg);
-      this.clearSelection();
-      await this.loadQuestionsInPackage(pkg.id);
-    } else {
+    if (this.selectedPackageId === 'ALL') {
       this.selectedPackage.set(null);
-      this.questions.set([]);
-      this.filteredQuestions.set([]);
+      this.clearSelection();
+      // Load ALL questions
+      try {
+        const allQuestions = await firstValueFrom(this.questionApi.getMyQuestions());
+        if (allQuestions) {
+          this.questions.set(allQuestions);
+          this.filteredQuestions.set(allQuestions);
+        } else {
+          this.questions.set([]);
+          this.filteredQuestions.set([]);
+        }
+      } catch (error) {
+        console.error('Error loading all questions:', error);
+        this.questions.set([]);
+        this.filteredQuestions.set([]);
+      }
+    } else {
+      const pkg = this.packages().find(p => p.id === this.selectedPackageId);
+      if (pkg) {
+        this.selectedPackage.set(pkg);
+        this.clearSelection();
+        await this.loadQuestionsInPackage(pkg.id);
+      } else {
+        // Fallback
+        this.selectedPackage.set(null);
+        this.questions.set([]);
+        this.filteredQuestions.set([]);
+      }
     }
     this.showManagePackageMenu = false;
   }
@@ -520,16 +531,16 @@ export class QuizBankComponent implements OnInit {
 
   filterQuestions() {
     let filtered = [...this.questions()];
-    
+
     if (this.filters.search) {
       const search = this.filters.search.toLowerCase();
       filtered = filtered.filter(q => q.content.toLowerCase().includes(search));
     }
-    
+
     if (this.filters.difficulty) {
       filtered = filtered.filter(q => q.difficulty === this.filters.difficulty);
     }
-    
+
     this.filteredQuestions.set(filtered);
   }
 
@@ -550,7 +561,7 @@ export class QuizBankComponent implements OnInit {
         visibility: 'PRIVATE'
       };
       await this.loadPackages();
-      
+
       // Auto-select the newly created package
       if (created && created.id) {
         this.selectedPackageId = created.id;
@@ -565,19 +576,19 @@ export class QuizBankComponent implements OnInit {
   async deleteCurrentPackage() {
     const pkg = this.selectedPackage();
     if (!pkg) return;
-    
+
     const confirmed = confirm(`Bạn có chắc chắn muốn xóa gói "${pkg.name}"?\n\nCác câu hỏi trong gói sẽ được chuyển về gói "Chưa phân loại".`);
     if (!confirmed) return;
 
     try {
       await firstValueFrom(this.packageApi.deletePackage(pkg.id));
       alert('✅ Đã xóa gói thành công!');
-      
+
       this.selectedPackageId = '';
       this.selectedPackage.set(null);
       this.questions.set([]);
       this.filteredQuestions.set([]);
-      
+
       await this.loadPackages();
     } catch (error: any) {
       console.error('Error deleting package:', error);
@@ -595,12 +606,14 @@ export class QuizBankComponent implements OnInit {
   }
 
   createNewQuestion() {
-    if (!this.selectedPackage()) {
-      alert('Vui lòng chọn một gói câu hỏi trước!');
-      return;
+    // If specific package selected, use it. If 'ALL', don't pass packageId.
+    // if (!this.selectedPackage()) { ... } remove check
+    const queryParams: any = {};
+    if (this.selectedPackage()) {
+      queryParams.packageId = this.selectedPackage()!.id;
     }
     this.router.navigate(['/teacher/quiz/question/create'], {
-      queryParams: { packageId: this.selectedPackage()!.id }
+      queryParams
     });
   }
 
@@ -611,14 +624,17 @@ export class QuizBankComponent implements OnInit {
   async deleteQuestion(question: Question) {
     const confirmed = confirm(`Bạn có chắc chắn muốn xóa câu hỏi:\n\n"${question.content}"\n\nHành động này không thể hoàn tác!`);
     if (!confirmed) return;
-    
+
     try {
       await firstValueFrom(this.questionApi.deleteQuestion(question.id));
       alert('✅ Đã xóa câu hỏi thành công!');
-      
+
       if (this.selectedPackage()) {
         await this.loadQuestionsInPackage(this.selectedPackage()!.id);
         await this.loadPackages(); // Refresh package counts
+      } else {
+        // Refresh ALL mode
+        await this.onPackageChange();
       }
     } catch (error: any) {
       console.error('Error deleting question:', error);
@@ -732,13 +748,15 @@ export class QuizBankComponent implements OnInit {
         questionIds: this.selectedQuestions(),
         targetPackageId
       }));
-      
+
       alert('✅ Đã di chuyển câu hỏi thành công!');
       this.showMoveModal = false;
       this.clearSelection();
-      
+
       if (this.selectedPackage()) {
         await this.loadQuestionsInPackage(this.selectedPackage()!.id);
+      } else {
+        await this.onPackageChange();
       }
       await this.loadPackages(); // Refresh package counts
     } catch (error: any) {

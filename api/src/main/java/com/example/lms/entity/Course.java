@@ -20,6 +20,11 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "courses")
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Course {
     
@@ -139,8 +144,6 @@ public class Course {
     private User reviewedBy;
     
     // Constructor for creation
-    public Course() {}
-    
     public Course(String code, String title, String description, User teacher) {
         this.code = code;
         this.title = title;
@@ -176,108 +179,5 @@ public class Course {
 
     public enum PriceType {
         FREE, PAID
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Course course = (Course) o;
-        return java.util.Objects.equals(id, course.id);
-    }
-
-    @Override
-    public int hashCode() {
-        return java.util.Objects.hash(id);
-    }
-
-    // Manual Getters/Setters
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
-    public String getCode() { return code; }
-    public void setCode(String code) { this.code = code; }
-    public String getTitle() { return title; }
-    public void setTitle(String title) { this.title = title; }
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
-    public CourseStatus getStatus() { return status; }
-    public void setStatus(CourseStatus status) { this.status = status; }
-    public User getTeacher() { return teacher; }
-    public void setTeacher(User teacher) { this.teacher = teacher; }
-    public Set<User> getEnrolledStudents() { return enrolledStudents; }
-    public void setEnrolledStudents(Set<User> enrolledStudents) { this.enrolledStudents = enrolledStudents; }
-    public Set<Chapter> getChapters() { return chapters; }
-    public void setChapters(Set<Chapter> chapters) { this.chapters = chapters; }
-    public Set<Assignment> getAssignments() { return assignments; }
-    public void setAssignments(Set<Assignment> assignments) { this.assignments = assignments; }
-    public Instant getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
-    public Instant getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
-    public UUID getInstructorId() { return instructorId; }
-    public void setInstructorId(UUID instructorId) { this.instructorId = instructorId; }
-    public Set<UUID> getTeachingStaffIds() { return teachingStaffIds; }
-    public void setTeachingStaffIds(Set<UUID> teachingStaffIds) { this.teachingStaffIds = teachingStaffIds; }
-    public Category getCategory() { return category; }
-    public void setCategory(Category category) { this.category = category; }
-    public Set<String> getTags() { return tags; }
-    public void setTags(Set<String> tags) { this.tags = tags; }
-    public String getWelcomeMessage() { return welcomeMessage; }
-    public void setWelcomeMessage(String welcomeMessage) { this.welcomeMessage = welcomeMessage; }
-    public String getCourseInformation() { return courseInformation; }
-    public void setCourseInformation(String courseInformation) { this.courseInformation = courseInformation; }
-    public String getBenefits() { return benefits; }
-    public void setBenefits(String benefits) { this.benefits = benefits; }
-    public String getIntroVideoUrl() { return introVideoUrl; }
-    public void setIntroVideoUrl(String introVideoUrl) { this.introVideoUrl = introVideoUrl; }
-    public Integer getCredits() { return credits; }
-    public void setCredits(Integer credits) { this.credits = credits; }
-    public Visibility getVisibility() { return visibility; }
-    public void setVisibility(Visibility visibility) { this.visibility = visibility; }
-    public PriceType getPriceType() { return priceType; }
-    public void setPriceType(PriceType priceType) { this.priceType = priceType; }
-    public BigDecimal getPrice() { return price; }
-    public void setPrice(BigDecimal price) { this.price = price; }
-    public BigDecimal getSalePrice() { return salePrice; }
-    public void setSalePrice(BigDecimal salePrice) { this.salePrice = salePrice; }
-    public String getReviewComment() { return reviewComment; }
-    public void setReviewComment(String reviewComment) { this.reviewComment = reviewComment; }
-    public Instant getReviewedAt() { return reviewedAt; }
-    public void setReviewedAt(Instant reviewedAt) { this.reviewedAt = reviewedAt; }
-    public User getReviewedBy() { return reviewedBy; }
-    public void setReviewedBy(User reviewedBy) { this.reviewedBy = reviewedBy; }
-
-    // Manual Builder
-    public static CourseBuilder builder() { return new CourseBuilder(); }
-    public static class CourseBuilder {
-        private Course c = new Course();
-        public CourseBuilder id(UUID id) { c.setId(id); return this; }
-        public CourseBuilder code(String code) { c.setCode(code); return this; }
-        public CourseBuilder title(String title) { c.setTitle(title); return this; }
-        public CourseBuilder description(String description) { c.setDescription(description); return this; }
-        public CourseBuilder status(CourseStatus status) { c.setStatus(status); return this; }
-        public CourseBuilder teacher(User teacher) { c.setTeacher(teacher); return this; }
-        public CourseBuilder enrolledStudents(Set<User> enrolledStudents) { c.setEnrolledStudents(enrolledStudents); return this; }
-        public CourseBuilder chapters(Set<Chapter> chapters) { c.setChapters(chapters); return this; }
-        public CourseBuilder assignments(Set<Assignment> assignments) { c.setAssignments(assignments); return this; }
-        public CourseBuilder createdAt(Instant createdAt) { c.setCreatedAt(createdAt); return this; }
-        public CourseBuilder updatedAt(Instant updatedAt) { c.setUpdatedAt(updatedAt); return this; }
-        public CourseBuilder instructorId(UUID instructorId) { c.setInstructorId(instructorId); return this; }
-        public CourseBuilder teachingStaffIds(Set<UUID> teachingStaffIds) { c.setTeachingStaffIds(teachingStaffIds); return this; }
-        public CourseBuilder category(Category category) { c.setCategory(category); return this; }
-        public CourseBuilder tags(Set<String> tags) { c.setTags(tags); return this; }
-        public CourseBuilder welcomeMessage(String welcomeMessage) { c.setWelcomeMessage(welcomeMessage); return this; }
-        public CourseBuilder courseInformation(String courseInformation) { c.setCourseInformation(courseInformation); return this; }
-        public CourseBuilder benefits(String benefits) { c.setBenefits(benefits); return this; }
-        public CourseBuilder introVideoUrl(String introVideoUrl) { c.setIntroVideoUrl(introVideoUrl); return this; }
-        public CourseBuilder credits(Integer credits) { c.setCredits(credits); return this; }
-        public CourseBuilder visibility(Visibility visibility) { c.setVisibility(visibility); return this; }
-        public CourseBuilder priceType(PriceType priceType) { c.setPriceType(priceType); return this; }
-        public CourseBuilder price(BigDecimal price) { c.setPrice(price); return this; }
-        public CourseBuilder salePrice(BigDecimal salePrice) { c.setSalePrice(salePrice); return this; }
-        public CourseBuilder reviewComment(String reviewComment) { c.setReviewComment(reviewComment); return this; }
-        public CourseBuilder reviewedAt(Instant reviewedAt) { c.setReviewedAt(reviewedAt); return this; }
-        public CourseBuilder reviewedBy(User reviewedBy) { c.setReviewedBy(reviewedBy); return this; }
-        public Course build() { return c; }
     }
 }

@@ -1,6 +1,7 @@
 import { Component, Input, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ImageBlockData } from '../block-types';
+<<<<<<< HEAD
 import { AuthImagePipe } from '../../pipes/auth-image.pipe';
 
 @Component({
@@ -9,6 +10,19 @@ import { AuthImagePipe } from '../../pipes/auth-image.pipe';
     imports: [CommonModule, AuthImagePipe],
     template: `
     <figure class="my-6">
+=======
+// Add AuthImagePipe import
+import { AuthImagePipe } from '../../pipes/auth-image.pipe';
+
+@Component({
+  selector: 'app-image-block',
+  standalone: true,
+  // Add AuthImagePipe to imports
+  imports: [CommonModule, AuthImagePipe],
+  template: `
+    <figure class="my-6">
+      <!-- Use pipe for url -->
+>>>>>>> fix/image
       <img 
         [src]="imageUrl | authImage" 
         [alt]="data.caption || 'Content Image'"
@@ -21,6 +35,7 @@ import { AuthImagePipe } from '../../pipes/auth-image.pipe';
       </figcaption>
     </figure>
   `,
+<<<<<<< HEAD
     changeDetection: ChangeDetectionStrategy.OnPush,
     encapsulation: ViewEncapsulation.None
 })
@@ -34,4 +49,19 @@ export class ImageBlockComponent {
     handleError(event: any) {
         event.target.style.display = 'none';
     }
+=======
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  encapsulation: ViewEncapsulation.None
+})
+export class ImageBlockComponent {
+  @Input() data!: ImageBlockData;
+
+  get imageUrl(): string | null {
+    return this.data.url || this.data.file?.url || null;
+  }
+
+  handleError(event: any) {
+    event.target.style.display = 'none';
+  }
+>>>>>>> fix/image
 }

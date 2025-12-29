@@ -1,7 +1,14 @@
 package com.example.lms.service;
 
+import com.example.lms.dto.request.QuizEmbeddedRequest;
+import com.example.lms.dto.request.SectionRequest;
 import com.example.lms.entity.*;
 import com.example.lms.repository.*;
+import com.example.lms.entity.Quiz;
+import com.example.lms.entity.Question;
+import com.example.lms.entity.QuizQuestion;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,68 +23,84 @@ public class SectionService {
 
     private final SectionRepository sectionRepository;
     private final LessonRepository lessonRepository;
+    private final QuizRepository quizRepository;
+    private final QuestionRepository questionRepository; // For validation if needed
     private final FileService fileService;
 
     @Transactional
-    public Section createSection(UUID lessonId, String title, Section.SectionType type, String contentOrUrl, Boolean isRequired, MultipartFile file) {
+    public Section createSection(SectionRequest request, MultipartFile file) {
         // 1. Tìm Lesson cha
-        Lesson lesson = lessonRepository.findById(lessonId)
+        Lesson lesson = lessonRepository.findById(request.getLessonId())
                 .orElseThrow(() -> new RuntimeException("Lesson not found"));
 
         // 2. Tính Order Index (Xếp cuối cùng)
-        Integer maxOrder = sectionRepository.findMaxOrderIndexByLessonId(lessonId);
+        Integer maxOrder = sectionRepository.findMaxOrderIndexByLessonId(request.getLessonId());
         int newOrder = (maxOrder == null) ? 0 : maxOrder + 1;
+
+        Section.SectionType type = Section.SectionType.valueOf(request.getType());
 
         // 3. Tạo Section
         Section section = Section.builder()
-                .title(title)
+                .title(request.getTitle())
                 .type(type)
                 .lesson(lesson)
                 .orderIndex(newOrder)
-                .isRequired(isRequired)
+                .isRequired(request.getIsRequired())
                 .build();
+        
+        // Save first to get ID
+        section = sectionRepository.save(section);
 
         // 4. Xử lý dữ liệu theo Type
-        switch (type) {
-            case TEXT:
-                section.setContent(contentOrUrl); // contentOrUrl là HTML
-                break;
-            case VIDEO:
-                section.setVideoUrl(contentOrUrl); // contentOrUrl là Link Youtube
-                break;
-            case FILE:
-                // Lưu Section trước để có ID
-                section = sectionRepository.save(section);
-                if (file != null && !file.isEmpty()) {
-                    FileAttachment attachment = fileService.uploadFile(file, section.getId(), "SECTION_MATERIAL", FileAttachment.FileCategory.DOCUMENT);
-                    section.setFileUrl("/api/v1/files/" + attachment.getId() + "/stream"); 
-                }
-                break;
-            default:
-                break;
-        }
+        handleSectionContent(section, request, file);
 
+        // Initialize quizzes collection to prevent LazyInitializationException
+        if (section.getQuizzes() != null) {
+            section.getQuizzes().size();
+            for (Quiz quiz : section.getQuizzes()) {
+                 if(quiz.getQuizQuestions() != null) quiz.getQuizQuestions().size();
+            }
+        }
         return sectionRepository.save(section);
     }
 
     @Transactional
-    public Section updateSection(UUID sectionId, String title, Section.SectionType type, String contentOrUrl, Boolean isRequired, MultipartFile file) {
+    public Section updateSection(UUID sectionId, SectionRequest request, MultipartFile file) {
         Section section = getSectionById(sectionId);
         
-        section.setTitle(title);
+        section.setTitle(request.getTitle());
+        Section.SectionType type = Section.SectionType.valueOf(request.getType());
         section.setType(type);
-        section.setIsRequired(isRequired);
+        section.setIsRequired(request.getIsRequired());
 
-        // Update content based on type
-        switch (type) {
+        // Update content/files/quiz
+        handleSectionContent(section, request, file);
+
+        // Initialize quizzes collection to prevent LazyInitializationException
+        if (section.getQuizzes() != null) {
+            section.getQuizzes().size();
+            for (Quiz quiz : section.getQuizzes()) {
+                 if(quiz.getQuizQuestions() != null) quiz.getQuizQuestions().size();
+            }
+        }
+        return sectionRepository.save(section);
+    }
+
+    // Unified handler for content logic
+    private void handleSectionContent(Section section, SectionRequest request, MultipartFile file) {
+        switch (section.getType()) {
             case TEXT:
-                section.setContent(contentOrUrl);
+                section.setContent(request.getContent());
                 section.setVideoUrl(null); 
                 break;
             case VIDEO:
-                section.setVideoUrl(contentOrUrl);
-                // If coming from legacy update, keep videoType unchanged
-                section.setContent(null);
+                section.setVideoUrl(request.getVideoUrl());
+                // Update video metadata
+                if (request.getVideoType() != null) section.setVideoType(request.getVideoType());
+                if (request.getCfObjectKey() != null) section.setCfObjectKey(request.getCfObjectKey());
+                
+                // Fallback for legacy content field if coming from partial data, but usually clear content
+                section.setContent(null); 
                 break;
             case FILE:
                 // If a NEW file is uploaded, replace the old one
@@ -86,11 +109,75 @@ public class SectionService {
                      section.setFileUrl("/api/v1/files/" + attachment.getId() + "/stream");
                 }
                 break;
+            case QUIZ:
+                if (request.getQuizData() != null) {
+                    try {
+                        handleQuizData(section, request.getQuizData());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        throw new RuntimeException("Error saving quiz data: " + e.getMessage(), e);
+                    }
+                }
+                break;
             default:
                 break;
         }
+    }
 
-        return sectionRepository.save(section);
+    private void handleQuizData(Section section, QuizEmbeddedRequest data) {
+        // Find existing quiz for this section or create new
+        // Note: QuizRepository needs findBySectionId
+        Quiz quiz = quizRepository.findBySectionId(section.getId())
+                .orElse(Quiz.builder()
+                        .section(section)
+                        .type(Quiz.QuizType.LESSON_QUIZ) // Implicitly LESSON_QUIZ
+                        .course(section.getLesson().getChapter().getCourse()) // Inherit course for reference
+                        .createdBy(section.getLesson().getChapter().getCourse().getTeacher()) // Inherit teacher
+                        .build());
+        
+        // Update Quiz Fields
+        quiz.setTitle(section.getTitle()); // Sync title with Section
+        quiz.setTimeLimitMinutes(data.getTimeLimitMinutes());
+        quiz.setMaxAttempts(data.getMaxAttempts());
+        quiz.setPassingScore(data.getPassingScore());
+        quiz.setShuffleQuestions(data.getShuffleQuestions());
+        quiz.setShuffleOptions(data.getShuffleOptions());
+        quiz.setShowResultsImmediately(data.getShowResultsImmediately());
+        
+        // Save to ensure ID exists before adding questions (if new)
+        // Actually, we can save at end.
+        
+        // Handle Questions
+        // Clear existing questions? 
+        // Logic: The request sends the full list of question IDs.
+        // We should replace existing questions with this list.
+        // Existing implementation: Quiz has OneToMany QuizQuestion.
+        // We probably need a helper method in Quiz or here to reset questions.
+        // Assuming `quiz.getQuestions()` is the relationship or we use helper `addQuestion`.
+        // Ideally: quiz.setQuestions(...) but we need to map IDs to Question entities.
+        
+        // Reset questions
+        quiz.getQuizQuestions().clear(); 
+        
+        if (data.getQuestionIds() != null && !data.getQuestionIds().isEmpty()) {
+            List<Question> questions = questionRepository.findAllById(data.getQuestionIds());
+            // Need to maintain order? findAllById doesn't guarantee order.
+            // We should map ID -> Question to maintain order of request.
+            Map<UUID, Question> qMap = questions.stream().collect(Collectors.toMap(q -> q.getId(), q -> q));
+            
+            int order = 0;
+            for (UUID qId : data.getQuestionIds()) {
+                if (qMap.containsKey(qId)) {
+                    quiz.addQuestion(qMap.get(qId), ++order);
+                }
+            }
+        }
+        
+        if (quiz.getStatus() == null) {
+            quiz.setStatus(Quiz.Status.DRAFT);
+        }
+        
+        quizRepository.save(quiz);
     }
 
     @Transactional
@@ -110,12 +197,31 @@ public class SectionService {
     }
 
     public List<Section> getSectionsByLessonId(UUID lessonId) {
-        return sectionRepository.findByLessonIdOrderByOrderIndexAsc(lessonId);
+        List<Section> sections = sectionRepository.findByLessonIdOrderByOrderIndexAsc(lessonId);
+        // Initialize quizzes
+        for (Section section : sections) {
+             if (section.getQuizzes() != null) {
+                 section.getQuizzes().size();
+                 for (Quiz quiz : section.getQuizzes()) {
+                      if(quiz.getQuizQuestions() != null) quiz.getQuizQuestions().size();
+                 }
+             }
+        }
+        return sections;
     }
     
     public Section getSectionById(UUID sectionId) {
-        return sectionRepository.findById(sectionId)
+        Section section = sectionRepository.findById(sectionId)
                 .orElseThrow(() -> new RuntimeException("Section not found"));
+        
+        // Initialize quizzes
+        if (section.getQuizzes() != null) {
+            section.getQuizzes().size();
+            for (Quiz quiz : section.getQuizzes()) {
+                 if(quiz.getQuizQuestions() != null) quiz.getQuizQuestions().size();
+            }
+        }
+        return section;
     }
 
     public void deleteSection(UUID sectionId) {

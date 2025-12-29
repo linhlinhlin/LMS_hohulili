@@ -58,6 +58,13 @@
         <version>3.7.0</version>
     </dependency>
 
+    <!-- HTML Sanitization -->
+    <dependency>
+        <groupId>org.jsoup</groupId>
+        <artifactId>jsoup</artifactId>
+        <version>1.17.2</version>
+    </dependency>
+
     <!-- Cloudflare R2 via AWS SDK v2 (S3 compatible) -->
     <dependency>
       <groupId>software.amazon.awssdk</groupId>

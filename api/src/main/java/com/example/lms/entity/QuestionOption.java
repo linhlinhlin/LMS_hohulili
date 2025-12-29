@@ -8,8 +8,12 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "question_options")
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class QuestionOption {
-    public QuestionOption() {}
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -23,33 +27,38 @@ public class QuestionOption {
     @Column(name = "option_key", nullable = false, length = 1)
     private String optionKey; // A, B, C, D
 
-    @Column(nullable = false, columnDefinition = "TEXT")
-    private String content;
+    @Column(name = "content", nullable = false, columnDefinition = "TEXT")
+    @Convert(converter = com.example.lms.converter.ContentBlockListConverter.class)
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    private java.util.List<com.example.lms.domain.ContentBlock> contentBlocks;
 
     @Column(name = "display_order", nullable = false)
+    @Builder.Default
     private Integer displayOrder = 0;
 
-    // Manual Getters/Setters
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
-    public Question getQuestion() { return question; }
-    public void setQuestion(Question question) { this.question = question; }
-    public String getOptionKey() { return optionKey; }
-    public void setOptionKey(String optionKey) { this.optionKey = optionKey; }
-    public String getContent() { return content; }
-    public void setContent(String content) { this.content = content; }
-    public Integer getDisplayOrder() { return displayOrder; }
-    public void setDisplayOrder(Integer displayOrder) { this.displayOrder = displayOrder; }
+    // Backward compatibility methods
+    public String getContent() {
+        if (contentBlocks == null || contentBlocks.isEmpty()) {
+            return "";
+        }
+        for (com.example.lms.domain.ContentBlock block : contentBlocks) {
+            if ("text".equals(block.getType()) && block.getData() != null) {
+                Object html = block.getData().get("html");
+                return html != null ? html.toString() : "";
+            }
+        }
+        return "";
+    }
 
-    // Builder
-    public static QuestionOptionBuilder builder() { return new QuestionOptionBuilder(); }
-    public static class QuestionOptionBuilder {
-        private QuestionOption o = new QuestionOption();
-        public QuestionOptionBuilder id(UUID id) { o.setId(id); return this; }
-        public QuestionOptionBuilder question(Question question) { o.setQuestion(question); return this; }
-        public QuestionOptionBuilder optionKey(String key) { o.setOptionKey(key); return this; }
-        public QuestionOptionBuilder content(String content) { o.setContent(content); return this; }
-        public QuestionOptionBuilder displayOrder(Integer order) { o.setDisplayOrder(order); return this; }
-        public QuestionOption build() { return o; }
+    public void setContent(String content) {
+        if (content == null) {
+            this.contentBlocks = null;
+        } else {
+            com.example.lms.domain.ContentBlock textBlock = com.example.lms.domain.ContentBlock.builder()
+                .type("text")
+                .data(java.util.Map.of("html", content))
+                .build();
+            this.contentBlocks = java.util.Collections.singletonList(textBlock);
+        }
     }
 }

@@ -40,6 +40,17 @@ public class SecurityConfig {
         http
             .cors(org.springframework.security.config.Customizer.withDefaults()) // Enable CORS using the Bean
             .csrf(AbstractHttpConfigurer::disable) // Disable CSRF
+            .headers(headers -> headers
+                .contentSecurityPolicy(csp -> csp
+                    .policyDirectives("default-src 'self'; " +
+                         "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; " +
+                         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+                         "img-src 'self' data: blob: http://localhost:8088; " +
+                         "font-src 'self' https://fonts.gstatic.com data:; " +
+                         "connect-src 'self' http://localhost:8088; " +
+                         "frame-src 'self' https://www.youtube.com;")
+                )
+            )
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                     "/v3/api-docs/**",
@@ -53,6 +64,8 @@ public class SecurityConfig {
                 // Public course catalog - accessible without authentication (SOTA: Coursera/Udemy pattern)
                 .requestMatchers(HttpMethod.GET, "/api/v1/courses").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/courses/{courseId}").permitAll()
+                // Secure File Access (SOTA: Authenticated Stream)
+                .requestMatchers("/api/v1/files/view/**", "/api/v1/files/stream/**").authenticated()
                 .anyRequest().authenticated()
             )
             .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -91,19 +104,5 @@ public class SecurityConfig {
         return source;
     }
     
-    /**
-     * Completely bypass security for Swagger/OpenAPI endpoints
-     * This ensures these endpoints are not processed by the security filter chain at all
-     */
-    @Bean
-    public WebSecurityCustomizer webSecurityCustomizer() {
-        return (web) -> web.ignoring().requestMatchers(
-            "/v3/api-docs/**",
-            "/v3/api-docs",
-            "/swagger-ui/**",
-            "/swagger-ui.html",
-            "/swagger-resources/**",
-            "/webjars/**"
-        );
-    }
+
 }

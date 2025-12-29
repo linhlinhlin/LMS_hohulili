@@ -1,6 +1,7 @@
 package com.example.lms.service;
 
 import com.example.lms.dto.QuizDTO;
+import com.example.lms.domain.ContentBlock;
 import com.example.lms.entity.*;
 import com.example.lms.repository.*;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -99,15 +100,37 @@ public class QuizService {
     }
 
     public Quiz getQuizByLessonId(UUID lessonId) {
-        // Always use findFirstByLessonIdOrderByCreatedAtDesc to handle potential duplicate quizzes
-        // This ensures we always get the most recent quiz if there are duplicates
+        // Use findAllByLessonId to handle potential duplicate quizzes
         List<Quiz> allQuizzes = quizRepository.findAllByLessonId(lessonId);
-        if (allQuizzes.size() > 1) {
-            System.err.println("⚠️ WARNING: Found " + allQuizzes.size() + " quizzes for lesson " + lessonId + ". Using the most recent one.");
-        }
         
-        return quizRepository.findFirstByLessonIdOrderByCreatedAtDesc(lessonId)
-                .orElseThrow(() -> new RuntimeException("Quiz not found for lesson: " + lessonId));
+        if (allQuizzes.isEmpty()) {
+            throw new RuntimeException("Quiz not found for lesson: " + lessonId);
+        }
+
+        if (allQuizzes.size() == 1) {
+            return allQuizzes.get(0);
+        }
+
+        System.err.println("⚠️ WARNING: Found " + allQuizzes.size() + " quizzes for lesson " + lessonId + ". Checking for valid content...");
+
+        // Prioritize quiz with questions
+        for (Quiz q : allQuizzes) {
+            long count = quizQuestionRepository.countByQuizId(q.getId());
+            if (count > 0) {
+                System.out.println("✅ Found valid quiz " + q.getId() + " with " + count + " questions. Using this one.");
+                return q; // Return the first one found with questions
+            }
+        }
+
+        // If none have questions, return the most recent one
+        allQuizzes.sort((a, b) -> {
+            if (a.getCreatedAt() == null) return 1;
+            if (b.getCreatedAt() == null) return -1;
+            return b.getCreatedAt().compareTo(a.getCreatedAt());
+        });
+        
+        System.out.println("⚠️ No quiz with questions found. returning most recent empty quiz: " + allQuizzes.get(0).getId());
+        return allQuizzes.get(0);
     }
 
     @Transactional(readOnly = true)
@@ -1028,7 +1051,7 @@ public class QuizService {
         
         for (String[] data : sampleData) {
             Question question = Question.builder()
-                    .content(data[0])
+                    .contentBlocks(ContentBlock.fromText(data[0]))
                     .difficulty(Question.Difficulty.MEDIUM)
                     .status(Question.Status.ACTIVE)
                     .correctOption(data[5])
@@ -1043,7 +1066,7 @@ public class QuizService {
                 QuestionOption option = QuestionOption.builder()
                         .question(question)
                         .optionKey(optionKeys[i])
-                        .content(data[i + 1])
+                        .contentBlocks(ContentBlock.fromText(data[i + 1]))
                         .displayOrder(i + 1)
                         .build();
                 options.add(option);

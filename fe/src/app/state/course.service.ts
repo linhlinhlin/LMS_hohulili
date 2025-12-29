@@ -292,7 +292,7 @@ export class CourseService {
       instructor: {
         id: course.teacherId || '',
         name: course.teacherName || 'Giảng viên',
-        avatar: 'https://via.placeholder.com/150',
+        avatar: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMjAwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZWVlZWVlIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGRvbWluYW50LWJhc2VsaW5lPSJtaWRkbGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIiBmaWxsPSIjOTk5OTk5Ij5QcmV2aWV3PC90ZXh0Pjwvc3ZnPg==',
         title: 'Giảng viên',
         credentials: [],
         experience: 0,

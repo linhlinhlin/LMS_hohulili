@@ -7,8 +7,10 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.ArrayList;
+import java.util.ArrayList;
 
 public class QuestionDTO {
+
     private UUID id;
     private String content;
     private Question.Difficulty difficulty;
@@ -21,10 +23,11 @@ public class QuestionDTO {
     private UserSummaryDTO createdBy;
     private Instant createdAt;
     private Instant updatedAt;
+    private java.util.List<com.example.lms.domain.ContentBlock> blocks;
 
     public QuestionDTO() {}
 
-    public QuestionDTO(UUID id, String content, Question.Difficulty difficulty, String tags, Question.Status status, String correctOption, Integer usageCount, BigDecimal correctRate, List<QuestionOptionDTO> options, UserSummaryDTO createdBy, Instant createdAt, Instant updatedAt) {
+    public QuestionDTO(UUID id, String content, Question.Difficulty difficulty, String tags, Question.Status status, String correctOption, Integer usageCount, BigDecimal correctRate, List<QuestionOptionDTO> options, UserSummaryDTO createdBy, Instant createdAt, Instant updatedAt, java.util.List<com.example.lms.domain.ContentBlock> blocks) {
         this.id = id;
         this.content = content;
         this.difficulty = difficulty;
@@ -37,11 +40,13 @@ public class QuestionDTO {
         this.createdBy = createdBy;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        this.blocks = blocks;
     }
 
     // Getters and Setters
     public UUID getId() { return id; } public void setId(UUID id) { this.id = id; }
     public String getContent() { return content; } public void setContent(String content) { this.content = content; }
+    public java.util.List<com.example.lms.domain.ContentBlock> getBlocks() { return blocks; } public void setBlocks(java.util.List<com.example.lms.domain.ContentBlock> blocks) { this.blocks = blocks; }
     public Question.Difficulty getDifficulty() { return difficulty; } public void setDifficulty(Question.Difficulty difficulty) { this.difficulty = difficulty; }
     public String getTags() { return tags; } public void setTags(String tags) { this.tags = tags; }
     public Question.Status getStatus() { return status; } public void setStatus(Question.Status status) { this.status = status; }
@@ -58,6 +63,7 @@ public class QuestionDTO {
         private QuestionDTO dto = new QuestionDTO();
         public QuestionDTOBuilder id(UUID id) { dto.setId(id); return this; }
         public QuestionDTOBuilder content(String content) { dto.setContent(content); return this; }
+        public QuestionDTOBuilder blocks(java.util.List<com.example.lms.domain.ContentBlock> blocks) { dto.setBlocks(blocks); return this; }
         public QuestionDTOBuilder difficulty(Question.Difficulty difficulty) { dto.setDifficulty(difficulty); return this; }
         public QuestionDTOBuilder tags(String tags) { dto.setTags(tags); return this; }
         public QuestionDTOBuilder status(Question.Status status) { dto.setStatus(status); return this; }
@@ -74,7 +80,8 @@ public class QuestionDTO {
     public static QuestionDTO fromEntity(Question question) {
         return QuestionDTO.builder()
                 .id(question.getId())
-                .content(question.getContent())
+                .content(extractContent(question.getContentBlocks())) // Logic moved here
+                .blocks(question.getContentBlocks())
                 .difficulty(question.getDifficulty())
                 .tags(question.getTags())
                 .status(question.getStatus())
@@ -91,5 +98,14 @@ public class QuestionDTO {
                 .createdAt(question.getCreatedAt())
                 .updatedAt(question.getUpdatedAt())
                 .build();
+    }
+
+    private static String extractContent(java.util.List<com.example.lms.domain.ContentBlock> blocks) {
+        if (blocks == null || blocks.isEmpty()) return "";
+        return blocks.stream()
+                .filter(b -> "text".equals(b.getType()) && b.getData() != null)
+                .map(b -> (String) b.getData().get("html"))
+                .findFirst() // or join? Legacy usually implies first main text.
+                .orElse("");
     }
 }

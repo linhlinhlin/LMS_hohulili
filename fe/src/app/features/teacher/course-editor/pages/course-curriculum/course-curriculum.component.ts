@@ -39,11 +39,12 @@ import {
   LucideAngularModule
 } from 'lucide-angular';
 import { VideoUploadComponent, VideoUploadResult } from '../../../../../shared/components/video-upload/video-upload.component';
+import { QuestionCreateComponent } from '../../../quiz/question-create.component';
 
 @Component({
   selector: 'app-course-curriculum',
   standalone: true,
-  imports: [CommonModule, FormsModule, CKEditorModule, LucideAngularModule, VideoUploadComponent],
+  imports: [CommonModule, FormsModule, CKEditorModule, LucideAngularModule, VideoUploadComponent, QuestionCreateComponent],
   styleUrl: './course-curriculum.component.scss',
   providers: [],
   template: `
@@ -191,7 +192,7 @@ import { VideoUploadComponent, VideoUploadResult } from '../../../../../shared/c
 
              <div class="flex items-center gap-2">
                 <input type="checkbox" [(ngModel)]="sectionIsRequired" id="reqSec" class="rounded text-blue-600 focus:ring-blue-500 w-4 h-4">
-                <label for="reqSec" class="text-sm text-gray-700 font-medium select-none cursor-pointer">Báº¯t buá»™c hon thnh (H?c vin ph?i xem n?i dung ny)</label>
+                <label for="reqSec" class="text-sm text-gray-700 font-medium select-none cursor-pointer">Bắt buộc hoàn thành (Học viên phải xem nội dung này)</label>
              </div>
 
              @if (newSectionType === 'VIDEO') {
@@ -492,6 +493,11 @@ import { VideoUploadComponent, VideoUploadResult } from '../../../../../shared/c
                                 </span>
                             </div>
                             <div class="flex items-center gap-2">
+                                <button (click)="showCreateQuestionModal.set(true)"
+                                        class="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-colors">
+                                    <lucide-icon name="plus" [size]="14"></lucide-icon>
+                                    <span>Tạo mới</span>
+                                </button>
                                 <button (click)="openSectionQuizRandomModal()" 
                                         class="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 hover:border-gray-300 transition-colors">
                                     <lucide-icon name="shuffle" [size]="14"></lucide-icon>
@@ -515,7 +521,12 @@ import { VideoUploadComponent, VideoUploadResult } from '../../../../../shared/c
                                 <div class="py-12 text-center">
                                     <lucide-icon name="clipboard-list" [size]="40" class="mx-auto text-gray-300 mb-3"></lucide-icon>
                                     <p class="text-sm font-medium text-gray-500">Chưa có câu hỏi nào</p>
-                                    <p class="text-xs text-gray-400 mt-1">Chọn từ ngân hàng hoặc tạo ngẫu nhiên</p>
+                                    <p class="text-xs text-gray-400 mt-1 mb-4">Chọn từ ngân hàng hoặc tạo ngẫu nhiên</p>
+                                    <button (click)="showCreateQuestionModal.set(true)"
+                                            class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 shadow-sm transition-colors mx-auto">
+                                        <lucide-icon name="plus" [size]="16"></lucide-icon>
+                                        <span>Tạo câu hỏi mới</span>
+                                    </button>
                                 </div>
                             } @else {
                                 <div class="divide-y divide-gray-50">
@@ -566,7 +577,7 @@ import { VideoUploadComponent, VideoUploadResult } from '../../../../../shared/c
              <div class="flex items-center gap-3">
                  <button (click)="clearSectionSelection()" 
                          class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors text-sm font-medium">
-                    Há»§y
+                    Hủy
                  </button>
                  <button (click)="saveSection()" [disabled]="isSaving() || !sectionTitle.trim()" 
                          class="px-5 py-2 bg-slate-900 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 flex items-center gap-2 transition-colors shadow-sm">
@@ -606,6 +617,7 @@ import { VideoUploadComponent, VideoUploadResult } from '../../../../../shared/c
 
             <!-- LECTURE fields (Refactored for Level 3 Topics) -->
             @if (getLessonType(selectedLesson()) === 'LECTURE') {
+              <!-- Trigger Rebuild -->
               <div class="space-y-4">
                 <!-- Topic List -->
                 <div class="bg-gray-50 rounded-lg border border-gray-200 p-4">
@@ -825,11 +837,15 @@ import { VideoUploadComponent, VideoUploadResult } from '../../../../../shared/c
                         <h5 class="text-gray-900 font-medium mb-1">Chưa có câu hỏi nào</h5>
                         <p class="text-gray-500 text-sm max-w-xs mb-6">Bắt đầu bằng cách chọn câu hỏi từ ngân hàng hoặc tạo danh sách ngẫu nhiên.</p>
                         <div class="flex gap-3">
+                           <button (click)="showCreateQuestionModal.set(true)" class="text-white bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2">
+                             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                             Tạo mới
+                           </button>
                            <button (click)="openRandomizeModal()" class="text-purple-600 bg-purple-50 hover:bg-purple-100 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                              Thêm ngẫu nhiên
                            </button>
                            <button (click)="showAddQuestionsModal.set(true)" class="text-white bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                             Th�m t? ng�n h�ng
+                             Thêm từ ngân hàng
                            </button>
                         </div>
                       </div>
@@ -944,18 +960,18 @@ import { VideoUploadComponent, VideoUploadResult } from '../../../../../shared/c
     <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
       <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all scale-100">
         <div class="p-5 border-b border-gray-100">
-          <h3 class="text-lg font-bold text-gray-900">T?o c�u h?i ng?u nhi�n</h3>
-          <p class="text-sm text-gray-500 mt-1">Chá»n g�i c�u h?i v� s? l�?ng c?n l?y.</p>
+          <h3 class="text-lg font-bold text-gray-900">Tạo câu hỏi ngẫu nhiên</h3>
+          <p class="text-sm text-gray-500 mt-1">Chọn gói câu hỏi và số lượng câu hỏi cần lấy.</p>
         </div>
         
         <div class="p-5 space-y-4">
           <!-- Select Package -->
           <div>
-             <label class="block text-sm font-medium text-gray-700 mb-1">Ngu?n c�u h?i</label>
+             <label class="block text-sm font-medium text-gray-700 mb-1">Nguồn câu hỏi</label>
              <select [(ngModel)]="selectedPackageId" (change)="onRandomPackageChange()" class="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-purple-500">
-                <option value="">-- Chá»n g�i c�u h?i --</option>
+                <option value="">-- Chọn gói câu hỏi --</option>
                 @for (pkg of quizPackages(); track pkg.id) {
-                  <option [value]="pkg.id">{{ pkg.name }} ({{ pkg.questionCount || 0 }} c�u)</option>
+                  <option [value]="pkg.id">{{ pkg.name }} ({{ pkg.questionCount || 0 }} câu)</option>
                 }
              </select>
           </div>
@@ -963,9 +979,9 @@ import { VideoUploadComponent, VideoUploadResult } from '../../../../../shared/c
           <!-- Quantity -->
           <div [class.opacity-50]="!selectedPackageId" [class.pointer-events-none]="!selectedPackageId">
             <label class="block text-sm font-medium text-gray-700 mb-1">
-              S? l�?ng c�u h?i 
+              Số lượng câu hỏi 
               @if(selectedPackageId) {
-                <span class="text-xs font-normal text-gray-500">(T?i �a: {{ getSelectedPackageCount() }})</span>
+                <span class="text-xs font-normal text-gray-500">(Tối đa: {{ getSelectedPackageCount() }})</span>
               }
             </label>
             <div class="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-purple-500 focus-within:border-purple-500">
@@ -979,19 +995,19 @@ import { VideoUploadComponent, VideoUploadResult } from '../../../../../shared/c
           <div class="flex gap-2">
              <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
                 <input type="checkbox" class="rounded text-purple-600 focus:ring-purple-500" [(ngModel)]="randomUnique">
-                <span>�u ti�n c�u h?i ch�a t?ng s? d?ng</span>
+                <span>Ưu tiên câu hỏi chưa từng sử dụng</span>
              </label>
           </div>
         </div>
 
         <div class="p-4 bg-gray-50 flex justify-end gap-3">
           <button (click)="showRandomModal.set(false)" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
-            Há»§y b?
+            Hủy bỏ
           </button>
           <button (click)="generateRandomQuestions()" [disabled]="!selectedPackageId || quizQuestionsLoading()" 
                   class="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
             @if (quizQuestionsLoading()) { <span class="animate-spin text-white">?</span> }
-            T?o ngay
+            Tạo ngay
           </button>
         </div>
       </div>
@@ -1003,14 +1019,14 @@ import { VideoUploadComponent, VideoUploadResult } from '../../../../../shared/c
       <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" (click)="showAddQuestionsModal.set(false)">
         <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col" (click)="$event.stopPropagation()">
           <div class="p-5 border-b border-gray-200 flex items-center justify-between">
-            <h3 class="text-lg font-semibold text-gray-900">Th�m c�u h?i t? ng�n h�ng</h3>
+            <h3 class="text-lg font-semibold text-gray-900">Thêm câu hỏi từ ngân hàng</h3>
             <button (click)="showAddQuestionsModal.set(false)" class="p-1 text-gray-400 hover:text-gray-600 rounded">?</button>
           </div>
           <div class="p-5 space-y-4 overflow-y-auto flex-1">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Chá»n g�i c�u h?i</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Chọn gói câu hỏi</label>
               <select [(ngModel)]="selectedPackageId" (change)="loadPackageQuestions()" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 bg-white">
-                <option value="">-- Chá»n g�i c�u h?i --</option>
+                <option value="">-- Chọn gói câu hỏi --</option>
                 @for (pkg of quizPackages(); track pkg.id) {
                   <option [value]="pkg.id">{{ pkg.name }} ({{ pkg.questionCount || 0 }} c�u)</option>
                 }
@@ -1019,7 +1035,7 @@ import { VideoUploadComponent, VideoUploadResult } from '../../../../../shared/c
             @if (packageQuestions().length > 0) {
               <div class="border border-gray-200 rounded-lg overflow-hidden">
                 <div class="px-4 py-3 bg-gray-50 border-b flex items-center justify-between">
-                  <span class="text-sm font-medium">Danh s�ch c�u h?i</span>
+                  <span class="text-sm font-medium">Danh sách câu hỏi</span>
                   <div class="flex items-center gap-2">
                     <button (click)="selectAllQuestions()" class="text-xs text-blue-600">Chá»n t?t c?</button>
                     <button (click)="clearQuestionSelection()" class="text-xs text-gray-600">B? ch?n</button>
@@ -1039,7 +1055,7 @@ import { VideoUploadComponent, VideoUploadResult } from '../../../../../shared/c
           <div class="p-5 border-t border-gray-200 flex justify-end gap-3">
             <button (click)="showAddQuestionsModal.set(false)" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">Há»§y b?</button>
             <button (click)="addSelectedQuestionsToQuiz()" [disabled]="selectedQuestionIds().size === 0" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50">
-              Th�m {{ selectedQuestionIds().size }} c�u h?i
+              Thêm {{ selectedQuestionIds().size }} câu hỏi
             </button>
           </div>
         </div>
@@ -1051,26 +1067,26 @@ import { VideoUploadComponent, VideoUploadResult } from '../../../../../shared/c
       <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" (click)="showSectionQuizBankModal.set(false)">
         <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col" (click)="$event.stopPropagation()">
           <div class="p-5 border-b border-gray-200 flex items-center justify-between">
-            <h3 class="text-lg font-semibold text-gray-900">Chá»n c�u h?i t? ng�n h�ng</h3>
+            <h3 class="text-lg font-semibold text-gray-900">Chọn câu hỏi từ ngân hàng</h3>
             <button (click)="showSectionQuizBankModal.set(false)" class="p-1 text-gray-400 hover:text-gray-600 rounded">?</button>
           </div>
           <div class="p-5 space-y-4 overflow-y-auto flex-1">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Chá»n g�i c�u h?i</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Chọn gói câu hỏi</label>
               <select [(ngModel)]="selectedPackageId" (change)="loadPackageQuestions()" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 bg-white">
-                <option value="">-- Chá»n g�i c�u h?i --</option>
+                <option value="">-- Chọn gói câu hỏi --</option>
                 @for (pkg of quizPackages(); track pkg.id) {
-                  <option [value]="pkg.id">{{ pkg.name }} ({{ pkg.questionCount || 0 }} c�u)</option>
+                  <option [value]="pkg.id">{{ pkg.name }} ({{ pkg.questionCount || 0 }} câu)</option>
                 }
               </select>
             </div>
             @if (packageQuestions().length > 0) {
               <div class="border border-gray-200 rounded-lg overflow-hidden">
                 <div class="px-4 py-3 bg-gray-50 border-b flex items-center justify-between">
-                  <span class="text-sm font-medium">Danh s�ch c�u h?i</span>
+                  <span class="text-sm font-medium">Danh sách câu hỏi</span>
                   <div class="flex items-center gap-2">
-                    <button (click)="selectAllQuestions()" class="text-xs text-rose-600">Chá»n t?t c?</button>
-                    <button (click)="clearQuestionSelection()" class="text-xs text-gray-600">B? ch?n</button>
+                    <button (click)="selectAllQuestions()" class="text-xs text-rose-600">Chọn tất cả</button>
+                    <button (click)="clearQuestionSelection()" class="text-xs text-gray-600">Bỏ chọn</button>
                   </div>
                 </div>
                 <div class="max-h-64 overflow-y-auto p-3 space-y-2">
@@ -1098,7 +1114,7 @@ import { VideoUploadComponent, VideoUploadResult } from '../../../../../shared/c
           <div class="p-5 border-t border-gray-200 flex justify-end gap-3">
             <button (click)="showSectionQuizBankModal.set(false)" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">Há»§y</button>
             <button (click)="addSectionQuizQuestionsFromBank()" [disabled]="selectedQuestionIds().size === 0" class="px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700 disabled:opacity-50">
-              Th�m {{ selectedQuestionIds().size }} c�u h?i
+              Thêm {{ selectedQuestionIds().size }} câu hỏi
             </button>
           </div>
         </div>
@@ -1110,21 +1126,21 @@ import { VideoUploadComponent, VideoUploadResult } from '../../../../../shared/c
       <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" (click)="showSectionQuizRandomModal.set(false)">
         <div class="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4" (click)="$event.stopPropagation()">
           <div class="p-5 border-b border-gray-100">
-            <h3 class="text-lg font-bold text-gray-900">T?o c�u h?i ng?u nhi�n</h3>
-            <p class="text-sm text-gray-500 mt-1">Chá»n g�i v� s? l�?ng c�u h?i</p>
+            <h3 class="text-lg font-bold text-gray-900">Tạo câu hỏi ngẫu nhiên</h3>
+            <p class="text-sm text-gray-500 mt-1">Chọn gói câu hỏi</p>
           </div>
           <div class="p-5 space-y-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Ngu?n c�u h?i</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Nguồn câu hỏi</label>
               <select [(ngModel)]="selectedPackageId" class="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white">
-                <option value="">-- Chá»n g�i c�u h?i --</option>
+                <option value="">-- Chọn gói câu hỏi --</option>
                 @for (pkg of quizPackages(); track pkg.id) {
-                  <option [value]="pkg.id">{{ pkg.name }} ({{ pkg.questionCount || 0 }} c�u)</option>
+                  <option [value]="pkg.id">{{ pkg.name }} ({{ pkg.questionCount || 0 }} câu)</option>
                 }
               </select>
             </div>
             <div [class.opacity-50]="!selectedPackageId">
-              <label class="block text-sm font-medium text-gray-700 mb-1">S? l�?ng c�u h?i</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Số lượng câu hỏi</label>
               <div class="flex items-center border border-gray-300 rounded-lg overflow-hidden">
                 <button class="px-3 py-2 bg-gray-50 hover:bg-gray-100 border-r" (click)="decreaseSectionQuizRandomCount()">-</button>
                 <input type="number" [ngModel]="sectionQuizRandomCount()" (ngModelChange)="sectionQuizRandomCount.set($event)" class="w-full text-center border-none focus:ring-0 p-2" min="1">
@@ -1147,12 +1163,12 @@ import { VideoUploadComponent, VideoUploadResult } from '../../../../../shared/c
       <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 overflow-y-auto" (click)="showSectionModal.set(false)">
         <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl mx-4 my-8 flex flex-col max-h-[90vh]" (click)="$event.stopPropagation()">
           <div class="p-5 border-b border-gray-200 flex justify-between items-center">
-            <h3 class="text-lg font-semibold text-gray-900">{{ editingSectionId() ? 'Chá»nh s?a M?c' : 'Th�m M?c M?i' }}</h3>
+            <h3 class="text-lg font-semibold text-gray-900">{{ editingSectionId() ? 'Chỉnh sửa Mục' : 'Thêm Mục Mới' }}</h3>
             <button (click)="showSectionModal.set(false)" class="text-gray-400 hover:text-gray-600">?</button>
           </div>
           <div class="p-6 space-y-4 overflow-y-auto">
              <div>
-               <label class="block text-sm font-medium text-gray-700 mb-2">Ti�u �? m?c <span class="text-red-500">*</span></label>
+               <label class="block text-sm font-medium text-gray-700 mb-2">Tiêu đề mục <span class="text-red-500">*</span></label>
                <input type="text" [(ngModel)]="sectionTitle" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
              </div>
 
@@ -1175,7 +1191,7 @@ import { VideoUploadComponent, VideoUploadResult } from '../../../../../shared/c
 
              @if (newSectionType === 'TEXT') {
                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Ná»™i dung</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Nội dung</label>
                   <div class="editor-container-wrapper border border-gray-300 rounded-lg bg-white relative shadow-sm" [style.height.px]="editorHeight()">
                       <ckeditor [editor]="Editor" [(ngModel)]="sectionContent" 
                                 [config]="editorConfig" (ready)="onEditorReady($event)"
@@ -1197,7 +1213,7 @@ import { VideoUploadComponent, VideoUploadResult } from '../../../../../shared/c
              @if (newSectionType === 'FILE') {
                <div class="space-y-4 p-5 bg-amber-50 rounded-xl border border-amber-200">
                    <div class="flex items-center justify-between">
-                       <label class="block text-xs font-black text-amber-800 uppercase">T?p ��nh k�m</label>
+                       <label class="block text-xs font-black text-amber-800 uppercase">Tệp đính kèm</label>
                        @if (sectionFileUrl()) {
                            <a [href]="sectionFileUrl()" target="_blank" class="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1">
                                <lucide-icon name="download" [size]="12"></lucide-icon> T?i xu?ng hi?n t?i
@@ -1215,7 +1231,7 @@ import { VideoUploadComponent, VideoUploadResult } from '../../../../../shared/c
                                <div class="w-10 h-10 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-2">
                                    <lucide-icon name="upload-cloud" [size]="20"></lucide-icon>
                                </div>
-                               <p class="text-sm font-bold text-slate-700">Nh?n �? t?i l�n t�i li?u</p>
+                               <p class="text-sm font-bold text-slate-700">Nhấn để tải lên tài liệu</p>
                                <p class="text-xs text-slate-400 mt-1">PDF, Word, Excel, PowerPoint (Max 50MB)</p>
                            </div>
                        } @else {
@@ -1237,7 +1253,7 @@ import { VideoUploadComponent, VideoUploadResult } from '../../../../../shared/c
                        <div class="flex items-center gap-3 p-3 bg-white border border-amber-100 rounded-lg">
                            <lucide-icon name="check-circle" [size]="16" class="text-green-500"></lucide-icon>
                            <div class="flex-grow min-w-0">
-                               <p class="text-xs font-bold text-slate-700">�? c� t?p ��nh k�m:</p>
+                               <p class="text-xs font-bold text-slate-700">Đã chọn tệp đính kèm:</p>
                                <a [href]="sectionFileUrl()" target="_blank" class="text-xs text-blue-600 hover:underline truncate block max-w-full">
                                    {{ getFileNameFromUrl(sectionFileUrl()!) }}
                                </a>
@@ -1249,7 +1265,7 @@ import { VideoUploadComponent, VideoUploadResult } from '../../../../../shared/c
                    @if (safePdfUrl()) {
                       <div class="mt-4">
                          <div class="flex items-center justify-between mb-2">
-                             <label class="text-xs font-bold text-slate-600">Xem tr�?c PDF (SOTA Stream)</label>
+                             <label class="text-xs font-bold text-slate-600">Xem trước PDF (SOTA Stream)</label>
                          </div>
                          <div class="w-full h-[500px] border border-slate-200 rounded-lg overflow-hidden bg-slate-800 shadow-inner">
                              <iframe [src]="safePdfUrl()" class="w-full h-full" frameborder="0"></iframe>
@@ -1272,6 +1288,24 @@ import { VideoUploadComponent, VideoUploadResult } from '../../../../../shared/c
         </div>
       </div>
     }
+
+    <!-- In-Context Question Creator Modal -->
+    <div *ngIf="showCreateQuestionModal()" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+       <div class="bg-white rounded-xl shadow-2xl w-full max-w-5xl h-[90vh] overflow-hidden flex flex-col relative" (click)="$event.stopPropagation()">
+          <div class="absolute top-4 right-4 z-10">
+             <button (click)="showCreateQuestionModal.set(false)" class="bg-white/80 p-1 rounded-full hover:bg-gray-100 text-gray-500">
+               <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+             </button>
+          </div>
+          <div class="flex-1 overflow-y-auto bg-gray-50">
+             <app-question-create
+                 [isDialog]="true"
+                 (created)="onQuestionCreated($event)"
+                 (cancel)="showCreateQuestionModal.set(false)">
+             </app-question-create>
+          </div>
+       </div>
+    </div>
   `,
 })
 export class CourseCurriculumComponent implements OnDestroy {
@@ -1286,6 +1320,31 @@ export class CourseCurriculumComponent implements OnDestroy {
   private quizApi = inject(QuizApi);
   private packageApi = inject(PackageApi);
   private sanitizer = inject(DomSanitizer);
+
+  // [NEW] In-Context Question Creation
+  showCreateQuestionModal = signal(false);
+
+  async onQuestionCreated(question: any) {
+    this.showCreateQuestionModal.set(false);
+
+    // Case 1: Active Section Modal (Section Quiz)
+    if (this.showSectionModal()) {
+      this.sectionQuizSelectedQuestions.update(prev => [...prev, question]);
+      return;
+    }
+
+    // Case 2: Lesson Quiz
+    const lesson = this.selectedLesson();
+    if (!lesson) return;
+
+    try {
+      // Link question to quiz immediately
+      await firstValueFrom(this.quizApi.addQuestionToQuiz(lesson.id, question.id));
+      this.quizQuestions.update(prev => [...prev, question]);
+    } catch (err) {
+      console.error('Failed to link new question to quiz', err);
+    }
+  }
 
   // CKEditor
   public Editor = ClassicEditor;
@@ -1846,7 +1905,7 @@ export class CourseCurriculumComponent implements OnDestroy {
   async removeQuestionFromQuiz(questionId: string) {
     const lesson = this.selectedLesson();
     if (!lesson) return;
-    if (!confirm('B?n ch?c ch?n mu?n x�a c�u h?i n�y?')) return;
+    if (!confirm('Bạn chắc chắn muốn xóa câu hỏi này?')) return;
 
     try {
       await firstValueFrom(this.quizApi.removeQuestionFromQuiz(lesson.id, questionId));
@@ -1897,7 +1956,7 @@ export class CourseCurriculumComponent implements OnDestroy {
       // 1. Get all questions from the selected package
       const questions = await firstValueFrom(this.packageApi.getQuestionsInPackage(this.selectedPackageId));
       if (!questions || questions.length === 0) {
-        alert('G�i c�u h?i n�y kh�ng c� d? li?u!');
+        alert('Gói câu hỏi này không có dữ liệu!');
         return;
       }
 
@@ -1922,7 +1981,7 @@ export class CourseCurriculumComponent implements OnDestroy {
       this.selectedPackageId = ''; // Reset
     } catch (error) {
       console.error('Error generating random questions:', error);
-      alert('L?i x?y ra khi t?o c�u h?i ng?u nhi�n.');
+      alert('Lỗi xảy ra khi tạo câu hỏi ngẫu nhiên.');
     } finally {
       this.quizQuestionsLoading.set(false);
     }
@@ -2040,51 +2099,50 @@ export class CourseCurriculumComponent implements OnDestroy {
 
     this.isSaving.set(true);
     try {
-      const formData = new FormData();
-      formData.append('title', this.sectionTitle.trim());
-      formData.append('type', this.newSectionType);
-      formData.append('isRequired', String(this.sectionIsRequired));
+      // Construction of DTO Payload
+      const payload: any = {
+        lessonId: lesson.id,
+        title: this.sectionTitle.trim(),
+        type: this.newSectionType,
+        isRequired: this.sectionIsRequired
+      };
 
       if (this.newSectionType === 'TEXT') {
-        formData.append('content', this.sectionContent);
+        payload.content = this.sectionContent;
       } else if (this.newSectionType === 'VIDEO') {
-        formData.append('videoUrl', this.sectionVideoUrl);
-        // [NEW] Include Cloudflare metadata if available
-        if (this.sectionVideoType) {
-          formData.append('videoType', this.sectionVideoType);
-        }
-        if (this.sectionCfObjectKey) {
-          formData.append('cfObjectKey', this.sectionCfObjectKey);
-        }
-      } else if (this.newSectionType === 'FILE') {
-        if (this.selectedFile) {
-          formData.append('file', this.selectedFile);
-        }
+        payload.videoUrl = this.sectionVideoUrl;
+        payload.videoType = this.sectionVideoType;
+        payload.cfObjectKey = this.sectionCfObjectKey;
       } else if (this.newSectionType === 'QUIZ') {
-        // Quiz settings
-        formData.append('quizType', this.sectionQuizType);
-        formData.append('quizTimeLimit', String(this.sectionQuizTimeLimit));
-        formData.append('quizPassingScore', String(this.sectionQuizPassingScore));
-        // Ch? g?i maxAttempts n?u l� EXAM, ASSESSMENT kh�ng gi?i h?n
-        formData.append('quizMaxAttempts', this.sectionQuizType === 'EXAM' ? String(this.sectionQuizMaxAttempts) : '999');
-        formData.append('quizShuffleQuestions', String(this.sectionQuizShuffleQuestions));
-        formData.append('quizShuffleOptions', String(this.sectionQuizShuffleOptions));
-        formData.append('quizShowResults', String(this.sectionQuizShowResults));
-        // Question IDs
-        const questionIds = this.sectionQuizSelectedQuestions().map(q => q.id);
-        formData.append('questionIds', JSON.stringify(questionIds));
+        payload.quizData = {
+          // Mapping variables to DTO fields
+          quizType: this.sectionQuizType,
+          timeLimitMinutes: this.sectionQuizTimeLimit,
+          passingScore: this.sectionQuizPassingScore,
+          maxAttempts: this.sectionQuizType === 'EXAM' ? this.sectionQuizMaxAttempts : 999,
+          shuffleQuestions: this.sectionQuizShuffleQuestions,
+          shuffleOptions: this.sectionQuizShuffleOptions,
+          showResultsImmediately: this.sectionQuizShowResults,
+          questionIds: this.sectionQuizSelectedQuestions().map(q => q.id)
+        };
+      }
+
+      const formData = new FormData();
+      // append JSON data as a Blob with application/json type
+      formData.append('data', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
+
+      // append File if existing
+      if (this.newSectionType === 'FILE' && this.selectedFile) {
+        formData.append('file', this.selectedFile);
       }
 
       if (this.editingSectionId()) {
-        // Update - Send FormData (Multipart)
         const res: any = await firstValueFrom(this.sectionApi.updateSection(this.editingSectionId()!, formData));
         const updatedSection = res.data || res;
         if (updatedSection?.fileUrl && this.newSectionType === 'FILE') {
           this.sectionFileUrl.set(updatedSection.fileUrl);
         }
       } else {
-        // Create - Send FormData (Multipart)
-        formData.append('lessonId', lesson.id);
         await firstValueFrom(this.sectionApi.createSection(formData));
       }
 
@@ -2097,7 +2155,7 @@ export class CourseCurriculumComponent implements OnDestroy {
       this.showSectionModal.set(false);
     } catch (e: any) {
       console.error('Error saving section:', e);
-      alert('L?i khi l�u M?c: ' + (e?.error?.message || e.message));
+      alert('Lỗi khi lưu Mục: ' + (e?.error?.message || e.message));
     } finally {
       this.isSaving.set(false);
     }
@@ -2235,7 +2293,7 @@ export class CourseCurriculumComponent implements OnDestroy {
     try {
       const questions = await firstValueFrom(this.packageApi.getQuestionsInPackage(this.selectedPackageId));
       if (!questions || questions.length === 0) {
-        alert('G�i c�u h?i n�y kh�ng c� d? li?u!');
+        alert('Gói câu hỏi này không có dữ liệu!');
         return;
       }
 
@@ -2251,7 +2309,7 @@ export class CourseCurriculumComponent implements OnDestroy {
       this.showSectionQuizRandomModal.set(false);
     } catch (error) {
       console.error('Error generating random questions:', error);
-      alert('Lá»—i khi táº¡o c�u h?i ng?u nhi�n.');
+      alert('Lỗi khi tạo câu hỏi ngẫu nhiên.');
     }
   }
 

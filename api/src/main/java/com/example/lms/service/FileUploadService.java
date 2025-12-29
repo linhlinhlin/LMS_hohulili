@@ -32,8 +32,11 @@ public class FileUploadService {
     @Value("${app.base-url:http://localhost:8088}")
     private String baseUrl;
 
+    private final com.example.lms.repository.FileAttachmentRepository fileAttachmentRepository;
+
     private static final List<String> ALLOWED_EXTENSIONS = Arrays.asList(
-        "jpg", "jpeg", "png", "gif", "pdf", "doc", "docx", "ppt", "pptx", 
+        "jpg", "jpeg", "png", "gif", "webp", "svg", "bmp", "tiff", 
+        "pdf", "doc", "docx", "ppt", "pptx", 
         "xls", "xlsx", "zip", "rar", "mp4", "avi", "mov", "mp3", "wav"
     );
 
@@ -67,10 +70,30 @@ public class FileUploadService {
             Path filePath = targetPath.resolve(fileName);
             Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
-            // Generate file URL
-            String fileUrl = baseUrl + "/api/v1/files/" + subDir + "/" + fileName;
+            // Determine file category
+            com.example.lms.entity.FileAttachment.FileCategory category = determineFileCategory(file.getContentType());
+
+            // Save to database
+            com.example.lms.entity.FileAttachment attachment = com.example.lms.entity.FileAttachment.builder()
+                    .originalFilename(originalFileName)
+                    .storedFilename(fileName)
+                    .storagePath(filePath.toString().replace('\\', '/'))
+                    .contentType(file.getContentType())
+                    .fileSize(file.getSize())
+                    .status("TEMP") // Mark as temp initially
+                    .uploadedBy(currentUser.getId())
+                    .fileCategory(category)
+                    .build();
+            
+            attachment = fileAttachmentRepository.save(attachment);
+
+            // Generate file URL (using ID for streaming if preferred, or direct static path)
+            // The frontend expects /api/v1/files/view/{id} so we should probably use that or similar.
+            // But here we keep the existing fileUrl logic for compatibility, but also return ID.
+            String fileUrl = baseUrl + "/api/v1/files/view/" + attachment.getId();
 
             return com.example.lms.dto.FileUploadDTOs.FileUploadResponse.builder()
+                    .id(attachment.getId())
                     .fileName(fileName)
                     .originalFileName(originalFileName)
                     .fileUrl(fileUrl)
@@ -198,5 +221,20 @@ public class FileUploadService {
         // Extract file path from URL if needed for future physical deletion
         // String fileName = request.getFileUrl().substring(request.getFileUrl().lastIndexOf("/") + 1);
         // TODO: Implement physical deletion if files are stored locally or in cloud storage
+    }
+    private com.example.lms.entity.FileAttachment.FileCategory determineFileCategory(String contentType) {
+        if (contentType == null) return com.example.lms.entity.FileAttachment.FileCategory.OTHER;
+        
+        if (contentType.startsWith("image/")) return com.example.lms.entity.FileAttachment.FileCategory.IMAGE;
+        if (contentType.startsWith("video/")) return com.example.lms.entity.FileAttachment.FileCategory.VIDEO;
+        if (contentType.startsWith("audio/")) return com.example.lms.entity.FileAttachment.FileCategory.AUDIO;
+        if (contentType.equals("application/pdf") || contentType.startsWith("text/") || contentType.contains("document") || contentType.contains("msword")) {
+            return com.example.lms.entity.FileAttachment.FileCategory.DOCUMENT;
+        }
+        if (contentType.contains("zip") || contentType.contains("compressed") || contentType.contains("tar")) {
+            return com.example.lms.entity.FileAttachment.FileCategory.ARCHIVE;
+        }
+        
+        return com.example.lms.entity.FileAttachment.FileCategory.OTHER;
     }
 }

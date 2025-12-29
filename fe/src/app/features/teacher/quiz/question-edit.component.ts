@@ -1,20 +1,23 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, FormArray, ReactiveFormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { QuestionApi, Question, UpdateQuestionRequest } from '../../../api/endpoints/question.api';
+import { BlockEditorComponent } from '../../../shared/components/block-editor/block-editor.component';
+import { EnrichedInputFieldComponent } from '../../../shared/components/enriched-input/enriched-input.component';
+import { ContentBlock } from '../../../api/types/content-block.types';
 
 @Component({
   selector: 'app-question-edit',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, BlockEditorComponent, EnrichedInputFieldComponent],
   template: `
     <div class="min-h-screen bg-gray-50 p-6">
       <div class="max-w-4xl mx-auto">
         <!-- Header -->
         <div class="mb-8">
           <h1 class="text-3xl font-bold text-gray-900 mb-2">Chỉnh sửa Câu Hỏi</h1>
-          <p class="text-gray-600">Cập nhật câu hỏi trắc nghiệm</p>
+          <p class="text-gray-600">Cập nhật câu hỏi trắc nghiệm với nội dung phong phú</p>
         </div>
 
         <!-- Loading State -->
@@ -45,21 +48,23 @@ import { QuestionApi, Question, UpdateQuestionRequest } from '../../../api/endpo
 
           <!-- Basic Information -->
           <div class="bg-white rounded-lg shadow p-6">
-            <h2 class="text-xl font-semibold mb-4 text-gray-800">Thông tin cơ bản</h2>
+            <h2 class="text-xl font-semibold mb-4 text-gray-800">Nội dung câu hỏi</h2>
             
-            <!-- Question Content -->
+            <!-- Question Content Block Editor -->
             <div class="mb-4">
-              <label for="content" class="block text-sm font-medium text-gray-700 mb-2">
+              <label class="block text-sm font-medium text-gray-700 mb-2">
                 Nội dung câu hỏi *
               </label>
-              <textarea
-                id="content"
-                formControlName="content"
-                rows="4"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Nhập nội dung câu hỏi..."
-              ></textarea>
-              <div *ngIf="questionForm.get('content')?.invalid && questionForm.get('content')?.touched" 
+              
+              <div class="min-h-[150px]">
+                  <app-block-editor 
+                    #blockEditor
+                    [initialBlocks]="questionBlocks()"
+                    (blocksChange)="onQuestionContentChange($event)">
+                  </app-block-editor>
+              </div>
+
+              <div *ngIf="questionBlocks().length === 0 && questionForm.touched" 
                    class="text-red-500 text-sm mt-1">
                 Nội dung câu hỏi là bắt buộc
               </div>
@@ -146,14 +151,14 @@ import { QuestionApi, Question, UpdateQuestionRequest } from '../../../api/endpo
                   </span>
                 </div>
 
-                <!-- Option Content -->
+                <!-- Option Content (Enriched Input) -->
                 <div class="flex-1">
-                  <input
-                    type="text"
-                    formControlName="content"
-                    placeholder="Nội dung đáp án..."
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
+                  <app-enriched-input
+                    [placeholder]="'Nhập nội dung đáp án...'"
+                    [initialValue]="option.get('content')?.value"
+                    (valueChange)="updateOptionText(i, $event)"
+                    (blocksChange)="updateOptionBlocks(i, $event)"
+                  ></app-enriched-input>
                 </div>
 
                 <!-- Correct Option Radio -->
@@ -200,32 +205,6 @@ import { QuestionApi, Question, UpdateQuestionRequest } from '../../../api/endpo
             </div>
           </div>
 
-          <!-- Preview -->
-          <div class="bg-white rounded-lg shadow p-6" *ngIf="questionForm.get('content')?.value">
-            <h2 class="text-xl font-semibold mb-4 text-gray-800">Xem trước</h2>
-            
-            <div class="border rounded-lg p-4 bg-gray-50">
-              <div class="font-medium text-gray-800 mb-3">
-                {{ questionForm.get('content')?.value }}
-              </div>
-              
-              <div class="space-y-2">
-                <div *ngFor="let option of options.controls; let i = index"
-                     [formGroupName]="i"
-                     class="flex items-center space-x-2">
-                  <div class="w-6 h-6 border border-gray-300 rounded flex items-center justify-center text-xs">
-                    {{ getOptionKey(i) }}
-                  </div>
-                  <span>{{ option.get('content')?.value }}</span>
-                  <span *ngIf="i === getCorrectOptionIndex()" 
-                        class="text-green-600 text-xs">
-                    ✓ Đáp án đúng
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
           <!-- Actions -->
           <div class="flex justify-end space-x-4">
             <button
@@ -254,6 +233,14 @@ export class QuestionEditComponent implements OnInit {
   question: Question | null = null;
   questionId: string | null = null;
 
+  // Signals for Content Blocks
+  questionBlocks = signal<ContentBlock[]>([]);
+  optionBlocksMap = new Map<number, ContentBlock[]>();
+
+  // Use ViewChild to set blocks on load
+
+  @ViewChild(BlockEditorComponent) blockEditor!: BlockEditorComponent;
+
   constructor(
     private fb: FormBuilder,
     private router: Router,
@@ -261,7 +248,6 @@ export class QuestionEditComponent implements OnInit {
     private questionApi: QuestionApi
   ) {
     this.questionForm = this.fb.group({
-      content: ['', Validators.required],
       difficulty: ['MEDIUM', Validators.required],
       tags: [''],
       status: ['ACTIVE', Validators.required],
@@ -276,6 +262,22 @@ export class QuestionEditComponent implements OnInit {
       this.loadQuestion();
     }
   }
+
+  // --- Block Handlers ---
+
+  onQuestionContentChange(blocks: ContentBlock[]) {
+    this.questionBlocks.set(blocks);
+  }
+
+  updateOptionText(index: number, text: string) {
+    this.options.at(index).get('content')?.setValue(text);
+  }
+
+  updateOptionBlocks(index: number, blocks: ContentBlock[]) {
+    this.optionBlocksMap.set(index, blocks);
+  }
+
+  // --- Form Logic ---
 
   get options(): FormArray {
     return this.questionForm.get('options') as FormArray;
@@ -304,15 +306,27 @@ export class QuestionEditComponent implements OnInit {
     while (this.options.length !== 0) {
       this.options.removeAt(0);
     }
+    this.optionBlocksMap.clear();
 
     // Add options from question (with null check)
     if (question.options && Array.isArray(question.options)) {
-      question.options.forEach(option => {
-        this.options.push(this.createOptionGroup(option.optionKey, option.content));
+      question.options.forEach((option: any, index) => {
+        let optionText = option.content || '';
+        // Backend might send 'contentBlocks' or 'blocks' (nested data)
+        const rawOptBlocks = option.contentBlocks || option.blocks;
+
+        if (rawOptBlocks && rawOptBlocks.length > 0) {
+          const transformed = this.transformFromBackendBlocks(rawOptBlocks);
+          this.updateOptionBlocks(index, transformed);
+
+          // Reconstruct hybrid text for EnrichedInput ([IMG:uuid], $latex$)
+          // This ensures images appear in the input preview
+          optionText = this.blocksToString(transformed);
+        }
+
+        this.options.push(this.createOptionGroup(option.optionKey, optionText));
       });
     } else {
-      // If no options, create default empty options A, B, C, D
-      console.warn('Question has no options, creating defaults');
       ['A', 'B', 'C', 'D'].forEach(key => {
         this.options.push(this.createOptionGroup(key, ''));
       });
@@ -320,12 +334,64 @@ export class QuestionEditComponent implements OnInit {
 
     // Update form values
     this.questionForm.patchValue({
-      content: question.content,
       difficulty: question.difficulty,
       tags: question.tags,
       status: question.status,
       correctOption: question.correctOption
     });
+
+    // Set Question Content Blocks
+    // If backend provides blocks, use them. Else parse text.
+    // Assuming backend might not yet send `contentBlocks` or generic `question` interface doesn't have it typed fully in FE
+    // Set Question Content Blocks
+    // Backend returns nested 'data' map, Frontend needs flat properties
+    const rawBlocks = (question as any).blocks || (question as any).contentBlocks;
+    let blocks: ContentBlock[] = [];
+
+    if (rawBlocks && rawBlocks.length > 0) {
+      blocks = this.transformFromBackendBlocks(rawBlocks);
+    } else {
+      blocks = this.parseRawText(question.content);
+    }
+    this.questionBlocks.set(blocks);
+  }
+
+  private transformFromBackendBlocks(backendBlocks: any[]): ContentBlock[] {
+    return backendBlocks.map(b => {
+      const { data, ...rest } = b;
+      let block: any = { ...rest };
+
+      // Flatten data based on type
+      if (b.type === 'text') {
+        block.content = data?.html || '';
+      } else if (b.type === 'formula') {
+        block.content = data?.latex || '';
+        block.format = data?.format || 'inline';
+      } else if (b.type === 'image') {
+        block.url = data?.url || '';
+        block.caption = data?.caption;
+        block.width = data?.width;
+      }
+      return block as ContentBlock;
+    });
+  }
+
+  // Temporary parser for legacy text content
+  private parseRawText(text: string): ContentBlock[] {
+    if (!text) return [];
+    const blocks: ContentBlock[] = [];
+    const parts = text.split(/(\$\$[\s\S]*?\$\$|\$[\s\S]*?\$)/g);
+    parts.forEach(part => {
+      if (!part) return;
+      if (part.startsWith('$$')) {
+        blocks.push({ id: crypto.randomUUID(), type: 'formula', content: part.slice(2, -2), format: 'display' });
+      } else if (part.startsWith('$')) {
+        blocks.push({ id: crypto.randomUUID(), type: 'formula', content: part.slice(1, -1), format: 'inline' });
+      } else {
+        blocks.push({ id: crypto.randomUUID(), type: 'text', content: part });
+      }
+    });
+    return blocks;
   }
 
   createOptionGroup(optionKey: string, content: string): FormGroup {
@@ -346,7 +412,7 @@ export class QuestionEditComponent implements OnInit {
   getCorrectOptionIndex(): number {
     const correctKey = this.getCorrectOptionKey();
     if (!correctKey) return -1;
-    
+
     for (let i = 0; i < this.options.length; i++) {
       if (this.getOptionKey(i) === correctKey) {
         return i;
@@ -356,7 +422,7 @@ export class QuestionEditComponent implements OnInit {
   }
 
   addOption(): void {
-    const nextKey = String.fromCharCode(65 + this.options.length); // A, B, C, D, E...
+    const nextKey = String.fromCharCode(65 + this.options.length);
     this.options.push(this.createOptionGroup(nextKey, ''));
   }
 
@@ -364,8 +430,7 @@ export class QuestionEditComponent implements OnInit {
     if (this.options.length > 2) {
       const removedKey = this.getOptionKey(index);
       this.options.removeAt(index);
-      
-      // If we removed the correct option, reset it
+
       if (this.getCorrectOptionKey() === removedKey) {
         this.questionForm.patchValue({ correctOption: this.getOptionKey(0) });
       }
@@ -392,8 +457,7 @@ export class QuestionEditComponent implements OnInit {
 
     this.isLoading = true;
     const formValue = this.questionForm.value;
-    
-    // Convert FormArray to string array
+
     const optionsList: string[] = [];
     for (let i = 0; i < this.options.length; i++) {
       const content = this.options.at(i).get('content')?.value;
@@ -402,10 +466,23 @@ export class QuestionEditComponent implements OnInit {
       }
     }
 
-    const request: UpdateQuestionRequest = {
-      content: formValue.content,
+    // Extract text from blocks for fallback
+    const fallbackContent = this.questionBlocks().map(b => (b as any).content || '').join(' ');
+
+    if (!this.questionId) return;
+
+    const request: any = { // Use any for DTO mismatch
+      content: fallbackContent,
+      blocks: this.transformToBackendBlocks(this.questionBlocks()), // FIXED to match backend DTO
+
       correctOption: formValue.correctOption,
       options: optionsList,
+
+      // Map option blocks
+      optionBlocks: this.options.controls.map((_, i) =>
+        this.transformToBackendBlocks(this.optionBlocksMap.get(i) || [])
+      ),
+
       difficulty: formValue.difficulty,
       tags: formValue.tags,
       status: formValue.status
@@ -413,10 +490,11 @@ export class QuestionEditComponent implements OnInit {
 
     this.questionApi.updateQuestion(this.questionId, request).subscribe({
       next: () => {
-        this.router.navigate(['../quiz-bank'], { relativeTo: this.route });
+        this.router.navigate(['/teacher/quiz/quiz-bank']);
       },
       error: (error) => {
         console.error('Failed to update question:', error);
+        alert('Lỗi khi cập nhật câu hỏi: ' + (error?.error?.message || error?.message)); // Show alert
         this.isLoading = false;
       },
       complete: () => {
@@ -425,7 +503,45 @@ export class QuestionEditComponent implements OnInit {
     });
   }
 
+  private transformToBackendBlocks(blocks: ContentBlock[]): any[] {
+    return blocks.map(b => {
+      const { id, type, ...rest } = b as any;
+      let data: any = {};
+
+      if (type === 'text') {
+        data.html = rest.content || '';
+      } else if (type === 'formula') {
+        data.latex = rest.content || '';
+        data.format = rest.format || 'inline';
+      } else if (type === 'image') {
+        data.url = rest.url || '';
+        data.caption = rest.caption;
+        data.width = rest.width;
+      } else {
+        Object.assign(data, rest);
+      }
+
+      return {
+        id,
+        type,
+        data
+      };
+    });
+  }
+
+  private blocksToString(blocks: ContentBlock[]): string {
+    return blocks.map(b => {
+      if (b.type === 'text') return (b as any).content || '';
+      if (b.type === 'formula') {
+        const content = (b as any).content;
+        return (b as any).format === 'display' ? `$$${content}$$` : `$${content}$`;
+      }
+      if (b.type === 'image') return ` ${(b as any).url ? `[IMG:${(b as any).url}]` : ''} `;
+      return '';
+    }).join('');
+  }
+
   onCancel(): void {
-    this.router.navigate(['../quiz-bank'], { relativeTo: this.route });
+    this.router.navigate(['/teacher/quiz/quiz-bank']);
   }
 }

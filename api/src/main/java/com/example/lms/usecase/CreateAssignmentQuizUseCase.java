@@ -12,6 +12,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.UUID;
 
+import com.example.lms.learning_delivery.domain.model.LearningClass;
+
 /**
  * Use Case: Create a standalone assignment quiz
  */
@@ -26,6 +28,7 @@ public class CreateAssignmentQuizUseCase {
     private final CourseRepository courseRepository;
     private final QuestionRepository questionRepository;
     private final UserRepository userRepository;
+    private final LearningClassRepository learningClassRepository;
 
     public QuizResponse execute(CreateAssignmentQuizRequest request, UUID teacherId) {
         log.info("Creating assignment quiz for course: {}, teacher: {}", request.getCourseId(), teacherId);
@@ -35,8 +38,16 @@ public class CreateAssignmentQuizUseCase {
             .orElseThrow(() -> new IllegalArgumentException("Course not found: " + request.getCourseId()));
 
         // 2. Business rule: Teacher must own the course
+        if (course.getTeacher() == null) {
+             log.error("Course {} has no teacher assigned!", course.getId());
+             throw new SecurityException("Course has no teacher assigned");
+        }
+        
+        log.info("Checking course ownership. Course Teacher: {}, Current User: {}", course.getTeacher().getId(), teacherId);
+        
         if (!course.getTeacher().getId().equals(teacherId)) {
-            throw new SecurityException("You don't have permission to create quiz for this course");
+            log.error("Ownership Check Failed! Course Teacher: {} != Current User: {}", course.getTeacher().getId(), teacherId);
+            throw new SecurityException("You don't have permission to create quiz for this course (Owner Mismatch)");
         }
 
         // 3. Load and validate questions
@@ -49,6 +60,17 @@ public class CreateAssignmentQuizUseCase {
         User teacher = userRepository.findById(teacherId)
             .orElseThrow(() -> new IllegalArgumentException("Teacher not found: " + teacherId));
 
+        // 4b. Load Class if requested
+        LearningClass learningClass = null;
+        if (request.getClassId() != null) {
+             learningClass = learningClassRepository.findById(request.getClassId())
+                .orElseThrow(() -> new IllegalArgumentException("Class not found: " + request.getClassId()));
+            
+             if (!learningClass.getCourse().getId().equals(course.getId())) {
+                 throw new IllegalArgumentException("Class does not belong to the specified course");
+             }
+        }
+
         // 5. Create Quiz Aggregate
         Quiz quiz = Quiz.builder()
             .type(Quiz.QuizType.ASSIGNMENT)
@@ -56,6 +78,7 @@ public class CreateAssignmentQuizUseCase {
             .description(request.getDescription())
             .section(null) // ASSIGNMENT doesn't have section (was lesson)
             .course(course)
+            .learningClass(learningClass)
             .createdBy(teacher)
             .timeLimitMinutes(request.getTimeLimitMinutes())
             .maxAttempts(request.getMaxAttempts())

@@ -1,6 +1,7 @@
-import { Component, signal, ViewEncapsulation } from '@angular/core';
+import { Component, signal, ViewEncapsulation, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { ErrorDisplayComponent } from './shared/components/error-display/error-display.component';
+import { PwaService } from './core/services/pwa.service';
 
 @Component({
   selector: 'app-root',
@@ -12,5 +13,6 @@ import { ErrorDisplayComponent } from './shared/components/error-display/error-d
   `,
 })
 export class App {
+  private pwaService = inject(PwaService); // Initialize PWA listener
   protected readonly title = signal('LMS Maritime - Hệ thống Quản lý Học tập Phân tán');
 }

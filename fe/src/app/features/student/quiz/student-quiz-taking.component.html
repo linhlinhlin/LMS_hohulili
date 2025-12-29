@@ -207,7 +207,9 @@
 
             <!-- Question Content -->
             <div class="p-6">
-              <p class="text-lg text-gray-900 leading-relaxed mb-6">{{ question.content }}</p>
+              <div class="mb-6">
+                <app-block-renderer [blocks]="question.contentBlocks"></app-block-renderer>
+              </div>
 
               <!-- Options -->
               <div class="space-y-3">

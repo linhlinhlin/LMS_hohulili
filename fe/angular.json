@@ -19,6 +19,7 @@
           "options": {
             "browser": "src/main.ts",
             "tsConfig": "tsconfig.app.json",
+            "webWorkerTsConfig": "tsconfig.worker.json",
             "inlineStyleLanguage": "scss",
             "assets": [
               {
@@ -29,7 +30,8 @@
             "styles": [
               "src/styles/critical.scss",
               "src/styles.scss",
-              "node_modules/video.js/dist/video-js.min.css"
+              "node_modules/video.js/dist/video-js.min.css",
+              "node_modules/katex/dist/katex.min.css"
             ],
             "server": "src/main.server.ts",
             "prerender": false,
@@ -105,7 +107,8 @@
               }
             ],
             "styles": [
-              "src/styles.scss"
+              "src/styles.scss",
+              "node_modules/katex/dist/katex.min.css"
             ]
           }
         }

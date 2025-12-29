@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, ViewChild } from '@angular/core';
 import { forkJoin } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
@@ -8,13 +8,14 @@ import { QuestionApi, Question } from '../../../../../api/endpoints/question.api
 import { LessonApi } from '../../../../../api/client/lesson.api';
 import { PackageApi } from '../../../../../api/endpoints/package.api';
 import { QuizFormComponent, QuizFormConfig, QuizFormData } from '../../components/quiz-form/quiz-form.component';
+import { QuestionCreateComponent } from '../../question-create.component';
 
 @Component({
     selector: 'app-lesson-quiz-create',
     standalone: true,
-    imports: [CommonModule, QuizFormComponent],
+    imports: [CommonModule, QuizFormComponent, QuestionCreateComponent],
     template: `
-    <div class="w-full h-full px-2 py-2 custom-scrollbar overflow-y-auto">
+    <div class="w-full h-full px-2 py-2 custom-scrollbar overflow-y-auto relative">
       <div class="mb-6">
         <h2 class="text-2xl font-bold text-gray-800">Tạo bài trắc nghiệm cho bài học</h2>
         <p class="text-gray-600" *ngIf="lessonTitle()">Bài học: {{ lessonTitle() }}</p>
@@ -32,8 +33,29 @@ import { QuizFormComponent, QuizFormConfig, QuizFormData } from '../../component
         (onSubmit)="handleSubmit($event)"
         (onCancel)="handleCancel()"
         (onPackageSelect)="handlePackageSelected($event)"
-        (onUseMyQuestions)="handleUseMyQuestions()">
+        (onUseMyQuestions)="handleUseMyQuestions()"
+        (onRequestCreateQuestion)="handleRequestCreateQuestion()">
       </app-quiz-form>
+
+      <!-- Create Question Modal Overlay -->
+      <div *ngIf="showCreateQuestionModal()" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+          <!-- Background overlay -->
+          <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+
+          <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+          <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+               <app-question-create 
+                  [isDialog]="true"
+                  (created)="handleQuestionCreated($event)"
+                  (cancel)="handleCreateCancel()">
+               </app-question-create>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   `
 })
@@ -45,6 +67,8 @@ export class LessonQuizCreateComponent implements OnInit {
     private lessonApi = inject(LessonApi);
     private packageApi = inject(PackageApi);
 
+    @ViewChild(QuizFormComponent) quizFormComponent!: QuizFormComponent;
+
     lessonId = signal<string>('');
     lessonTitle = signal<string>('');
 
@@ -54,6 +78,7 @@ export class LessonQuizCreateComponent implements OnInit {
     packages = signal<any[]>([]);         // Available packages
 
     isLoading = signal<boolean>(true);
+    showCreateQuestionModal = signal(false);
 
     formConfig: QuizFormConfig = {
         showDates: false, // Lesson quiz doesn't need dates
@@ -231,5 +256,31 @@ export class LessonQuizCreateComponent implements OnInit {
         // For safety, let's try to navigate to course/lesson context if possible, 
         // but simply history.back() is often best for "Cancel"
         window.history.back();
+    }
+
+    handleRequestCreateQuestion() {
+        this.showCreateQuestionModal.set(true);
+    }
+
+    handleCreateCancel() {
+        this.showCreateQuestionModal.set(false);
+    }
+
+    handleQuestionCreated(newQuestion: any) {
+        // Assuming newQuestion matches Question interface
+        console.log('🎉 New question created:', newQuestion);
+
+        // Add to My Questions
+        this.myQuestions.update(current => [newQuestion, ...current]);
+
+        // Update 'questions' list to show the new question
+        this.questions.update(current => [newQuestion, ...current]);
+
+        // Auto-select the new question via QuizFormComponent
+        if (this.quizFormComponent) {
+            this.quizFormComponent.selectQuestion(newQuestion.id);
+        }
+
+        this.showCreateQuestionModal.set(false);
     }
 }

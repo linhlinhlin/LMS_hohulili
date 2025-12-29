@@ -54,6 +54,8 @@ public class CreateAssignmentQuizRequest {
 
     private Boolean publishImmediately = true;
 
+    private UUID classId;
+
     public CreateAssignmentQuizRequest() {}
 
     public CreateAssignmentQuizRequest(UUID courseId, String title, String description, Integer timeLimitMinutes, Integer maxAttempts, Integer passingScore, Boolean shuffleQuestions, Boolean shuffleOptions, Boolean showResultsImmediately, Boolean showCorrectAnswers, Instant startDate, Instant endDate, List<UUID> questionIds, Boolean publishImmediately) {
@@ -102,6 +104,8 @@ public class CreateAssignmentQuizRequest {
     public void setQuestionIds(List<UUID> questionIds) { this.questionIds = questionIds; }
     public Boolean getPublishImmediately() { return publishImmediately; }
     public void setPublishImmediately(Boolean publishImmediately) { this.publishImmediately = publishImmediately; }
+    public UUID getClassId() { return classId; }
+    public void setClassId(UUID classId) { this.classId = classId; }
 
     // Builder
     public static CreateAssignmentQuizRequestBuilder builder() { return new CreateAssignmentQuizRequestBuilder(); }
@@ -121,6 +125,7 @@ public class CreateAssignmentQuizRequest {
         public CreateAssignmentQuizRequestBuilder endDate(Instant e) { r.setEndDate(e); return this; }
         public CreateAssignmentQuizRequestBuilder questionIds(List<UUID> q) { r.setQuestionIds(q); return this; }
         public CreateAssignmentQuizRequestBuilder publishImmediately(Boolean p) { r.setPublishImmediately(p); return this; }
+        public CreateAssignmentQuizRequestBuilder classId(UUID c) { r.setClassId(c); return this; }
         public CreateAssignmentQuizRequest build() { return r; }
     }
 }

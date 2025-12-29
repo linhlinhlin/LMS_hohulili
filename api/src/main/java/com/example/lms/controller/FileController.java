@@ -36,14 +36,23 @@ public class FileController {
     public ResponseEntity<com.example.lms.dto.ApiResponse<com.example.lms.dto.FileUploadDTOs.FileUploadResponse>> uploadFile(
             @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.lms.entity.User currentUser,
             @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
-            @RequestParam(value = "type", required = false, defaultValue = "video") String type
+            @RequestParam(value = "type", required = false) String type,
+            @RequestParam(value = "category", required = false) String category
     ) {
         try {
             com.example.lms.dto.FileUploadDTOs.FileUploadRequest req = new com.example.lms.dto.FileUploadDTOs.FileUploadRequest();
-            req.setType(type);
+            
+            // Unify type and category
+            String finalType = type != null ? type : (category != null ? category : "general");
+            req.setType(finalType);
+            
+            log.info("Upload request: user={}, type={}, category={}, finalType={}", 
+                    currentUser != null ? currentUser.getEmail() : "anonymous", type, category, finalType);
+
             com.example.lms.dto.FileUploadDTOs.FileUploadResponse res = fileUploadService.uploadFile(file, currentUser, req);
             return ResponseEntity.ok(com.example.lms.dto.ApiResponse.success(res));
         } catch (RuntimeException e) {
+            log.error("Upload failed: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body(com.example.lms.dto.ApiResponse.error(e.getMessage()));
         }
     }
@@ -96,7 +105,7 @@ public class FileController {
         }
     }
 
-    @GetMapping("/{fileId}/stream")
+    @GetMapping("/view/{fileId}")
     public ResponseEntity<Resource> streamFile(@PathVariable UUID fileId) {
         log.info("[STREAM] Request for fileId: {}", fileId);
         try {

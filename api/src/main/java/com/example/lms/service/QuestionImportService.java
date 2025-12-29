@@ -1,6 +1,7 @@
 package com.example.lms.service;
 
 import com.example.lms.entity.*;
+import com.example.lms.domain.ContentBlock;
 import com.example.lms.repository.PackageRepository;
 import com.example.lms.repository.QuestionRepository;
 import lombok.RequiredArgsConstructor;
@@ -108,7 +109,7 @@ public class QuestionImportService {
         
         // Create question
         Question question = Question.builder()
-                .content(content.trim())
+                .contentBlocks(ContentBlock.fromText(content.trim()))
                 .correctOption(normalizedCorrect)
                 .difficulty(defaultDifficulty)
                 .status(Question.Status.ACTIVE)
@@ -136,7 +137,7 @@ public class QuestionImportService {
         return QuestionOption.builder()
                 .question(question)
                 .optionKey(key)
-                .content(content.trim())
+                .contentBlocks(ContentBlock.fromText(content.trim()))
                 .build();
     }
 

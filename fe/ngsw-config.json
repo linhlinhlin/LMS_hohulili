@@ -26,5 +26,31 @@
         ]
       }
     }
+  ],
+  "dataGroups": [
+    {
+      "name": "images",
+      "urls": [
+        "/api/v1/files/view/**"
+      ],
+      "cacheConfig": {
+        "maxSize": 100,
+        "maxAge": "30d",
+        "strategy": "performance"
+      }
+    },
+    {
+      "name": "api-read",
+      "urls": [
+        "/api/v1/courses/**",
+        "/api/v1/questions/**"
+      ],
+      "cacheConfig": {
+        "maxSize": 50,
+        "maxAge": "1d",
+        "strategy": "freshness",
+        "timeout": "5s"
+      }
+    }
   ]
 }
