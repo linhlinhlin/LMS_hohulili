@@ -1,4 +1,4 @@
-import { Component, ElementRef, forwardRef, OnDestroy, AfterViewInit, ViewChild, Input } from '@angular/core';
+import { Component, ElementRef, forwardRef, OnDestroy, AfterViewInit, ViewChild, Input, Output, EventEmitter } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import EditorJS, { OutputData } from '@editorjs/editorjs';
 // @ts-ignore
@@ -14,7 +14,7 @@ import ImageTool from '@editorjs/image';
     selector: 'app-block-editor',
     standalone: true,
     templateUrl: './block-editor.component.html',
-    styleUrls: ['./block-editor.component.scss'],
+    styleUrl: './block-editor.component.scss',
     providers: [
         {
             provide: NG_VALUE_ACCESSOR,
@@ -26,6 +26,17 @@ import ImageTool from '@editorjs/image';
 export class BlockEditorComponent implements AfterViewInit, OnDestroy, ControlValueAccessor {
     @Input() readOnly = false;
     @Input() placeholder = 'Nhập nội dung...';
+
+    @Input() set initialBlocks(blocks: any[]) {
+        if (blocks && blocks.length > 0) {
+            this.value = { blocks } as any;
+            if (this.editor && this.editor.render) {
+                this.editor.render(this.value as OutputData);
+            }
+        }
+    }
+
+    @Output() blocksChange = new EventEmitter<any[]>();
 
     editor!: EditorJS;
     value: OutputData | null = null;
@@ -51,7 +62,7 @@ export class BlockEditorComponent implements AfterViewInit, OnDestroy, ControlVa
             placeholder: this.placeholder,
             tools: {
                 header: {
-                    class: Header,
+                    class: Header as any,
                     config: {
                         placeholder: 'Tiêu đề',
                         levels: [2, 3, 4],
@@ -59,14 +70,14 @@ export class BlockEditorComponent implements AfterViewInit, OnDestroy, ControlVa
                     }
                 },
                 list: {
-                    class: List,
+                    class: List as any,
                     inlineToolbar: true,
                     config: {
                         defaultStyle: 'unordered'
                     }
                 },
                 quote: {
-                    class: Quote,
+                    class: Quote as any,
                     inlineToolbar: true,
                     config: {
                         quotePlaceholder: 'Nhập trích dẫn',
@@ -74,7 +85,7 @@ export class BlockEditorComponent implements AfterViewInit, OnDestroy, ControlVa
                     }
                 },
                 image: {
-                    class: ImageTool,
+                    class: ImageTool as any,
                     config: {
                         endpoints: {
                             byFile: 'http://localhost:8088/api/v1/files/upload/editor', // Adjust based on your actual upload endpoint
@@ -93,6 +104,9 @@ export class BlockEditorComponent implements AfterViewInit, OnDestroy, ControlVa
                 const data = await this.editor.save();
                 this.value = data;
                 this.onChange(data);
+                if (data && data.blocks) {
+                    this.blocksChange.emit(data.blocks);
+                }
             }
         });
     }

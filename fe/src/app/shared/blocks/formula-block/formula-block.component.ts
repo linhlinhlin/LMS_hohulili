@@ -1,24 +1,12 @@
-<<<<<<< HEAD
-import { Component, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormulaBlockData } from '../block-types';
-=======
 import { Component, Input, ElementRef, ViewChild, AfterViewInit, OnChanges, SimpleChanges, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormulaBlockData } from '../block-types';
 import katex from 'katex';
->>>>>>> fix/image
 
 @Component({
     selector: 'app-formula-block',
     standalone: true,
     imports: [CommonModule],
-<<<<<<< HEAD
-    template: `<div>\[ {{ data.expression }} \]</div>`
-})
-export class FormulaBlockComponent {
-    @Input() data!: FormulaBlockData;
-=======
     template: `
     <div #formulaContainer class="formula-container my-4 text-center overflow-x-auto py-2"></div>
   `,
@@ -58,5 +46,4 @@ export class FormulaBlockComponent implements AfterViewInit, OnChanges {
             this.container.nativeElement.innerText = this.data.expression; // Fallback
         }
     }
->>>>>>> fix/image
 }

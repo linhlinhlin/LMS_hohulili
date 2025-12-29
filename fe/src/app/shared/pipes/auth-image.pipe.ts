@@ -12,14 +12,12 @@ export class AuthImagePipe implements PipeTransform {
     private apiUrl = `${environment.apiUrl}/api/v1/files/view`;
 
     transform(fileId: string | null): string {
-<<<<<<< HEAD
-        if (!fileId) return 'assets/placeholder.png'; // Placeholder
-=======
-        if (!fileId) return 'assets/placeholder.png'; // Updated placeholder path if needed
+        if (!fileId) return 'assets/placeholder.png';
 
-        // If explicitly standard URL, usage might vary. 
-        // But for [IMG:uuid], input is uuid.
->>>>>>> fix/image
+        // Check if full URL
+        if (fileId.startsWith('http')) {
+            return fileId;
+        }
 
         // Check if full URL
         if (fileId.startsWith('http')) {

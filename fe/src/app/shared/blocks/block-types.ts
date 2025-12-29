@@ -3,11 +3,7 @@ export type BlockType = 'text' | 'image' | 'formula' | 'table';
 export interface ContentBlock {
     type: BlockType;
     data: any;
-<<<<<<< HEAD
-    id?: string;
-=======
     id?: string; // Optional client-side ID for tracking
->>>>>>> fix/image
 }
 
 export interface TextBlockData {
@@ -23,9 +19,5 @@ export interface ImageBlockData {
 }
 
 export interface FormulaBlockData {
-<<<<<<< HEAD
-    expression: string;
-=======
     expression: string; // LaTeX expression
->>>>>>> fix/image
 }

@@ -1,55 +1,26 @@
 import { Component, Input, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ImageBlockData } from '../block-types';
-<<<<<<< HEAD
-import { AuthImagePipe } from '../../pipes/auth-image.pipe';
-
-@Component({
-    selector: 'app-image-block',
-    standalone: true,
-    imports: [CommonModule, AuthImagePipe],
-    template: `
-    <figure class="my-6">
-=======
-// Add AuthImagePipe import
 import { AuthImagePipe } from '../../pipes/auth-image.pipe';
 
 @Component({
   selector: 'app-image-block',
   standalone: true,
-  // Add AuthImagePipe to imports
   imports: [CommonModule, AuthImagePipe],
   template: `
     <figure class="my-6">
-      <!-- Use pipe for url -->
->>>>>>> fix/image
-      <img 
+        <img 
         [src]="imageUrl | authImage" 
         [alt]="data.caption || 'Content Image'"
         class="rounded-lg shadow-md max-w-full h-auto mx-auto object-cover transition-opacity duration-300"
         loading="lazy"
         (error)="handleError($event)"
-      >
-      <figcaption *ngIf="data.caption" class="text-center text-sm text-gray-500 mt-2 italic">
-        {{ data.caption }}
-      </figcaption>
+        >
+        <figcaption *ngIf="data.caption" class="text-center text-sm text-gray-500 mt-2 italic">
+            {{ data.caption }}
+        </figcaption>
     </figure>
-  `,
-<<<<<<< HEAD
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    encapsulation: ViewEncapsulation.None
-})
-export class ImageBlockComponent {
-    @Input() data!: ImageBlockData;
-
-    get imageUrl(): string | null {
-        return this.data.url || this.data.file?.url || null;
-    }
-
-    handleError(event: any) {
-        event.target.style.display = 'none';
-    }
-=======
+    `,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None
 })
@@ -63,5 +34,4 @@ export class ImageBlockComponent {
   handleError(event: any) {
     event.target.style.display = 'none';
   }
->>>>>>> fix/image
 }
