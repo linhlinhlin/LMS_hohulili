@@ -9,6 +9,8 @@ import { AuthService } from '../../core/services/auth.service';
 import { ClassSummary, CourseApi } from '../../api/client/course.api';
 import { firstValueFrom } from 'rxjs';
 import { StudentEnrollmentService } from '../student/services/enrollment.service';
+import { PaymentModalComponent, CoursePaymentInfo } from '../payment/payment-modal.component';
+import { PaymentService } from '../payment/payment.service';
 
 /**
  * CourseDetailComponent - Coursera/Udemy-inspired Design (Dec 2025 SOTA)
@@ -23,7 +25,7 @@ import { StudentEnrollmentService } from '../student/services/enrollment.service
 @Component({
   selector: 'app-course-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, PaymentModalComponent],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -249,15 +251,19 @@ import { StudentEnrollmentService } from '../student/services/enrollment.service
                 <!-- Price Section -->
                 <div class="p-6">
                   <div class="flex items-center gap-3 mb-4">
-                    <span class="text-3xl font-bold text-gray-900">{{ getPriceDisplay(course()?.price!) }}</span>
-                    @if (course()?.price && course()!.price > 0) {
-                      <span class="text-lg text-gray-400 line-through">{{ (course()!.price * 1.5) | number:'1.0-0' }}₫</span>
-                      <span class="bg-red-100 text-red-700 text-sm font-semibold px-2 py-1 rounded">-33%</span>
+                    <!-- Show sale price if exists, otherwise show regular price -->
+                    @if (course()?.salePrice && course()!.salePrice! > 0) {
+                      <span class="text-3xl font-bold text-gray-900">{{ getPriceDisplay(course()?.salePrice!) }}</span>
+                      <span class="text-lg text-gray-400 line-through">{{ course()!.price | number:'1.0-0' }}₫</span>
+                      <span class="bg-red-100 text-red-700 text-sm font-semibold px-2 py-1 rounded">-{{ getDiscountPercent() }}%</span>
+                    } @else {
+                      <span class="text-3xl font-bold text-gray-900">{{ getPriceDisplay(course()?.price!) }}</span>
                     }
                   </div>
                   
                   <!-- CTA Buttons -->
-                  @if (isEnrolled()) {
+                  @if (isEnrolled() && (isPaid() || !course()?.price || course()!.price === 0)) {
+                    <!-- Enrolled + (Paid OR Free course) = Continue Learning -->
                     <button (click)="continueLearning()" 
                             class="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white py-3.5 px-6 rounded-lg font-semibold transition-all mb-3 flex items-center justify-center gap-2">
                       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -266,7 +272,20 @@ import { StudentEnrollmentService } from '../student/services/enrollment.service
                       </svg>
                       <span>Tiếp tục học</span>
                     </button>
+                  } @else if (isEnrolled() && !isPaid() && course()?.price && course()!.price > 0) {
+                    <!-- Enrolled + NOT Paid + Paid course = Show Payment Button -->
+                    <button (click)="openPaymentModal()" 
+                            class="w-full bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white py-3.5 px-6 rounded-lg font-semibold transition-all mb-3 flex items-center justify-center gap-2">
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                      </svg>
+                      <span>Mở khóa khóa học ({{ course()!.price | number:'1.0-0' }}₫)</span>
+                    </button>
+                    <p class="text-center text-sm text-amber-600 mb-3">
+                      ⚠️ Bạn chỉ xem được 2 bài học đầu tiên. Thanh toán để truy cập đầy đủ.
+                    </p>
                   } @else {
+                    <!-- Not Enrolled = Register Button -->
                     <button (click)="handleEnrollClick()" 
                             [disabled]="isEnrolling()"
                             class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-3.5 px-6 rounded-lg font-semibold transition-all disabled:opacity-50 mb-3 flex items-center justify-center gap-2">
@@ -277,14 +296,18 @@ import { StudentEnrollmentService } from '../student/services/enrollment.service
                         </svg>
                         <span>Đang xử lý...</span>
                       } @else {
-                        <span>Đăng ký khóa học</span>
+                        @if (course()?.price && course()!.price > 0) {
+                          <span>Đăng ký & Thanh toán</span>
+                        } @else {
+                          <span>Đăng ký miễn phí</span>
+                        }
                       }
                     </button>
                   }
                   
-                  @if (course()?.price && course()!.price > 0) {
-                    <button class="w-full border-2 border-gray-300 text-gray-700 py-3 px-6 rounded-lg font-semibold hover:bg-gray-50 transition-colors mb-4">
-                      Thêm vào giỏ hàng
+                  @if (!isEnrolled() && course()?.price && course()!.price > 0) {
+                    <button (click)="handleEnrollClick()" class="w-full border-2 border-gray-300 text-gray-700 py-3 px-6 rounded-lg font-semibold hover:bg-gray-50 transition-colors mb-4">
+                      Dùng thử miễn phí (2 bài đầu)
                     </button>
                   }
                   
@@ -378,6 +401,15 @@ import { StudentEnrollmentService } from '../student/services/enrollment.service
           </div>
         </div>
       }
+
+      <!-- PAYMENT MODAL -->
+      @if (showPaymentModal()) {
+        <app-payment-modal
+          [courseInfo]="getPaymentInfo()"
+          (close)="onPaymentModalClose($event)"
+          (paymentComplete)="onPaymentComplete()">
+        </app-payment-modal>
+      }
     </div>
   `
 })
@@ -401,12 +433,14 @@ export class CourseDetailComponent implements OnInit {
   showClassModal = signal(false);
   selectedClass = signal<string | null>(null);
   isEnrolling = signal(false);
-  isPaid = signal(false); // Payment status
   expandedChapters = signal<Set<number>>(new Set([1])); // First chapter expanded by default
   isEnrolled = signal(false); // Student enrollment status
+  isPaid = signal(false); // Payment status
+  showPaymentModal = signal(false); // Payment modal visibility
 
-  // Inject enrollment service
+  // Inject services
   private enrollmentService = inject(StudentEnrollmentService);
+  private paymentService = inject(PaymentService);
 
   ngOnInit(): void {
     this.route.params.subscribe(params => {
@@ -429,6 +463,47 @@ export class CourseDetailComponent implements OnInit {
     if (courseId) {
       this.router.navigate(['/student/learn/course', courseId]);
     }
+  }
+
+  // === PAYMENT METHODS ===
+
+  getPaymentInfo(): CoursePaymentInfo {
+    const c = this.course();
+    // Handle instructor which could be string or object
+    let instructorName = 'Giảng viên';
+    if (c?.instructor) {
+      if (typeof c.instructor === 'string') {
+        instructorName = c.instructor;
+      } else if (c.instructor.name) {
+        instructorName = c.instructor.name;
+      }
+    }
+    return {
+      courseId: c?.id || '',
+      title: c?.title || '',
+      thumbnail: c?.thumbnail || '',
+      price: c?.price || 0,
+      salePrice: (c as any)?.salePrice,
+      instructorName
+    };
+  }
+
+  openPaymentModal() {
+    this.showPaymentModal.set(true);
+  }
+
+  onPaymentModalClose(startLearning?: boolean | void) {
+    this.showPaymentModal.set(false);
+    if (startLearning === true) {
+      // Payment successful, start learning
+      this.isPaid.set(true);
+      this.continueLearning();
+    }
+  }
+
+  onPaymentComplete() {
+    // Payment was successful, update state
+    this.isPaid.set(true);
   }
 
   async handleEnrollClick() {
@@ -541,6 +616,13 @@ export class CourseDetailComponent implements OnInit {
   getPriceDisplay(price: number): string {
     if (!price || price === 0) return 'Miễn phí';
     return price.toLocaleString('vi-VN') + '₫';
+  }
+
+  getDiscountPercent(): number {
+    const c = this.course();
+    if (!c?.price || !c?.salePrice || c.price <= 0) return 0;
+    const discount = Math.round(((c.price - c.salePrice) / c.price) * 100);
+    return Math.max(0, Math.min(99, discount)); // Clamp 0-99
   }
 
   private updateSeo(course: ExtendedCourse): void {

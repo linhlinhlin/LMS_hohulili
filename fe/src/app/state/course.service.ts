@@ -220,62 +220,75 @@ export class CourseService {
 
   /**
    * Map CourseSummary from API to ExtendedCourse format
-   * Note: Backend returns minimal data, we fill defaults for missing fields
+   * FIXED Dec 2025: Now uses actual price from backend
    */
   private mapCourseSummaryToExtended(courses: CourseSummary[]): ExtendedCourse[] {
-    return courses.map(course => ({
-      id: course.id,
-      isEnrolled: course.enrolled || course.isEnrolled || false,
-      title: course.title,
-      description: course.description || '',
-      shortDescription: course.description?.substring(0, 100) || '',
-      thumbnail: 'https://via.placeholder.com/400x300/0288D1/FFFFFF?text=' + encodeURIComponent(course.title.substring(0, 20)),
-      instructor: {
-        id: '',
-        name: course.teacherName || 'Giảng viên',
-        avatar: 'https://via.placeholder.com/150',
-        title: 'Giảng viên',
-        credentials: [],
-        experience: 0,
+    return courses.map(course => {
+      const isFree = course.priceType === 'FREE' || !course.price || course.price === 0;
+
+      return {
+        id: course.id,
+        isEnrolled: course.enrolled || course.isEnrolled || false,
+        title: course.title,
+        description: course.description || '',
+        shortDescription: course.description?.substring(0, 100) || '',
+        thumbnail: 'https://via.placeholder.com/400x300/0288D1/FFFFFF?text=' + encodeURIComponent(course.title.substring(0, 20)),
+        instructor: {
+          id: '',
+          name: course.teacherName || 'Giảng viên',
+          avatar: 'https://via.placeholder.com/150',
+          title: 'Giảng viên',
+          credentials: [],
+          experience: 0,
+          rating: 4.5,
+          studentsCount: course.enrolledCount || 0
+        },
+        category: CourseCategory.MARINE_ENGINEERING,
+        level: 'beginner' as CourseLevel,
+        duration: '30h',
+        students: course.enrolledCount || 0,
+        reviews: 0,
+        // FIXED: Use actual price from backend
+        price: course.price || 0,
+        salePrice: course.salePrice,
+        priceType: course.priceType,
+        originalPrice: course.price || 0,
         rating: 4.5,
-        studentsCount: course.enrolledCount || 0
-      },
-      category: CourseCategory.MARINE_ENGINEERING, // Default - backend doesn't provide
-      level: 'beginner' as CourseLevel, // Default - backend doesn't provide
-      duration: '30h', // Default - backend doesn't provide
-      students: course.enrolledCount || 0,
-      reviews: 0,
-      price: 0, // Default - backend doesn't provide
-      rating: 4.5, // Default - backend doesn't provide
-      tags: [],
-      skills: [],
-      prerequisites: [],
-      certificate: {
-        type: 'Professional',
-        description: 'Chứng chỉ hoàn thành'
-      },
-      curriculum: {
-        modules: 0,
-        lessons: 0,
-        duration: '30 giờ'
-      },
-      studentsCount: course.enrolledCount || 0,
-      lessonsCount: 0,
-      isPublished: course.status === 'PUBLISHED'
-    }));
+        tags: [],
+        skills: [],
+        prerequisites: [],
+        certificate: {
+          type: 'Professional',
+          description: 'Chứng chỉ hoàn thành'
+        },
+        curriculum: {
+          modules: 0,
+          lessons: 0,
+          duration: '30 giờ'
+        },
+        studentsCount: course.enrolledCount || 0,
+        lessonsCount: 0,
+        isPublished: course.status === 'PUBLISHED',
+        isFree
+      };
+    });
   }
 
   /**
    * Map CourseDetail from API to ExtendedCourse format
+   * FIXED Dec 2025: Now uses actual price from backend
    */
   private mapCourseDetailToExtended(course: CourseDetail): ExtendedCourse {
+    // Determine if course is free
+    const isFree = course.priceType === 'FREE' || !course.price || course.price === 0;
+
     return {
       id: course.id,
       isEnrolled: false,
       title: course.title,
       description: course.description || '',
       shortDescription: course.description?.substring(0, 100) || '',
-      thumbnail: 'https://via.placeholder.com/400x300/0288D1/FFFFFF?text=' + encodeURIComponent(course.title.substring(0, 20)),
+      thumbnail: course.introVideoUrl || 'https://via.placeholder.com/400x300/0288D1/FFFFFF?text=' + encodeURIComponent(course.title.substring(0, 20)),
       instructor: {
         id: course.teacherId || '',
         name: course.teacherName || 'Giảng viên',
@@ -286,14 +299,19 @@ export class CourseService {
         rating: 4.5,
         studentsCount: course.enrolledCount || 0
       },
-      category: CourseCategory.MARINE_ENGINEERING, // Default
-      level: 'beginner' as CourseLevel, // Default
-      duration: '30h', // Default
+      category: course.categoryName || CourseCategory.MARINE_ENGINEERING,
+      categoryName: course.categoryName,
+      level: 'beginner' as CourseLevel,
+      duration: '30h',
       students: course.enrolledCount || 0,
       reviews: 0,
-      price: 0, // Default
-      rating: 4.5, // Default
-      tags: [],
+      // FIXED: Use actual price from backend
+      price: course.price || 0,
+      salePrice: course.salePrice,
+      priceType: course.priceType,
+      originalPrice: course.price || 0,
+      rating: 4.5,
+      tags: course.tags || [],
       skills: [],
       prerequisites: [],
       certificate: {
@@ -307,7 +325,8 @@ export class CourseService {
       },
       studentsCount: course.enrolledCount || 0,
       lessonsCount: 0,
-      isPublished: course.status === 'PUBLISHED'
+      isPublished: course.status === 'PUBLISHED',
+      isFree
     };
   }
 

@@ -456,6 +456,10 @@ public class CourseController {
                 .teacherName(course.getTeacher().getFullName())
                 .enrolledCount(enrolledCount)
                 .createdAt(course.getCreatedAt())
+                // Price fields (Dec 2025)
+                .priceType(course.getPriceType() != null ? course.getPriceType().name() : "FREE")
+                .price(course.getPrice())
+                .salePrice(course.getSalePrice())
                 .build();
     }
 
@@ -598,6 +602,10 @@ public class CourseController {
         private int enrolledCount;
         private Instant createdAt;
         private Boolean enrolled;
+        // Price fields (Dec 2025)
+        private String priceType;
+        private BigDecimal price;
+        private BigDecimal salePrice;
 
         public CourseSummary() {}
         public CourseSummary(UUID id, String code, String title, String description, String status, String teacherName, int enrolledCount, Instant createdAt, Boolean enrolled) {
@@ -613,6 +621,10 @@ public class CourseController {
         public int getEnrolledCount() { return enrolledCount; } public void setEnrolledCount(int enrolledCount) { this.enrolledCount = enrolledCount; }
         public Instant getCreatedAt() { return createdAt; } public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
         public Boolean getEnrolled() { return enrolled; } public void setEnrolled(Boolean enrolled) { this.enrolled = enrolled; }
+        // Price getters/setters
+        public String getPriceType() { return priceType; } public void setPriceType(String priceType) { this.priceType = priceType; }
+        public BigDecimal getPrice() { return price; } public void setPrice(BigDecimal price) { this.price = price; }
+        public BigDecimal getSalePrice() { return salePrice; } public void setSalePrice(BigDecimal salePrice) { this.salePrice = salePrice; }
 
         public static CourseSummaryBuilder builder() { return new CourseSummaryBuilder(); }
         public static class CourseSummaryBuilder {
@@ -626,6 +638,9 @@ public class CourseController {
             public CourseSummaryBuilder enrolledCount(int enrolledCount) { s.setEnrolledCount(enrolledCount); return this; }
             public CourseSummaryBuilder createdAt(Instant createdAt) { s.setCreatedAt(createdAt); return this; }
             public CourseSummaryBuilder enrolled(Boolean enrolled) { s.setEnrolled(enrolled); return this; }
+            public CourseSummaryBuilder priceType(String priceType) { s.setPriceType(priceType); return this; }
+            public CourseSummaryBuilder price(BigDecimal price) { s.setPrice(price); return this; }
+            public CourseSummaryBuilder salePrice(BigDecimal salePrice) { s.setSalePrice(salePrice); return this; }
             public CourseSummary build() { return s; }
         }
     }

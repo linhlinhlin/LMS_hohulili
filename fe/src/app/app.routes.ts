@@ -161,6 +161,12 @@ export const routes: Routes = [
     title: 'Trợ lý AI Hàng Hải'
   },
 
+  // Payment Result Pages (public - no auth required for callback handling)
+  {
+    path: 'payment',
+    loadChildren: () => import('./features/payment/payment.routes').then(m => m.paymentRoutes),
+  },
+
 
   // ========================================
   // FALLBACK ROUTE

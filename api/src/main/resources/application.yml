@@ -98,3 +98,60 @@ ai:
     retry:
       max-attempts: ${AI_SERVICE_RETRY_MAX:2}
       delay: ${AI_SERVICE_RETRY_DELAY:1000}  # milliseconds
+
+# =====================================================
+# PAYMENT GATEWAY CONFIGURATION
+# SOTA Design (Dec 2025): Gateway Abstraction Layer
+# =====================================================
+payment:
+  # Default gateway code - change this to switch gateways
+  # Options: SIMULATED, VNPAY, ZALOPAY, MOMO, OWN_SYSTEM
+  default-gateway: ${PAYMENT_DEFAULT_GATEWAY:SIMULATED}
+  
+  # Frontend URLs
+  frontend-url: ${FRONTEND_URL:http://localhost:4200}
+  success-url: ${PAYMENT_SUCCESS_URL:${payment.frontend-url}/payment/success}
+  failed-url: ${PAYMENT_FAILED_URL:${payment.frontend-url}/payment/failed}
+  
+  # === SIMULATED GATEWAY (Development/Testing) ===
+  simulated:
+    enabled: true  # Always enabled in dev
+  
+  # === VNPAY GATEWAY ===
+  # Register at: https://sandbox.vnpayment.vn
+  # Docs: https://sandbox.vnpayment.vn/apis/docs/thanh-toan-pay/pay.html
+  vnpay:
+    enabled: ${VNPAY_ENABLED:false}
+    tmn-code: ${VNPAY_TMN_CODE:}
+    hash-secret: ${VNPAY_HASH_SECRET:}
+    url: ${VNPAY_URL:https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
+    return-url: ${VNPAY_RETURN_URL:${payment.frontend-url}/payment/callback/vnpay}
+    api-url: ${VNPAY_API_URL:https://sandbox.vnpayment.vn/merchant_webapi/api/transaction}
+  
+  # === ZALOPAY GATEWAY (Future) ===
+  # Register at: https://zalopay.vn
+  zalopay:
+    enabled: ${ZALOPAY_ENABLED:false}
+    app-id: ${ZALOPAY_APP_ID:}
+    key1: ${ZALOPAY_KEY1:}
+    key2: ${ZALOPAY_KEY2:}
+    endpoint: ${ZALOPAY_ENDPOINT:https://sb-openapi.zalopay.vn/v2/create}
+    callback-url: ${ZALOPAY_CALLBACK_URL:${payment.frontend-url}/payment/callback/zalopay}
+  
+  # === MOMO GATEWAY (Future) ===
+  # Register at: https://business.momo.vn
+  momo:
+    enabled: ${MOMO_ENABLED:false}
+    partner-code: ${MOMO_PARTNER_CODE:}
+    access-key: ${MOMO_ACCESS_KEY:}
+    secret-key: ${MOMO_SECRET_KEY:}
+    endpoint: ${MOMO_ENDPOINT:https://test-payment.momo.vn/v2/gateway/api}
+    callback-url: ${MOMO_CALLBACK_URL:${payment.frontend-url}/payment/callback/momo}
+  
+  # === OWN PAYMENT SYSTEM (Future) ===
+  # Enable this when you build your own payment system
+  own-system:
+    enabled: ${OWN_PAYMENT_ENABLED:false}
+    api-url: ${OWN_PAYMENT_API_URL:}
+    api-key: ${OWN_PAYMENT_API_KEY:}
+
