@@ -15,6 +15,10 @@ export interface CourseSummary {
   createdAt: string;
   enrolled?: boolean;
   isEnrolled?: boolean;
+  // Price fields (Dec 2025)
+  priceType?: 'FREE' | 'PAID' | 'SUBSCRIPTION';
+  price?: number;
+  salePrice?: number;
 }
 
 export interface CourseDetail {
@@ -26,9 +30,29 @@ export interface CourseDetail {
   teacherId: string;
   teacherName: string;
   enrolledCount: number;
-  chaptersCount: number; // Renamed from sectionsCount
+  chaptersCount: number;
   createdAt: string;
   updatedAt: string | null;
+
+  // Extended fields from CourseDetailDTO (Dec 2025)
+  instructorId?: string;
+  categoryId?: string;
+  categoryName?: string;
+  welcomeMessage?: string;
+  courseInformation?: string;
+  benefits?: string;
+  introVideoUrl?: string;
+  credits?: number;
+  visibility?: 'PUBLIC' | 'PRIVATE' | 'UNLISTED';
+
+  // Price fields - CRITICAL for payment flow
+  priceType?: 'FREE' | 'PAID' | 'SUBSCRIPTION';
+  price?: number;
+  salePrice?: number;
+
+  // Collections loaded separately
+  tags?: string[];
+  teachingStaffIds?: string[];
 }
 
 // Course content for learning UI (old Section is now Chapter)

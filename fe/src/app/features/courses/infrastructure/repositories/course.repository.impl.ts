@@ -64,58 +64,58 @@ export class CourseRepositoryImpl implements CourseRepository {
 
         // Check if pageData exists and has content
         if (!pageData) {
-            console.error('[REPOSITORY LOG] Lỗi ánh xạ: pageData không tồn tại');
-            return { items: [], page: 1, limit: 12, total: 0, totalPages: 1, hasNext: false, hasPrev: false };
+          console.error('[REPOSITORY LOG] Lỗi ánh xạ: pageData không tồn tại');
+          return { items: [], page: 1, limit: 12, total: 0, totalPages: 1, hasNext: false, hasPrev: false };
         }
 
         // If pageData is an array, it means the API returned courses directly
         if (Array.isArray(pageData)) {
-            console.log('[REPOSITORY LOG] pageData là mảng, sử dụng pagination từ res.pagination');
-            const coursesArray = pageData;
-            const items = coursesArray.map((s: any) => this.mapSummaryToDomain(s)).filter((item: Course | null) => item !== null) as Course[];
+          console.log('[REPOSITORY LOG] pageData là mảng, sử dụng pagination từ res.pagination');
+          const coursesArray = pageData;
+          const items = coursesArray.map((s: any) => this.mapSummaryToDomain(s)).filter((item: Course | null) => item !== null) as Course[];
 
-            const totalPages = (pagination as any).totalPages ?? 1;
-            const total = (pagination as any).totalItems ?? items.length;
-            const currentPage = (pagination as any).page ?? page;
-            const pageSize = (pagination as any).limit ?? limit;
+          const totalPages = (pagination as any).totalPages ?? 1;
+          const total = (pagination as any).totalItems ?? items.length;
+          const currentPage = (pagination as any).page ?? page;
+          const pageSize = (pagination as any).limit ?? limit;
 
-            const result = {
-              items,
-              page: currentPage,
-              limit: pageSize,
-              total,
-              totalPages,
-              hasNext: currentPage < totalPages,
-              hasPrev: currentPage > 1
-            } as PaginatedResult<Course>;
+          const result = {
+            items,
+            page: currentPage,
+            limit: pageSize,
+            total,
+            totalPages,
+            hasNext: currentPage < totalPages,
+            hasPrev: currentPage > 1
+          } as PaginatedResult<Course>;
 
-            console.log('[REPOSITORY LOG] 4. Dữ liệu đã ánh xạ (array case):', result);
-            return result;
+          console.log('[REPOSITORY LOG] 4. Dữ liệu đã ánh xạ (array case):', result);
+          return result;
         }
 
         // If pageData is an object with content, it's a Spring Page
         if (pageData.content) {
-            console.log('[REPOSITORY LOG] pageData là Spring Page object');
-            const coursesArray = pageData.content;
-            const items = coursesArray.map((s: any) => this.mapSummaryToDomain(s)).filter((item: Course | null) => item !== null) as Course[];
+          console.log('[REPOSITORY LOG] pageData là Spring Page object');
+          const coursesArray = pageData.content;
+          const items = coursesArray.map((s: any) => this.mapSummaryToDomain(s)).filter((item: Course | null) => item !== null) as Course[];
 
-            const totalPages = pageData.totalPages ?? 1;
-            const total = pageData.totalElements ?? items.length;
-            const currentPage = (pageData.pageable?.pageNumber ?? 0) + 1; // Convert 0-based to 1-based
-            const pageSize = pageData.pageable?.pageSize ?? limit;
+          const totalPages = pageData.totalPages ?? 1;
+          const total = pageData.totalElements ?? items.length;
+          const currentPage = (pageData.pageable?.pageNumber ?? 0) + 1; // Convert 0-based to 1-based
+          const pageSize = pageData.pageable?.pageSize ?? limit;
 
-            const result = {
-              items,
-              page: currentPage,
-              limit: pageSize,
-              total,
-              totalPages,
-              hasNext: !pageData.last,
-              hasPrev: !pageData.first
-            } as PaginatedResult<Course>;
+          const result = {
+            items,
+            page: currentPage,
+            limit: pageSize,
+            total,
+            totalPages,
+            hasNext: !pageData.last,
+            hasPrev: !pageData.first
+          } as PaginatedResult<Course>;
 
-            console.log('[REPOSITORY LOG] 5. Dữ liệu đã ánh xạ (Spring Page case):', result);
-            return result;
+          console.log('[REPOSITORY LOG] 5. Dữ liệu đã ánh xạ (Spring Page case):', result);
+          return result;
         }
 
         // Fallback
@@ -229,9 +229,15 @@ export class CourseRepositoryImpl implements CourseRepository {
         description = description.padEnd(20, ' '); // Pad with spaces to meet minimum length
       }
 
+      // Ensure title meets minimum length requirement (5 characters)
+      let title = s.title ?? '';
+      if (title.length < 5) {
+        title = title.padEnd(5, ' '); // Pad with spaces to meet minimum length
+      }
+
       return new Course(
         (s.id as unknown as string) as CourseId,
-        s.title ?? '',
+        title,
         description,
         (description).slice(0, 120),
         'engineering', // backend doesn't provide category yet
@@ -271,25 +277,38 @@ export class CourseRepositoryImpl implements CourseRepository {
 
   private mapDetailToDomain(d: CourseDetail): Course {
     const now = new Date();
+
+    // Ensure title meets minimum length requirement (5 characters)
+    let title = d.title ?? '';
+    if (title.length < 5) {
+      title = title.padEnd(5, ' ');
+    }
+
+    // Ensure description meets minimum length requirement (20 characters)
+    let description = d.description ?? '';
+    if (description.length < 20) {
+      description = description.padEnd(20, ' ');
+    }
+
     return new Course(
       (d.id as unknown as string) as CourseId,
-      d.title ?? '',
-      d.description ?? '',
-      (d.description ?? '').slice(0, 120),
+      title,
+      description,
+      description.slice(0, 120),
       'engineering',
       (d.teacherId as unknown as string) as InstructorId,
       new CourseSpecifications(
         10,
         CourseLevel.BEGINNER,
         d.enrolledCount ?? 0,
-        0,
+        d.price ?? 0, // Use actual price from backend
         [],
         CertificateType.COMPLETION,
-        0,
-        0
+        d.chaptersCount ?? 1, // Use chapters count from backend
+        1
       ),
       CourseStatus.PUBLISHED,
-      [],
+      d.tags ?? [],
       [],
       '/assets/images/courses/placeholder.png',
       {
