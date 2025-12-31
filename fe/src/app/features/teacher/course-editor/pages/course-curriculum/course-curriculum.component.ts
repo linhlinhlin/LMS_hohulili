@@ -1555,7 +1555,7 @@ export class CourseCurriculumComponent implements OnDestroy {
     effect(() => {
       const section = this.selectedSection();
       if (section) {
-        // Reset isDataLoaded tr�?c khi load data m?i
+        // Reset isDataLoaded trước khi load data mới
         this.isDataLoaded.set(false);
 
         this.editingSectionId.set(section.id);
@@ -1569,8 +1569,41 @@ export class CourseCurriculumComponent implements OnDestroy {
         this.sectionIsRequired = (section as any).isRequired || false;
         this.updateVideoPreview(this.sectionVideoUrl); // [NEW] Init preview
 
+        // [NEW] Hydrate Quiz Data for QUIZ type sections - SOTA 2025
+        if (this.newSectionType === 'QUIZ') {
+          const quizData = (section as any).quizData;
+          if (quizData) {
+            // Hydrate quiz settings
+            this.sectionQuizTimeLimit = quizData.timeLimitMinutes || 30;
+            this.sectionQuizPassingScore = quizData.passingScore || 60;
+            this.sectionQuizMaxAttempts = quizData.maxAttempts || 1;
+            this.sectionQuizShuffleQuestions = quizData.shuffleQuestions ?? true;
+            this.sectionQuizShuffleOptions = quizData.shuffleOptions ?? true;
+            this.sectionQuizShowResults = quizData.showResultsImmediately ?? true;
+            
+            // Hydrate questions list
+            if (quizData.questions && quizData.questions.length > 0) {
+              this.sectionQuizSelectedQuestions.set(quizData.questions.map((q: any) => ({
+                id: q.id,
+                content: q.content
+              })));
+            } else {
+              this.sectionQuizSelectedQuestions.set([]);
+            }
+          } else {
+            // Reset to defaults if no quiz data
+            this.sectionQuizTimeLimit = 30;
+            this.sectionQuizPassingScore = 60;
+            this.sectionQuizMaxAttempts = 1;
+            this.sectionQuizShuffleQuestions = true;
+            this.sectionQuizShuffleOptions = true;
+            this.sectionQuizShowResults = true;
+            this.sectionQuizSelectedQuestions.set([]);
+          }
+          this.isDataLoaded.set(true);
+        }
         // Handle PDF Secure Streaming [SOTA 2025]
-        if (this.newSectionType === 'FILE') {
+        else if (this.newSectionType === 'FILE') {
           if (this.isPdfFile(section)) { // FIXED: Pass the section object, not just URL string
             this.pdfService.getSafePdfUrl(section.fileUrl).subscribe(url => {
               this.safePdfUrl.set(url);
@@ -1580,7 +1613,7 @@ export class CourseCurriculumComponent implements OnDestroy {
           }
           this.isDataLoaded.set(true);
         } else if (this.newSectionType === 'TEXT') {
-          // Delay �? CKEditor c� th?i gian kh?i t?o
+          // Delay để CKEditor có thời gian khởi tạo
           setTimeout(() => {
             this.isDataLoaded.set(true);
           }, 100);

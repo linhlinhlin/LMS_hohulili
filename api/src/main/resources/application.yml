@@ -56,6 +56,11 @@ logging:
     org.hibernate.orm.jdbc.bind: trace
     org.springframework.orm.jpa: DEBUG
     org.springframework.transaction: DEBUG
+    # Debug Spring Security để truy vết lỗi 403
+    org.springframework.security: DEBUG
+    org.springframework.security.web: DEBUG
+    org.springframework.security.web.FilterChainProxy: DEBUG
+    org.springframework.security.web.access: DEBUG
 
 springdoc:
   api-docs:

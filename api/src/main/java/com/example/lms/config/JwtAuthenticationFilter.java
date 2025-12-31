@@ -26,6 +26,31 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Lazy
     private final UserService userService;
 
+    /**
+     * Bypass JWT filter completely for public endpoints (Architect Directive - Step 2)
+     * This prevents any JWT processing errors from causing 403
+     */
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        // Always skip OPTIONS requests (CORS preflight)
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            return true;
+        }
+        
+        String path = request.getServletPath();
+        // Fallback to requestURI if servletPath is empty
+        if (path == null || path.isEmpty()) {
+            path = request.getRequestURI();
+        }
+        return path.startsWith("/api/v1/files/upload/editor") ||
+               path.startsWith("/api/v1/files/view") ||
+               path.startsWith("/api/v1/files/stream") ||
+               path.startsWith("/api/v1/auth") ||
+               path.startsWith("/api/auth") ||
+               path.startsWith("/v3/api-docs") ||
+               path.startsWith("/swagger-ui");
+    }
+
     @Override
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,
@@ -140,6 +165,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                path.startsWith("/api/v1/auth") ||
                path.equals("/api/v1/ai/health") ||
                path.equals("/api/v1/ai/health") ||
-               path.equals("/api/v1/ai/ping");      // AI ping public
+               path.equals("/api/v1/ai/ping") ||
+               path.startsWith("/api/v1/files/upload/editor"); // Skip EditorJS uploads
     }
 }

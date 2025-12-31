@@ -91,16 +91,15 @@ export class EnrichedInputFieldComponent {
     @Input() isInvalid = false;
 
     @Output() valueChange = new EventEmitter<string>();
-    @Output() blocksChange = new EventEmitter<ContentBlock[]>(); // Emits fully parsed blocks
+    @Output() blocksChange = new EventEmitter<ContentBlock[]>();
 
     rawValue = signal('');
     isProcessing = signal(false);
     isFocused = signal(false);
 
-    // Computed: Check if we have rich content (Image tags or Math)
     hasRichContent = computed(() => {
         const val = this.rawValue();
-        return val.includes('[IMG:') || val.includes('$') || val.includes('\\'); // Include backslash for raw tex
+        return val.includes('[IMG:') || val.includes('$') || val.includes('\\');
     });
 
     isFormula = computed(() => {
@@ -116,7 +115,6 @@ export class EnrichedInputFieldComponent {
         private sanitizer: DomSanitizer
     ) {
         effect(() => {
-            // On initial load
             if (this.initialValue && this.rawValue() === '') {
                 this.rawValue.set(this.initialValue);
             }
@@ -130,17 +128,14 @@ export class EnrichedInputFieldComponent {
     }
 
     onBlur() {
-        // Delay blur to allow clicking toolbar
         setTimeout(() => this.isFocused.set(false), 200);
         this.emitChanges();
     }
 
     onKeyDown(event: KeyboardEvent) {
-        // Stop global hotkeys from intercepting typing (e.g. '/' search)
         event.stopPropagation();
     }
 
-    // Generate HTML preview for the tooltip
     previewHtml(): SafeHtml {
         let text = this.rawValue();
 
@@ -151,7 +146,6 @@ export class EnrichedInputFieldComponent {
         });
 
         // Parse Math using KaTeX
-        // Support $...$ (inline) and $$...$$ (display)
         try {
             text = text.replace(/(\$\$[\s\S]*?\$\$|\$[\s\S]*?\$)/g, (match) => {
                 const isDisplay = match.startsWith('$$');
@@ -161,20 +155,12 @@ export class EnrichedInputFieldComponent {
                     displayMode: isDisplay
                 });
             });
-
-            // Also attempt to render raw TeX if it looks like a formula but no $ delimiters (user experience enhancement)
-            // But be careful not to break text. Only if it contains backslashes and no $?
-            // For now, only sticking to explicit $ syntax or rely on users clicking toolbar which adds $?
-            // User requested: "Visual Symbol Picker... chèn \frac...". Code should handle adding $.
-
         } catch (e) {
             console.warn('Math render error', e);
         }
 
         return this.sanitizer.bypassSecurityTrustHtml(text);
     }
-
-    // --- Handlers ---
 
     async onPaste(event: ClipboardEvent) {
         const items = event.clipboardData?.items;
@@ -195,30 +181,28 @@ export class EnrichedInputFieldComponent {
         if (input.files && input.files[0]) {
             this.uploadAndInsert(input.files[0]);
         }
-        input.value = ''; // Reset
+        input.value = '';
     }
 
     insertMath() {
-        // Insert empty formula at cursor or append
         this.insertAtCursor('$x^2$');
     }
 
+    /**
+     * SOTA 2025: Smart symbol insertion with placeholder selection
+     * - Wraps in $ if needed
+     * - Selects first Vietnamese placeholder for easy replacement
+     */
     onInsertSymbol(symbol: string) {
-        // Helper to insert symbol. If not inside $$, wrap it?
-        // Simple approach: Insert raw symbol. User can wrap.
-        // Better: Check if we are inside $$. If not, wrap it.
-        // For simplicity SOTA 2025: Just insert the symbol. If it's a command like \frac, wrap in $..$ automatically if no $ present.
-
         let contentToInsert = symbol;
         const current = this.rawValue();
 
-        // Smart wrap: if valid TeX command and no $ in text, wrap entire thing? 
-        // Or just wrap this insertion.
+        // Smart wrap: if valid TeX command and no $ in text, wrap in $...$
         if (symbol.startsWith('\\') && !current.includes('$')) {
             contentToInsert = `$${symbol}$`;
         }
 
-        this.insertAtCursor(contentToInsert);
+        this.insertAtCursorWithSelection(contentToInsert);
     }
 
     private insertAtCursor(text: string) {
@@ -233,11 +217,56 @@ export class EnrichedInputFieldComponent {
         const newValue = before + text + after;
         this.rawValue.set(newValue);
 
-        // Restore focus and cursor
         setTimeout(() => {
             input.focus();
             input.setSelectionRange(start + text.length, start + text.length);
         });
+
+        this.emitChanges();
+    }
+
+    /**
+     * SOTA 2025: Insert text and auto-select first placeholder
+     * Placeholders are Vietnamese text like "tử số", "mẫu số", "bậc", "biểu thức"
+     */
+    private insertAtCursorWithSelection(text: string) {
+        const input = this.inputRef.nativeElement;
+        const start = input.selectionStart || 0;
+        const end = input.selectionEnd || 0;
+
+        const current = this.rawValue();
+        const before = current.substring(0, start);
+        const after = current.substring(end);
+
+        const newValue = before + text + after;
+        this.rawValue.set(newValue);
+
+        // Update input value immediately
+        input.value = newValue;
+
+        setTimeout(() => {
+            input.focus();
+            
+            // Find first Vietnamese placeholder to select
+            const placeholderRegex = /[a-zà-ỹA-ZÀ-Ỹ\s]{2,}/u;
+            const match = text.match(placeholderRegex);
+            
+            if (match) {
+                const placeholder = match[0];
+                const placeholderStart = start + text.indexOf(placeholder);
+                const placeholderEnd = placeholderStart + placeholder.length;
+                input.setSelectionRange(placeholderStart, placeholderEnd);
+            } else {
+                // If no placeholder, find first {} and place cursor inside
+                const braceIndex = text.indexOf('{}');
+                if (braceIndex !== -1) {
+                    const cursorPos = start + braceIndex + 1;
+                    input.setSelectionRange(cursorPos, cursorPos);
+                } else {
+                    input.setSelectionRange(start + text.length, start + text.length);
+                }
+            }
+        }, 0);
 
         this.emitChanges();
     }
@@ -261,10 +290,7 @@ export class EnrichedInputFieldComponent {
         const val = this.rawValue();
         this.valueChange.emit(val);
 
-        // Parse into Blocks for backend
-        // Mirrors parsing logic
         const blocks: ContentBlock[] = [];
-
         const regex = /(\[IMG:[a-zA-Z0-9-]+\]|\$\$[\s\S]*?\$\$|\$[\s\S]*?\$)/g;
         const parts = val.split(regex);
 
@@ -276,7 +302,7 @@ export class EnrichedInputFieldComponent {
                 blocks.push({
                     id: crypto.randomUUID(),
                     type: 'image',
-                    url: uuid // UUID for resolution
+                    url: uuid
                 });
             } else if (part.startsWith('$')) {
                 const isDisplay = part.startsWith('$$');

@@ -24,12 +24,10 @@ export class ImageLifecycleService {
     uploadTemp(file: File): Observable<UploadResult> {
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('type', 'TEMP_QUIZ_ASSET');
+        formData.append('type', 'editor-image'); // Standardize type
 
-        // Using existing upload endpoint but marking as temp? 
-        // Or a dedicated /api/v1/files/temp endpoint?
-        // For now, assuming standard upload which returns an ID.
-        return this.http.post<any>('/api/v1/files/upload', formData).pipe(
+        // SOTA: Use the Editor endpoint which is whitelisted
+        return this.http.post<any>('/api/v1/files/upload/editor', formData).pipe(
             map(response => {
                 // Backend returns ApiResponse<FileUploadResponse>
                 // So response.data contains the FileUploadResponse object with an 'id' field

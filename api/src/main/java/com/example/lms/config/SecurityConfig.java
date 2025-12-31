@@ -19,6 +19,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -52,6 +53,8 @@ public class SecurityConfig {
                 )
             )
             .authorizeHttpRequests(auth -> auth
+                // Allow all OPTIONS requests for CORS preflight
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers(
                     "/v3/api-docs/**",
                     "/swagger-ui/**",
@@ -59,13 +62,17 @@ public class SecurityConfig {
                     "/api/v1/auth/**",
                     "/api/auth/**",
                     "/api/v1/ai/health",
-                    "/api/v1/ai/ping"
+                    "/api/v1/ai/ping",
+                    "/error"  // Allow error page to prevent 403 on validation errors
                 ).permitAll()
                 // Public course catalog - accessible without authentication (SOTA: Coursera/Udemy pattern)
                 .requestMatchers(HttpMethod.GET, "/api/v1/courses").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/courses/{courseId}").permitAll()
-                // Secure File Access (SOTA: Authenticated Stream)
-                .requestMatchers("/api/v1/files/view/**", "/api/v1/files/stream/**").authenticated()
+                // Secure File Access (SOTA: Authenticated Stream) -> Changed to Public for EditorJS compatibility
+                .requestMatchers(new AntPathRequestMatcher("/api/v1/files/view/**", "GET")).permitAll()
+                .requestMatchers(new AntPathRequestMatcher("/api/v1/files/stream/**", "GET")).permitAll()
+                .requestMatchers(new AntPathRequestMatcher("/api/v1/files/upload/editor", "POST")).permitAll()
+                .requestMatchers(new AntPathRequestMatcher("/api/v1/files/upload/editor/**", "POST")).permitAll()
                 .anyRequest().authenticated()
             )
             .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

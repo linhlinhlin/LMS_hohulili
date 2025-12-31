@@ -532,18 +532,49 @@ public class CourseController {
 
                     // Map sections (Level 3)
                     List<SectionSummary> sections = lesson.getSections() != null ? 
-                         lesson.getSections().stream().map(section -> SectionSummary.builder()
-                            .id(section.getId())
-                            .title(section.getTitle())
-                            .type(section.getType().name())
-                            .content(section.getContent()) // Include content for editing
-                            .videoUrl(section.getVideoUrl()) // Include videoUrl for VIDEO type
-                            .fileUrl(section.getFileUrl()) // [NEW] Include fileUrl for FILE type - SOTA 2025
-                            .duration(section.getDuration())
-                            .orderIndex(section.getOrderIndex())
-                            .isRequired(section.getIsRequired()) // Added
-                            .build()
-                         ).collect(Collectors.toList()) : java.util.Collections.emptyList();
+                         lesson.getSections().stream().map(section -> {
+                            SectionSummary.SectionSummaryBuilder sectionBuilder = SectionSummary.builder()
+                                .id(section.getId())
+                                .title(section.getTitle())
+                                .type(section.getType().name())
+                                .content(section.getContent())
+                                .videoUrl(section.getVideoUrl())
+                                .fileUrl(section.getFileUrl())
+                                .duration(section.getDuration())
+                                .orderIndex(section.getOrderIndex())
+                                .isRequired(section.getIsRequired());
+                            
+                            // [NEW] Hydrate Quiz Data for QUIZ type sections - SOTA 2025
+                            if (section.getType() == com.example.lms.entity.Section.SectionType.QUIZ 
+                                && section.getQuizzes() != null && !section.getQuizzes().isEmpty()) {
+                                Quiz sectionQuiz = section.getQuizzes().get(0);
+                                
+                                List<QuestionSummary> questions = new java.util.ArrayList<>();
+                                if (sectionQuiz.getQuizQuestions() != null) {
+                                    for (com.example.lms.entity.QuizQuestion qq : sectionQuiz.getQuizQuestions()) {
+                                        if (qq.getQuestion() != null) {
+                                            questions.add(new QuestionSummary(
+                                                qq.getQuestion().getId(),
+                                                qq.getQuestion().getContent()
+                                            ));
+                                        }
+                                    }
+                                }
+                                
+                                sectionBuilder.quizData(QuizDataSummary.builder()
+                                    .quizId(sectionQuiz.getId())
+                                    .timeLimitMinutes(sectionQuiz.getTimeLimitMinutes())
+                                    .passingScore(sectionQuiz.getPassingScore())
+                                    .maxAttempts(sectionQuiz.getMaxAttempts())
+                                    .shuffleQuestions(sectionQuiz.getShuffleQuestions())
+                                    .shuffleOptions(sectionQuiz.getShuffleOptions())
+                                    .showResultsImmediately(sectionQuiz.getShowResultsImmediately())
+                                    .questions(questions)
+                                    .build());
+                            }
+                            
+                            return sectionBuilder.build();
+                         }).collect(Collectors.toList()) : java.util.Collections.emptyList();
 
                     LessonSummary.LessonSummaryBuilder builder = LessonSummary.builder()
                         .id(lesson.getId())
@@ -768,6 +799,7 @@ public class CourseController {
         private Integer duration;
         private Integer orderIndex;
         private Boolean isRequired;
+        private QuizDataSummary quizData; // [NEW] Quiz hydration - SOTA 2025
 
         public SectionSummary() {}
         public UUID getId() { return id; } public void setId(UUID id) { this.id = id; }
@@ -779,6 +811,7 @@ public class CourseController {
         public Integer getDuration() { return duration; } public void setDuration(Integer duration) { this.duration = duration; }
         public Integer getOrderIndex() { return orderIndex; } public void setOrderIndex(Integer orderIndex) { this.orderIndex = orderIndex; }
         public Boolean getIsRequired() { return isRequired; } public void setIsRequired(Boolean isRequired) { this.isRequired = isRequired; }
+        public QuizDataSummary getQuizData() { return quizData; } public void setQuizData(QuizDataSummary quizData) { this.quizData = quizData; }
 
         public static SectionSummaryBuilder builder() { return new SectionSummaryBuilder(); }
         public static class SectionSummaryBuilder {
@@ -792,8 +825,56 @@ public class CourseController {
             public SectionSummaryBuilder duration(Integer duration) { s.setDuration(duration); return this; }
             public SectionSummaryBuilder orderIndex(Integer orderIndex) { s.setOrderIndex(orderIndex); return this; }
             public SectionSummaryBuilder isRequired(Boolean isRequired) { s.setIsRequired(isRequired); return this; }
+            public SectionSummaryBuilder quizData(QuizDataSummary quizData) { s.setQuizData(quizData); return this; }
             public SectionSummary build() { return s; }
         }
+    }
+    
+    // [NEW] Quiz Data Summary for Section hydration - SOTA 2025
+    public static class QuizDataSummary {
+        private UUID quizId;
+        private Integer timeLimitMinutes;
+        private Integer passingScore;
+        private Integer maxAttempts;
+        private Boolean shuffleQuestions;
+        private Boolean shuffleOptions;
+        private Boolean showResultsImmediately;
+        private List<QuestionSummary> questions;
+        
+        public QuizDataSummary() {}
+        public UUID getQuizId() { return quizId; } public void setQuizId(UUID quizId) { this.quizId = quizId; }
+        public Integer getTimeLimitMinutes() { return timeLimitMinutes; } public void setTimeLimitMinutes(Integer timeLimitMinutes) { this.timeLimitMinutes = timeLimitMinutes; }
+        public Integer getPassingScore() { return passingScore; } public void setPassingScore(Integer passingScore) { this.passingScore = passingScore; }
+        public Integer getMaxAttempts() { return maxAttempts; } public void setMaxAttempts(Integer maxAttempts) { this.maxAttempts = maxAttempts; }
+        public Boolean getShuffleQuestions() { return shuffleQuestions; } public void setShuffleQuestions(Boolean shuffleQuestions) { this.shuffleQuestions = shuffleQuestions; }
+        public Boolean getShuffleOptions() { return shuffleOptions; } public void setShuffleOptions(Boolean shuffleOptions) { this.shuffleOptions = shuffleOptions; }
+        public Boolean getShowResultsImmediately() { return showResultsImmediately; } public void setShowResultsImmediately(Boolean showResultsImmediately) { this.showResultsImmediately = showResultsImmediately; }
+        public List<QuestionSummary> getQuestions() { return questions; } public void setQuestions(List<QuestionSummary> questions) { this.questions = questions; }
+        
+        public static QuizDataSummaryBuilder builder() { return new QuizDataSummaryBuilder(); }
+        public static class QuizDataSummaryBuilder {
+            private QuizDataSummary q = new QuizDataSummary();
+            public QuizDataSummaryBuilder quizId(UUID quizId) { q.setQuizId(quizId); return this; }
+            public QuizDataSummaryBuilder timeLimitMinutes(Integer timeLimitMinutes) { q.setTimeLimitMinutes(timeLimitMinutes); return this; }
+            public QuizDataSummaryBuilder passingScore(Integer passingScore) { q.setPassingScore(passingScore); return this; }
+            public QuizDataSummaryBuilder maxAttempts(Integer maxAttempts) { q.setMaxAttempts(maxAttempts); return this; }
+            public QuizDataSummaryBuilder shuffleQuestions(Boolean shuffleQuestions) { q.setShuffleQuestions(shuffleQuestions); return this; }
+            public QuizDataSummaryBuilder shuffleOptions(Boolean shuffleOptions) { q.setShuffleOptions(shuffleOptions); return this; }
+            public QuizDataSummaryBuilder showResultsImmediately(Boolean showResultsImmediately) { q.setShowResultsImmediately(showResultsImmediately); return this; }
+            public QuizDataSummaryBuilder questions(List<QuestionSummary> questions) { q.setQuestions(questions); return this; }
+            public QuizDataSummary build() { return q; }
+        }
+    }
+    
+    // [NEW] Question Summary for Quiz hydration - SOTA 2025
+    public static class QuestionSummary {
+        private UUID id;
+        private String content;
+        
+        public QuestionSummary() {}
+        public QuestionSummary(UUID id, String content) { this.id = id; this.content = content; }
+        public UUID getId() { return id; } public void setId(UUID id) { this.id = id; }
+        public String getContent() { return content; } public void setContent(String content) { this.content = content; }
     }
 
     public static class LessonSummary {

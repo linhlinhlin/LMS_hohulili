@@ -392,16 +392,25 @@ export class QuestionCreateComponent implements OnInit {
       let data: any = {};
 
       if (type === 'text') {
-        data.html = rest.content || '';
+        data.html = rest.content || rest.data?.text || '';
       } else if (type === 'formula') {
-        data.latex = rest.content || '';
-        data.format = rest.format || 'inline';
+        data.latex = rest.content || rest.data?.latex || '';
+        data.format = rest.format || rest.data?.format || 'inline';
       } else if (type === 'image') {
-        data.url = rest.url || '';
-        data.caption = rest.caption;
-        data.width = rest.width;
+        // EditorJS Image Tool returns: { file: { url: "http://localhost:8088/.../view/UUID" }, ... }
+        // SOTA 2025: Extract UUID only - DO NOT store full URL (portability, R2 migration, PWA)
+        const rawUrl = rest.url || rest.file?.url || rest.data?.file?.url || rest.data?.url || '';
+        data.url = this.extractUuidFromUrl(rawUrl);
+        data.caption = rest.caption || rest.data?.caption || '';
+        data.width = rest.width || rest.data?.width;
+      } else if (type === 'header') {
+        data.text = rest.text || rest.data?.text || '';
+        data.level = rest.level || rest.data?.level || 2;
+      } else if (type === 'paragraph') {
+        data.text = rest.text || rest.data?.text || '';
       } else {
-        Object.assign(data, rest);
+        // For other types, preserve the data structure
+        Object.assign(data, rest.data || rest);
       }
 
       return {
@@ -410,6 +419,40 @@ export class QuestionCreateComponent implements OnInit {
         data
       };
     });
+  }
+
+  /**
+   * SOTA 2025: Extract UUID from full URL for portable storage
+   * Input: "http://localhost:8088/api/v1/files/view/c75e2c59-8a48-41c8-838f-9a095e812cc8"
+   * Output: "c75e2c59-8a48-41c8-838f-9a095e812cc8"
+   */
+  private extractUuidFromUrl(url: string): string {
+    if (!url) return '';
+    
+    // If already a UUID (no slashes), return as-is
+    if (!url.includes('/') && this.isValidUuid(url)) {
+      return url;
+    }
+    
+    // Extract last segment from URL path
+    const segments = url.split('/');
+    const lastSegment = segments.pop() || '';
+    
+    // Validate it's a UUID format
+    if (this.isValidUuid(lastSegment)) {
+      return lastSegment;
+    }
+    
+    // Fallback: return original if can't extract UUID
+    return url;
+  }
+
+  /**
+   * Validate UUID format (v4)
+   */
+  private isValidUuid(str: string): boolean {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(str);
   }
 
   onCancel(): void {

@@ -14,6 +14,17 @@ export interface SectionDraftDTO { // Renamed from TopicDraftDTO
     duration?: number;
     orderIndex: number;
     isRequired?: boolean;
+    // [NEW] Quiz Data for hydration - SOTA 2025
+    quizData?: {
+        quizId?: string;
+        timeLimitMinutes?: number;
+        passingScore?: number;
+        maxAttempts?: number;
+        shuffleQuestions?: boolean;
+        shuffleOptions?: boolean;
+        showResultsImmediately?: boolean;
+        questions?: { id: string; content: string }[];
+    };
 }
 
 export interface LessonDraftDTO {
@@ -146,6 +157,17 @@ interface ChapterResponse { // Was SectionWithLessons
             duration?: number;
             orderIndex: number;
             isRequired?: boolean;
+            // [NEW] Quiz Data for hydration - SOTA 2025
+            quizData?: {
+                quizId?: string;
+                timeLimitMinutes?: number;
+                passingScore?: number;
+                maxAttempts?: number;
+                shuffleQuestions?: boolean;
+                shuffleOptions?: boolean;
+                showResultsImmediately?: boolean;
+                questions?: { id: string; content: string }[];
+            };
         }[];
         // Legacy support
         topics?: {
@@ -158,6 +180,16 @@ interface ChapterResponse { // Was SectionWithLessons
             duration?: number;
             orderIndex: number;
             isRequired?: boolean;
+            quizData?: {
+                quizId?: string;
+                timeLimitMinutes?: number;
+                passingScore?: number;
+                maxAttempts?: number;
+                shuffleQuestions?: boolean;
+                shuffleOptions?: boolean;
+                showResultsImmediately?: boolean;
+                questions?: { id: string; content: string }[];
+            };
         }[];
     }[];
 }
@@ -214,7 +246,18 @@ export class CourseAuthoringService {
                             fileUrl: t.fileUrl,
                             duration: t.duration,
                             orderIndex: t.orderIndex,
-                            isRequired: t.isRequired
+                            isRequired: t.isRequired,
+                            // [NEW] Quiz Data hydration - SOTA 2025
+                            quizData: t.quizData ? {
+                                quizId: t.quizData.quizId,
+                                timeLimitMinutes: t.quizData.timeLimitMinutes,
+                                passingScore: t.quizData.passingScore,
+                                maxAttempts: t.quizData.maxAttempts,
+                                shuffleQuestions: t.quizData.shuffleQuestions,
+                                shuffleOptions: t.quizData.shuffleOptions,
+                                showResultsImmediately: t.quizData.showResultsImmediately,
+                                questions: t.quizData.questions || []
+                            } : undefined
                         }))
                     }))
                 }));

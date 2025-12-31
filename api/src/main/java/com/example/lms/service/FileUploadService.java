@@ -74,6 +74,10 @@ public class FileUploadService {
             com.example.lms.entity.FileAttachment.FileCategory category = determineFileCategory(file.getContentType());
 
             // Save to database
+            // Handle null currentUser for public uploads (e.g. EditorJS)
+            java.util.UUID uploaderId = (currentUser != null) ? currentUser.getId() : java.util.UUID.fromString("00000000-0000-0000-0000-000000000000");
+
+            // Save to database
             com.example.lms.entity.FileAttachment attachment = com.example.lms.entity.FileAttachment.builder()
                     .originalFilename(originalFileName)
                     .storedFilename(fileName)
@@ -81,7 +85,8 @@ public class FileUploadService {
                     .contentType(file.getContentType())
                     .fileSize(file.getSize())
                     .status("TEMP") // Mark as temp initially
-                    .uploadedBy(currentUser.getId())
+                    .entityType("TEMP") // Mandatory field fallback
+                    .uploadedBy(uploaderId)
                     .fileCategory(category)
                     .build();
             

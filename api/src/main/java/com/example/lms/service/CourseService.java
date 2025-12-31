@@ -390,6 +390,18 @@ public class CourseService {
                     if (lesson.getSections() != null) {
                         for (com.example.lms.entity.Section section : lesson.getSections()) {
                             org.hibernate.Hibernate.initialize(section.getQuizzes());
+                            // [NEW] Initialize quiz questions for hydration - SOTA 2025
+                            if (section.getQuizzes() != null) {
+                                for (com.example.lms.entity.Quiz quiz : section.getQuizzes()) {
+                                    org.hibernate.Hibernate.initialize(quiz.getQuizQuestions());
+                                    // Initialize the actual Question entity for each QuizQuestion
+                                    if (quiz.getQuizQuestions() != null) {
+                                        for (com.example.lms.entity.QuizQuestion qq : quiz.getQuizQuestions()) {
+                                            org.hibernate.Hibernate.initialize(qq.getQuestion());
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                     // Initialize assignment if exists

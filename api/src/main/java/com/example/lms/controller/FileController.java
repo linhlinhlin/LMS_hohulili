@@ -61,13 +61,25 @@ public class FileController {
     @Operation(summary = "Upload for EditorJS", description = "Upload file formatted for EditorJS Image Tool")
     public ResponseEntity<java.util.Map<String, Object>> uploadEditorFile(
             @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.lms.entity.User currentUser,
-            @RequestParam("file") org.springframework.web.multipart.MultipartFile file
+            @RequestParam(value = "file", required = false) org.springframework.web.multipart.MultipartFile file,
+            @RequestParam(value = "image", required = false) org.springframework.web.multipart.MultipartFile image
     ) {
         try {
+            // Accept both 'file' and 'image' field names for compatibility
+            org.springframework.web.multipart.MultipartFile uploadFile = file != null ? file : image;
+            
+            if (uploadFile == null || uploadFile.isEmpty()) {
+                log.error("Editor Upload failed: No file provided (checked both 'file' and 'image' fields)");
+                java.util.Map<String, Object> error = new java.util.HashMap<>();
+                error.put("success", 0);
+                error.put("message", "No file provided");
+                return ResponseEntity.badRequest().body(error);
+            }
+            
             com.example.lms.dto.FileUploadDTOs.FileUploadRequest req = new com.example.lms.dto.FileUploadDTOs.FileUploadRequest();
             req.setType("editor-image");
             
-            com.example.lms.dto.FileUploadDTOs.FileUploadResponse res = fileUploadService.uploadFile(file, currentUser, req);
+            com.example.lms.dto.FileUploadDTOs.FileUploadResponse res = fileUploadService.uploadFile(uploadFile, currentUser, req);
             
             // Format for EditorJS: { success: 1, file: { url: ... } }
             // Note: URL usually needs to be accessible. We return the View URL.
@@ -147,10 +159,18 @@ public class FileController {
         }
     }
 
-    @GetMapping("/view/{fileId}")
-    public ResponseEntity<Resource> streamFile(@PathVariable UUID fileId) {
-        log.info("[STREAM] Request for fileId: {}", fileId);
+    @GetMapping("/view/{id}")
+    public ResponseEntity<Resource> streamFile(@PathVariable("id") String id) {
+        log.info("[STREAM] Request for fileId: {}", id);
         try {
+            UUID fileId;
+            try {
+                fileId = UUID.fromString(id);
+            } catch (IllegalArgumentException e) {
+                log.error("[STREAM] Invalid UUID format: {}", id);
+                return ResponseEntity.badRequest().build();
+            }
+
             FileAttachment attachment = fileAttachmentRepository.findById(fileId)
                     .orElseThrow(() -> {
                         log.error("[STREAM] File not found in DB: {}", fileId);
@@ -180,7 +200,7 @@ public class FileController {
                 return ResponseEntity.notFound().build();
             }
         } catch (Exception e) {
-            log.error("[STREAM] Error streaming file {}: {}", fileId, e.getMessage(), e);
+            log.error("[STREAM] Error streaming file {}: {}", id, e.getMessage(), e);
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -195,7 +215,7 @@ public class FileController {
                 return ResponseEntity.notFound().build();
             }
 
-            return streamFile(attachments.get(0).getId());
+            return streamFile(attachments.get(0).getId().toString());
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }
