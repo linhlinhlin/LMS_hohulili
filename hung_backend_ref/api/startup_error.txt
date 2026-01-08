@@ -1,0 +1,40 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------< com.example:backend-lms-postgres >------------------
+[INFO] Building backend-lms-postgres 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] >>> spring-boot:3.2.6:run (default-cli) > test-compile @ backend-lms-postgres >>>
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ backend-lms-postgres ---
+[INFO] Copying 3 resources from src\main\resources to target\classes
+[INFO] Copying 30 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ backend-lms-postgres ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ backend-lms-postgres ---
+[INFO] skip non existing resourceDirectory D:\lms_update\hung_backend_ref\api\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ backend-lms-postgres ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] <<< spring-boot:3.2.6:run (default-cli) < test-compile @ backend-lms-postgres <<<
+[INFO] 
+[INFO] 
+[INFO] --- spring-boot:3.2.6:run (default-cli) @ backend-lms-postgres ---
+[INFO] Attaching agents: []
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  15.392 s
+[INFO] Finished at: 2026-01-08T20:13:32+07:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.springframework.boot:spring-boot-maven-plugin:3.2.6:run (default-cli) on project backend-lms-postgres: Process terminated with exit code: 1 -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException

@@ -1,0 +1,2 @@
+-- Legacy placeholder removed: original schema conflicted with UUID-based tables.
+-- This migration is intentionally left empty to preserve ordering.

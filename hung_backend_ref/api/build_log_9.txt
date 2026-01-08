@@ -1,0 +1,48 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------< com.example:backend-lms-postgres >------------------
+[INFO] Building backend-lms-postgres 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.3.2:clean (default-clean) @ backend-lms-postgres ---
+[INFO] Deleting D:\lms_update\hung_backend_ref\api\target
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ backend-lms-postgres ---
+[INFO] Copying 3 resources from src\main\resources to target\classes
+[INFO] Copying 30 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ backend-lms-postgres ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 278 source files with javac [debug parameters release 21] to target\classes
+[INFO] -------------------------------------------------------------
+[ERROR] COMPILATION ERROR : 
+[INFO] -------------------------------------------------------------
+[ERROR] /D:/lms_update/hung_backend_ref/api/src/main/java/com/example/lms/assessment/application/usecase/CreateAssignmentUseCaseV3.java:[66,17] cannot find symbol
+  symbol:   method distributionType(java.lang.String)
+  location: class com.example.lms.assessment.infrastructure.persistence.entity.AssignmentAllocationJpaEntity.AssignmentAllocationJpaEntityBuilder
+[ERROR] /D:/lms_update/hung_backend_ref/api/src/main/java/com/example/lms/assessment/application/usecase/CreateAssignmentUseCaseV3.java:[79,29] incompatible types: inference variable T has incompatible bounds
+    equality constraints: com.example.lms.assessment.infrastructure.persistence.entity.AssignmentAllocationStudentJpaEntity
+    lower bounds: java.lang.Object
+[INFO] 2 errors 
+[INFO] -------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  19.779 s
+[INFO] Finished at: 2026-01-08T16:00:21+07:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.13.0:compile (default-compile) on project backend-lms-postgres: Compilation failure: Compilation failure: 
+[ERROR] /D:/lms_update/hung_backend_ref/api/src/main/java/com/example/lms/assessment/application/usecase/CreateAssignmentUseCaseV3.java:[66,17] cannot find symbol
+[ERROR]   symbol:   method distributionType(java.lang.String)
+[ERROR]   location: class com.example.lms.assessment.infrastructure.persistence.entity.AssignmentAllocationJpaEntity.AssignmentAllocationJpaEntityBuilder
+[ERROR] /D:/lms_update/hung_backend_ref/api/src/main/java/com/example/lms/assessment/application/usecase/CreateAssignmentUseCaseV3.java:[79,29] incompatible types: inference variable T has incompatible bounds
+[ERROR]     equality constraints: com.example.lms.assessment.infrastructure.persistence.entity.AssignmentAllocationStudentJpaEntity
+[ERROR]     lower bounds: java.lang.Object
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException

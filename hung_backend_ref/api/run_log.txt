@@ -1,0 +1,1209 @@
+﻿[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------< com.example:backend-lms-postgres >------------------
+[INFO] Building backend-lms-postgres 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+Downloading from central: https://repo.maven.apache.org/maven2/org/springdoc/springdoc-openapi-starter-webmvc-ui/2.5.0/springdoc-openapi-starter-webmvc-ui-2.5.0.pom
+Progress (1): 1.7 kB
+Progress (1): 1.8 kB
+                    
+Downloaded from central: https://repo.maven.apache.org/maven2/org/springdoc/springdoc-openapi-starter-webmvc-ui/2.5.0/springdoc-openapi-starter-webmvc-ui-2.5.0.pom (1.8 kB at 2.4 kB/s)
+Downloading from central: https://repo.maven.apache.org/maven2/org/springdoc/springdoc-openapi/2.5.0/springdoc-openapi-2.5.0.pom
+Progress (1): 1.2 kB
+Progress (1): 2.7 kB
+Progress (1): 3.2 kB
+Progress (1): 6.6 kB
+Progress (1): 9.7 kB
+Progress (1): 10 kB 
+                   
+Downloaded from central: https://repo.maven.apache.org/maven2/org/springdoc/springdoc-openapi/2.5.0/springdoc-openapi-2.5.0.pom (10 kB at 84 kB/s)
+Downloading from central: https://repo.maven.apache.org/maven2/org/springframework/boot/spring-boot-starter-parent/3.2.4/spring-boot-starter-parent-3.2.4.pom
+Progress (1): 1.1 kB
+Progress (1): 2.7 kB
+Progress (1): 6.5 kB
+Progress (1): 10 kB 
+Progress (1): 13 kB
+                   
+Downloaded from central: https://repo.maven.apache.org/maven2/org/springframework/boot/spring-boot-starter-parent/3.2.4/spring-boot-starter-parent-3.2.4.pom (13 kB at 100 kB/s)
+Downloading from central: https://repo.maven.apache.org/maven2/org/springframework/boot/spring-boot-dependencies/3.2.4/spring-boot-dependencies-3.2.4.pom
+Progress (1): 1.2 kB
+Progress (1): 2.6 kB
+Progress (1): 4.1 kB
+Progress (1): 6.0 kB
+Progress (1): 8.3 kB
+Progress (1): 9.8 kB
+Progress (1): 13 kB 
+Progress (1): 24 kB
+Progress (1): 30 kB
+Progress (1): 38 kB
+Progress (1): 45 kB
+Progress (1): 52 kB
+Progress (1): 61 kB
+Progress (1): 72 kB
+Progress (1): 82 kB
+Progress (1): 92 kB
+Progress (1): 98 kB
+Progress (1): 103 kB
+Progress (1): 110 kB
+Progress (1): 111 kB
+                    
+Downloaded from central: https://repo.maven.apache.org/maven2/org/springframework/boot/spring-boot-dependencies/3.2.4/spring-boot-dependencies-3.2.4.pom (111 kB at 839 kB/s)
+Downloading from central: https://repo.maven.apache.org/maven2/org/apache/groovy/groovy-bom/4.0.20/groovy-bom-4.0.20.pom
+Progress (1): 870 B
+Progress (1): 2.3 kB
+Progress (1): 6.2 kB
+Progress (1): 10 kB 
+Progress (1): 12 kB
+Progress (1): 16 kB
+Progress (1): 20 kB
+Progress (1): 22 kB
+Progress (1): 27 kB
+                   
+Downloaded from central: https://repo.maven.apache.org/maven2/org/apache/groovy/groovy-bom/4.0.20/groovy-bom-4.0.20.pom (27 kB at 220 kB/s)
+Downloading from central: https://repo.maven.apache.org/maven2/org/infinispan/infinispan-bom/14.0.27.Final/infinispan-bom-14.0.27.Final.pom
+Progress (1): 1.2 kB
+Progress (1): 3.2 kB
+Progress (1): 18 kB 
+Progress (1): 25 kB
+                   
+Downloaded from central: https://repo.maven.apache.org/maven2/org/infinispan/infinispan-bom/14.0.27.Final/infinispan-bom-14.0.27.Final.pom (25 kB at 227 kB/s)
+Downloading from central: https://repo.maven.apache.org/maven2/org/infinispan/infinispan-build-configuration-parent/14.0.27.Final/infinispan-build-configuration-parent-14.0.27.Final.pom
+Progress (1): 992 B
+Progress (1): 3.2 kB
+Progress (1): 4.7 kB
+Progress (1): 6.7 kB
+Progress (1): 9.1 kB
+Progress (1): 11 kB 
+Progress (1): 13 kB
+Progress (1): 15 kB
+Progress (1): 18 kB
+Progress (1): 24 kB
+                   
+Downloaded from central: https://repo.maven.apache.org/maven2/org/infinispan/infinispan-build-configuration-parent/14.0.27.Final/infinispan-build-configuration-parent-14.0.27.Final.pom (24 kB at 41 kB/s)
+Downloading from central: https://repo.maven.apache.org/maven2/org/glassfish/jersey/jersey-bom/3.1.5/jersey-bom-3.1.5.pom
+Progress (1): 879 B
+Progress (1): 4.1 kB
+Progress (1): 18 kB 
+Progress (1): 21 kB
+                   
+Downloaded from central: https://repo.maven.apache.org/maven2/org/glassfish/jersey/jersey-bom/3.1.5/jersey-bom-3.1.5.pom (21 kB at 179 kB/s)
+Downloading from central: https://repo.maven.apache.org/maven2/org/eclipse/jetty/ee10/jetty-ee10-bom/12.0.7/jetty-ee10-bom-12.0.7.pom
+Progress (1): 1.1 kB
+Progress (1): 3.9 kB
+Progress (1): 7.3 kB
+Progress (1): 9.2 kB
+                    
+Downloaded from central: https://repo.maven.apache.org/maven2/org/eclipse/jetty/ee10/jetty-ee10-bom/12.0.7/jetty-ee10-bom-12.0.7.pom (9.2 kB at 92 kB/s)
+Downloading from central: https://repo.maven.apache.org/maven2/org/eclipse/jetty/jetty-bom/12.0.7/jetty-bom-12.0.7.pom
+Progress (1): 1.1 kB
+Progress (1): 4.3 kB
+Progress (1): 14 kB 
+                   
+Downloaded from central: https://repo.maven.apache.org/maven2/org/eclipse/jetty/jetty-bom/12.0.7/jetty-bom-12.0.7.pom (14 kB at 127 kB/s)
+Downloading from central: https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-bom/1.9.23/kotlin-bom-1.9.23.pom
+Progress (1): 944 B
+Progress (1): 3.2 kB
+Progress (1): 8.7 kB
+Progress (1): 9.1 kB
+                    
+Downloaded from central: https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-bom/1.9.23/kotlin-bom-1.9.23.pom (9.1 kB at 83 kB/s)
+Downloading from central: https://repo.maven.apache.org/maven2/io/micrometer/micrometer-bom/1.12.4/micrometer-bom-1.12.4.pom
+Progress (1): 1.1 kB
+Progress (1): 7.0 kB
+Progress (1): 7.9 kB
+                    
+Downloaded from central: https://repo.maven.apache.org/maven2/io/micrometer/micrometer-bom/1.12.4/micrometer-bom-1.12.4.pom (7.9 kB at 75 kB/s)
+Downloading from central: https://repo.maven.apache.org/maven2/io/micrometer/micrometer-tracing-bom/1.2.4/micrometer-tracing-bom-1.2.4.pom
+Progress (1): 1.0 kB
+Progress (1): 3.9 kB
+Progress (1): 4.5 kB
+                    
+Downloaded from central: https://repo.maven.apache.org/maven2/io/micrometer/micrometer-tracing-bom/1.2.4/micrometer-tracing-bom-1.2.4.pom (4.5 kB at 43 kB/s)
+Downloading from central: https://repo.maven.apache.org/maven2/com/oracle/database/jdbc/ojdbc-bom/21.9.0.0/ojdbc-bom-21.9.0.0.pom
+Progress (1): 888 B
+Progress (1): 3.8 kB
+Progress (1): 8.6 kB
+Progress (1): 13 kB 
+                   
+Downloaded from central: https://repo.maven.apache.org/maven2/com/oracle/database/jdbc/ojdbc-bom/21.9.0.0/ojdbc-bom-21.9.0.0.pom (13 kB at 103 kB/s)
+Downloading from central: https://repo.maven.apache.org/maven2/io/projectreactor/reactor-bom/2023.0.4/reactor-bom-2023.0.4.pom
+Progress (1): 911 B
+Progress (1): 4.5 kB
+Progress (1): 4.8 kB
+                    
+Downloaded from central: https://repo.maven.apache.org/maven2/io/projectreactor/reactor-bom/2023.0.4/reactor-bom-2023.0.4.pom (4.8 kB at 52 kB/s)
+Downloading from central: https://repo.maven.apache.org/maven2/org/springframework/amqp/spring-amqp-bom/3.1.3/spring-amqp-bom-3.1.3.pom
+Progress (1): 967 B
+Progress (1): 3.9 kB
+                    
+Downloaded from central: https://repo.maven.apache.org/maven2/org/springframework/amqp/spring-amqp-bom/3.1.3/spring-amqp-bom-3.1.3.pom (3.9 kB at 40 kB/s)
+Downloading from central: https://repo.maven.apache.org/maven2/org/springframework/batch/spring-batch-bom/5.1.1/spring-batch-bom-5.1.1.pom
+Progress (1): 1.2 kB
+Progress (1): 3.2 kB
+                    
+Downloaded from central: https://repo.maven.apache.org/maven2/org/springframework/batch/spring-batch-bom/5.1.1/spring-batch-bom-5.1.1.pom (3.2 kB at 35 kB/s)
+Downloading from central: https://repo.maven.apache.org/maven2/org/springframework/data/spring-data-bom/2023.1.4/spring-data-bom-2023.1.4.pom
+Progress (1): 955 B
+Progress (1): 2.5 kB
+Progress (1): 5.5 kB
+                    
+Downloaded from central: https://repo.maven.apache.org/maven2/org/springframework/data/spring-data-bom/2023.1.4/spring-data-bom-2023.1.4.pom (5.5 kB at 56 kB/s)
+Downloading from central: https://repo.maven.apache.org/maven2/org/springframework/spring-framework-bom/6.1.5/spring-framework-bom-6.1.5.pom
+Progress (1): 966 B
+Progress (1): 5.8 kB
+                    
+Downloaded from central: https://repo.maven.apache.org/maven2/org/springframework/spring-framework-bom/6.1.5/spring-framework-bom-6.1.5.pom (5.8 kB at 61 kB/s)
+Downloading from central: https://repo.maven.apache.org/maven2/org/springframework/integration/spring-integration-bom/6.2.3/spring-integration-bom-6.2.3.pom
+Progress (1): 990 B
+Progress (1): 5.8 kB
+Progress (1): 10 kB 
+                   
+Downloaded from central: https://repo.maven.apache.org/maven2/org/springframework/integration/spring-integration-bom/6.2.3/spring-integration-bom-6.2.3.pom (10 kB at 101 kB/s)
+Downloading from central: https://repo.maven.apache.org/maven2/org/springframework/pulsar/spring-pulsar-bom/1.0.4/spring-pulsar-bom-1.0.4.pom
+Progress (1): 959 B
+Progress (1): 2.7 kB
+                    
+Downloaded from central: https://repo.maven.apache.org/maven2/org/springframework/pulsar/spring-pulsar-bom/1.0.4/spring-pulsar-bom-1.0.4.pom (2.7 kB at 27 kB/s)
+Downloading from central: https://repo.maven.apache.org/maven2/org/springframework/security/spring-security-bom/6.2.3/spring-security-bom-6.2.3.pom
+Progress (1): 980 B
+Progress (1): 5.3 kB
+                    
+Downloaded from central: https://repo.maven.apache.org/maven2/org/springframework/security/spring-security-bom/6.2.3/spring-security-bom-6.2.3.pom (5.3 kB at 54 kB/s)
+Downloading from central: https://repo.maven.apache.org/maven2/org/springframework/session/spring-session-bom/3.2.2/spring-session-bom-3.2.2.pom
+Progress (1): 976 B
+Progress (1): 2.9 kB
+                    
+Downloaded from central: https://repo.maven.apache.org/maven2/org/springframework/session/spring-session-bom/3.2.2/spring-session-bom-3.2.2.pom (2.9 kB at 30 kB/s)
+Downloading from central: https://repo.maven.apache.org/maven2/org/springframework/ws/spring-ws-bom/4.0.10/spring-ws-bom-4.0.10.pom
+Progress (1): 1.0 kB
+Progress (1): 2.6 kB
+Progress (1): 3.5 kB
+                    
+Downloaded from central: https://repo.maven.apache.org/maven2/org/springframework/ws/spring-ws-bom/4.0.10/spring-ws-bom-4.0.10.pom (3.5 kB at 36 kB/s)
+Downloading from central: https://repo.maven.apache.org/maven2/org/testcontainers/testcontainers-bom/1.19.7/testcontainers-bom-1.19.7.pom
+Progress (1): 1.3 kB
+Progress (1): 10 kB 
+                   
+Downloaded from central: https://repo.maven.apache.org/maven2/org/testcontainers/testcontainers-bom/1.19.7/testcontainers-bom-1.19.7.pom (10 kB at 102 kB/s)
+Downloading from central: https://repo.maven.apache.org/maven2/org/springdoc/springdoc-openapi-starter-webmvc-api/2.5.0/springdoc-openapi-starter-webmvc-api-2.5.0.pom
+Progress (1): 1.6 kB
+Progress (1): 1.8 kB
+                    
+Downloaded from central: https://repo.maven.apache.org/maven2/org/springdoc/springdoc-openapi-starter-webmvc-api/2.5.0/springdoc-openapi-starter-webmvc-api-2.5.0.pom (1.8 kB at 18 kB/s)
+Downloading from central: https://repo.maven.apache.org/maven2/org/springdoc/springdoc-openapi-starter-common/2.5.0/springdoc-openapi-starter-common-2.5.0.pom
+Progress (1): 1.8 kB
+Progress (1): 4.3 kB
+Progress (1): 4.5 kB
+                    
+Downloaded from central: https://repo.maven.apache.org/maven2/org/springdoc/springdoc-openapi-starter-common/2.5.0/springdoc-openapi-starter-common-2.5.0.pom (4.5 kB at 48 kB/s)
+Downloading from central: https://repo.maven.apache.org/maven2/io/swagger/core/v3/swagger-core-jakarta/2.2.21/swagger-core-jakarta-2.2.21.pom
+Progress (1): 1.8 kB
+Progress (1): 5.6 kB
+                    
+Downloaded from central: https://repo.maven.apache.org/maven2/io/swagger/core/v3/swagger-core-jakarta/2.2.21/swagger-core-jakarta-2.2.21.pom (5.6 kB at 60 kB/s)
+Downloading from central: https://repo.maven.apache.org/maven2/io/swagger/core/v3/swagger-project-jakarta/2.2.21/swagger-project-jakarta-2.2.21.pom
+Progress (1): 1.4 kB
+Progress (1): 3.5 kB
+Progress (1): 4.1 kB
+Progress (1): 6.8 kB
+Progress (1): 12 kB 
+Progress (1): 18 kB
+Progress (1): 22 kB
+Progress (1): 23 kB
+                   
+Downloaded from central: https://repo.maven.apache.org/maven2/io/swagger/core/v3/swagger-project-jakarta/2.2.21/swagger-project-jakarta-2.2.21.pom (23 kB at 235 kB/s)
+Downloading from central: https://repo.maven.apache.org/maven2/io/swagger/core/v3/swagger-annotations-jakarta/2.2.21/swagger-annotations-jakarta-2.2.21.pom
+Progress (1): 1.9 kB
+Progress (1): 3.3 kB
+                    
+Downloaded from central: https://repo.maven.apache.org/maven2/io/swagger/core/v3/swagger-annotations-jakarta/2.2.21/swagger-annotations-jakarta-2.2.21.pom (3.3 kB at 19 kB/s)
+Downloading from central: https://repo.maven.apache.org/maven2/io/swagger/core/v3/swagger-models-jakarta/2.2.21/swagger-models-jakarta-2.2.21.pom
+Progress (1): 1.8 kB
+Progress (1): 3.4 kB
+                    
+Downloaded from central: https://repo.maven.apache.org/maven2/io/swagger/core/v3/swagger-models-jakarta/2.2.21/swagger-models-jakarta-2.2.21.pom (3.4 kB at 32 kB/s)
+Downloading from central: https://repo.maven.apache.org/maven2/org/webjars/swagger-ui/5.13.0/swagger-ui-5.13.0.pom
+Progress (1): 1.1 kB
+Progress (1): 3.8 kB
+Progress (1): 6.2 kB
+                    
+Downloaded from central: https://repo.maven.apache.org/maven2/org/webjars/swagger-ui/5.13.0/swagger-ui-5.13.0.pom (6.2 kB at 62 kB/s)
+Downloading from central: https://repo.maven.apache.org/maven2/org/springdoc/springdoc-openapi-starter-webmvc-ui/2.5.0/springdoc-openapi-starter-webmvc-ui-2.5.0.jar
+Progress (1): 7.7/23 kB
+Progress (1): 16/23 kB 
+Progress (1): 20/23 kB
+Progress (1): 23 kB   
+                   
+Downloaded from central: https://repo.maven.apache.org/maven2/org/springdoc/springdoc-openapi-starter-webmvc-ui/2.5.0/springdoc-openapi-starter-webmvc-ui-2.5.0.jar (23 kB at 50 kB/s)
+Downloading from central: https://repo.maven.apache.org/maven2/org/springdoc/springdoc-openapi-starter-webmvc-api/2.5.0/springdoc-openapi-starter-webmvc-api-2.5.0.jar
+Downloading from central: https://repo.maven.apache.org/maven2/org/springdoc/springdoc-openapi-starter-common/2.5.0/springdoc-openapi-starter-common-2.5.0.jar
+Downloading from central: https://repo.maven.apache.org/maven2/io/swagger/core/v3/swagger-core-jakarta/2.2.21/swagger-core-jakarta-2.2.21.jar
+Downloading from central: https://repo.maven.apache.org/maven2/io/swagger/core/v3/swagger-annotations-jakarta/2.2.21/swagger-annotations-jakarta-2.2.21.jar
+Downloading from central: https://repo.maven.apache.org/maven2/io/swagger/core/v3/swagger-models-jakarta/2.2.21/swagger-models-jakarta-2.2.21.jar
+Progress (1): 7.7/135 kB
+Progress (1): 16/135 kB 
+Progress (1): 25/135 kB
+Progress (1): 41/135 kB
+Progress (1): 57/135 kB
+Progress (1): 74/135 kB
+Progress (1): 90/135 kB
+Progress (1): 106/135 kB
+Progress (1): 123/135 kB
+Progress (1): 135 kB    
+Progress (2): 135 kB | 0.9/488 kB
+Progress (2): 135 kB | 2.3/488 kB
+Progress (2): 135 kB | 3.6/488 kB
+Progress (2): 135 kB | 5.0/488 kB
+Progress (2): 135 kB | 6.4/488 kB
+Progress (2): 135 kB | 7.7/488 kB
+Progress (2): 135 kB | 9.1/488 kB
+Progress (2): 135 kB | 10/488 kB 
+Progress (2): 135 kB | 12/488 kB
+Progress (2): 135 kB | 13/488 kB
+Progress (2): 135 kB | 15/488 kB
+Progress (2): 135 kB | 16/488 kB
+Progress (2): 135 kB | 17/488 kB
+Progress (2): 135 kB | 19/488 kB
+Progress (2): 135 kB | 20/488 kB
+Progress (2): 135 kB | 21/488 kB
+Progress (2): 135 kB | 23/488 kB
+Progress (2): 135 kB | 24/488 kB
+Progress (2): 135 kB | 25/488 kB
+Progress (2): 135 kB | 26/488 kB
+Progress (2): 135 kB | 27/488 kB
+Progress (2): 135 kB | 29/488 kB
+Progress (2): 135 kB | 30/488 kB
+Progress (2): 135 kB | 31/488 kB
+Progress (2): 135 kB | 33/488 kB
+Progress (2): 135 kB | 34/488 kB
+Progress (2): 135 kB | 36/488 kB
+Progress (2): 135 kB | 37/488 kB
+Progress (2): 135 kB | 38/488 kB
+Progress (2): 135 kB | 40/488 kB
+Progress (2): 135 kB | 41/488 kB
+Progress (2): 135 kB | 42/488 kB
+Progress (2): 135 kB | 44/488 kB
+Progress (2): 135 kB | 45/488 kB
+Progress (2): 135 kB | 46/488 kB
+Progress (2): 135 kB | 48/488 kB
+Progress (2): 135 kB | 49/488 kB
+Progress (2): 135 kB | 51/488 kB
+Progress (2): 135 kB | 52/488 kB
+Progress (2): 135 kB | 53/488 kB
+Progress (2): 135 kB | 55/488 kB
+Progress (2): 135 kB | 59/488 kB
+Progress (2): 135 kB | 63/488 kB
+Progress (3): 135 kB | 63/488 kB | 0.9/42 kB
+Progress (3): 135 kB | 63/488 kB | 2.3/42 kB
+Progress (3): 135 kB | 63/488 kB | 3.6/42 kB
+Progress (3): 135 kB | 63/488 kB | 5.0/42 kB
+Progress (3): 135 kB | 63/488 kB | 6.4/42 kB
+Progress (3): 135 kB | 63/488 kB | 7.7/42 kB
+Progress (3): 135 kB | 63/488 kB | 9.1/42 kB
+Progress (3): 135 kB | 63/488 kB | 10/42 kB 
+Progress (3): 135 kB | 63/488 kB | 12/42 kB
+Progress (3): 135 kB | 63/488 kB | 13/42 kB
+Progress (3): 135 kB | 63/488 kB | 15/42 kB
+Progress (3): 135 kB | 63/488 kB | 16/42 kB
+Progress (3): 135 kB | 63/488 kB | 17/42 kB
+Progress (3): 135 kB | 63/488 kB | 19/42 kB
+Progress (3): 135 kB | 63/488 kB | 20/42 kB
+Progress (3): 135 kB | 63/488 kB | 21/42 kB
+Progress (3): 135 kB | 63/488 kB | 23/42 kB
+Progress (3): 135 kB | 63/488 kB | 24/42 kB
+Progress (3): 135 kB | 63/488 kB | 25/42 kB
+Progress (3): 135 kB | 63/488 kB | 26/42 kB
+Progress (3): 135 kB | 63/488 kB | 27/42 kB
+Progress (3): 135 kB | 63/488 kB | 29/42 kB
+Progress (3): 135 kB | 63/488 kB | 30/42 kB
+Progress (3): 135 kB | 63/488 kB | 31/42 kB
+Progress (3): 135 kB | 63/488 kB | 33/42 kB
+Progress (3): 135 kB | 63/488 kB | 34/42 kB
+Progress (3): 135 kB | 63/488 kB | 36/42 kB
+Progress (3): 135 kB | 63/488 kB | 37/42 kB
+Progress (3): 135 kB | 63/488 kB | 38/42 kB
+Progress (3): 135 kB | 63/488 kB | 40/42 kB
+Progress (3): 135 kB | 63/488 kB | 41/42 kB
+Progress (3): 135 kB | 63/488 kB | 42/42 kB
+Progress (3): 135 kB | 63/488 kB | 42 kB   
+Progress (4): 135 kB | 63/488 kB | 42 kB | 0.9/48 kB
+Progress (4): 135 kB | 63/488 kB | 42 kB | 2.3/48 kB
+Progress (4): 135 kB | 63/488 kB | 42 kB | 3.6/48 kB
+Progress (4): 135 kB | 63/488 kB | 42 kB | 5.0/48 kB
+Progress (4): 135 kB | 63/488 kB | 42 kB | 6.4/48 kB
+Progress (4): 135 kB | 63/488 kB | 42 kB | 7.7/48 kB
+Progress (4): 135 kB | 63/488 kB | 42 kB | 9.1/48 kB
+Progress (4): 135 kB | 63/488 kB | 42 kB | 10/48 kB 
+Progress (4): 135 kB | 63/488 kB | 42 kB | 11/48 kB
+Progress (4): 135 kB | 63/488 kB | 42 kB | 13/48 kB
+Progress (4): 135 kB | 63/488 kB | 42 kB | 14/48 kB
+Progress (4): 135 kB | 63/488 kB | 42 kB | 15/48 kB
+Progress (4): 135 kB | 63/488 kB | 42 kB | 17/48 kB
+Progress (4): 135 kB | 63/488 kB | 42 kB | 18/48 kB
+Progress (4): 135 kB | 63/488 kB | 42 kB | 20/48 kB
+Progress (4): 135 kB | 63/488 kB | 42 kB | 21/48 kB
+Progress (4): 135 kB | 63/488 kB | 42 kB | 22/48 kB
+Progress (4): 135 kB | 63/488 kB | 42 kB | 24/48 kB
+Progress (4): 135 kB | 63/488 kB | 42 kB | 25/48 kB
+Progress (4): 135 kB | 63/488 kB | 42 kB | 26/48 kB
+Progress (4): 135 kB | 63/488 kB | 42 kB | 28/48 kB
+Progress (4): 135 kB | 63/488 kB | 42 kB | 29/48 kB
+Progress (4): 135 kB | 63/488 kB | 42 kB | 31/48 kB
+Progress (4): 135 kB | 63/488 kB | 42 kB | 32/48 kB
+Progress (4): 135 kB | 63/488 kB | 42 kB | 33/48 kB
+Progress (4): 135 kB | 63/488 kB | 42 kB | 35/48 kB
+Progress (4): 135 kB | 63/488 kB | 42 kB | 36/48 kB
+Progress (4): 135 kB | 63/488 kB | 42 kB | 37/48 kB
+Progress (4): 135 kB | 63/488 kB | 42 kB | 39/48 kB
+Progress (4): 135 kB | 63/488 kB | 42 kB | 40/48 kB
+Progress (4): 135 kB | 63/488 kB | 42 kB | 41/48 kB
+Progress (4): 135 kB | 63/488 kB | 42 kB | 43/48 kB
+Progress (4): 135 kB | 63/488 kB | 42 kB | 44/48 kB
+Progress (4): 135 kB | 63/488 kB | 42 kB | 46/48 kB
+Progress (4): 135 kB | 63/488 kB | 42 kB | 47/48 kB
+Progress (4): 135 kB | 63/488 kB | 42 kB | 48 kB   
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 0.9/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 2.3/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 3.6/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 4.0/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 5.3/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 6.7/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 8.1/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 9.4/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 11/228 kB 
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 12/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 14/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 15/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 16/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 18/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 19/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 20/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 22/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 23/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 25/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 26/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 27/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 29/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 30/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 31/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 33/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 34/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 35/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 37/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 38/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 40/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 41/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 42/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 44/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 45/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 46/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 48/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 49/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 51/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 52/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 53/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 55/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 59/228 kB
+Progress (5): 135 kB | 63/488 kB | 42 kB | 48 kB | 63/228 kB
+Progress (5): 135 kB | 67/488 kB | 42 kB | 48 kB | 63/228 kB
+Progress (5): 135 kB | 72/488 kB | 42 kB | 48 kB | 63/228 kB
+Progress (5): 135 kB | 76/488 kB | 42 kB | 48 kB | 63/228 kB
+Progress (5): 135 kB | 80/488 kB | 42 kB | 48 kB | 63/228 kB
+Progress (5): 135 kB | 84/488 kB | 42 kB | 48 kB | 63/228 kB
+Progress (5): 135 kB | 89/488 kB | 42 kB | 48 kB | 63/228 kB
+Progress (5): 135 kB | 93/488 kB | 42 kB | 48 kB | 63/228 kB
+Progress (5): 135 kB | 97/488 kB | 42 kB | 48 kB | 63/228 kB
+Progress (5): 135 kB | 101/488 kB | 42 kB | 48 kB | 63/228 kB
+Progress (5): 135 kB | 105/488 kB | 42 kB | 48 kB | 63/228 kB
+Progress (5): 135 kB | 110/488 kB | 42 kB | 48 kB | 63/228 kB
+Progress (5): 135 kB | 114/488 kB | 42 kB | 48 kB | 63/228 kB
+Progress (5): 135 kB | 118/488 kB | 42 kB | 48 kB | 63/228 kB
+Progress (5): 135 kB | 122/488 kB | 42 kB | 48 kB | 63/228 kB
+Progress (5): 135 kB | 127/488 kB | 42 kB | 48 kB | 63/228 kB
+Progress (5): 135 kB | 131/488 kB | 42 kB | 48 kB | 63/228 kB
+Progress (5): 135 kB | 135/488 kB | 42 kB | 48 kB | 63/228 kB
+Progress (5): 135 kB | 139/488 kB | 42 kB | 48 kB | 63/228 kB
+Progress (5): 135 kB | 144/488 kB | 42 kB | 48 kB | 63/228 kB
+Progress (5): 135 kB | 148/488 kB | 42 kB | 48 kB | 63/228 kB
+Progress (5): 135 kB | 152/488 kB | 42 kB | 48 kB | 63/228 kB
+Progress (5): 135 kB | 156/488 kB | 42 kB | 48 kB | 63/228 kB
+Progress (5): 135 kB | 160/488 kB | 42 kB | 48 kB | 63/228 kB
+Progress (5): 135 kB | 164/488 kB | 42 kB | 48 kB | 63/228 kB
+Progress (5): 135 kB | 168/488 kB | 42 kB | 48 kB | 63/228 kB
+Progress (5): 135 kB | 173/488 kB | 42 kB | 48 kB | 63/228 kB
+Progress (5): 135 kB | 177/488 kB | 42 kB | 48 kB | 63/228 kB
+Progress (5): 135 kB | 181/488 kB | 42 kB | 48 kB | 63/228 kB
+Progress (5): 135 kB | 185/488 kB | 42 kB | 48 kB | 63/228 kB
+Progress (5): 135 kB | 189/488 kB | 42 kB | 48 kB | 63/228 kB
+                                                             
+Downloaded from central: https://repo.maven.apache.org/maven2/io/swagger/core/v3/swagger-models-jakarta/2.2.21/swagger-models-jakarta-2.2.21.jar (135 kB at 694 kB/s)
+Downloading from central: https://repo.maven.apache.org/maven2/org/webjars/swagger-ui/5.13.0/swagger-ui-5.13.0.jar
+Progress (4): 189/488 kB | 42 kB | 48 kB | 67/228 kB
+Progress (4): 189/488 kB | 42 kB | 48 kB | 72/228 kB
+Progress (4): 189/488 kB | 42 kB | 48 kB | 76/228 kB
+Progress (4): 189/488 kB | 42 kB | 48 kB | 80/228 kB
+Progress (4): 189/488 kB | 42 kB | 48 kB | 84/228 kB
+Progress (4): 189/488 kB | 42 kB | 48 kB | 88/228 kB
+Progress (4): 189/488 kB | 42 kB | 48 kB | 93/228 kB
+Progress (4): 189/488 kB | 42 kB | 48 kB | 97/228 kB
+Progress (4): 189/488 kB | 42 kB | 48 kB | 101/228 kB
+Progress (4): 189/488 kB | 42 kB | 48 kB | 105/228 kB
+Progress (4): 189/488 kB | 42 kB | 48 kB | 110/228 kB
+Progress (4): 189/488 kB | 42 kB | 48 kB | 114/228 kB
+Progress (4): 189/488 kB | 42 kB | 48 kB | 118/228 kB
+Progress (4): 189/488 kB | 42 kB | 48 kB | 119/228 kB
+Progress (4): 189/488 kB | 42 kB | 48 kB | 123/228 kB
+Progress (4): 189/488 kB | 42 kB | 48 kB | 127/228 kB
+Progress (4): 194/488 kB | 42 kB | 48 kB | 127/228 kB
+Progress (4): 198/488 kB | 42 kB | 48 kB | 127/228 kB
+Progress (4): 202/488 kB | 42 kB | 48 kB | 127/228 kB
+Progress (4): 206/488 kB | 42 kB | 48 kB | 127/228 kB
+Progress (4): 211/488 kB | 42 kB | 48 kB | 127/228 kB
+Progress (4): 215/488 kB | 42 kB | 48 kB | 127/228 kB
+Progress (4): 219/488 kB | 42 kB | 48 kB | 127/228 kB
+Progress (4): 223/488 kB | 42 kB | 48 kB | 127/228 kB
+Progress (4): 240/488 kB | 42 kB | 48 kB | 127/228 kB
+Progress (4): 256/488 kB | 42 kB | 48 kB | 127/228 kB
+Progress (4): 272/488 kB | 42 kB | 48 kB | 127/228 kB
+Progress (4): 287/488 kB | 42 kB | 48 kB | 127/228 kB
+Progress (4): 303/488 kB | 42 kB | 48 kB | 127/228 kB
+Progress (4): 319/488 kB | 42 kB | 48 kB | 127/228 kB
+Progress (4): 336/488 kB | 42 kB | 48 kB | 127/228 kB
+Progress (4): 352/488 kB | 42 kB | 48 kB | 127/228 kB
+Progress (4): 369/488 kB | 42 kB | 48 kB | 127/228 kB
+Progress (4): 385/488 kB | 42 kB | 48 kB | 127/228 kB
+Progress (4): 401/488 kB | 42 kB | 48 kB | 127/228 kB
+Progress (4): 418/488 kB | 42 kB | 48 kB | 127/228 kB
+Progress (4): 434/488 kB | 42 kB | 48 kB | 127/228 kB
+Progress (4): 451/488 kB | 42 kB | 48 kB | 127/228 kB
+Progress (4): 451/488 kB | 42 kB | 48 kB | 131/228 kB
+Progress (4): 451/488 kB | 42 kB | 48 kB | 136/228 kB
+Progress (4): 451/488 kB | 42 kB | 48 kB | 140/228 kB
+Progress (4): 451/488 kB | 42 kB | 48 kB | 144/228 kB
+Progress (4): 451/488 kB | 42 kB | 48 kB | 148/228 kB
+Progress (4): 451/488 kB | 42 kB | 48 kB | 152/228 kB
+Progress (4): 451/488 kB | 42 kB | 48 kB | 157/228 kB
+Progress (4): 451/488 kB | 42 kB | 48 kB | 161/228 kB
+Progress (4): 451/488 kB | 42 kB | 48 kB | 165/228 kB
+Progress (4): 451/488 kB | 42 kB | 48 kB | 169/228 kB
+Progress (5): 451/488 kB | 42 kB | 48 kB | 169/228 kB | 0/4.0 MB
+Progress (5): 451/488 kB | 42 kB | 48 kB | 169/228 kB | 0/4.0 MB
+Progress (5): 451/488 kB | 42 kB | 48 kB | 169/228 kB | 0/4.0 MB
+Progress (5): 451/488 kB | 42 kB | 48 kB | 169/228 kB | 0/4.0 MB
+Progress (5): 451/488 kB | 42 kB | 48 kB | 169/228 kB | 0/4.0 MB
+Progress (5): 451/488 kB | 42 kB | 48 kB | 169/228 kB | 0/4.0 MB
+Progress (5): 451/488 kB | 42 kB | 48 kB | 174/228 kB | 0/4.0 MB
+Progress (5): 451/488 kB | 42 kB | 48 kB | 174/228 kB | 0/4.0 MB
+Progress (5): 451/488 kB | 42 kB | 48 kB | 178/228 kB | 0/4.0 MB
+Progress (5): 451/488 kB | 42 kB | 48 kB | 182/228 kB | 0/4.0 MB
+Progress (5): 451/488 kB | 42 kB | 48 kB | 182/228 kB | 0/4.0 MB
+Progress (5): 451/488 kB | 42 kB | 48 kB | 186/228 kB | 0/4.0 MB
+Progress (5): 451/488 kB | 42 kB | 48 kB | 191/228 kB | 0/4.0 MB
+Progress (5): 451/488 kB | 42 kB | 48 kB | 191/228 kB | 0/4.0 MB
+Progress (5): 451/488 kB | 42 kB | 48 kB | 195/228 kB | 0/4.0 MB
+Progress (5): 451/488 kB | 42 kB | 48 kB | 195/228 kB | 0/4.0 MB
+Progress (5): 451/488 kB | 42 kB | 48 kB | 195/228 kB | 0/4.0 MB
+Progress (5): 451/488 kB | 42 kB | 48 kB | 195/228 kB | 0/4.0 MB
+Progress (5): 451/488 kB | 42 kB | 48 kB | 199/228 kB | 0/4.0 MB
+Progress (5): 451/488 kB | 42 kB | 48 kB | 203/228 kB | 0/4.0 MB
+Progress (5): 451/488 kB | 42 kB | 48 kB | 203/228 kB | 0/4.0 MB
+Progress (5): 451/488 kB | 42 kB | 48 kB | 203/228 kB | 0/4.0 MB
+Progress (5): 451/488 kB | 42 kB | 48 kB | 203/228 kB | 0/4.0 MB
+Progress (5): 451/488 kB | 42 kB | 48 kB | 203/228 kB | 0.1/4.0 MB
+Progress (5): 451/488 kB | 42 kB | 48 kB | 203/228 kB | 0.1/4.0 MB
+Progress (5): 451/488 kB | 42 kB | 48 kB | 203/228 kB | 0.1/4.0 MB
+Progress (5): 451/488 kB | 42 kB | 48 kB | 207/228 kB | 0.1/4.0 MB
+Progress (5): 451/488 kB | 42 kB | 48 kB | 212/228 kB | 0.1/4.0 MB
+Progress (5): 451/488 kB | 42 kB | 48 kB | 216/228 kB | 0.1/4.0 MB
+Progress (5): 451/488 kB | 42 kB | 48 kB | 220/228 kB | 0.1/4.0 MB
+Progress (5): 451/488 kB | 42 kB | 48 kB | 228 kB | 0.1/4.0 MB    
+Progress (5): 467/488 kB | 42 kB | 48 kB | 228 kB | 0.1/4.0 MB
+Progress (5): 483/488 kB | 42 kB | 48 kB | 228 kB | 0.1/4.0 MB
+Progress (5): 488 kB | 42 kB | 48 kB | 228 kB | 0.1/4.0 MB    
+Progress (5): 488 kB | 42 kB | 48 kB | 228 kB | 0.1/4.0 MB
+Progress (5): 488 kB | 42 kB | 48 kB | 228 kB | 0.1/4.0 MB
+Progress (5): 488 kB | 42 kB | 48 kB | 228 kB | 0.1/4.0 MB
+Progress (5): 488 kB | 42 kB | 48 kB | 228 kB | 0.1/4.0 MB
+Progress (5): 488 kB | 42 kB | 48 kB | 228 kB | 0.1/4.0 MB
+Progress (5): 488 kB | 42 kB | 48 kB | 228 kB | 0.1/4.0 MB
+Progress (5): 488 kB | 42 kB | 48 kB | 228 kB | 0.1/4.0 MB
+Progress (5): 488 kB | 42 kB | 48 kB | 228 kB | 0.1/4.0 MB
+Progress (5): 488 kB | 42 kB | 48 kB | 228 kB | 0.1/4.0 MB
+Progress (5): 488 kB | 42 kB | 48 kB | 228 kB | 0.1/4.0 MB
+Progress (5): 488 kB | 42 kB | 48 kB | 228 kB | 0.1/4.0 MB
+Progress (5): 488 kB | 42 kB | 48 kB | 228 kB | 0.1/4.0 MB
+Progress (5): 488 kB | 42 kB | 48 kB | 228 kB | 0.1/4.0 MB
+Progress (5): 488 kB | 42 kB | 48 kB | 228 kB | 0.1/4.0 MB
+Progress (5): 488 kB | 42 kB | 48 kB | 228 kB | 0.1/4.0 MB
+Progress (5): 488 kB | 42 kB | 48 kB | 228 kB | 0.1/4.0 MB
+                                                          
+Downloaded from central: https://repo.maven.apache.org/maven2/org/springdoc/springdoc-openapi-starter-common/2.5.0/springdoc-openapi-starter-common-2.5.0.jar (488 kB at 1.6 MB/s)
+Downloaded from central: https://repo.maven.apache.org/maven2/io/swagger/core/v3/swagger-core-jakarta/2.2.21/swagger-core-jakarta-2.2.21.jar (228 kB at 725 kB/s)
+Progress (3): 42 kB | 48 kB | 0.1/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.1/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.1/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.1/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.1/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.2/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.2/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.2/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.2/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.2/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.2/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.2/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.2/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.2/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.2/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.3/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.3/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.3/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.3/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.3/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.3/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.4/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.4/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.4/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.4/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.4/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.4/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.5/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.5/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.5/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.5/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.5/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.5/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.5/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.6/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.6/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.6/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.6/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.6/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.6/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.7/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.7/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.7/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.7/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.7/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.7/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.8/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.8/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.8/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.8/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.8/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.8/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.8/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.9/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.9/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.9/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.9/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.9/4.0 MB
+Progress (3): 42 kB | 48 kB | 0.9/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.0/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.0/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.0/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.0/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.0/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.0/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.1/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.1/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.1/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.1/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.1/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.1/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.2/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.2/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.2/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.2/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.2/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.2/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.3/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.3/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.3/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.3/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.3/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.3/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.4/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.4/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.4/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.4/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.4/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.4/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.5/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.5/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.5/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.5/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.5/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.5/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.6/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.6/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.6/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.6/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.6/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.6/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.7/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.7/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.7/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.7/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.7/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.7/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.8/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.8/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.8/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.8/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.8/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.8/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.8/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.9/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.9/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.9/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.9/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.9/4.0 MB
+Progress (3): 42 kB | 48 kB | 1.9/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.0/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.0/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.0/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.0/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.0/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.0/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.1/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.1/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.1/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.1/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.1/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.1/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.2/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.2/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.2/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.2/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.2/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.2/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.3/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.3/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.3/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.3/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.3/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.3/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.4/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.4/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.4/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.4/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.4/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.4/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.4/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.5/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.5/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.5/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.5/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.5/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.5/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.6/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.6/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.6/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.6/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.6/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.6/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.7/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.7/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.7/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.7/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.7/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.7/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.7/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.8/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.8/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.8/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.8/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.8/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.8/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.9/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.9/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.9/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.9/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.9/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.9/4.0 MB
+Progress (3): 42 kB | 48 kB | 2.9/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.0/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.0/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.0/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.0/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.0/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.0/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.1/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.1/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.1/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.1/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.1/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.1/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.2/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.2/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.2/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.2/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.2/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.2/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.3/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.3/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.3/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.3/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.3/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.3/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.4/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.4/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.4/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.4/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.4/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.4/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.5/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.5/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.5/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.5/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.5/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.5/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.6/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.6/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.6/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.6/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.6/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.6/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.7/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.7/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.7/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.7/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.7/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.7/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.8/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.8/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.8/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.8/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.8/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.8/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.9/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.9/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.9/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.9/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.9/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.9/4.0 MB
+Progress (3): 42 kB | 48 kB | 3.9/4.0 MB
+Progress (3): 42 kB | 48 kB | 4.0/4.0 MB
+Progress (3): 42 kB | 48 kB | 4.0/4.0 MB
+Progress (3): 42 kB | 48 kB | 4.0/4.0 MB
+Progress (3): 42 kB | 48 kB | 4.0/4.0 MB
+Progress (3): 42 kB | 48 kB | 4.0/4.0 MB
+Progress (3): 42 kB | 48 kB | 4.0 MB    
+                                    
+Downloaded from central: https://repo.maven.apache.org/maven2/org/webjars/swagger-ui/5.13.0/swagger-ui-5.13.0.jar (4.0 MB at 7.0 MB/s)
+Downloaded from central: https://repo.maven.apache.org/maven2/org/springdoc/springdoc-openapi-starter-webmvc-api/2.5.0/springdoc-openapi-starter-webmvc-api-2.5.0.jar (42 kB at 64 kB/s)
+Downloaded from central: https://repo.maven.apache.org/maven2/io/swagger/core/v3/swagger-annotations-jakarta/2.2.21/swagger-annotations-jakarta-2.2.21.jar (48 kB at 34 kB/s)
+[INFO] 
+[INFO] --- clean:3.3.2:clean (default-clean) @ backend-lms-postgres ---
+[INFO] Deleting D:\lms_update\hung_backend_ref\api\target
+[INFO] 
+[INFO] >>> spring-boot:3.2.6:run (default-cli) > test-compile @ backend-lms-postgres >>>
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ backend-lms-postgres ---
+[INFO] Copying 3 resources from src\main\resources to target\classes
+[INFO] Copying 30 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ backend-lms-postgres ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 273 source files with javac [debug parameters release 21] to target\classes
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ backend-lms-postgres ---
+[INFO] skip non existing resourceDirectory D:\lms_update\hung_backend_ref\api\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ backend-lms-postgres ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 12 source files with javac [debug parameters release 21] to target\test-classes
+[INFO] 
+[INFO] <<< spring-boot:3.2.6:run (default-cli) < test-compile @ backend-lms-postgres <<<
+[INFO] 
+[INFO] 
+[INFO] --- spring-boot:3.2.6:run (default-cli) @ backend-lms-postgres ---
+[INFO] Attaching agents: []
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::                (v3.2.6)
+
+2026-01-07T01:16:23.742+07:00  INFO 10620 --- [backend-lms-postgres] [           main] c.e.lms.BackendLmsPostgresApplication    : Starting BackendLmsPostgresApplication using Java 21.0.2 with PID 10620 (D:\lms_update\hung_backend_ref\api\target\classes started by Admin in D:\lms_update\hung_backend_ref\api)
+2026-01-07T01:16:23.746+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] c.e.lms.BackendLmsPostgresApplication    : Running with Spring Boot v3.2.6, Spring v6.1.8
+2026-01-07T01:16:23.748+07:00  INFO 10620 --- [backend-lms-postgres] [           main] c.e.lms.BackendLmsPostgresApplication    : The following 1 profile is active: "dev"
+2026-01-07T01:16:25.376+07:00  INFO 10620 --- [backend-lms-postgres] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-01-07T01:16:25.638+07:00  INFO 10620 --- [backend-lms-postgres] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 254 ms. Found 22 JPA repository interfaces.
+2026-01-07T01:16:26.702+07:00  INFO 10620 --- [backend-lms-postgres] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8088 (http)
+2026-01-07T01:16:26.718+07:00  INFO 10620 --- [backend-lms-postgres] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-01-07T01:16:26.718+07:00  INFO 10620 --- [backend-lms-postgres] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.24]
+2026-01-07T01:16:26.798+07:00  INFO 10620 --- [backend-lms-postgres] [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-01-07T01:16:26.801+07:00  INFO 10620 --- [backend-lms-postgres] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 3002 ms
+2026-01-07T01:16:27.129+07:00  INFO 10620 --- [backend-lms-postgres] [           main] com.zaxxer.hikari.HikariDataSource       : LMS-HikariPool - Starting...
+2026-01-07T01:16:28.078+07:00  INFO 10620 --- [backend-lms-postgres] [           main] com.zaxxer.hikari.pool.HikariPool        : LMS-HikariPool - Added connection org.postgresql.jdbc.PgConnection@633a11eb
+2026-01-07T01:16:28.081+07:00  INFO 10620 --- [backend-lms-postgres] [           main] com.zaxxer.hikari.HikariDataSource       : LMS-HikariPool - Start completed.
+2026-01-07T01:16:28.244+07:00  INFO 10620 --- [backend-lms-postgres] [           main] o.f.c.internal.license.VersionPrinter    : Flyway Community Edition 9.22.3 by Redgate
+2026-01-07T01:16:28.244+07:00  INFO 10620 --- [backend-lms-postgres] [           main] o.f.c.internal.license.VersionPrinter    : See release notes here: https://rd.gt/416ObMi
+2026-01-07T01:16:28.244+07:00  INFO 10620 --- [backend-lms-postgres] [           main] o.f.c.internal.license.VersionPrinter    : 
+2026-01-07T01:16:28.307+07:00  INFO 10620 --- [backend-lms-postgres] [           main] org.flywaydb.core.FlywayExecutor         : Database: jdbc:postgresql://aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres (PostgreSQL 17.6)
+2026-01-07T01:16:28.608+07:00  WARN 10620 --- [backend-lms-postgres] [           main] o.f.c.internal.database.base.Database    : Flyway upgrade recommended: PostgreSQL 17.6 is newer than this version of Flyway and support has not been tested. The latest supported version of PostgreSQL is 15.
+2026-01-07T01:16:29.447+07:00  INFO 10620 --- [backend-lms-postgres] [           main] o.f.core.internal.command.DbMigrate      : Current version of schema "public": 20251221
+2026-01-07T01:16:29.447+07:00  WARN 10620 --- [backend-lms-postgres] [           main] o.f.core.internal.command.DbMigrate      : outOfOrder mode is active. Migration of schema "public" may not be reproducible.
+2026-01-07T01:16:29.489+07:00  INFO 10620 --- [backend-lms-postgres] [           main] o.f.core.internal.command.DbMigrate      : Schema "public" is up to date. No migration necessary.
+2026-01-07T01:16:29.823+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] j.LocalContainerEntityManagerFactoryBean : Building JPA container EntityManagerFactory for persistence unit 'default'
+2026-01-07T01:16:29.838+07:00  INFO 10620 --- [backend-lms-postgres] [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-01-07T01:16:29.903+07:00  INFO 10620 --- [backend-lms-postgres] [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.4.8.Final
+2026-01-07T01:16:29.941+07:00  INFO 10620 --- [backend-lms-postgres] [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-01-07T01:16:30.219+07:00  WARN 10620 --- [backend-lms-postgres] [           main] org.hibernate.orm.deprecation            : HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-01-07T01:16:30.478+07:00  INFO 10620 --- [backend-lms-postgres] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-01-07T01:16:30.873+07:00  WARN 10620 --- [backend-lms-postgres] [           main] Hibernate Types                          : The class com.example.lms.shared.domain.model.ContentBlock class should override both the equals and hashCode methods based on the JSON object value it represents!
+2026-01-07T01:16:30.901+07:00  WARN 10620 --- [backend-lms-postgres] [           main] Hibernate Types                          : The class com.example.lms.course_management.domain.model.CourseVersion$ChapterSnapshot class should override both the equals and hashCode methods based on the JSON object value it represents!
+2026-01-07T01:16:32.250+07:00  INFO 10620 --- [backend-lms-postgres] [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-01-07T01:16:32.734+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] org.hibernate.SQL                        : 
+    alter table if exists assignments 
+       add column type varchar(255) not null check (type in ('FILE_UPLOAD','TEXT','QUIZ','PROJECT','ESSAY'))
+Hibernate: 
+    alter table if exists assignments 
+       add column type varchar(255) not null check (type in ('FILE_UPLOAD','TEXT','QUIZ','PROJECT','ESSAY'))
+2026-01-07T01:16:32.816+07:00  WARN 10620 --- [backend-lms-postgres] [           main] o.h.t.s.i.ExceptionHandlerLoggedImpl     : GenerationTarget encountered exception accepting command : Error executing DDL "
+    alter table if exists assignments 
+       add column type varchar(255) not null check (type in ('FILE_UPLOAD','TEXT','QUIZ','PROJECT','ESSAY'))" via JDBC [ERROR: column "type" of relation "assignments" contains null values]
+
+org.hibernate.tool.schema.spi.CommandAcceptanceException: Error executing DDL "
+    alter table if exists assignments 
+       add column type varchar(255) not null check (type in ('FILE_UPLOAD','TEXT','QUIZ','PROJECT','ESSAY'))" via JDBC [ERROR: column "type" of relation "assignments" contains null values]
+	at org.hibernate.tool.schema.internal.exec.GenerationTargetToDatabase.accept(GenerationTargetToDatabase.java:94) ~[hibernate-core-6.4.8.Final.jar:6.4.8.Final]
+	at org.hibernate.tool.schema.internal.AbstractSchemaMigrator.applySqlString(AbstractSchemaMigrator.java:574) ~[hibernate-core-6.4.8.Final.jar:6.4.8.Final]
+	at org.hibernate.tool.schema.internal.AbstractSchemaMigrator.applySqlStrings(AbstractSchemaMigrator.java:514) ~[hibernate-core-6.4.8.Final.jar:6.4.8.Final]
+	at org.hibernate.tool.schema.internal.AbstractSchemaMigrator.migrateTable(AbstractSchemaMigrator.java:333) ~[hibernate-core-6.4.8.Final.jar:6.4.8.Final]
+	at org.hibernate.tool.schema.internal.GroupedSchemaMigratorImpl.performTablesMigration(GroupedSchemaMigratorImpl.java:84) ~[hibernate-core-6.4.8.Final.jar:6.4.8.Final]
+	at org.hibernate.tool.schema.internal.AbstractSchemaMigrator.performMigration(AbstractSchemaMigrator.java:232) ~[hibernate-core-6.4.8.Final.jar:6.4.8.Final]
+	at org.hibernate.tool.schema.internal.AbstractSchemaMigrator.doMigration(AbstractSchemaMigrator.java:117) ~[hibernate-core-6.4.8.Final.jar:6.4.8.Final]
+	at org.hibernate.tool.schema.spi.SchemaManagementToolCoordinator.performDatabaseAction(SchemaManagementToolCoordinator.java:280) ~[hibernate-core-6.4.8.Final.jar:6.4.8.Final]
+	at org.hibernate.tool.schema.spi.SchemaManagementToolCoordinator.lambda$process$5(SchemaManagementToolCoordinator.java:144) ~[hibernate-core-6.4.8.Final.jar:6.4.8.Final]
+	at java.base/java.util.HashMap.forEach(HashMap.java:1429) ~[na:na]
+	at org.hibernate.tool.schema.spi.SchemaManagementToolCoordinator.process(SchemaManagementToolCoordinator.java:141) ~[hibernate-core-6.4.8.Final.jar:6.4.8.Final]
+	at org.hibernate.boot.internal.SessionFactoryObserverForSchemaExport.sessionFactoryCreated(SessionFactoryObserverForSchemaExport.java:37) ~[hibernate-core-6.4.8.Final.jar:6.4.8.Final]
+	at org.hibernate.internal.SessionFactoryObserverChain.sessionFactoryCreated(SessionFactoryObserverChain.java:35) ~[hibernate-core-6.4.8.Final.jar:6.4.8.Final]
+	at org.hibernate.internal.SessionFactoryImpl.<init>(SessionFactoryImpl.java:315) ~[hibernate-core-6.4.8.Final.jar:6.4.8.Final]
+	at org.hibernate.boot.internal.SessionFactoryBuilderImpl.build(SessionFactoryBuilderImpl.java:450) ~[hibernate-core-6.4.8.Final.jar:6.4.8.Final]
+	at org.hibernate.jpa.boot.internal.EntityManagerFactoryBuilderImpl.build(EntityManagerFactoryBuilderImpl.java:1507) ~[hibernate-core-6.4.8.Final.jar:6.4.8.Final]
+	at org.springframework.orm.jpa.vendor.SpringHibernateJpaPersistenceProvider.createContainerEntityManagerFactory(SpringHibernateJpaPersistenceProvider.java:75) ~[spring-orm-6.1.8.jar:6.1.8]
+	at org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean.createNativeEntityManagerFactory(LocalContainerEntityManagerFactoryBean.java:390) ~[spring-orm-6.1.8.jar:6.1.8]
+	at org.springframework.orm.jpa.AbstractEntityManagerFactoryBean.buildNativeEntityManagerFactory(AbstractEntityManagerFactoryBean.java:409) ~[spring-orm-6.1.8.jar:6.1.8]
+	at org.springframework.orm.jpa.AbstractEntityManagerFactoryBean.afterPropertiesSet(AbstractEntityManagerFactoryBean.java:396) ~[spring-orm-6.1.8.jar:6.1.8]
+	at org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean.afterPropertiesSet(LocalContainerEntityManagerFactoryBean.java:366) ~[spring-orm-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.invokeInitMethods(AbstractAutowireCapableBeanFactory.java:1835) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.initializeBean(AbstractAutowireCapableBeanFactory.java:1784) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:600) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:522) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:337) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:234) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:335) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:200) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.BeanDefinitionValueResolver.resolveReference(BeanDefinitionValueResolver.java:365) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.BeanDefinitionValueResolver.resolveValueIfNecessary(BeanDefinitionValueResolver.java:135) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.ConstructorResolver.resolveConstructorArguments(ConstructorResolver.java:682) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.ConstructorResolver.instantiateUsingFactoryMethod(ConstructorResolver.java:509) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.instantiateUsingFactoryMethod(AbstractAutowireCapableBeanFactory.java:1337) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBeanInstance(AbstractAutowireCapableBeanFactory.java:1167) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:562) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:522) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:337) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:234) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:335) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:200) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.BeanDefinitionValueResolver.resolveReference(BeanDefinitionValueResolver.java:365) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.BeanDefinitionValueResolver.resolveValueIfNecessary(BeanDefinitionValueResolver.java:135) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.applyPropertyValues(AbstractAutowireCapableBeanFactory.java:1687) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.populateBean(AbstractAutowireCapableBeanFactory.java:1436) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:599) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:522) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:337) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:234) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:335) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:200) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.config.DependencyDescriptor.resolveCandidate(DependencyDescriptor.java:254) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.doResolveDependency(DefaultListableBeanFactory.java:1443) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.resolveDependency(DefaultListableBeanFactory.java:1353) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.ConstructorResolver.resolveAutowiredArgument(ConstructorResolver.java:904) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.ConstructorResolver.createArgumentArray(ConstructorResolver.java:782) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.ConstructorResolver.autowireConstructor(ConstructorResolver.java:237) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.autowireConstructor(AbstractAutowireCapableBeanFactory.java:1357) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBeanInstance(AbstractAutowireCapableBeanFactory.java:1194) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:562) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:522) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:337) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:234) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:335) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:200) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.config.DependencyDescriptor.resolveCandidate(DependencyDescriptor.java:254) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.doResolveDependency(DefaultListableBeanFactory.java:1443) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.resolveDependency(DefaultListableBeanFactory.java:1353) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.ConstructorResolver.resolveAutowiredArgument(ConstructorResolver.java:904) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.ConstructorResolver.createArgumentArray(ConstructorResolver.java:782) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.ConstructorResolver.autowireConstructor(ConstructorResolver.java:237) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.autowireConstructor(AbstractAutowireCapableBeanFactory.java:1357) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBeanInstance(AbstractAutowireCapableBeanFactory.java:1194) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:562) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:522) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:337) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:234) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:335) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:205) ~[spring-beans-6.1.8.jar:6.1.8]
+	at org.springframework.boot.web.servlet.ServletContextInitializerBeans.getOrderedBeansOfType(ServletContextInitializerBeans.java:210) ~[spring-boot-3.2.6.jar:3.2.6]
+	at org.springframework.boot.web.servlet.ServletContextInitializerBeans.addAsRegistrationBean(ServletContextInitializerBeans.java:173) ~[spring-boot-3.2.6.jar:3.2.6]
+	at org.springframework.boot.web.servlet.ServletContextInitializerBeans.addAsRegistrationBean(ServletContextInitializerBeans.java:168) ~[spring-boot-3.2.6.jar:3.2.6]
+	at org.springframework.boot.web.servlet.ServletContextInitializerBeans.addAdaptableBeans(ServletContextInitializerBeans.java:153) ~[spring-boot-3.2.6.jar:3.2.6]
+	at org.springframework.boot.web.servlet.ServletContextInitializerBeans.<init>(ServletContextInitializerBeans.java:86) ~[spring-boot-3.2.6.jar:3.2.6]
+	at org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext.getServletContextInitializerBeans(ServletWebServerApplicationContext.java:266) ~[spring-boot-3.2.6.jar:3.2.6]
+	at org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext.selfInitialize(ServletWebServerApplicationContext.java:240) ~[spring-boot-3.2.6.jar:3.2.6]
+	at org.springframework.boot.web.embedded.tomcat.TomcatStarter.onStartup(TomcatStarter.java:52) ~[spring-boot-3.2.6.jar:3.2.6]
+	at org.apache.catalina.core.StandardContext.startInternal(StandardContext.java:4414) ~[tomcat-embed-core-10.1.24.jar:10.1.24]
+	at org.apache.catalina.util.LifecycleBase.start(LifecycleBase.java:171) ~[tomcat-embed-core-10.1.24.jar:10.1.24]
+	at org.apache.catalina.core.ContainerBase$StartChild.call(ContainerBase.java:1203) ~[tomcat-embed-core-10.1.24.jar:10.1.24]
+	at org.apache.catalina.core.ContainerBase$StartChild.call(ContainerBase.java:1193) ~[tomcat-embed-core-10.1.24.jar:10.1.24]
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317) ~[na:na]
+	at org.apache.tomcat.util.threads.InlineExecutorService.execute(InlineExecutorService.java:75) ~[tomcat-embed-core-10.1.24.jar:10.1.24]
+	at java.base/java.util.concurrent.AbstractExecutorService.submit(AbstractExecutorService.java:145) ~[na:na]
+	at org.apache.catalina.core.ContainerBase.startInternal(ContainerBase.java:749) ~[tomcat-embed-core-10.1.24.jar:10.1.24]
+	at org.apache.catalina.core.StandardHost.startInternal(StandardHost.java:772) ~[tomcat-embed-core-10.1.24.jar:10.1.24]
+	at org.apache.catalina.util.LifecycleBase.start(LifecycleBase.java:171) ~[tomcat-embed-core-10.1.24.jar:10.1.24]
+	at org.apache.catalina.core.ContainerBase$StartChild.call(ContainerBase.java:1203) ~[tomcat-embed-core-10.1.24.jar:10.1.24]
+	at org.apache.catalina.core.ContainerBase$StartChild.call(ContainerBase.java:1193) ~[tomcat-embed-core-10.1.24.jar:10.1.24]
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317) ~[na:na]
+	at org.apache.tomcat.util.threads.InlineExecutorService.execute(InlineExecutorService.java:75) ~[tomcat-embed-core-10.1.24.jar:10.1.24]
+	at java.base/java.util.concurrent.AbstractExecutorService.submit(AbstractExecutorService.java:145) ~[na:na]
+	at org.apache.catalina.core.ContainerBase.startInternal(ContainerBase.java:749) ~[tomcat-embed-core-10.1.24.jar:10.1.24]
+	at org.apache.catalina.core.StandardEngine.startInternal(StandardEngine.java:203) ~[tomcat-embed-core-10.1.24.jar:10.1.24]
+	at org.apache.catalina.util.LifecycleBase.start(LifecycleBase.java:171) ~[tomcat-embed-core-10.1.24.jar:10.1.24]
+	at org.apache.catalina.core.StandardService.startInternal(StandardService.java:415) ~[tomcat-embed-core-10.1.24.jar:10.1.24]
+	at org.apache.catalina.util.LifecycleBase.start(LifecycleBase.java:171) ~[tomcat-embed-core-10.1.24.jar:10.1.24]
+	at org.apache.catalina.core.StandardServer.startInternal(StandardServer.java:874) ~[tomcat-embed-core-10.1.24.jar:10.1.24]
+	at org.apache.catalina.util.LifecycleBase.start(LifecycleBase.java:171) ~[tomcat-embed-core-10.1.24.jar:10.1.24]
+	at org.apache.catalina.startup.Tomcat.start(Tomcat.java:437) ~[tomcat-embed-core-10.1.24.jar:10.1.24]
+	at org.springframework.boot.web.embedded.tomcat.TomcatWebServer.initialize(TomcatWebServer.java:126) ~[spring-boot-3.2.6.jar:3.2.6]
+	at org.springframework.boot.web.embedded.tomcat.TomcatWebServer.<init>(TomcatWebServer.java:105) ~[spring-boot-3.2.6.jar:3.2.6]
+	at org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory.getTomcatWebServer(TomcatServletWebServerFactory.java:499) ~[spring-boot-3.2.6.jar:3.2.6]
+	at org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory.getWebServer(TomcatServletWebServerFactory.java:218) ~[spring-boot-3.2.6.jar:3.2.6]
+	at org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext.createWebServer(ServletWebServerApplicationContext.java:188) ~[spring-boot-3.2.6.jar:3.2.6]
+	at org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext.onRefresh(ServletWebServerApplicationContext.java:162) ~[spring-boot-3.2.6.jar:3.2.6]
+	at org.springframework.context.support.AbstractApplicationContext.refresh(AbstractApplicationContext.java:618) ~[spring-context-6.1.8.jar:6.1.8]
+	at org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext.refresh(ServletWebServerApplicationContext.java:146) ~[spring-boot-3.2.6.jar:3.2.6]
+	at org.springframework.boot.SpringApplication.refresh(SpringApplication.java:754) ~[spring-boot-3.2.6.jar:3.2.6]
+	at org.springframework.boot.SpringApplication.refreshContext(SpringApplication.java:456) ~[spring-boot-3.2.6.jar:3.2.6]
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:335) ~[spring-boot-3.2.6.jar:3.2.6]
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1363) ~[spring-boot-3.2.6.jar:3.2.6]
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1352) ~[spring-boot-3.2.6.jar:3.2.6]
+	at com.example.lms.BackendLmsPostgresApplication.main(BackendLmsPostgresApplication.java:9) ~[classes/:na]
+Caused by: org.postgresql.util.PSQLException: ERROR: column "type" of relation "assignments" contains null values
+	at org.postgresql.core.v3.QueryExecutorImpl.receiveErrorResponse(QueryExecutorImpl.java:2713) ~[postgresql-42.6.2.jar:42.6.2]
+	at org.postgresql.core.v3.QueryExecutorImpl.processResults(QueryExecutorImpl.java:2401) ~[postgresql-42.6.2.jar:42.6.2]
+	at org.postgresql.core.v3.QueryExecutorImpl.execute(QueryExecutorImpl.java:368) ~[postgresql-42.6.2.jar:42.6.2]
+	at org.postgresql.jdbc.PgStatement.executeInternal(PgStatement.java:498) ~[postgresql-42.6.2.jar:42.6.2]
+	at org.postgresql.jdbc.PgStatement.execute(PgStatement.java:415) ~[postgresql-42.6.2.jar:42.6.2]
+	at org.postgresql.jdbc.PgStatement.executeWithFlags(PgStatement.java:335) ~[postgresql-42.6.2.jar:42.6.2]
+	at org.postgresql.jdbc.PgStatement.executeCachedSql(PgStatement.java:321) ~[postgresql-42.6.2.jar:42.6.2]
+	at org.postgresql.jdbc.PgStatement.executeWithFlags(PgStatement.java:297) ~[postgresql-42.6.2.jar:42.6.2]
+	at org.postgresql.jdbc.PgStatement.execute(PgStatement.java:292) ~[postgresql-42.6.2.jar:42.6.2]
+	at com.zaxxer.hikari.pool.ProxyStatement.execute(ProxyStatement.java:94) ~[HikariCP-5.0.1.jar:na]
+	at com.zaxxer.hikari.pool.HikariProxyStatement.execute(HikariProxyStatement.java) ~[HikariCP-5.0.1.jar:na]
+	at org.hibernate.tool.schema.internal.exec.GenerationTargetToDatabase.accept(GenerationTargetToDatabase.java:80) ~[hibernate-core-6.4.8.Final.jar:6.4.8.Final]
+	... 123 common frames omitted
+
+2026-01-07T01:16:32.823+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] org.hibernate.SQL                        : 
+    alter table if exists lessons 
+       add column content_blocks jsonb
+Hibernate: 
+    alter table if exists lessons 
+       add column content_blocks jsonb
+2026-01-07T01:16:34.919+07:00  INFO 10620 --- [backend-lms-postgres] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-01-07T01:16:35.011+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:35.041+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:35.089+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:35.137+07:00  INFO 10620 --- [backend-lms-postgres] [           main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-01-07T01:16:35.301+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:35.660+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:35.683+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:35.687+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:35.688+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:35.689+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:35.689+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:35.691+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:35.694+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:35.717+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:35.816+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] c.e.lms.config.JwtAuthenticationFilter   : Filter 'jwtAuthenticationFilter' configured for use
+2026-01-07T01:16:35.817+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] o.s.w.f.ServerHttpObservationFilter      : Filter 'webMvcObservationFilter' configured for use
+2026-01-07T01:16:35.839+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:35.847+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:35.851+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:35.855+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:35.857+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:35.909+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:35.915+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:35.917+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:35.920+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:35.920+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:35.923+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:35.938+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:35.959+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:35.965+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:35.978+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:35.980+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:35.984+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:35.988+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:35.991+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:35.995+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:35.996+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:35.997+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:36.001+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:36.043+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:36.050+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:36.051+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:36.053+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:36.077+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:36.084+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:36.085+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:36.089+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:36.207+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:36.213+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:36.215+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:36.217+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:36.285+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:36.288+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:36.292+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:36.292+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:36.292+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:36.297+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:36.333+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:36.337+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:36.340+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:36.346+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:36.353+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:36.438+07:00  INFO 10620 --- [backend-lms-postgres] [           main] c.example.lms.config.DataFixInitializer  : === Starting database enum value normalization ===
+2026-01-07T01:16:36.438+07:00  INFO 10620 --- [backend-lms-postgres] [           main] c.example.lms.config.DataFixInitializer  : Checking assignment_type values...
+2026-01-07T01:16:37.005+07:00  INFO 10620 --- [backend-lms-postgres] [           main] c.example.lms.config.DataFixInitializer  : Fixed 5 assignment type values to uppercase
+2026-01-07T01:16:37.005+07:00  INFO 10620 --- [backend-lms-postgres] [           main] c.example.lms.config.DataFixInitializer  : Checking assignment status values...
+2026-01-07T01:16:37.133+07:00  INFO 10620 --- [backend-lms-postgres] [           main] c.example.lms.config.DataFixInitializer  : Fixed 5 assignment status values to uppercase
+2026-01-07T01:16:37.133+07:00  INFO 10620 --- [backend-lms-postgres] [           main] c.example.lms.config.DataFixInitializer  : Checking course status values...
+2026-01-07T01:16:37.307+07:00  INFO 10620 --- [backend-lms-postgres] [           main] c.example.lms.config.DataFixInitializer  : Fixed 5 course status values to uppercase
+2026-01-07T01:16:37.307+07:00  INFO 10620 --- [backend-lms-postgres] [           main] c.example.lms.config.DataFixInitializer  : Checking submission status values...
+2026-01-07T01:16:37.635+07:00  INFO 10620 --- [backend-lms-postgres] [           main] c.example.lms.config.DataFixInitializer  : Fixed 3 submission status values to uppercase
+2026-01-07T01:16:37.635+07:00  INFO 10620 --- [backend-lms-postgres] [           main] c.example.lms.config.DataFixInitializer  : Checking user role values...
+2026-01-07T01:16:37.769+07:00  INFO 10620 --- [backend-lms-postgres] [           main] c.example.lms.config.DataFixInitializer  : Fixed 9 user role values to uppercase
+2026-01-07T01:16:37.770+07:00  INFO 10620 --- [backend-lms-postgres] [           main] c.example.lms.config.DataFixInitializer  : Checking lesson type values...
+2026-01-07T01:16:37.897+07:00  INFO 10620 --- [backend-lms-postgres] [           main] c.example.lms.config.DataFixInitializer  : Fixed 5 lesson type values to uppercase
+2026-01-07T01:16:37.897+07:00  INFO 10620 --- [backend-lms-postgres] [           main] c.example.lms.config.DataFixInitializer  : Fixing sections_type_check constraint...
+2026-01-07T01:16:37.994+07:00  INFO 10620 --- [backend-lms-postgres] [           main] c.example.lms.config.DataFixInitializer  : Successfully updated sections_type_check constraint
+2026-01-07T01:16:37.994+07:00  INFO 10620 --- [backend-lms-postgres] [           main] c.example.lms.config.DataFixInitializer  : === Database enum value normalization completed ===
+2026-01-07T01:16:38.038+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.038+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.042+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.044+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.070+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.074+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.075+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.076+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.150+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.155+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.156+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.157+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.157+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.157+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.158+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.158+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.158+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.158+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.162+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.163+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.226+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.227+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.228+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.231+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.235+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.254+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.258+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.261+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.263+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.265+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.265+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.267+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.269+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.296+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.299+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.301+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.303+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.303+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.337+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.345+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.347+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.350+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.351+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.352+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.353+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.370+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.372+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.374+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.380+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.474+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.476+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.478+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.482+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.483+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.484+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.486+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.487+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.488+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.490+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.490+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.512+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.516+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.517+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.576+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.579+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.583+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.595+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.597+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.600+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:38.603+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:39.018+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : 117 mappings in 'requestMappingHandlerMapping'
+2026-01-07T01:16:39.075+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] o.s.w.s.handler.SimpleUrlHandlerMapping  : Patterns [/webjars/**, /**, /swagger-ui*/*swagger-initializer.js, /swagger-ui*/**] in 'resourceHandlerMapping'
+2026-01-07T01:16:39.183+07:00  INFO 10620 --- [backend-lms-postgres] [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoint(s) beneath base path '/actuator'
+2026-01-07T01:16:39.291+07:00  INFO 10620 --- [backend-lms-postgres] [           main] o.s.s.web.DefaultSecurityFilterChain     : Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@5c926d0c, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@79c1233c, org.springframework.security.web.context.SecurityContextHolderFilter@541439f4, org.springframework.security.web.header.HeaderWriterFilter@2f089c07, org.springframework.web.filter.CorsFilter@3f8d7fb0, org.springframework.security.web.authentication.logout.LogoutFilter@20d6a76b, com.example.lms.config.JwtAuthenticationFilter@5cc43bff, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@c6935c, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@720aa646, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@18d0c042, org.springframework.security.web.session.SessionManagementFilter@2ec9419f, org.springframework.security.web.access.ExceptionTranslationFilter@75b7a38b, org.springframework.security.web.access.intercept.AuthorizationFilter@3de49870]
+2026-01-07T01:16:39.305+07:00  WARN 10620 --- [backend-lms-postgres] [           main] o.s.s.c.a.web.builders.WebSecurity       : You are asking Spring Security to ignore Mvc [pattern='/v3/api-docs/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-01-07T01:16:39.305+07:00  INFO 10620 --- [backend-lms-postgres] [           main] o.s.s.web.DefaultSecurityFilterChain     : Will not secure Mvc [pattern='/v3/api-docs/**']
+2026-01-07T01:16:39.305+07:00  WARN 10620 --- [backend-lms-postgres] [           main] o.s.s.c.a.web.builders.WebSecurity       : You are asking Spring Security to ignore Mvc [pattern='/v3/api-docs']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-01-07T01:16:39.305+07:00  INFO 10620 --- [backend-lms-postgres] [           main] o.s.s.web.DefaultSecurityFilterChain     : Will not secure Mvc [pattern='/v3/api-docs']
+2026-01-07T01:16:39.305+07:00  WARN 10620 --- [backend-lms-postgres] [           main] o.s.s.c.a.web.builders.WebSecurity       : You are asking Spring Security to ignore Mvc [pattern='/swagger-ui/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-01-07T01:16:39.305+07:00  INFO 10620 --- [backend-lms-postgres] [           main] o.s.s.web.DefaultSecurityFilterChain     : Will not secure Mvc [pattern='/swagger-ui/**']
+2026-01-07T01:16:39.305+07:00  WARN 10620 --- [backend-lms-postgres] [           main] o.s.s.c.a.web.builders.WebSecurity       : You are asking Spring Security to ignore Mvc [pattern='/swagger-ui.html']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-01-07T01:16:39.305+07:00  INFO 10620 --- [backend-lms-postgres] [           main] o.s.s.web.DefaultSecurityFilterChain     : Will not secure Mvc [pattern='/swagger-ui.html']
+2026-01-07T01:16:39.305+07:00  WARN 10620 --- [backend-lms-postgres] [           main] o.s.s.c.a.web.builders.WebSecurity       : You are asking Spring Security to ignore Mvc [pattern='/swagger-resources/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-01-07T01:16:39.305+07:00  INFO 10620 --- [backend-lms-postgres] [           main] o.s.s.web.DefaultSecurityFilterChain     : Will not secure Mvc [pattern='/swagger-resources/**']
+2026-01-07T01:16:39.305+07:00  WARN 10620 --- [backend-lms-postgres] [           main] o.s.s.c.a.web.builders.WebSecurity       : You are asking Spring Security to ignore Mvc [pattern='/webjars/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-01-07T01:16:39.305+07:00  INFO 10620 --- [backend-lms-postgres] [           main] o.s.s.web.DefaultSecurityFilterChain     : Will not secure Mvc [pattern='/webjars/**']
+2026-01-07T01:16:39.409+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] s.w.s.m.m.a.RequestMappingHandlerAdapter : ControllerAdvice beans: 0 @ModelAttribute, 0 @InitBinder, 1 RequestBodyAdvice, 1 ResponseBodyAdvice
+2026-01-07T01:16:39.450+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] .m.m.a.ExceptionHandlerExceptionResolver : ControllerAdvice beans: 2 @ExceptionHandler, 1 ResponseBodyAdvice
+2026-01-07T01:16:39.844+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:39.846+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:39.846+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:39.846+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:39.857+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:39.858+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:39.858+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:39.861+07:00 DEBUG 10620 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:16:40.557+07:00  INFO 10620 --- [backend-lms-postgres] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8088 (http) with context path ''
+2026-01-07T01:16:40.570+07:00  INFO 10620 --- [backend-lms-postgres] [           main] c.e.lms.BackendLmsPostgresApplication    : Started BackendLmsPostgresApplication in 17.397 seconds (process running for 17.79)
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  05:12 min
+[INFO] Finished at: 2026-01-07T01:21:12+07:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.springframework.boot:spring-boot-maven-plugin:3.2.6:run (default-cli) on project backend-lms-postgres: Process terminated with exit code: 1 -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException

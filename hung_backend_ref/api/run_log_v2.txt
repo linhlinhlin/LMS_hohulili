@@ -1,0 +1,283 @@
+﻿[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------< com.example:backend-lms-postgres >------------------
+[INFO] Building backend-lms-postgres 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] >>> spring-boot:3.2.6:run (default-cli) > test-compile @ backend-lms-postgres >>>
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ backend-lms-postgres ---
+[INFO] Copying 3 resources from src\main\resources to target\classes
+[INFO] Copying 30 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ backend-lms-postgres ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 273 source files with javac [debug parameters release 21] to target\classes
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ backend-lms-postgres ---
+[INFO] skip non existing resourceDirectory D:\lms_update\hung_backend_ref\api\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ backend-lms-postgres ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 12 source files with javac [debug parameters release 21] to target\test-classes
+[INFO] 
+[INFO] <<< spring-boot:3.2.6:run (default-cli) < test-compile @ backend-lms-postgres <<<
+[INFO] 
+[INFO] 
+[INFO] --- spring-boot:3.2.6:run (default-cli) @ backend-lms-postgres ---
+[INFO] Attaching agents: []
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::                (v3.2.6)
+
+2026-01-07T01:18:27.009+07:00  INFO 14228 --- [backend-lms-postgres] [           main] c.e.lms.BackendLmsPostgresApplication    : Starting BackendLmsPostgresApplication using Java 21.0.2 with PID 14228 (D:\lms_update\hung_backend_ref\api\target\classes started by Admin in D:\lms_update\hung_backend_ref\api)
+2026-01-07T01:18:27.011+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] c.e.lms.BackendLmsPostgresApplication    : Running with Spring Boot v3.2.6, Spring v6.1.8
+2026-01-07T01:18:27.012+07:00  INFO 14228 --- [backend-lms-postgres] [           main] c.e.lms.BackendLmsPostgresApplication    : The following 1 profile is active: "dev"
+2026-01-07T01:18:28.573+07:00  INFO 14228 --- [backend-lms-postgres] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-01-07T01:18:28.825+07:00  INFO 14228 --- [backend-lms-postgres] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 239 ms. Found 22 JPA repository interfaces.
+2026-01-07T01:18:30.021+07:00  INFO 14228 --- [backend-lms-postgres] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8088 (http)
+2026-01-07T01:18:30.032+07:00  INFO 14228 --- [backend-lms-postgres] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-01-07T01:18:30.033+07:00  INFO 14228 --- [backend-lms-postgres] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.24]
+2026-01-07T01:18:30.116+07:00  INFO 14228 --- [backend-lms-postgres] [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-01-07T01:18:30.118+07:00  INFO 14228 --- [backend-lms-postgres] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 3066 ms
+2026-01-07T01:18:30.463+07:00  INFO 14228 --- [backend-lms-postgres] [           main] com.zaxxer.hikari.HikariDataSource       : LMS-HikariPool - Starting...
+2026-01-07T01:18:31.354+07:00  INFO 14228 --- [backend-lms-postgres] [           main] com.zaxxer.hikari.pool.HikariPool        : LMS-HikariPool - Added connection org.postgresql.jdbc.PgConnection@4a5fab78
+2026-01-07T01:18:31.357+07:00  INFO 14228 --- [backend-lms-postgres] [           main] com.zaxxer.hikari.HikariDataSource       : LMS-HikariPool - Start completed.
+2026-01-07T01:18:31.497+07:00  INFO 14228 --- [backend-lms-postgres] [           main] o.f.c.internal.license.VersionPrinter    : Flyway Community Edition 9.22.3 by Redgate
+2026-01-07T01:18:31.497+07:00  INFO 14228 --- [backend-lms-postgres] [           main] o.f.c.internal.license.VersionPrinter    : See release notes here: https://rd.gt/416ObMi
+2026-01-07T01:18:31.497+07:00  INFO 14228 --- [backend-lms-postgres] [           main] o.f.c.internal.license.VersionPrinter    : 
+2026-01-07T01:18:31.558+07:00  INFO 14228 --- [backend-lms-postgres] [           main] org.flywaydb.core.FlywayExecutor         : Database: jdbc:postgresql://aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres (PostgreSQL 17.6)
+2026-01-07T01:18:31.863+07:00  WARN 14228 --- [backend-lms-postgres] [           main] o.f.c.internal.database.base.Database    : Flyway upgrade recommended: PostgreSQL 17.6 is newer than this version of Flyway and support has not been tested. The latest supported version of PostgreSQL is 15.
+2026-01-07T01:18:32.381+07:00  INFO 14228 --- [backend-lms-postgres] [           main] o.f.core.internal.command.DbMigrate      : Current version of schema "public": 20251221
+2026-01-07T01:18:32.382+07:00  WARN 14228 --- [backend-lms-postgres] [           main] o.f.core.internal.command.DbMigrate      : outOfOrder mode is active. Migration of schema "public" may not be reproducible.
+2026-01-07T01:18:32.425+07:00  INFO 14228 --- [backend-lms-postgres] [           main] o.f.core.internal.command.DbMigrate      : Schema "public" is up to date. No migration necessary.
+2026-01-07T01:18:32.776+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] j.LocalContainerEntityManagerFactoryBean : Building JPA container EntityManagerFactory for persistence unit 'default'
+2026-01-07T01:18:32.792+07:00  INFO 14228 --- [backend-lms-postgres] [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-01-07T01:18:32.840+07:00  INFO 14228 --- [backend-lms-postgres] [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.4.8.Final
+2026-01-07T01:18:32.878+07:00  INFO 14228 --- [backend-lms-postgres] [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-01-07T01:18:33.144+07:00  WARN 14228 --- [backend-lms-postgres] [           main] org.hibernate.orm.deprecation            : HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-01-07T01:18:33.423+07:00  INFO 14228 --- [backend-lms-postgres] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-01-07T01:18:33.914+07:00  WARN 14228 --- [backend-lms-postgres] [           main] Hibernate Types                          : The class com.example.lms.shared.domain.model.ContentBlock class should override both the equals and hashCode methods based on the JSON object value it represents!
+2026-01-07T01:18:33.952+07:00  WARN 14228 --- [backend-lms-postgres] [           main] Hibernate Types                          : The class com.example.lms.course_management.domain.model.CourseVersion$ChapterSnapshot class should override both the equals and hashCode methods based on the JSON object value it represents!
+2026-01-07T01:18:35.303+07:00  INFO 14228 --- [backend-lms-postgres] [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-01-07T01:18:35.683+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] org.hibernate.SQL                        : 
+    alter table if exists assignments 
+       add column type varchar(255) default 'FILE_UPLOAD' not null check (type in ('FILE_UPLOAD','TEXT','QUIZ','PROJECT','ESSAY'))
+Hibernate: 
+    alter table if exists assignments 
+       add column type varchar(255) default 'FILE_UPLOAD' not null check (type in ('FILE_UPLOAD','TEXT','QUIZ','PROJECT','ESSAY'))
+2026-01-07T01:18:37.738+07:00  INFO 14228 --- [backend-lms-postgres] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-01-07T01:18:37.828+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:37.858+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:37.913+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:37.961+07:00  INFO 14228 --- [backend-lms-postgres] [           main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-01-07T01:18:38.109+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:38.489+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:38.513+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:38.513+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:38.513+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:38.518+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:38.518+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:38.518+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:38.523+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:38.546+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:38.645+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] c.e.lms.config.JwtAuthenticationFilter   : Filter 'jwtAuthenticationFilter' configured for use
+2026-01-07T01:18:38.647+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] o.s.w.f.ServerHttpObservationFilter      : Filter 'webMvcObservationFilter' configured for use
+2026-01-07T01:18:38.674+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:38.678+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:38.683+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:38.689+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:38.690+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:38.753+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:38.761+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:38.765+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:38.767+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:38.770+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:38.775+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:38.800+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:38.831+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:38.836+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:38.853+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:38.855+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:38.863+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:38.864+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:38.864+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:38.867+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:38.873+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:38.878+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:38.882+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:38.938+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:38.945+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:38.948+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:38.949+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:38.986+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:38.992+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:38.994+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:38.998+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:39.128+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:39.136+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:39.138+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:39.139+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:39.200+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:39.202+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:39.205+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:39.207+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:39.207+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:39.210+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:39.236+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:39.239+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:39.244+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:39.263+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:39.268+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:39.321+07:00  INFO 14228 --- [backend-lms-postgres] [           main] c.example.lms.config.DataFixInitializer  : === Starting database enum value normalization ===
+2026-01-07T01:18:39.321+07:00  INFO 14228 --- [backend-lms-postgres] [           main] c.example.lms.config.DataFixInitializer  : Checking assignment_type values...
+2026-01-07T01:18:39.777+07:00  INFO 14228 --- [backend-lms-postgres] [           main] c.example.lms.config.DataFixInitializer  : Fixed 10 assignment type values to uppercase
+2026-01-07T01:18:39.777+07:00  INFO 14228 --- [backend-lms-postgres] [           main] c.example.lms.config.DataFixInitializer  : Checking assignment status values...
+2026-01-07T01:18:39.902+07:00  INFO 14228 --- [backend-lms-postgres] [           main] c.example.lms.config.DataFixInitializer  : Fixed 5 assignment status values to uppercase
+2026-01-07T01:18:39.902+07:00  INFO 14228 --- [backend-lms-postgres] [           main] c.example.lms.config.DataFixInitializer  : Checking course status values...
+2026-01-07T01:18:40.067+07:00  INFO 14228 --- [backend-lms-postgres] [           main] c.example.lms.config.DataFixInitializer  : Fixed 5 course status values to uppercase
+2026-01-07T01:18:40.067+07:00  INFO 14228 --- [backend-lms-postgres] [           main] c.example.lms.config.DataFixInitializer  : Checking submission status values...
+2026-01-07T01:18:40.409+07:00  INFO 14228 --- [backend-lms-postgres] [           main] c.example.lms.config.DataFixInitializer  : Fixed 3 submission status values to uppercase
+2026-01-07T01:18:40.409+07:00  INFO 14228 --- [backend-lms-postgres] [           main] c.example.lms.config.DataFixInitializer  : Checking user role values...
+2026-01-07T01:18:40.613+07:00  INFO 14228 --- [backend-lms-postgres] [           main] c.example.lms.config.DataFixInitializer  : Fixed 9 user role values to uppercase
+2026-01-07T01:18:40.614+07:00  INFO 14228 --- [backend-lms-postgres] [           main] c.example.lms.config.DataFixInitializer  : Checking lesson type values...
+2026-01-07T01:18:40.736+07:00  INFO 14228 --- [backend-lms-postgres] [           main] c.example.lms.config.DataFixInitializer  : Fixed 5 lesson type values to uppercase
+2026-01-07T01:18:40.736+07:00  INFO 14228 --- [backend-lms-postgres] [           main] c.example.lms.config.DataFixInitializer  : Fixing sections_type_check constraint...
+2026-01-07T01:18:40.824+07:00  INFO 14228 --- [backend-lms-postgres] [           main] c.example.lms.config.DataFixInitializer  : Successfully updated sections_type_check constraint
+2026-01-07T01:18:40.824+07:00  INFO 14228 --- [backend-lms-postgres] [           main] c.example.lms.config.DataFixInitializer  : === Database enum value normalization completed ===
+2026-01-07T01:18:40.868+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:40.871+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:40.880+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:40.881+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:40.926+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:40.930+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:40.932+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:40.934+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.018+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.024+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.028+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.030+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.030+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.031+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.031+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.033+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.034+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.035+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.038+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.055+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.102+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.103+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.107+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.109+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.111+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.129+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.133+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.134+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.137+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.138+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.138+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.138+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.138+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.166+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.167+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.170+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.173+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.174+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.213+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.220+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.223+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.227+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.228+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.229+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.230+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.248+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.250+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.251+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.253+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.353+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.357+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.359+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.361+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.363+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.363+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.363+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.367+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.370+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.371+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.373+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.399+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.400+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.401+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.467+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.470+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.476+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.488+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.488+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.488+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.497+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:41.888+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : 117 mappings in 'requestMappingHandlerMapping'
+2026-01-07T01:18:41.976+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] o.s.w.s.handler.SimpleUrlHandlerMapping  : Patterns [/webjars/**, /**, /swagger-ui*/*swagger-initializer.js, /swagger-ui*/**] in 'resourceHandlerMapping'
+2026-01-07T01:18:42.104+07:00  INFO 14228 --- [backend-lms-postgres] [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoint(s) beneath base path '/actuator'
+2026-01-07T01:18:42.194+07:00  INFO 14228 --- [backend-lms-postgres] [           main] o.s.s.web.DefaultSecurityFilterChain     : Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@57e52459, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@27cd355a, org.springframework.security.web.context.SecurityContextHolderFilter@c6935c, org.springframework.security.web.header.HeaderWriterFilter@283d49e5, org.springframework.web.filter.CorsFilter@7369aeec, org.springframework.security.web.authentication.logout.LogoutFilter@18c8c5ff, com.example.lms.config.JwtAuthenticationFilter@5a8314e6, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@46628728, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@1e84a463, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@6da5a213, org.springframework.security.web.session.SessionManagementFilter@6245f7a0, org.springframework.security.web.access.ExceptionTranslationFilter@351b9520, org.springframework.security.web.access.intercept.AuthorizationFilter@5c926d0c]
+2026-01-07T01:18:42.205+07:00  WARN 14228 --- [backend-lms-postgres] [           main] o.s.s.c.a.web.builders.WebSecurity       : You are asking Spring Security to ignore Mvc [pattern='/v3/api-docs/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-01-07T01:18:42.207+07:00  INFO 14228 --- [backend-lms-postgres] [           main] o.s.s.web.DefaultSecurityFilterChain     : Will not secure Mvc [pattern='/v3/api-docs/**']
+2026-01-07T01:18:42.207+07:00  WARN 14228 --- [backend-lms-postgres] [           main] o.s.s.c.a.web.builders.WebSecurity       : You are asking Spring Security to ignore Mvc [pattern='/v3/api-docs']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-01-07T01:18:42.207+07:00  INFO 14228 --- [backend-lms-postgres] [           main] o.s.s.web.DefaultSecurityFilterChain     : Will not secure Mvc [pattern='/v3/api-docs']
+2026-01-07T01:18:42.207+07:00  WARN 14228 --- [backend-lms-postgres] [           main] o.s.s.c.a.web.builders.WebSecurity       : You are asking Spring Security to ignore Mvc [pattern='/swagger-ui/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-01-07T01:18:42.207+07:00  INFO 14228 --- [backend-lms-postgres] [           main] o.s.s.web.DefaultSecurityFilterChain     : Will not secure Mvc [pattern='/swagger-ui/**']
+2026-01-07T01:18:42.207+07:00  WARN 14228 --- [backend-lms-postgres] [           main] o.s.s.c.a.web.builders.WebSecurity       : You are asking Spring Security to ignore Mvc [pattern='/swagger-ui.html']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-01-07T01:18:42.207+07:00  INFO 14228 --- [backend-lms-postgres] [           main] o.s.s.web.DefaultSecurityFilterChain     : Will not secure Mvc [pattern='/swagger-ui.html']
+2026-01-07T01:18:42.207+07:00  WARN 14228 --- [backend-lms-postgres] [           main] o.s.s.c.a.web.builders.WebSecurity       : You are asking Spring Security to ignore Mvc [pattern='/swagger-resources/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-01-07T01:18:42.207+07:00  INFO 14228 --- [backend-lms-postgres] [           main] o.s.s.web.DefaultSecurityFilterChain     : Will not secure Mvc [pattern='/swagger-resources/**']
+2026-01-07T01:18:42.207+07:00  WARN 14228 --- [backend-lms-postgres] [           main] o.s.s.c.a.web.builders.WebSecurity       : You are asking Spring Security to ignore Mvc [pattern='/webjars/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-01-07T01:18:42.207+07:00  INFO 14228 --- [backend-lms-postgres] [           main] o.s.s.web.DefaultSecurityFilterChain     : Will not secure Mvc [pattern='/webjars/**']
+2026-01-07T01:18:42.320+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] s.w.s.m.m.a.RequestMappingHandlerAdapter : ControllerAdvice beans: 0 @ModelAttribute, 0 @InitBinder, 1 RequestBodyAdvice, 1 ResponseBodyAdvice
+2026-01-07T01:18:42.358+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] .m.m.a.ExceptionHandlerExceptionResolver : ControllerAdvice beans: 2 @ExceptionHandler, 1 ResponseBodyAdvice
+2026-01-07T01:18:42.753+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:42.755+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:42.757+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:42.757+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:42.765+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:42.767+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:42.769+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:42.770+07:00 DEBUG 14228 --- [backend-lms-postgres] [           main] tor$SharedEntityManagerInvocationHandler : Creating new EntityManager for shared EntityManager invocation
+2026-01-07T01:18:43.007+07:00  WARN 14228 --- [backend-lms-postgres] [           main] ConfigServletWebServerApplicationContext : Exception encountered during context initialization - cancelling refresh attempt: org.springframework.context.ApplicationContextException: Failed to start bean 'webServerStartStop'
+2026-01-07T01:18:43.016+07:00  INFO 14228 --- [backend-lms-postgres] [           main] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-01-07T01:18:43.017+07:00  INFO 14228 --- [backend-lms-postgres] [           main] com.zaxxer.hikari.HikariDataSource       : LMS-HikariPool - Shutdown initiated...
+2026-01-07T01:18:43.220+07:00  INFO 14228 --- [backend-lms-postgres] [           main] com.zaxxer.hikari.HikariDataSource       : LMS-HikariPool - Shutdown completed.
+2026-01-07T01:18:43.238+07:00  INFO 14228 --- [backend-lms-postgres] [           main] .s.b.a.l.ConditionEvaluationReportLogger : 
+
+Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
+2026-01-07T01:18:43.253+07:00 ERROR 14228 --- [backend-lms-postgres] [           main] o.s.b.d.LoggingFailureAnalysisReporter   : 
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Web server failed to start. Port 8088 was already in use.
+
+Action:
+
+Identify and stop the process that's listening on port 8088 or configure this application to listen on another port.
+
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  32.826 s
+[INFO] Finished at: 2026-01-07T01:18:43+07:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.springframework.boot:spring-boot-maven-plugin:3.2.6:run (default-cli) on project backend-lms-postgres: Process terminated with exit code: 1 -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException

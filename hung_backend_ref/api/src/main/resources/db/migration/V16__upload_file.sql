@@ -1,0 +1,4 @@
+ALTER TABLE file_attachments ADD COLUMN IF NOT EXISTS file_category VARCHAR(50);
+ALTER TABLE file_attachments ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'UPLOADING';
+ALTER TABLE file_attachments ADD COLUMN IF NOT EXISTS entity_type VARCHAR(100);
+ALTER TABLE file_attachments ADD COLUMN IF NOT EXISTS entity_id UUID;

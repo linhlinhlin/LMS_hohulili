@@ -1,0 +1,129 @@
+package com.example.lms.assessment.infrastructure.persistence.entity;
+
+import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.time.Instant;
+import java.util.UUID;
+
+/**
+ * JPA Entity for Quiz persistence.
+ * Infrastructure layer - separate from domain model.
+ */
+@Entity
+@Table(name = "quizzes")
+public class QuizJpaEntity {
+    // Manual boilerplate
+    public QuizJpaEntity() {}
+    public QuizJpaEntity(UUID id, UUID lessonId, String title, String description, Integer timeLimitMinutes, Integer maxAttempts, Integer passingScore, Boolean shuffleQuestions, Boolean shuffleOptions, Boolean showResultsImmediately, Boolean showCorrectAnswers, QuizStatus status, java.util.List<QuizQuestionJpaEntity> questions, Instant createdAt, Instant updatedAt) {
+        this.id = id; this.lessonId = lessonId; this.title = title; this.description = description; this.timeLimitMinutes = timeLimitMinutes; this.maxAttempts = maxAttempts; this.passingScore = passingScore; this.shuffleQuestions = shuffleQuestions; this.shuffleOptions = shuffleOptions; this.showResultsImmediately = showResultsImmediately; this.showCorrectAnswers = showCorrectAnswers; this.status = status; this.questions = questions; this.createdAt = createdAt; this.updatedAt = updatedAt;
+    }
+    public static Builder builder() { return new Builder(); }
+    public static class Builder {
+        private UUID id; private UUID lessonId; private String title; private String description; private Integer timeLimitMinutes; private Integer maxAttempts = 3; private Integer passingScore = 60; private Boolean shuffleQuestions = false; private Boolean shuffleOptions = false; private Boolean showResultsImmediately = true; private Boolean showCorrectAnswers = true; private QuizStatus status = QuizStatus.DRAFT; private java.util.List<QuizQuestionJpaEntity> questions; private Instant createdAt; private Instant updatedAt;
+        public Builder id(UUID id) { this.id = id; return this; }
+        public Builder lessonId(UUID lessonId) { this.lessonId = lessonId; return this; }
+        public Builder title(String title) { this.title = title; return this; }
+        public Builder description(String description) { this.description = description; return this; }
+        public Builder timeLimitMinutes(Integer timeLimitMinutes) { this.timeLimitMinutes = timeLimitMinutes; return this; }
+        public Builder maxAttempts(Integer maxAttempts) { this.maxAttempts = maxAttempts; return this; }
+        public Builder passingScore(Integer passingScore) { this.passingScore = passingScore; return this; }
+        public Builder shuffleQuestions(Boolean shuffleQuestions) { this.shuffleQuestions = shuffleQuestions; return this; }
+        public Builder shuffleOptions(Boolean shuffleOptions) { this.shuffleOptions = shuffleOptions; return this; }
+        public Builder showResultsImmediately(Boolean showResultsImmediately) { this.showResultsImmediately = showResultsImmediately; return this; }
+        public Builder showCorrectAnswers(Boolean showCorrectAnswers) { this.showCorrectAnswers = showCorrectAnswers; return this; }
+        public Builder status(QuizStatus status) { this.status = status; return this; }
+        public Builder questions(java.util.List<QuizQuestionJpaEntity> questions) { this.questions = questions; return this; }
+        public Builder createdAt(Instant createdAt) { this.createdAt = createdAt; return this; }
+        public Builder updatedAt(Instant updatedAt) { this.updatedAt = updatedAt; return this; }
+        public QuizJpaEntity build() { return new QuizJpaEntity(id, lessonId, title, description, timeLimitMinutes, maxAttempts, passingScore, shuffleQuestions, shuffleOptions, showResultsImmediately, showCorrectAnswers, status, questions, createdAt, updatedAt); }
+    }
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+
+    @Column(name = "lesson_id", nullable = false)
+    private UUID lessonId;
+
+    @Column(nullable = false)
+    private String title;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    @Column(name = "time_limit_minutes")
+    private Integer timeLimitMinutes;
+
+    @Column(name = "max_attempts")
+    private Integer maxAttempts = 3;
+
+    @Column(name = "passing_score")
+    private Integer passingScore = 60;
+
+    @Column(name = "shuffle_questions")
+    private Boolean shuffleQuestions = false;
+
+    @Column(name = "shuffle_options")
+    private Boolean shuffleOptions = false;
+
+    @Column(name = "show_results_immediately")
+    private Boolean showResultsImmediately = true;
+
+    @Column(name = "show_correct_answers")
+    private Boolean showCorrectAnswers = true;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private QuizStatus status = QuizStatus.DRAFT;
+
+    @OneToMany(mappedBy = "quiz", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OrderBy("displayOrder ASC")
+    private java.util.List<QuizQuestionJpaEntity> questions;
+
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private Instant createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private Instant updatedAt;
+
+    // Getters/Setters
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
+    public UUID getLessonId() { return lessonId; }
+    public void setLessonId(UUID lessonId) { this.lessonId = lessonId; }
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+    public Integer getTimeLimitMinutes() { return timeLimitMinutes; }
+    public void setTimeLimitMinutes(Integer timeLimitMinutes) { this.timeLimitMinutes = timeLimitMinutes; }
+    public Integer getMaxAttempts() { return maxAttempts; }
+    public void setMaxAttempts(Integer maxAttempts) { this.maxAttempts = maxAttempts; }
+    public Integer getPassingScore() { return passingScore; }
+    public void setPassingScore(Integer passingScore) { this.passingScore = passingScore; }
+    public Boolean getShuffleQuestions() { return shuffleQuestions; }
+    public void setShuffleQuestions(Boolean shuffleQuestions) { this.shuffleQuestions = shuffleQuestions; }
+    public Boolean getShuffleOptions() { return shuffleOptions; }
+    public void setShuffleOptions(Boolean shuffleOptions) { this.shuffleOptions = shuffleOptions; }
+    public Boolean getShowResultsImmediately() { return showResultsImmediately; }
+    public void setShowResultsImmediately(Boolean showResultsImmediately) { this.showResultsImmediately = showResultsImmediately; }
+    public Boolean getShowCorrectAnswers() { return showCorrectAnswers; }
+    public void setShowCorrectAnswers(Boolean showCorrectAnswers) { this.showCorrectAnswers = showCorrectAnswers; }
+    public QuizStatus getStatus() { return status; }
+    public void setStatus(QuizStatus status) { this.status = status; }
+    public java.util.List<QuizQuestionJpaEntity> getQuestions() { return questions; }
+    public void setQuestions(java.util.List<QuizQuestionJpaEntity> questions) { this.questions = questions; }
+    public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+    public Instant getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+
+    public enum QuizStatus {
+        DRAFT, PUBLISHED, ARCHIVED
+    }
+}
