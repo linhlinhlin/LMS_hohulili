@@ -96,7 +96,7 @@ export class QuestionApi {
   getMyQuestions(status?: string) {
     const params: any = {};
     if (status) params.status = status;
-    return this.apiClient.get<{ success: boolean; data: Question[]; message?: string }>('/api/v1/questions/my-questions', { params })
+    return this.apiClient.get<{ success: boolean; data: Question[]; message?: string }>('/api/v3/questions/my-questions', { params })
       .pipe(
         map((response: any) => {
           console.log('📦 getMyQuestions raw response:', response);

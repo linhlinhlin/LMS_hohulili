@@ -2,6 +2,7 @@ package com.example.lms.assessment.infrastructure.web;
 
 import com.example.lms.assessment.application.usecase.CreateQuestionUseCaseV3;
 import com.example.lms.assessment.infrastructure.persistence.entity.QuestionJpaEntity;
+import com.example.lms.assessment.infrastructure.persistence.repository.QuestionJpaRepository;
 import com.example.lms.shared.domain.model.ContentBlock;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -23,6 +24,26 @@ import java.util.stream.Collectors;
 public class QuestionControllerV3 {
 
     private final CreateQuestionUseCaseV3 createQuestionUseCase;
+    private final QuestionJpaRepository questionRepository;
+
+    @GetMapping("/my-questions")
+    @PreAuthorize("hasAnyRole('TEACHER', 'INSTRUCTOR', 'ADMIN')")
+    @Operation(summary = "Get questions created by current user")
+    public ResponseEntity<ApiResponse<List<QuestionJpaEntity>>> getMyQuestions() {
+        UUID userId;
+        try {
+            var authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication != null && authentication.getPrincipal() instanceof com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity) {
+                userId = ((com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity) authentication.getPrincipal()).getId();
+            } else {
+                throw new RuntimeException("User not found in context");
+            }
+        } catch (Exception e) {
+             throw new RuntimeException("Failed to retrieve authenticated user: " + e.getMessage());
+        }
+
+        return ResponseEntity.ok(ApiResponse.success(questionRepository.findAllByCreatedBy(userId)));
+    }
 
     @PostMapping
     @PreAuthorize("hasAnyRole('TEACHER', 'INSTRUCTOR', 'ADMIN')")

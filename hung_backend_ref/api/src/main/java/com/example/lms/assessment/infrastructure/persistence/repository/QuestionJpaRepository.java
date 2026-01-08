@@ -10,4 +10,5 @@ import java.util.UUID;
 public interface QuestionJpaRepository extends JpaRepository<QuestionJpaEntity, UUID> {
     java.util.List<QuestionJpaEntity> findByPackageId(UUID packageId);
     java.util.List<QuestionJpaEntity> findByPackageIdIn(java.util.List<UUID> packageIds);
+    java.util.List<QuestionJpaEntity> findAllByCreatedBy(UUID createdBy);
 }

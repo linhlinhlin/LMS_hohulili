@@ -50,7 +50,7 @@ public class QuestionJpaEntity {
     private UUID id;
 
     @Type(JsonType.class)
-    @Column(name = "content", columnDefinition = "jsonb")
+    @Column(name = "content_blocks", columnDefinition = "jsonb")
     private List<ContentBlock> contentBlocks;
 
     @Enumerated(EnumType.STRING)
