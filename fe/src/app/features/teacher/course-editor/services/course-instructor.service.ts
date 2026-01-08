@@ -91,7 +91,7 @@ export class CourseInstructorService {
         this._isLoading.next(true);
         this.isLoading.set(true);
 
-        return this.apiClient.getWithResponse<CourseInstructor[]>(`/api/v1/courses/${courseId}/instructors`).pipe(
+        return this.apiClient.getWithResponse<CourseInstructor[]>(`/api/v3/courses/${courseId}/instructors`).pipe(
             finalize(() => {
                 this._isLoading.next(false);
                 this.isLoading.set(false);
@@ -128,7 +128,7 @@ export class CourseInstructorService {
             revenueSharePercent: 0
         };
 
-        return this.apiClient.postWithResponse<void>(`/api/v1/courses/${courseId}/instructors/invite`, backendRequest).pipe(
+        return this.apiClient.postWithResponse<void>(`/api/v3/courses/${courseId}/instructors/invite`, backendRequest).pipe(
             finalize(() => {
                 this._isLoading.next(false);
                 this.isLoading.set(false);
@@ -158,7 +158,7 @@ export class CourseInstructorService {
         this._isLoading.next(true);
         this.isLoading.set(true);
 
-        return this.apiClient.putWithResponse<void>(`/api/v1/courses/${courseId}/instructors/${userId}`, { permissions }).pipe(
+        return this.apiClient.putWithResponse<void>(`/api/v3/courses/${courseId}/instructors/${userId}`, { permissions }).pipe(
             finalize(() => {
                 this._isLoading.next(false);
                 this.isLoading.set(false);
@@ -188,7 +188,7 @@ export class CourseInstructorService {
         this._isLoading.next(true);
         this.isLoading.set(true);
 
-        return this.apiClient.deleteWithResponse<void>(`/api/v1/courses/${courseId}/instructors/${userId}`).pipe(
+        return this.apiClient.deleteWithResponse<void>(`/api/v3/courses/${courseId}/instructors/${userId}`).pipe(
             finalize(() => {
                 this._isLoading.next(false);
                 this.isLoading.set(false);
@@ -222,7 +222,7 @@ export class CourseInstructorService {
         this._isLoading.next(true);
         this.isLoading.set(true);
 
-        return this.apiClient.getWithResponse<InvitationItem[]>('/api/v1/teacher/invitations').pipe(
+        return this.apiClient.getWithResponse<InvitationItem[]>('/api/v3/teacher/invitations').pipe(
             finalize(() => {
                 this._isLoading.next(false);
                 this.isLoading.set(false);
@@ -249,7 +249,7 @@ export class CourseInstructorService {
         this._isLoading.next(true);
         this.isLoading.set(true);
 
-        return this.apiClient.postWithResponse<void>(`/api/v1/teacher/invitations/${invitationId}/accept`, {}).pipe(
+        return this.apiClient.postWithResponse<void>(`/api/v3/teacher/invitations/${invitationId}/accept`, {}).pipe(
             finalize(() => {
                 this._isLoading.next(false);
                 this.isLoading.set(false);
@@ -280,7 +280,7 @@ export class CourseInstructorService {
         this._isLoading.next(true);
         this.isLoading.set(true);
 
-        return this.apiClient.postWithResponse<void>(`/api/v1/teacher/invitations/${invitationId}/reject`, {}).pipe(
+        return this.apiClient.postWithResponse<void>(`/api/v3/teacher/invitations/${invitationId}/reject`, {}).pipe(
             finalize(() => {
                 this._isLoading.next(false);
                 this.isLoading.set(false);

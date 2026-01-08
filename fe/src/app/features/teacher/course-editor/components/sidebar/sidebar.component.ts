@@ -165,7 +165,7 @@ import {
                                                     <!-- Section Actions (Hover) -->
                                                     <div class="opacity-0 group-hover/section:opacity-100 flex items-center gap-1 pr-1 transition-opacity" (click)="$event.stopPropagation()">
                                                       <button class="p-1 text-slate-300 hover:text-blue-600 rounded transition-colors"><lucide-icon name="edit-2" [size]="10"></lucide-icon></button>
-                                                      <button (click)="deleteSection(section.id)" class="p-1 text-slate-300 hover:text-red-500 rounded transition-colors"><lucide-icon name="trash-2" [size]="10"></lucide-icon></button>
+                                                      <button (click)="deleteSection(lesson.id, section.id)" class="p-1 text-slate-300 hover:text-red-500 rounded transition-colors"><lucide-icon name="trash-2" [size]="10"></lucide-icon></button>
                                                     </div>
                                                 </div>
                                             }
@@ -511,7 +511,7 @@ export class CourseEditorSidebarComponent {
     }).subscribe({
       next: () => {
         this.closeModals();
-        this.store.loadCourse(courseId);
+        this.store.loadCourse(courseId, true); // forceRefresh to bypass cache
       }
     });
   }
@@ -529,7 +529,7 @@ export class CourseEditorSidebarComponent {
         this.closeModals();
         const courseId = this.store.courseTree()?.id;
         if (courseId) {
-          this.store.loadCourse(courseId);
+          this.store.loadCourse(courseId, true); // forceRefresh to bypass cache
           // UX: Auto-open Section Modal for the new lesson
           // Need to find the lesson object or wait for reload
           // Simple hack: Set timeout or find from store after reload
@@ -556,13 +556,15 @@ export class CourseEditorSidebarComponent {
   deleteChapter(chapterId: string) {
     if (!confirm('Bạn có chắc muốn xóa chương này? Tất cả bài học trong chương sẽ bị xóa.')) return;
 
-    this.chapterApi.deleteChapter(chapterId).subscribe({
+    const courseId = this.store.courseTree()?.id;
+    if (!courseId) return;
+    this.chapterApi.deleteChapter(chapterId, courseId).subscribe({
       next: () => {
         if (this.selectedChapterId() === chapterId) {
           this.selectionService.clearSelection();
         }
         const courseId = this.store.courseTree()?.id;
-        if (courseId) this.store.loadCourse(courseId);
+        if (courseId) this.store.loadCourse(courseId, true); // forceRefresh to bypass cache
       }
     });
   }
@@ -570,13 +572,15 @@ export class CourseEditorSidebarComponent {
   deleteLesson(lessonId: string) {
     if (!confirm('Bạn có chắc muốn xóa bài học này?')) return;
 
-    this.lessonApi.deleteLesson(lessonId).subscribe({
+    const courseId = this.store.courseTree()?.id;
+    if (!courseId) return;
+
+    this.lessonApi.deleteLesson(lessonId, courseId).subscribe({
       next: () => {
         if (this.selectedLessonId() === lessonId) {
           this.selectionService.clearLessonSelection();
         }
-        const courseId = this.store.courseTree()?.id;
-        if (courseId) this.store.loadCourse(courseId);
+        this.store.loadCourse(courseId, true); // forceRefresh to bypass cache
       }
     });
   }
@@ -616,30 +620,37 @@ export class CourseEditorSidebarComponent {
 
     // Use FormData for consistency with smart editor
     const formData = new FormData();
-    formData.append('lessonId', lesson.id);
-    formData.append('title', this.newSectionTitle.trim());
-    formData.append('type', this.newSectionType);
-    formData.append('content', '');
+    // Wrap payload in 'data' part as JSON
+    const payload = {
+      title: this.newSectionTitle.trim(),
+      type: this.newSectionType,
+      orderIndex: (lesson.sections?.length || 0)
+    };
+    formData.append('data', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
+
     if (this.newSectionType === 'FILE' && this.selectedFile) {
       formData.append('file', this.selectedFile);
     }
 
-    this.sectionApi.createSection(formData).subscribe({
+    this.sectionApi.createSection(lesson.id, formData).subscribe({
       next: () => {
         this.closeModals();
         const courseId = this.store.courseTree()?.id;
-        if (courseId) this.store.loadCourse(courseId);
+        if (courseId) this.store.loadCourse(courseId, true); // forceRefresh
       }
     });
   }
 
-  deleteSection(sectionId: string) {
+  deleteSection(lessonId: string, sectionId: string) {
     if (!confirm('Bạn có chắc muốn xóa nội dung này?')) return;
-    this.sectionApi.deleteSection(sectionId).subscribe({
+
+    const courseId = this.store.courseTree()?.id;
+    if (!courseId) return;
+
+    this.sectionApi.deleteSection(lessonId, sectionId).subscribe({
       next: () => {
-        // Clear selection if needed
         const courseId = this.store.courseTree()?.id;
-        if (courseId) this.store.loadCourse(courseId);
+        if (courseId) this.store.loadCourse(courseId, true);
       }
     })
   }

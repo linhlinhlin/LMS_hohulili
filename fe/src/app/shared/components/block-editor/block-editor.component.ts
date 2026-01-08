@@ -94,7 +94,7 @@ export class BlockEditorComponent implements AfterViewInit, OnDestroy, ControlVa
                 holder: this.editorContainer.nativeElement,
                 readOnly: this.readOnly,
                 placeholder: this.placeholder,
-                
+
                 // SOTA 2025: Maritime-optimized toolset
                 tools: {
                     // ============================================
@@ -119,7 +119,7 @@ export class BlockEditorComponent implements AfterViewInit, OnDestroy, ControlVa
                         class: ImageTool as any,
                         config: {
                             endpoints: {
-                                byFile: `${environment.apiUrl}/api/v1/files/upload/editor`,
+                                byFile: `${environment.apiUrl}/api/v3/files/upload/editor`,
                             },
                             field: 'file',
                             additionalRequestHeaders: (() => {
@@ -188,9 +188,9 @@ export class BlockEditorComponent implements AfterViewInit, OnDestroy, ControlVa
                     // ============================================
 
                 } as any,
-                
+
                 data: this.value || undefined,
-                
+
                 onChange: async () => {
                     const data = await this.editor.save();
                     this.value = data;

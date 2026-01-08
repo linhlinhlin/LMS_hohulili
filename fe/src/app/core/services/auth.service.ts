@@ -1,9 +1,10 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { BehaviorSubject, Observable, tap, throwError } from 'rxjs';
+import { BehaviorSubject, Observable, tap, throwError, map } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { AUTH_ENDPOINTS } from '../../api/endpoints/auth.endpoints';
+import { ApiResponse } from '../../api/types/common.types';
 
 export enum UserRole {
   ADMIN = 'admin',
@@ -45,16 +46,24 @@ export class AuthService {
     console.log('🔐 AuthService.login called with:', credentials);
     console.log('🔗 Login endpoint:', AUTH_ENDPOINTS.LOGIN);
 
-    const loginRequest = this.http.post<AuthResponse>(AUTH_ENDPOINTS.LOGIN, credentials);
+    // Update expected type to ApiResponse<AuthResponse>
+    const loginRequest = this.http.post<ApiResponse<AuthResponse>>(AUTH_ENDPOINTS.LOGIN, credentials);
     console.log('🔗 Login HTTP request created');
 
     return loginRequest.pipe(
-      tap(response => {
-        console.log('✅ Login successful:', response);
-        this.setTokens(response.accessToken, response.refreshToken);
-        this.setUser(response.user);
+      // Extract data from ApiResponse
+      map(response => {
+        if (!response.success || !response.data) {
+          throw new Error(response.message || 'Login failed');
+        }
+        return response.data;
+      }),
+      tap(data => {
+        console.log('✅ Login successful:', data);
+        this.setTokens(data.accessToken, data.refreshToken);
+        this.setUser(data.user);
         // Normalize role for currentUserSubject too
-        const normalizedUser = { ...response.user, role: response.user.role?.toLowerCase() || '' };
+        const normalizedUser = { ...data.user, role: data.user.role?.toLowerCase() || '' };
         this.currentUserSubject.next(normalizedUser);
       }),
       catchError(error => {

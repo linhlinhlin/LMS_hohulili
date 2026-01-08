@@ -17,6 +17,7 @@ export class SectionSmartEditorComponent {
     private router = inject(Router);
 
     @Input() lessonId!: string;
+    @Input() courseId!: string;
     @Output() close = new EventEmitter<void>();
     @Output() saved = new EventEmitter<void>();
 
@@ -52,7 +53,13 @@ export class SectionSmartEditorComponent {
         formData.append('type', 'QUIZ');
 
         this.isSubmitting.set(true);
-        this.sectionApi.createSection(formData).subscribe({
+        if (!this.courseId) {
+            alert('Không tìm thấy course ID');
+            this.isSubmitting.set(false);
+            return;
+        }
+
+        this.sectionApi.createSection(this.courseId, formData).subscribe({
             next: (section: any) => {
                 this.isSubmitting.set(false);
                 // Navigate to the Quiz Builder with the new Section ID
@@ -95,7 +102,13 @@ export class SectionSmartEditorComponent {
                 formData.append('file', this.selectedFile);
             }
 
-            this.sectionApi.createSection(formData).subscribe({
+            if (!this.courseId) {
+                alert('Không tìm thấy course ID');
+                this.isSubmitting.set(false);
+                return;
+            }
+
+            this.sectionApi.createSection(this.courseId, formData).subscribe({
                 next: () => {
                     this.isSubmitting.set(false);
                     this.saved.emit();
@@ -143,7 +156,13 @@ export class SectionSmartEditorComponent {
                 formData.append('content', content!);
             }
 
-            this.sectionApi.createSection(formData).subscribe({
+            if (!this.courseId) {
+                alert('Không tìm thấy course ID');
+                this.isSubmitting.set(false);
+                return;
+            }
+
+            this.sectionApi.createSection(this.courseId, formData).subscribe({
                 next: () => {
                     this.isSubmitting.set(false);
                     this.saved.emit();

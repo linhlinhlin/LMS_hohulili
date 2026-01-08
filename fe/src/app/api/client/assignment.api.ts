@@ -149,7 +149,7 @@ export class AssignmentApi {
 
   // Get assignments by course
   getAssignmentsByCourse(courseId: string, params?: { page?: number; limit?: number }) {
-    return this.api.getWithResponse<any>(`/api/v1/courses/${courseId}/assignments`, { params }).pipe(
+    return this.api.getWithResponse<any>(`/api/v3/teacher/assignments/courses/${courseId}`, { params }).pipe(
       map((res: ApiResponse<any>) => {
         const content: AssignmentSummary[] = res?.data?.content ?? [];
         return {
@@ -163,22 +163,22 @@ export class AssignmentApi {
 
   // Create assignment
   createAssignment(courseId: string, payload: CreateAssignmentRequest) {
-    return this.api.postWithResponse<AssignmentDetail>(`/api/v1/courses/${courseId}/assignments`, payload);
+    return this.api.postWithResponse<AssignmentDetail>(`/api/v3/teacher/assignments/courses/${courseId}`, payload);
   }
 
   // Get assignment detail
   getAssignmentById(assignmentId: string) {
-    return this.api.getWithResponse<AssignmentDetail>(`/api/v1/assignments/${assignmentId}`);
+    return this.api.getWithResponse<AssignmentDetail>(`/api/v3/teacher/assignments/${assignmentId}`);
   }
 
   // Update assignment
   updateAssignment(assignmentId: string, payload: UpdateAssignmentRequest) {
-    return this.api.putWithResponse<AssignmentDetail>(`/api/v1/assignments/${assignmentId}`, payload);
+    return this.api.putWithResponse<AssignmentDetail>(`/api/v3/teacher/assignments/${assignmentId}`, payload);
   }
 
   // Delete assignment
   deleteAssignment(assignmentId: string) {
-    return this.api.deleteWithResponse<string>(`/api/v1/assignments/${assignmentId}`);
+    return this.api.deleteWithResponse<string>(`/api/v3/teacher/assignments/${assignmentId}`);
   }
 
   // Publish assignment
@@ -241,7 +241,8 @@ export class AssignmentApi {
   // Note: This will need to aggregate from multiple courses
   getTeacherAssignments(params?: { page?: number; limit?: number; courseId?: string; status?: string }) {
     // For now, we'll need to get assignments from all teacher's courses
+    // For now, we'll need to get assignments from all teacher's courses
     // This is a temporary solution until backend provides a dedicated endpoint
-    return this.api.getWithResponse<AssignmentSummary[]>(`/api/v1/assignments/teacher-summary`, { params });
+    return this.api.getWithResponse<AssignmentSummary[]>(`/api/v3/teacher/assignments/summary`, { params });
   }
 }

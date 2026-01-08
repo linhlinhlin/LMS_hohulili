@@ -11,7 +11,7 @@ import { QuestionImportModalComponent } from './components/question-import-modal
 @Component({
   selector: 'app-quiz-bank',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, QuestionImportModalComponent],
+  imports: [CommonModule, FormsModule, QuestionImportModalComponent],
   template: `
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
     

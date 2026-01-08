@@ -17,8 +17,8 @@ export class LessonApi {
     return this.api.put<ApiResponse<LessonDetail>>(LESSON_ENDPOINTS.UPDATE(lessonId), payload);
   }
 
-  deleteLesson(lessonId: string) {
-    return this.api.delete<ApiResponse<string>>(LESSON_ENDPOINTS.DELETE(lessonId));
+  deleteLesson(lessonId: string, courseId: string) {
+    return this.api.delete<ApiResponse<string>>(`${LESSON_ENDPOINTS.DELETE(lessonId)}?courseId=${courseId}`);
   }
 
   getLessonById(lessonId: string) {
@@ -42,7 +42,7 @@ export class LessonApi {
   // ========================================
   // ASSIGNMENT API METHODS
   // ========================================
-  
+
   createAssignmentLesson(sectionId: string, payload: CreateAssignmentLessonRequest) {
     return this.api.postWithResponse<AssignmentLessonDetail>(`/api/v1/courses/sections/${sectionId}/lessons/assignment`, payload);
   }

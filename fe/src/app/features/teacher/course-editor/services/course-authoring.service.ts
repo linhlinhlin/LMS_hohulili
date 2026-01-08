@@ -199,7 +199,7 @@ interface ChapterResponse { // Was SectionWithLessons
 })
 export class CourseAuthoringService {
     private http = inject(HttpClient);
-    private baseUrl = `${environment.apiUrl}/api/v1`;
+    private baseUrl = `${environment.apiUrl}/api/v3`;
 
     // --- Draft Operations ---
 

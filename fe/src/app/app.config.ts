@@ -28,7 +28,21 @@ import {
   Video,
   HelpCircle,
   Code,
-  Layout
+  Layout,
+  Inbox,
+  PlayCircle,
+  ClipboardCheck,
+  CheckCircle,
+  Settings,
+  Clock,
+  Target,
+  Repeat,
+  ListChecks,
+  Shuffle,
+  ClipboardList,
+  Download,
+  UploadCloud,
+  GripVertical
 } from 'lucide-angular';
 
 // ✅ FIXED: Factory function to setup global state when app initializes
@@ -96,7 +110,21 @@ export const appConfig: ApplicationConfig = {
       Video,
       HelpCircle,
       Code,
-      Layout
+      Layout,
+      Inbox,
+      PlayCircle,
+      ClipboardCheck,
+      CheckCircle,
+      Settings,
+      Clock,
+      Target,
+      Repeat,
+      ListChecks,
+      Shuffle,
+      ClipboardList,
+      Download,
+      UploadCloud,
+      GripVertical
     }))
   ]
 };

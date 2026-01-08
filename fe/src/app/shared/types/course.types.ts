@@ -327,7 +327,7 @@ export interface ClassSummary {
   startDate: string;
   endDate: string;
   maxStudents: number;
-  currentStudents?: number; // Optional until backend sends it
+  studentCount?: number; // Matches backend response
   scheduleType: ScheduleType;
   semester?: string;
 }

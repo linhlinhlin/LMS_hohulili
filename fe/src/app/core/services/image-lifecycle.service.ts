@@ -27,7 +27,7 @@ export class ImageLifecycleService {
         formData.append('type', 'editor-image'); // Standardize type
 
         // SOTA: Use the Editor endpoint which is whitelisted
-        return this.http.post<any>('/api/v1/files/upload/editor', formData).pipe(
+        return this.http.post<any>('/api/v3/files/upload/editor', formData).pipe(
             map(response => {
                 // Backend returns ApiResponse<FileUploadResponse>
                 // So response.data contains the FileUploadResponse object with an 'id' field

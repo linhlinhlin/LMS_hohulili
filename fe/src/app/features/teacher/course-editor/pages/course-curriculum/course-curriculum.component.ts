@@ -944,10 +944,10 @@ import { QuestionCreateComponent } from '../../../quiz/question-create.component
           </div>
 
           <div class="px-6 py-4 border-t border-gray-200 flex justify-between items-center flex-shrink-0">
-            <button (click)="clearSelection()" class="text-gray-600 hover:text-gray-800 text-sm">Quay l?i</button>
+            <button (click)="clearSelection()" class="text-gray-600 hover:text-gray-800 text-sm">Quay lại</button>
             <button (click)="saveLesson()" [disabled]="isSaving()" class="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
               @if (isSaving()) { <span class="animate-spin">?</span> }
-              L�u thay �?i
+             Lưu thay đổi
             </button>
           </div>
         </div>
@@ -1037,8 +1037,8 @@ import { QuestionCreateComponent } from '../../../quiz/question-create.component
                 <div class="px-4 py-3 bg-gray-50 border-b flex items-center justify-between">
                   <span class="text-sm font-medium">Danh sách câu hỏi</span>
                   <div class="flex items-center gap-2">
-                    <button (click)="selectAllQuestions()" class="text-xs text-blue-600">Chá»n t?t c?</button>
-                    <button (click)="clearQuestionSelection()" class="text-xs text-gray-600">B? ch?n</button>
+                    <button (click)="selectAllQuestions()" class="text-xs text-blue-600">Chọn tất cả</button>
+                    <button (click)="clearQuestionSelection()" class="text-xs text-gray-600">Bỏ chọn</button>
                   </div>
                 </div>
                 <div class="max-h-64 overflow-y-auto p-3 space-y-2">
@@ -1053,7 +1053,7 @@ import { QuestionCreateComponent } from '../../../quiz/question-create.component
             }
           </div>
           <div class="p-5 border-t border-gray-200 flex justify-end gap-3">
-            <button (click)="showAddQuestionsModal.set(false)" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">Há»§y b?</button>
+            <button (click)="showAddQuestionsModal.set(false)" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">Hủy bỏ</button>
             <button (click)="addSelectedQuestionsToQuiz()" [disabled]="selectedQuestionIds().size === 0" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50">
               Thêm {{ selectedQuestionIds().size }} câu hỏi
             </button>
@@ -1112,7 +1112,7 @@ import { QuestionCreateComponent } from '../../../quiz/question-create.component
             }
           </div>
           <div class="p-5 border-t border-gray-200 flex justify-end gap-3">
-            <button (click)="showSectionQuizBankModal.set(false)" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">Há»§y</button>
+            <button (click)="showSectionQuizBankModal.set(false)" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">Hủy bỏ</button>
             <button (click)="addSectionQuizQuestionsFromBank()" [disabled]="selectedQuestionIds().size === 0" class="px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700 disabled:opacity-50">
               Thêm {{ selectedQuestionIds().size }} câu hỏi
             </button>
@@ -1149,7 +1149,7 @@ import { QuestionCreateComponent } from '../../../quiz/question-create.component
             </div>
           </div>
           <div class="p-4 bg-gray-50 flex justify-end gap-3 rounded-b-xl">
-            <button (click)="showSectionQuizRandomModal.set(false)" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Há»§y</button>
+            <button (click)="showSectionQuizRandomModal.set(false)" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Hủy</button>
             <button (click)="generateSectionQuizRandomQuestions()" [disabled]="!selectedPackageId" class="px-4 py-2 text-sm font-medium text-white bg-rose-600 rounded-lg hover:bg-rose-700 disabled:opacity-50">
               T?o ngay
             </button>
@@ -1278,7 +1278,7 @@ import { QuestionCreateComponent } from '../../../quiz/question-create.component
              }
           </div>
           <div class="p-5 border-t border-gray-200 flex justify-end gap-3 bg-gray-50">
-            <button (click)="showSectionModal.set(false)" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">Há»§y</button>
+            <button (click)="showSectionModal.set(false)" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">Hủy</button>
             <button (click)="saveSection()" [disabled]="isSaving() || !sectionTitle.trim() || (newSectionType === 'FILE' && !selectedFile && !sectionFileUrl())" 
                     class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2">
               @if (isSaving()) { <span class="animate-spin">?</span> }
@@ -1580,7 +1580,7 @@ export class CourseCurriculumComponent implements OnDestroy {
             this.sectionQuizShuffleQuestions = quizData.shuffleQuestions ?? true;
             this.sectionQuizShuffleOptions = quizData.shuffleOptions ?? true;
             this.sectionQuizShowResults = quizData.showResultsImmediately ?? true;
-            
+
             // Hydrate questions list
             if (quizData.questions && quizData.questions.length > 0) {
               this.sectionQuizSelectedQuestions.set(quizData.questions.map((q: any) => ({
@@ -1712,7 +1712,7 @@ export class CourseCurriculumComponent implements OnDestroy {
   }
 
   private fetchLessonDetails(lessonId: string) {
-    this.isLoadingLesson.set(true);
+    setTimeout(() => this.isLoadingLesson.set(true));
     this.lessonApi.getLessonById(lessonId).subscribe({
       next: (response: any) => {
         const detail = response.data || response;
@@ -1799,12 +1799,17 @@ export class CourseCurriculumComponent implements OnDestroy {
 
     this.isSaving.set(true);
     try {
+      const courseId = this.store.courseTree()?.id;
+      if (!courseId) {
+        console.error('Course ID not found');
+        return;
+      }
       await firstValueFrom(this.chapterApi.updateChapter(chapterId, {
+        courseId: courseId,
         title: this.chapterTitle.trim(),
         description: this.chapterDescription.trim()
       }));
-      const courseId = this.store.courseTree()?.id;
-      if (courseId) this.store.loadCourse(courseId, true);
+      this.store.loadCourse(courseId, true);
     } catch (error) {
       console.error('Error saving chapter:', error);
     } finally {
@@ -1818,8 +1823,20 @@ export class CourseCurriculumComponent implements OnDestroy {
 
     this.isSaving.set(true);
     try {
+      const courseId = this.store.courseTree()?.id;
+      const chapterId = this.selectedChapterId();
+      if (!courseId || !chapterId) {
+        console.error('Course ID or Chapter ID not found');
+        this.isSaving.set(false);
+        return;
+      }
       const lessonType = this.getLessonType(lesson);
-      const updateData: any = { title: this.lessonTitle.trim() };
+      const updateData: any = {
+        courseId: courseId,
+        chapterId: chapterId,
+        lessonType: lessonType,
+        title: this.lessonTitle.trim()
+      };
 
       if (lessonType === 'LECTURE') {
         updateData.content = this.lessonContent;
@@ -1835,8 +1852,7 @@ export class CourseCurriculumComponent implements OnDestroy {
       }
 
       await firstValueFrom(this.lessonApi.updateLesson(lesson.id, updateData));
-      const courseId = this.store.courseTree()?.id;
-      if (courseId) this.store.loadCourse(courseId, true);
+      this.store.loadCourse(courseId, true);
     } catch (error) {
       console.error('Error saving lesson:', error);
     } finally {
@@ -2169,14 +2185,18 @@ export class CourseCurriculumComponent implements OnDestroy {
         formData.append('file', this.selectedFile);
       }
 
+
+
+
+
       if (this.editingSectionId()) {
-        const res: any = await firstValueFrom(this.sectionApi.updateSection(this.editingSectionId()!, formData));
+        const res: any = await firstValueFrom(this.sectionApi.updateSection(lesson.id, this.editingSectionId()!, formData));
         const updatedSection = res.data || res;
         if (updatedSection?.fileUrl && this.newSectionType === 'FILE') {
           this.sectionFileUrl.set(updatedSection.fileUrl);
         }
       } else {
-        await firstValueFrom(this.sectionApi.createSection(formData));
+        await firstValueFrom(this.sectionApi.createSection(lesson.id, formData));
       }
 
       // Clear staged file after successful save
@@ -2197,8 +2217,14 @@ export class CourseCurriculumComponent implements OnDestroy {
   async deleteSection(sectionId: string) {
     if (!confirm('B?n ch?c ch?n mu?n x�a M?c n�y?')) return;
     this.isSaving.set(true);
+    const lesson = this.selectedLesson();
+    if (!lesson) {
+      this.isSaving.set(false);
+      return;
+    }
+
     try {
-      await firstValueFrom(this.sectionApi.deleteSection(sectionId));
+      await firstValueFrom(this.sectionApi.deleteSection(lesson.id, sectionId));
       const courseId = this.store.courseTree()?.id;
       if (courseId) this.store.loadCourse(courseId, true);
     } catch (e) {

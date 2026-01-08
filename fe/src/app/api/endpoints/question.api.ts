@@ -113,29 +113,29 @@ export class QuestionApi {
   }
 
   createQuestion(request: CreateQuestionRequest) {
-    return this.apiClient.post<Question>('/api/v1/questions', request);
+    return this.apiClient.post<Question>('/api/v3/questions', request);
   }
 
   updateQuestion(id: string, request: UpdateQuestionRequest) {
-    return this.apiClient.put<Question>(`/api/v1/questions/${id}`, request);
+    return this.apiClient.put<Question>(`/api/v3/questions/${id}`, request);
   }
 
   deleteQuestion(id: string) {
-    return this.apiClient.delete<{ message: string }>(`/api/v1/questions/${id}`);
+    return this.apiClient.delete<{ message: string }>(`/api/v3/questions/${id}`);
   }
 
   // Get questions by course
   getQuestionsByCourse(courseId: string, status?: string) {
     const params: any = {};
     if (status) params.status = status;
-    return this.apiClient.get<{ success: boolean; data: Question[]; message?: string }>(`/api/v1/questions/course/${courseId}`, { params });
+    return this.apiClient.get<{ success: boolean; data: Question[]; message?: string }>(`/api/v3/questions/course/${courseId}`, { params });
   }
 
   // NEW: Get my questions in a specific course
   getMyQuestionsInCourse(courseId: string, status?: string) {
     const params: any = {};
     if (status) params.status = status;
-    return this.apiClient.get<Question[]>(`/api/v1/questions/course/${courseId}/user`, { params });
+    return this.apiClient.get<Question[]>(`/api/v3/questions/course/${courseId}/user`, { params });
   }
 
   // Import questions from Excel file

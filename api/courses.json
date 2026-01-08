@@ -1,32 +1,0 @@
-* Host localhost:8088 was resolved.
-* IPv6: ::1
-* IPv4: 127.0.0.1
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0*   Trying [::1]:8088...
-* Established connection to localhost (::1 port 8088) from ::1 port 60572 
-* using HTTP/1.x
-> GET /api/v1/courses HTTP/1.1
-> Host: localhost:8088
-> User-Agent: curl/8.16.0
-> Accept: */*
-> 
-* Request completely sent off
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0< HTTP/1.1 200 
-< Vary: Origin
-< Vary: Access-Control-Request-Method
-< Vary: Access-Control-Request-Headers
-< X-Content-Type-Options: nosniff
-< X-XSS-Protection: 0
-< Cache-Control: no-cache, no-store, max-age=0, must-revalidate
-< Pragma: no-cache
-< Expires: 0
-< X-Frame-Options: DENY
-< Content-Type: application/json
-< Transfer-Encoding: chunked
-< Date: Wed, 17 Dec 2025 11:58:54 GMT
-< 
-{ [765 bytes data]
-100   758    0   758    0     0    356      0 --:--:--  0:00:02 --:--:--   356
-* Connection #0 to host localhost:8088 left intact
-{"data":{"content":[{"id":"77b89d53-623a-46fa-8cca-7b2fcd5e4676","code":"ATHH","title":"An toàn hàng hải","description":"Khóa học tập trung vào quy trình rời tàu, thiết bị cứu sinh, tiêu chuẩn SOLAS, phòng cháy chữa cháy và kỹ năng sống sót trên biển.","status":"APPROVED","teacherName":"Trần Thị Mai","enrolledCount":1,"createdAt":"2025-12-11T08:47:53.286702Z","enrolled":null}],"pageable":{"pageNumber":0,"pageSize":10,"sort":{"empty":true,"unsorted":true,"sorted":false},"offset":0,"paged":true,"unpaged":false},"last":true,"totalElements":1,"totalPages":1,"first":true,"size":10,"number":0,"sort":{"empty":true,"unsorted":true,"sorted":false},"numberOfElements":1,"empty":false},"pagination":null,"message":null}

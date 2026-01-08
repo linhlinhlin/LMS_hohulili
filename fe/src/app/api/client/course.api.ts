@@ -13,7 +13,7 @@ export class CourseApi {
   private cache = inject(ApiCacheService);
 
   createCourse(payload: CreateCourseRequest) {
-    return this.api.postWithResponse<CourseDetail>(COURSE_ENDPOINTS.CREATE, payload);
+    return this.api.postWithResponse<CourseDetail>(COURSE_ENDPOINTS.TEACHER.BASE, payload);
   }
 
   getCourseById(id: string) {
@@ -21,17 +21,17 @@ export class CourseApi {
   }
 
   updateCourse(id: string, payload: Partial<CreateCourseRequest>) {
-    return this.api.put<ApiResponse<CourseDetail>>(COURSE_ENDPOINTS.BY_ID(id), payload);
+    return this.api.put<ApiResponse<CourseDetail>>(COURSE_ENDPOINTS.TEACHER.BY_ID(id), payload);
   }
 
   publishCourse(id: string) {
     // Backend uses PATCH for publish endpoint
-    return this.api.patch<ApiResponse<CourseDetail>>(COURSE_ENDPOINTS.PUBLISH(id), {});
+    return this.api.patch<ApiResponse<CourseDetail>>(COURSE_ENDPOINTS.AUTHORING.PUBLISH(id), {});
   }
 
   myCourses() {
     // Unwrap Spring Page response to a flat array while preserving pagination
-    return this.api.getWithResponse<any>(COURSE_ENDPOINTS.MY_COURSES).pipe(
+    return this.api.getWithResponse<any>(COURSE_ENDPOINTS.TEACHER.MY_COURSES).pipe(
       map((res: ApiResponse<any>) => {
         const content: CourseSummary[] = res?.data?.content ?? [];
         return {
@@ -57,7 +57,7 @@ export class CourseApi {
   }
 
   enrolledCourses(params?: { page?: number; limit?: number }): Observable<ApiResponse<CourseSummary[]>> {
-    return this.api.getWithResponse<any>(COURSE_ENDPOINTS.ENROLLED_COURSES, { params }).pipe(
+    return this.api.getWithResponse<any>(COURSE_ENDPOINTS.STUDENT.ENROLLED, { params }).pipe(
       map((res: ApiResponse<any>) => {
         const content: CourseSummary[] = res?.data?.content ?? [];
         return {
@@ -75,11 +75,11 @@ export class CourseApi {
 
   enrollCourse(courseId: string, classId?: string) {
     const payload = classId ? { classId } : {};
-    return this.api.postWithResponse<string>(`${COURSE_ENDPOINTS.BY_ID(courseId)}/enroll`, payload);
+    return this.api.postWithResponse<string>(`${COURSE_ENDPOINTS.TEACHER.BY_ID(courseId)}/enroll`, payload);
   }
 
   enrollStudentAsTeacher(courseId: string, payload: EnrollStudentRequest) {
-    return this.api.postWithResponse<string>(COURSE_ENDPOINTS.ENROLLMENTS(courseId), payload).pipe(
+    return this.api.postWithResponse<string>(COURSE_ENDPOINTS.TEACHER.ENROLLMENTS(courseId), payload).pipe(
       tap(() => this.invalidateEnrolledStudentsCache(courseId))
     );
   }
@@ -87,42 +87,42 @@ export class CourseApi {
   bulkEnrollStudents(courseId: string, file: File) {
     const formData = new FormData();
     formData.append('file', file);
-    return this.api.postWithResponse<any>(`/api/v1/courses/${courseId}/bulk-enroll`, formData).pipe(
+    return this.api.postWithResponse<any>(COURSE_ENDPOINTS.TEACHER.BULK_ENROLL(courseId), formData).pipe(
       tap(() => this.invalidateEnrolledStudentsCache(courseId))
     );
   }
 
   deleteCourse(id: string) {
-    return this.api.delete<ApiResponse<string>>(COURSE_ENDPOINTS.BY_ID(id));
+    return this.api.delete<ApiResponse<string>>(COURSE_ENDPOINTS.TEACHER.BY_ID(id));
   }
 
   submitForApproval(id: string) {
-    return this.api.postWithResponse<CourseDetail>(`/api/v1/courses/${id}/submit-for-approval`, {});
+    return this.api.postWithResponse<CourseDetail>(COURSE_ENDPOINTS.TEACHER.SUBMIT_APPROVAL(id), {});
   }
 
   cancelApprovalRequest(id: string) {
-    return this.api.postWithResponse<CourseDetail>(`/api/v1/courses/${id}/cancel-approval`, {});
+    return this.api.postWithResponse<CourseDetail>(COURSE_ENDPOINTS.TEACHER.CANCEL_APPROVAL(id), {});
   }
 
   getReviewStatus(id: string) {
-    return this.api.getWithResponse<CourseReviewStatus>(`/api/v1/courses/${id}/review-status`);
+    return this.api.getWithResponse<CourseReviewStatus>(COURSE_ENDPOINTS.TEACHER.REVIEW_STATUS(id));
   }
 
   getCourseProgress(courseId: string) {
-    return this.api.getWithResponse<any>(`/api/v1/student/progress/courses/${courseId}`);
+    return this.api.getWithResponse<any>(COURSE_ENDPOINTS.STUDENT.PROGRESS(courseId));
   }
 
   getNextLesson(courseId: string) {
-    return this.api.getWithResponse<any>(`/api/v1/student/progress/courses/${courseId}/next-lesson`);
+    return this.api.getWithResponse<any>(COURSE_ENDPOINTS.STUDENT.NEXT_LESSON(courseId));
   }
 
   getAvailableClasses(courseId: string) {
-    return this.api.getWithResponse<ClassSummary[]>(`/api/v1/courses/${courseId}/classes/available`);
+    return this.api.getWithResponse<ClassSummary[]>(COURSE_ENDPOINTS.TEACHER.AVAILABLE_CLASSES(courseId));
   }
 
   // Get available students for enrollment (not yet enrolled in this course)
   getAvailableStudents(courseId: string, params?: { page?: number; size?: number; search?: string }): Observable<ApiResponse<AvailableStudent[]>> {
-    return this.api.getWithResponse<any>(`/api/v1/courses/${courseId}/available-students`, { params }).pipe(
+    return this.api.getWithResponse<any>(COURSE_ENDPOINTS.TEACHER.AVAILABLE_STUDENTS(courseId), { params }).pipe(
       map((res: ApiResponse<any>) => {
         const content: AvailableStudent[] = res?.data?.content ?? [];
         return {
@@ -140,7 +140,7 @@ export class CourseApi {
 
     return this.cache.get(
       cacheKey,
-      () => this.api.getWithResponse<any>(`/api/v1/courses/${courseId}/students`, { params }).pipe(
+      () => this.api.getWithResponse<any>(COURSE_ENDPOINTS.TEACHER.ENROLLED_STUDENTS(courseId), { params }).pipe(
         map((res: ApiResponse<any>) => {
           const content: EnrolledStudent[] = res?.data?.content ?? res?.data ?? [];
           return {

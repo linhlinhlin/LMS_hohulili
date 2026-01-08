@@ -190,15 +190,15 @@ export class TeacherService {
     this._error.set(null);
 
     try {
-      // Call real API: GET /api/v1/courses/my-courses
+      // Call real API: GET /api/v3/teacher/courses/my-courses
       const response = await firstValueFrom(
-        this.apiClient.get<any>(`/api/v1/courses/my-courses?page=${page}&limit=${limit}`)
+        this.apiClient.get<any>(`/api/v3/teacher/courses/my-courses?page=${page}&limit=${limit}`)
       );
-      
+
       // Backend returns: { success: true, data: { content: [...], pageable: {...} } }
       const apiData = response.data || response;
       const coursesData = apiData.content || [];
-      
+
       // Map backend response to TeacherCourse format
       const courses: TeacherCourse[] = coursesData.map((course: any) => ({
         id: course.id,
@@ -217,7 +217,7 @@ export class TeacherService {
       }));
 
       this._courses.set(courses);
-      
+
       // Initialize mock data for students and assignments (until backend provides these)
       this.initializeMockStudentsAndAssignments();
     } catch (error) {

@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { ApiClient } from './api-client';
 import { SECTION_ENDPOINTS } from '../endpoints/section.endpoints';
+import { CHAPTER_ENDPOINTS } from '../endpoints/chapter.endpoints';
 import { ApiResponse } from '../types/common.types';
 import { CreateSectionRequest, SectionDetail, UpdateSectionRequest } from '../types/course.types';
 
@@ -8,18 +9,19 @@ import { CreateSectionRequest, SectionDetail, UpdateSectionRequest } from '../ty
 export class SectionApi {
   private api = inject(ApiClient);
 
-  createSection(payload: CreateSectionRequest | FormData) {
+  createSection(lessonId: string, payload: CreateSectionRequest | FormData) {
     // Note: If payload is FormData, HttpClient handles Content-Type automatically
-    return this.api.postWithResponse<SectionDetail>(SECTION_ENDPOINTS.CREATE, payload);
+    return this.api.postWithResponse<SectionDetail>(SECTION_ENDPOINTS.CREATE(lessonId), payload);
   }
 
-  updateSection(sectionId: string, payload: UpdateSectionRequest | FormData) {
+  updateSection(lessonId: string, sectionId: string, payload: UpdateSectionRequest | FormData) {
     // Note: If payload is FormData, HttpClient handles Content-Type automatically
-    return this.api.putWithResponse<SectionDetail>(SECTION_ENDPOINTS.UPDATE(sectionId), payload);
+    // Update endpoints in V3 might need lessonId context
+    return this.api.putWithResponse<SectionDetail>(SECTION_ENDPOINTS.UPDATE(sectionId).replace('{lessonId}', lessonId), payload);
   }
 
-  deleteSection(sectionId: string) {
-    return this.api.delete<ApiResponse<string>>(SECTION_ENDPOINTS.DELETE(sectionId));
+  deleteSection(lessonId: string, sectionId: string) {
+    return this.api.delete<ApiResponse<string>>(SECTION_ENDPOINTS.DELETE(sectionId).replace('{lessonId}', lessonId));
   }
 
   getSection(sectionId: string) {

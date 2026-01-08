@@ -145,6 +145,7 @@ export interface CreateChapterRequest {
 }
 
 export interface UpdateChapterRequest {
+  courseId: string; // Required by backend
   title?: string;
   description?: string;
   orderIndex?: number;
@@ -204,11 +205,16 @@ export interface CreateLessonRequest {
 }
 
 export interface UpdateLessonRequest {
+  courseId: string;   // Required by backend
+  chapterId: string;  // Required by backend
   title?: string;
   description?: string;
+  lessonType?: string;  // Required by backend
   content?: string;
   videoUrl?: string;
   durationMinutes?: number;
+  isRequired?: boolean;  // Required by backend
+  isPreview?: boolean;   // Required by backend
   orderIndex?: number;
   quizTimeLimit?: number;
   quizPassingScore?: number;

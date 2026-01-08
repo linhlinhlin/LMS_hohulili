@@ -16,8 +16,8 @@ export class ChapterApi {
         return this.api.put<ApiResponse<ChapterDetail>>(CHAPTER_ENDPOINTS.UPDATE(chapterId), payload);
     }
 
-    deleteChapter(chapterId: string) {
-        return this.api.delete<ApiResponse<string>>(CHAPTER_ENDPOINTS.DELETE(chapterId));
+    deleteChapter(chapterId: string, courseId: string) {
+        return this.api.delete<ApiResponse<string>>(`${CHAPTER_ENDPOINTS.DELETE(chapterId)}?courseId=${courseId}`);
     }
 
     // Flat listing helpers

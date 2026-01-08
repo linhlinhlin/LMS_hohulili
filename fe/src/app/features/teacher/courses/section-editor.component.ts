@@ -1766,6 +1766,7 @@ import { SectionSmartEditorComponent } from './components/section-smart-editor/s
     <app-section-smart-editor
       *ngIf="showSmartEditor()"
       [lessonId]="activeLessonIdForEditor()!"
+      [courseId]="courseId"
       (close)="closeSmartEditor()"
       (saved)="onSmartEditorSaved()">
     </app-section-smart-editor>
@@ -2267,6 +2268,8 @@ export class SectionEditorComponent implements OnDestroy {
   saveEdit(id: string) {
     if (this.editForm.invalid) return;
     const payload: any = {
+      courseId: this.courseId, // Required by backend
+      // chapterId not needed - backend will scan chapters to find lesson
       title: this.editForm.value.title || undefined,
       content: this.editForm.value.content || undefined,
       videoUrl: this.editForm.value.videoUrl || undefined
@@ -2281,7 +2284,7 @@ export class SectionEditorComponent implements OnDestroy {
   }
 
   deleteLesson(id: string) {
-    this.lessonApi.deleteLesson(id).subscribe({
+    this.lessonApi.deleteLesson(id, this.courseId).subscribe({
       next: () => this.lessons.update(list => list.filter(i => i.id !== id)),
       error: (err) => this.opError.set(err?.message || 'Xóa bài học thất bại')
     });
@@ -2308,7 +2311,7 @@ export class SectionEditorComponent implements OnDestroy {
     const id = lesson.id;
     this.isDeleting.set(true);
 
-    this.lessonApi.deleteLesson(id).pipe(
+    this.lessonApi.deleteLesson(id, this.courseId).pipe(
       take(1)
     ).subscribe({
       next: () => {
@@ -3775,7 +3778,7 @@ export class SectionEditorComponent implements OnDestroy {
           content: '<p>Nội dung bài đọc...</p>',
           orderIndex: 0 // Backend should handle order
         };
-        await firstValueFrom(this.sectionApi.createSection(payload));
+        await firstValueFrom(this.sectionApi.createSection(lessonId, payload));
         this.showSuccessToast.set(true);
         setTimeout(() => this.showSuccessToast.set(false), 3000);
         await this.refreshLessons();
@@ -3789,7 +3792,7 @@ export class SectionEditorComponent implements OnDestroy {
             videoUrl: url,
             orderIndex: 0
           };
-          await firstValueFrom(this.sectionApi.createSection(payload));
+          await firstValueFrom(this.sectionApi.createSection(lessonId, payload));
           this.showSuccessToast.set(true);
           setTimeout(() => this.showSuccessToast.set(false), 3000);
           await this.refreshLessons();
@@ -3808,7 +3811,9 @@ export class SectionEditorComponent implements OnDestroy {
 
     this.loading.set(true);
     try {
-      await firstValueFrom(this.sectionApi.deleteSection(sectionId));
+      const lessonId = this.activeLessonIdForEditor();
+      if (!lessonId) return;
+      await firstValueFrom(this.sectionApi.deleteSection(lessonId, sectionId));
       this.showSuccessToast.set(true);
       setTimeout(() => this.showSuccessToast.set(false), 3000);
       await this.refreshLessons();

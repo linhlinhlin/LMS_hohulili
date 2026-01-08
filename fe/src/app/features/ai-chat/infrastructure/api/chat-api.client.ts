@@ -23,7 +23,7 @@ import {
  * API Configuration
  */
 export const AI_CHAT_CONFIG = {
-  baseUrl: '/api/v1/ai', // LMS Backend Proxy
+  baseUrl: '/api/v3/ai', // LMS Backend Proxy
   timeout: 60000, // 60 seconds
   coldStartThreshold: 10000, // 10 seconds indicates cold start
 } as const;

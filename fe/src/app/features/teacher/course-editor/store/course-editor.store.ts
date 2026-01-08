@@ -109,4 +109,29 @@ export class CourseEditorStore {
                 error: () => this.toast.open('Failed to save lesson changes', 'Close', { duration: 3000 })
             });
     }
+    // Helper to find node and parent
+    findNode(id: string): { node: any, parentId: string | undefined } | null {
+        const tree = this.courseTree();
+        if (!tree) return null;
+
+        for (const chapter of tree.chapters) {
+            if (chapter.id === id) return { node: chapter, parentId: undefined };
+            for (const lesson of chapter.lessons || []) {
+                if (lesson.id === id) return { node: lesson, parentId: chapter.id };
+                for (const section of lesson.sections || []) {
+                    if (section.id === id) return { node: section, parentId: lesson.id };
+                }
+            }
+        }
+        return null;
+    }
+
+    // Clear cache for specific course - SOTA pattern for cache invalidation after mutations
+    invalidateCache(courseId?: string) {
+        if (courseId) {
+            this.courseCache.delete(courseId);
+        } else {
+            this.courseCache.clear();
+        }
+    }
 }

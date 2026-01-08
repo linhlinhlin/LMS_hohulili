@@ -79,11 +79,11 @@ import { StudentEnrollmentService } from '../../../features/student/services/enr
         <!-- Instructor Section -->
         <div class="flex items-center mb-4 pb-4 border-b border-gray-100">
           <div class="w-8 h-8 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center text-xs font-bold text-gray-600 mr-3">
-            {{ (course.instructor?.name || 'G')[0] }}
+            {{ (course.instructor.name || 'G')[0] }}
           </div>
           <div>
-            <p class="text-sm font-medium text-gray-800">{{ course.instructor?.name || 'Giảng viên' }}</p>
-            <p class="text-xs text-gray-400">{{ course.instructor?.title || 'Giảng viên' }}</p>
+            <p class="text-sm font-medium text-gray-800">{{ course.instructor.name || 'Giảng viên' }}</p>
+            <p class="text-xs text-gray-400">{{ course.instructor.title || 'Giảng viên' }}</p>
           </div>
         </div>
 

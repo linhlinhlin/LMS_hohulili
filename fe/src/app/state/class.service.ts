@@ -12,7 +12,7 @@ import { environment } from '../../environments/environment';
 })
 export class ClassService {
     private http = inject(HttpClient);
-    private readonly API_URL = `${environment.apiUrl}/api/v1`;
+    private readonly API_URL = `${environment.apiUrl}/api/v3`;
 
     getClassesByCourse(courseId: string): Observable<ClassSummary[]> {
         return this.http.get<ApiResponse<ClassSummary[]>>(`${this.API_URL}/courses/${courseId}/classes`)
