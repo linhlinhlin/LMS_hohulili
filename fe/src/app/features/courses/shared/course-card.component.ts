@@ -1,4 +1,4 @@
-import { Component, Input, ChangeDetectionStrategy, inject } from '@angular/core';
+import { Component, input, ChangeDetectionStrategy, inject } from '@angular/core';
 import { CommonModule, NgOptimizedImage } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { LEVEL_LABELS, CourseLevel, ExtendedCourse } from '../../../shared/types/course.types';
@@ -13,13 +13,13 @@ import { StudentEnrollmentService } from '../../../features/student/services/enr
   template: `
     <!-- Coursera SOTA Course Card (Dec 2025) -->
     <article class="group bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-100"
-             [attr.aria-label]="'Khóa học: ' + (course.title || '')">
+             [attr.aria-label]="'Khóa học: ' + (course().title || '')">
       
       <!-- Image Section with Hover Overlay -->
       <div class="relative overflow-hidden">
-        <img [ngSrc]="course.thumbnail || 'assets/images/courses/placeholder.png'" 
+        <img [ngSrc]="course().thumbnail || 'assets/images/courses/placeholder.png'" 
              width="400" height="225" 
-             [alt]="'Hình ảnh khóa học ' + (course.title || '')" 
+             [alt]="'Hình ảnh khóa học ' + (course().title || '')" 
              class="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-105" />
         
         <!-- Hover Overlay with Play Button -->
@@ -33,17 +33,17 @@ import { StudentEnrollmentService } from '../../../features/student/services/enr
         
         <!-- Badges (Top Left) -->
         <div class="absolute top-3 left-3 flex flex-wrap gap-1.5" role="group" aria-label="Nhãn khóa học">
-          @if (course.isNew) {
+          @if (course().isNew) {
             <span class="bg-gradient-to-r from-emerald-500 to-green-600 text-white px-2.5 py-1 rounded-full text-xs font-bold shadow-sm">
               ✨ Mới
             </span>
           }
-          @if (course.isPopular) {
+          @if (course().isPopular) {
             <span class="bg-gradient-to-r from-orange-500 to-red-500 text-white px-2.5 py-1 rounded-full text-xs font-bold shadow-sm">
               🔥 HOT
             </span>
           }
-          @if (isEnrolledInCourse(course.id)) {
+          @if (isEnrolledInCourse(course().id)) {
             <span class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-2.5 py-1 rounded-full text-xs font-bold shadow-sm">
               ✓ Enrolled
             </span>
@@ -53,7 +53,7 @@ import { StudentEnrollmentService } from '../../../features/student/services/enr
         <!-- Price Badge (Top Right) -->
         <div class="absolute top-3 right-3">
           <span class="bg-white/95 backdrop-blur-sm text-gray-900 px-3 py-1.5 rounded-lg text-sm font-bold shadow-sm">
-            {{ course.price === 0 ? 'Miễn phí' : (course.price | currency:'VND':'symbol':'1.0-0':'vi') }}
+            {{ course().price === 0 ? 'Miễn phí' : (course().price | currency:'VND':'symbol':'1.0-0':'vi') }}
           </span>
         </div>
       </div>
@@ -63,27 +63,27 @@ import { StudentEnrollmentService } from '../../../features/student/services/enr
         <!-- Category + Level Row -->
         <div class="flex items-center justify-between mb-3">
           <span class="inline-flex items-center bg-blue-50 text-blue-700 text-xs font-semibold px-2.5 py-1 rounded-full">
-            {{ getCategoryName(course.category) }}
+            {{ getCategoryName(course().category) }}
           </span>
-          <span class="text-xs text-gray-500 font-medium">{{ levelLabelSafe(course.level) }}</span>
+          <span class="text-xs text-gray-500 font-medium">{{ levelLabelSafe(course().level) }}</span>
         </div>
 
         <!-- Title -->
         <h3 class="text-base font-bold text-gray-900 mb-2 line-clamp-2 leading-snug group-hover:text-blue-600 transition-colors">
-          {{ course.title }}
+          {{ course().title }}
         </h3>
         
         <!-- Description (shorter) -->
-        <p class="text-gray-500 text-sm mb-4 line-clamp-2 leading-relaxed">{{ course.description }}</p>
+        <p class="text-gray-500 text-sm mb-4 line-clamp-2 leading-relaxed">{{ course().description }}</p>
 
         <!-- Instructor Section -->
         <div class="flex items-center mb-4 pb-4 border-b border-gray-100">
           <div class="w-8 h-8 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center text-xs font-bold text-gray-600 mr-3">
-            {{ (course.instructor.name || 'G')[0] }}
+            {{ (course().instructor.name || 'G')[0] }}
           </div>
           <div>
-            <p class="text-sm font-medium text-gray-800">{{ course.instructor.name || 'Giảng viên' }}</p>
-            <p class="text-xs text-gray-400">{{ course.instructor.title || 'Giảng viên' }}</p>
+            <p class="text-sm font-medium text-gray-800">{{ course().instructor.name || 'Giảng viên' }}</p>
+            <p class="text-xs text-gray-400">{{ course().instructor.title || 'Giảng viên' }}</p>
           </div>
         </div>
 
@@ -93,33 +93,33 @@ import { StudentEnrollmentService } from '../../../features/student/services/enr
           <div class="flex items-center">
             <div class="flex mr-1.5">
               @for (star of [1,2,3,4,5]; track star) {
-                <svg class="w-4 h-4" [class.text-yellow-400]="star <= (course.rating || 0)" [class.text-gray-200]="star > (course.rating || 0)" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="w-4 h-4" [class.text-yellow-400]="star <= (course().rating || 0)" [class.text-gray-200]="star > (course().rating || 0)" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
                 </svg>
               }
             </div>
-            <span class="text-sm font-semibold text-gray-900">{{ course.rating || 5 }}</span>
-            <span class="text-xs text-gray-400 ml-1">({{ course.studentsCount || 0 }})</span>
+            <span class="text-sm font-semibold text-gray-900">{{ course().rating || 5 }}</span>
+            <span class="text-xs text-gray-400 ml-1">({{ course().studentsCount || 0 }})</span>
           </div>
-          <span class="text-xs text-gray-500">{{ course.lessonsCount || 0 }} bài học</span>
+          <span class="text-xs text-gray-500">{{ course().lessonsCount || 0 }} bài học</span>
         </div>
 
         <!-- Action Button -->
         <div class="flex gap-2">
           @if (authService.isAuthenticated() && authService.userRole() === 'student') {
-            @if (isEnrolledInCourse(course.id)) {
-              <a [routerLink]="['/student/learn/course', course.id]"
+            @if (isEnrolledInCourse(course().id)) {
+              <a [routerLink]="['/student/learn/course', course().id]"
                  class="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold text-center transition-all shadow-sm hover:shadow-md">
                 Tiếp tục học →
               </a>
             } @else {
-              <a [routerLink]="['/courses', course.id]"
+              <a [routerLink]="['/courses', course().id]"
                  class="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold text-center transition-all shadow-sm hover:shadow-md">
                 Đăng ký ngay
               </a>
             }
           } @else {
-            <a [routerLink]="['/courses', course.id]"
+            <a [routerLink]="['/courses', course().id]"
                class="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold text-center transition-all shadow-sm hover:shadow-md">
               Xem chi tiết
             </a>
@@ -130,12 +130,13 @@ import { StudentEnrollmentService } from '../../../features/student/services/enr
   `
 })
 export class CourseCardComponent {
-  @Input() course!: ExtendedCourse;
+  // Signal input (Angular v20+)
+  readonly course = input.required<ExtendedCourse>();
 
   // Services
-  protected authService = inject(AuthService);
-  protected enrollmentService = inject(StudentEnrollmentService);
-  private router = inject(Router);
+  protected readonly authService = inject(AuthService);
+  protected readonly enrollmentService = inject(StudentEnrollmentService);
+  private readonly router = inject(Router);
 
   levelLabel(level: CourseLevel): string {
     return LEVEL_LABELS[level] ?? level;
@@ -193,7 +194,8 @@ export class CourseCardComponent {
 
   private handleEnrollmentSuccess(courseId: string): void {
     // Enrollment successful - update the course's isEnrolled property
-    this.course.isEnrolled = true;
+    // Note: With signal inputs, we can't mutate the input directly
+    // The parent component should handle this state change
 
     // Also update the parent CoursesComponent's enrolledCourseIds Set if available
     const coursesComponent = this.getCoursesComponent();
@@ -235,5 +237,3 @@ export class CourseCardComponent {
     }
   }
 }
-
-

@@ -1,8 +1,0 @@
-[INFO] Scanning for projects...
-[INFO] 
-[INFO] ------------------< com.example:backend-lms-postgres >------------------
-[INFO] Building backend-lms-postgres 0.0.1-SNAPSHOT
-[INFO]   from pom.xml
-[INFO] --------------------------------[ jar ]---------------------------------
-[INFO] 
-[INFO] >>> spring-boot:3.2.6:run (default-cli) > test-compile @ backend-lms-postgres >>>

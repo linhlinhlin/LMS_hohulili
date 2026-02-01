@@ -48,6 +48,7 @@ coverage/
 .env
 .env.*
 *.env
+!.env.example
 *.log
 logs/
 

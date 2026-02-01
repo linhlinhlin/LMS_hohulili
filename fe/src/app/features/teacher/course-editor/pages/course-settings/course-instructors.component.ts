@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, OnChanges, SimpleChanges, signal, Input } from '@angular/core';
+import { Component, inject, signal, input, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CourseInstructorService, CourseInstructor, InstructorPermissions, DEFAULT_PERMISSIONS } from '../../services/course-instructor.service';
@@ -207,8 +207,8 @@ import { CourseInstructorService, CourseInstructor, InstructorPermissions, DEFAU
     }
   `
 })
-export class CourseInstructorsComponent implements OnChanges {
-  @Input() courseId!: string;
+export class CourseInstructorsComponent {
+  courseId = input.required<string>();
 
   protected instructorService = inject(CourseInstructorService);
 
@@ -229,20 +229,23 @@ export class CourseInstructorsComponent implements OnChanges {
   // Edit permissions form
   editPermissions: InstructorPermissions = { ...DEFAULT_PERMISSIONS };
 
-  // SOTA Fix: Use ngOnChanges to detect when @Input courseId becomes available
+  // Track loaded courseId to prevent duplicate loads
   private loadedCourseId: string | null = null;
 
-  ngOnChanges(changes: SimpleChanges): void {
-    // Only load if courseId has changed and has a value
-    if (changes['courseId'] && this.courseId && this.courseId !== this.loadedCourseId) {
-      console.log('[CourseInstructors] 📋 Loading instructors for course:', this.courseId);
-      this.loadedCourseId = this.courseId;
-      this.loadInstructors();
-    }
+  constructor() {
+    // SOTA: Use effect() to react to courseId changes
+    effect(() => {
+      const id = this.courseId();
+      if (id && id !== this.loadedCourseId) {
+        console.log('[CourseInstructors] 📋 Loading instructors for course:', id);
+        this.loadedCourseId = id;
+        this.loadInstructors(id);
+      }
+    });
   }
 
-  private loadInstructors(): void {
-    this.instructorService.getInstructors(this.courseId).subscribe();
+  private loadInstructors(courseId: string): void {
+    this.instructorService.getInstructors(courseId).subscribe();
   }
 
   getInitials(name: string | undefined): string {
@@ -269,7 +272,7 @@ export class CourseInstructorsComponent implements OnChanges {
   sendInvitation(): void {
     if (!this.isInviteFormValid()) return;
 
-    this.instructorService.inviteInstructor(this.courseId, {
+    this.instructorService.inviteInstructor(this.courseId(), {
       email: this.inviteEmail,
       permissions: this.invitePermissions,
       message: this.inviteMessage || undefined
@@ -306,7 +309,7 @@ export class CourseInstructorsComponent implements OnChanges {
     const instructor = this.selectedInstructor();
     if (!instructor) return;
 
-    this.instructorService.updatePermissions(this.courseId, instructor.userId, this.editPermissions).subscribe({
+    this.instructorService.updatePermissions(this.courseId(), instructor.userId, this.editPermissions).subscribe({
       next: (response) => {
         alert(response.message);
         this.closePermissionsModal();
@@ -320,7 +323,7 @@ export class CourseInstructorsComponent implements OnChanges {
   // Remove Instructor
   confirmRemove(instructor: CourseInstructor): void {
     if (confirm(`Bạn có chắc muốn xóa "${instructor.userName}" khỏi khóa học?`)) {
-      this.instructorService.removeInstructor(this.courseId, instructor.userId).subscribe({
+      this.instructorService.removeInstructor(this.courseId(), instructor.userId).subscribe({
         next: (response) => alert(response.message),
         error: (error) => alert('Lỗi: ' + (error.message || 'Không thể xóa giảng viên'))
       });

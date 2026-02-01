@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, input } from '@angular/core';
 import { CommonModule, NgOptimizedImage } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { ExtendedCourse } from '../../../../shared/types/course.types';
@@ -11,25 +11,25 @@ import { ExtendedCourse } from '../../../../shared/types/course.types';
       <!-- Course Thumbnail -->
       <div class="relative overflow-hidden">
         <img 
-          [ngSrc]="course.thumbnail" 
+          [ngSrc]="course().thumbnail" 
           width="400" 
           height="200" 
           class="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-          [alt]="course.title" />
+          [alt]="course().title" />
         
         <!-- Course Level Badge -->
         <div class="absolute top-4 left-4">
           <span class="px-3 py-1 rounded-full text-sm font-semibold"
-                [ngClass]="getLevelBadgeClass(course.level)">
-            {{ getLevelLabel(course.level) }}
+                [ngClass]="getLevelBadgeClass(course().level)">
+            {{ getLevelLabel(course().level) }}
           </span>
         </div>
         
         <!-- Course Price -->
         <div class="absolute top-4 right-4">
           <span class="px-3 py-1 rounded-full text-sm font-semibold bg-white/90 backdrop-blur-sm"
-                [ngClass]="course.price === 0 ? 'text-green-700' : 'text-blue-700'">
-            {{ getPriceDisplay(course.price) }}
+                [ngClass]="course().price === 0 ? 'text-green-700' : 'text-blue-700'">
+            {{ getPriceDisplay(course().price) }}
           </span>
         </div>
 
@@ -49,11 +49,11 @@ import { ExtendedCourse } from '../../../../shared/types/course.types';
       <div class="p-6">
         <!-- Course Title -->
         <h3 class="text-lg font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
-          {{ course.title }}
+          {{ course().title }}
         </h3>
         
         <!-- Course Description -->
-        <p class="text-gray-600 mb-4 line-clamp-3">{{ course.shortDescription }}</p>
+        <p class="text-gray-600 mb-4 line-clamp-3">{{ course().shortDescription }}</p>
         
         <!-- Course Stats -->
         <div class="flex items-center justify-between text-sm text-gray-500 mb-4">
@@ -62,30 +62,30 @@ import { ExtendedCourse } from '../../../../shared/types/course.types';
               <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
               </svg>
-              {{ course.rating }}
+              {{ course().rating }}
             </span>
-            <span>{{ course.studentsCount }} học viên</span>
+            <span>{{ course().studentsCount }} học viên</span>
           </div>
-          <span>{{ course.duration }}</span>
+          <span>{{ course().duration }}</span>
         </div>
         
         <!-- Course Instructor -->
         <div class="flex items-center mb-4">
           <img
-            [ngSrc]="course.instructor.avatar"
+            [ngSrc]="course().instructor.avatar"
             width="48"
             height="32"
             class="w-8 h-8 rounded-full mr-3"
-            [alt]="course.instructor.name" />
+            [alt]="course().instructor.name" />
           <div>
-            <p class="text-sm font-medium text-gray-900">{{ course.instructor.name }}</p>
-            <p class="text-xs text-gray-500">{{ course.instructor.title }}</p>
+            <p class="text-sm font-medium text-gray-900">{{ course().instructor.name }}</p>
+            <p class="text-xs text-gray-500">{{ course().instructor.title }}</p>
           </div>
         </div>
 
         <!-- Course Tags -->
         <div class="flex flex-wrap gap-1 mb-4">
-          @for (tag of course.tags.slice(0, 3); track tag) {
+          @for (tag of course().tags.slice(0, 3); track tag) {
             <span class="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">
               {{ tag }}
             </span>
@@ -94,7 +94,7 @@ import { ExtendedCourse } from '../../../../shared/types/course.types';
         
         <!-- Action Button -->
         <a 
-          [routerLink]="['/courses', course.id]" 
+          [routerLink]="['/courses', course().id]" 
           class="block w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white text-center py-3 px-4 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-200 transform hover:scale-105">
           Xem chi tiết
         </a>
@@ -103,8 +103,8 @@ import { ExtendedCourse } from '../../../../shared/types/course.types';
   `
 })
 export class CategoryCourseCardComponent {
-  @Input() course!: ExtendedCourse;
-  @Input() brandColor: 'blue' | 'green' | 'amber' | 'indigo' | 'rose' | 'cyan' = 'blue';
+  course = input.required<ExtendedCourse>();
+  brandColor = input<'blue' | 'green' | 'amber' | 'indigo' | 'rose' | 'cyan'>('blue');
 
   getLevelLabel(level: string): string {
     const labels: Record<string, string> = {
@@ -132,9 +132,9 @@ export class CategoryCourseCardComponent {
   playPreview(event: Event): void {
     event.preventDefault();
     event.stopPropagation();
-    
+
     // Mock preview functionality
-    console.log('Playing course preview for:', this.course.title);
+    console.log('Playing course preview for:', this.course().title);
     // Trong thực tế sẽ mở video player modal hoặc redirect đến preview page
   }
 }

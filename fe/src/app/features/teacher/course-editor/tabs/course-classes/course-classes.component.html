@@ -32,15 +32,18 @@
         <!-- Year Filter -->
         <select (change)="onYearChange($event)"
             class="block pl-3 pr-8 py-1.5 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
-            <option *ngFor="let y of years" [value]="y" [selected]="y === selectedYear">Năm {{ y }} - {{ y + 1 }}
-            </option>
+            @for (y of years; track y) {
+            <option [value]="y" [selected]="y === selectedYear">Năm {{ y }} - {{ y + 1 }}</option>
+            }
         </select>
 
         <!-- Semester Filter -->
         <select (change)="onSemesterChange($event)"
             class="block pl-3 pr-8 py-1.5 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
             <option value="">Tất cả học kỳ</option>
-            <option *ngFor="let s of semesters" [value]="s">{{ s }}</option>
+            @for (s of semesters; track s) {
+            <option [value]="s">{{ s }}</option>
+            }
         </select>
 
         <!-- Status Filter -->
@@ -66,19 +69,24 @@
             </thead>
             <tbody class="divide-y divide-gray-100">
                 <!-- Loading State -->
-                <tr *ngIf="isLoading()">
+                @if (isLoading()) {
+                <tr>
                     <td colspan="5" class="px-4 py-8 text-center text-gray-500">Đang tải dữ liệu...</td>
                 </tr>
+                }
 
                 <!-- Empty State -->
-                <tr *ngIf="!isLoading() && classes().length === 0">
+                @if (!isLoading() && classes().length === 0) {
+                <tr>
                     <td colspan="5" class="px-4 py-8 text-center text-gray-500">
                         Chưa có lớp học nào phù hợp.
                     </td>
                 </tr>
+                }
 
                 <!-- List Items -->
-                <tr *ngFor="let cls of classes()" class="hover:bg-blue-50/50 transition-colors">
+                @for (cls of classes(); track cls.id) {
+                <tr class="hover:bg-blue-50/50 transition-colors">
                     <!-- Compact Name -->
                     <td class="px-4 py-2 whitespace-nowrap">
                         <div class="flex flex-col">
@@ -102,14 +110,16 @@
                     <td class="px-4 py-2 whitespace-nowrap">
                         <div class="flex flex-col text-xs text-gray-500">
                             <div class="flex items-center">
-                                <span *ngIf="cls.scheduleType === 'SEMESTER'"
-                                    class="mr-1.5 font-semibold text-blue-700">
+                                @if (cls.scheduleType === 'SEMESTER') {
+                                <span class="mr-1.5 font-semibold text-blue-700">
                                     {{ cls.semester }}
                                 </span>
-                                <span *ngIf="cls.scheduleType === 'CUSTOM'"
-                                    class="mr-1.5 font-semibold text-purple-700">
+                                }
+                                @if (cls.scheduleType === 'CUSTOM') {
+                                <span class="mr-1.5 font-semibold text-purple-700">
                                     Custom
                                 </span>
+                                }
                             </div>
                             <span>{{ cls.startDate | date:'dd/MM/yyyy' }} - {{ cls.endDate | date:'dd/MM/yyyy' }}</span>
                         </div>
@@ -159,13 +169,14 @@
                         </div>
                     </td>
                 </tr>
+                }
             </tbody>
         </table>
     </div>
 
     <!-- PAGINATION FOOTER -->
-    <div class="px-4 py-2 border-t border-gray-200 bg-white flex items-center justify-between sm:px-6"
-        *ngIf="totalElements > 0">
+    @if (totalElements > 0) {
+    <div class="px-4 py-2 border-t border-gray-200 bg-white flex items-center justify-between sm:px-6">
         <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
             <div>
                 <p class="text-xs text-gray-700">
@@ -195,4 +206,5 @@
             </div>
         </div>
     </div>
+    }
 </div>

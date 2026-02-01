@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, HostListener, importProvidersFrom } from '@angular/core';
+﻿import { Component, inject, signal, computed, HostListener, importProvidersFrom } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CourseEditorStore } from '../../store/course-editor.store';
@@ -52,21 +52,21 @@ import {
 
         <!-- Header (SOTA 2025: High Density) -->
         <div class="p-4 border-b border-slate-100 bg-white">
-            <h2 class="text-xs font-bold text-slate-800 mb-3 uppercase tracking-tight">Cấu trúc khóa học</h2>
+            <h2 class="text-xs font-bold text-slate-800 mb-3 uppercase tracking-tight">Cáº¥u trĂºc khĂ³a há»c</h2>
             <div class="relative">
                 <lucide-icon name="search" class="absolute left-2 top-2 text-slate-400" [size]="14"></lucide-icon>
                 <input type="text" 
                        [(ngModel)]="tempSearch"
                        (input)="onSearch(tempSearch)"
-                       placeholder="Tìm kiếm nội dung (Ctrl+K)..." 
+                       placeholder="TĂ¬m kiáº¿m ná»™i dung (Ctrl+K)..." 
                        class="w-full h-9 pl-9 pr-3 bg-slate-50 border-none rounded-md text-xs focus:ring-1 focus:ring-slate-200 transition-all placeholder:text-slate-400">
             </div>
             
             <!-- Stats Badge -->
             <div class="mt-3 flex items-center justify-between text-[10px] font-bold text-slate-400">
-               <span>TIẾN ĐỘ: {{ publishedCount() }}/{{ totalCount() }} BÀI</span>
+               <span>TIáº¾N Äá»˜: {{ publishedCount() }}/{{ totalCount() }} BĂ€I</span>
                <button (click)="toggleAll()" class="hover:text-blue-600 transition-colors">
-                 {{ activeChapterId() ? 'THU GỌN HẾT' : 'MỞ RỘNG' }}
+                 {{ activeChapterId() ? 'THU Gá»ŒN Háº¾T' : 'Má» Rá»˜NG' }}
                </button>
             </div>
         </div>
@@ -92,10 +92,10 @@ import {
 
                           <!-- Chapter Actions (Hover) -->
                           <div class="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity" (click)="$event.stopPropagation()">
-                            <button (click)="showAddLessonModal(chapter, $index)" class="p-1 text-slate-400 hover:text-blue-600 rounded transition-colors" matTooltip="Thêm bài học">
+                            <button (click)="showAddLessonModal(chapter, $index)" class="p-1 text-slate-400 hover:text-blue-600 rounded transition-colors" matTooltip="ThĂªm bĂ i há»c">
                                 <lucide-icon name="plus" [size]="14"></lucide-icon>
                             </button>
-                            <button (click)="deleteChapter(chapter.id)" class="p-1 text-slate-300 hover:text-red-500 rounded transition-colors" matTooltip="Xóa chương">
+                            <button (click)="deleteChapter(chapter.id)" class="p-1 text-slate-300 hover:text-red-500 rounded transition-colors" matTooltip="XĂ³a chÆ°Æ¡ng">
                                 <lucide-icon name="trash-2" [size]="14"></lucide-icon>
                             </button>
                           </div>
@@ -127,10 +127,10 @@ import {
 
                                           <!-- Lesson Actions (Hover) -->
                                           <div class="opacity-0 group-hover/lesson:opacity-100 flex items-center gap-1 transition-opacity" (click)="$event.stopPropagation()">
-                                            <button (click)="showAddSectionModal(lesson, lesson.sections.length || 0, $index)" class="p-1 text-slate-400 hover:text-blue-600 rounded transition-colors" matTooltip="Thêm nội dung">
+                                            <button (click)="showAddSectionModal(lesson, lesson.sections.length || 0, $index)" class="p-1 text-slate-400 hover:text-blue-600 rounded transition-colors" matTooltip="ThĂªm ná»™i dung">
                                               <lucide-icon name="plus-circle" [size]="12"></lucide-icon>
                                             </button>
-                                            <button (click)="deleteLesson(lesson.id)" class="p-1 text-slate-300 hover:text-red-500 rounded transition-colors" matTooltip="Xóa bài học">
+                                            <button (click)="deleteLesson(lesson.id)" class="p-1 text-slate-300 hover:text-red-500 rounded transition-colors" matTooltip="XĂ³a bĂ i há»c">
                                               <lucide-icon name="trash-2" [size]="12"></lucide-icon>
                                             </button>
                                           </div>
@@ -176,7 +176,7 @@ import {
                                       <button (click)="showAddSectionModal(lesson, lesson.sections.length || 0, $index); $event.stopPropagation()"
                                               class="ml-7 mt-1 text-[10px] font-black text-blue-500 opacity-0 group-hover/lesson:opacity-100 uppercase tracking-widest hover:text-blue-700 transition-all flex items-center gap-1">
                                           <lucide-icon name="plus" [size]="10"></lucide-icon>
-                                          THÊM NỘI DUNG
+                                          THĂM Ná»˜I DUNG
                                       </button>
                                   </div>
                               }
@@ -192,7 +192,7 @@ import {
             <button (click)="showAddChapterModal()"
                     class="w-full py-2.5 flex items-center justify-center gap-2 bg-white border border-slate-200 rounded-lg shadow-sm text-xs font-bold text-slate-700 hover:border-slate-900 hover:text-slate-900 hover:shadow-md active:scale-[0.98] transition-all">
                 <lucide-icon name="plus-circle" [size]="14" class="text-blue-500"></lucide-icon>
-                THÊM CHƯƠNG MỚI
+                THĂM CHÆ¯Æ NG Má»I
             </button>
         </div>
     </aside>
@@ -202,19 +202,19 @@ import {
       <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[100]" (click)="closeModals()">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden border border-slate-200" (click)="$event.stopPropagation()">
           <div class="p-6 border-b border-slate-100">
-            <h3 class="text-sm font-black text-slate-800 uppercase tracking-tighter">Tạo chương mới</h3>
+            <h3 class="text-sm font-black text-slate-800 uppercase tracking-tighter">Táº¡o chÆ°Æ¡ng má»›i</h3>
           </div>
           <div class="p-6 space-y-4">
             <div class="space-y-1.5">
-              <label class="text-[10px] font-bold text-slate-400 uppercase">Tên chương/module</label>
+              <label class="text-[10px] font-bold text-slate-400 uppercase">TĂªn chÆ°Æ¡ng/module</label>
               <input type="text" [(ngModel)]="newChapterTitle" 
                      class="w-full px-4 py-2.5 bg-slate-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-100 transition-all" 
-                     placeholder="VD: Kiến thức cơ bản...">
+                     placeholder="VD: Kiáº¿n thá»©c cÆ¡ báº£n...">
             </div>
           </div>
           <div class="p-6 bg-slate-50 flex justify-end gap-3">
-            <button (click)="closeModals()" class="px-5 py-2 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors uppercase">Hủy</button>
-            <button (click)="createChapter()" class="px-6 py-2 bg-slate-900 text-white text-xs font-bold rounded-full hover:bg-blue-600 transition-all shadow-lg">XÁC NHẬN</button>
+            <button (click)="closeModals()" class="px-5 py-2 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors uppercase">Há»§y</button>
+            <button (click)="createChapter()" class="px-6 py-2 bg-slate-900 text-white text-xs font-bold rounded-full hover:bg-blue-600 transition-all shadow-lg">XĂC NHáº¬N</button>
           </div>
         </div>
       </div>
@@ -225,19 +225,19 @@ import {
       <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[100]" (click)="closeModals()">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden border border-slate-200" (click)="$event.stopPropagation()">
           <div class="p-6 border-b border-slate-100">
-            <h3 class="text-sm font-black text-slate-800 uppercase tracking-tighter">Thêm bài học</h3>
+            <h3 class="text-sm font-black text-slate-800 uppercase tracking-tighter">ThĂªm bĂ i há»c</h3>
           </div>
           <div class="p-6 space-y-4">
              <div class="space-y-1.5">
-                <label class="text-[10px] font-bold text-slate-400 uppercase">Tên bài học</label>
+                <label class="text-[10px] font-bold text-slate-400 uppercase">TĂªn bĂ i há»c</label>
                 <input type="text" [(ngModel)]="newLessonTitle" 
                        class="w-full px-4 py-2.5 bg-slate-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-100 transition-all" 
-                       placeholder="VD: Bài 1: Giới thiệu...">
+                       placeholder="VD: BĂ i 1: Giá»›i thiá»‡u...">
              </div>
           </div>
           <div class="p-6 bg-slate-50 flex justify-end gap-3">
-            <button (click)="closeModals()" class="px-5 py-2 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors uppercase">Hủy</button>
-            <button (click)="createLesson()" class="px-6 py-2 bg-slate-900 text-white text-xs font-bold rounded-full hover:bg-blue-600 transition-all shadow-lg">XÁC NHẬN</button>
+            <button (click)="closeModals()" class="px-5 py-2 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors uppercase">Há»§y</button>
+            <button (click)="createLesson()" class="px-6 py-2 bg-slate-900 text-white text-xs font-bold rounded-full hover:bg-blue-600 transition-all shadow-lg">XĂC NHáº¬N</button>
           </div>
         </div>
       </div>
@@ -248,20 +248,20 @@ import {
       <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[100]" (click)="closeModals()">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden border border-slate-200" (click)="$event.stopPropagation()">
           <div class="p-6 border-b border-slate-100">
-            <h3 class="text-sm font-black text-slate-800 uppercase tracking-tighter">Nội dung chi tiết</h3>
-            <p class="text-[11px] text-slate-400 mt-1 font-medium">BÀI HỌC: {{ currentLessonForSection()?.title }}</p>
+            <h3 class="text-sm font-black text-slate-800 uppercase tracking-tighter">Ná»™i dung chi tiáº¿t</h3>
+            <p class="text-[11px] text-slate-400 mt-1 font-medium">BĂ€I Há»ŒC: {{ currentLessonForSection()?.title }}</p>
           </div>
           <div class="p-6 space-y-5">
             <div class="space-y-1.5">
-              <label class="text-[10px] font-bold text-slate-400 uppercase">Tiêu đề nội dung</label>
+              <label class="text-[10px] font-bold text-slate-400 uppercase">TiĂªu Ä‘á» ná»™i dung</label>
               <input type="text" 
                      [(ngModel)]="newSectionTitle"
                      class="w-full px-4 py-2.5 bg-slate-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-100 transition-all"
-                     placeholder="VD: Video bài giảng, Tài liệu đọc...">
+                     placeholder="VD: Video bĂ i giáº£ng, TĂ i liá»‡u Ä‘á»c...">
             </div>
             
             <div class="space-y-2">
-              <label class="text-[10px] font-bold text-slate-400 uppercase">Loại nội dung</label>
+              <label class="text-[10px] font-bold text-slate-400 uppercase">Loáº¡i ná»™i dung</label>
               <div class="grid grid-cols-4 gap-2">
                 @for (type of sectionTypes; track type) {
                   <button (click)="newSectionType = type" 
@@ -274,7 +274,7 @@ import {
 
               @if (newSectionType === 'FILE') {
                 <div class="mt-4 p-4 bg-amber-50 rounded-2xl border border-amber-100 animate-fade-in">
-                  <label class="block text-[10px] font-black text-amber-700 uppercase mb-2">Đính kèm tài liệu</label>
+                  <label class="block text-[10px] font-black text-amber-700 uppercase mb-2">ÄĂ­nh kĂ¨m tĂ i liá»‡u</label>
                   @if (!selectedFile) {
                     <input type="file" (change)="onFileSelected($event)" 
                            class="block w-full text-[10px] text-slate-500 file:mr-4 file:py-1.5 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:bg-amber-200 file:text-amber-800 hover:file:bg-amber-300">
@@ -294,11 +294,11 @@ import {
             </div>
           </div>
           <div class="p-6 bg-slate-50 flex justify-end gap-3">
-            <button (click)="closeModals()" class="px-5 py-2 text-xs font-bold text-slate-500 hover:text-slate-900 uppercase">Hủy</button>
+            <button (click)="closeModals()" class="px-5 py-2 text-xs font-bold text-slate-500 hover:text-slate-900 uppercase">Há»§y</button>
             <button (click)="createSection()" 
                     [disabled]="!newSectionTitle.trim() || (newSectionType === 'FILE' && !selectedFile)"
                     class="px-6 py-2 bg-slate-900 text-white text-xs font-bold rounded-full hover:bg-blue-600 shadow-xl transition-all disabled:opacity-30">
-              HOÀN TẤT
+              HOĂ€N Táº¤T
             </button>
           </div>
         </div>
@@ -360,7 +360,7 @@ export class CourseEditorSidebarComponent {
   selectedFile: File | null = null; // [NEW]
   tempSearch = ''; // [NEW]
 
-  // Logic tối giản, hiệu quả cao (SOTA 2025)
+  // Logic tá»‘i giáº£n, hiá»‡u quáº£ cao (SOTA 2025)
   readonly activeChapterId = signal<string | null>(null);
 
   constructor() {
@@ -480,7 +480,7 @@ export class CourseEditorSidebarComponent {
   // Modal handlers
   showAddChapterModal() {
     const nextIndex = this.store.chapters().length + 1;
-    this.newChapterTitle = `Chương ${nextIndex}: `;
+    this.newChapterTitle = `ChÆ°Æ¡ng ${nextIndex}: `;
     this.newChapterDescription = '';
     this.showChapterModal.set(true);
   }
@@ -488,7 +488,7 @@ export class CourseEditorSidebarComponent {
   showAddLessonModal(chapter: ChapterDraftDTO, chapterIndex: number) {
     const nextLessonIndex = chapter.lessons.length + 1;
     this.currentChapterForLesson.set(chapter);
-    this.newLessonTitle = `Bài ${nextLessonIndex}: `;
+    this.newLessonTitle = `BĂ i ${nextLessonIndex}: `;
     // this.newLessonType = 'LECTURE'; // No longer needed to select type
     this.showLessonModal.set(true);
   }
@@ -554,7 +554,7 @@ export class CourseEditorSidebarComponent {
   }
 
   deleteChapter(chapterId: string) {
-    if (!confirm('Bạn có chắc muốn xóa chương này? Tất cả bài học trong chương sẽ bị xóa.')) return;
+    if (!confirm('Báº¡n cĂ³ cháº¯c muá»‘n xĂ³a chÆ°Æ¡ng nĂ y? Táº¥t cáº£ bĂ i há»c trong chÆ°Æ¡ng sáº½ bá»‹ xĂ³a.')) return;
 
     const courseId = this.store.courseTree()?.id;
     if (!courseId) return;
@@ -570,7 +570,7 @@ export class CourseEditorSidebarComponent {
   }
 
   deleteLesson(lessonId: string) {
-    if (!confirm('Bạn có chắc muốn xóa bài học này?')) return;
+    if (!confirm('Báº¡n cĂ³ cháº¯c muá»‘n xĂ³a bĂ i há»c nĂ y?')) return;
 
     const courseId = this.store.courseTree()?.id;
     if (!courseId) return;
@@ -642,7 +642,7 @@ export class CourseEditorSidebarComponent {
   }
 
   deleteSection(lessonId: string, sectionId: string) {
-    if (!confirm('Bạn có chắc muốn xóa nội dung này?')) return;
+    if (!confirm('Báº¡n cĂ³ cháº¯c muá»‘n xĂ³a ná»™i dung nĂ y?')) return;
 
     const courseId = this.store.courseTree()?.id;
     if (!courseId) return;
@@ -665,7 +665,7 @@ export class CourseEditorSidebarComponent {
   onGlobalKeyDown(event: KeyboardEvent) {
     if ((event.ctrlKey || event.metaKey) && event.key === 'k') {
       event.preventDefault();
-      const input = document.querySelector('input[placeholder*="Tìm"]') as HTMLInputElement;
+      const input = document.querySelector('input[placeholder*="TĂ¬m"]') as HTMLInputElement;
       input?.focus();
     }
   }
@@ -689,3 +689,4 @@ export class CourseEditorSidebarComponent {
     return lesson.type || 'LECTURE';
   }
 }
+

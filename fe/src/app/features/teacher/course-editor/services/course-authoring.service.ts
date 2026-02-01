@@ -300,7 +300,7 @@ export class CourseAuthoringService {
         // Updated to chapters endpoint if available, but for now stick to what code might expect if backend controller supports it.
         // I haven't implemented reorder in backend ChapterController yet, so this might 404. 
         // Usage of reorder usually implies a patch.
-        // Assuming /api/v1/chapters/reorder or similar.
+        // Assuming /api/v3/chapters/reorder or similar.
         // For safety I should probably NOT break this if it was working.
         // Old was /sections/reorder.
         // I will point to /chapters/reorder and need to ensure backend supports it or leave it as TODO.

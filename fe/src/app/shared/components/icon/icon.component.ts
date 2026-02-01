@@ -1,8 +1,8 @@
-import { Component, Input, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
+import { Component, input, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
-export type IconName = 
-  | 'search' | 'bell' | 'user' | 'grid' | 'book' | 'play' | 'star' 
+export type IconName =
+  | 'search' | 'bell' | 'user' | 'grid' | 'book' | 'play' | 'star'
   | 'globe' | 'menu' | 'x' | 'chevron-down' | 'chevron-up' | 'chevron-left' | 'chevron-right'
   | 'home' | 'courses' | 'certificate' | 'blog' | 'settings' | 'logout' | 'login'
   | 'heart' | 'share' | 'download' | 'upload' | 'edit' | 'trash' | 'plus' | 'minus'
@@ -32,7 +32,7 @@ export type IconSize = 'xs' | 'sm' | 'md' | 'lg';
       stroke-width="1.75"
       stroke-linecap="round"
       stroke-linejoin="round">
-      @switch (name) {
+      @switch (name()) {
         @case ('search') {
           <circle cx="11" cy="11" r="7"/>
           <path d="m21 21-4.35-4.35"/>
@@ -257,30 +257,31 @@ export type IconSize = 'xs' | 'sm' | 'md' | 'lg';
   `
 })
 export class IconComponent {
-  @Input() name!: IconName;
-  @Input() size: IconSize = 'md';
-  @Input() ariaLabel?: string;
-  @Input() className: string = '';
+  // Signal inputs - Angular v20+
+  name = input.required<IconName>();
+  size = input<IconSize>('md');
+  ariaLabel = input<string | undefined>(undefined);
+  className = input<string>('');
 
   get sizeValue(): string {
     const sizeMap: Record<IconSize, string> = {
       'xs': '14',
-      'sm': '16', 
+      'sm': '16',
       'md': '20',
       'lg': '24'
     };
-    return sizeMap[this.size];
+    return sizeMap[this.size()];
   }
 
   get iconClasses(): string {
     const baseClasses = 'inline-block text-current';
     const sizeMap: Record<IconSize, string> = {
       'xs': 'w-[14px] h-[14px]',
-      'sm': 'w-[16px] h-[16px]', 
+      'sm': 'w-[16px] h-[16px]',
       'md': 'w-[20px] h-[20px]',
       'lg': 'w-[24px] h-[24px]'
     };
-    const sizeClasses = sizeMap[this.size];
-    return `${baseClasses} ${sizeClasses} ${this.className}`.trim();
+    const sizeClasses = sizeMap[this.size()];
+    return `${baseClasses} ${sizeClasses} ${this.className()}`.trim();
   }
 }

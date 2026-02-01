@@ -1,14 +1,14 @@
-import { Directive, ElementRef, HostListener, Input, OnInit, Renderer2, signal, effect } from '@angular/core';
+import { Directive, ElementRef, HostListener, input, OnInit, Renderer2, signal, effect } from '@angular/core';
 
 @Directive({
     selector: '[appResizableSidebar]',
     standalone: true
 })
 export class ResizableSidebarDirective implements OnInit {
-    @Input() storageKey = 'sidebar_width';
-    @Input() minWidth = 260; // SOTA 2025: Extended range
-    @Input() maxWidth = 600;
-    @Input() handleClass = 'resize-handle';
+    storageKey = input('sidebar_width');
+    minWidth = input(260);
+    maxWidth = input(600);
+    handleClass = input('resize-handle');
 
     private isResizing = false;
     private width = signal(320);
@@ -17,17 +17,17 @@ export class ResizableSidebarDirective implements OnInit {
         // SOTA 2025: Reactive persistence via effect
         effect(() => {
             const currentWidth = this.width();
-            localStorage.setItem(this.storageKey, currentWidth.toString());
+            localStorage.setItem(this.storageKey(), currentWidth.toString());
             this.applyWidthToParent(currentWidth);
         });
     }
 
     ngOnInit() {
         // Load initial width
-        const savedWidth = localStorage.getItem(this.storageKey);
+        const savedWidth = localStorage.getItem(this.storageKey());
         if (savedWidth) {
             const parsed = parseInt(savedWidth, 10);
-            if (!isNaN(parsed) && parsed >= this.minWidth && parsed <= this.maxWidth) {
+            if (!isNaN(parsed) && parsed >= this.minWidth() && parsed <= this.maxWidth()) {
                 this.width.set(parsed);
             }
         }
@@ -35,7 +35,7 @@ export class ResizableSidebarDirective implements OnInit {
 
     @HostListener('mousedown', ['$event'])
     onMouseDown(event: MouseEvent) {
-        if ((event.target as HTMLElement).classList.contains(this.handleClass)) {
+        if ((event.target as HTMLElement).classList.contains(this.handleClass())) {
             this.isResizing = true;
             this.renderer.addClass(document.body, 'resizing-sidebar');
             event.preventDefault();
@@ -49,7 +49,7 @@ export class ResizableSidebarDirective implements OnInit {
         const rect = this.el.nativeElement.getBoundingClientRect();
         const newWidth = event.clientX - rect.left;
 
-        if (newWidth >= this.minWidth && newWidth <= this.maxWidth) {
+        if (newWidth >= this.minWidth() && newWidth <= this.maxWidth()) {
             this.width.set(newWidth);
         }
     }

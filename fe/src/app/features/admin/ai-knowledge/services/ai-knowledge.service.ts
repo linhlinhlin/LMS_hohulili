@@ -8,7 +8,7 @@ import { KnowledgeStats, KnowledgeDocument, UploadResponse, JobStatus } from '..
 })
 export class AiKnowledgeService {
     private http = inject(HttpClient);
-    private readonly apiUrl = '/api/v1/ai/admin/knowledge';
+    private readonly apiUrl = '/api/v3/ai/admin/knowledge';
 
     getStats(): Observable<KnowledgeStats> {
         return this.http.get<KnowledgeStats>(`${this.apiUrl}/stats`);

@@ -169,7 +169,7 @@ interface EnrolledStudentData {
                     <app-distribution-selector
                       #distributionSelector
                       [courseId]="form.controls.courseId.value"
-                      [enrolledStudents]="enrolledStudents"
+                      [enrolledStudents]="enrolledStudents()"
                       [initialDistributionType]="'ALL_STUDENTS'"
                       [initialStudentIds]="[]"
                       (distributionChange)="onDistributionChange($event)"

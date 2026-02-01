@@ -1,4 +1,4 @@
-import { Component, signal, computed, inject, OnInit } from '@angular/core';
+﻿import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -21,350 +21,7 @@ import { AdminService, AdminUser, UserAccountStatus, UpdateUserStatusRequest } f
     }
     select.role-select:hover { border-color: #9CA3AF; }
   `],
-  template: `
-    <div class="min-h-screen bg-white">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <!-- Header -->
-        <div class="mb-8">
-          <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div>
-              <h1 class="text-2xl font-bold text-gray-900 mb-1">Quản lý Học viên</h1>
-              <p class="text-sm text-gray-600">Quản lý các tài khoản học viên trong hệ thống</p>
-            </div>
-            <button (click)="openCreateModal()" class="inline-flex items-center px-4 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded hover:bg-indigo-700 transition-colors">
-              <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
-              Thêm Học viên
-            </button>
-          </div>
-        </div>
-
-        <!-- Stats Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
-          <div class="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
-            <div class="flex items-start justify-between">
-              <div>
-                <p class="text-xs font-medium text-gray-500 uppercase mb-2">Tổng Học viên</p>
-                <p class="text-2xl font-bold text-gray-900">{{ totalStudents() }}</p>
-                <p class="text-xs text-gray-600 mt-2">{{ activeStudents() }} đang hoạt động</p>
-              </div>
-              <div class="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center">
-                <svg class="w-5 h-5 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3z"></path>
-                </svg>
-              </div>
-            </div>
-          </div>
-          <div class="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
-            <div class="flex items-start justify-between">
-              <div>
-                <p class="text-xs font-medium text-gray-500 uppercase mb-2">Đã đăng ký</p>
-                <p class="text-2xl font-bold text-gray-900">{{ totalEnrollments() }}</p>
-                <p class="text-xs text-gray-600 mt-2">Lượt đăng ký khóa học</p>
-              </div>
-              <div class="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center">
-                <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
-                  <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5z" clip-rule="evenodd"></path>
-                </svg>
-              </div>
-            </div>
-          </div>
-          <div class="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
-            <div class="flex items-start justify-between">
-              <div>
-                <p class="text-xs font-medium text-gray-500 uppercase mb-2">Bị khóa</p>
-                <p class="text-2xl font-bold text-gray-900">{{ blockedStudents() }}</p>
-                <p class="text-xs text-gray-600 mt-2">Tài khoản bị khóa</p>
-              </div>
-              <div class="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center">
-                <svg class="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2z" clip-rule="evenodd"></path>
-                </svg>
-              </div>
-            </div>
-          </div>
-          <div class="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
-            <div class="flex items-start justify-between">
-              <div>
-                <p class="text-xs font-medium text-gray-500 uppercase mb-2">Mới trong tuần</p>
-                <p class="text-2xl font-bold text-gray-900">{{ newThisWeek() }}</p>
-                <p class="text-xs text-gray-600 mt-2">Đăng ký mới</p>
-              </div>
-              <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
-                <svg class="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
-                </svg>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Search & Filter -->
-        <div class="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-          <div class="flex flex-col lg:flex-row gap-4">
-            <div class="flex-1 relative">
-              <svg class="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
-              </svg>
-              <input type="text" [value]="searchQuery()" (input)="onSearchInput($any($event.target).value)"
-                     placeholder="Tìm kiếm theo tên hoặc email..."
-                     class="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
-            </div>
-            <select [value]="statusFilter()" (change)="onStatusFilterChange($any($event.target).value)"
-                    class="px-3 py-2 text-sm border border-gray-300 rounded bg-white focus:ring-2 focus:ring-indigo-500">
-              <option value="">Tất cả trạng thái</option>
-              <option value="ACTIVE">Đang hoạt động</option>
-              <option value="BLOCKED">Bị khóa</option>
-              <option value="RESTRICTED">Hạn chế</option>
-            </select>
-          </div>
-          <div class="mt-3 pt-3 border-t border-gray-200">
-            <p class="text-xs text-gray-600">
-              Hiển thị <span class="font-medium text-gray-900">{{ filteredStudents().length }}</span>
-              trong tổng số <span class="font-medium text-gray-900">{{ totalStudents() }}</span> học viên
-            </p>
-          </div>
-        </div>
-
-        <!-- Students Table -->
-        <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          @if (isLoading()) {
-            <div class="p-12 text-center">
-              <div class="w-12 h-12 border-4 border-gray-200 border-t-indigo-600 rounded-full animate-spin mx-auto"></div>
-              <p class="mt-4 text-sm text-gray-600">Đang tải danh sách học viên...</p>
-            </div>
-          } @else if (filteredStudents().length === 0) {
-            <div class="p-12 text-center">
-              <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3z"></path>
-              </svg>
-              <h3 class="text-base font-medium text-gray-900 mb-2">Không tìm thấy học viên</h3>
-              <p class="text-sm text-gray-600">Thử điều chỉnh bộ lọc hoặc tìm kiếm với từ khóa khác</p>
-            </div>
-          } @else {
-            <div class="overflow-x-auto">
-              <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                  <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Học viên</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Vai trò</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Trạng thái</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Khóa học</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Hoạt động</th>
-                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase">Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-100">
-                  @for (student of filteredStudents(); track student.id) {
-                    <tr class="hover:bg-gray-50 transition-colors">
-                      <!-- User Info -->
-                      <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="flex items-center">
-                          <img [src]="getDefaultAvatar(student.email)" class="w-10 h-10 rounded-full border border-gray-200">
-                          <div class="ml-3">
-                            <div class="text-sm font-medium text-gray-900">{{ student.name }}</div>
-                            <div class="text-xs text-gray-500">{{ student.email }}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <!-- Role Change -->
-                      <td class="px-6 py-4 whitespace-nowrap">
-                        <select [ngModel]="getRoleValue(student.role)"
-                                (ngModelChange)="onRoleChange(student.id, $event)"
-                                class="role-select px-2 py-1 text-xs font-medium rounded border border-gray-300 bg-white focus:ring-2 focus:ring-indigo-500">
-                          <option value="STUDENT">Học viên</option>
-                          <option value="TEACHER">Giảng viên</option>
-                          <option value="ADMIN">Quản trị viên</option>
-                        </select>
-                      </td>
-                      <!-- Status -->
-                      <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded" [class]="getStatusBadgeClass(student.accountStatus)">
-                          <span class="w-1.5 h-1.5 rounded-full mr-1.5" [class]="getStatusDotClass(student.accountStatus)"></span>
-                          {{ getStatusLabel(student.accountStatus) }}
-                        </span>
-                      </td>
-                      <!-- Courses - Clickable to view details -->
-                      <td class="px-6 py-4 whitespace-nowrap">
-                        <button (click)="viewStudentCourses(student)"
-                                class="inline-flex items-center text-sm text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer">
-                          <svg class="w-4 h-4 mr-1.5 text-indigo-400" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
-                            <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5z" clip-rule="evenodd"></path>
-                          </svg>
-                          {{ student.coursesEnrolled || 0 }} khóa học
-                        </button>
-                      </td>
-                      <!-- Last Login -->
-                      <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-600">
-                        {{ student.lastLogin ? formatDateValue(student.lastLogin) : 'Chưa đăng nhập' }}
-                      </td>
-                      <!-- Actions -->
-                      <td class="px-6 py-4 whitespace-nowrap text-center">
-                        <div class="flex items-center justify-center space-x-1">
-                          <!-- Status Actions -->
-                          <select (change)="onStatusActionChange(student, $any($event.target).value); $any($event.target).value = ''"
-                                  class="text-xs px-2 py-1 border border-gray-300 rounded bg-white cursor-pointer hover:border-gray-400">
-                            <option value="" disabled selected>Trạng thái</option>
-                            @if (student.accountStatus !== 'ACTIVE') {
-                              <option value="ACTIVE">✓ Kích hoạt</option>
-                            }
-                            @if (student.accountStatus !== 'BLOCKED') {
-                              <option value="BLOCKED">🔒 Khóa</option>
-                            }
-                            @if (student.accountStatus !== 'RESTRICTED') {
-                              <option value="RESTRICTED">⚠️ Hạn chế</option>
-                            }
-                          </select>
-                          <!-- Delete -->
-                          <button (click)="deleteUser(student.id)"
-                                  class="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                                  title="Vô hiệu hóa tài khoản">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                              <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                            </svg>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-          }
-        </div>
-      </div>
-    </div>
-
-    <!-- Create Student Modal -->
-    @if (showCreateModal()) {
-      <div class="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-40" (click)="closeCreateModal()">
-        <div class="flex items-center justify-center min-h-screen p-4">
-          <div class="bg-white rounded-lg shadow-xl max-w-md w-full" (click)="$event.stopPropagation()">
-            <div class="flex items-center justify-between p-6 border-b">
-              <h3 class="text-xl font-semibold text-gray-900">Thêm Học viên mới</h3>
-              <button (click)="closeCreateModal()" class="text-gray-400 hover:text-gray-600">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-              </button>
-            </div>
-            <div class="p-6 space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Tên đầy đủ <span class="text-red-500">*</span></label>
-                <input type="text" [(ngModel)]="newStudentName" placeholder="Nhập họ và tên"
-                       class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Email <span class="text-red-500">*</span></label>
-                <input type="email" [(ngModel)]="newStudentEmail" placeholder="email@example.com"
-                       class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
-              </div>
-              <div class="bg-blue-50 border border-blue-200 rounded p-3">
-                <p class="text-xs text-blue-700">
-                  <span class="font-medium">Mật khẩu mặc định:</span> Password123! - Người dùng nên đổi sau khi đăng nhập.
-                </p>
-              </div>
-            </div>
-            <div class="flex justify-end gap-3 px-6 py-4 bg-gray-50 border-t">
-              <button (click)="closeCreateModal()" class="px-4 py-2 text-sm text-gray-700 bg-white border rounded hover:bg-gray-50">Hủy</button>
-              <button (click)="createStudent()" [disabled]="!newStudentName() || !newStudentEmail()"
-                      class="px-4 py-2 text-sm text-white bg-indigo-600 rounded hover:bg-indigo-700 disabled:opacity-50">
-                Thêm học viên
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    }
-
-    <!-- View Courses Modal -->
-    @if (showCoursesModal() && selectedStudent()) {
-      <div class="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-40" (click)="closeCoursesModal()">
-        <div class="flex items-center justify-center min-h-screen p-4">
-          <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden" (click)="$event.stopPropagation()">
-            <div class="flex items-center justify-between p-6 border-b bg-indigo-50">
-              <div>
-                <h3 class="text-xl font-semibold text-gray-900">Khóa học đã đăng ký</h3>
-                <p class="text-sm text-gray-600 mt-1">{{ selectedStudent()?.name }} - {{ selectedStudent()?.email }}</p>
-              </div>
-              <button (click)="closeCoursesModal()" class="text-gray-400 hover:text-gray-600">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-              </button>
-            </div>
-            <div class="p-6 overflow-y-auto max-h-[60vh]">
-              @if (isLoadingCourses()) {
-                <div class="text-center py-8">
-                  <div class="w-8 h-8 border-4 border-gray-200 border-t-indigo-600 rounded-full animate-spin mx-auto"></div>
-                  <p class="mt-2 text-sm text-gray-600">Đang tải khóa học...</p>
-                </div>
-              } @else if (studentCourses().length === 0) {
-                <div class="text-center py-8">
-                  <svg class="w-12 h-12 text-gray-300 mx-auto mb-3" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3z"></path>
-                  </svg>
-                  <p class="text-gray-600">Học viên chưa đăng ký khóa học nào</p>
-                </div>
-              } @else {
-                <div class="space-y-3">
-                  @for (course of studentCourses(); track course.id) {
-                    <div class="p-4 bg-gray-50 rounded-lg border hover:bg-gray-100 transition-colors">
-                      <div class="flex items-start justify-between">
-                        <div class="flex-1 min-w-0">
-                          <h4 class="font-medium text-gray-900">{{ course.title }}</h4>
-                          <div class="flex flex-wrap items-center gap-2 mt-1">
-                            <span class="text-xs text-gray-500">Đăng ký: {{ formatDateValue(course.enrolledAt) }}</span>
-                            @if (course.status) {
-                              <span class="text-xs px-2 py-0.5 rounded-full"
-                                    [class]="course.status?.toUpperCase() === 'PUBLISHED' ? 'bg-green-100 text-green-700' : 
-                                             course.status?.toUpperCase() === 'DRAFT' ? 'bg-gray-100 text-gray-700' : 
-                                             'bg-yellow-100 text-yellow-700'">
-                                {{ course.status?.toUpperCase() === 'PUBLISHED' ? 'Đã xuất bản' : 
-                                   course.status?.toUpperCase() === 'DRAFT' ? 'Bản nháp' : course.status }}
-                              </span>
-                            }
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <!-- Action buttons -->
-                      <div class="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-gray-200">
-                        <!-- View Detail -->
-                        <a [routerLink]="['/admin/courses']" [queryParams]="{search: course.title}"
-                           class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 rounded hover:bg-indigo-100 transition-colors">
-                          <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                          </svg>
-                          Chi tiết
-                        </a>
-                        
-                        <!-- View Full -->
-                        <button (click)="openFullCourseView(course.id)"
-                                class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-purple-700 bg-purple-50 rounded hover:bg-purple-100 transition-colors">
-                          <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-                          </svg>
-                          Xem đầy đủ
-                        </button>
-                      </div>
-                    </div>
-                  }
-                </div>
-              }
-            </div>
-            <div class="px-6 py-4 bg-gray-50 border-t">
-              <button (click)="closeCoursesModal()" class="w-full px-4 py-2 text-sm text-gray-700 bg-white border rounded hover:bg-gray-50">
-                Đóng
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    }
-  `
+  templateUrl: './student-management.component.html'
 })
 export class StudentManagementComponent implements OnInit {
   private adminService = inject(AdminService);
@@ -468,7 +125,7 @@ export class StudentManagementComponent implements OnInit {
 
   // Role change handler
   onRoleChange(userId: string, newRole: string) {
-    if (!confirm(`Bạn có chắc muốn thay đổi vai trò người dùng này thành ${this.getRoleLabel(newRole)}?`)) {
+    if (!confirm(`Báº¡n cĂ³ cháº¯c muá»‘n thay Ä‘á»•i vai trĂ² ngÆ°á»i dĂ¹ng nĂ y thĂ nh ${this.getRoleLabel(newRole)}?`)) {
       this.loadUsers(); // Reload to reset dropdown
       return;
     }
@@ -483,7 +140,7 @@ export class StudentManagementComponent implements OnInit {
     if (!newStatus) return;
 
     const statusLabel = this.getStatusLabel(newStatus);
-    const reason = prompt(`Nhập lý do ${statusLabel.toLowerCase()} tài khoản (tùy chọn):`);
+    const reason = prompt(`Nháº­p lĂ½ do ${statusLabel.toLowerCase()} tĂ i khoáº£n (tĂ¹y chá»n):`);
 
     this.adminService.updateUserStatus(user.id, {
       status: newStatus as UserAccountStatus,
@@ -500,7 +157,7 @@ export class StudentManagementComponent implements OnInit {
   }
 
   deleteUser(userId: string) {
-    if (!confirm('Bạn có chắc muốn vô hiệu hóa tài khoản này?')) return;
+    if (!confirm('Báº¡n cĂ³ cháº¯c muá»‘n vĂ´ hiá»‡u hĂ³a tĂ i khoáº£n nĂ y?')) return;
 
     this.adminService.deleteUser(userId).subscribe({
       next: () => this.loadUsers()
@@ -556,9 +213,9 @@ export class StudentManagementComponent implements OnInit {
 
   getRoleLabel(role: string): string {
     switch (role.toUpperCase()) {
-      case 'ADMIN': return 'Quản trị viên';
-      case 'TEACHER': return 'Giảng viên';
-      case 'STUDENT': return 'Học viên';
+      case 'ADMIN': return 'Quáº£n trá»‹ viĂªn';
+      case 'TEACHER': return 'Giáº£ng viĂªn';
+      case 'STUDENT': return 'Há»c viĂªn';
       default: return role;
     }
   }
@@ -594,10 +251,11 @@ export class StudentManagementComponent implements OnInit {
 
   getStatusLabel(status: string): string {
     switch (status) {
-      case 'ACTIVE': return 'Hoạt động';
-      case 'BLOCKED': return 'Bị khóa';
-      case 'RESTRICTED': return 'Hạn chế';
-      default: return 'Chờ xác thực';
+      case 'ACTIVE': return 'Hoáº¡t Ä‘á»™ng';
+      case 'BLOCKED': return 'Bá»‹ khĂ³a';
+      case 'RESTRICTED': return 'Háº¡n cháº¿';
+      default: return 'Chá» xĂ¡c thá»±c';
     }
   }
 }
+

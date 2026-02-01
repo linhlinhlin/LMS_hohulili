@@ -1,4 +1,4 @@
-import { Component, ElementRef, forwardRef, OnDestroy, AfterViewInit, ViewChild, Input, Output, EventEmitter, ViewEncapsulation, inject } from '@angular/core';
+import { Component, ElementRef, forwardRef, OnDestroy, AfterViewInit, viewChild, input, output, ViewEncapsulation, inject, effect, signal } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import EditorJS, { OutputData } from '@editorjs/editorjs';
@@ -46,21 +46,16 @@ import { environment } from '../../../../environments/environment';
     encapsulation: ViewEncapsulation.None
 })
 export class BlockEditorComponent implements AfterViewInit, OnDestroy, ControlValueAccessor {
-    @Input() readOnly = false;
-    @Input() placeholder = 'Nhập nội dung câu hỏi...';
+    // Signal inputs - Angular v20+
+    readOnly = input<boolean>(false);
+    placeholder = input<string>('Nhập nội dung câu hỏi...');
+    initialBlocks = input<any[]>([]);
 
-    @Input() set initialBlocks(blocks: any[]) {
-        if (blocks && blocks.length > 0) {
-            this.value = { blocks } as any;
-            if (this.editor && this.editor.render) {
-                this.editor.render(this.value as OutputData);
-            }
-        }
-    }
+    // Signal output - Angular v20+
+    blocksChange = output<any[]>();
 
-    @Output() blocksChange = new EventEmitter<any[]>();
-
-    @ViewChild('editorContainer') editorContainer!: ElementRef;
+    // ViewChild signal - Angular v20+
+    editorContainer = viewChild<ElementRef>('editorContainer');
 
     private http = inject(HttpClient);
 
@@ -69,7 +64,21 @@ export class BlockEditorComponent implements AfterViewInit, OnDestroy, ControlVa
     onChange: (value: any) => void = () => { };
     onTouched: () => void = () => { };
 
-    constructor() { }
+    // Local signal for disabled state (ControlValueAccessor)
+    private isDisabled = signal(false);
+
+    constructor() {
+        // Effect to handle initialBlocks changes
+        effect(() => {
+            const blocks = this.initialBlocks();
+            if (blocks && blocks.length > 0) {
+                this.value = { blocks } as any;
+                if (this.editor && this.editor.render) {
+                    this.editor.render(this.value as OutputData);
+                }
+            }
+        });
+    }
 
     ngAfterViewInit(): void {
         this.initializeEditor();
@@ -82,8 +91,9 @@ export class BlockEditorComponent implements AfterViewInit, OnDestroy, ControlVa
     }
 
     initializeEditor() {
-        if (!this.editorContainer) {
-            console.error('Editor container not found', this.editorContainer);
+        const container = this.editorContainer();
+        if (!container) {
+            console.error('Editor container not found');
             return;
         }
 
@@ -91,9 +101,9 @@ export class BlockEditorComponent implements AfterViewInit, OnDestroy, ControlVa
 
         try {
             this.editor = new EditorJS({
-                holder: this.editorContainer.nativeElement,
-                readOnly: this.readOnly,
-                placeholder: this.placeholder,
+                holder: container.nativeElement,
+                readOnly: this.readOnly(),
+                placeholder: this.placeholder(),
 
                 // SOTA 2025: Maritime-optimized toolset
                 tools: {
@@ -284,7 +294,7 @@ export class BlockEditorComponent implements AfterViewInit, OnDestroy, ControlVa
     }
 
     setDisabledState?(isDisabled: boolean): void {
-        this.readOnly = isDisabled;
+        this.isDisabled.set(isDisabled);
         if (this.editor && this.editor.readOnly) {
             this.editor.readOnly.toggle(isDisabled);
         }

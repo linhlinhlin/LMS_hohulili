@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, signal, computed } from '@angular/core';
+﻿import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -31,271 +31,7 @@ export interface AssignmentTemplate {
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterModule, FileUploadComponent],
   encapsulation: ViewEncapsulation.None,
-  template: `
-    <div class="max-w-4xl mx-auto p-6">
-      <div class="mb-6">
-        <h1 class="text-2xl font-bold text-gray-900 mb-2">Thêm Bài Tập</h1>
-        <p class="text-gray-600">Tạo bài tập mới cho khóa học</p>
-      </div>
-
-      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-6">
-        <!-- Step 1: Assignment Type Selection -->
-        <div class="bg-white rounded-lg shadow p-6" *ngIf="currentStep() === 1">
-          <h2 class="text-lg font-semibold text-gray-900 mb-4">Bước 1: Chọn Loại Bài Tập</h2>
-          
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-            <div *ngFor="let template of assignmentTemplates()" 
-                 class="border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md"
-                 [class.border-blue-500]="selectedTemplate()?.id === template.id"
-                 [class.bg-blue-50]="selectedTemplate()?.id === template.id"
-                 (click)="selectTemplate(template)">
-              <div class="flex items-center justify-between mb-2">
-                <h3 class="font-medium text-gray-900">{{ template.name }}</h3>
-                <span class="px-2 py-1 bg-gray-100 text-xs rounded">{{ getTypeLabel(template.type) }}</span>
-              </div>
-              <p class="text-sm text-gray-600 mb-3">{{ template.description }}</p>
-              <div class="text-xs text-gray-500">
-                <div>Điểm tối đa: {{ template.defaultConfig.maxScore }}</div>
-                <div *ngIf="template.defaultConfig.timeLimit">Thời gian: {{ template.defaultConfig.timeLimit }} phút</div>
-                <div *ngIf="template.defaultConfig.allowMultipleAttempts">Cho phép làm lại</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="flex justify-between">
-            <button type="button" routerLink="/teacher/assignments" 
-                    class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50">
-              Hủy
-            </button>
-            <button type="button" 
-                    [disabled]="!selectedTemplate()"
-                    (click)="nextStep()"
-                    class="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50 hover:bg-blue-700">
-              Tiếp theo
-            </button>
-          </div>
-        </div>
-
-        <!-- Step 2: Basic Information -->
-        <div class="bg-white rounded-lg shadow p-6" *ngIf="currentStep() === 2">
-          <h2 class="text-lg font-semibold text-gray-900 mb-4">Bước 2: Thông Tin Cơ Bản</h2>
-
-          <div class="grid grid-cols-1 gap-6 mb-6">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Khóa học *</label>
-              <select formControlName="courseId" class="w-full border rounded px-3 py-2" (change)="onCourseChange($event)">
-                <option value="">Chọn khóa học</option>
-                <option *ngFor="let course of courses()" [value]="course.id">{{ course.title }}</option>
-              </select>
-            </div>
-
-            <!-- Lesson Assignment Option -->
-            <div *ngIf="selectedCourseId()" class="border-t pt-4">
-              <div class="flex items-center mb-3">
-                <input type="checkbox" id="linkToLesson" formControlName="linkToLesson" class="mr-2">
-                <label for="linkToLesson" class="text-sm font-medium text-gray-700">Gắn bài tập với bài học</label>
-              </div>
-
-              <div *ngIf="form.controls.linkToLesson.value" class="ml-6">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Chọn bài học</label>
-                <select formControlName="lessonId" class="w-full border rounded px-3 py-2">
-                  <option value="">Chọn bài học</option>
-                  <option *ngFor="let lesson of availableLessons()" [value]="lesson.id">
-                    {{ lesson.title }} ({{ lesson.sectionTitle }})
-                  </option>
-                </select>
-                <p class="text-xs text-gray-500 mt-1">Bài tập sẽ được gắn với bài học đã chọn</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Hạn nộp</label>
-              <input formControlName="dueDate"
-                     type="datetime-local"
-                     class="w-full border rounded px-3 py-2">
-              <div class="text-sm text-red-600 mt-1" *ngIf="form.controls.dueDate.invalid && form.controls.dueDate.touched">
-                Vui lòng chọn hạn nộp hợp lệ
-              </div>
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Điểm tối đa *</label>
-              <input formControlName="maxScore"
-                     type="number"
-                     min="1"
-                     max="1000"
-                     class="w-full border rounded px-3 py-2">
-              <div class="text-sm text-red-600 mt-1" *ngIf="form.controls.maxScore.invalid && form.controls.maxScore.touched">
-                Điểm tối đa phải từ 1 đến 1000
-              </div>
-            </div>
-          </div>
-
-          <div class="mb-6">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Mô tả bài tập</label>
-            <textarea formControlName="description" 
-                      rows="4" 
-                      class="w-full border rounded px-3 py-2" 
-                      placeholder="Mô tả chi tiết về bài tập..."></textarea>
-          </div>
-
-          <div class="flex justify-between">
-            <button type="button" (click)="prevStep()"
-                    class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50">
-              Quay lại
-            </button>
-            <button type="button" (click)="nextStep()"
-                    class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-              Tiếp theo
-            </button>
-          </div>
-        </div>
-
-        <!-- Step 3: Assignment-Specific Configuration -->
-        <div class="bg-white rounded-lg shadow p-6" *ngIf="currentStep() === 3">
-          <h2 class="text-lg font-semibold text-gray-900 mb-4">Bước 3: Cấu Hình Chi Tiết</h2>
-          
-          <!-- Essay Assignment Config -->
-          <div *ngIf="selectedTemplate()?.type === 'essay'" class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Số từ tối thiểu</label>
-              <input formControlName="minWords" type="number" class="w-full border rounded px-3 py-2">
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Số từ tối đa</label>
-              <input formControlName="maxWords" type="number" class="w-full border rounded px-3 py-2">
-            </div>
-            <div class="flex items-center">
-              <input formControlName="enablePeerReview" type="checkbox" id="peerReview" class="mr-2">
-              <label for="peerReview" class="text-sm text-gray-700">Bật đánh giá peer-to-peer</label>
-            </div>
-          </div>
-
-          <!-- Quiz Assignment Config -->
-          <div *ngIf="selectedTemplate()?.type === 'quiz'" class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Thời gian làm bài (phút)</label>
-              <input formControlName="timeLimit" type="number" class="w-full border rounded px-3 py-2">
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Số lần làm tối đa</label>
-              <input formControlName="maxAttempts" type="number" class="w-full border rounded px-3 py-2">
-            </div>
-            <div class="flex items-center">
-              <input formControlName="randomizeQuestions" type="checkbox" id="randomize" class="mr-2">
-              <label for="randomize" class="text-sm text-gray-700">Xáo trộn thứ tự câu hỏi</label>
-            </div>
-          </div>
-
-          <!-- Programming Assignment Config -->
-          <div *ngIf="selectedTemplate()?.type === 'programming'" class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Ngôn ngữ lập trình</label>
-              <select formControlName="programmingLanguage" class="w-full border rounded px-3 py-2">
-                <option value="java">Java</option>
-                <option value="python">Python</option>
-                <option value="javascript">JavaScript</option>
-                <option value="cpp">C++</option>
-              </select>
-            </div>
-            <div class="flex items-center">
-              <input formControlName="enableAutoGrading" type="checkbox" id="autoGrade" class="mr-2">
-              <label for="autoGrade" class="text-sm text-gray-700">Bật chấm điểm tự động</label>
-            </div>
-          </div>
-
-          <!-- File Submission Config -->
-          <div *ngIf="selectedTemplate()?.type === 'file_submission' || selectedTemplate()?.type === 'project'">
-            <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 mb-2">Loại file được phép</label>
-              <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
-                <label *ngFor="let fileType of availableFileTypes" class="flex items-center">
-                  <input type="checkbox" 
-                         [checked]="selectedFileTypes().includes(fileType.value)"
-                         (change)="toggleFileType(fileType.value)"
-                         class="mr-1">
-                  <span class="text-sm">{{ fileType.label }}</span>
-                </label>
-              </div>
-            </div>
-          </div>
-
-          <div class="flex justify-between">
-            <button type="button" (click)="prevStep()"
-                    class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50">
-              Quay lại
-            </button>
-            <button type="button" (click)="nextStep()"
-                    class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-              Tiếp theo
-            </button>
-          </div>
-        </div>
-
-        <!-- Step 4: Instructions & Attachments -->
-        <div class="bg-white rounded-lg shadow p-6" *ngIf="currentStep() === 4">
-          <h2 class="text-lg font-semibold text-gray-900 mb-4">Bước 4: Hướng Dẫn & Tài Liệu</h2>
-          
-          <div class="mb-6">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Hướng dẫn làm bài</label>
-            <textarea formControlName="instructions" 
-                      rows="8" 
-                      class="w-full border rounded px-3 py-2" 
-                      placeholder="Hướng dẫn chi tiết cách làm bài tập..."></textarea>
-          </div>
-
-          <!-- File Upload Section -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Tài liệu đính kèm</label>
-            <app-file-upload
-              [config]="fileUploadConfig()"
-              [existingFiles]="attachedFiles()"
-              (filesUploaded)="onFilesUploaded($event)"
-              (fileDeleted)="onFileDeleted($event)"
-              (uploadError)="onFileUploadError($event)">
-            </app-file-upload>
-          </div>
-
-          <div class="flex items-center mt-4 mb-4">
-            <input type="checkbox" id="saveAsDraft" formControlName="saveAsDraft" class="mr-2">
-            <label for="saveAsDraft" class="text-sm font-medium text-gray-700">Lưu dưới dạng bản nháp (Draft)</label>
-          </div>
-
-          <div class="flex justify-between mt-6">
-            <button type="button" (click)="prevStep()"
-                    class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50">
-              Quay lại
-            </button>
-            <button type="submit" 
-                    [disabled]="form.invalid || submitting()"
-                    class="px-4 py-2 bg-green-600 text-white rounded disabled:opacity-50 hover:bg-green-700">
-              {{ submitting() ? 'Đang tạo...' : (form.value.saveAsDraft ? 'Lưu bản nháp' : 'Tạo bài tập') }}
-            </button>
-          </div>
-        </div>
-
-        <!-- Progress indicator -->
-        <div class="flex justify-center mt-4">
-          <div class="flex space-x-2">
-            <div *ngFor="let step of [1,2,3,4]; let i = index" 
-                 class="w-3 h-3 rounded-full"
-                 [class.bg-blue-600]="currentStep() > i"
-                 [class.bg-blue-300]="currentStep() === i + 1"
-                 [class.bg-gray-300]="currentStep() < i + 1">
-            </div>
-          </div>
-        </div>
-
-        <!-- Error/Success Messages -->
-        <div class="text-center" *ngIf="success() || error()">
-          <span class="text-green-700" *ngIf="success()">{{ success() }}</span>
-          <span class="text-red-600" *ngIf="error()">{{ error() }}</span>
-        </div>
-      </form>
-    </div>
-  `,
+  templateUrl: './enhanced-assignment-creation.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class EnhancedAssignmentCreationComponent {
@@ -316,13 +52,13 @@ export class EnhancedAssignmentCreationComponent {
   selectedCourseId = signal<string>('');
   availableLessons = signal<any[]>([]);
 
-  // Assignment templates (như Coursera)
+  // Assignment templates (nhÆ° Coursera)
   assignmentTemplates = signal<AssignmentTemplate[]>([
     {
       id: 'essay',
-      name: 'Bài Luận',
+      name: 'BĂ i Luáº­n',
       type: 'essay',
-      description: 'Học sinh viết bài luận dài với yêu cầu về số từ',
+      description: 'Há»c sinh viáº¿t bĂ i luáº­n dĂ i vá»›i yĂªu cáº§u vá» sá»‘ tá»«',
       defaultConfig: {
         maxScore: 100,
         allowMultipleAttempts: true,
@@ -332,9 +68,9 @@ export class EnhancedAssignmentCreationComponent {
     },
     {
       id: 'quiz',
-      name: 'Bài Kiểm Tra',
+      name: 'BĂ i Kiá»ƒm Tra',
       type: 'quiz',
-      description: 'Bài kiểm tra trắc nghiệm với thời gian giới hạn',
+      description: 'BĂ i kiá»ƒm tra tráº¯c nghiá»‡m vá»›i thá»i gian giá»›i háº¡n',
       defaultConfig: {
         maxScore: 100,
         timeLimit: 60,
@@ -344,9 +80,9 @@ export class EnhancedAssignmentCreationComponent {
     },
     {
       id: 'programming',
-      name: 'Lập Trình',
+      name: 'Láº­p TrĂ¬nh',
       type: 'programming',
-      description: 'Bài tập code với tự động chấm điểm',
+      description: 'BĂ i táº­p code vá»›i tá»± Ä‘á»™ng cháº¥m Ä‘iá»ƒm',
       defaultConfig: {
         maxScore: 100,
         allowMultipleAttempts: true,
@@ -357,9 +93,9 @@ export class EnhancedAssignmentCreationComponent {
     },
     {
       id: 'project',
-      name: 'Dự Án',
+      name: 'Dá»± Ăn',
       type: 'project',
-      description: 'Dự án lớn với nhiều file đính kèm',
+      description: 'Dá»± Ă¡n lá»›n vá»›i nhiá»u file Ä‘Ă­nh kĂ¨m',
       defaultConfig: {
         maxScore: 100,
         allowMultipleAttempts: true,
@@ -370,9 +106,9 @@ export class EnhancedAssignmentCreationComponent {
     },
     {
       id: 'file_submission',
-      name: 'Nộp File',
+      name: 'Ná»™p File',
       type: 'file_submission',
-      description: 'Bài tập đơn giản chỉ cần nộp file',
+      description: 'BĂ i táº­p Ä‘Æ¡n giáº£n chá»‰ cáº§n ná»™p file',
       defaultConfig: {
         maxScore: 100,
         allowMultipleAttempts: true,
@@ -486,11 +222,11 @@ export class EnhancedAssignmentCreationComponent {
 
   getTypeLabel(type: AssignmentType): string {
     const labels = {
-      essay: 'Bài luận',
-      quiz: 'Trắc nghiệm',
-      programming: 'Lập trình',
-      project: 'Dự án',
-      file_submission: 'Nộp file'
+      essay: 'BĂ i luáº­n',
+      quiz: 'Tráº¯c nghiá»‡m',
+      programming: 'Láº­p trĂ¬nh',
+      project: 'Dá»± Ă¡n',
+      file_submission: 'Ná»™p file'
     };
     return labels[type];
   }
@@ -557,7 +293,7 @@ export class EnhancedAssignmentCreationComponent {
   }
 
   onFileUploadError(error: string) {
-    this.error.set(`Lỗi tải file: ${error}`);
+    this.error.set(`Lá»—i táº£i file: ${error}`);
   }
 
   // Form submission
@@ -576,7 +312,7 @@ export class EnhancedAssignmentCreationComponent {
 
     // Check if linking to lesson
     if (formValue.linkToLesson && !formValue.lessonId) {
-      this.error.set('Vui lòng chọn bài học để gắn bài tập');
+      this.error.set('Vui lĂ²ng chá»n bĂ i há»c Ä‘á»ƒ gáº¯n bĂ i táº­p');
       this.submitting.set(false);
       return;
     }
@@ -609,7 +345,7 @@ export class EnhancedAssignmentCreationComponent {
         dueDateInstant = date.toISOString();
       } catch (error) {
         console.error('Invalid due date format:', formValue.dueDate);
-        this.error.set('Định dạng ngày hạn nộp không hợp lệ');
+        this.error.set('Äá»‹nh dáº¡ng ngĂ y háº¡n ná»™p khĂ´ng há»£p lá»‡');
         this.submitting.set(false);
         return;
       }
@@ -637,7 +373,7 @@ export class EnhancedAssignmentCreationComponent {
       this.assignmentApi.createAssignment(formValue.courseId!, request).subscribe({
         next: (response) => {
           if (response.data) {
-            this.success.set('Tạo bài tập thành công!');
+            this.success.set('Táº¡o bĂ i táº­p thĂ nh cĂ´ng!');
             setTimeout(() => {
               this.router.navigate(['/teacher/assignments']);
             }, 1500);
@@ -645,7 +381,7 @@ export class EnhancedAssignmentCreationComponent {
         },
         error: (error) => {
           console.error('Error creating assignment:', error);
-          this.error.set(error?.error?.message || 'Tạo bài tập thất bại');
+          this.error.set(error?.error?.message || 'Táº¡o bĂ i táº­p tháº¥t báº¡i');
         },
         complete: () => {
           this.submitting.set(false);
@@ -663,7 +399,7 @@ export class EnhancedAssignmentCreationComponent {
         if (response.data) {
           // TODO: Link assignment to lesson using lesson assignment API
           // For now, just show success
-          this.success.set('Tạo bài tập và gắn với bài học thành công!');
+          this.success.set('Táº¡o bĂ i táº­p vĂ  gáº¯n vá»›i bĂ i há»c thĂ nh cĂ´ng!');
           setTimeout(() => {
             this.router.navigate(['/teacher/assignments']);
           }, 1500);
@@ -671,7 +407,7 @@ export class EnhancedAssignmentCreationComponent {
       },
       error: (error) => {
         console.error('Error creating lesson assignment:', error);
-        this.error.set(error?.error?.message || 'Tạo bài tập gắn với bài học thất bại');
+        this.error.set(error?.error?.message || 'Táº¡o bĂ i táº­p gáº¯n vá»›i bĂ i há»c tháº¥t báº¡i');
       },
       complete: () => {
         this.submitting.set(false);
@@ -679,3 +415,4 @@ export class EnhancedAssignmentCreationComponent {
     });
   }
 }
+

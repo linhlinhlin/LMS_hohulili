@@ -1,4 +1,4 @@
-import { Component, inject, signal, Input, Output, EventEmitter } from '@angular/core';
+import { Component, inject, signal, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -12,14 +12,17 @@ import { RichTextEditorComponent } from '../../../../../shared/components/rich-t
     templateUrl: './section-smart-editor.component.html'
 })
 export class SectionSmartEditorComponent {
-    private fb = inject(FormBuilder);
-    private sectionApi = inject(SectionApi);
-    private router = inject(Router);
+    private readonly fb = inject(FormBuilder);
+    private readonly sectionApi = inject(SectionApi);
+    private readonly router = inject(Router);
 
-    @Input() lessonId!: string;
-    @Input() courseId!: string;
-    @Output() close = new EventEmitter<void>();
-    @Output() saved = new EventEmitter<void>();
+    // Signal inputs (Angular v20+)
+    readonly lessonId = input.required<string>();
+    readonly courseId = input.required<string>();
+
+    // Output functions (Angular v20+)
+    readonly close = output<void>();
+    readonly saved = output<void>();
 
     // State quản lý loại section đang chọn
     selectedType = signal<'TEXT' | 'VIDEO' | 'FILE' | 'QUIZ'>('TEXT');
@@ -41,25 +44,27 @@ export class SectionSmartEditorComponent {
     }
 
     onCreateQuiz() {
-        if (!this.lessonId) {
+        const lessonIdValue = this.lessonId();
+        if (!lessonIdValue) {
             alert('Không tìm thấy lesson ID');
             return;
         }
 
         // Create a placeholder Section first
         const formData = new FormData();
-        formData.append('lessonId', this.lessonId);
+        formData.append('lessonId', lessonIdValue);
         formData.append('title', this.form.value.title || 'Bài trắc nghiệm mới');
         formData.append('type', 'QUIZ');
 
         this.isSubmitting.set(true);
-        if (!this.courseId) {
+        const courseIdValue = this.courseId();
+        if (!courseIdValue) {
             alert('Không tìm thấy course ID');
             this.isSubmitting.set(false);
             return;
         }
 
-        this.sectionApi.createSection(this.courseId, formData).subscribe({
+        this.sectionApi.createSection(courseIdValue, formData).subscribe({
             next: (section: any) => {
                 this.isSubmitting.set(false);
                 // Navigate to the Quiz Builder with the new Section ID
@@ -91,24 +96,26 @@ export class SectionSmartEditorComponent {
 
         this.isSubmitting.set(true);
         const { title, content } = this.form.value;
+        const lessonIdValue = this.lessonId();
+        const courseIdValue = this.courseId();
 
         // Use FormData for File Upload, or JSON for others
         if (this.selectedType() === 'FILE') {
             const formData = new FormData();
-            formData.append('lessonId', this.lessonId);
+            formData.append('lessonId', lessonIdValue);
             formData.append('title', title!);
             formData.append('type', 'FILE');
             if (this.selectedFile) {
                 formData.append('file', this.selectedFile);
             }
 
-            if (!this.courseId) {
+            if (!courseIdValue) {
                 alert('Không tìm thấy course ID');
                 this.isSubmitting.set(false);
                 return;
             }
 
-            this.sectionApi.createSection(this.courseId, formData).subscribe({
+            this.sectionApi.createSection(courseIdValue, formData).subscribe({
                 next: () => {
                     this.isSubmitting.set(false);
                     this.saved.emit();
@@ -121,48 +128,25 @@ export class SectionSmartEditorComponent {
                 }
             });
         } else {
-            // Normal JSON request
-            const payload = {
-                lessonId: this.lessonId,
-                title: title!,
-                type: this.selectedType() as 'TEXT' | 'VIDEO' | 'QUIZ',
-                content: this.selectedType() === 'TEXT' ? content! : undefined,
-                videoUrl: this.selectedType() === 'VIDEO' ? content! : undefined
-                // Quiz logic separate? Or handled here? Plan says QUIZ supported.
-                // But API needs payload structure.
-            };
-            // Reuse createSection logic from SectionApi which handles payloads
-            // But wait, createSection signature changed to accept FormData OR CreateSectionRequest.
-            // And JSON payload needs to match CreateSectionRequest interface.
-            // My interface (Step 4016) has `content` field.
-            // `rep4.md` example used FormData for everything.
-            // I will stick to FormData for FILE, and JSON for others to be clean, OR use FormData for ALL as per Expert suggestion.
-            // Expert `rep4.md` code used `formData` for ALL types.
-            // I should probably follow that to be safe.
-            // "Angular tự động set Content-Type là multipart/form-data".
-
+            // Normal JSON request - Use FormData for ALL types
             const formData = new FormData();
-            formData.append('lessonId', this.lessonId);
+            formData.append('lessonId', lessonIdValue);
             formData.append('title', title!);
             formData.append('type', this.selectedType());
 
             if (this.selectedType() === 'TEXT') {
                 formData.append('content', content!);
             } else if (this.selectedType() === 'VIDEO') {
-                // Backend SectionController.java expects 'content' param for HTML or Video URL?
-                // Step 4198: @RequestParam(value = "content", required = false) String content
-                // Case VIDEO: section.setVideoUrl(contentOrUrl); 
-                // So yes, 'content' param carries the URL.
                 formData.append('content', content!);
             }
 
-            if (!this.courseId) {
+            if (!courseIdValue) {
                 alert('Không tìm thấy course ID');
                 this.isSubmitting.set(false);
                 return;
             }
 
-            this.sectionApi.createSection(this.courseId, formData).subscribe({
+            this.sectionApi.createSection(courseIdValue, formData).subscribe({
                 next: () => {
                     this.isSubmitting.set(false);
                     this.saved.emit();

@@ -1,4 +1,4 @@
-import { Component, Input, ElementRef, ViewChild, AfterViewInit, OnChanges, SimpleChanges, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
+import { Component, input, viewChild, ElementRef, AfterViewInit, effect, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormulaBlockData } from '../block-types';
 import katex from 'katex';
@@ -18,32 +18,39 @@ import katex from 'katex';
     changeDetection: ChangeDetectionStrategy.OnPush,
     encapsulation: ViewEncapsulation.None
 })
-export class FormulaBlockComponent implements AfterViewInit, OnChanges {
-    @Input() data!: FormulaBlockData;
-    @ViewChild('formulaContainer') container!: ElementRef;
+export class FormulaBlockComponent implements AfterViewInit {
+    data = input.required<FormulaBlockData>();
+    container = viewChild<ElementRef>('formulaContainer');
+
+    constructor() {
+        // Re-render when data changes
+        effect(() => {
+            const d = this.data();
+            const c = this.container();
+            if (d && c) {
+                this.render();
+            }
+        });
+    }
 
     ngAfterViewInit() {
         this.render();
     }
 
-    ngOnChanges(changes: SimpleChanges) {
-        if (changes['data'] && !changes['data'].firstChange) {
-            this.render();
-        }
-    }
-
     private render() {
-        if (!this.container || !this.data || !this.data.expression) return;
+        const container = this.container();
+        const data = this.data();
+        if (!container || !data || !data.expression) return;
 
         try {
-            katex.render(this.data.expression, this.container.nativeElement, {
+            katex.render(data.expression, container.nativeElement, {
                 throwOnError: false,
-                displayMode: true, // Render as block equation
-                output: 'html' // For accessibility and speed
+                displayMode: true,
+                output: 'html'
             });
         } catch (e) {
             console.error('KaTeX Render Error:', e);
-            this.container.nativeElement.innerText = this.data.expression; // Fallback
+            container.nativeElement.innerText = data.expression;
         }
     }
 }

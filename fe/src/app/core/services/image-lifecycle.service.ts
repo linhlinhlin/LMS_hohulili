@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
+import { ContentIdentityService } from './content-identity.service';
 
 export interface UploadResult {
     uuid: string; // The temporary UUID (or final if backend handles it directly)
@@ -26,24 +27,43 @@ export class ImageLifecycleService {
         formData.append('file', file);
         formData.append('type', 'editor-image'); // Standardize type
 
-        // SOTA: Use the Editor endpoint which is whitelisted
+        // SOTA: Use the Editor endpoint which uploads to Cloudflare R2
         return this.http.post<any>('/api/v3/files/upload/editor', formData).pipe(
             map(response => {
-                // Backend returns ApiResponse<FileUploadResponse>
-                // So response.data contains the FileUploadResponse object with an 'id' field
-                const uuid = response.data?.id;
+                // Backend returns EditorJS-native format: { success: 1, file: { url, id } }
+                const uuid = response.file?.id;
+                const url = response.file?.url;
 
                 if (!uuid) {
                     throw new Error('Upload failed: No ID returned');
                 }
 
+                if (!url) {
+                    throw new Error('Upload failed: No URL returned');
+                }
+
                 this.tempUuids.add(uuid);
+
+                // Store the UUID -> URL mapping for later use by ContentIdentityService and ParseTagPipe
+                this.imageUrlsMap.set(uuid, url);
+                ContentIdentityService.registerImageUrl(uuid, url);
+
+                console.log(`ImageLifecycleService: Registered image ${uuid} -> ${url}`);
+
                 return {
                     uuid: uuid,
-                    url: `/api/v1/files/view/${uuid}`
+                    url: url // Now using R2 CDN URL directly
                 };
             })
         );
+    }
+
+    // Store UUID -> R2 URL mappings
+    private imageUrlsMap = new Map<string, string>();
+
+    // Get URL for a UUID (used by components to render images)
+    getImageUrl(uuid: string): string | undefined {
+        return this.imageUrlsMap.get(uuid);
     }
 
     /**
@@ -56,7 +76,7 @@ export class ImageLifecycleService {
 
         if (toConfirm.length === 0) return of(true);
 
-        return this.http.post('/api/v1/files/confirm', { ids: toConfirm }).pipe(
+        return this.http.post('/api/v3/files/confirm', { ids: toConfirm }).pipe(
             map(() => {
                 toConfirm.forEach(id => this.tempUuids.delete(id));
                 return true;

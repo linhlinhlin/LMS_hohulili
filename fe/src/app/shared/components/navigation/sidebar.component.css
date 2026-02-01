@@ -1,0 +1,211 @@
+/* Component-specific styles - avoiding Tailwind @apply conflicts */
+.sidebar-container {
+  background: white;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid rgba(229, 231, 235, 0.5);
+}
+
+.sidebar-header {
+  padding: 1.5rem;
+  background: white;
+  border-bottom: 1px solid rgba(229, 231, 235, 0.5);
+}
+
+.sidebar-logo {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.sidebar-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #111827;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-subtitle {
+  font-size: 0.875rem;
+  color: #6b7280;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-progress-card {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: linear-gradient(to right, #eff6ff, #e0e7ff);
+  border-radius: 0.5rem;
+  border: 1px solid #bfdbfe;
+}
+
+.progress-bar {
+  background: linear-gradient(to right, #3b82f6, #6366f1);
+  height: 0.5rem;
+  border-radius: 9999px;
+  transition: all 0.5s;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 1rem 0.75rem;
+  overflow-y: auto;
+}
+
+/* Hide scrollbar */
+.sidebar-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.sidebar-nav {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.nav-item-container {
+  margin-bottom: 0.25rem;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  padding: 0.625rem 0.75rem;
+  color: #374151;
+  border-radius: 0.5rem;
+  transition: all 0.2s;
+}
+
+.nav-item:hover {
+  background-color: #f9fafb;
+}
+
+.nav-item.active {
+  background-color: #eff6ff;
+  color: #1d4ed8;
+  border-right: 2px solid #3b82f6;
+}
+
+.nav-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-right: 0.75rem;
+  color: #9ca3af;
+  transition: transform 0.2s;
+}
+
+.nav-item:hover .nav-icon {
+  transform: scale(1.1);
+}
+
+.nav-label {
+  font-weight: 500;
+  font-size: 0.875rem;
+  flex: 1;
+}
+
+.nav-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+.sub-menu {
+  margin-left: 2rem;
+  margin-top: 0.5rem;
+}
+
+.sub-menu-item {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  color: #6b7280;
+  border-radius: 0.5rem;
+  transition: all 0.2s;
+}
+
+.sub-menu-item:hover {
+  background-color: #f3f4f6;
+  color: #111827;
+}
+
+.sub-icon {
+  width: 1rem;
+  height: 1rem;
+  margin-right: 0.5rem;
+  color: #9ca3af;
+}
+
+.sidebar-footer {
+  padding: 1rem;
+  border-top: 1px solid rgba(229, 231, 235, 0.5);
+}
+
+.logout-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0.625rem 0.75rem;
+  color: #dc2626;
+  border-radius: 0.5rem;
+  transition: all 0.2s;
+}
+
+.logout-btn:hover {
+  background-color: #fef2f2;
+}
+
+.logout-btn svg {
+  margin-right: 0.75rem;
+}
+
+.logout-btn span {
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+/* Role-specific color schemes */
+.sidebar-student .sidebar-logo {
+  background: linear-gradient(to bottom right, #2563eb, #4f46e5);
+}
+
+.sidebar-student .nav-item.active {
+  background-color: #eff6ff;
+  color: #1d4ed8;
+  border-right: 2px solid #3b82f6;
+}
+
+.sidebar-teacher .sidebar-logo {
+  background: linear-gradient(to bottom right, #2563eb, #4f46e5);
+}
+
+.sidebar-teacher .nav-item.active {
+  background-color: #eff6ff;
+  color: #1d4ed8;
+  border-right: 2px solid #3b82f6;
+}
+
+.sidebar-admin .sidebar-logo {
+  background: linear-gradient(to bottom right, #dc2626, #b91c1c);
+}
+
+.sidebar-admin .nav-item.active {
+  background-color: #fef2f2;
+  color: #b91c1c;
+  border-right: 2px solid #dc2626;
+}

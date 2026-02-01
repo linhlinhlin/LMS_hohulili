@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, signal, computed } from '@angular/core';
+import { Component, input, output, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Question } from '../../../../../api/endpoints/question.api';
@@ -24,17 +24,20 @@ import { Question } from '../../../../../api/endpoints/question.api';
     styleUrls: ['./question-selector.component.scss']
 })
 export class QuestionSelectorComponent {
-    @Input() questions: Question[] = [];
-    @Input() selectedIds: string[] = [];
-    @Output() selectionChange = new EventEmitter<string[]>();
-    @Output() createNew = new EventEmitter<void>();
+    // Signal inputs (Angular v20+)
+    readonly questions = input<Question[]>([]);
+    readonly selectedIds = input<string[]>([]);
+
+    // Output functions (Angular v20+)
+    readonly selectionChange = output<string[]>();
+    readonly createNew = output<void>();
 
     searchTerm = signal('');
     filterDifficulty = signal<string>('all');
 
     // Computed filtered questions
     filteredQuestions = computed(() => {
-        let filtered = this.questions;
+        let filtered = this.questions();
 
         // Filter by search term
         const search = this.searchTerm().toLowerCase();
@@ -55,11 +58,11 @@ export class QuestionSelectorComponent {
     });
 
     isSelected(questionId: string): boolean {
-        return this.selectedIds.includes(questionId);
+        return this.selectedIds().includes(questionId);
     }
 
     toggleQuestion(questionId: string) {
-        const currentSelection = [...this.selectedIds];
+        const currentSelection = [...this.selectedIds()];
         const index = currentSelection.indexOf(questionId);
 
         if (index > -1) {
@@ -73,13 +76,13 @@ export class QuestionSelectorComponent {
 
     selectAll() {
         const allIds = this.filteredQuestions().map(q => q.id);
-        const uniqueIds = [...new Set([...this.selectedIds, ...allIds])];
+        const uniqueIds = [...new Set([...this.selectedIds(), ...allIds])];
         this.selectionChange.emit(uniqueIds);
     }
 
     deselectAll() {
         const filteredIds = this.filteredQuestions().map(q => q.id);
-        const remaining = this.selectedIds.filter(id => !filteredIds.includes(id));
+        const remaining = this.selectedIds().filter(id => !filteredIds.includes(id));
         this.selectionChange.emit(remaining);
     }
 

@@ -11,10 +11,10 @@
  */
 import {
   Component,
-  Input,
+  input,
   OnInit,
   OnDestroy,
-  ViewChild,
+  viewChild,
   ElementRef,
   AfterViewChecked,
   inject,
@@ -45,11 +45,11 @@ import { Message, sortMessagesByDate } from '../../student/messages/utils/messag
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
             <span class="text-blue-600 font-medium">
-              {{ getInitials(studentName) }}
+              {{ getInitials(studentName()) }}
             </span>
           </div>
           <div>
-            <h3 class="font-medium text-gray-900">{{ studentName || 'Học viên' }}</h3>
+            <h3 class="font-medium text-gray-900">{{ studentName() || 'Học viên' }}</h3>
             <p class="text-sm text-gray-500">Tin nhắn trực tiếp</p>
           </div>
         </div>
@@ -113,7 +113,7 @@ import { Message, sortMessagesByDate } from '../../student/messages/utils/messag
       <!-- Input Area -->
       <app-message-input
         #messageInput
-        [placeholder]="'Nhập tin nhắn cho ' + (studentName || 'học viên') + '...'"
+        [placeholder]="'Nhập tin nhắn cho ' + (studentName() || 'học viên') + '...'"
         [showAssignmentSelector]="true"
         [assignments]="availableAssignments()"
         (messageSend)="onSendMessage($event)"
@@ -122,15 +122,16 @@ import { Message, sortMessagesByDate } from '../../student/messages/utils/messag
   `,
 })
 export class MessagesTabComponent implements OnInit, OnDestroy, AfterViewChecked {
-  @ViewChild('messagesContainer') messagesContainer!: ElementRef<HTMLDivElement>;
-  @ViewChild('messageInput') messageInput!: MessageInputComponent;
+  readonly messagesContainer = viewChild<ElementRef<HTMLDivElement>>('messagesContainer');
+  readonly messageInput = viewChild<MessageInputComponent>('messageInput');
 
-  @Input({ required: true }) studentId!: string;
-  @Input({ required: true }) studentName!: string;
+  // Signal inputs (Angular v20+)
+  readonly studentId = input.required<string>();
+  readonly studentName = input.required<string>();
 
   private messagingService = inject(MessagingService);
   private authService = inject(AuthService);
-  
+
   get currentTeacherId(): string {
     return this.authService.getCurrentUser()?.id || '';
   }
@@ -170,7 +171,7 @@ export class MessagesTabComponent implements OnInit, OnDestroy, AfterViewChecked
     this.error.set(null);
 
     // First get or create conversation
-    this.messagingService.getConversation(this.currentTeacherId, this.studentId).subscribe({
+    this.messagingService.getConversation(this.currentTeacherId, this.studentId()).subscribe({
       next: (conversation) => {
         if (conversation) {
           this.conversationId = conversation.id;
@@ -213,7 +214,7 @@ export class MessagesTabComponent implements OnInit, OnDestroy, AfterViewChecked
 
   onSendMessage(event: MessageSendEvent): void {
     const request: SendMessageRequest = {
-      recipientId: this.studentId,
+      recipientId: this.studentId(),
       content: event.content,
       assignmentId: event.assignmentId,
     };
@@ -223,8 +224,8 @@ export class MessagesTabComponent implements OnInit, OnDestroy, AfterViewChecked
         // Add message to local state
         this._messages.update((msgs) => [...msgs, response.message]);
         this.shouldScrollToBottom = true;
-        this.messageInput.onSendComplete();
-        
+        this.messageInput()?.onSendComplete();
+
         // Update conversation ID if this is first message
         if (!this.conversationId) {
           this.conversationId = response.conversationId;
@@ -232,7 +233,7 @@ export class MessagesTabComponent implements OnInit, OnDestroy, AfterViewChecked
       },
       error: (err) => {
         console.error('Error sending message:', err);
-        this.messageInput.onSendError('Không thể gửi tin nhắn. Vui lòng thử lại.');
+        this.messageInput()?.onSendError('Không thể gửi tin nhắn. Vui lòng thử lại.');
       },
     });
   }
@@ -246,7 +247,7 @@ export class MessagesTabComponent implements OnInit, OnDestroy, AfterViewChecked
   }
 
   private scrollToBottom(): void {
-    const container = this.messagesContainer?.nativeElement;
+    const container = this.messagesContainer()?.nativeElement;
     if (container) {
       container.scrollTop = container.scrollHeight;
     }

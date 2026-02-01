@@ -1,9 +1,22 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpEvent, HttpEventType, HttpProgressEvent } from '@angular/common/http';
+import { HttpClient, HttpEvent, HttpEventType } from '@angular/common/http';
 import { ApiClient } from './api-client';
 import { ApiResponse } from '../types/common.types';
 import { Observable } from 'rxjs';
 import { map, filter } from 'rxjs/operators';
+
+/**
+ * File API Endpoints - V3
+ */
+const FILE_ENDPOINTS = {
+  UPLOAD: '/api/v3/files/upload',
+  LIST: '/api/v3/files',
+  BY_ID: (fileId: string) => `/api/v3/files/${fileId}`,
+  DOWNLOAD: (fileId: string) => `/api/v3/files/${fileId}/download`,
+  THUMBNAIL: (fileId: string) => `/api/v3/files/${fileId}/thumbnail`,
+  PRESIGNED_URL: '/api/v3/files/presigned-url',
+  STREAM: (fileId: string) => `/api/v3/files/stream/${fileId}`
+} as const;
 
 export interface FileUploadResponse {
   id: string;
@@ -28,7 +41,9 @@ export class FileApi {
   private api = inject(ApiClient);
   private http = inject(HttpClient);
 
-  // Upload file with progress tracking
+  /**
+   * Upload file with progress tracking
+   */
   uploadFile(
     file: File,
     category: 'assignment' | 'lesson' | 'course' | 'profile' | 'document' = 'document',
@@ -38,10 +53,14 @@ export class FileApi {
     formData.append('file', file);
     formData.append('category', category);
 
-    return this.http.post<ApiResponse<FileUploadResponse>>(`${this.api['baseUrl']}/api/v1/files/upload`, formData, {
-      reportProgress: true,
-      observe: 'events'
-    }).pipe(
+    return this.http.post<ApiResponse<FileUploadResponse>>(
+      `${this.api['baseUrl']}${FILE_ENDPOINTS.UPLOAD}`,
+      formData,
+      {
+        reportProgress: true,
+        observe: 'events'
+      }
+    ).pipe(
       map((event: HttpEvent<ApiResponse<FileUploadResponse>>) => {
         if (event.type === HttpEventType.UploadProgress && event.total) {
           const progress: FileUploadProgress = {
@@ -60,13 +79,15 @@ export class FileApi {
     );
   }
 
-  // Upload multiple files
+  /**
+   * Upload multiple files
+   */
   uploadMultipleFiles(
     files: File[],
     category: 'assignment' | 'lesson' | 'course' | 'profile' | 'document' = 'document',
     onProgress?: (fileIndex: number, progress: FileUploadProgress) => void
   ): Observable<FileUploadResponse[]> {
-    const uploads = files.map((file, index) => 
+    const uploads = files.map((file, index) =>
       this.uploadFile(file, category, (progress) => {
         if (onProgress) {
           onProgress(index, progress);
@@ -74,7 +95,6 @@ export class FileApi {
       })
     );
 
-    // Return all uploads as a single observable that emits when all complete
     return new Observable(subscriber => {
       const results: FileUploadResponse[] = [];
       let completedCount = 0;
@@ -95,41 +115,61 @@ export class FileApi {
     });
   }
 
-  // Get files list
+  /**
+   * Get files list
+   */
   getFiles(params?: { category?: string; page?: number; limit?: number }) {
-    return this.api.getWithResponse<FileUploadResponse[]>('/api/v1/files', { params });
+    return this.api.getWithResponse<FileUploadResponse[]>(FILE_ENDPOINTS.LIST, { params });
   }
 
-  // Get file by ID
+  /**
+   * Get file by ID
+   */
   getFileById(fileId: string) {
-    return this.api.getWithResponse<FileUploadResponse>(`/api/v1/files/${fileId}`);
+    return this.api.getWithResponse<FileUploadResponse>(FILE_ENDPOINTS.BY_ID(fileId));
   }
 
-  // Delete file
+  /**
+   * Delete file
+   */
   deleteFile(fileId: string) {
-    return this.api.deleteWithResponse<string>(`/api/v1/files/${fileId}`);
+    return this.api.deleteWithResponse<string>(FILE_ENDPOINTS.BY_ID(fileId));
   }
 
-  // Get file download URL
+  /**
+   * Get file download URL
+   */
   getDownloadUrl(fileId: string): string {
-    return `/api/v1/files/${fileId}/download`;
+    return FILE_ENDPOINTS.DOWNLOAD(fileId);
   }
 
-  // Get file thumbnail URL
+  /**
+   * Get file thumbnail URL
+   */
   getThumbnailUrl(fileId: string): string {
-    return `/api/v1/files/${fileId}/thumbnail`;
+    return FILE_ENDPOINTS.THUMBNAIL(fileId);
   }
 
-  // Generate presigned upload URL (for large files)
+  /**
+   * Get file stream URL
+   */
+  getStreamUrl(fileId: string): string {
+    return FILE_ENDPOINTS.STREAM(fileId);
+  }
+
+  /**
+   * Generate presigned upload URL (for large files)
+   */
   getPresignedUploadUrl(fileName: string, fileSize: number, contentType: string) {
-    return this.api.postWithResponse<{ uploadUrl: string; fileId: string }>('/api/v1/files/presigned-url', {
-      fileName,
-      fileSize,
-      contentType
-    });
+    return this.api.postWithResponse<{ uploadUrl: string; fileId: string }>(
+      FILE_ENDPOINTS.PRESIGNED_URL,
+      { fileName, fileSize, contentType }
+    );
   }
 
-  // Upload to presigned URL
+  /**
+   * Upload to presigned URL
+   */
   uploadToPresignedUrl(
     presignedUrl: string,
     file: File,

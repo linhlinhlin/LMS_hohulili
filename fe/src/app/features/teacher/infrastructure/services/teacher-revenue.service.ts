@@ -57,11 +57,11 @@ export interface PayoutHistoryItem {
 // ============================================
 
 const TEACHER_REVENUE_ENDPOINTS = {
-    SUMMARY: '/api/v1/teacher/revenue/summary',
-    HISTORY: '/api/v1/teacher/revenue/history',
-    PAYOUT_BALANCE: '/api/v1/teacher/payout/balance',
-    PAYOUT_REQUEST: '/api/v1/teacher/payout/request',
-    PAYOUT_HISTORY: '/api/v1/teacher/payout/history',
+    SUMMARY: '/api/v3/teacher/revenue/summary',
+    HISTORY: '/api/v3/teacher/revenue/history',
+    PAYOUT_BALANCE: '/api/v3/teacher/payout/balance',
+    PAYOUT_REQUEST: '/api/v3/teacher/payout/request',
+    PAYOUT_HISTORY: '/api/v3/teacher/payout/history',
 };
 
 // ============================================

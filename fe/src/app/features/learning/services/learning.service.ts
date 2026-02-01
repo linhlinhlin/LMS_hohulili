@@ -508,7 +508,7 @@ export class LearningService {
   // Private helper methods
 
   private getCourseProgress(courseId: string) {
-    const url = `/api/v1/student/progress/courses/${courseId}/completed-ids`;
+    const url = `/api/v3/student/progress/courses/${courseId}/completed-ids`;
     return this.api.get<any>(url).pipe(
       tap(res => {
         console.log('[LearningService] Raw course progress response:', res);

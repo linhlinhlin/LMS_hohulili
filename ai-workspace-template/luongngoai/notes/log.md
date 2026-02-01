@@ -1,179 +1,120 @@
-E:\Sach\Sua\LMS_hohulili\fe>npm run build
+Dưới đây là **hướng dẫn chi tiết** để setup và sử dụng **dev3000** (từ Vercel Labs) trong dự án của bạn: **Angular v20+ (frontend)** + **Spring Boot (backend)**. Vì bạn dùng **Antigravity** (Google's agent-first IDE, powered by Gemini 3) và **Kiro IDE** (agentic IDE với spec-driven development, MCP support), mình sẽ tập trung vào cách làm cho **AI agent** trong các IDE này **biết và sử dụng** dev3000 để debug/fix code hiệu quả.
 
-> lms-angular@0.0.0 build
-> ng build
+dev3000 hoạt động như một "MCP server" (Model Context Protocol) → cung cấp context đầy đủ (logs server, console browser, network, screenshots timestamped) cho AI agent đọc và hành động. Cả **Antigravity** lẫn **Kiro** đều hỗ trợ MCP (Antigravity có native agent orchestration, Kiro có MCP integration rõ ràng), nên dev3000 sẽ kết nối tốt.
 
-Browser bundles
-Initial chunk files  | Names                          |  Raw size | Estimated transfer size
-styles-II7IBVXX.css  | styles                         | 221.87 kB |                27.94 kB
-chunk-AZWQQLZI.js    | -                              | 205.41 kB |                60.62 kB
-chunk-QLIUL5RG.js    | -                              |  95.20 kB |                23.98 kB
-chunk-WDRELCYU.js    | -                              |  70.89 kB |                17.05 kB
-main-E5AUBMLG.js     | main                           |  64.22 kB |                16.17 kB
-chunk-PEI6DAPK.js    | -                              |  53.51 kB |                10.29 kB
-chunk-DQ3S6FK4.js    | -                              |  38.44 kB |                11.02 kB
-chunk-TU7TJP5Y.js    | -                              |  22.43 kB |                 6.75 kB
-chunk-EGOF2LXE.js    | -                              |  18.56 kB |                 4.91 kB
-chunk-AFOKWJT7.js    | -                              |   7.88 kB |                 2.83 kB
-chunk-UB2EYGAQ.js    | -                              |   3.57 kB |                 1.22 kB
-chunk-NATEITP2.js    | -                              |   2.04 kB |               758 bytes
-chunk-C6Q5SG76.js    | -                              |   1.07 kB |               468 bytes
-chunk-FPPZ4BUR.js    | -                              | 229 bytes |               229 bytes
-chunk-HSEAWHOP.js    | -                              | 127 bytes |               127 bytes
+### 1. Yêu cầu trước khi bắt đầu
+- **Node.js**: >= v22.12.0 (kiểm tra bằng `node -v`, nếu chưa thì update).
+- **pnpm** (khuyến nghị, nhưng npm/bun cũng ok): `npm install -g pnpm`.
+- Máy có **Chrome** (hoặc Chromium-based như Brave/Edge) cài sẵn (dev3000 dùng CDP để capture browser).
+- Dự án: Giả sử cấu trúc separate folders:
+  - `/frontend-angular` (ng serve port 4200)
+  - `/backend-spring` (mvn spring-boot:run port 8080)
+- IDE: Antigravity hoặc Kiro đang mở project (hoặc cả hai).
 
-                     | Initial total                  | 805.40 kB |               184.35 kB
+### 2. Cài đặt dev3000
+Chạy **global install** (dễ nhất, dùng ở mọi project):
 
-Lazy chunk files     | Names                          |  Raw size | Estimated transfer size
-chunk-FT2DJKFR.js    | -                              | 974.33 kB |               210.74 kB
-chunk-R4SXBQIQ.js    | lesson-viewer-component        | 733.40 kB |               180.13 kB
-chunk-E4JDH4FZ.js    | user-management-component      | 482.95 kB |               130.91 kB
-chunk-4OWYFWXQ.css   | -                              | 280.46 kB |                29.07 kB
-main-LFY2DEVF.css    | -                              | 280.46 kB |                29.07 kB
-chunk-UJKO6NFT.js    | admin-component                | 228.02 kB |                67.05 kB
-chunk-5XQRK4T2.js    | section-editor-component       | 167.59 kB |                30.83 kB
-chunk-FLPX5EKC.js    | course-classes-component       | 155.74 kB |                31.19 kB
-chunk-LPNKEZ5K.js    | course-learning-component      | 116.42 kB |                17.01 kB
-chunk-TCGQDYOW.js    | course-editor-layout-component | 107.82 kB |                25.29 kB
-chunk-ZUEWZJEQ.js    | index                          | 105.86 kB |                20.44 kB
-chunk-UAPPJE5Z.js    | -                              |  94.96 kB |                18.82 kB
-chunk-HPKKLZCH.js    | browser                        |  64.09 kB |                17.12 kB
-chunk-JN7OXVIC.js    | ai-chat-full-page-component    |  47.61 kB |                10.74 kB
-chunk-XS4ZAGNO.js    | quiz-bank-component            |  46.65 kB |                10.59 kB
-...and 131 more lazy chunks files. Use "--verbose" to show all the files.
+```bash
+pnpm install -g dev3000
+# Hoặc npm: npm install -g dev3000
+# Hoặc bun: bun add -g dev3000
+```
 
+Kiểm tra:
+```bash
+dev3000 --version   # Nên ~0.0.149-canary hoặc mới hơn (tháng 1/2026)
+dev3000 --help      # Xem flags
+```
 
-Server bundles
-Initial chunk files  | Names                          |  Raw size
-server.mjs           | server                         |   1.30 MB | 
-chunk-SGCOZDRZ.mjs   | -                              | 450.82 kB | 
-polyfills.server.mjs | polyfills.server               | 233.48 kB | 
-chunk-7L2ZDU7T.mjs   | -                              | 204.74 kB | 
-chunk-4PZI5KM6.mjs   | -                              |  95.19 kB | 
-chunk-XOWVGN2B.mjs   | -                              |  70.93 kB | 
-main.server.mjs      | main.server                    |  67.25 kB | 
-chunk-WOVQGD5N.mjs   | -                              |  53.54 kB | 
-chunk-2IRSU2LS.mjs   | -                              |  38.23 kB | 
-chunk-N4ZYO55Y.mjs   | -                              |  22.70 kB | 
-chunk-IKN4MJZT.mjs   | -                              |  18.60 kB | 
-chunk-63Z2VFAH.mjs   | -                              |   6.41 kB | 
-chunk-5RIOJFAE.mjs   | -                              |   3.60 kB | 
-chunk-QXRXRQYQ.mjs   | -                              |   2.07 kB | 
-chunk-N7QBYMCK.mjs   | -                              |   1.36 kB | 
-chunk-IM7KAQQ2.mjs   | -                              | 262 bytes | 
-chunk-BKV4B4YC.mjs   | -                              | 160 bytes | 
+### 3. Chạy dev3000 cho dự án Angular + Spring Boot
+Vì stack của bạn **full-stack separate**, chạy **2 terminal** (hoặc dùng concurrently nếu muốn 1 lệnh).
 
-Lazy chunk files     | Names                          |  Raw size
-chunk-IELRAFHU.mjs   | -                              | 974.37 kB | 
-chunk-XTEKSJGB.mjs   | lesson-viewer-component        | 733.48 kB | 
-chunk-PU4CRR32.mjs   | user-management-component      | 482.99 kB | 
-chunk-4OWYFWXQ.css   | -                              | 280.46 kB | 
-main.server.css      | -                              | 280.46 kB | 
-chunk-DDDH2OQ4.mjs   | admin-component                | 228.06 kB | 
-chunk-CVIY6UXA.mjs   | section-editor-component       | 167.64 kB | 
-chunk-HQACLPBV.mjs   | course-classes-component       | 155.79 kB | 
-chunk-6S4BBF5K.mjs   | course-learning-component      | 116.46 kB | 
-chunk-2BOGJFRM.mjs   | course-editor-layout-component | 107.87 kB | 
-chunk-WVDJ4DN5.mjs   | index                          | 105.91 kB | 
-chunk-KGBCV2DN.mjs   | -                              |  94.99 kB | 
-chunk-CAUSSHKT.mjs   | browser                        |  64.13 kB | 
-chunk-356PRSWO.mjs   | ai-chat-full-page-component    |  47.65 kB | 
-chunk-WNJIDHDX.mjs   | quiz-bank-component            |  46.70 kB | 
-...and 132 more lazy chunks files. Use "--verbose" to show all the files.
+**Cách khuyến nghị (separate, dễ debug nhất):**
 
-Prerendered 0 static routes.
-Application bundle generation complete. [31.566 seconds] - 2025-12-24T08:56:23.705Z
+- Terminal 1: Chạy backend Spring Boot bình thường (không qua dev3000):
+  ```bash
+  cd backend-spring
+  ./mvnw spring-boot:run   # Hoặc IntelliJ run config
+  ```
+  → Backend chạy localhost:8080.
 
-▲ [WARNING] NG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator. [plugin angular-compiler]
+- Terminal 2: Chạy dev3000 cho frontend Angular (capture browser + network đến backend):
+  ```bash
+  cd frontend-angular
+  dev3000 -- ng serve --port 4200
+  # Hoặc nếu dùng npm script: dev3000 -- npm start
+  ```
 
-    src/app/features/courses/shared/course-card.component.ts:82:35:
-      82 │             {{ (course.instructor?.name || 'G')[0] }}
-         ╵                                    ~~~~
+  → dev3000 sẽ:
+  - Launch Chrome monitored (tự động mở browser đến localhost:4200).
+  - Capture: Angular console, network (gọi API Spring Boot), user interactions (click, route change), screenshots auto khi error/navigate.
+  - Capture server logs nếu bạn chạy backend trong cùng session (nhưng separate thì network vẫn capture đầy đủ).
 
+**Nếu muốn capture cả backend logs trong 1 lệnh (nếu bạn có script kết hợp):**
+Tạo script trong root project (hoặc package.json frontend):
+```json
+"dev:all": "concurrently \"cd backend && ./mvnw spring-boot:run\" \"cd frontend && ng serve\""
+```
+Rồi:
+```bash
+dev3000 -- npm run dev:all
+```
+→ dev3000 capture logs từ cả 2 processes.
 
-▲ [WARNING] NG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator. [plugin angular-compiler]
+**Flags hữu ích cho bạn:**
+- `--headless`: Không mở browser window (nếu máy yếu hoặc remote).
+- `--servers-only`: Chỉ capture server logs + MCP (không browser, nếu debug backend pure).
+- `--browser "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"`: Chỉ định Chrome path nếu cần.
+- `--disable-mcp-configs "all"`: Nếu không muốn dev3000 tự write file config MCP (xem phần sau).
 
-    src/app/features/courses/shared/course-card.component.ts:85:79:
-      85 │ ...ext-gray-800">{{ course.instructor?.name || 'Giảng viên' }}</p>
-         ╵                                        ~~~~
+Sau khi chạy → mở **http://localhost:3684/logs** (MCP port default) để xem timeline unified (logs + screenshots embedded).
 
+### 4. Làm sao để AI trong Antigravity và Kiro "biết" và dùng dev3000?
+dev3000 tự động chạy **MCP server** tại http://localhost:3684/api/mcp/mcp → expose tools như `fix_my_app`, `execute_browser_action` (click/type trong browser thật), `restart_dev_server`, v.v.
 
-▲ [WARNING] NG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator. [plugin angular-compiler]
+**Với Claude-based agents (cả Antigravity và Kiro đều hỗ trợ Claude models):**
+- **Zero-config cho Claude Code / Claude Desktop**: Chỉ cần chạy dev3000 → Claude tự detect MCP server (nó scan local ports).
+  - Trong Antigravity: Mở "Mission Control" (agent manager) → spawn agent → nói "fix my app" hoặc "debug why API call fails on login".
+  - Trong Kiro: Mở agentic chat hoặc spec → prompt "Analyze the dev timeline and suggest fixes for the Angular form submission error".
+  → AI sẽ tự đọc logs từ dev3000, xem screenshots, network (ví dụ: 401 error từ Spring, CORS issue), rồi suggest fix hoặc execute action (như restart server).
 
-    src/app/features/courses/shared/course-card.component.ts:86:67:
-      86 │ ...xt-gray-400">{{ course.instructor?.title || 'Giảng viên' }}</p>
-         ╵                                       ~~~~~
+**Nếu không auto-detect (thường xảy ra với Kiro hoặc Antigravity nếu config strict):**
+dev3000 tự write file config:
+- `.mcp.json` (general)
+- `.cursor/mcp.json` (nếu dùng Cursor-style, nhưng Kiro/Antigravity có thể đọc tương tự)
+- `opencode.json`
 
+Nếu không thấy file → chạy lại dev3000, hoặc manual add MCP connector:
+- Trong **Antigravity** (Settings → Connectors → Add custom MCP):
+  - Name: dev3000
+  - URL: http://localhost:3684/api/mcp/mcp
+- Trong **Kiro** (Settings → MCP / Tools → Add MCP server):
+  - Tương tự, add URL trên (Kiro hỗ trợ MCP native, xem docs kiro.dev/docs cho "MCP integration").
+- Restart IDE/agent → agent sẽ thấy tools từ dev3000.
 
-▲ [WARNING] Deprecation [plugin angular-sass]
+**Prompt gợi ý để AI dùng dev3000:**
+- "Use the dev3000 timeline to debug why the Angular component shows 500 error from Spring Boot API."
+- "fix_my_app: Login fails with invalid credentials in backend logs."
+- "Execute browser action: Navigate to /dashboard and screenshot the UI after login."
 
-    src/app/features/student/student-my-courses.component.ts:2:12:
-      2 │     @import '../../../styles/variables';
-        ╵             ^
+### 5. Workflow thực tế với stack của bạn
+1. Chạy backend + dev3000 + frontend như trên.
+2. Mở Antigravity/Kiro → load project (frontend hoặc full nếu monorepo).
+3. Phát sinh lỗi (ví dụ: submit form Angular → backend throw exception).
+4. Trong IDE: Spawn agent / chat agent → prompt debug → AI đọc MCP từ dev3000 → xem:
+   - Spring logs (stack trace).
+   - Angular console (HTTP error).
+   - Network payload/response.
+   - Screenshot trang lỗi.
+5. AI suggest: Fix code Angular service, hoặc Spring controller → apply trực tiếp (nếu agent có quyền edit).
 
+### 6. Troubleshooting phổ biến
+- **Không capture backend logs**: Chạy backend trong cùng terminal với dev3000, hoặc dùng `--servers-only` riêng cho backend folder.
+- **Browser không mở**: Check Chrome path, hoặc dùng `--headless`.
+- **MCP không connect**: Kill port 3684 (lsof -i:3684), chạy lại dev3000.
+- **Angular change detection noisy**: Logs nhiều → filter trong http://localhost:3684/logs.
+- **Update dev3000**: `pnpm update -g dev3000`.
 
-  Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+Bắt đầu bằng cách chạy thử ở terminal, mở localhost:3684/logs xem timeline có đầy đủ không. Nếu ok → connect vào Antigravity/Kiro và test prompt debug.
 
-  More info and automated migrator: https://sass-lang.com/d/import
-
-
-▲ [WARNING] Module 'global/window' used by 'node_modules/video.js/dist/video.es.js' is not ESM      
-
-  CommonJS or AMD dependencies can cause optimization bailouts.
-  For more information see: https://angular.dev/tools/cli/build#configuring-commonjs-dependencies   
-
-
-▲ [WARNING] Module 'global/document' used by 'node_modules/video.js/dist/video.es.js' is not ESM    
-
-  CommonJS or AMD dependencies can cause optimization bailouts.
-  For more information see: https://angular.dev/tools/cli/build#configuring-commonjs-dependencies   
-
-
-▲ [WARNING] Module '@videojs/xhr' used by 'node_modules/video.js/dist/video.es.js' is not ESM       
-
-  CommonJS or AMD dependencies can cause optimization bailouts.
-  For more information see: https://angular.dev/tools/cli/build#configuring-commonjs-dependencies   
-
-
-▲ [WARNING] Module 'videojs-vtt.js' used by 'node_modules/video.js/dist/video.es.js' is not ESM     
-
-  CommonJS or AMD dependencies can cause optimization bailouts.
-  For more information see: https://angular.dev/tools/cli/build#configuring-commonjs-dependencies   
-
-
-▲ [WARNING] Module '@babel/runtime/helpers/extends' used by 'node_modules/video.js/dist/video.es.js' is not ESM
-
-  CommonJS or AMD dependencies can cause optimization bailouts.
-  For more information see: https://angular.dev/tools/cli/build#configuring-commonjs-dependencies   
-
-
-▲ [WARNING] Module 'mux.js/lib/tools/parse-sidx' used by 'node_modules/video.js/dist/video.es.js' is not ESM
-
-  CommonJS or AMD dependencies can cause optimization bailouts.
-  For more information see: https://angular.dev/tools/cli/build#configuring-commonjs-dependencies   
-
-
-▲ [WARNING] Module 'mux.js/lib/utils/clock' used by 'node_modules/video.js/dist/video.es.js' is not ESM
-
-  CommonJS or AMD dependencies can cause optimization bailouts.
-  For more information see: https://angular.dev/tools/cli/build#configuring-commonjs-dependencies   
-
-
-▲ [WARNING] Module '@xmldom/xmldom' used by 'node_modules/mpd-parser/dist/mpd-parser.es.js' is not ESM
-
-  CommonJS or AMD dependencies can cause optimization bailouts.
-  For more information see: https://angular.dev/tools/cli/build#configuring-commonjs-dependencies   
-
-
-▲ [WARNING] Module 'fuzzysort' used by 'node_modules/@ckeditor/ckeditor5-emoji/dist/index.js' is not ESM
-
-  CommonJS or AMD dependencies can cause optimization bailouts.
-  For more information see: https://angular.dev/tools/cli/build#configuring-commonjs-dependencies   
-
-
-▲ [WARNING] Module 'extend' used by 'node_modules/unified/lib/index.js' is not ESM
-
-  CommonJS or AMD dependencies can cause optimization bailouts.
-  For more information see: https://angular.dev/tools/cli/build#configuring-commonjs-dependencies   
-
-
-Output location: E:\Sach\Sua\LMS_hohulili\fe\dist\lms-angular
+Nếu gặp lỗi cụ thể (ví dụ: screenshot không capture, hoặc AI không thấy MCP), paste log/error đây mình hỗ trợ chi tiết hơn nhé! Bạn dùng Antigravity hay Kiro chính hơn? 😄

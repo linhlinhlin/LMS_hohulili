@@ -1,0 +1,265 @@
+﻿
+    <div class="max-w-4xl mx-auto p-6">
+      <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900 mb-2">ThĂªm BĂ i Táº­p</h1>
+        <p class="text-gray-600">Táº¡o bĂ i táº­p má»›i cho khĂ³a há»c</p>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-6">
+        <!-- Step 1: Assignment Type Selection -->
+        <div class="bg-white rounded-lg shadow p-6" *ngIf="currentStep() === 1">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">BÆ°á»›c 1: Chá»n Loáº¡i BĂ i Táº­p</h2>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+            <div *ngFor="let template of assignmentTemplates()" 
+                 class="border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md"
+                 [class.border-blue-500]="selectedTemplate()?.id === template.id"
+                 [class.bg-blue-50]="selectedTemplate()?.id === template.id"
+                 (click)="selectTemplate(template)">
+              <div class="flex items-center justify-between mb-2">
+                <h3 class="font-medium text-gray-900">{{ template.name }}</h3>
+                <span class="px-2 py-1 bg-gray-100 text-xs rounded">{{ getTypeLabel(template.type) }}</span>
+              </div>
+              <p class="text-sm text-gray-600 mb-3">{{ template.description }}</p>
+              <div class="text-xs text-gray-500">
+                <div>Äiá»ƒm tá»‘i Ä‘a: {{ template.defaultConfig.maxScore }}</div>
+                <div *ngIf="template.defaultConfig.timeLimit">Thá»i gian: {{ template.defaultConfig.timeLimit }} phĂºt</div>
+                <div *ngIf="template.defaultConfig.allowMultipleAttempts">Cho phĂ©p lĂ m láº¡i</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-between">
+            <button type="button" routerLink="/teacher/assignments" 
+                    class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50">
+              Há»§y
+            </button>
+            <button type="button" 
+                    [disabled]="!selectedTemplate()"
+                    (click)="nextStep()"
+                    class="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50 hover:bg-blue-700">
+              Tiáº¿p theo
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 2: Basic Information -->
+        <div class="bg-white rounded-lg shadow p-6" *ngIf="currentStep() === 2">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">BÆ°á»›c 2: ThĂ´ng Tin CÆ¡ Báº£n</h2>
+
+          <div class="grid grid-cols-1 gap-6 mb-6">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">KhĂ³a há»c *</label>
+              <select formControlName="courseId" class="w-full border rounded px-3 py-2" (change)="onCourseChange($event)">
+                <option value="">Chá»n khĂ³a há»c</option>
+                <option *ngFor="let course of courses()" [value]="course.id">{{ course.title }}</option>
+              </select>
+            </div>
+
+            <!-- Lesson Assignment Option -->
+            <div *ngIf="selectedCourseId()" class="border-t pt-4">
+              <div class="flex items-center mb-3">
+                <input type="checkbox" id="linkToLesson" formControlName="linkToLesson" class="mr-2">
+                <label for="linkToLesson" class="text-sm font-medium text-gray-700">Gáº¯n bĂ i táº­p vá»›i bĂ i há»c</label>
+              </div>
+
+              <div *ngIf="form.controls.linkToLesson.value" class="ml-6">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Chá»n bĂ i há»c</label>
+                <select formControlName="lessonId" class="w-full border rounded px-3 py-2">
+                  <option value="">Chá»n bĂ i há»c</option>
+                  <option *ngFor="let lesson of availableLessons()" [value]="lesson.id">
+                    {{ lesson.title }} ({{ lesson.sectionTitle }})
+                  </option>
+                </select>
+                <p class="text-xs text-gray-500 mt-1">BĂ i táº­p sáº½ Ä‘Æ°á»£c gáº¯n vá»›i bĂ i há»c Ä‘Ă£ chá»n</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Háº¡n ná»™p</label>
+              <input formControlName="dueDate"
+                     type="datetime-local"
+                     class="w-full border rounded px-3 py-2">
+              <div class="text-sm text-red-600 mt-1" *ngIf="form.controls.dueDate.invalid && form.controls.dueDate.touched">
+                Vui lĂ²ng chá»n háº¡n ná»™p há»£p lá»‡
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Äiá»ƒm tá»‘i Ä‘a *</label>
+              <input formControlName="maxScore"
+                     type="number"
+                     min="1"
+                     max="1000"
+                     class="w-full border rounded px-3 py-2">
+              <div class="text-sm text-red-600 mt-1" *ngIf="form.controls.maxScore.invalid && form.controls.maxScore.touched">
+                Äiá»ƒm tá»‘i Ä‘a pháº£i tá»« 1 Ä‘áº¿n 1000
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-1">MĂ´ táº£ bĂ i táº­p</label>
+            <textarea formControlName="description" 
+                      rows="4" 
+                      class="w-full border rounded px-3 py-2" 
+                      placeholder="MĂ´ táº£ chi tiáº¿t vá» bĂ i táº­p..."></textarea>
+          </div>
+
+          <div class="flex justify-between">
+            <button type="button" (click)="prevStep()"
+                    class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50">
+              Quay láº¡i
+            </button>
+            <button type="button" (click)="nextStep()"
+                    class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+              Tiáº¿p theo
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 3: Assignment-Specific Configuration -->
+        <div class="bg-white rounded-lg shadow p-6" *ngIf="currentStep() === 3">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">BÆ°á»›c 3: Cáº¥u HĂ¬nh Chi Tiáº¿t</h2>
+          
+          <!-- Essay Assignment Config -->
+          <div *ngIf="selectedTemplate()?.type === 'essay'" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Sá»‘ tá»« tá»‘i thiá»ƒu</label>
+              <input formControlName="minWords" type="number" class="w-full border rounded px-3 py-2">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Sá»‘ tá»« tá»‘i Ä‘a</label>
+              <input formControlName="maxWords" type="number" class="w-full border rounded px-3 py-2">
+            </div>
+            <div class="flex items-center">
+              <input formControlName="enablePeerReview" type="checkbox" id="peerReview" class="mr-2">
+              <label for="peerReview" class="text-sm text-gray-700">Báº­t Ä‘Ă¡nh giĂ¡ peer-to-peer</label>
+            </div>
+          </div>
+
+          <!-- Quiz Assignment Config -->
+          <div *ngIf="selectedTemplate()?.type === 'quiz'" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Thá»i gian lĂ m bĂ i (phĂºt)</label>
+              <input formControlName="timeLimit" type="number" class="w-full border rounded px-3 py-2">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Sá»‘ láº§n lĂ m tá»‘i Ä‘a</label>
+              <input formControlName="maxAttempts" type="number" class="w-full border rounded px-3 py-2">
+            </div>
+            <div class="flex items-center">
+              <input formControlName="randomizeQuestions" type="checkbox" id="randomize" class="mr-2">
+              <label for="randomize" class="text-sm text-gray-700">XĂ¡o trá»™n thá»© tá»± cĂ¢u há»i</label>
+            </div>
+          </div>
+
+          <!-- Programming Assignment Config -->
+          <div *ngIf="selectedTemplate()?.type === 'programming'" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">NgĂ´n ngá»¯ láº­p trĂ¬nh</label>
+              <select formControlName="programmingLanguage" class="w-full border rounded px-3 py-2">
+                <option value="java">Java</option>
+                <option value="python">Python</option>
+                <option value="javascript">JavaScript</option>
+                <option value="cpp">C++</option>
+              </select>
+            </div>
+            <div class="flex items-center">
+              <input formControlName="enableAutoGrading" type="checkbox" id="autoGrade" class="mr-2">
+              <label for="autoGrade" class="text-sm text-gray-700">Báº­t cháº¥m Ä‘iá»ƒm tá»± Ä‘á»™ng</label>
+            </div>
+          </div>
+
+          <!-- File Submission Config -->
+          <div *ngIf="selectedTemplate()?.type === 'file_submission' || selectedTemplate()?.type === 'project'">
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Loáº¡i file Ä‘Æ°á»£c phĂ©p</label>
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <label *ngFor="let fileType of availableFileTypes" class="flex items-center">
+                  <input type="checkbox" 
+                         [checked]="selectedFileTypes().includes(fileType.value)"
+                         (change)="toggleFileType(fileType.value)"
+                         class="mr-1">
+                  <span class="text-sm">{{ fileType.label }}</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-between">
+            <button type="button" (click)="prevStep()"
+                    class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50">
+              Quay láº¡i
+            </button>
+            <button type="button" (click)="nextStep()"
+                    class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+              Tiáº¿p theo
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 4: Instructions & Attachments -->
+        <div class="bg-white rounded-lg shadow p-6" *ngIf="currentStep() === 4">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">BÆ°á»›c 4: HÆ°á»›ng Dáº«n & TĂ i Liá»‡u</h2>
+          
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-1">HÆ°á»›ng dáº«n lĂ m bĂ i</label>
+            <textarea formControlName="instructions" 
+                      rows="8" 
+                      class="w-full border rounded px-3 py-2" 
+                      placeholder="HÆ°á»›ng dáº«n chi tiáº¿t cĂ¡ch lĂ m bĂ i táº­p..."></textarea>
+          </div>
+
+          <!-- File Upload Section -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">TĂ i liá»‡u Ä‘Ă­nh kĂ¨m</label>
+            <app-file-upload
+              [config]="fileUploadConfig()"
+              [existingFiles]="attachedFiles()"
+              (filesUploaded)="onFilesUploaded($event)"
+              (fileDeleted)="onFileDeleted($event)"
+              (uploadError)="onFileUploadError($event)">
+            </app-file-upload>
+          </div>
+
+          <div class="flex items-center mt-4 mb-4">
+            <input type="checkbox" id="saveAsDraft" formControlName="saveAsDraft" class="mr-2">
+            <label for="saveAsDraft" class="text-sm font-medium text-gray-700">LÆ°u dÆ°á»›i dáº¡ng báº£n nhĂ¡p (Draft)</label>
+          </div>
+
+          <div class="flex justify-between mt-6">
+            <button type="button" (click)="prevStep()"
+                    class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50">
+              Quay láº¡i
+            </button>
+            <button type="submit" 
+                    [disabled]="form.invalid || submitting()"
+                    class="px-4 py-2 bg-green-600 text-white rounded disabled:opacity-50 hover:bg-green-700">
+              {{ submitting() ? 'Äang táº¡o...' : (form.value.saveAsDraft ? 'LÆ°u báº£n nhĂ¡p' : 'Táº¡o bĂ i táº­p') }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Progress indicator -->
+        <div class="flex justify-center mt-4">
+          <div class="flex space-x-2">
+            <div *ngFor="let step of [1,2,3,4]; let i = index" 
+                 class="w-3 h-3 rounded-full"
+                 [class.bg-blue-600]="currentStep() > i"
+                 [class.bg-blue-300]="currentStep() === i + 1"
+                 [class.bg-gray-300]="currentStep() < i + 1">
+            </div>
+          </div>
+        </div>
+
+        <!-- Error/Success Messages -->
+        <div class="text-center" *ngIf="success() || error()">
+          <span class="text-green-700" *ngIf="success()">{{ success() }}</span>
+          <span class="text-red-600" *ngIf="error()">{{ error() }}</span>
+        </div>
+      </form>
+    </div>
+  

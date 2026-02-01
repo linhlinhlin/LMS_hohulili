@@ -1,4 +1,4 @@
-import { Component, Input, signal } from '@angular/core';
+import { Component, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { CategoryInfo, Course } from '../../types/course.types';
@@ -309,6 +309,7 @@ import { CategoryInfo, Course } from '../../types/course.types';
   `
 })
 export class CategoryBaseComponent {
-  @Input() categoryInfo = signal<CategoryInfo>({} as CategoryInfo);
-  @Input() courses = signal<Course[]>([]);
+  // Signal inputs - Angular v20+
+  categoryInfo = input<CategoryInfo>({} as CategoryInfo);
+  courses = input<Course[]>([]);
 }

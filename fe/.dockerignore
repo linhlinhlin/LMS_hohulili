@@ -1,0 +1,16 @@
+# =============================================================================
+# Docker Build Context Exclusions - Frontend
+# =============================================================================
+
+node_modules/
+dist/
+.angular/
+.git/
+*.md
+.vscode/
+.idea/
+coverage/
+e2e/
+*.log
+*.yml
+!proxy.conf.json

@@ -1,0 +1,266 @@
+﻿
+    <div class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 min-h-screen">
+      <!-- Header -->
+      <div class="bg-white shadow-xl border-b border-gray-200">
+        <div class="max-w-4xl mx-auto px-6 py-6">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+              <button (click)="goBack()"
+                      class="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"></path>
+                </svg>
+                <span>Quay láº¡i</span>
+              </button>
+              <div>
+                <h1 class="text-3xl font-bold text-gray-900">Táº¡o bĂ i viáº¿t má»›i</h1>
+                <p class="text-gray-600">Chia sáº» Ă½ kiáº¿n vĂ  tháº£o luáº­n vá»›i cá»™ng Ä‘á»“ng</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="max-w-4xl mx-auto px-6 py-8">
+        <form (ngSubmit)="submitPost()" #postForm="ngForm">
+          <div class="space-y-8">
+            <!-- Post Content -->
+            <div class="bg-white rounded-2xl shadow-lg p-8">
+              <h2 class="text-xl font-bold text-gray-900 mb-6">đŸ“ Ná»™i dung bĂ i viáº¿t</h2>
+              
+              <div class="space-y-6">
+                <!-- Title -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">TiĂªu Ä‘á» bĂ i viáº¿t *</label>
+                  <input type="text" 
+                         [(ngModel)]="post().title"
+                         name="title"
+                         placeholder="Nháº­p tiĂªu Ä‘á» bĂ i viáº¿t..."
+                         class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                         required>
+                </div>
+
+                <!-- Content -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Ná»™i dung bĂ i viáº¿t *</label>
+                  <textarea 
+                    [(ngModel)]="post().content"
+                    name="content"
+                    rows="12"
+                    placeholder="Nháº­p ná»™i dung bĂ i viáº¿t cá»§a báº¡n..."
+                    class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    required></textarea>
+                  <div class="mt-2 flex justify-between text-sm text-gray-600">
+                    <span>Tá»«: {{ getWordCount(post().content) }}</span>
+                    <span>Tá»‘i thiá»ƒu: 10 tá»«</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Post Settings -->
+            <div class="bg-white rounded-2xl shadow-lg p-8">
+              <h2 class="text-xl font-bold text-gray-900 mb-6">â™ï¸ CĂ i Ä‘áº·t bĂ i viáº¿t</h2>
+              
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Category -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Danh má»¥c *</label>
+                  <select [(ngModel)]="post().category" 
+                          name="category"
+                          class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          required>
+                    <option value="">Chá»n danh má»¥c</option>
+                    @for (category of categories(); track category.id) {
+                      <option [value]="category.id">{{ category.name }}</option>
+                    }
+                  </select>
+                </div>
+
+                <!-- Course Selection -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">KhĂ³a há»c liĂªn quan</label>
+                  <select [(ngModel)]="post().courseId" 
+                          name="courseId"
+                          class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">Chá»n khĂ³a há»c (tĂ¹y chá»n)</option>
+                    @for (course of courses(); track course.id) {
+                      <option [value]="course.id">{{ course.title }}</option>
+                    }
+                  </select>
+                </div>
+
+                <!-- Tags -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Tháº» (Tags)</label>
+                  <input type="text" 
+                         [(ngModel)]="tagInput"
+                         (keydown.enter)="addTag($event)"
+                         placeholder="Nháº­p tháº» vĂ  nháº¥n Enter..."
+                         class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                  <div class="mt-2 flex flex-wrap gap-2">
+                    @for (tag of post().tags; track tag) {
+                      <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm flex items-center space-x-2">
+                        <span>{{ tag }}</span>
+                        <button type="button" 
+                                (click)="removeTag(tag)"
+                                class="text-blue-600 hover:text-blue-800">
+                          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                          </svg>
+                        </button>
+                      </span>
+                    }
+                  </div>
+                </div>
+
+                <!-- Privacy Settings -->
+                <div class="space-y-4">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">CĂ i Ä‘áº·t riĂªng tÆ°</label>
+                  
+                  <label class="flex items-center space-x-3">
+                    <input type="checkbox" 
+                           [(ngModel)]="post().isAnonymous"
+                           name="isAnonymous"
+                           class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                    <span class="text-sm text-gray-700">ÄÄƒng bĂ i áº©n danh</span>
+                  </label>
+                  
+                  <label class="flex items-center space-x-3">
+                    <input type="checkbox" 
+                           [(ngModel)]="post().allowComments"
+                           name="allowComments"
+                           class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                    <span class="text-sm text-gray-700">Cho phĂ©p bĂ¬nh luáº­n</span>
+                  </label>
+                  
+                  <label class="flex items-center space-x-3">
+                    <input type="checkbox" 
+                           [(ngModel)]="post().isPinned"
+                           name="isPinned"
+                           class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                    <span class="text-sm text-gray-700">Ghim bĂ i viáº¿t (chá»‰ admin)</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- File Attachments -->
+            <div class="bg-white rounded-2xl shadow-lg p-8">
+              <h2 class="text-xl font-bold text-gray-900 mb-6">đŸ“ Tá»‡p Ä‘Ă­nh kĂ¨m</h2>
+              
+              <div class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 transition-colors">
+                <input type="file" 
+                       multiple
+                       (change)="onFileSelected($event)"
+                       class="hidden"
+                       #fileInput>
+                <button type="button" 
+                        (click)="fileInput.click()"
+                        class="flex flex-col items-center space-y-4 text-gray-600 hover:text-blue-600 transition-colors">
+                  <svg class="w-16 h-16" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                  </svg>
+                  <div>
+                    <p class="font-medium text-lg">Chá»n tá»‡p hoáº·c kĂ©o tháº£ vĂ o Ä‘Ă¢y</p>
+                    <p class="text-sm">JPG, PNG, PDF, DOC, DOCX (tá»‘i Ä‘a 10MB má»—i tá»‡p)</p>
+                  </div>
+                </button>
+              </div>
+              
+              <!-- Uploaded Files -->
+              @if (post().attachments.length > 0) {
+                <div class="mt-6 space-y-3">
+                  @for (attachment of post().attachments; track attachment.id) {
+                    <div class="flex items-center space-x-3 p-4 bg-green-50 rounded-xl">
+                      <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                        </svg>
+                      </div>
+                      <div class="flex-1">
+                        <p class="font-medium text-gray-900">{{ attachment.name }}</p>
+                        <p class="text-sm text-gray-600">{{ formatFileSize(attachment.size) }}</p>
+                      </div>
+                      <button type="button" 
+                              (click)="removeAttachment(attachment.id)"
+                              class="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                        </svg>
+                      </button>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+
+            <!-- Preview -->
+            @if (post().title && post().content) {
+              <div class="bg-white rounded-2xl shadow-lg p-8">
+                <h2 class="text-xl font-bold text-gray-900 mb-6">đŸ‘ï¸ Xem trÆ°á»›c bĂ i viáº¿t</h2>
+                
+                <div class="border border-gray-200 rounded-xl p-6">
+                  <div class="flex items-center space-x-3 mb-4">
+                    <img [src]="authService.currentUser()?.avatar || 'https://via.placeholder.com/150'" 
+                         [alt]="authService.userName()"
+                         class="w-10 h-10 rounded-full object-cover">
+                    <div>
+                      <p class="font-medium text-gray-900">
+                        {{ post().isAnonymous ? 'NgÆ°á»i dĂ¹ng áº©n danh' : authService.userName() }}
+                      </p>
+                      <p class="text-sm text-gray-600">{{ getCurrentDate() }}</p>
+                    </div>
+                  </div>
+                  
+                  <h3 class="text-lg font-semibold text-gray-900 mb-3">{{ post().title }}</h3>
+                  <div class="prose max-w-none text-gray-700 mb-4">
+                    <p>{{ post().content }}</p>
+                  </div>
+                  
+                  @if (post().tags.length > 0) {
+                    <div class="flex flex-wrap gap-2 mb-4">
+                      @for (tag of post().tags; track tag) {
+                        <span class="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
+                          #{{ tag }}
+                        </span>
+                      }
+                    </div>
+                  }
+                  
+                  @if (post().attachments.length > 0) {
+                    <div class="text-sm text-gray-600">
+                      đŸ“ {{ post().attachments.length }} tá»‡p Ä‘Ă­nh kĂ¨m
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+
+            <!-- Submit Actions -->
+            <div class="bg-white rounded-2xl shadow-lg p-8">
+              <div class="flex items-center justify-between">
+                <div class="text-sm text-gray-600">
+                  <p>BĂ i viáº¿t sáº½ Ä‘Æ°á»£c kiá»ƒm duyá»‡t trÆ°á»›c khi hiá»ƒn thá»‹ cĂ´ng khai</p>
+                  <p>Vui lĂ²ng tuĂ¢n thá»§ quy Ä‘á»‹nh cá»§a cá»™ng Ä‘á»“ng</p>
+                </div>
+                
+                <div class="flex space-x-4">
+                  <button type="button" 
+                          (click)="saveDraft()"
+                          class="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                    LÆ°u nhĂ¡p
+                  </button>
+                  <button type="submit" 
+                          [disabled]="!canSubmit()"
+                          class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors">
+                    ÄÄƒng bĂ i
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  

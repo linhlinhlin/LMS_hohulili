@@ -1,36 +1,38 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
-    selector: 'app-delete-confirm-modal',
-    standalone: true,
-    imports: [CommonModule],
-    template: `
-    <div class="modal-overlay" *ngIf="isOpen" (click)="onCancel()">
-      <div class="modal-content" (click)="$event.stopPropagation()">
-        <div class="modal-header">
-          <h3 class="modal-title">Xác nhận xóa</h3>
-          <button class="close-btn" (click)="onCancel()">×</button>
-        </div>
-        
-        <div class="modal-body">
-          <p>Bạn có chắc chắn muốn xóa tài liệu <strong>{{ documentName }}</strong>?</p>
-          <p class="warning-text">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="warning-icon">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-            </svg>
-            Hành động này không thể hoàn tác. Tất cả các nodes liên quan trong Knowledge Graph sẽ bị xóa.
-          </p>
-        </div>
+  selector: 'app-delete-confirm-modal',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
+    @if (isOpen()) {
+      <div class="modal-overlay" (click)="onCancel()">
+        <div class="modal-content" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <h3 class="modal-title">Xác nhận xóa</h3>
+            <button class="close-btn" (click)="onCancel()">×</button>
+          </div>
+          
+          <div class="modal-body">
+            <p>Bạn có chắc chắn muốn xóa tài liệu <strong>{{ documentName() }}</strong>?</p>
+            <p class="warning-text">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="warning-icon">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+              </svg>
+              Hành động này không thể hoàn tác. Tất cả các nodes liên quan trong Knowledge Graph sẽ bị xóa.
+            </p>
+          </div>
 
-        <div class="modal-footer">
-          <button class="btn-cancel" (click)="onCancel()">Hủy bỏ</button>
-          <button class="btn-delete" (click)="onConfirm()">Xóa tài liệu</button>
+          <div class="modal-footer">
+            <button class="btn-cancel" (click)="onCancel()">Hủy bỏ</button>
+            <button class="btn-delete" (click)="onConfirm()">Xóa tài liệu</button>
+          </div>
         </div>
       </div>
-    </div>
+    }
   `,
-    styles: [`
+  styles: [`
     .modal-overlay {
       position: fixed;
       top: 0;
@@ -156,16 +158,16 @@ import { CommonModule } from '@angular/common';
   `]
 })
 export class DeleteConfirmModalComponent {
-    @Input() isOpen = false;
-    @Input() documentName = '';
-    @Output() confirm = new EventEmitter<void>();
-    @Output() cancel = new EventEmitter<void>();
+  isOpen = input(false);
+  documentName = input('');
+  confirm = output<void>();
+  cancel = output<void>();
 
-    onConfirm() {
-        this.confirm.emit();
-    }
+  onConfirm() {
+    this.confirm.emit();
+  }
 
-    onCancel() {
-        this.cancel.emit();
-    }
+  onCancel() {
+    this.cancel.emit();
+  }
 }

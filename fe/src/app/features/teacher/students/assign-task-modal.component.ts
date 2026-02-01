@@ -12,9 +12,8 @@
  */
 import {
   Component,
-  Input,
-  Output,
-  EventEmitter,
+  input,
+  output,
   signal,
   computed,
   ChangeDetectionStrategy,
@@ -55,7 +54,7 @@ export interface AssignTaskRequest {
         <div class="flex items-center justify-between p-6 border-b">
           <div>
             <h3 class="text-lg font-semibold text-gray-900">Giao bài tập</h3>
-            <p class="text-sm text-gray-500 mt-1">Cho học viên: {{ studentName }}</p>
+            <p class="text-sm text-gray-500 mt-1">Cho học viên: {{ studentName() }}</p>
           </div>
           <button
             (click)="onCancel()"
@@ -233,12 +232,14 @@ export interface AssignTaskRequest {
   `,
 })
 export class AssignTaskModalComponent implements OnInit {
-  @Input({ required: true }) studentId!: string;
-  @Input({ required: true }) studentName!: string;
-  @Input() studentCourseIds: string[] = []; // Các khóa học mà học viên đang tham gia
+  // Signal inputs (Angular v20+)
+  readonly studentId = input.required<string>();
+  readonly studentName = input.required<string>();
+  readonly studentCourseIds = input<string[]>([]);
 
-  @Output() confirm = new EventEmitter<AssignTaskRequest>();
-  @Output() cancel = new EventEmitter<void>();
+  // Output functions (Angular v20+)
+  readonly confirm = output<AssignTaskRequest>();
+  readonly cancel = output<void>();
 
   private distributionService = inject(DistributionService);
 
@@ -267,7 +268,7 @@ export class AssignTaskModalComponent implements OnInit {
     // Filter by search query
     if (this.searchQuery.trim()) {
       const query = this.searchQuery.toLowerCase();
-      result = result.filter(a => 
+      result = result.filter(a =>
         a.title.toLowerCase().includes(query) ||
         a.courseTitle.toLowerCase().includes(query)
       );
@@ -291,7 +292,7 @@ export class AssignTaskModalComponent implements OnInit {
     this.loading.set(true);
 
     // Load available assignments for the student's courses
-    this.distributionService.getAvailableAssignments(this.studentId).subscribe({
+    this.distributionService.getAvailableAssignments(this.studentId()).subscribe({
       next: (data) => {
         this.assignments.set(data.assignments || []);
         this.courses.set(data.courses || []);
@@ -372,9 +373,9 @@ export class AssignTaskModalComponent implements OnInit {
 
   selectAssignment(assignment: AvailableAssignment): void {
     if (assignment.alreadyAssigned) return;
-    
+
     this.selectedAssignment.set(assignment);
-    
+
     // Set default custom deadline to assignment's due date
     if (assignment.dueDate) {
       this.customDeadline = this.formatDateTimeLocal(assignment.dueDate);
@@ -401,7 +402,7 @@ export class AssignTaskModalComponent implements OnInit {
 
     const request: AssignTaskRequest = {
       assignmentId: assignment.id,
-      studentId: this.studentId,
+      studentId: this.studentId(),
     };
 
     if (this.useCustomDeadline && this.customDeadline) {
@@ -437,7 +438,7 @@ export class AssignTaskModalComponent implements OnInit {
     const day = String(date.getDate()).padStart(2, '0');
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
-    
+
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   }
 }

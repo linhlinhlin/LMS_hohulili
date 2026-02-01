@@ -1,0 +1,46 @@
+# =============================================================================
+# Development Environment - Override Configuration
+# Usage: docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.dev.yml up
+# =============================================================================
+
+services:
+  db:
+    ports:
+      - "5432:5432"  # Expose for local tools (DBeaver, pgAdmin desktop)
+
+  backend:
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./backend/uploads:/app/uploads  # Persist uploads locally
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      LOGGING_LEVEL_COM_EXAMPLE_LMS: DEBUG
+      LOGGING_LEVEL_ORG_HIBERNATE_SQL: DEBUG
+    # Development: No resource limits for debugging flexibility
+
+  frontend:
+    ports:
+      - "4200:80"
+
+  # ===== pgAdmin (Dev Only) =====
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: lms-pgadmin
+    ports:
+      - "8081:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@lms.vn}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin123}
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    volumes:
+      - lms-pgadmin:/var/lib/pgadmin
+    depends_on:
+      - db
+    networks:
+      - lms-backend
+    restart: unless-stopped
+
+volumes:
+  lms-pgadmin:
+    name: lms-pgadmin

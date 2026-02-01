@@ -1,4 +1,4 @@
-import { Component, Input, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
+import { Component, input, signal, effect, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TextBlockData } from '../block-types';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
@@ -14,15 +14,16 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
     encapsulation: ViewEncapsulation.None
 })
 export class TextBlockComponent {
-    @Input() set data(value: TextBlockData) {
-        if (value && value.html) {
-            // In a real app, strict sanitization happens in the Worker/Backend.
-            // Here we trust the pipe or use simple bypass for demo (Backend Jsoup handles XSS).
-            this.safeHtml = this.sanitizer.bypassSecurityTrustHtml(value.html);
-        }
+    data = input.required<TextBlockData>();
+    safeHtml = signal<SafeHtml>('');
+
+    constructor(private sanitizer: DomSanitizer) {
+        // Effect to transform data when it changes
+        effect(() => {
+            const value = this.data();
+            if (value && value.html) {
+                this.safeHtml.set(this.sanitizer.bypassSecurityTrustHtml(value.html));
+            }
+        });
     }
-
-    safeHtml: SafeHtml = '';
-
-    constructor(private sanitizer: DomSanitizer) { }
 }

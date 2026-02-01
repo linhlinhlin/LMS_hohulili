@@ -44,7 +44,7 @@ export interface MarkAsReadRequest {
 })
 export class MessagingService {
   private http = inject(HttpClient);
-  private apiUrl = '/api/v1/messages';
+  private apiUrl = '/api/v3/messages';
 
   // State signals
   private _conversations = signal<Conversation[]>([]);
@@ -205,14 +205,14 @@ export class MessagingService {
             convs.map((conv) =>
               conv.id === response.conversationId
                 ? {
-                    ...conv,
-                    lastMessage: {
-                      content: response.message.content,
-                      senderId: response.message.senderId,
-                      createdAt: response.message.createdAt,
-                    },
-                    updatedAt: response.message.createdAt,
-                  }
+                  ...conv,
+                  lastMessage: {
+                    content: response.message.content,
+                    senderId: response.message.senderId,
+                    createdAt: response.message.createdAt,
+                  },
+                  updatedAt: response.message.createdAt,
+                }
                 : conv
             )
           );

@@ -400,7 +400,7 @@ export class QuizCreateComponent implements OnInit {
         publishImmediately: true
       };
 
-      await firstValueFrom(this.quizApi.createAssignmentQuizV2(this.quizForm.courseId, request));
+      await firstValueFrom(this.quizApi.createAssignmentQuizV3(this.quizForm.courseId, request));
 
       alert('✅ Tạo bài kiểm tra thành công!');
       // Navigate to assessment list

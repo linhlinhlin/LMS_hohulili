@@ -139,7 +139,7 @@ import { CourseApi } from '../../../../api/client/course.api';
       <!-- Distribution Settings -->
       <app-distribution-selector
         [courseId]="assignment()?.courseId || null"
-        [enrolledStudents]="enrolledStudents"
+        [enrolledStudents]="enrolledStudents()"
         [initialDistributionType]="currentDistributionType()"
         [initialStudentIds]="currentStudentIds()"
         [initialClassId]="currentClassId()"

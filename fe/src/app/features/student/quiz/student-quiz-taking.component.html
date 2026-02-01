@@ -237,9 +237,11 @@
                       [class.bg-red-500]="showResults() && answers()[question.id] === opt.key && opt.key !== question.correctOption">
                       {{ opt.key }}
                     </span>
-                    <div class="flex-1 text-gray-700" *ngIf="opt.contentBlocks?.length || opt.content">
+                    @if (opt.contentBlocks?.length || opt.content) {
+                    <div class="flex-1 text-gray-700">
                       <app-block-renderer [blocks]="opt.contentBlocks || []"></app-block-renderer>
                     </div>
+                    }
                     @if (showResults() && opt.key === question.correctOption) {
                     <svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd"

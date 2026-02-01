@@ -9,7 +9,7 @@
  *
  * @requirements 2.4, 2.5
  */
-import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
+import { Component, input, output, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ConversationListItem, formatMessageTime } from './utils/message-utils';
 
@@ -22,33 +22,33 @@ import { ConversationListItem, formatMessageTime } from './utils/message-utils';
     <button
       (click)="onSelect()"
       class="w-full flex items-center gap-3 p-4 hover:bg-gray-50 transition-colors text-left"
-      [class.bg-blue-50]="isSelected"
-      [class.border-l-4]="isSelected"
-      [class.border-l-blue-600]="isSelected"
+      [class.bg-blue-50]="isSelected()"
+      [class.border-l-4]="isSelected()"
+      [class.border-l-blue-600]="isSelected()"
     >
       <!-- Avatar -->
       <div class="relative flex-shrink-0">
         <div
           class="w-12 h-12 rounded-full flex items-center justify-center text-white font-medium"
-          [class.bg-blue-600]="!conversation.otherParticipant.avatar"
+          [class.bg-blue-600]="!conversation().otherParticipant.avatar"
         >
-          @if (conversation.otherParticipant.avatar) {
+          @if (conversation().otherParticipant.avatar) {
             <img
-              [src]="conversation.otherParticipant.avatar"
-              [alt]="conversation.otherParticipant.name"
+              [src]="conversation().otherParticipant.avatar"
+              [alt]="conversation().otherParticipant.name"
               class="w-12 h-12 rounded-full object-cover"
             />
           } @else {
-            {{ getInitials(conversation.otherParticipant.name) }}
+            {{ getInitials(conversation().otherParticipant.name) }}
           }
         </div>
 
         <!-- Unread Badge -->
-        @if (conversation.unreadCount > 0) {
+        @if (conversation().unreadCount > 0) {
           <span
             class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center"
           >
-            {{ conversation.unreadCount > 9 ? '9+' : conversation.unreadCount }}
+            {{ conversation().unreadCount > 9 ? '9+' : conversation().unreadCount }}
           </span>
         }
       </div>
@@ -58,33 +58,33 @@ import { ConversationListItem, formatMessageTime } from './utils/message-utils';
         <div class="flex items-center justify-between mb-1">
           <h3
             class="font-medium truncate"
-            [class.text-gray-900]="conversation.unreadCount === 0"
-            [class.text-black]="conversation.unreadCount > 0"
-            [class.font-semibold]="conversation.unreadCount > 0"
+            [class.text-gray-900]="conversation().unreadCount === 0"
+            [class.text-black]="conversation().unreadCount > 0"
+            [class.font-semibold]="conversation().unreadCount > 0"
           >
-            {{ conversation.otherParticipant.name }}
+            {{ conversation().otherParticipant.name }}
           </h3>
           <span
             class="text-xs flex-shrink-0 ml-2"
-            [class.text-gray-400]="conversation.unreadCount === 0"
-            [class.text-blue-600]="conversation.unreadCount > 0"
-            [class.font-medium]="conversation.unreadCount > 0"
+            [class.text-gray-400]="conversation().unreadCount === 0"
+            [class.text-blue-600]="conversation().unreadCount > 0"
+            [class.font-medium]="conversation().unreadCount > 0"
           >
-            {{ formatTime(conversation.lastMessageTime) }}
+            {{ formatTime(conversation().lastMessageTime) }}
           </span>
         </div>
         <p
           class="text-sm truncate"
-          [class.text-gray-500]="conversation.unreadCount === 0"
-          [class.text-gray-700]="conversation.unreadCount > 0"
-          [class.font-medium]="conversation.unreadCount > 0"
+          [class.text-gray-500]="conversation().unreadCount === 0"
+          [class.text-gray-700]="conversation().unreadCount > 0"
+          [class.font-medium]="conversation().unreadCount > 0"
         >
-          {{ conversation.lastMessagePreview || 'Chưa có tin nhắn' }}
+          {{ conversation().lastMessagePreview || 'Chưa có tin nhắn' }}
         </p>
       </div>
 
       <!-- Archived indicator -->
-      @if (conversation.isArchived) {
+      @if (conversation().isArchived) {
         <span class="text-xs text-gray-400 px-2 py-1 bg-gray-100 rounded">
           Đã lưu trữ
         </span>
@@ -93,13 +93,15 @@ import { ConversationListItem, formatMessageTime } from './utils/message-utils';
   `,
 })
 export class ConversationListItemComponent {
-  @Input({ required: true }) conversation!: ConversationListItem;
-  @Input() isSelected = false;
+  // Signal inputs (Angular v20+)
+  readonly conversation = input.required<ConversationListItem>();
+  readonly isSelected = input<boolean>(false);
 
-  @Output() select = new EventEmitter<string>();
+  // Output function (Angular v20+)
+  readonly select = output<string>();
 
   onSelect(): void {
-    this.select.emit(this.conversation.conversationId);
+    this.select.emit(this.conversation().conversationId);
   }
 
   getInitials(name: string): string {

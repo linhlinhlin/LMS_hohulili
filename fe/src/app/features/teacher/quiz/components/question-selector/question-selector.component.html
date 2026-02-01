@@ -15,10 +15,11 @@
                 <option value="HARD">Khó</option>
             </select>
 
-            <button type="button" class="btn-clear" (click)="clearFilters()"
-                *ngIf="searchTerm() || filterDifficulty() !== 'all'">
+            @if (searchTerm() || filterDifficulty() !== 'all') {
+            <button type="button" class="btn-clear" (click)="clearFilters()">
                 <i class="fas fa-times"></i> Xóa bộ lọc
             </button>
+            }
         </div>
 
         <div class="bulk-actions">
@@ -30,7 +31,7 @@
                 Chọn tất cả
             </button>
             <span class="separator">|</span>
-            <button type="button" class="btn-link" (click)="deselectAll()" [disabled]="selectedIds.length === 0">
+            <button type="button" class="btn-link" (click)="deselectAll()" [disabled]="selectedIds().length === 0">
                 Bỏ chọn tất cả
             </button>
         </div>
@@ -38,8 +39,8 @@
 
     <!-- Question List -->
     <div class="question-list">
-        <div *ngFor="let question of filteredQuestions()" class="question-item"
-            [class.selected]="isSelected(question.id)" (click)="toggleQuestion(question.id)">
+        @for (question of filteredQuestions(); track question.id) {
+        <div class="question-item" [class.selected]="isSelected(question.id)" (click)="toggleQuestion(question.id)">
             <div class="question-checkbox">
                 <input type="checkbox" [checked]="isSelected(question.id)" (click)="$event.stopPropagation()"
                     (change)="toggleQuestion(question.id)" />
@@ -53,28 +54,39 @@
                         {{ getDifficultyLabel(question.difficulty) }}
                     </span>
 
-                    <span class="tag" *ngFor="let tag of question.tags">
+                    @for (tag of question.tags; track tag) {
+                    <span class="tag">
                         {{ tag }}
                     </span>
+                    }
                 </div>
             </div>
         </div>
+        }
 
         <!-- Empty State -->
-        <div class="empty-state" *ngIf="filteredQuestions().length === 0">
+        @if (filteredQuestions().length === 0) {
+        <div class="empty-state">
             <i class="fas fa-inbox"></i>
-            <p *ngIf="questions.length === 0">Chưa có câu hỏi nào</p>
-            <p *ngIf="questions.length > 0">Không tìm thấy câu hỏi phù hợp</p>
-            <button type="button" class="btn-secondary" (click)="clearFilters()"
-                *ngIf="searchTerm() || filterDifficulty() !== 'all'">
+            @if (questions().length === 0) {
+            <p>Chưa có câu hỏi nào</p>
+            } @else {
+            <p>Không tìm thấy câu hỏi phù hợp</p>
+            }
+            @if (searchTerm() || filterDifficulty() !== 'all') {
+            <button type="button" class="btn-secondary" (click)="clearFilters()">
                 Xóa bộ lọc
             </button>
+            }
         </div>
+        }
     </div>
 
     <!-- Selection Summary -->
-    <div class="selection-summary" *ngIf="selectedIds.length > 0">
+    @if (selectedIds().length > 0) {
+    <div class="selection-summary">
         <i class="fas fa-check-circle"></i>
-        Đã chọn <strong>{{ selectedIds.length }}</strong> câu hỏi
+        Đã chọn <strong>{{ selectedIds().length }}</strong> câu hỏi
     </div>
+    }
 </div>

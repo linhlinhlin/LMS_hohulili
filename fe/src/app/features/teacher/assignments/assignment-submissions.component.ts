@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, signal, OnInit, computed } from '@angular/core';
+﻿import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, signal, OnInit, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -57,313 +57,7 @@ interface AssignmentDetail {
   selector: 'app-assignment-submissions',
   imports: [CommonModule, RouterLink, ReactiveFormsModule],
   encapsulation: ViewEncapsulation.None,
-  template: `
-    <div class="max-w-7xl mx-auto p-6">
-      <!-- Header -->
-      <div class="flex items-center justify-between mb-6">
-        <div>
-          <h1 class="text-2xl font-bold text-gray-900">Quản lý bài nộp</h1>
-          @if (assignment()) {
-            <p class="text-gray-600 mt-1">{{ assignment()!.title }}</p>
-            <p class="text-sm text-gray-500">{{ assignment()!.courseTitle }}</p>
-          }
-        </div>
-        <div class="flex items-center gap-3">
-          <button (click)="exportSubmissions()" 
-                  class="px-4 py-2 border rounded-lg text-gray-600 hover:bg-gray-50 flex items-center gap-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-            </svg>
-            Xuất Excel
-          </button>
-          <a routerLink="/teacher/assignments" class="px-4 py-2 border rounded-lg hover:bg-gray-50 flex items-center gap-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-            </svg>
-            Quay lại
-          </a>
-        </div>
-      </div>
-
-      <!-- Stats Cards -->
-      @if (assignment(); as a) {
-        <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-          <div class="bg-white rounded-xl shadow-sm border p-4 text-center">
-            <div class="text-2xl font-bold text-blue-600">{{ a.submissionCount }}</div>
-            <div class="text-sm text-gray-500">Đã nộp</div>
-          </div>
-          <div class="bg-white rounded-xl shadow-sm border p-4 text-center">
-            <div class="text-2xl font-bold text-gray-600">{{ a.totalStudents - a.submissionCount }}</div>
-            <div class="text-sm text-gray-500">Chưa nộp</div>
-          </div>
-          <div class="bg-white rounded-xl shadow-sm border p-4 text-center">
-            <div class="text-2xl font-bold text-green-600">{{ gradedCount() }}</div>
-            <div class="text-sm text-gray-500">Đã chấm</div>
-          </div>
-          <div class="bg-white rounded-xl shadow-sm border p-4 text-center">
-            <div class="text-2xl font-bold text-orange-600">{{ pendingCount() }}</div>
-            <div class="text-sm text-gray-500">Chờ chấm</div>
-          </div>
-          <div class="bg-white rounded-xl shadow-sm border p-4 text-center">
-            <div class="text-2xl font-bold text-red-600">{{ lateCount() }}</div>
-            <div class="text-sm text-gray-500">Nộp muộn</div>
-          </div>
-        </div>
-
-        <!-- Assignment Info -->
-        <div class="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-xl p-6 mb-6">
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <span class="text-sm text-indigo-600 font-medium">Điểm tối đa</span>
-              <div class="text-xl font-bold text-gray-900">{{ a.maxScore }} điểm</div>
-            </div>
-            <div>
-              <span class="text-sm text-indigo-600 font-medium">Hạn nộp</span>
-              <div class="text-xl font-bold text-gray-900">
-                {{ a.dueDate ? formatDate(a.dueDate) : 'Không giới hạn' }}
-              </div>
-            </div>
-            <div>
-              <span class="text-sm text-indigo-600 font-medium">Trạng thái</span>
-              <div class="text-xl font-bold" [class]="getStatusClass(a.status)">{{ getStatusText(a.status) }}</div>
-            </div>
-          </div>
-        </div>
-      }
-
-      <!-- Loading -->
-      @if (loading()) {
-        <div class="bg-white rounded-xl shadow-sm border p-8 text-center">
-          <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-indigo-500 border-t-transparent"></div>
-          <p class="mt-2 text-gray-500">Đang tải danh sách bài nộp...</p>
-        </div>
-      }
-
-      <!-- Submissions Table -->
-      @if (!loading()) {
-        <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
-          <div class="px-6 py-4 border-b flex items-center justify-between">
-            <h2 class="text-lg font-semibold text-gray-900">Danh sách bài nộp ({{ submissions().length }})</h2>
-            <div class="flex items-center gap-2">
-              <select class="border rounded-lg px-3 py-1 text-sm" [value]="filterStatus()" (change)="onFilterChange($event)">
-                <option value="">Tất cả</option>
-                <option value="PENDING">Chờ chấm</option>
-                <option value="GRADED">Đã chấm</option>
-                <option value="LATE">Nộp muộn</option>
-              </select>
-            </div>
-          </div>
-
-          @if (filteredSubmissions().length === 0) {
-            <div class="p-8 text-center text-gray-500">
-              @if (submissions().length === 0) {
-                Chưa có bài nộp nào.
-              } @else {
-                Không có bài nộp phù hợp với bộ lọc.
-              }
-            </div>
-          } @else {
-            <div class="overflow-x-auto">
-              <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                  <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Học viên</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thời gian nộp</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">File đính kèm</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Điểm</th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-200">
-                  @for (submission of filteredSubmissions(); track submission.id) {
-                    <tr class="hover:bg-gray-50">
-                      <td class="px-6 py-4">
-                        <div class="flex items-center gap-3">
-                          <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-medium">
-                            {{ getInitials(submission.studentName) }}
-                          </div>
-                          <div>
-                            <div class="font-medium text-gray-900">{{ submission.studentName }}</div>
-                            <div class="text-sm text-gray-500">{{ submission.studentEmail }}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td class="px-6 py-4">
-                        <div class="text-sm text-gray-900">{{ formatDate(submission.submittedAt || '') }}</div>
-                        @if (getSubmissionLateInfo(submission); as lateInfo) {
-                          <div class="text-xs" [class]="lateInfo.isLate ? 'text-red-500' : 'text-green-500'">
-                            {{ lateInfo.isLate ? formatLateDuration(lateInfo) : 'Đúng hạn' }}
-                          </div>
-                        }
-                      </td>
-                      <td class="px-6 py-4">
-                        @if (submission.attachments && submission.attachments.length > 0) {
-                          <div class="flex flex-wrap gap-1">
-                            @for (file of submission.attachments; track file.id) {
-                              <button (click)="previewFile(file)" 
-                                      class="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-600 rounded text-xs hover:bg-blue-100">
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                </svg>
-                                {{ file.fileName }}
-                              </button>
-                            }
-                          </div>
-                        } @else {
-                          <span class="text-gray-400 text-sm">Không có file</span>
-                        }
-                      </td>
-                      <td class="px-6 py-4">
-                        <span class="px-2 py-1 text-xs font-semibold rounded-full" [class]="getSubmissionStatusClass(submission.status)">
-                          {{ getSubmissionStatusText(submission.status) }}
-                        </span>
-                      </td>
-                      <td class="px-6 py-4">
-                        @if (getGradeScore(submission.grade) !== undefined) {
-                          <div class="font-medium text-gray-900">{{ getGradeScore(submission.grade) }}/{{ assignment()?.maxScore }}</div>
-                          <div class="text-xs text-gray-500">{{ getGradePercentage(getGradeScore(submission.grade)!) }}%</div>
-                        } @else {
-                          <span class="text-gray-400">Chưa chấm</span>
-                        }
-                      </td>
-                      <td class="px-6 py-4 text-right space-x-2">
-                        <button (click)="viewSubmission(submission)" class="text-blue-600 hover:text-blue-800 text-sm">
-                          Xem
-                        </button>
-                        <button (click)="gradeSubmission(submission)" 
-                                class="text-sm" 
-                                [class]="submission.status === 'graded' ? 'text-purple-600 hover:text-purple-800' : 'text-green-600 hover:text-green-800'">
-                          {{ submission.status === 'graded' ? 'Sửa điểm' : 'Chấm điểm' }}
-                        </button>
-                      </td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-          }
-        </div>
-      }
-
-      <!-- File Preview Modal -->
-      @if (previewingFile()) {
-        <div class="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
-          <div class="bg-white rounded-xl max-w-5xl w-full max-h-[90vh] flex flex-col">
-            <div class="flex items-center justify-between p-4 border-b">
-              <div>
-                <h3 class="font-semibold text-gray-900">{{ previewingFile()!.fileName }}</h3>
-                @if (previewingFile()!.metadata) {
-                  <div class="text-xs text-gray-500 mt-1">
-                    @if (previewingFile()!.metadata?.scale) {
-                      <span class="mr-3">Tỉ lệ: {{ previewingFile()!.metadata?.scale }}</span>
-                    }
-                    @if (previewingFile()!.metadata?.captureDate) {
-                      <span>Ngày chụp: {{ previewingFile()!.metadata?.captureDate }}</span>
-                    }
-                  </div>
-                }
-              </div>
-              <div class="flex items-center gap-2">
-                <a [href]="previewingFile()!.fileUrl" target="_blank" download
-                   class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
-                  Tải xuống
-                </a>
-                <button (click)="closePreview()" class="p-1 text-gray-400 hover:text-gray-600">
-                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                  </svg>
-                </button>
-              </div>
-            </div>
-            <div class="flex-1 overflow-auto p-4 bg-gray-100">
-              @if (isImageFile(previewingFile()!.fileName)) {
-                <img [src]="previewingFile()!.fileUrl" [alt]="previewingFile()!.fileName" class="max-w-full mx-auto"/>
-              } @else if (isPdfFile(previewingFile()!.fileName)) {
-                <iframe [src]="previewingFile()!.fileUrl" class="w-full h-[70vh] border-0"></iframe>
-              } @else {
-                <div class="text-center py-8 text-gray-500">
-                  <p>Không thể xem trước file này.</p>
-                  <a [href]="previewingFile()!.fileUrl" target="_blank" download class="text-blue-600 hover:underline mt-2 inline-block">
-                    Tải xuống để xem
-                  </a>
-                </div>
-              }
-            </div>
-          </div>
-        </div>
-      }
-
-      <!-- Grading Modal -->
-      @if (gradingSubmission()) {
-        <div class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div class="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div class="flex items-center justify-between p-6 border-b">
-              <h3 class="text-lg font-semibold">Chấm điểm bài nộp</h3>
-              <button (click)="closeGradingModal()" class="text-gray-400 hover:text-gray-600">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-              </button>
-            </div>
-
-            <div class="p-6 space-y-6">
-              <!-- Student Info -->
-              <div class="bg-gray-50 rounded-lg p-4">
-                <div class="flex items-center gap-4">
-                  <div class="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-lg">
-                    {{ getInitials(gradingSubmission()!.studentName) }}
-                  </div>
-                  <div>
-                    <div class="font-medium text-gray-900">{{ gradingSubmission()!.studentName }}</div>
-                    <div class="text-sm text-gray-500">{{ gradingSubmission()!.studentEmail }}</div>
-                    <div class="text-xs text-gray-400">Nộp lúc: {{ formatDate(gradingSubmission()!.submittedAt || '') }}</div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Submission Content -->
-              @if (gradingSubmission()!.content) {
-                <div>
-                  <h4 class="font-medium text-gray-900 mb-2">Nội dung bài nộp</h4>
-                  <div class="bg-gray-50 rounded-lg p-4 whitespace-pre-line text-sm">{{ gradingSubmission()!.content }}</div>
-                </div>
-              }
-
-              <!-- Grading Form -->
-              <form [formGroup]="gradingForm" class="space-y-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">
-                    Điểm số (0 - {{ assignment()?.maxScore }})
-                  </label>
-                  <input type="number" formControlName="grade" [min]="0" [max]="assignment()?.maxScore ?? 100"
-                         class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"/>
-                  @if (gradingForm.controls.grade.invalid && gradingForm.controls.grade.touched) {
-                    <p class="text-sm text-red-600 mt-1">Điểm phải từ 0 đến {{ assignment()?.maxScore }}</p>
-                  }
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Nhận xét</label>
-                  <textarea formControlName="feedback" rows="4" placeholder="Nhập nhận xét cho học viên..."
-                            class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"></textarea>
-                </div>
-                <div class="flex gap-3 pt-4">
-                  <button type="button" (click)="submitGrade()" [disabled]="gradingForm.invalid || savingGrade()"
-                          class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50">
-                    @if (savingGrade()) { Đang lưu... } @else { Lưu điểm }
-                  </button>
-                  <button type="button" (click)="closeGradingModal()" class="px-4 py-2 border rounded-lg hover:bg-gray-50">
-                    Hủy
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      }
-    </div>
-  `,
+  templateUrl: './assignment-submissions.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AssignmentSubmissionsComponent implements OnInit {
@@ -411,31 +105,31 @@ export class AssignmentSubmissionsComponent implements OnInit {
     setTimeout(() => {
       this.assignment.set({
         id: this.assignmentId,
-        title: 'Bài tập An toàn Hàng hải - Chương 1',
-        description: 'Phân tích các quy định SOLAS',
-        instructions: 'Nộp báo cáo PDF và bản đồ hàng hải',
+        title: 'BĂ i táº­p An toĂ n HĂ ng háº£i - ChÆ°Æ¡ng 1',
+        description: 'PhĂ¢n tĂ­ch cĂ¡c quy Ä‘á»‹nh SOLAS',
+        instructions: 'Ná»™p bĂ¡o cĂ¡o PDF vĂ  báº£n Ä‘á»“ hĂ ng háº£i',
         dueDate: '2025-12-20T23:59:59Z',
         maxScore: 100,
         status: 'PUBLISHED',
         submissionCount: 3,
         totalStudents: 5,
-        courseTitle: 'An toàn Hàng hải Cơ bản'
+        courseTitle: 'An toĂ n HĂ ng háº£i CÆ¡ báº£n'
       });
       this.submissions.set([
         {
-          id: '1', studentId: 's1', studentName: 'Nguyễn Văn A', studentEmail: 'nva@email.com',
-          submittedAt: '2025-12-18T14:30:00Z', status: 'graded', grade: 85, feedback: 'Tốt',
-          content: 'Báo cáo phân tích SOLAS...', attachments: [
+          id: '1', studentId: 's1', studentName: 'Nguyá»…n VÄƒn A', studentEmail: 'nva@email.com',
+          submittedAt: '2025-12-18T14:30:00Z', status: 'graded', grade: 85, feedback: 'Tá»‘t',
+          content: 'BĂ¡o cĂ¡o phĂ¢n tĂ­ch SOLAS...', attachments: [
             { id: 'f1', fileName: 'baocao.pdf', fileUrl: '/uploads/baocao.pdf', mimeType: 'application/pdf' }
           ]
         },
         {
-          id: '2', studentId: 's2', studentName: 'Trần Thị B', studentEmail: 'ttb@email.com',
-          submittedAt: '2025-12-21T10:00:00Z', status: 'late', content: 'Bài nộp muộn', attachments: []
+          id: '2', studentId: 's2', studentName: 'Tráº§n Thá»‹ B', studentEmail: 'ttb@email.com',
+          submittedAt: '2025-12-21T10:00:00Z', status: 'late', content: 'BĂ i ná»™p muá»™n', attachments: []
         },
         {
-          id: '3', studentId: 's3', studentName: 'Lê Văn C', studentEmail: 'lvc@email.com',
-          submittedAt: '2025-12-19T16:00:00Z', status: 'pending', content: 'Đang chờ chấm', attachments: [
+          id: '3', studentId: 's3', studentName: 'LĂª VÄƒn C', studentEmail: 'lvc@email.com',
+          submittedAt: '2025-12-19T16:00:00Z', status: 'pending', content: 'Äang chá» cháº¥m', attachments: [
             { id: 'f2', fileName: 'chart.png', fileUrl: '/uploads/chart.png', mimeType: 'image/png',
               metadata: { scale: '1:50000', captureDate: '2025-12-01' } }
           ]
@@ -554,7 +248,7 @@ export class AssignmentSubmissionsComponent implements OnInit {
 
   getStatusText(status: string): string {
     const texts: Record<string, string> = {
-      'PUBLISHED': 'Đang mở', 'DRAFT': 'Nháp', 'CLOSED': 'Đã đóng'
+      'PUBLISHED': 'Äang má»Ÿ', 'DRAFT': 'NhĂ¡p', 'CLOSED': 'ÄĂ£ Ä‘Ă³ng'
     };
     return texts[status] || status;
   }
@@ -569,8 +263,9 @@ export class AssignmentSubmissionsComponent implements OnInit {
 
   getSubmissionStatusText(status: string): string {
     const texts: Record<string, string> = {
-      'graded': 'Đã chấm', 'pending': 'Chờ chấm', 'submitted': 'Đã nộp', 'late': 'Nộp muộn'
+      'graded': 'ÄĂ£ cháº¥m', 'pending': 'Chá» cháº¥m', 'submitted': 'ÄĂ£ ná»™p', 'late': 'Ná»™p muá»™n'
     };
     return texts[status] || status;
   }
 }
+

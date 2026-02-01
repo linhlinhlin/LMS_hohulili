@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output, signal, Input } from '@angular/core';
+import { Component, input, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
@@ -15,12 +15,12 @@ import { MatTooltipModule } from '@angular/material/tooltip';
         <h2 class="text-[11px] font-black text-slate-400 uppercase tracking-widest px-1">Cấu trúc bài học</h2>
         <div class="flex items-center gap-2">
           <span class="px-1.5 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold rounded">
-            {{ publishedCount }}/{{ totalCount }}
+            {{ publishedCount() }}/{{ totalCount() }}
           </span>
           <button (click)="toggleExpand()" 
                   class="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                  [matTooltip]="allExpanded ? 'Thu gọn tất cả' : 'Mở rộng tất cả'">
-            <mat-icon class="text-sm scale-75">{{ allExpanded ? 'unfold_less' : 'unfold_more' }}</mat-icon>
+                  [matTooltip]="allExpanded() ? 'Thu gọn tất cả' : 'Mở rộng tất cả'">
+            <mat-icon class="text-sm scale-75">{{ allExpanded() ? 'unfold_less' : 'unfold_more' }}</mat-icon>
           </button>
         </div>
       </div>
@@ -43,12 +43,12 @@ import { MatTooltipModule } from '@angular/material/tooltip';
   `]
 })
 export class SidebarHeaderComponent {
-  @Input() publishedCount = 0;
-  @Input() totalCount = 0;
-  @Input() allExpanded = false;
+  publishedCount = input(0);
+  totalCount = input(0);
+  allExpanded = input(false);
 
-  @Output() search = new EventEmitter<string>();
-  @Output() toggleAll = new EventEmitter<void>();
+  search = output<string>();
+  toggleAll = output<void>();
 
   searchQuery = '';
 

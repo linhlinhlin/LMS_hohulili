@@ -1,1191 +1,1045 @@
-# Database Schema Export
-
-This document contains the full schema of the Supabase project "lms".
-
-## Tables
-
-### assignment_allocation_students
-**Type:** BASE TABLE
-
-#### Columns
-- `assigned_at`: timestamp with time zone, NOT NULL
-- `custom_deadline`: timestamp without time zone, NULL
-- `allocation_id`: uuid, NOT NULL
-- `student_id`: uuid, NOT NULL
-- `note`: text, NULL
-
-#### Primary Key
-- `allocation_id`, `student_id`
-
-#### Foreign Keys
-- `student_id` -> `users`.`id`
-- `allocation_id` -> `assignment_allocations`.`id`
-
-#### Indexes
-- `assignment_allocation_students_pkey`: CREATE UNIQUE INDEX assignment_allocation_students_pkey ON public.assignment_allocation_students USING btree (allocation_id, student_id)
-
-### assignment_allocations
-**Type:** BASE TABLE
-
-#### Columns
-- `is_individual`: boolean, NULL
-- `created_at`: timestamp with time zone, NOT NULL
-- `updated_at`: timestamp with time zone, NULL
-- `assignment_id`: uuid, NOT NULL
-- `created_by`: uuid, NOT NULL
-- `id`: uuid, NOT NULL
-- `distribution_type`: character varying, NOT NULL
-- `allocated_at`: timestamp with time zone, NULL
-- `allocator_id`: uuid, NULL
-- `class_id`: uuid, NULL
-- `due_date`: timestamp with time zone, NULL
-- `is_active`: boolean, NULL
-
-#### Primary Key
-- `id`
-
-#### Foreign Keys
-- `assignment_id` -> `assignments`.`id`
-- `created_by` -> `users`.`id`
-
-#### Indexes
-- `assignment_allocations_pkey`: CREATE UNIQUE INDEX assignment_allocations_pkey ON public.assignment_allocations USING btree (id)
-
-### assignment_attachments
-**Type:** BASE TABLE
-
-#### Columns
-- `upload_order`: integer, NULL
-- `created_at`: timestamp with time zone, NOT NULL
-- `file_size`: bigint, NULL
-- `assignment_id`: uuid, NOT NULL
-- `id`: uuid, NOT NULL
-- `mime_type`: character varying, NULL
-- `file_url`: character varying, NOT NULL
-- `file_id`: character varying, NOT NULL
-- `file_name`: character varying, NOT NULL
-
-#### Primary Key
-- `id`
-
-#### Foreign Keys
-- `assignment_id` -> `assignments`.`id`
-
-#### Indexes
-- `assignment_attachments_pkey`: CREATE UNIQUE INDEX assignment_attachments_pkey ON public.assignment_attachments USING btree (id)
-
-### assignment_rubrics
-**Type:** BASE TABLE
-
-#### Columns
-- `max_points`: numeric, NOT NULL
-- `order_index`: integer, NULL
-- `weight`: numeric, NULL
-- `created_at`: timestamp with time zone, NOT NULL
-- `assignment_id`: uuid, NOT NULL
-- `id`: uuid, NOT NULL
-- `criteria_name`: character varying, NOT NULL
-- `description`: text, NULL
-
-#### Primary Key
-- `id`
-
-#### Foreign Keys
-- `assignment_id` -> `assignments`.`id`
-
-#### Indexes
-- `assignment_rubrics_pkey`: CREATE UNIQUE INDEX assignment_rubrics_pkey ON public.assignment_rubrics USING btree (id)
-
-### assignment_submissions
-**Type:** BASE TABLE
-
-#### Columns
-- `score`: numeric, NULL
-- `created_at`: timestamp without time zone, NOT NULL
-- `graded_at`: timestamp without time zone, NULL
-- `submitted_at`: timestamp without time zone, NULL
-- `updated_at`: timestamp without time zone, NOT NULL
-- `assignment_id`: uuid, NOT NULL
-- `id`: uuid, NOT NULL
-- `student_id`: uuid, NOT NULL
-- `attachment_url`: character varying, NULL
-- `content`: text, NULL
-- `feedback`: text, NULL
-- `status`: character varying, NULL
-- `attempt_number`: integer, NULL
-- `file_url`: character varying, NULL
-- `graded_by_id`: uuid, NULL
-
-#### Primary Key
-- `id`
-
-#### Foreign Keys
-- `student_id` -> `users`.`id`
-- `assignment_id` -> `assignments`.`id`
-- `graded_by_id` -> `users`.`id`
-
-#### Indexes
-- `assignment_submissions_pkey`: CREATE UNIQUE INDEX assignment_submissions_pkey ON public.assignment_submissions USING btree (id)
-- `idx_assignment_submissions_student_id`: CREATE INDEX idx_assignment_submissions_student_id ON public.assignment_submissions USING btree (student_id)
-
-### assignments
-**Type:** BASE TABLE
-
-#### Columns
-- `max_score`: numeric, NULL
-- `created_at`: timestamp with time zone, NOT NULL
-- `due_date`: timestamp without time zone, NULL
-- `updated_at`: timestamp with time zone, NULL
-- `course_id`: uuid, NOT NULL
-- `id`: uuid, NOT NULL
-- `assignment_type`: character varying, NULL
-- `description`: text, NOT NULL
-- `instructions`: text, NULL
-- `status`: character varying, NULL
-- `title`: character varying, NOT NULL
-- `assignment_config`: jsonb, NULL
-- `allow_late_submission`: boolean, NULL
-- `lesson_id`: uuid, NULL
-- `max_attempts`: integer, NULL
-- `passing_score`: integer, NULL
-- `type`: character varying, NOT NULL
-
-#### Primary Key
-- `id`
-
-#### Foreign Keys
-- `course_id` -> `courses`.`id`
-- `lesson_id` -> `lessons`.`id`
-
-#### Indexes
-- `assignments_pkey`: CREATE UNIQUE INDEX assignments_pkey ON public.assignments USING btree (id)
-- `idx_assignments_course_id`: CREATE INDEX idx_assignments_course_id ON public.assignments USING btree (course_id)
-
-### categories
-**Type:** BASE TABLE
-
-#### Columns
-- `id`: uuid, NOT NULL
-- `code`: character varying, NOT NULL
-- `name`: character varying, NOT NULL
-
-#### Primary Key
-- `id`
-
-#### Foreign Keys
-None
-
-#### Indexes
-- `categories_code_key`: CREATE UNIQUE INDEX categories_code_key ON public.categories USING btree (code)
-- `categories_pkey`: CREATE UNIQUE INDEX categories_pkey ON public.categories USING btree (id)
-
-### chapter_authoring
-**Type:** BASE TABLE
-
-#### Columns
-- `is_published`: boolean, NULL
-- `order_index`: integer, NULL
-- `created_at`: timestamp with time zone, NULL
-- `course_id`: uuid, NOT NULL
-- `id`: uuid, NOT NULL
-- `title`: character varying, NOT NULL
-
-#### Primary Key
-- `id`
-
-#### Foreign Keys
-- `course_id` -> `course_authoring`.`id`
-
-#### Indexes
-- `chapter_authoring_pkey`: CREATE UNIQUE INDEX chapter_authoring_pkey ON public.chapter_authoring USING btree (id)
-
-### chapters
-**Type:** BASE TABLE
-
-#### Columns
-- `order_index`: integer, NOT NULL
-- `created_at`: timestamp with time zone, NOT NULL
-- `updated_at`: timestamp with time zone, NULL
-- `course_id`: uuid, NOT NULL
-- `id`: uuid, NOT NULL
-- `description`: character varying, NULL
-- `title`: character varying, NOT NULL
-
-#### Primary Key
-- `id`
-
-#### Foreign Keys
-- `course_id` -> `courses`.`id`
-
-#### Indexes
-- `chapters_pkey`: CREATE UNIQUE INDEX chapters_pkey ON public.chapters USING btree (id)
-- `idx_chapters_course_id`: CREATE INDEX idx_chapters_course_id ON public.chapters USING btree (course_id)
-
-### chat_messages
-**Type:** BASE TABLE
-
-#### Columns
-- `processing_time`: double precision, NULL
-- `created_at`: timestamp with time zone, NOT NULL
-- `id`: uuid, NOT NULL
-- `session_id`: uuid, NOT NULL
-- `ai_model`: character varying, NULL
-- `content`: text, NOT NULL
-- `sender_type`: character varying, NOT NULL
-- `sources`: text, NULL
-- `status`: character varying, NOT NULL
-- `confidence_score`: double precision, NULL
-- `document_ids_used`: text, NULL
-- `query_type`: character varying, NULL
-- `topics_accessed`: text, NULL
-- `role`: character varying, NOT NULL
-- `tokens_used`: integer, NULL
-
-#### Primary Key
-- `id`
-
-#### Foreign Keys
-- `session_id` -> `chat_sessions`.`id`
-
-#### Indexes
-- `chat_messages_pkey`: CREATE UNIQUE INDEX chat_messages_pkey ON public.chat_messages USING btree (id)
-- `idx_chat_message_created`: CREATE INDEX idx_chat_message_created ON public.chat_messages USING btree (created_at)
-- `idx_chat_message_query_type`: CREATE INDEX idx_chat_message_query_type ON public.chat_messages USING btree (query_type)
-- `idx_chat_message_session`: CREATE INDEX idx_chat_message_session ON public.chat_messages USING btree (session_id)
-
-### chat_sessions
-**Type:** BASE TABLE
-
-#### Columns
-- `is_deleted`: boolean, NULL
-- `created_at`: timestamp with time zone, NOT NULL
-- `updated_at`: timestamp with time zone, NOT NULL
-- `context_course_id`: uuid, NULL
-- `context_lesson_id`: uuid, NULL
-- `id`: uuid, NOT NULL
-- `user_id`: uuid, NOT NULL
-- `title`: character varying, NULL
-- `context_id`: uuid, NULL
-- `context_type`: character varying, NULL
-- `is_archived`: boolean, NULL
-
-#### Primary Key
-- `id`
-
-#### Foreign Keys
-- `user_id` -> `users`.`id`
-
-#### Indexes
-- `chat_sessions_pkey`: CREATE UNIQUE INDEX chat_sessions_pkey ON public.chat_sessions USING btree (id)
-- `idx_chat_session_created`: CREATE INDEX idx_chat_session_created ON public.chat_sessions USING btree (created_at)
-- `idx_chat_session_user`: CREATE INDEX idx_chat_session_user ON public.chat_sessions USING btree (user_id)
-
-### class_courses
-**Type:** BASE TABLE
-
-#### Columns
-- `id`: uuid, NOT NULL, DEFAULT: gen_random_uuid()
-- `class_id`: uuid, NOT NULL
-- `course_id`: uuid, NOT NULL
-- `added_by`: uuid, NULL
-- `order_index`: integer, NULL, DEFAULT: 0
-- `is_required`: boolean, NULL, DEFAULT: true
-- `created_at`: timestamp without time zone, NULL, DEFAULT: now()
-
-#### Primary Key
-- `id`
-
-#### Foreign Keys
-- `added_by` -> `users`.`id`
-- `class_id` -> `learning_classes`.`id`
-- `course_id` -> `courses`.`id`
-
-#### Indexes
-- `class_courses_pkey`: CREATE UNIQUE INDEX class_courses_pkey ON public.class_courses USING btree (id)
-- `idx_class_courses_class_id`: CREATE INDEX idx_class_courses_class_id ON public.class_courses USING btree (class_id)
-- `idx_class_courses_course_id`: CREATE INDEX idx_class_courses_course_id ON public.class_courses USING btree (course_id)
-- `ukml1t82rxdi7x5cp8oaopfkcit`: CREATE UNIQUE INDEX ukml1t82rxdi7x5cp8oaopfkcit ON public.class_courses USING btree (class_id, course_id)
-- `uq_class_course`: CREATE UNIQUE INDEX uq_class_course ON public.class_courses USING btree (class_id, course_id)
-
-### conversations
-**Type:** BASE TABLE
-
-#### Columns
-- `is_archived_by_student`: boolean, NULL
-- `is_archived_by_teacher`: boolean, NULL
-- `created_at`: timestamp without time zone, NOT NULL
-- `updated_at`: timestamp without time zone, NOT NULL
-- `id`: uuid, NOT NULL
-- `student_id`: uuid, NOT NULL
-- `teacher_id`: uuid, NOT NULL
-- `is_archived_1`: boolean, NULL
-- `is_archived_2`: boolean, NULL
-- `last_message_at`: timestamp with time zone, NULL
-- `last_message_preview`: character varying, NULL
-- `participant1_id`: uuid, NOT NULL
-- `participant2_id`: uuid, NOT NULL
-- `unread_count_1`: integer, NULL
-- `unread_count_2`: integer, NULL
-
-#### Primary Key
-- `id`
-
-#### Foreign Keys
-- `teacher_id` -> `users`.`id`
-- `student_id` -> `users`.`id`
-
-#### Indexes
-- `conversations_pkey`: CREATE UNIQUE INDEX conversations_pkey ON public.conversations USING btree (id)
-- `conversations_teacher_id_student_id_key`: CREATE UNIQUE INDEX conversations_teacher_id_student_id_key ON public.conversations USING btree (teacher_id, student_id)
-- `idx_conversation_student`: CREATE INDEX idx_conversation_student ON public.conversations USING btree (student_id)
-- `idx_conversation_teacher`: CREATE INDEX idx_conversation_teacher ON public.conversations USING btree (teacher_id)
-- `idx_conversation_updated`: CREATE INDEX idx_conversation_updated ON public.conversations USING btree (updated_at)
-- `uk48r86ndwaqvoo23skguoojto5`: CREATE UNIQUE INDEX uk48r86ndwaqvoo23skguoojto5 ON public.conversations USING btree (teacher_id, student_id)
-
-### course_authoring
-**Type:** BASE TABLE
-
-#### Columns
-- `category_id`: integer, NULL
-- `price`: numeric, NULL
-- `created_at`: timestamp with time zone, NULL
-- `updated_at`: timestamp with time zone, NULL
-- `id`: uuid, NOT NULL
-- `owner_id`: uuid, NOT NULL
-- `prerequisite_course_id`: uuid, NULL
-- `code`: character varying, NOT NULL
-- `description`: text, NULL
-- `price_type`: character varying, NULL
-- `slug`: character varying, NULL
-- `status`: character varying, NOT NULL
-- `thumbnail_url`: character varying, NULL
-- `title`: character varying, NOT NULL
-- `unlock_mode`: character varying, NULL
-
-#### Primary Key
-- `id`
-
-#### Foreign Keys
-- `owner_id` -> `users`.`id`
-
-#### Indexes
-- `course_authoring_code_key`: CREATE UNIQUE INDEX course_authoring_code_key ON public.course_authoring USING btree (code)
-- `course_authoring_pkey`: CREATE UNIQUE INDEX course_authoring_pkey ON public.course_authoring USING btree (id)
-- `course_authoring_slug_key`: CREATE UNIQUE INDEX course_authoring_slug_key ON public.course_authoring USING btree (slug)
-
-### course_enrollments
-**Type:** BASE TABLE
-
-#### Columns
-- `course_id`: uuid, NOT NULL
-- `student_id`: uuid, NOT NULL
-
-#### Primary Key
-- `course_id`, `student_id`
-
-#### Foreign Keys
-- `student_id` -> `users`.`id`
-- `course_id` -> `courses`.`id`
-
-#### Indexes
-- `course_enrollments_pkey`: CREATE UNIQUE INDEX course_enrollments_pkey ON public.course_enrollments USING btree (course_id, student_id)
-
-### course_tags
-**Type:** BASE TABLE
-
-#### Columns
-- `course_id`: uuid, NOT NULL
-- `tag_name`: character varying, NULL
-
-#### Primary Key
-None
-
-#### Foreign Keys
-- `course_id` -> `courses`.`id`
-
-#### Indexes
-None
-
-### course_teaching_staff
-**Type:** BASE TABLE
-
-#### Columns
-- `course_id`: uuid, NOT NULL
-- `staff_id`: uuid, NULL
-
-#### Primary Key
-None
-
-#### Foreign Keys
-- `course_id` -> `courses`.`id`
-
-#### Indexes
-None
-
-### course_versions
-**Type:** BASE TABLE
-
-#### Columns
-- `version_number`: integer, NOT NULL
-- `published_at`: timestamp with time zone, NULL
-- `course_id`: uuid, NOT NULL
-- `id`: uuid, NOT NULL
-- `snapshot_content`: jsonb, NOT NULL
-
-#### Primary Key
-- `id`
-
-#### Foreign Keys
-None
-
-#### Indexes
-- `course_versions_pkey`: CREATE UNIQUE INDEX course_versions_pkey ON public.course_versions USING btree (id)
-
-### courses
-**Type:** BASE TABLE
-
-#### Columns
-- `credits`: integer, NULL
-- `price`: numeric, NULL
-- `sale_price`: numeric, NULL
-- `created_at`: timestamp with time zone, NOT NULL
-- `reviewed_at`: timestamp with time zone, NULL
-- `updated_at`: timestamp with time zone, NULL
-- `category_id`: uuid, NULL
-- `id`: uuid, NOT NULL
-- `instructor_id`: uuid, NULL
-- `reviewed_by_id`: uuid, NULL
-- `teacher_id`: uuid, NOT NULL
-- `code`: character varying, NOT NULL
-- `description`: text, NULL
-- `intro_video_url`: character varying, NULL
-- `price_type`: character varying, NULL
-- `review_comment`: text, NULL
-- `status`: character varying, NOT NULL
-- `title`: character varying, NOT NULL
-- `visibility`: character varying, NULL
-- `benefits`: text, NULL
-- `course_information`: text, NULL
-- `welcome_message`: text, NULL
-
-#### Primary Key
-- `id`
-
-#### Foreign Keys
-- `reviewed_by_id` -> `users`.`id`
-- `category_id` -> `categories`.`id`
-- `teacher_id` -> `users`.`id`
-
-#### Indexes
-- `courses_code_key`: CREATE UNIQUE INDEX courses_code_key ON public.courses USING btree (code)
-- `courses_pkey`: CREATE UNIQUE INDEX courses_pkey ON public.courses USING btree (id)
-- `idx_courses_category_id`: CREATE INDEX idx_courses_category_id ON public.courses USING btree (category_id)
-- `idx_courses_status`: CREATE INDEX idx_courses_status ON public.courses USING btree (status)
-- `idx_courses_teacher_id`: CREATE INDEX idx_courses_teacher_id ON public.courses USING btree (teacher_id)
-
-### enrollments
-**Type:** BASE TABLE
-
-#### Columns
-- `id`: uuid, NOT NULL, DEFAULT: gen_random_uuid()
-- `student_id`: uuid, NOT NULL
-- `class_id`: uuid, NOT NULL
-- `status`: character varying, NULL, DEFAULT: 'ACTIVE'
-- `progress`: jsonb, NULL
-- `completion_percent`: integer, NULL, DEFAULT: 0
-- `completed_at`: timestamp without time zone, NULL
-- `enrolled_at`: timestamp without time zone, NULL, DEFAULT: now()
-- `joined_at`: timestamp without time zone, NULL
-- `last_accessed_at`: timestamp without time zone, NULL
-
-#### Primary Key
-- `id`
-
-#### Foreign Keys
-- `student_id` -> `users`.`id`
-- `class_id` -> `learning_classes`.`id`
-
-#### Indexes
-- `enrollments_pkey`: CREATE UNIQUE INDEX enrollments_pkey ON public.enrollments USING btree (id)
-- `idx_enrollments_class_id`: CREATE INDEX idx_enrollments_class_id ON public.enrollments USING btree (class_id)
-- `idx_enrollments_student_id`: CREATE INDEX idx_enrollments_student_id ON public.enrollments USING btree (student_id)
-- `uk82aln7vxjltduw8lw278we3j0`: CREATE UNIQUE INDEX uk82aln7vxjltduw8lw278we3j0 ON public.enrollments USING btree (student_id, class_id)
-- `uq_student_class`: CREATE UNIQUE INDEX uq_student_class ON public.enrollments USING btree (student_id, class_id)
-
-### file_attachments
-**Type:** BASE TABLE
-
-#### Columns
-- `id`: uuid, NOT NULL
-- `content_type`: character varying, NOT NULL
-- `deleted_at`: timestamp with time zone, NULL
-- `entity_id`: uuid, NULL
-- `entity_type`: character varying, NULL
-- `file_category`: character varying, NOT NULL
-- `file_size`: bigint, NOT NULL
-- `original_filename`: character varying, NOT NULL
-- `status`: character varying, NOT NULL
-- `storage_path`: character varying, NOT NULL
-- `stored_filename`: character varying, NOT NULL
-- `updated_at`: timestamp with time zone, NULL
-- `uploaded_at`: timestamp with time zone, NOT NULL
-- `uploaded_by`: uuid, NOT NULL
-
-#### Primary Key
-- `id`
-
-#### Foreign Keys
-None
-
-#### Indexes
-- `file_attachments_pkey`: CREATE UNIQUE INDEX file_attachments_pkey ON public.file_attachments USING btree (id)
-- `uke263ul6jl1hxvweuixy753uvj`: CREATE UNIQUE INDEX uke263ul6jl1hxvweuixy753uvj ON public.file_attachments USING btree (stored_filename)
-
-### flyway_schema_history
-**Type:** BASE TABLE
-
-#### Columns
-- `installed_rank`: integer, NOT NULL
-- `version`: character varying, NULL
-- `description`: character varying, NOT NULL
-- `type`: character varying, NOT NULL
-- `script`: character varying, NOT NULL
-- `checksum`: integer, NULL
-- `installed_by`: character varying, NOT NULL
-- `installed_on`: timestamp without time zone, NOT NULL, DEFAULT: now()
-- `execution_time`: integer, NOT NULL
-- `success`: boolean, NOT NULL
-
-#### Primary Key
-- `installed_rank`
-
-#### Foreign Keys
-None
-
-#### Indexes
-- `flyway_schema_history_pk`: CREATE UNIQUE INDEX flyway_schema_history_pk ON public.flyway_schema_history USING btree (installed_rank)
-- `flyway_schema_history_s_idx`: CREATE INDEX flyway_schema_history_s_idx ON public.flyway_schema_history USING btree (success)
-
-### learning_classes
-**Type:** BASE TABLE
-
-#### Columns
-- `id`: uuid, NOT NULL, DEFAULT: gen_random_uuid()
-- `teacher_id`: uuid, NULL
-- `name`: character varying, NOT NULL
-- `code`: character varying, NULL
-- `description`: text, NULL
-- `schedule_type`: character varying, NULL, DEFAULT: 'CUSTOM'
-- `semester`: character varying, NULL
-- `max_students`: integer, NULL, DEFAULT: 9999
-- `status`: character varying, NULL, DEFAULT: 'OPEN'
-- `start_date`: timestamp without time zone, NULL
-- `end_date`: timestamp without time zone, NULL
-- `created_at`: timestamp without time zone, NULL, DEFAULT: now()
-- `updated_at`: timestamp without time zone, NULL
-- `course_version_id`: uuid, NULL
-
-#### Primary Key
-- `id`
-
-#### Foreign Keys
-- `teacher_id` -> `users`.`id`
-
-#### Indexes
-- `idx_learning_classes_status`: CREATE INDEX idx_learning_classes_status ON public.learning_classes USING btree (status)
-- `learning_classes_code_key`: CREATE UNIQUE INDEX learning_classes_code_key ON public.learning_classes USING btree (code)
-- `learning_classes_pkey`: CREATE UNIQUE INDEX learning_classes_pkey ON public.learning_classes USING btree (id)
-
-### learning_enrollments
-**Type:** BASE TABLE
-
-#### Columns
-- `completion_percent`: integer, NULL
-- `completed_at`: timestamp with time zone, NULL
-- `joined_at`: timestamp with time zone, NULL
-- `last_accessed_at`: timestamp with time zone, NULL
-- `class_id`: uuid, NOT NULL
-- `id`: uuid, NOT NULL
-- `student_id`: uuid, NOT NULL
-- `status`: character varying, NOT NULL
-- `progress`: jsonb, NULL
-
-#### Primary Key
-- `id`
-
-#### Foreign Keys
-- `student_id` -> `users`.`id`
-
-#### Indexes
-- `learning_enrollments_pkey`: CREATE UNIQUE INDEX learning_enrollments_pkey ON public.learning_enrollments USING btree (id)
-
-### lesson_assignments
-**Type:** BASE TABLE
-
-#### Columns
-- `created_at`: timestamp with time zone, NULL
-- `assignment_id`: uuid, NOT NULL
-- `id`: uuid, NOT NULL
-- `lesson_id`: uuid, NOT NULL
-- `order_index`: integer, NULL
-
-#### Primary Key
-- `id`
-
-#### Foreign Keys
-- `lesson_id` -> `lessons`.`id`
-- `assignment_id` -> `assignments`.`id`
-
-#### Indexes
-- `lesson_assignments_assignment_id_key`: CREATE UNIQUE INDEX lesson_assignments_assignment_id_key ON public.lesson_assignments USING btree (assignment_id)
-- `lesson_assignments_lesson_id_assignment_id_key`: CREATE UNIQUE INDEX lesson_assignments_lesson_id_assignment_id_key ON public.lesson_assignments USING btree (lesson_id, assignment_id)
-- `lesson_assignments_lesson_id_key`: CREATE UNIQUE INDEX lesson_assignments_lesson_id_key ON public.lesson_assignments USING btree (lesson_id)
-- `lesson_assignments_pkey`: CREATE UNIQUE INDEX lesson_assignments_pkey ON public.lesson_assignments USING btree (id)
-- `ukmukcqoiijjg73n2fucp3csxfh`: CREATE UNIQUE INDEX ukmukcqoiijjg73n2fucp3csxfh ON public.lesson_assignments USING btree (lesson_id, assignment_id)
-
-### lesson_attachments
-**Type:** BASE TABLE
-
-#### Columns
-- `display_order`: integer, NOT NULL
-- `file_size`: bigint, NOT NULL
-- `uploaded_at`: timestamp with time zone, NOT NULL
-- `id`: uuid, NOT NULL
-- `lesson_id`: uuid, NOT NULL
-- `uploaded_by`: uuid, NULL
-- `content_type`: character varying, NOT NULL
-- `file_name`: character varying, NOT NULL
-- `file_type`: character varying, NOT NULL
-- `file_url`: character varying, NOT NULL
-- `original_file_name`: character varying, NOT NULL
-
-#### Primary Key
-- `id`
-
-#### Foreign Keys
-- `uploaded_by` -> `users`.`id`
-- `lesson_id` -> `lessons`.`id`
-
-#### Indexes
-- `lesson_attachments_pkey`: CREATE UNIQUE INDEX lesson_attachments_pkey ON public.lesson_attachments USING btree (id)
-
-### lesson_authoring
-**Type:** BASE TABLE
-
-#### Columns
-- `duration_seconds`: integer, NULL
-- `is_required`: boolean, NULL
-- `min_quiz_score`: integer, NULL
-- `min_watch_percent`: integer, NULL
-- `order_index`: integer, NULL
-- `created_at`: timestamp with time zone, NULL
-- `chapter_id`: uuid, NOT NULL
-- `id`: uuid, NOT NULL
-- `content_html`: text, NULL
-- `content_url`: text, NULL
-- `title`: character varying, NOT NULL
-- `type`: character varying, NOT NULL
-
-#### Primary Key
-- `id`
-
-#### Foreign Keys
-- `chapter_id` -> `chapter_authoring`.`id`
-
-#### Indexes
-- `lesson_authoring_pkey`: CREATE UNIQUE INDEX lesson_authoring_pkey ON public.lesson_authoring USING btree (id)
-
-### lessons
-**Type:** BASE TABLE
-
-#### Columns
-- `order_index`: integer, NOT NULL
-- `created_at`: timestamp with time zone, NOT NULL
-- `updated_at`: timestamp with time zone, NULL
-- `chapter_id`: uuid, NOT NULL
-- `id`: uuid, NOT NULL
-- `description`: text, NULL
-- `lesson_type`: character varying, NULL
-- `title`: character varying, NOT NULL
-- `content`: text, NULL
-- `duration_minutes`: integer, NULL
-- `video_url`: character varying, NULL
-- `is_preview`: boolean, NULL
-- `is_required`: boolean, NULL
-- `is_free`: boolean, NULL
-
-#### Primary Key
-- `id`
-
-#### Foreign Keys
-- `chapter_id` -> `chapters`.`id`
-
-#### Indexes
-- `idx_lessons_chapter_id`: CREATE INDEX idx_lessons_chapter_id ON public.lessons USING btree (chapter_id)
-- `lessons_pkey`: CREATE UNIQUE INDEX lessons_pkey ON public.lessons USING btree (id)
-
-### messages
-**Type:** BASE TABLE
-
-#### Columns
-- `is_read`: boolean, NULL
-- `created_at`: timestamp without time zone, NOT NULL
-- `assignment_id`: uuid, NULL
-- `conversation_id`: uuid, NOT NULL
-- `id`: uuid, NOT NULL
-- `sender_id`: uuid, NOT NULL
-- `content`: text, NOT NULL
-- `read_at`: timestamp with time zone, NULL
-- `sent_at`: timestamp with time zone, NULL
-
-#### Primary Key
-- `id`
-
-#### Foreign Keys
-- `conversation_id` -> `conversations`.`id`
-- `assignment_id` -> `assignments`.`id`
-- `sender_id` -> `users`.`id`
-
-#### Indexes
-- `idx_message_conversation`: CREATE INDEX idx_message_conversation ON public.messages USING btree (conversation_id)
-- `idx_message_created`: CREATE INDEX idx_message_created ON public.messages USING btree (created_at)
-- `idx_message_sender`: CREATE INDEX idx_message_sender ON public.messages USING btree (sender_id)
-- `messages_pkey`: CREATE UNIQUE INDEX messages_pkey ON public.messages USING btree (id)
-
-### outbox_messages
-**Type:** BASE TABLE
-
-#### Columns
-- `id`: uuid, NOT NULL
-- `aggregate_id`: uuid, NOT NULL
-- `aggregate_type`: character varying, NOT NULL
-- `attempts`: integer, NULL
-- `created_at`: timestamp with time zone, NULL
-- `event_type`: character varying, NOT NULL
-- `last_error`: text, NULL
-- `next_attempt_at`: timestamp with time zone, NULL
-- `payload`: jsonb, NOT NULL
-- `processed_at`: timestamp with time zone, NULL
-- `status`: character varying, NULL
-
-#### Primary Key
-- `id`
-
-#### Foreign Keys
-None
-
-#### Indexes
-- `idx_outbox_status`: CREATE INDEX idx_outbox_status ON public.outbox_messages USING btree (status, next_attempt_at)
-- `outbox_messages_pkey`: CREATE UNIQUE INDEX outbox_messages_pkey ON public.outbox_messages USING btree (id)
-
-### packages
-**Type:** BASE TABLE
-
-#### Columns
-- `capacity`: integer, NULL
-- `created_at`: timestamp with time zone, NOT NULL
-- `updated_at`: timestamp with time zone, NOT NULL
-- `id`: uuid, NOT NULL
-- `owner_id`: uuid, NOT NULL
-- `visibility`: character varying, NOT NULL
-- `subject`: character varying, NULL
-- `description`: text, NULL
-- `name`: character varying, NOT NULL
-- `duration_days`: integer, NULL
-- `is_active`: boolean, NULL
-- `price`: numeric, NULL
-
-#### Primary Key
-- `id`
-
-#### Foreign Keys
-- `owner_id` -> `users`.`id`
-
-#### Indexes
-- `packages_pkey`: CREATE UNIQUE INDEX packages_pkey ON public.packages USING btree (id)
-
-### question_options
-**Type:** BASE TABLE
-
-#### Columns
-- `display_order`: integer, NOT NULL
-- `option_key`: character varying, NOT NULL
-- `id`: uuid, NOT NULL
-- `question_id`: uuid, NOT NULL
-- `content`: text, NOT NULL
-
-#### Primary Key
-- `id`
-
-#### Foreign Keys
-- `question_id` -> `questions`.`id`
-
-#### Indexes
-- `question_options_pkey`: CREATE UNIQUE INDEX question_options_pkey ON public.question_options USING btree (id)
-
-### questions
-**Type:** BASE TABLE
-
-#### Columns
-- `correct_rate`: numeric, NULL
-- `usage_count`: integer, NOT NULL
-- `created_at`: timestamp with time zone, NOT NULL
-- `updated_at`: timestamp with time zone, NULL
-- `course_id`: uuid, NULL
-- `created_by`: uuid, NOT NULL
-- `id`: uuid, NOT NULL
-- `package_id`: uuid, NULL
-- `content`: text, NOT NULL
-- `correct_option`: character varying, NOT NULL
-- `difficulty`: character varying, NOT NULL
-- `status`: character varying, NOT NULL
-- `tags`: text, NULL
-
-#### Primary Key
-- `id`
-
-#### Foreign Keys
-- `package_id` -> `packages`.`id`
-- `created_by` -> `users`.`id`
-- `course_id` -> `courses`.`id`
-
-#### Indexes
-- `questions_pkey`: CREATE UNIQUE INDEX questions_pkey ON public.questions USING btree (id)
-
-### quiz_assignments
-**Type:** BASE TABLE
-
-#### Columns
-- `assigned_at`: timestamp with time zone, NOT NULL
-- `completed_at`: timestamp with time zone, NULL
-- `created_at`: timestamp with time zone, NOT NULL
-- `due_date`: timestamp with time zone, NULL
-- `updated_at`: timestamp with time zone, NULL
-- `assigned_by`: uuid, NOT NULL
-- `id`: uuid, NOT NULL
-- `quiz_id`: uuid, NOT NULL
-- `student_id`: uuid, NOT NULL
-- `status`: character varying, NOT NULL
-- `class_id`: uuid, NULL
-- `course_id`: uuid, NULL
-- `is_active`: boolean, NULL
-
-#### Primary Key
-- `id`
-
-#### Foreign Keys
-- `assigned_by` -> `users`.`id`
-- `student_id` -> `users`.`id`
-- `quiz_id` -> `quizzes`.`id`
-
-#### Indexes
-- `quiz_assignments_pkey`: CREATE UNIQUE INDEX quiz_assignments_pkey ON public.quiz_assignments USING btree (id)
-
-### quiz_attempt_items
-**Type:** BASE TABLE
-
-#### Columns
-- `is_correct`: boolean, NULL
-- `time_spent_seconds`: bigint, NULL
-- `attempt_id`: uuid, NOT NULL
-- `id`: uuid, NOT NULL
-- `question_id`: uuid, NOT NULL
-- `selected_option`: character varying, NULL
-
-#### Primary Key
-- `id`
-
-#### Foreign Keys
-- `attempt_id` -> `quiz_attempts`.`id`
-- `question_id` -> `questions`.`id`
-
-#### Indexes
-- `quiz_attempt_items_pkey`: CREATE UNIQUE INDEX quiz_attempt_items_pkey ON public.quiz_attempt_items USING btree (id)
-
-### quiz_attempts
-**Type:** BASE TABLE
-
-#### Columns
-- `correct_answers`: integer, NOT NULL
-- `is_passed`: boolean, NULL
-- `score`: double precision, NULL
-- `total_questions`: integer, NOT NULL
-- `created_at`: timestamp with time zone, NOT NULL
-- `end_time`: timestamp with time zone, NULL
-- `start_time`: timestamp with time zone, NOT NULL
-- `time_spent_seconds`: bigint, NULL
-- `updated_at`: timestamp with time zone, NULL
-- `assignment_id`: uuid, NULL
-- `id`: uuid, NOT NULL
-- `quiz_id`: uuid, NOT NULL
-- `student_id`: uuid, NOT NULL
-- `option_orders`: text, NULL
-- `question_order`: text, NULL
-- `status`: character varying, NOT NULL
-- `answers`: jsonb, NULL
-- `max_score`: double precision, NULL
-- `started_at`: timestamp with time zone, NULL
-- `submitted_at`: timestamp with time zone, NULL
-
-#### Primary Key
-- `id`
-
-#### Foreign Keys
-- `quiz_id` -> `quizzes`.`id`
-- `student_id` -> `users`.`id`
-- `assignment_id` -> `quiz_assignments`.`id`
-
-#### Indexes
-- `idx_quiz_attempts_quiz_id`: CREATE INDEX idx_quiz_attempts_quiz_id ON public.quiz_attempts USING btree (quiz_id)
-- `idx_quiz_attempts_student_id`: CREATE INDEX idx_quiz_attempts_student_id ON public.quiz_attempts USING btree (student_id)
-- `quiz_attempts_pkey`: CREATE UNIQUE INDEX quiz_attempts_pkey ON public.quiz_attempts USING btree (id)
-
-### quiz_questions
-**Type:** BASE TABLE
-
-#### Columns
-- `display_order`: integer, NOT NULL
-- `created_at`: timestamp with time zone, NOT NULL
-- `id`: uuid, NOT NULL
-- `question_id`: uuid, NOT NULL
-- `quiz_id`: uuid, NOT NULL
-- `correct_answer`: character varying, NULL
-- `explanation`: text, NULL
-- `options`: jsonb, NULL
-- `order_index`: integer, NULL
-- `points`: integer, NULL
-- `question`: text, NOT NULL
-- `type`: character varying, NOT NULL
-
-#### Primary Key
-- `id`
-
-#### Foreign Keys
-- `quiz_id` -> `quizzes`.`id`
-- `question_id` -> `questions`.`id`
-
-#### Indexes
-- `quiz_questions_pkey`: CREATE UNIQUE INDEX quiz_questions_pkey ON public.quiz_questions USING btree (id)
-- `quiz_questions_quiz_id_question_id_key`: CREATE UNIQUE INDEX quiz_questions_quiz_id_question_id_key ON public.quiz_questions USING btree (quiz_id, question_id)
-- `ukdgya47t7wpun3gxwobcjkqjf`: CREATE UNIQUE INDEX ukdgya47t7wpun3gxwobcjkqjf ON public.quiz_questions USING btree (quiz_id, question_id)
-
-### quizzes
-**Type:** BASE TABLE
-
-#### Columns
-- `max_attempts`: integer, NOT NULL
-- `passing_score`: integer, NOT NULL
-- `random_count`: integer, NULL
-- `show_correct_answers`: boolean, NOT NULL
-- `show_results_immediately`: boolean, NOT NULL
-- `shuffle_options`: boolean, NOT NULL
-- `shuffle_questions`: boolean, NOT NULL
-- `time_limit_minutes`: integer, NULL
-- `created_at`: timestamp with time zone, NOT NULL
-- `end_date`: timestamp with time zone, NULL
-- `published_at`: timestamp with time zone, NULL
-- `start_date`: timestamp with time zone, NULL
-- `updated_at`: timestamp with time zone, NULL
-- `course_id`: uuid, NULL
-- `created_by`: uuid, NOT NULL
-- `id`: uuid, NOT NULL
-- `section_id`: uuid, NULL
-- `description`: text, NULL
-- `question_ids`: text, NULL
-- `random_difficulties`: text, NULL
-- `random_tags`: text, NULL
-- `title`: character varying, NULL
-- `type`: character varying, NOT NULL
-- `lesson_id`: uuid, NULL
-- `status`: character varying, NOT NULL
-
-#### Primary Key
-- `id`
-
-#### Foreign Keys
-- `section_id` -> `sections`.`id`
-- `created_by` -> `users`.`id`
-- `course_id` -> `courses`.`id`
-- `lesson_id` -> `lessons`.`id`
-
-#### Indexes
-- `quizzes_pkey`: CREATE UNIQUE INDEX quizzes_pkey ON public.quizzes USING btree (id)
-- `quizzes_section_id_key`: CREATE UNIQUE INDEX quizzes_section_id_key ON public.quizzes USING btree (section_id)
-- `ukqe2s9lw7k56o4dn543g5j4dw8`: CREATE UNIQUE INDEX ukqe2s9lw7k56o4dn543g5j4dw8 ON public.quizzes USING btree (lesson_id)
-
-### refresh_tokens
-**Type:** BASE TABLE
-
-#### Columns
-- `id`: uuid, NOT NULL
-- `created_at`: timestamp with time zone, NULL
-- `device_info`: character varying, NULL
-- `expiry_date`: timestamp with time zone, NOT NULL
-- `ip_address`: character varying, NULL
-- `replaced_by_token`: character varying, NULL
-- `revoked`: boolean, NOT NULL
-- `token`: character varying, NOT NULL
-- `user_id`: uuid, NOT NULL
-
-#### Primary Key
-- `id`
-
-#### Foreign Keys
-- `user_id` -> `users`.`id`
-
-#### Indexes
-- `idx_refresh_tokens_expiry_date`: CREATE INDEX idx_refresh_tokens_expiry_date ON public.refresh_tokens USING btree (expiry_date)
-- `idx_refresh_tokens_revoked`: CREATE INDEX idx_refresh_tokens_revoked ON public.refresh_tokens USING btree (revoked)
-- `idx_refresh_tokens_token`: CREATE INDEX idx_refresh_tokens_token ON public.refresh_tokens USING btree (token)
-- `idx_refresh_tokens_user_id`: CREATE INDEX idx_refresh_tokens_user_id ON public.refresh_tokens USING btree (user_id)
-- `idx_refresh_tokens_user_valid`: CREATE INDEX idx_refresh_tokens_user_valid ON public.refresh_tokens USING btree (user_id, revoked, expiry_date)
-- `idx_refresh_tokens_valid_session`: CREATE INDEX idx_refresh_tokens_valid_session ON public.refresh_tokens USING btree (revoked, expiry_date)
-- `refresh_tokens_pkey`: CREATE UNIQUE INDEX refresh_tokens_pkey ON public.refresh_tokens USING btree (id)
-- `ukghpmfn23vmxfu3spu3lfg4r2d`: CREATE UNIQUE INDEX ukghpmfn23vmxfu3spu3lfg4r2d ON public.refresh_tokens USING btree (token)
-
-### sections
-**Type:** BASE TABLE
-
-#### Columns
-- `duration`: integer, NULL
-- `is_required`: boolean, NOT NULL
-- `order_index`: integer, NOT NULL
-- `created_at`: timestamp with time zone, NOT NULL
-- `updated_at`: timestamp with time zone, NULL
-- `id`: uuid, NOT NULL
-- `lesson_id`: uuid, NOT NULL
-- `video_url`: character varying, NULL
-- `content`: text, NULL
-- `title`: character varying, NOT NULL
-- `type`: character varying, NOT NULL
-- `description`: character varying, NULL
-- `file_url`: character varying, NULL
-- `duration_seconds`: integer, NULL
-
-#### Primary Key
-- `id`
-
-#### Foreign Keys
-- `lesson_id` -> `lessons`.`id`
-
-#### Indexes
-- `sections_pkey`: CREATE UNIQUE INDEX sections_pkey ON public.sections USING btree (id)
-
-### stu_lesson_progress
-**Type:** BASE TABLE
-
-#### Columns
-- `time_spent_minutes`: integer, NULL
-- `completed_at`: timestamp with time zone, NULL
-- `created_at`: timestamp with time zone, NOT NULL
-- `started_at`: timestamp with time zone, NULL
-- `updated_at`: timestamp with time zone, NULL
-- `id`: uuid, NOT NULL
-- `lesson_id`: uuid, NOT NULL
-- `student_id`: uuid, NOT NULL
-- `status`: character varying, NOT NULL
-
-#### Primary Key
-- `id`
-
-#### Foreign Keys
-- `lesson_id` -> `lessons`.`id`
-- `student_id` -> `users`.`id`
-
-#### Indexes
-- `stu_lesson_progress_pkey`: CREATE UNIQUE INDEX stu_lesson_progress_pkey ON public.stu_lesson_progress USING btree (id)
-- `stu_lesson_progress_student_id_lesson_id_key`: CREATE UNIQUE INDEX stu_lesson_progress_student_id_lesson_id_key ON public.stu_lesson_progress USING btree (student_id, lesson_id)
-- `uk3utp66qbnlr7c3cvhi7hkr2y7`: CREATE UNIQUE INDEX uk3utp66qbnlr7c3cvhi7hkr2y7 ON public.stu_lesson_progress USING btree (student_id, lesson_id)
-
-### student_lesson_progress
-**Type:** BASE TABLE
-
-#### Columns
-- `id`: uuid, NOT NULL
-- `completed_at`: timestamp with time zone, NULL
-- `completion_percent`: integer, NULL
-- `enrollment_id`: uuid, NULL
-- `last_accessed_at`: timestamp with time zone, NULL
-- `lesson_id`: uuid, NOT NULL
-- `started_at`: timestamp with time zone, NULL
-- `status`: character varying, NOT NULL
-- `student_id`: uuid, NOT NULL
-- `watch_time_seconds`: integer, NULL
-
-#### Primary Key
-- `id`
-
-#### Foreign Keys
-None
-
-#### Indexes
-- `idx_student_lesson_progress_lesson_id`: CREATE INDEX idx_student_lesson_progress_lesson_id ON public.student_lesson_progress USING btree (lesson_id)
-- `idx_student_lesson_progress_student_id`: CREATE INDEX idx_student_lesson_progress_student_id ON public.student_lesson_progress USING btree (student_id)
-- `student_lesson_progress_pkey`: CREATE UNIQUE INDEX student_lesson_progress_pkey ON public.student_lesson_progress USING btree (id)
-
-### submissions
-**Type:** BASE TABLE
-
-#### Columns
-- `score`: numeric, NULL
-- `graded_at`: timestamp with time zone, NULL
-- `submitted_at`: timestamp with time zone, NOT NULL
-- `assignment_id`: uuid, NOT NULL
-- `graded_by`: uuid, NULL
-- `id`: uuid, NOT NULL
-- `student_id`: uuid, NOT NULL
-- `file_url`: character varying, NULL
-- `content`: text, NOT NULL
-- `feedback`: text, NULL
-
-#### Primary Key
-- `id`
-
-#### Foreign Keys
-- `student_id` -> `users`.`id`
-- `assignment_id` -> `assignments`.`id`
-- `graded_by` -> `users`.`id`
-
-#### Indexes
-- `submissions_assignment_id_student_id_key`: CREATE UNIQUE INDEX submissions_assignment_id_student_id_key ON public.submissions USING btree (assignment_id, student_id)
-- `submissions_pkey`: CREATE UNIQUE INDEX submissions_pkey ON public.submissions USING btree (id)
-- `ukeiqoen8c565i0gq79ritryilw`: CREATE UNIQUE INDEX ukeiqoen8c565i0gq79ritryilw ON public.submissions USING btree (assignment_id, student_id)
-
-### users
-**Type:** BASE TABLE
-
-#### Columns
-- `enabled`: boolean, NOT NULL
-- `created_at`: timestamp with time zone, NOT NULL
-- `updated_at`: timestamp with time zone, NULL
-- `id`: uuid, NOT NULL
-- `username`: character varying, NOT NULL
-- `email`: character varying, NOT NULL
-- `full_name`: character varying, NOT NULL
-- `password`: character varying, NOT NULL
-- `role`: character varying, NOT NULL
-
-#### Primary Key
-- `id`
-
-#### Foreign Keys
-None
-
-#### Indexes
-- `idx_users_email`: CREATE INDEX idx_users_email ON public.users USING btree (email)
-- `idx_users_email_lower`: CREATE INDEX idx_users_email_lower ON public.users USING btree (lower((email)::text))
-- `idx_users_fullname_lower`: CREATE INDEX idx_users_fullname_lower ON public.users USING btree (lower((full_name)::text))
-- `idx_users_role`: CREATE INDEX idx_users_role ON public.users USING btree (role)
-- `idx_users_role_email_lower`: CREATE INDEX idx_users_role_email_lower ON public.users USING btree (role, lower((email)::text))
-- `idx_users_role_fullname_lower`: CREATE INDEX idx_users_role_fullname_lower ON public.users USING btree (role, lower((full_name)::text))
-- `users_email_key`: CREATE UNIQUE INDEX users_email_key ON public.users USING btree (email)
-- `users_pkey`: CREATE UNIQUE INDEX users_pkey ON public.users USING btree (id)
-- `users_username_key`: CREATE UNIQUE INDEX users_username_key ON public.users USING btree (username)
-
-## Views
-
-None
-
-## Extensions
-
-None
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+CREATE TABLE public.admin_audit_logs (
+  id uuid NOT NULL,
+  action character varying NOT NULL CHECK (action::text = ANY (ARRAY['VIEW_COURSE'::character varying, 'VIEW_COURSE_CONTENT'::character varying, 'VIEW_LESSON'::character varying, 'VIEW_ASSIGNMENT'::character varying, 'VIEW_SUBMISSIONS'::character varying, 'VIEW_SUBMISSION_DETAIL'::character varying, 'VIEW_ATTACHMENTS'::character varying, 'VIEW_ENROLLED_STUDENTS'::character varying]::text[])),
+  details text,
+  ip_address character varying,
+  target_id uuid NOT NULL,
+  target_type character varying NOT NULL CHECK (target_type::text = ANY (ARRAY['COURSE'::character varying, 'CHAPTER'::character varying, 'LESSON'::character varying, 'ASSIGNMENT'::character varying, 'SUBMISSION'::character varying, 'ATTACHMENT'::character varying]::text[])),
+  timestamp timestamp with time zone NOT NULL,
+  admin_id uuid NOT NULL,
+  target_owner_id uuid,
+  CONSTRAINT admin_audit_logs_pkey PRIMARY KEY (id),
+  CONSTRAINT fkd4sj4j7mico8tb4e4rnvcdwd6 FOREIGN KEY (admin_id) REFERENCES public.users(id),
+  CONSTRAINT fka7gei2br0t9fwyynsq6s9gjk0 FOREIGN KEY (target_owner_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.assignment_allocation_students (
+  assigned_at timestamp with time zone NOT NULL,
+  custom_deadline timestamp without time zone,
+  allocation_id uuid NOT NULL,
+  student_id uuid NOT NULL,
+  note text,
+  CONSTRAINT assignment_allocation_students_pkey PRIMARY KEY (allocation_id, student_id),
+  CONSTRAINT fk2qxv2a1kti7d2osgt36x5lk8f FOREIGN KEY (allocation_id) REFERENCES public.assignment_allocations(id),
+  CONSTRAINT fkjkqs0fvlc3rsccd261tcar0j1 FOREIGN KEY (student_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.assignment_allocations (
+  is_individual boolean,
+  created_at timestamp with time zone NOT NULL,
+  updated_at timestamp with time zone,
+  assignment_id uuid NOT NULL,
+  created_by uuid NOT NULL,
+  id uuid NOT NULL,
+  distribution_type character varying NOT NULL CHECK (distribution_type::text = ANY (ARRAY['ALL_STUDENTS'::character varying, 'SPECIFIC_STUDENTS'::character varying, 'CLASS'::character varying]::text[])),
+  allocated_at timestamp with time zone,
+  allocator_id uuid,
+  class_id uuid,
+  due_date timestamp with time zone,
+  is_active boolean,
+  CONSTRAINT assignment_allocations_pkey PRIMARY KEY (id),
+  CONSTRAINT fk88bgwaa7mo5m4fcmcuadm9pu4 FOREIGN KEY (assignment_id) REFERENCES public.assignments(id),
+  CONSTRAINT fkaq1vv0n382w3rhp48ttxxx3i6 FOREIGN KEY (created_by) REFERENCES public.users(id),
+  CONSTRAINT fkr3swkpehi5d5m1i5ewbit1ugb FOREIGN KEY (class_id) REFERENCES public.learning_classes(id)
+);
+CREATE TABLE public.assignment_attachments (
+  upload_order integer,
+  created_at timestamp with time zone NOT NULL,
+  file_size bigint,
+  assignment_id uuid NOT NULL,
+  id uuid NOT NULL,
+  mime_type character varying,
+  file_url character varying NOT NULL,
+  file_id character varying NOT NULL,
+  file_name character varying NOT NULL,
+  CONSTRAINT assignment_attachments_pkey PRIMARY KEY (id),
+  CONSTRAINT fklb839qd5wnspbndu06gb31adp FOREIGN KEY (assignment_id) REFERENCES public.assignments(id)
+);
+CREATE TABLE public.assignment_rubrics (
+  max_points numeric NOT NULL,
+  order_index integer,
+  weight numeric,
+  created_at timestamp with time zone NOT NULL,
+  assignment_id uuid NOT NULL,
+  id uuid NOT NULL,
+  criteria_name character varying NOT NULL,
+  description text,
+  CONSTRAINT assignment_rubrics_pkey PRIMARY KEY (id),
+  CONSTRAINT fk96xsboj29e5pmk9ntf41s9nvf FOREIGN KEY (assignment_id) REFERENCES public.assignments(id)
+);
+CREATE TABLE public.assignment_submissions (
+  score numeric,
+  created_at timestamp without time zone NOT NULL,
+  graded_at timestamp without time zone,
+  submitted_at timestamp without time zone,
+  updated_at timestamp without time zone NOT NULL,
+  assignment_id uuid NOT NULL,
+  id uuid NOT NULL,
+  student_id uuid NOT NULL,
+  attachment_url character varying,
+  content text,
+  feedback text,
+  status character varying,
+  attempt_number integer,
+  file_url character varying,
+  graded_by_id uuid,
+  CONSTRAINT assignment_submissions_pkey PRIMARY KEY (id),
+  CONSTRAINT fkm7i7ubgh7y2n6mvg8muw62oax FOREIGN KEY (assignment_id) REFERENCES public.assignments(id),
+  CONSTRAINT fkgf6lwnlqvnetehdftwcij7r5g FOREIGN KEY (student_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.assignments (
+  max_score numeric,
+  created_at timestamp with time zone NOT NULL,
+  due_date timestamp without time zone,
+  updated_at timestamp with time zone,
+  course_id uuid NOT NULL,
+  id uuid NOT NULL,
+  assignment_type character varying,
+  description text NOT NULL,
+  instructions text,
+  status character varying,
+  title character varying NOT NULL,
+  assignment_config jsonb,
+  allow_late_submission boolean,
+  lesson_id uuid,
+  max_attempts integer,
+  passing_score integer,
+  CONSTRAINT assignments_pkey PRIMARY KEY (id),
+  CONSTRAINT fk6p1m72jobsvmrrn4bpj4168mg FOREIGN KEY (course_id) REFERENCES public.courses(id)
+);
+CREATE TABLE public.categories (
+  id uuid NOT NULL,
+  code character varying NOT NULL UNIQUE,
+  name character varying NOT NULL,
+  CONSTRAINT categories_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.chapter_authoring (
+  is_published boolean,
+  order_index integer,
+  created_at timestamp with time zone,
+  course_id uuid NOT NULL,
+  id uuid NOT NULL,
+  title character varying NOT NULL,
+  CONSTRAINT chapter_authoring_pkey PRIMARY KEY (id),
+  CONSTRAINT fkrwvqdlvrddlb76xrj9pep8d4l FOREIGN KEY (course_id) REFERENCES public.course_authoring(id),
+  CONSTRAINT fkcnkyp78b8vn6qosu29movdgva FOREIGN KEY (course_id) REFERENCES public.courses(id)
+);
+CREATE TABLE public.chapters (
+  order_index integer NOT NULL,
+  created_at timestamp with time zone NOT NULL,
+  updated_at timestamp with time zone,
+  course_id uuid NOT NULL,
+  id uuid NOT NULL,
+  description character varying,
+  title character varying NOT NULL,
+  CONSTRAINT chapters_pkey PRIMARY KEY (id),
+  CONSTRAINT fk6h1m0nrtdwj37570c0sp2tdcs FOREIGN KEY (course_id) REFERENCES public.courses(id)
+);
+CREATE TABLE public.chat_messages (
+  processing_time double precision,
+  created_at timestamp with time zone NOT NULL,
+  id uuid NOT NULL,
+  session_id uuid NOT NULL,
+  ai_model character varying,
+  content text NOT NULL,
+  sender_type character varying NOT NULL CHECK (sender_type::text = ANY (ARRAY['USER'::character varying, 'AI'::character varying]::text[])),
+  sources text,
+  status character varying NOT NULL CHECK (status::text = ANY (ARRAY['SENDING'::character varying, 'SENT'::character varying, 'ERROR'::character varying]::text[])),
+  confidence_score double precision,
+  document_ids_used text,
+  query_type character varying,
+  topics_accessed text,
+  role character varying NOT NULL CHECK (role::text = ANY (ARRAY['USER'::character varying, 'ASSISTANT'::character varying, 'SYSTEM'::character varying]::text[])),
+  tokens_used integer,
+  CONSTRAINT chat_messages_pkey PRIMARY KEY (id),
+  CONSTRAINT fk3cpkdtwdxndrjhrx3gt9q5ux9 FOREIGN KEY (session_id) REFERENCES public.chat_sessions(id)
+);
+CREATE TABLE public.chat_sessions (
+  is_deleted boolean,
+  created_at timestamp with time zone NOT NULL,
+  updated_at timestamp with time zone NOT NULL,
+  context_course_id uuid,
+  context_lesson_id uuid,
+  id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  title character varying,
+  context_id uuid,
+  context_type character varying,
+  is_archived boolean,
+  CONSTRAINT chat_sessions_pkey PRIMARY KEY (id),
+  CONSTRAINT fk82ky97glaomlmhjqae1d0esmy FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.class_courses (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  class_id uuid NOT NULL,
+  course_id uuid NOT NULL,
+  added_by uuid,
+  order_index integer DEFAULT 0,
+  is_required boolean DEFAULT true,
+  created_at timestamp without time zone DEFAULT now(),
+  CONSTRAINT class_courses_pkey PRIMARY KEY (id),
+  CONSTRAINT fk_class_course_class FOREIGN KEY (class_id) REFERENCES public.learning_classes(id),
+  CONSTRAINT fk_class_course_course FOREIGN KEY (course_id) REFERENCES public.courses(id),
+  CONSTRAINT fk_class_course_added_by FOREIGN KEY (added_by) REFERENCES public.users(id)
+);
+CREATE TABLE public.class_grade_mappings (
+  id uuid NOT NULL,
+  component_code character varying NOT NULL,
+  created_at timestamp with time zone,
+  custom_label character varying,
+  retake_policy character varying NOT NULL CHECK (retake_policy::text = ANY (ARRAY['HIGHEST'::character varying, 'LATEST'::character varying, 'AVERAGE'::character varying, 'FIRST'::character varying]::text[])),
+  source_id uuid,
+  source_type character varying NOT NULL CHECK (source_type::text = ANY (ARRAY['QUIZ'::character varying, 'ASSIGNMENT'::character varying, 'MANUAL'::character varying]::text[])),
+  updated_at timestamp with time zone,
+  class_id uuid NOT NULL,
+  CONSTRAINT class_grade_mappings_pkey PRIMARY KEY (id),
+  CONSTRAINT fk2a8cpieius7nn0h7iq19l4i7t FOREIGN KEY (class_id) REFERENCES public.learning_classes(id)
+);
+CREATE TABLE public.component_grades (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  class_id uuid NOT NULL,
+  student_id uuid NOT NULL,
+  component_code character varying NOT NULL,
+  score numeric CHECK (score >= 0::numeric AND score <= 100::numeric),
+  is_auto_calculated boolean DEFAULT false,
+  source_attempt_id uuid,
+  notes text,
+  graded_by uuid,
+  graded_at timestamp with time zone,
+  created_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT component_grades_pkey PRIMARY KEY (id),
+  CONSTRAINT component_grades_class_fk FOREIGN KEY (class_id) REFERENCES public.learning_classes(id),
+  CONSTRAINT component_grades_student_fk FOREIGN KEY (student_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.conversations (
+  is_archived_by_student boolean,
+  is_archived_by_teacher boolean,
+  created_at timestamp without time zone NOT NULL,
+  updated_at timestamp without time zone NOT NULL,
+  id uuid NOT NULL,
+  student_id uuid NOT NULL,
+  teacher_id uuid NOT NULL,
+  is_archived_1 boolean,
+  is_archived_2 boolean,
+  last_message_at timestamp with time zone,
+  last_message_preview character varying,
+  participant1_id uuid NOT NULL,
+  participant2_id uuid NOT NULL,
+  unread_count_1 integer,
+  unread_count_2 integer,
+  CONSTRAINT conversations_pkey PRIMARY KEY (id),
+  CONSTRAINT fk3tsdw1joa61a2a7cbrxq9w8g6 FOREIGN KEY (student_id) REFERENCES public.users(id),
+  CONSTRAINT fksdpomrb682083db7mf919xmb1 FOREIGN KEY (teacher_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.course_authoring (
+  category_id integer,
+  price numeric,
+  created_at timestamp with time zone,
+  updated_at timestamp with time zone,
+  id uuid NOT NULL,
+  owner_id uuid NOT NULL,
+  prerequisite_course_id uuid,
+  code character varying NOT NULL UNIQUE,
+  description text,
+  price_type character varying CHECK (price_type::text = ANY (ARRAY['FREE'::character varying, 'PAID'::character varying]::text[])),
+  slug character varying UNIQUE,
+  status character varying NOT NULL CHECK (status::text = ANY (ARRAY['DRAFT'::character varying, 'PUBLISHED'::character varying, 'ARCHIVED'::character varying]::text[])),
+  thumbnail_url character varying,
+  title character varying NOT NULL,
+  unlock_mode character varying CHECK (unlock_mode::text = ANY (ARRAY['OPEN_ALL'::character varying, 'SEQUENTIAL'::character varying]::text[])),
+  CONSTRAINT course_authoring_pkey PRIMARY KEY (id),
+  CONSTRAINT fk2l3tbcn3eyt590p1fua18e0ud FOREIGN KEY (owner_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.course_enrollments (
+  course_id uuid NOT NULL,
+  student_id uuid NOT NULL,
+  CONSTRAINT course_enrollments_pkey PRIMARY KEY (course_id, student_id),
+  CONSTRAINT fkf78cq7ecdpk1clt1w5ofnb34t FOREIGN KEY (course_id) REFERENCES public.courses(id),
+  CONSTRAINT fkn0fy1fut1f7j4kxwxfl925qnd FOREIGN KEY (student_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.course_grading_schemas (
+  id uuid NOT NULL,
+  components jsonb,
+  created_at timestamp with time zone,
+  formula_type character varying NOT NULL CHECK (formula_type::text = ANY (ARRAY['WEIGHTED_AVERAGE'::character varying, 'MINIMUM_PASS'::character varying, 'CUSTOM'::character varying]::text[])),
+  is_active boolean NOT NULL,
+  passing_score integer NOT NULL,
+  updated_at timestamp with time zone,
+  x_weight integer NOT NULL,
+  y_weight integer NOT NULL,
+  course_id uuid NOT NULL UNIQUE,
+  created_by uuid,
+  CONSTRAINT course_grading_schemas_pkey PRIMARY KEY (id),
+  CONSTRAINT fk8luncl09rursm875aakm9s2xd FOREIGN KEY (course_id) REFERENCES public.courses(id),
+  CONSTRAINT fkeaa7p0oo6tjn2on9yrv5kp4w0 FOREIGN KEY (created_by) REFERENCES public.users(id)
+);
+CREATE TABLE public.course_instructors (
+  id uuid NOT NULL,
+  accepted_at timestamp with time zone,
+  can_grade_assignments boolean,
+  can_manage boolean,
+  can_view_performance boolean,
+  created_at timestamp with time zone,
+  invited_at timestamp with time zone,
+  is_visible boolean,
+  revenue_share_percent integer,
+  role character varying NOT NULL CHECK (role::text = ANY (ARRAY['OWNER'::character varying, 'CO_INSTRUCTOR'::character varying]::text[])),
+  status character varying NOT NULL CHECK (status::text = ANY (ARRAY['PENDING'::character varying, 'ACCEPTED'::character varying, 'REJECTED'::character varying, 'REMOVED'::character varying]::text[])),
+  updated_at timestamp with time zone,
+  course_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  CONSTRAINT course_instructors_pkey PRIMARY KEY (id),
+  CONSTRAINT fk4mm05mmoa7y2u3obtjdk45psb FOREIGN KEY (course_id) REFERENCES public.courses(id),
+  CONSTRAINT fkqm3p9p1tvr1idiet8tg1q726x FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.course_tags (
+  course_id uuid NOT NULL,
+  tag_name character varying,
+  CONSTRAINT fkjqwlxw962j7q9wdogwnrctc2p FOREIGN KEY (course_id) REFERENCES public.courses(id)
+);
+CREATE TABLE public.course_teaching_staff (
+  course_id uuid NOT NULL,
+  staff_id uuid,
+  CONSTRAINT fko8jkaou0h2p1xq3abs00qyova FOREIGN KEY (course_id) REFERENCES public.courses(id)
+);
+CREATE TABLE public.course_versions (
+  version_number integer NOT NULL,
+  published_at timestamp with time zone,
+  course_id uuid NOT NULL,
+  id uuid NOT NULL,
+  snapshot_content jsonb NOT NULL,
+  course_title character varying,
+  CONSTRAINT course_versions_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.courses (
+  credits integer,
+  price numeric,
+  sale_price numeric,
+  created_at timestamp with time zone NOT NULL,
+  reviewed_at timestamp with time zone,
+  updated_at timestamp with time zone,
+  category_id uuid,
+  id uuid NOT NULL,
+  instructor_id uuid,
+  reviewed_by_id uuid,
+  teacher_id uuid NOT NULL,
+  code character varying NOT NULL UNIQUE,
+  description text,
+  intro_video_url character varying,
+  price_type character varying CHECK (price_type::text = ANY (ARRAY['FREE'::character varying, 'PAID'::character varying]::text[])),
+  review_comment text,
+  status character varying NOT NULL,
+  title character varying NOT NULL,
+  visibility character varying CHECK (visibility::text = ANY (ARRAY['PUBLIC'::character varying, 'PRIVATE'::character varying]::text[])),
+  benefits text,
+  course_information text,
+  welcome_message text,
+  thumbnail_url character varying,
+  prerequisite_course_id uuid,
+  slug character varying UNIQUE,
+  unlock_mode character varying CHECK (unlock_mode::text = ANY (ARRAY['OPEN_ALL'::character varying, 'SEQUENTIAL'::character varying]::text[])),
+  CONSTRAINT courses_pkey PRIMARY KEY (id),
+  CONSTRAINT fk72l5dj585nq7i6xxv1vj51lyn FOREIGN KEY (category_id) REFERENCES public.categories(id),
+  CONSTRAINT fkqh08pyb212a17f3395pmnpfa9 FOREIGN KEY (reviewed_by_id) REFERENCES public.users(id),
+  CONSTRAINT fkt4ba5fab1x56tmt4nsypv5lm5 FOREIGN KEY (teacher_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.enrollments (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  student_id uuid NOT NULL,
+  class_id uuid NOT NULL,
+  status character varying DEFAULT 'ACTIVE'::character varying,
+  progress jsonb,
+  completion_percent integer DEFAULT 0,
+  completed_at timestamp without time zone,
+  enrolled_at timestamp without time zone DEFAULT now(),
+  joined_at timestamp without time zone,
+  last_accessed_at timestamp without time zone,
+  is_paid boolean DEFAULT false,
+  paid_at timestamp without time zone,
+  payment_id uuid,
+  CONSTRAINT enrollments_pkey PRIMARY KEY (id),
+  CONSTRAINT fk_enrollment_student FOREIGN KEY (student_id) REFERENCES public.users(id),
+  CONSTRAINT fk_enrollment_class FOREIGN KEY (class_id) REFERENCES public.learning_classes(id)
+);
+CREATE TABLE public.enrollments_v3 (
+  id uuid NOT NULL,
+  class_id uuid,
+  status character varying CHECK (status::text = ANY (ARRAY['ACTIVE'::character varying, 'COMPLETED'::character varying, 'DROPPED'::character varying, 'EXPIRED'::character varying]::text[])),
+  student_id uuid,
+  CONSTRAINT enrollments_v3_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.file_attachments (
+  id uuid NOT NULL,
+  content_type character varying NOT NULL,
+  deleted_at timestamp with time zone,
+  entity_id uuid,
+  entity_type character varying,
+  file_category character varying NOT NULL CHECK (file_category::text = ANY (ARRAY['DOCUMENT'::character varying, 'IMAGE'::character varying, 'VIDEO'::character varying, 'AUDIO'::character varying, 'ARCHIVE'::character varying, 'OTHER'::character varying]::text[])),
+  file_size bigint NOT NULL,
+  original_filename character varying NOT NULL,
+  status character varying NOT NULL CHECK (status::text = ANY (ARRAY['UPLOADING'::text, 'AVAILABLE'::text, 'DELETED'::text, 'TEMP'::text])),
+  storage_path character varying NOT NULL,
+  stored_filename character varying NOT NULL UNIQUE,
+  updated_at timestamp with time zone,
+  uploaded_at timestamp with time zone NOT NULL,
+  uploaded_by uuid NOT NULL,
+  CONSTRAINT file_attachments_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.final_grades (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  class_id uuid NOT NULL,
+  student_id uuid NOT NULL,
+  x_score numeric CHECK (x_score >= 0::numeric AND x_score <= 100::numeric),
+  y_score numeric CHECK (y_score >= 0::numeric AND y_score <= 100::numeric),
+  z_score numeric CHECK (z_score >= 0::numeric AND z_score <= 100::numeric),
+  letter_grade character varying,
+  gpa numeric CHECK (gpa >= 0::numeric AND gpa <= 4.0),
+  is_passed boolean,
+  is_locked boolean DEFAULT false,
+  locked_by uuid,
+  locked_at timestamp with time zone,
+  calculation_metadata jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT final_grades_pkey PRIMARY KEY (id),
+  CONSTRAINT final_grades_class_fk FOREIGN KEY (class_id) REFERENCES public.learning_classes(id),
+  CONSTRAINT final_grades_student_fk FOREIGN KEY (student_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.flyway_schema_history (
+  installed_rank integer NOT NULL,
+  version character varying,
+  description character varying NOT NULL,
+  type character varying NOT NULL,
+  script character varying NOT NULL,
+  checksum integer,
+  installed_by character varying NOT NULL,
+  installed_on timestamp without time zone NOT NULL DEFAULT now(),
+  execution_time integer NOT NULL,
+  success boolean NOT NULL,
+  CONSTRAINT flyway_schema_history_pkey PRIMARY KEY (installed_rank)
+);
+CREATE TABLE public.grade_audit_log (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  entity_type character varying NOT NULL,
+  entity_id uuid NOT NULL,
+  action character varying NOT NULL,
+  user_id uuid,
+  occurred_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  old_value jsonb,
+  new_value jsonb,
+  metadata jsonb,
+  CONSTRAINT grade_audit_log_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.grade_configs (
+  id uuid NOT NULL,
+  components jsonb,
+  created_at timestamp with time zone,
+  formula_type character varying NOT NULL CHECK (formula_type::text = ANY (ARRAY['WEIGHTED_AVERAGE'::character varying, 'MINIMUM_PASS'::character varying, 'CUSTOM'::character varying]::text[])),
+  is_locked boolean NOT NULL,
+  locked_at timestamp with time zone,
+  updated_at timestamp with time zone,
+  x_weight numeric NOT NULL,
+  y_weight numeric NOT NULL,
+  created_by uuid,
+  class_id uuid NOT NULL UNIQUE,
+  locked_by uuid,
+  CONSTRAINT grade_configs_pkey PRIMARY KEY (id),
+  CONSTRAINT fkswtlv1rndanenoh16ra4upg95 FOREIGN KEY (created_by) REFERENCES public.users(id),
+  CONSTRAINT fkskpu2d55c4wll0qdi0tcmw1o9 FOREIGN KEY (class_id) REFERENCES public.learning_classes(id),
+  CONSTRAINT fk49c8egbcltn1jdrvpf132obon FOREIGN KEY (locked_by) REFERENCES public.users(id)
+);
+CREATE TABLE public.grade_items (
+  id uuid NOT NULL,
+  component_name character varying NOT NULL,
+  created_at timestamp with time zone,
+  display_order integer NOT NULL,
+  label character varying,
+  max_score numeric NOT NULL,
+  retake_policy character varying NOT NULL CHECK (retake_policy::text = ANY (ARRAY['HIGHEST'::character varying, 'LATEST'::character varying, 'AVERAGE'::character varying, 'FIRST'::character varying]::text[])),
+  source_id uuid,
+  source_type character varying NOT NULL CHECK (source_type::text = ANY (ARRAY['QUIZ'::character varying, 'ASSIGNMENT'::character varying, 'MANUAL'::character varying]::text[])),
+  updated_at timestamp with time zone,
+  grade_config_id uuid NOT NULL,
+  CONSTRAINT grade_items_pkey PRIMARY KEY (id),
+  CONSTRAINT fkae2xkxa3rjurh436jt8bri934 FOREIGN KEY (grade_config_id) REFERENCES public.grade_configs(id)
+);
+CREATE TABLE public.grade_mappings (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  class_id uuid NOT NULL,
+  component_code character varying NOT NULL,
+  source_type character varying NOT NULL CHECK (source_type::text = ANY (ARRAY['QUIZ'::character varying, 'ASSIGNMENT'::character varying, 'MANUAL'::character varying, 'EXTERNAL'::character varying]::text[])),
+  source_id uuid,
+  custom_label character varying,
+  retake_policy character varying NOT NULL DEFAULT 'HIGHEST'::character varying CHECK (retake_policy::text = ANY (ARRAY['HIGHEST'::character varying, 'LATEST'::character varying, 'AVERAGE'::character varying, 'FIRST'::character varying]::text[])),
+  created_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT grade_mappings_pkey PRIMARY KEY (id),
+  CONSTRAINT grade_mappings_class_fk FOREIGN KEY (class_id) REFERENCES public.learning_classes(id)
+);
+CREATE TABLE public.grading_schemas (
+  id uuid NOT NULL,
+  components jsonb,
+  course_id uuid NOT NULL UNIQUE,
+  created_at timestamp with time zone,
+  created_by uuid,
+  formula_type character varying NOT NULL CHECK (formula_type::text = ANY (ARRAY['WEIGHTED_AVERAGE'::character varying, 'MINIMUM_PASS'::character varying, 'CUSTOM'::character varying]::text[])),
+  is_active boolean NOT NULL,
+  is_published boolean,
+  passing_score integer NOT NULL,
+  published_at timestamp with time zone,
+  updated_at timestamp with time zone,
+  version integer,
+  x_weight integer NOT NULL,
+  y_weight integer NOT NULL,
+  CONSTRAINT grading_schemas_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.learning_classes (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  teacher_id uuid,
+  name character varying NOT NULL,
+  code character varying UNIQUE,
+  description text,
+  schedule_type character varying DEFAULT 'CUSTOM'::character varying,
+  semester character varying,
+  max_students integer DEFAULT 9999,
+  status character varying DEFAULT 'OPEN'::character varying,
+  start_date timestamp without time zone,
+  end_date timestamp without time zone,
+  created_at timestamp without time zone DEFAULT now(),
+  updated_at timestamp without time zone,
+  course_version_id uuid,
+  course_id uuid,
+  CONSTRAINT learning_classes_pkey PRIMARY KEY (id),
+  CONSTRAINT fk_class_teacher FOREIGN KEY (teacher_id) REFERENCES public.users(id),
+  CONSTRAINT fk_class_course FOREIGN KEY (course_id) REFERENCES public.courses(id)
+);
+CREATE TABLE public.learning_classes_v3 (
+  id uuid NOT NULL,
+  code character varying,
+  course_id uuid,
+  end_date timestamp with time zone,
+  max_students integer,
+  name character varying,
+  start_date timestamp with time zone,
+  teacher_id uuid,
+  CONSTRAINT learning_classes_v3_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.learning_enrollments (
+  completion_percent integer,
+  completed_at timestamp with time zone,
+  joined_at timestamp with time zone,
+  last_accessed_at timestamp with time zone,
+  class_id uuid NOT NULL,
+  id uuid NOT NULL,
+  student_id uuid NOT NULL,
+  status character varying NOT NULL CHECK (status::text = ANY (ARRAY['ACTIVE'::character varying, 'COMPLETED'::character varying, 'DROPPED'::character varying, 'EXPIRED'::character varying]::text[])),
+  progress jsonb,
+  CONSTRAINT learning_enrollments_pkey PRIMARY KEY (id),
+  CONSTRAINT fkrp06lto29pf7cv04fa1qrnx91 FOREIGN KEY (student_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.lesson_assignments (
+  created_at timestamp with time zone,
+  assignment_id uuid NOT NULL UNIQUE,
+  id uuid NOT NULL,
+  lesson_id uuid NOT NULL UNIQUE,
+  order_index integer,
+  CONSTRAINT lesson_assignments_pkey PRIMARY KEY (id),
+  CONSTRAINT fk5tatp9xmwijwghshjo219kcdf FOREIGN KEY (assignment_id) REFERENCES public.assignments(id),
+  CONSTRAINT fk1a19fjp7q98hu9kqxxshhrtqq FOREIGN KEY (lesson_id) REFERENCES public.lessons(id)
+);
+CREATE TABLE public.lesson_attachments (
+  display_order integer NOT NULL,
+  file_size bigint NOT NULL,
+  uploaded_at timestamp with time zone NOT NULL,
+  id uuid NOT NULL,
+  lesson_id uuid NOT NULL,
+  uploaded_by uuid,
+  content_type character varying NOT NULL,
+  file_name character varying NOT NULL,
+  file_type character varying NOT NULL,
+  file_url character varying NOT NULL,
+  original_file_name character varying NOT NULL,
+  CONSTRAINT lesson_attachments_pkey PRIMARY KEY (id),
+  CONSTRAINT fkctiu5v5toy8st6t8pe9fbe0g1 FOREIGN KEY (lesson_id) REFERENCES public.lessons(id),
+  CONSTRAINT fk9udogpycviucinrxtaytofk8c FOREIGN KEY (uploaded_by) REFERENCES public.users(id)
+);
+CREATE TABLE public.lesson_authoring (
+  duration_seconds integer,
+  is_required boolean,
+  min_quiz_score integer,
+  min_watch_percent integer,
+  order_index integer,
+  created_at timestamp with time zone,
+  chapter_id uuid NOT NULL,
+  id uuid NOT NULL,
+  content_html text,
+  content_url text,
+  title character varying NOT NULL,
+  type character varying NOT NULL CHECK (type::text = ANY (ARRAY['VIDEO'::character varying, 'QUIZ'::character varying, 'ASSIGNMENT'::character varying, 'TEXT'::character varying]::text[])),
+  CONSTRAINT lesson_authoring_pkey PRIMARY KEY (id),
+  CONSTRAINT fkssap83wnoj6kv4c0aonpdkgfv FOREIGN KEY (chapter_id) REFERENCES public.chapter_authoring(id)
+);
+CREATE TABLE public.lessons (
+  order_index integer NOT NULL,
+  created_at timestamp with time zone NOT NULL,
+  updated_at timestamp with time zone,
+  chapter_id uuid NOT NULL,
+  id uuid NOT NULL,
+  description text,
+  lesson_type character varying,
+  title character varying NOT NULL,
+  content text,
+  duration_minutes integer,
+  video_url character varying,
+  is_preview boolean,
+  is_required boolean,
+  is_free boolean,
+  content_blocks jsonb,
+  CONSTRAINT lessons_pkey PRIMARY KEY (id),
+  CONSTRAINT fkmb78vk1f2oljr16oj1hpo45ma FOREIGN KEY (chapter_id) REFERENCES public.chapters(id)
+);
+CREATE TABLE public.messages (
+  is_read boolean,
+  created_at timestamp without time zone NOT NULL,
+  assignment_id uuid,
+  conversation_id uuid NOT NULL,
+  id uuid NOT NULL,
+  sender_id uuid NOT NULL,
+  content text NOT NULL,
+  read_at timestamp with time zone,
+  sent_at timestamp with time zone,
+  CONSTRAINT messages_pkey PRIMARY KEY (id),
+  CONSTRAINT fks613ww45x2okimjbvkc3f4402 FOREIGN KEY (assignment_id) REFERENCES public.assignments(id),
+  CONSTRAINT fkt492th6wsovh1nush5yl5jj8e FOREIGN KEY (conversation_id) REFERENCES public.conversations(id),
+  CONSTRAINT fk4ui4nnwntodh6wjvck53dbk9m FOREIGN KEY (sender_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.outbox_messages (
+  id uuid NOT NULL,
+  aggregate_id uuid NOT NULL,
+  aggregate_type character varying NOT NULL,
+  attempts integer,
+  created_at timestamp with time zone,
+  event_type character varying NOT NULL,
+  last_error text,
+  next_attempt_at timestamp with time zone,
+  payload jsonb NOT NULL,
+  processed_at timestamp with time zone,
+  status character varying CHECK (status::text = ANY (ARRAY['PENDING'::character varying, 'PROCESSING'::character varying, 'SENT'::character varying, 'FAILED'::character varying, 'DLQ'::character varying]::text[])),
+  CONSTRAINT outbox_messages_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.packages (
+  capacity integer,
+  created_at timestamp with time zone NOT NULL,
+  updated_at timestamp with time zone NOT NULL,
+  id uuid NOT NULL,
+  owner_id uuid NOT NULL,
+  visibility character varying NOT NULL CHECK (visibility::text = ANY (ARRAY['PUBLIC'::character varying, 'PRIVATE'::character varying]::text[])),
+  subject character varying,
+  description text,
+  name character varying NOT NULL,
+  duration_days integer,
+  is_active boolean,
+  price numeric,
+  CONSTRAINT packages_pkey PRIMARY KEY (id),
+  CONSTRAINT fk4lg5q2gvdbvhh596rqk87gk1l FOREIGN KEY (owner_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.payment_methods_config (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  method_code character varying NOT NULL UNIQUE,
+  display_name character varying NOT NULL,
+  description text,
+  logo_url text,
+  is_enabled boolean DEFAULT true,
+  is_sandbox boolean DEFAULT false,
+  config_json jsonb,
+  min_amount numeric DEFAULT 10000,
+  max_amount numeric DEFAULT 500000000,
+  sort_order integer DEFAULT 0,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT payment_methods_config_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.payment_refunds (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  payment_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  processed_by uuid,
+  amount numeric NOT NULL,
+  reason text NOT NULL,
+  refund_type character varying DEFAULT 'FULL'::character varying,
+  status character varying DEFAULT 'PENDING'::character varying,
+  rejection_reason text,
+  gateway_refund_id character varying,
+  gateway_response jsonb,
+  requested_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  processed_at timestamp without time zone,
+  completed_at timestamp without time zone,
+  metadata jsonb,
+  CONSTRAINT payment_refunds_pkey PRIMARY KEY (id),
+  CONSTRAINT fk_refund_payment FOREIGN KEY (payment_id) REFERENCES public.payments(id),
+  CONSTRAINT fk_refund_user FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT fk_refund_processor FOREIGN KEY (processed_by) REFERENCES public.users(id)
+);
+CREATE TABLE public.payments (
+  id uuid NOT NULL,
+  amount numeric NOT NULL,
+  created_at timestamp with time zone,
+  notes character varying,
+  paid_at timestamp with time zone,
+  payment_method character varying,
+  status character varying NOT NULL CHECK (status::text = ANY (ARRAY['PENDING'::character varying::text, 'COMPLETED'::character varying::text, 'FAILED'::character varying::text, 'REFUNDED'::character varying::text])),
+  transaction_id character varying,
+  course_id uuid NOT NULL,
+  student_id uuid NOT NULL,
+  enrollment_id uuid,
+  original_amount numeric,
+  currency character varying DEFAULT 'VND'::character varying,
+  gateway_transaction_id character varying,
+  gateway_order_id character varying,
+  gateway_response jsonb,
+  status_reason text,
+  expires_at timestamp without time zone,
+  ip_address character varying,
+  user_agent text,
+  metadata jsonb,
+  CONSTRAINT payments_pkey PRIMARY KEY (id),
+  CONSTRAINT fk8nlm4urshp5drsk0nlkprig36 FOREIGN KEY (course_id) REFERENCES public.courses(id),
+  CONSTRAINT fkdn7tvyxt0pb47kudo6f97jauk FOREIGN KEY (student_id) REFERENCES public.users(id),
+  CONSTRAINT fklygmnscikfnsu084rpdat2jo5 FOREIGN KEY (enrollment_id) REFERENCES public.enrollments(id)
+);
+CREATE TABLE public.question_options (
+  display_order integer NOT NULL,
+  option_key character varying NOT NULL,
+  id uuid NOT NULL,
+  question_id uuid NOT NULL,
+  content jsonb NOT NULL,
+  order_index integer,
+  content_blocks jsonb,
+  is_correct boolean,
+  CONSTRAINT question_options_pkey PRIMARY KEY (id),
+  CONSTRAINT fksb9v00wdrgc9qojtjkv7e1gkp FOREIGN KEY (question_id) REFERENCES public.questions(id)
+);
+CREATE TABLE public.questions (
+  correct_rate numeric,
+  usage_count integer NOT NULL,
+  created_at timestamp with time zone NOT NULL,
+  updated_at timestamp with time zone,
+  course_id uuid,
+  created_by uuid NOT NULL,
+  id uuid NOT NULL,
+  package_id uuid,
+  content text,
+  correct_option character varying NOT NULL,
+  difficulty character varying NOT NULL CHECK (difficulty::text = ANY (ARRAY['EASY'::character varying, 'MEDIUM'::character varying, 'HARD'::character varying]::text[])),
+  status character varying NOT NULL CHECK (status::text = ANY (ARRAY['DRAFT'::character varying, 'ACTIVE'::character varying, 'INACTIVE'::character varying]::text[])),
+  tags text,
+  content_blocks jsonb,
+  CONSTRAINT questions_pkey PRIMARY KEY (id),
+  CONSTRAINT fk6y78pbrt5dxp12ljsa8r1ey82 FOREIGN KEY (course_id) REFERENCES public.courses(id),
+  CONSTRAINT fkmiy2i24hb8838iqkm2kunw286 FOREIGN KEY (created_by) REFERENCES public.users(id),
+  CONSTRAINT fke7og4n49t9oc5dkqd9bgtfof6 FOREIGN KEY (package_id) REFERENCES public.packages(id)
+);
+CREATE TABLE public.quiz_assignments (
+  assigned_at timestamp with time zone NOT NULL,
+  completed_at timestamp with time zone,
+  created_at timestamp with time zone NOT NULL,
+  due_date timestamp with time zone,
+  updated_at timestamp with time zone,
+  assigned_by uuid NOT NULL,
+  id uuid NOT NULL,
+  quiz_id uuid NOT NULL,
+  student_id uuid NOT NULL,
+  status character varying NOT NULL CHECK (status::text = ANY (ARRAY['ASSIGNED'::character varying, 'IN_PROGRESS'::character varying, 'COMPLETED'::character varying, 'OVERDUE'::character varying]::text[])),
+  class_id uuid,
+  course_id uuid,
+  is_active boolean,
+  CONSTRAINT quiz_assignments_pkey PRIMARY KEY (id),
+  CONSTRAINT fkeqq2w7aq7p99p5ggxxwfq8em4 FOREIGN KEY (assigned_by) REFERENCES public.users(id),
+  CONSTRAINT fkn0a1ujwg431xx2hkjtwlhwv30 FOREIGN KEY (quiz_id) REFERENCES public.quizzes(id),
+  CONSTRAINT fk68f40yvcxki8icp1d1n7ux5cg FOREIGN KEY (student_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.quiz_attempt_items (
+  is_correct boolean,
+  time_spent_seconds bigint,
+  attempt_id uuid NOT NULL,
+  id uuid NOT NULL,
+  question_id uuid NOT NULL,
+  selected_option character varying,
+  CONSTRAINT quiz_attempt_items_pkey PRIMARY KEY (id),
+  CONSTRAINT fkei1vqpksyi0c3pqbn7a543j3r FOREIGN KEY (attempt_id) REFERENCES public.quiz_attempts(id),
+  CONSTRAINT fkdb2fpyq53p0arsc0paq3g5m35 FOREIGN KEY (question_id) REFERENCES public.questions(id)
+);
+CREATE TABLE public.quiz_attempts (
+  correct_answers integer NOT NULL,
+  is_passed boolean,
+  score double precision,
+  total_questions integer NOT NULL,
+  created_at timestamp with time zone NOT NULL,
+  end_time timestamp with time zone,
+  start_time timestamp with time zone NOT NULL,
+  time_spent_seconds bigint,
+  updated_at timestamp with time zone,
+  assignment_id uuid,
+  id uuid NOT NULL,
+  quiz_id uuid NOT NULL,
+  student_id uuid NOT NULL,
+  option_orders text,
+  question_order text,
+  status character varying NOT NULL CHECK (status::text = ANY (ARRAY['IN_PROGRESS'::character varying, 'SUBMITTED'::character varying, 'EXPIRED'::character varying]::text[])),
+  answers jsonb,
+  max_score double precision,
+  started_at timestamp with time zone,
+  submitted_at timestamp with time zone,
+  passed boolean NOT NULL,
+  CONSTRAINT quiz_attempts_pkey PRIMARY KEY (id),
+  CONSTRAINT fk4pvwpu3tyog8q36voisijsrji FOREIGN KEY (assignment_id) REFERENCES public.quiz_assignments(id),
+  CONSTRAINT fkfwipvfipnnwsoacoyv5k7fbxc FOREIGN KEY (quiz_id) REFERENCES public.quizzes(id),
+  CONSTRAINT fkl6lkk2u7vw7q7kw3udhupe7ut FOREIGN KEY (student_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.quiz_questions (
+  display_order integer NOT NULL,
+  created_at timestamp with time zone NOT NULL,
+  id uuid NOT NULL,
+  question_id uuid NOT NULL,
+  quiz_id uuid NOT NULL,
+  correct_answer character varying,
+  explanation text,
+  options jsonb,
+  order_index integer,
+  points integer,
+  question text NOT NULL,
+  type character varying NOT NULL CHECK (type::text = ANY (ARRAY['SINGLE_CHOICE'::character varying, 'MULTIPLE_CHOICE'::character varying, 'TRUE_FALSE'::character varying, 'SHORT_ANSWER'::character varying, 'ESSAY'::character varying]::text[])),
+  content_blocks text,
+  CONSTRAINT quiz_questions_pkey PRIMARY KEY (id),
+  CONSTRAINT fkev41c723fx659v28pjycox15o FOREIGN KEY (question_id) REFERENCES public.questions(id),
+  CONSTRAINT fkanfmgf6ksbdnv7ojb0pfve54q FOREIGN KEY (quiz_id) REFERENCES public.quizzes(id)
+);
+CREATE TABLE public.quizzes (
+  max_attempts integer NOT NULL,
+  passing_score integer NOT NULL,
+  random_count integer,
+  show_correct_answers boolean NOT NULL,
+  show_results_immediately boolean NOT NULL,
+  shuffle_options boolean NOT NULL,
+  shuffle_questions boolean NOT NULL,
+  time_limit_minutes integer,
+  created_at timestamp with time zone NOT NULL,
+  end_date timestamp with time zone,
+  published_at timestamp with time zone,
+  start_date timestamp with time zone,
+  updated_at timestamp with time zone,
+  course_id uuid,
+  created_by uuid NOT NULL,
+  id uuid NOT NULL,
+  section_id uuid UNIQUE,
+  description text,
+  question_ids text,
+  random_difficulties text,
+  random_tags text,
+  title character varying,
+  type character varying NOT NULL CHECK (type::text = ANY (ARRAY['LESSON_QUIZ'::character varying, 'ASSIGNMENT'::character varying]::text[])),
+  lesson_id uuid UNIQUE,
+  status character varying NOT NULL CHECK (status::text = ANY (ARRAY['DRAFT'::character varying, 'PUBLISHED'::character varying, 'ARCHIVED'::character varying]::text[])),
+  class_id uuid,
+  CONSTRAINT quizzes_pkey PRIMARY KEY (id),
+  CONSTRAINT fkbdv8uggpsin6pnkx0d80ryqey FOREIGN KEY (lesson_id) REFERENCES public.lessons(id),
+  CONSTRAINT fkpxdnhxeppxx606nhyjtjyharp FOREIGN KEY (course_id) REFERENCES public.courses(id),
+  CONSTRAINT fk1qg4klxor82vbamctkjechwe2 FOREIGN KEY (created_by) REFERENCES public.users(id),
+  CONSTRAINT fk7wrdax7drghl2q6amls0dqaa2 FOREIGN KEY (section_id) REFERENCES public.sections(id),
+  CONSTRAINT fkhx95t61gpan3nbucvi2r9s9ov FOREIGN KEY (class_id) REFERENCES public.learning_classes(id)
+);
+CREATE TABLE public.refresh_tokens (
+  id uuid NOT NULL,
+  created_at timestamp with time zone,
+  device_info character varying,
+  expiry_date timestamp with time zone NOT NULL,
+  ip_address character varying,
+  replaced_by_token character varying,
+  revoked boolean NOT NULL,
+  token character varying NOT NULL UNIQUE,
+  user_id uuid NOT NULL,
+  CONSTRAINT refresh_tokens_pkey PRIMARY KEY (id),
+  CONSTRAINT fk1lih5y2npsf8u5o3vhdb9y0os FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.sections (
+  duration integer,
+  is_required boolean NOT NULL,
+  order_index integer NOT NULL,
+  created_at timestamp with time zone NOT NULL,
+  updated_at timestamp with time zone,
+  id uuid NOT NULL,
+  lesson_id uuid NOT NULL,
+  video_url character varying,
+  content text,
+  title character varying NOT NULL,
+  type character varying NOT NULL CHECK (type::text = ANY (ARRAY['VIDEO'::character varying, 'TEXT'::character varying, 'QUIZ'::character varying, 'FILE'::character varying, 'ASSIGNMENT'::character varying]::text[])),
+  description character varying,
+  file_url character varying,
+  duration_seconds integer,
+  cf_object_key character varying,
+  video_type character varying,
+  structured_content jsonb,
+  CONSTRAINT sections_pkey PRIMARY KEY (id),
+  CONSTRAINT fk7mvo4jrcex8ge4o4b9gvgy09r FOREIGN KEY (lesson_id) REFERENCES public.lessons(id)
+);
+CREATE TABLE public.stu_lesson_progress (
+  time_spent_minutes integer,
+  completed_at timestamp with time zone,
+  created_at timestamp with time zone NOT NULL,
+  started_at timestamp with time zone,
+  updated_at timestamp with time zone,
+  id uuid NOT NULL,
+  lesson_id uuid NOT NULL,
+  student_id uuid NOT NULL,
+  status character varying NOT NULL CHECK (status::text = ANY (ARRAY['NOT_STARTED'::character varying, 'IN_PROGRESS'::character varying, 'COMPLETED'::character varying]::text[])),
+  CONSTRAINT stu_lesson_progress_pkey PRIMARY KEY (id),
+  CONSTRAINT fkidk7vidukr53hnx0lo64efc17 FOREIGN KEY (lesson_id) REFERENCES public.lessons(id),
+  CONSTRAINT fkstyx0bg5mqmysbmpibxjb7y0y FOREIGN KEY (student_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.student_final_grades (
+  id uuid NOT NULL,
+  created_at timestamp with time zone,
+  is_locked boolean NOT NULL,
+  is_passed boolean,
+  letter_grade character varying,
+  locked_at timestamp with time zone,
+  teacher_notes text,
+  updated_at timestamp with time zone,
+  x_score numeric,
+  y_score numeric,
+  z_score numeric,
+  class_id uuid NOT NULL,
+  locked_by uuid,
+  student_id uuid NOT NULL,
+  CONSTRAINT student_final_grades_pkey PRIMARY KEY (id),
+  CONSTRAINT fkhggr40gs621838tomq8jihd29 FOREIGN KEY (class_id) REFERENCES public.learning_classes(id),
+  CONSTRAINT fk11uo0wsnvee7epno50u7y4mhl FOREIGN KEY (locked_by) REFERENCES public.users(id),
+  CONSTRAINT fknnaixow3e7r8gp1o0kqnsabgx FOREIGN KEY (student_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.student_grades (
+  id uuid NOT NULL,
+  created_at timestamp with time zone,
+  graded_at timestamp with time zone,
+  max_score numeric NOT NULL,
+  notes text,
+  percentage numeric,
+  score numeric,
+  updated_at timestamp with time zone,
+  grade_item_id uuid NOT NULL,
+  graded_by uuid,
+  student_id uuid NOT NULL,
+  component_code character varying NOT NULL,
+  is_auto_calculated boolean NOT NULL,
+  source_attempt_id uuid,
+  class_id uuid NOT NULL,
+  CONSTRAINT student_grades_pkey PRIMARY KEY (id),
+  CONSTRAINT fk25qef2w1oetqfj9ywef7pm3eu FOREIGN KEY (grade_item_id) REFERENCES public.grade_items(id),
+  CONSTRAINT fk3uj8ygsi5fqaqk5lj9dg01ono FOREIGN KEY (graded_by) REFERENCES public.users(id),
+  CONSTRAINT fk1e0w7034ps7cgc6boikuhvv3h FOREIGN KEY (student_id) REFERENCES public.users(id),
+  CONSTRAINT fke1s4myxcuydev4sn4ks111ud3 FOREIGN KEY (class_id) REFERENCES public.learning_classes(id)
+);
+CREATE TABLE public.student_lesson_progress (
+  id uuid NOT NULL,
+  completed_at timestamp with time zone,
+  completion_percent integer,
+  enrollment_id uuid,
+  last_accessed_at timestamp with time zone,
+  lesson_id uuid NOT NULL,
+  started_at timestamp with time zone,
+  status character varying NOT NULL CHECK (status::text = ANY (ARRAY['NOT_STARTED'::character varying, 'IN_PROGRESS'::character varying, 'COMPLETED'::character varying]::text[])),
+  student_id uuid NOT NULL,
+  watch_time_seconds integer,
+  CONSTRAINT student_lesson_progress_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.submissions (
+  score numeric,
+  graded_at timestamp with time zone,
+  submitted_at timestamp with time zone NOT NULL,
+  assignment_id uuid NOT NULL,
+  graded_by uuid,
+  id uuid NOT NULL,
+  student_id uuid NOT NULL,
+  file_url character varying,
+  content text NOT NULL,
+  feedback text,
+  CONSTRAINT submissions_pkey PRIMARY KEY (id),
+  CONSTRAINT fkrirbb44savy2g7nws0hoxs949 FOREIGN KEY (assignment_id) REFERENCES public.assignments(id),
+  CONSTRAINT fkmjfva3nkq8vlatkp2mk3678hh FOREIGN KEY (graded_by) REFERENCES public.users(id),
+  CONSTRAINT fk3p6y8mnhpwusdgqrdl4hcl72m FOREIGN KEY (student_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.teacher_payouts (
+  id uuid NOT NULL,
+  amount numeric NOT NULL,
+  approved_at timestamp with time zone,
+  completed_at timestamp with time zone,
+  notes character varying,
+  payout_method character varying NOT NULL CHECK (payout_method::text = ANY (ARRAY['BANK_TRANSFER'::character varying, 'PAYPAL'::character varying, 'MOMO'::character varying, 'ZALOPAY'::character varying, 'VNPAY'::character varying]::text[])),
+  rejection_reason character varying,
+  requested_at timestamp with time zone NOT NULL,
+  status character varying NOT NULL CHECK (status::text = ANY (ARRAY['REQUESTED'::character varying, 'APPROVED'::character varying, 'REJECTED'::character varying, 'PROCESSING'::character varying, 'COMPLETED'::character varying]::text[])),
+  approved_by uuid,
+  teacher_id uuid NOT NULL,
+  CONSTRAINT teacher_payouts_pkey PRIMARY KEY (id),
+  CONSTRAINT fkp60ke0po0m5yyi87voi909h9s FOREIGN KEY (approved_by) REFERENCES public.users(id),
+  CONSTRAINT fkc323p8mmdn4uhqckurq5m3gxu FOREIGN KEY (teacher_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.teacher_revenues (
+  id uuid NOT NULL,
+  available_at timestamp with time zone,
+  created_at timestamp with time zone,
+  gross_amount numeric NOT NULL,
+  net_amount numeric NOT NULL,
+  platform_fee numeric NOT NULL,
+  sale_type character varying NOT NULL CHECK (sale_type::text = ANY (ARRAY['REFERRAL'::character varying, 'ORGANIC'::character varying]::text[])),
+  status character varying NOT NULL CHECK (status::text = ANY (ARRAY['PENDING'::character varying, 'AVAILABLE'::character varying, 'PAID_OUT'::character varying]::text[])),
+  payment_id uuid NOT NULL UNIQUE,
+  teacher_id uuid NOT NULL,
+  CONSTRAINT teacher_revenues_pkey PRIMARY KEY (id),
+  CONSTRAINT fklqc2g61fr04v4x8c1p8amqoys FOREIGN KEY (payment_id) REFERENCES public.payments(id),
+  CONSTRAINT fkov6cm1tbjbsyhv63dabw0nuao FOREIGN KEY (teacher_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.users (
+  enabled boolean NOT NULL,
+  created_at timestamp with time zone NOT NULL,
+  updated_at timestamp with time zone,
+  id uuid NOT NULL,
+  username character varying NOT NULL UNIQUE,
+  email character varying NOT NULL UNIQUE,
+  full_name character varying NOT NULL,
+  password character varying NOT NULL,
+  role character varying NOT NULL,
+  account_status character varying CHECK (account_status::text = ANY (ARRAY['ACTIVE'::character varying, 'BLOCKED'::character varying, 'RESTRICTED'::character varying]::text[])),
+  status_reason character varying,
+  last_login timestamp with time zone,
+  login_count integer,
+  avatar text,
+  bio text,
+  is_enabled boolean,
+  phone_number character varying,
+  provider character varying CHECK (provider::text = ANY (ARRAY['LOCAL'::character varying, 'GOOGLE'::character varying, 'FACEBOOK'::character varying]::text[])),
+  provider_id character varying,
+  CONSTRAINT users_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.video_progress (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  section_id uuid NOT NULL,
+  video_url text NOT NULL,
+  current_position integer DEFAULT 0,
+  duration integer DEFAULT 0,
+  progress_percentage numeric DEFAULT 0.00 CHECK (progress_percentage >= 0::numeric AND progress_percentage <= 100::numeric),
+  completed boolean DEFAULT false,
+  first_watched_at timestamp without time zone,
+  last_watched_at timestamp without time zone,
+  completion_date timestamp without time zone,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  completed_at timestamp with time zone,
+  lesson_id uuid,
+  student_id uuid,
+  CONSTRAINT video_progress_pkey PRIMARY KEY (id),
+  CONSTRAINT fk_video_progress_user FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT fk_video_progress_section FOREIGN KEY (section_id) REFERENCES public.sections(id)
+);

@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
+import { Component, input, output, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 export interface PaginationInfo {
@@ -23,19 +23,19 @@ export interface PaginationInfo {
       <!-- Mobile view -->
       <div class="flex flex-1 justify-between sm:hidden">
         <button 
-          (click)="onPageChange(currentPage - 1)"
-          [disabled]="!hasPrevious"
-          [attr.aria-label]="'Trang trước, trang ' + (currentPage - 1)"
+          (click)="onPageChange(currentPage() - 1)"
+          [disabled]="!hasPrevious()"
+          [attr.aria-label]="'Trang trước, trang ' + (currentPage() - 1)"
           class="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
           Trước
         </button>
         <span class="text-sm text-gray-700">
-          Trang {{ currentPage }} / {{ totalPages }}
+          Trang {{ currentPage() }} / {{ totalPages() }}
         </span>
         <button 
-          (click)="onPageChange(currentPage + 1)"
-          [disabled]="!hasNext"
-          [attr.aria-label]="'Trang tiếp theo, trang ' + (currentPage + 1)"
+          (click)="onPageChange(currentPage() + 1)"
+          [disabled]="!hasNext()"
+          [attr.aria-label]="'Trang tiếp theo, trang ' + (currentPage() + 1)"
           class="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
           Tiếp
         </button>
@@ -50,7 +50,7 @@ export interface PaginationInfo {
             đến 
             <span class="font-medium">{{ getEndItem() }}</span>
             trong tổng số 
-            <span class="font-medium">{{ totalItems }}</span>
+            <span class="font-medium">{{ totalItems() }}</span>
             kết quả
           </p>
         </div>
@@ -59,9 +59,9 @@ export interface PaginationInfo {
           <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Phân trang">
             <!-- Previous button -->
             <button 
-              (click)="onPageChange(currentPage - 1)"
-              [disabled]="!hasPrevious"
-              [attr.aria-label]="'Trang trước, trang ' + (currentPage - 1)"
+              (click)="onPageChange(currentPage() - 1)"
+              [disabled]="!hasPrevious()"
+              [attr.aria-label]="'Trang trước, trang ' + (currentPage() - 1)"
               class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed">
               <span class="sr-only">Trang trước</span>
               <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -70,31 +70,32 @@ export interface PaginationInfo {
             </button>
 
             <!-- Page numbers -->
-            <ng-container *ngFor="let page of getVisiblePages(); trackBy: trackByPage">
-              <button 
-                *ngIf="page !== '...'"
-                (click)="onPageChange(+page)"
-                [attr.aria-label]="'Trang ' + page"
-                [attr.aria-current]="page === currentPage ? 'page' : null"
-                class="relative inline-flex items-center px-4 py-2 text-sm font-semibold ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
-                [ngClass]="{
-                  'bg-blue-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600': page === currentPage,
-                  'text-gray-900': page !== currentPage
-                }">
-                {{ page }}
-              </button>
-              <span 
-                *ngIf="page === '...'"
-                class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 focus:outline-offset-0">
-                ...
-              </span>
-            </ng-container>
+            @for (page of getVisiblePages(); track $index) {
+              @if (page !== '...') {
+                <button 
+                  (click)="onPageChange(+page)"
+                  [attr.aria-label]="'Trang ' + page"
+                  [attr.aria-current]="page === currentPage() ? 'page' : null"
+                  class="relative inline-flex items-center px-4 py-2 text-sm font-semibold ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
+                  [ngClass]="{
+                    'bg-blue-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600': page === currentPage(),
+                    'text-gray-900': page !== currentPage()
+                  }">
+                  {{ page }}
+                </button>
+              } @else {
+                <span 
+                  class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 focus:outline-offset-0">
+                  ...
+                </span>
+              }
+            }
 
             <!-- Next button -->
             <button 
-              (click)="onPageChange(currentPage + 1)"
-              [disabled]="!hasNext"
-              [attr.aria-label]="'Trang tiếp theo, trang ' + (currentPage + 1)"
+              (click)="onPageChange(currentPage() + 1)"
+              [disabled]="!hasNext()"
+              [attr.aria-label]="'Trang tiếp theo, trang ' + (currentPage() + 1)"
               class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed">
               <span class="sr-only">Trang tiếp theo</span>
               <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -108,34 +109,38 @@ export interface PaginationInfo {
   `
 })
 export class PaginationComponent {
-  @Input() currentPage = 1;
-  @Input() totalPages = 1;
-  @Input() totalItems = 0;
-  @Input() itemsPerPage = 12;
-  @Input() maxVisiblePages = 7;
+  // Signal inputs - Angular v20+
+  currentPage = input<number>(1);
+  totalPages = input<number>(1);
+  totalItems = input<number>(0);
+  itemsPerPage = input<number>(12);
+  maxVisiblePages = input<number>(7);
 
-  @Output() pageChange = new EventEmitter<number>();
+  // Signal output - Angular v20+
+  pageChange = output<number>();
 
-  get hasNext(): boolean {
-    return this.currentPage < this.totalPages;
+  hasNext(): boolean {
+    return this.currentPage() < this.totalPages();
   }
 
-  get hasPrevious(): boolean {
-    return this.currentPage > 1;
+  hasPrevious(): boolean {
+    return this.currentPage() > 1;
   }
 
   getStartItem(): number {
-    return (this.currentPage - 1) * this.itemsPerPage + 1;
+    return (this.currentPage() - 1) * this.itemsPerPage() + 1;
   }
 
   getEndItem(): number {
-    const end = this.currentPage * this.itemsPerPage;
-    return Math.min(end, this.totalItems);
+    const end = this.currentPage() * this.itemsPerPage();
+    return Math.min(end, this.totalItems());
   }
 
   getVisiblePages(): (number | string)[] {
     const pages: (number | string)[] = [];
-    const { currentPage, totalPages, maxVisiblePages } = this;
+    const currentPage = this.currentPage();
+    const totalPages = this.totalPages();
+    const maxVisiblePages = this.maxVisiblePages();
 
     if (totalPages <= maxVisiblePages) {
       // Show all pages if total is less than max visible
@@ -180,12 +185,8 @@ export class PaginationComponent {
   }
 
   onPageChange(page: number): void {
-    if (page >= 1 && page <= this.totalPages && page !== this.currentPage) {
+    if (page >= 1 && page <= this.totalPages() && page !== this.currentPage()) {
       this.pageChange.emit(page);
     }
-  }
-
-  trackByPage(index: number, page: number | string): number | string {
-    return page;
   }
 }

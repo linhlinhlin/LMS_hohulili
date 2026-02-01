@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, input, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 export interface TrendCard {
@@ -13,43 +13,47 @@ export interface TrendCard {
   standalone: true,
   imports: [CommonModule],
   template: `
-    <section class="py-16 bg-white" role="region" [attr.aria-label]="'Xu hướng ngành: ' + title">
+    <section class="py-16 bg-white" role="region" [attr.aria-label]="'Xu hướng ngành: ' + title()">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-12">
-          <h2 class="text-3xl font-bold text-gray-900 mb-4">{{ title }}</h2>
-          <p class="text-lg text-gray-600 max-w-3xl mx-auto" *ngIf="subtitle">{{ subtitle }}</p>
+          <h2 class="text-3xl font-bold text-gray-900 mb-4">{{ title() }}</h2>
+          @if (subtitle()) {
+            <p class="text-lg text-gray-600 max-w-3xl mx-auto">{{ subtitle() }}</p>
+          }
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8" role="list" aria-label="Danh sách xu hướng ngành">
-          <div class="rounded-2xl p-8" *ngFor="let card of cards; trackBy: trackByTitle" [ngClass]="containerBgClass" role="listitem" [attr.aria-label]="'Xu hướng: ' + card.title">
-            <div class="flex items-center space-x-3 mb-4">
-              <div class="w-12 h-12 rounded-lg flex items-center justify-center text-white text-xl" [ngClass]="iconBgClass" *ngIf="card.icon" aria-hidden="true">
-                <span>{{ card.icon }}</span>
+          @for (card of cards(); track card.title) {
+            <div class="rounded-2xl p-8" [ngClass]="containerBgClass()" role="listitem" [attr.aria-label]="'Xu hướng: ' + card.title">
+              <div class="flex items-center space-x-3 mb-4">
+                @if (card.icon) {
+                  <div class="w-12 h-12 rounded-lg flex items-center justify-center text-white text-xl" [ngClass]="iconBgClass()" aria-hidden="true">
+                    <span>{{ card.icon }}</span>
+                  </div>
+                }
+                <div>
+                  <h3 class="text-xl font-bold text-gray-900">{{ card.title }}</h3>
+                  @if (card.highlight) {
+                    <p class="font-medium" [ngClass]="accentTextClass()" [attr.aria-label]="'Điểm nổi bật: ' + card.highlight">{{ card.highlight }}</p>
+                  }
+                </div>
               </div>
-              <div>
-                <h3 class="text-xl font-bold text-gray-900">{{ card.title }}</h3>
-                <p class="font-medium" [ngClass]="accentTextClass" *ngIf="card.highlight" [attr.aria-label]="'Điểm nổi bật: ' + card.highlight">{{ card.highlight }}</p>
-              </div>
+              <p class="text-gray-600">{{ card.description }}</p>
             </div>
-            <p class="text-gray-600">{{ card.description }}</p>
-          </div>
+          }
         </div>
       </div>
     </section>
   `
 })
 export class CategoryTrendsComponent {
-  @Input() title = 'Xu hướng ngành';
-  @Input() subtitle?: string;
-  @Input() brandColor: 'blue' | 'green' | 'amber' | 'indigo' | 'rose' | 'cyan' = 'blue';
-  @Input() cards: TrendCard[] = [];
+  title = input('Xu hướng ngành');
+  subtitle = input<string | undefined>(undefined);
+  brandColor = input<'blue' | 'green' | 'amber' | 'indigo' | 'rose' | 'cyan'>('blue');
+  cards = input<TrendCard[]>([]);
 
-  trackByTitle(index: number, card: TrendCard): string {
-    return card.title;
-  }
-
-  get accentTextClass(): string {
-    switch (this.brandColor) {
+  accentTextClass = computed(() => {
+    switch (this.brandColor()) {
       case 'green': return 'text-green-600';
       case 'amber': return 'text-amber-700';
       case 'indigo': return 'text-indigo-700';
@@ -57,10 +61,10 @@ export class CategoryTrendsComponent {
       case 'cyan': return 'text-cyan-700';
       default: return 'text-blue-600';
     }
-  }
+  });
 
-  get iconBgClass(): string {
-    switch (this.brandColor) {
+  iconBgClass = computed(() => {
+    switch (this.brandColor()) {
       case 'green': return 'bg-green-500';
       case 'amber': return 'bg-amber-500';
       case 'indigo': return 'bg-indigo-500';
@@ -68,10 +72,10 @@ export class CategoryTrendsComponent {
       case 'cyan': return 'bg-cyan-500';
       default: return 'bg-blue-500';
     }
-  }
+  });
 
-  get containerBgClass(): string {
-    switch (this.brandColor) {
+  containerBgClass = computed(() => {
+    switch (this.brandColor()) {
       case 'green': return 'bg-gradient-to-br from-green-50 to-green-100';
       case 'amber': return 'bg-gradient-to-br from-amber-50 to-amber-100';
       case 'indigo': return 'bg-gradient-to-br from-indigo-50 to-indigo-100';
@@ -79,7 +83,7 @@ export class CategoryTrendsComponent {
       case 'cyan': return 'bg-gradient-to-br from-cyan-50 to-cyan-100';
       default: return 'bg-gradient-to-br from-blue-50 to-blue-100';
     }
-  }
+  });
 }
 
 

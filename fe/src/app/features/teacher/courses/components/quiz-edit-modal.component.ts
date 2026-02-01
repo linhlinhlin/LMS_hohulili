@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, signal, OnInit, inject } from '@angular/core';
+import { Component, input, output, signal, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { QuizApi } from '../../../../api/endpoints/quiz.api';
@@ -21,7 +21,8 @@ interface QuizSettings {
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   template: `
-    <div *ngIf="isOpen()" class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
+    @if (isOpen()) {
+    <div class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
       <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
         <!-- Backdrop -->
         <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" (click)="close()"></div>
@@ -48,16 +49,19 @@ interface QuizSettings {
           <!-- Body -->
           <div class="p-6">
             <!-- Loading State -->
-            <div *ngIf="isLoading()" class="flex flex-col items-center justify-center py-12">
+            @if (isLoading()) {
+            <div class="flex flex-col items-center justify-center py-12">
               <svg class="animate-spin h-12 w-12 text-purple-600 mb-4" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
               <p class="text-gray-600">Đang tải thông tin quiz...</p>
             </div>
+            }
 
             <!-- Error State -->
-            <div *ngIf="!isLoading() && errorMessage()" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+            @if (!isLoading() && errorMessage()) {
+            <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
               <div class="flex items-start gap-3">
                 <svg class="w-6 h-6 text-red-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
@@ -68,9 +72,11 @@ interface QuizSettings {
                 </div>
               </div>
             </div>
+            }
 
             <!-- Form -->
-            <form *ngIf="!isLoading() && !errorMessage()" [formGroup]="editForm" class="space-y-6">
+            @if (!isLoading() && !errorMessage()) {
+            <form [formGroup]="editForm" class="space-y-6">
               <!-- Quiz Title -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">Tên Quiz</label>
@@ -156,7 +162,8 @@ interface QuizSettings {
             </div>
 
             <!-- Error Message -->
-            <div *ngIf="errorMessage()" class="p-4 bg-red-50 border border-red-200 rounded-lg">
+            @if (errorMessage()) {
+            <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
               <div class="flex items-start gap-2">
                 <svg class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
@@ -164,36 +171,48 @@ interface QuizSettings {
                 <p class="text-sm text-red-800">{{ errorMessage() }}</p>
               </div>
             </div>
+            }
             </form>
+            }
           </div>
 
           <!-- Footer -->
-          <div *ngIf="!isLoading()" class="bg-gray-50 px-6 py-4 flex items-center justify-end gap-3">
+          @if (!isLoading()) {
+          <div class="bg-gray-50 px-6 py-4 flex items-center justify-end gap-3">
             <button (click)="close()" type="button"
                     class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors">
               {{ errorMessage() ? 'Đóng' : 'Hủy' }}
             </button>
-            <button *ngIf="!errorMessage()" (click)="save()" type="button" [disabled]="isSaving() || editForm.invalid"
+            @if (!errorMessage()) {
+            <button (click)="save()" type="button" [disabled]="isSaving() || editForm.invalid"
                     class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2">
-              <svg *ngIf="isSaving()" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+              @if (isSaving()) {
+              <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
+              }
               <span>{{ isSaving() ? 'Đang lưu...' : 'Lưu thay đổi' }}</span>
             </button>
+            }
           </div>
+          }
         </div>
       </div>
     </div>
+    }
   `
 })
 export class QuizEditModalComponent implements OnInit {
-  private fb = inject(FormBuilder);
-  private quizApi = inject(QuizApi);
+  private readonly fb = inject(FormBuilder);
+  private readonly quizApi = inject(QuizApi);
 
-  @Input() lessonId: string | null = null;
-  @Output() closed = new EventEmitter<void>();
-  @Output() saved = new EventEmitter<void>();
+  // Writable signal for programmatic assignment from parent via ViewChild
+  lessonId = signal<string | null>(null);
+
+  // Output functions (Angular v20+)
+  readonly closed = output<void>();
+  readonly saved = output<void>();
 
   isOpen = signal(false);
   isLoading = signal(false);
@@ -217,9 +236,10 @@ export class QuizEditModalComponent implements OnInit {
   }
 
   async open() {
-    console.log('🔧 QuizEditModal.open() called with lessonId:', this.lessonId);
-    
-    if (!this.lessonId) {
+    const currentLessonId = this.lessonId();
+    console.log('🔧 QuizEditModal.open() called with lessonId:', currentLessonId);
+
+    if (!currentLessonId) {
       console.error('❌ No lessonId provided');
       this.errorMessage.set('Không tìm thấy lesson ID');
       return;
@@ -231,10 +251,10 @@ export class QuizEditModalComponent implements OnInit {
 
     // Load current quiz settings
     try {
-      console.log('📡 Loading quiz settings for lesson:', this.lessonId);
-      const quiz = await firstValueFrom(this.quizApi.getQuizByLessonId(this.lessonId));
+      console.log('📡 Loading quiz settings for lesson:', currentLessonId);
+      const quiz = await firstValueFrom(this.quizApi.getQuizByLessonId(currentLessonId));
       console.log('✅ Quiz settings loaded:', quiz);
-      
+
       this.quizSettings = {
         id: quiz.id,
         title: quiz.title || '',
@@ -275,7 +295,7 @@ export class QuizEditModalComponent implements OnInit {
 
     try {
       const formValue = this.editForm.value;
-      
+
       // Update quiz settings via API
       await firstValueFrom(this.quizApi.updateQuizSettings(this.quizSettings.id, {
         title: formValue.title,
@@ -298,3 +318,4 @@ export class QuizEditModalComponent implements OnInit {
     }
   }
 }
+

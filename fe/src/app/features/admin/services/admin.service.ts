@@ -146,8 +146,8 @@ export class AdminService {
   private authService = inject(AuthService);
   private errorService = inject(ErrorHandlingService);
 
-  // API Configuration
-  private readonly API_BASE_URL = 'http://localhost:8088/api/v1';
+  // API Configuration - Use relative paths, base URL handled by HttpInterceptor
+  private readonly API_BASE_URL = '/api/v3';
   private readonly ENDPOINTS = {
     users: '/users',
     courses: '/courses',

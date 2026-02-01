@@ -1,0 +1,86 @@
+# =============================================================================
+# LMS Maritime - Docker Compose Base Configuration
+# Usage: docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.dev.yml up
+# =============================================================================
+
+services:
+  # ===== PostgreSQL Database =====
+  db:
+    image: postgres:16-alpine
+    container_name: lms-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-lms}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lms}
+      POSTGRES_DB: ${POSTGRES_DB:-lms}
+    volumes:
+      - lms-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lms} -d ${POSTGRES_DB:-lms}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+    networks:
+      - lms-backend
+
+  # ===== Spring Boot Backend =====
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: lms-backend
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      # Database
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-lms}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-lms}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-lms}
+      # JWT (externalized)
+      APP_JWT_SECRET: ${JWT_SECRET:-development-only-secret-change-in-prod}
+      APP_JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
+      APP_JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION:-604800000}
+      # R2 Storage
+      CLOUDFLARE_R2_ENABLED: ${R2_ENABLED:-true}
+      CLOUDFLARE_R2_ACCOUNT_ID: ${R2_ACCOUNT_ID:-}
+      CLOUDFLARE_R2_ACCESS_KEY: ${R2_ACCESS_KEY:-}
+      CLOUDFLARE_R2_SECRET_KEY: ${R2_SECRET_KEY:-}
+      CLOUDFLARE_R2_BUCKET: ${R2_BUCKET:-lms-tracnghiemj-image}
+      CLOUDFLARE_R2_PUBLIC_URL: ${R2_PUBLIC_URL:-}
+      # AI Service
+      AI_SERVICE_URL: ${AI_SERVICE_URL:-https://maritime-ai-chatbot.onrender.com}
+      AI_SERVICE_API_KEY: ${AI_SERVICE_API_KEY:-}
+      # JVM Container Optimization
+      JAVA_OPTS: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - lms-backend
+      - lms-frontend
+
+  # ===== Angular Frontend (nginx) =====
+  frontend:
+    build:
+      context: ./fe
+      dockerfile: Dockerfile
+    container_name: lms-frontend
+    depends_on:
+      - backend
+    networks:
+      - lms-frontend
+
+# ===== Named Volumes =====
+volumes:
+  lms-pgdata:
+    name: lms-pgdata
+
+# ===== Networks =====
+networks:
+  lms-backend:
+    name: lms-backend
+    driver: bridge
+    internal: true  # No external access - security best practice
+  lms-frontend:
+    name: lms-frontend
+    driver: bridge

@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, computed, signal, inject } from '@angular/core';
+import { Component, input, output, computed, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -60,96 +60,110 @@ import { ChatDialogService } from '../chat-dialog/chat-dialog.component';
       <!-- Sessions List (Scrollable) -->
       <div class="sessions-scroll">
         <!-- Group: Today -->
-        <div class="session-group" *ngIf="groupedSessions().today.length > 0">
-          <h3 class="group-title">Hôm nay</h3>
-          <div 
-            *ngFor="let session of groupedSessions().today"
-            class="session-item"
-            [class.active]="session.id === activeSessionId"
-            (click)="onSelectSession(session.id)"
-          >
-            <svg class="session-icon" viewBox="0 0 24 24" fill="none">
-              <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span class="session-title">{{ session.title }}</span>
-            <button class="delete-btn" (click)="onDeleteSession($event, session.id)" title="Xóa">
-              <svg viewBox="0 0 24 24" fill="none">
-                <path d="M19 7L18.1327 19.1425C18.0579 20.1891 17.187 21 16.1378 21H7.86224C6.81296 21 5.94208 20.1891 5.86732 19.1425L5 7M10 11V17M14 11V17M15 7V4C15 3.44772 14.5523 3 14 3H10C9.44772 3 9 3.44772 9 4V7M4 7H20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </button>
+        @if (groupedSessions().today.length > 0) {
+          <div class="session-group">
+            <h3 class="group-title">Hôm nay</h3>
+            @for (session of groupedSessions().today; track session.id) {
+              <div 
+                class="session-item"
+                [class.active]="session.id === activeSessionId()"
+                (click)="onSelectSession(session.id)"
+              >
+                <svg class="session-icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span class="session-title">{{ session.title }}</span>
+                <button class="delete-btn" (click)="onDeleteSession($event, session.id)" title="Xóa">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M19 7L18.1327 19.1425C18.0579 20.1891 17.187 21 16.1378 21H7.86224C6.81296 21 5.94208 20.1891 5.86732 19.1425L5 7M10 11V17M14 11V17M15 7V4C15 3.44772 14.5523 3 14 3H10C9.44772 3 9 3.44772 9 4V7M4 7H20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            }
           </div>
-        </div>
+        }
 
         <!-- Group: Yesterday -->
-        <div class="session-group" *ngIf="groupedSessions().yesterday.length > 0">
-          <h3 class="group-title">Hôm qua</h3>
-          <div 
-            *ngFor="let session of groupedSessions().yesterday"
-            class="session-item"
-            [class.active]="session.id === activeSessionId"
-            (click)="onSelectSession(session.id)"
-          >
-            <svg class="session-icon" viewBox="0 0 24 24" fill="none">
-              <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span class="session-title">{{ session.title }}</span>
-            <button class="delete-btn" (click)="onDeleteSession($event, session.id)" title="Xóa">
-              <svg viewBox="0 0 24 24" fill="none">
-                <path d="M19 7L18.1327 19.1425C18.0579 20.1891 17.187 21 16.1378 21H7.86224C6.81296 21 5.94208 20.1891 5.86732 19.1425L5 7M10 11V17M14 11V17M15 7V4C15 3.44772 14.5523 3 14 3H10C9.44772 3 9 3.44772 9 4V7M4 7H20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </button>
+        @if (groupedSessions().yesterday.length > 0) {
+          <div class="session-group">
+            <h3 class="group-title">Hôm qua</h3>
+            @for (session of groupedSessions().yesterday; track session.id) {
+              <div 
+                class="session-item"
+                [class.active]="session.id === activeSessionId()"
+                (click)="onSelectSession(session.id)"
+              >
+                <svg class="session-icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span class="session-title">{{ session.title }}</span>
+                <button class="delete-btn" (click)="onDeleteSession($event, session.id)" title="Xóa">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M19 7L18.1327 19.1425C18.0579 20.1891 17.187 21 16.1378 21H7.86224C6.81296 21 5.94208 20.1891 5.86732 19.1425L5 7M10 11V17M14 11V17M15 7V4C15 3.44772 14.5523 3 14 3H10C9.44772 3 9 3.44772 9 4V7M4 7H20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            }
           </div>
-        </div>
+        }
 
         <!-- Group: Previous 7 Days -->
-        <div class="session-group" *ngIf="groupedSessions().previous7Days.length > 0">
-          <h3 class="group-title">7 ngày qua</h3>
-          <div 
-            *ngFor="let session of groupedSessions().previous7Days"
-            class="session-item"
-            [class.active]="session.id === activeSessionId"
-            (click)="onSelectSession(session.id)"
-          >
-            <svg class="session-icon" viewBox="0 0 24 24" fill="none">
-              <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span class="session-title">{{ session.title }}</span>
-            <button class="delete-btn" (click)="onDeleteSession($event, session.id)" title="Xóa">
-              <svg viewBox="0 0 24 24" fill="none">
-                <path d="M19 7L18.1327 19.1425C18.0579 20.1891 17.187 21 16.1378 21H7.86224C6.81296 21 5.94208 20.1891 5.86732 19.1425L5 7M10 11V17M14 11V17M15 7V4C15 3.44772 14.5523 3 14 3H10C9.44772 3 9 3.44772 9 4V7M4 7H20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </button>
+        @if (groupedSessions().previous7Days.length > 0) {
+          <div class="session-group">
+            <h3 class="group-title">7 ngày qua</h3>
+            @for (session of groupedSessions().previous7Days; track session.id) {
+              <div 
+                class="session-item"
+                [class.active]="session.id === activeSessionId()"
+                (click)="onSelectSession(session.id)"
+              >
+                <svg class="session-icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span class="session-title">{{ session.title }}</span>
+                <button class="delete-btn" (click)="onDeleteSession($event, session.id)" title="Xóa">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M19 7L18.1327 19.1425C18.0579 20.1891 17.187 21 16.1378 21H7.86224C6.81296 21 5.94208 20.1891 5.86732 19.1425L5 7M10 11V17M14 11V17M15 7V4C15 3.44772 14.5523 3 14 3H10C9.44772 3 9 3.44772 9 4V7M4 7H20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            }
           </div>
-        </div>
+        }
         
         <!-- Group: Older -->
-        <div class="session-group" *ngIf="groupedSessions().older.length > 0">
-          <h3 class="group-title">Cũ hơn</h3>
-          <div 
-            *ngFor="let session of groupedSessions().older"
-            class="session-item"
-            [class.active]="session.id === activeSessionId"
-            (click)="onSelectSession(session.id)"
-          >
-            <svg class="session-icon" viewBox="0 0 24 24" fill="none">
-              <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span class="session-title">{{ session.title }}</span>
-            <button class="delete-btn" (click)="onDeleteSession($event, session.id)" title="Xóa">
-              <svg viewBox="0 0 24 24" fill="none">
-                <path d="M19 7L18.1327 19.1425C18.0579 20.1891 17.187 21 16.1378 21H7.86224C6.81296 21 5.94208 20.1891 5.86732 19.1425L5 7M10 11V17M14 11V17M15 7V4C15 3.44772 14.5523 3 14 3H10C9.44772 3 9 3.44772 9 4V7M4 7H20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </button>
+        @if (groupedSessions().older.length > 0) {
+          <div class="session-group">
+            <h3 class="group-title">Cũ hơn</h3>
+            @for (session of groupedSessions().older; track session.id) {
+              <div 
+                class="session-item"
+                [class.active]="session.id === activeSessionId()"
+                (click)="onSelectSession(session.id)"
+              >
+                <svg class="session-icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span class="session-title">{{ session.title }}</span>
+                <button class="delete-btn" (click)="onDeleteSession($event, session.id)" title="Xóa">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M19 7L18.1327 19.1425C18.0579 20.1891 17.187 21 16.1378 21H7.86224C6.81296 21 5.94208 20.1891 5.86732 19.1425L5 7M10 11V17M14 11V17M15 7V4C15 3.44772 14.5523 3 14 3H10C9.44772 3 9 3.44772 9 4V7M4 7H20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            }
           </div>
-        </div>
+        }
 
         <!-- Empty State -->
-        <div *ngIf="sessions.length === 0" class="empty-state">
-          <svg class="empty-icon" viewBox="0 0 24 24" fill="none">
-            <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          <p>Chưa có cuộc trò chuyện</p>
-        </div>
+        @if (sessions().length === 0) {
+          <div class="empty-state">
+            <svg class="empty-icon" viewBox="0 0 24 24" fill="none">
+              <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <p>Chưa có cuộc trò chuyện</p>
+          </div>
+        }
       </div>
     </div>
   `,
@@ -428,14 +442,16 @@ import { ChatDialogService } from '../chat-dialog/chat-dialog.component';
 export class ChatSidebarComponent {
   private readonly dialogService = inject(ChatDialogService);
 
-  @Input() sessions: SessionSummary[] = [];
-  @Input() activeSessionId: string | null = null;
-  @Input() mobileIsOpen: boolean = false;
+  // Signal inputs (Angular v20+)
+  readonly sessions = input<SessionSummary[]>([]);
+  readonly activeSessionId = input<string | null>(null);
+  readonly mobileIsOpen = input(false);
 
-  @Output() newChat = new EventEmitter<void>();
-  @Output() selectSession = new EventEmitter<string>();
-  @Output() deleteSession = new EventEmitter<string>();
-  @Output() closeMobile = new EventEmitter<void>();
+  // Output functions (Angular v20+)
+  readonly newChat = output<void>();
+  readonly selectSession = output<string>();
+  readonly deleteSession = output<string>();
+  readonly closeMobile = output<void>();
 
   searchQuery = '';
 
@@ -448,10 +464,10 @@ export class ChatSidebarComponent {
     last7Days.setDate(last7Days.getDate() - 7);
 
     const filteredSessions = this.searchQuery.trim()
-      ? this.sessions.filter(s =>
+      ? this.sessions().filter(s =>
         s.title.toLowerCase().includes(this.searchQuery.toLowerCase())
       )
-      : this.sessions;
+      : this.sessions();
 
     const groups = {
       today: [] as SessionSummary[],
@@ -487,7 +503,7 @@ export class ChatSidebarComponent {
 
   async onDeleteSession(event: Event, id: string) {
     event.stopPropagation();
-    const session = this.sessions.find(s => s.id === id);
+    const session = this.sessions().find(s => s.id === id);
     const title = session?.title || 'cuộc trò chuyện này';
 
     const confirmed = await this.dialogService.confirmDelete(title);

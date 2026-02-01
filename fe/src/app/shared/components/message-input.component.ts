@@ -12,11 +12,10 @@
  */
 import {
   Component,
-  Input,
-  Output,
-  EventEmitter,
+  input,
+  output,
   signal,
-  ViewChild,
+  viewChild,
   ElementRef,
   ChangeDetectionStrategy,
 } from '@angular/core';
@@ -42,7 +41,7 @@ export interface MessageSendEvent {
   template: `
     <div class="border-t bg-white p-4">
       <!-- Assignment Reference Selector -->
-      @if (showAssignmentSelector && assignments.length > 0) {
+      @if (showAssignmentSelector() && assignments().length > 0) {
         <div class="mb-3">
           <label class="block text-sm text-gray-600 mb-1">Đính kèm bài tập (tùy chọn)</label>
           <select
@@ -50,7 +49,7 @@ export interface MessageSendEvent {
             class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="">-- Không đính kèm --</option>
-            @for (assignment of assignments; track assignment.id) {
+            @for (assignment of assignments(); track assignment.id) {
               <option [value]="assignment.id">
                 {{ assignment.title }} ({{ assignment.courseName }})
               </option>
@@ -85,7 +84,7 @@ export interface MessageSendEvent {
             [(ngModel)]="messageContent"
             (keydown)="onKeyDown($event)"
             (input)="autoResize()"
-            [placeholder]="placeholder"
+            [placeholder]="placeholder()"
             [disabled]="loading()"
             rows="1"
             class="w-full border rounded-2xl px-4 py-3 pr-12 resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
@@ -95,13 +94,13 @@ export interface MessageSendEvent {
           ></textarea>
 
           <!-- Character count (optional) -->
-          @if (showCharCount && messageContent.length > 0) {
+          @if (showCharCount() && messageContent.length > 0) {
             <span
               class="absolute bottom-2 right-14 text-xs"
-              [class.text-gray-400]="messageContent.length < maxLength"
-              [class.text-red-500]="messageContent.length >= maxLength"
+              [class.text-gray-400]="messageContent.length < maxLength()"
+              [class.text-red-500]="messageContent.length >= maxLength()"
             >
-              {{ messageContent.length }}/{{ maxLength }}
+              {{ messageContent.length }}/{{ maxLength() }}
             </span>
           }
         </div>
@@ -158,15 +157,17 @@ export interface MessageSendEvent {
   `,
 })
 export class MessageInputComponent {
-  @ViewChild('textareaRef') textareaRef!: ElementRef<HTMLTextAreaElement>;
+  textareaRef = viewChild<ElementRef<HTMLTextAreaElement>>('textareaRef');
 
-  @Input() placeholder = 'Nhập tin nhắn...';
-  @Input() showAssignmentSelector = false;
-  @Input() assignments: AssignmentOption[] = [];
-  @Input() maxLength = 5000;
-  @Input() showCharCount = false;
+  // Signal inputs - Angular v20+
+  placeholder = input<string>('Nhập tin nhắn...');
+  showAssignmentSelector = input<boolean>(false);
+  assignments = input<AssignmentOption[]>([]);
+  maxLength = input<number>(5000);
+  showCharCount = input<boolean>(false);
 
-  @Output() messageSend = new EventEmitter<MessageSendEvent>();
+  // Signal output - Angular v20+
+  messageSend = output<MessageSendEvent>();
 
   messageContent = '';
   selectedAssignmentId = '';
@@ -176,7 +177,7 @@ export class MessageInputComponent {
 
   canSend(): boolean {
     const content = this.messageContent.trim();
-    return content.length > 0 && content.length <= this.maxLength && !this.loading();
+    return content.length > 0 && content.length <= this.maxLength() && !this.loading();
   }
 
   onKeyDown(event: KeyboardEvent): void {
@@ -188,7 +189,7 @@ export class MessageInputComponent {
   }
 
   autoResize(): void {
-    const textarea = this.textareaRef?.nativeElement;
+    const textarea = this.textareaRef()?.nativeElement;
     if (textarea) {
       textarea.style.height = 'auto';
       textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
@@ -217,8 +218,9 @@ export class MessageInputComponent {
     this.selectedAssignmentId = '';
 
     // Reset textarea height
-    if (this.textareaRef?.nativeElement) {
-      this.textareaRef.nativeElement.style.height = '44px';
+    const ref = this.textareaRef();
+    if (ref?.nativeElement) {
+      ref.nativeElement.style.height = '44px';
     }
   }
 
@@ -254,6 +256,6 @@ export class MessageInputComponent {
    * Focus the textarea
    */
   focus(): void {
-    this.textareaRef?.nativeElement?.focus();
+    this.textareaRef()?.nativeElement?.focus();
   }
 }

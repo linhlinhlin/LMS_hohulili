@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy, inject } from '@angular/core';
+import { Component, input, output, model, computed, ChangeDetectionStrategy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { Router } from '@angular/router';
@@ -28,41 +28,51 @@ export class LessonContentComponent {
   // Expose enum to template
   LessonType = LessonType;
 
-  @Input({ required: true }) lesson!: LessonDetail;
-  @Input() isCompleted = false;
-  @Input() hasQuiz = false;
+  // Signal inputs (Angular v20+)
+  readonly lesson = input.required<LessonDetail>();
+  readonly isCompleted = input(false);
+  readonly hasQuiz = input(false);
 
-  // Section navigation - controlled from parent (sidebar)
-  @Input() sectionIndex = 0;
-  @Output() sectionIndexChange = new EventEmitter<number>();
+  // Two-way binding with model (Angular v20+)
+  readonly sectionIndex = model(0);
 
-  @Output() markComplete = new EventEmitter<void>();
-  @Output() videoStateChange = new EventEmitter<any>();
-  @Output() videoEnded = new EventEmitter<void>();
-  @Output() goToQuiz = new EventEmitter<void>();
+  // Output functions (Angular v20+)
+  readonly markComplete = output<void>();
+  readonly videoStateChange = output<any>();
+  readonly videoEnded = output<void>();
+  readonly goToQuiz = output<void>();
 
-  // Computed current section index (use input if provided)
-  get currentSectionIndex(): number {
-    return this.sectionIndex;
-  }
+  // Computed signals for derived state
+  readonly hasSections = computed(() => {
+    const ls = this.lesson();
+    return !!ls?.sections && ls.sections.length > 0;
+  });
 
-  set currentSectionIndex(value: number) {
-    this.sectionIndex = value;
-    this.sectionIndexChange.emit(value);
-  }
+  readonly currentSection = computed(() => {
+    const ls = this.lesson();
+    if (!ls?.sections || ls.sections.length === 0) {
+      return null;
+    }
+    return ls.sections[this.sectionIndex()] || null;
+  });
 
-  // Check if video is YouTube
+  readonly canGoPreviousSection = computed(() => this.sectionIndex() > 0);
+
+  readonly canGoNextSection = computed(() => {
+    const ls = this.lesson();
+    return this.hasSections() && this.sectionIndex() < ls.sections!.length - 1;
+  });
+
   isYouTubeVideo(): boolean {
-    // Check section video first, then lesson video
-    const url = this.currentSection?.videoUrl || this.lesson?.videoUrl;
+    const currentSec = this.currentSection();
+    const url = currentSec?.videoUrl || this.lesson()?.videoUrl;
     if (!url) return false;
     return url.includes('youtube.com') || url.includes('youtu.be');
   }
 
-  // Get safe YouTube embed URL
   getYouTubeEmbedUrl(): SafeResourceUrl {
-    // Get video URL from section or lesson
-    const url = this.currentSection?.videoUrl || this.lesson?.videoUrl;
+    const currentSec = this.currentSection();
+    const url = currentSec?.videoUrl || this.lesson()?.videoUrl;
     if (!url) return '';
 
     const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu.be\/)([^"&?\/\s]{11})/;
@@ -78,9 +88,8 @@ export class LessonContentComponent {
     return this.sanitizer.bypassSecurityTrustResourceUrl(url);
   }
 
-  // Get safe HTML content
   getSafeHtmlContent(): any {
-    return this.sanitizer.bypassSecurityTrustHtml(this.lesson?.content || '');
+    return this.sanitizer.bypassSecurityTrustHtml(this.lesson()?.content || '');
   }
 
   // Get sanitized HTML for any content (used by template)
@@ -123,20 +132,18 @@ export class LessonContentComponent {
     this.markComplete.emit();
   }
 
-  // Go to quiz
   onGoToQuiz(): void {
     console.log('🎯 Quiz button clicked!');
-    // Get current URL to use as return URL
+    const ls = this.lesson();
     const currentUrl = this.router.url;
-    this.router.navigate(['/student/quiz/take', this.lesson.id], {
+    this.router.navigate(['/student/quiz/take', ls.id], {
       queryParams: {
-        title: this.lesson.title,
+        title: ls.title,
         returnUrl: currentUrl
       }
     });
   }
 
-  // Get lesson type label in Vietnamese
   getLessonTypeLabel(): string {
     const labels: Record<string, string> = {
       'LECTURE': 'Bài giảng',
@@ -145,7 +152,7 @@ export class LessonContentComponent {
       'ASSIGNMENT': 'Bài tập',
       'LAB': 'Thực hành'
     };
-    return labels[this.lesson.lessonType as string] || 'Bài học';
+    return labels[this.lesson().lessonType as string] || 'Bài học';
   }
 
   // Format file size
@@ -157,41 +164,22 @@ export class LessonContentComponent {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 
-  // Section navigation
-  get currentSection() {
-    if (!this.lesson?.sections || this.lesson.sections.length === 0) {
-      return null;
-    }
-    return this.lesson.sections[this.currentSectionIndex] || null;
-  }
-
-  get hasSections(): boolean {
-    return !!this.lesson?.sections && this.lesson.sections.length > 0;
-  }
-
-  get canGoPreviousSection(): boolean {
-    return this.currentSectionIndex > 0;
-  }
-
-  get canGoNextSection(): boolean {
-    return this.hasSections && this.currentSectionIndex < this.lesson.sections!.length - 1;
-  }
-
   previousSection(): void {
-    if (this.canGoPreviousSection) {
-      this.currentSectionIndex--;
+    if (this.canGoPreviousSection()) {
+      this.sectionIndex.update(v => v - 1);
     }
   }
 
   nextSection(): void {
-    if (this.canGoNextSection) {
-      this.currentSectionIndex++;
+    if (this.canGoNextSection()) {
+      this.sectionIndex.update(v => v + 1);
     }
   }
 
   selectSection(index: number): void {
-    if (this.lesson?.sections && index >= 0 && index < this.lesson.sections.length) {
-      this.currentSectionIndex = index;
+    const ls = this.lesson();
+    if (ls?.sections && index >= 0 && index < ls.sections.length) {
+      this.sectionIndex.set(index);
     }
   }
 

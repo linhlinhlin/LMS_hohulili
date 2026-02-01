@@ -1,4 +1,4 @@
-import { Component, signal, computed, inject, OnInit, OnDestroy, ElementRef, viewChild, HostListener, Input } from '@angular/core';
+import { Component, signal, computed, inject, OnInit, OnDestroy, ElementRef, viewChild, HostListener, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -36,7 +36,7 @@ interface SearchResult {
           id="global-search"
           [formControl]="searchControl"
           type="search"
-          [placeholder]="placeholder"
+          [placeholder]="placeholder()"
           class="w-full h-10 pl-10 pr-10 rounded-xl border border-border bg-surface text-text placeholder:text-muted/70 outline-none focus:ring-2 focus:ring-focus transition-all duration-fast"
           (focus)="onSearchFocus()"
           (blur)="onSearchBlur()"
@@ -44,7 +44,7 @@ interface SearchResult {
           role="combobox"
           [attr.aria-expanded]="isOpen()"
           [attr.aria-controls]="'search-results'"
-          [attr.aria-activedescendant]="activeId"
+          [attr.aria-activedescendant]="activeId()"
           autocomplete="off"
         />
         
@@ -186,27 +186,29 @@ interface SearchResult {
   `
 })
 export class GlobalSearchComponent implements OnInit, OnDestroy {
-  @Input() collapsed: boolean = false;
-  
+  // Signal input (Angular 2026 standard)
+  collapsed = input(false);
+
   searchControl = new FormControl('');
   searchResults = signal<SearchResult[]>([]);
   isOpen = signal(false);
   isLoading = signal(false);
   activeIndex = signal(-1);
-  
+
   private destroy$ = new Subject<void>();
   private searchTimeout?: number;
 
-  get placeholder(): string {
-    return this.collapsed 
-      ? 'Tìm kiếm...' 
-      : 'Tìm khóa học, chủ đề, giảng viên…';
-  }
+  // Computed signals for derived state
+  placeholder = computed(() =>
+    this.collapsed()
+      ? 'Tìm kiếm...'
+      : 'Tìm khóa học, chủ đề, giảng viên…'
+  );
 
-  get activeId(): string {
+  activeId = computed(() => {
     const index = this.activeIndex();
     return index >= 0 ? `search-result-${index}` : '';
-  }
+  });
 
   ngOnInit(): void {
     // Setup search with debounce
@@ -308,7 +310,7 @@ export class GlobalSearchComponent implements OnInit, OnDestroy {
   selectActiveResult(): void {
     const results = this.searchResults();
     const activeIndex = this.activeIndex();
-    
+
     if (activeIndex >= 0 && activeIndex < results.length) {
       this.selectResult(results[activeIndex]);
     } else if (results.length > 0) {
@@ -336,7 +338,7 @@ export class GlobalSearchComponent implements OnInit, OnDestroy {
     }
 
     this.isLoading.set(true);
-    
+
     // Simulate API call with mock data
     return new Promise<SearchResult[]>((resolve) => {
       setTimeout(() => {
@@ -394,7 +396,7 @@ export class GlobalSearchComponent implements OnInit, OnDestroy {
     ];
 
     // Simple search logic
-    return mockResults.filter(result => 
+    return mockResults.filter(result =>
       result.title.toLowerCase().includes(query.toLowerCase()) ||
       result.description.toLowerCase().includes(query.toLowerCase())
     );

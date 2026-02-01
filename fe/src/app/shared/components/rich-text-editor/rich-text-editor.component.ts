@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, ViewEncapsulation, SimpleChanges, forwardRef } from '@angular/core';
+import { Component, input, output, ViewEncapsulation, forwardRef, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NG_VALUE_ACCESSOR, ControlValueAccessor } from '@angular/forms';
 import { CKEditorModule } from '@ckeditor/ckeditor5-angular';
@@ -21,7 +21,7 @@ import { Base64UploadAdapterPlugin } from '../../../core/utils/base64-upload-ada
     standalone: true,
     imports: [CommonModule, FormsModule, CKEditorModule],
     template: `
-    <div class="editor-container-wrapper" [style.height.px]="height">
+    <div class="editor-container-wrapper" [style.height.px]="height()">
         <ckeditor
           [editor]="Editor"
           [(ngModel)]="content"
@@ -43,11 +43,15 @@ import { Base64UploadAdapterPlugin } from '../../../core/utils/base64-upload-ada
     ]
 })
 export class RichTextEditorComponent implements ControlValueAccessor {
-    @Input() content: string = '';
-    @Output() contentChange = new EventEmitter<string>();
-    @Input() placeholder: string = 'Nhập nội dung...';
-    @Input() height: number = 300;
+    // Signal inputs - Angular v20+
+    placeholder = input<string>('Nhập nội dung...');
+    height = input<number>(300);
 
+    // Signal output - Angular v20+
+    contentChange = output<string>();
+
+    // Mutable state for ControlValueAccessor
+    public content: string = '';
     public Editor = ClassicEditor;
     public isDisabled = false;
 
@@ -100,10 +104,12 @@ export class RichTextEditorComponent implements ControlValueAccessor {
         }
     };
 
-    ngOnChanges(changes: SimpleChanges) {
-        if (changes['placeholder']) {
-            this.editorConfig = { ...this.editorConfig, placeholder: this.placeholder };
-        }
+    // Effect to update editorConfig when placeholder changes
+    constructor() {
+        effect(() => {
+            const ph = this.placeholder();
+            this.editorConfig = { ...this.editorConfig, placeholder: ph };
+        });
     }
 
     // ControlValueAccessor Implementation

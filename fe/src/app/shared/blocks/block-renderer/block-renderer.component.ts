@@ -1,4 +1,4 @@
-import { Component, Input, ViewEncapsulation, ChangeDetectionStrategy } from '@angular/core';
+import { Component, input, ViewEncapsulation, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ContentBlock } from '../block-types';
 import { TextBlockComponent } from '../text-block/text-block.component';
@@ -16,28 +16,19 @@ import { ImageBlockComponent } from '../image-block/image-block.component';
   ],
   template: `
     <div class="block-container space-y-4">
-      <ng-container *ngFor="let block of blocks">
-        <div [ngSwitch]="block.type" class="block-item">
-          <!-- Text Block -->
-          <app-text-block 
-            *ngSwitchCase="'text'" 
-            [data]="block.data">
-          </app-text-block>
-
-          <!-- Formula Block (KaTeX) -->
-          <app-formula-block 
-            *ngSwitchCase="'formula'" 
-            [data]="block.data">
-          </app-formula-block>
-
-          <!-- Image Block (Lazy + PWA) -->
-          <app-image-block 
-            *ngSwitchCase="'image'" 
-            [data]="block.data">
-          </app-image-block>
-
-        </div>
-      </ng-container>
+      @for (block of blocks(); track block) {
+        @switch (block.type) {
+          @case ('text') {
+            <app-text-block [data]="block.data"></app-text-block>
+          }
+          @case ('formula') {
+            <app-formula-block [data]="block.data"></app-formula-block>
+          }
+          @case ('image') {
+            <app-image-block [data]="block.data"></app-image-block>
+          }
+        }
+      }
     </div>
   `,
   styles: [`
@@ -50,5 +41,5 @@ import { ImageBlockComponent } from '../image-block/image-block.component';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class BlockRendererComponent {
-  @Input() blocks: ContentBlock[] = [];
+  blocks = input<ContentBlock[]>([]);
 }

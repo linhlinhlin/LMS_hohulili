@@ -1,4 +1,4 @@
-import { Component, signal, computed, inject, Input, Output, EventEmitter, OnInit, OnDestroy, ChangeDetectionStrategy, ViewEncapsulation, ElementRef, ViewChild } from '@angular/core';
+import { Component, signal, computed, inject, input, output, OnInit, OnDestroy, ChangeDetectionStrategy, ViewEncapsulation, ElementRef, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 export interface VideoPlayerConfig {
@@ -242,9 +242,11 @@ export interface VideoPlayerState {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class RealVideoPlayerComponent implements OnInit, OnDestroy {
-  @ViewChild('videoElement') videoElement!: ElementRef<HTMLVideoElement>;
-  
-  @Input() config = signal<VideoPlayerConfig>({
+  // Signal-based ViewChild - Angular v20+
+  videoElement = viewChild<ElementRef<HTMLVideoElement>>('videoElement');
+
+  // Signal input - Angular v20+
+  config = input<VideoPlayerConfig>({
     src: '',
     controls: true,
     autoplay: false,
@@ -255,12 +257,13 @@ export class RealVideoPlayerComponent implements OnInit, OnDestroy {
     playbackRate: 1
   });
 
-  @Output() stateChange = new EventEmitter<VideoPlayerState>();
-  @Output() timeUpdate = new EventEmitter<number>();
-  @Output() playEvent = new EventEmitter<void>();
-  @Output() pauseEvent = new EventEmitter<void>();
-  @Output() endedEvent = new EventEmitter<void>();
-  @Output() errorEvent = new EventEmitter<string>();
+  // Signal outputs - Angular v20+
+  stateChange = output<VideoPlayerState>();
+  timeUpdate = output<number>();
+  playEvent = output<void>();
+  pauseEvent = output<void>();
+  endedEvent = output<void>();
+  errorEvent = output<string>();
 
   state = signal<VideoPlayerState>({
     currentTime: 0,
@@ -287,13 +290,13 @@ export class RealVideoPlayerComponent implements OnInit, OnDestroy {
   }
 
   private initializeVideo(): void {
-    const video = this.videoElement?.nativeElement;
+    const video = this.videoElement()?.nativeElement;
     if (!video) return;
 
     // Set initial properties
     video.volume = this.config().volume || 1;
     video.playbackRate = this.config().playbackRate || 1;
-    
+
     if (this.config().startTime !== undefined) {
       video.currentTime = this.config().startTime!;
     }
@@ -334,7 +337,7 @@ export class RealVideoPlayerComponent implements OnInit, OnDestroy {
   }
 
   onTimeUpdate(): void {
-    const video = this.videoElement?.nativeElement;
+    const video = this.videoElement()?.nativeElement;
     if (!video) return;
 
     this.state.update(s => ({ ...s, currentTime: video.currentTime }));
@@ -343,19 +346,19 @@ export class RealVideoPlayerComponent implements OnInit, OnDestroy {
   }
 
   onVolumeChange(): void {
-    const video = this.videoElement?.nativeElement;
+    const video = this.videoElement()?.nativeElement;
     if (!video) return;
 
-    this.state.update(s => ({ 
-      ...s, 
-      volume: video.volume, 
-      isMuted: video.muted 
+    this.state.update(s => ({
+      ...s,
+      volume: video.volume,
+      isMuted: video.muted
     }));
     this.stateChange.emit(this.state());
   }
 
   onRateChange(): void {
-    const video = this.videoElement?.nativeElement;
+    const video = this.videoElement()?.nativeElement;
     if (!video) return;
 
     this.state.update(s => ({ ...s, playbackRate: video.playbackRate }));
@@ -384,11 +387,11 @@ export class RealVideoPlayerComponent implements OnInit, OnDestroy {
       }
     }
 
-    this.state.update(s => ({ 
-      ...s, 
-      hasError: true, 
+    this.state.update(s => ({
+      ...s,
+      hasError: true,
       errorMessage,
-      isLoading: false 
+      isLoading: false
     }));
     this.errorEvent.emit(errorMessage);
     this.stateChange.emit(this.state());
@@ -404,7 +407,7 @@ export class RealVideoPlayerComponent implements OnInit, OnDestroy {
 
   // Control Methods
   togglePlay(): void {
-    const video = this.videoElement?.nativeElement;
+    const video = this.videoElement()?.nativeElement;
     if (!video) return;
 
     if (video.paused) {
@@ -415,21 +418,21 @@ export class RealVideoPlayerComponent implements OnInit, OnDestroy {
   }
 
   rewind(seconds: number): void {
-    const video = this.videoElement?.nativeElement;
+    const video = this.videoElement()?.nativeElement;
     if (!video) return;
 
     video.currentTime = Math.max(0, video.currentTime - seconds);
   }
 
   forward(seconds: number): void {
-    const video = this.videoElement?.nativeElement;
+    const video = this.videoElement()?.nativeElement;
     if (!video) return;
 
     video.currentTime = Math.min(video.duration, video.currentTime + seconds);
   }
 
   seekTo(event: MouseEvent): void {
-    const video = this.videoElement?.nativeElement;
+    const video = this.videoElement()?.nativeElement;
     if (!video) return;
 
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
@@ -439,14 +442,14 @@ export class RealVideoPlayerComponent implements OnInit, OnDestroy {
   }
 
   toggleMute(): void {
-    const video = this.videoElement?.nativeElement;
+    const video = this.videoElement()?.nativeElement;
     if (!video) return;
 
     video.muted = !video.muted;
   }
 
   setVolume(event: MouseEvent): void {
-    const video = this.videoElement?.nativeElement;
+    const video = this.videoElement()?.nativeElement;
     if (!video) return;
 
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
@@ -457,7 +460,7 @@ export class RealVideoPlayerComponent implements OnInit, OnDestroy {
   }
 
   setPlaybackRate(event: Event): void {
-    const video = this.videoElement?.nativeElement;
+    const video = this.videoElement()?.nativeElement;
     if (!video) return;
 
     const target = event.target as HTMLSelectElement;
@@ -471,7 +474,7 @@ export class RealVideoPlayerComponent implements OnInit, OnDestroy {
   }
 
   toggleFullscreen(): void {
-    const video = this.videoElement?.nativeElement;
+    const video = this.videoElement()?.nativeElement;
     if (!video) return;
 
     if (document.fullscreenElement) {
@@ -482,7 +485,7 @@ export class RealVideoPlayerComponent implements OnInit, OnDestroy {
   }
 
   togglePictureInPicture(): void {
-    const video = this.videoElement?.nativeElement;
+    const video = this.videoElement()?.nativeElement;
     if (!video) return;
 
     if (document.pictureInPictureElement) {
@@ -493,7 +496,7 @@ export class RealVideoPlayerComponent implements OnInit, OnDestroy {
   }
 
   retryLoad(): void {
-    const video = this.videoElement?.nativeElement;
+    const video = this.videoElement()?.nativeElement;
     if (!video) return;
 
     this.state.update(s => ({ ...s, hasError: false, isLoading: true }));
@@ -514,7 +517,7 @@ export class RealVideoPlayerComponent implements OnInit, OnDestroy {
     if (this.controlsTimeout) {
       clearTimeout(this.controlsTimeout);
     }
-    
+
     this.controlsTimeout = window.setTimeout(() => {
       if (this.state().isPlaying) {
         this.hideControls();
@@ -532,7 +535,7 @@ export class RealVideoPlayerComponent implements OnInit, OnDestroy {
   // Utility Methods
   formatTime(seconds: number): string {
     if (isNaN(seconds)) return '0:00';
-    
+
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = Math.floor(seconds % 60);

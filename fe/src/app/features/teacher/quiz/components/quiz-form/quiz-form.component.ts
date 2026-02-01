@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnInit, signal } from '@angular/core';
+import { Component, input, output, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Question } from '../../../../../api/endpoints/question.api';
@@ -26,19 +26,22 @@ import { QuestionSelectorComponent } from '../question-selector/question-selecto
     styleUrls: ['./quiz-form.component.scss']
 })
 export class QuizFormComponent implements OnInit {
-    @Input() config!: QuizFormConfig;
-    @Input() questions: Question[] = [];
-    @Input() packages: any[] = [];
-    @Input() initialData?: QuizFormData; // For edit mode
+    // Signal inputs (Angular v20+)
+    readonly config = input.required<QuizFormConfig>();
+    readonly questions = input<Question[]>([]);
+    readonly packages = input<any[]>([]);
+    readonly initialData = input<QuizFormData | undefined>(undefined);
 
-    @Output() onSubmit = new EventEmitter<QuizFormData>();
-    @Output() onCancel = new EventEmitter<void>();
-    @Output() questionsChanged = new EventEmitter<string[]>();
+    // Output functions (Angular v20+)
+    readonly onSubmit = output<QuizFormData>();
+    readonly onCancel = output<void>();
+    readonly questionsChanged = output<string[]>();
+    readonly onPackageSelect = output<string>();
+    readonly onUseMyQuestions = output<void>();
+    readonly onRequestCreateQuestion = output<void>();
 
-    // New outputs for package handling
-    @Output() onPackageSelect = new EventEmitter<string>();
-    @Output() onUseMyQuestions = new EventEmitter<void>();
-    @Output() onRequestCreateQuestion = new EventEmitter<void>();
+    // Injected dependencies
+    private readonly fb = inject(FormBuilder);
 
     quizForm!: FormGroup;
     currentStep = signal(1);
@@ -48,40 +51,40 @@ export class QuizFormComponent implements OnInit {
     activeSource = signal<'my-questions' | 'packages'>('my-questions');
     selectedPackageId = signal<string>('');
 
-    constructor(private fb: FormBuilder) { }
-
     ngOnInit() {
         this.initForm();
 
         // Populate form if editing
-        if (this.initialData) {
-            this.quizForm.patchValue(this.initialData);
-            this.selectedQuestionIds.set(this.initialData.questionIds || []);
+        const data = this.initialData();
+        if (data) {
+            this.quizForm.patchValue(data);
+            this.selectedQuestionIds.set(data.questionIds || []);
         }
     }
 
     private initForm() {
+        const cfg = this.config();
         this.quizForm = this.fb.group({
             title: ['', [Validators.required, Validators.maxLength(255)]],
             description: [''],
-            timeLimitMinutes: [this.config.defaults.timeLimitMinutes],
+            timeLimitMinutes: [cfg.defaults.timeLimitMinutes],
             maxAttempts: [
-                this.config.defaults.maxAttempts,
+                cfg.defaults.maxAttempts,
                 [Validators.required, Validators.min(1), Validators.max(10)]
             ],
             passingScore: [
-                this.config.defaults.passingScore,
+                cfg.defaults.passingScore,
                 [Validators.required, Validators.min(0), Validators.max(100)]
             ],
-            shuffleQuestions: [this.config.defaults.shuffleQuestions],
-            shuffleOptions: [this.config.defaults.shuffleOptions],
-            showResultsImmediately: [this.config.defaults.showResultsImmediately],
-            showCorrectAnswers: [this.config.defaults.showCorrectAnswers],
-            publishImmediately: [this.config.defaults.publishImmediately]
+            shuffleQuestions: [cfg.defaults.shuffleQuestions],
+            shuffleOptions: [cfg.defaults.shuffleOptions],
+            showResultsImmediately: [cfg.defaults.showResultsImmediately],
+            showCorrectAnswers: [cfg.defaults.showCorrectAnswers],
+            publishImmediately: [cfg.defaults.publishImmediately]
         });
 
         // Add date fields only for Assignment
-        if (this.config.showDates) {
+        if (cfg.showDates) {
             this.quizForm.addControl('startDate', this.fb.control(''));
             this.quizForm.addControl('endDate', this.fb.control(''));
 

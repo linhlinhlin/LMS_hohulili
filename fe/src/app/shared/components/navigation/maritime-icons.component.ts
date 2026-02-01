@@ -1,4 +1,4 @@
-import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
+import { Component, input, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
@@ -6,7 +6,7 @@ import { CommonModule } from '@angular/common';
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    @switch (iconName) {
+    @switch (iconName()) {
       @case ('anchor') {
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
           <circle cx="12" cy="5" r="2.5" />
@@ -82,5 +82,5 @@ import { CommonModule } from '@angular/common';
   standalone: true
 })
 export class MaritimeIconComponent {
-  @Input() iconName: string = '';
+  iconName = input('');
 }

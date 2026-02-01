@@ -19,17 +19,24 @@
 
   <form [formGroup]="quizForm" (ngSubmit)="submit()">
     <!-- Step 1: Basic Information -->
-    <div class="form-step" *ngIf="currentStep() === 1">
+    @if (currentStep() === 1) {
+    <div class="form-step">
       <h3>Thông tin cơ bản</h3>
 
       <div class="form-group">
         <label for="title">Tiêu đề <span class="required">*</span></label>
         <input type="text" id="title" formControlName="title" class="form-control"
           placeholder="Nhập tiêu đề bài kiểm tra" [class.is-invalid]="titleControl?.invalid && titleControl?.touched" />
-        <div class="invalid-feedback" *ngIf="titleControl?.invalid && titleControl?.touched">
-          <span *ngIf="titleControl?.errors?.['required']">Tiêu đề là bắt buộc</span>
-          <span *ngIf="titleControl?.errors?.['maxlength']">Tiêu đề không được quá 255 ký tự</span>
+        @if (titleControl?.invalid && titleControl?.touched) {
+        <div class="invalid-feedback">
+          @if (titleControl?.errors?.['required']) {
+          <span>Tiêu đề là bắt buộc</span>
+          }
+          @if (titleControl?.errors?.['maxlength']) {
+          <span>Tiêu đề không được quá 255 ký tự</span>
+          }
         </div>
+        }
       </div>
 
       <div class="form-group">
@@ -49,23 +56,28 @@
           <label for="maxAttempts">Số lần làm tối đa <span class="required">*</span></label>
           <input type="number" id="maxAttempts" formControlName="maxAttempts" class="form-control" min="1" max="10"
             [class.is-invalid]="maxAttemptsControl?.invalid && maxAttemptsControl?.touched" />
-          <div class="invalid-feedback" *ngIf="maxAttemptsControl?.invalid && maxAttemptsControl?.touched">
+          @if (maxAttemptsControl?.invalid && maxAttemptsControl?.touched) {
+          <div class="invalid-feedback">
             Từ 1 đến 10 lần
           </div>
+          }
         </div>
 
         <div class="form-group">
           <label for="passingScore">Điểm đạt (%) <span class="required">*</span></label>
           <input type="number" id="passingScore" formControlName="passingScore" class="form-control" min="0" max="100"
             [class.is-invalid]="passingScoreControl?.invalid && passingScoreControl?.touched" />
-          <div class="invalid-feedback" *ngIf="passingScoreControl?.invalid && passingScoreControl?.touched">
+          @if (passingScoreControl?.invalid && passingScoreControl?.touched) {
+          <div class="invalid-feedback">
             Từ 0 đến 100%
           </div>
+          }
         </div>
       </div>
 
       <!-- Date fields (only for Assignment) -->
-      <div class="form-row" *ngIf="config.showDates">
+      @if (config().showDates) {
+      <div class="form-row">
         <div class="form-group">
           <label for="startDate">Ngày bắt đầu</label>
           <input type="datetime-local" id="startDate" formControlName="startDate" class="form-control" />
@@ -75,11 +87,14 @@
           <label for="endDate">Ngày kết thúc</label>
           <input type="datetime-local" id="endDate" formControlName="endDate" class="form-control"
             [class.is-invalid]="quizForm.errors?.['dateRangeInvalid'] && endDateControl?.touched" />
-          <div class="invalid-feedback" *ngIf="quizForm.errors?.['dateRangeInvalid']">
+          @if (quizForm.errors?.['dateRangeInvalid']) {
+          <div class="invalid-feedback">
             Ngày kết thúc phải sau ngày bắt đầu
           </div>
+          }
         </div>
       </div>
+      }
 
       <div class="form-group">
         <h4>Cài đặt</h4>
@@ -112,9 +127,11 @@
         </div>
       </div>
     </div>
+    }
 
     <!-- Step 2: Question Selection -->
-    <div class="form-step" *ngIf="currentStep() === 2">
+    @if (currentStep() === 2) {
+    <div class="form-step">
       <h3>Chọn câu hỏi</h3>
 
       <!-- Source Selection Toolbar -->
@@ -139,37 +156,49 @@
         </div>
 
         <!-- Package Selector -->
-        <div class="flex-1 ml-4" *ngIf="activeSource() === 'packages'">
+        @if (activeSource() === 'packages') {
+        <div class="flex-1 ml-4">
           <select class="w-full form-control" [value]="selectedPackageId()" (change)="selectPackage($event)">
             <option value="" disabled selected>-- Chọn gói câu hỏi --</option>
-            <option *ngFor="let pkg of packages" [value]="pkg.id">
+            @for (pkg of packages(); track pkg.id) {
+            <option [value]="pkg.id">
               {{ pkg.name }} ({{ pkg.questionCount }} câu)
             </option>
+            }
           </select>
         </div>
+        }
       </div>
 
-      <p class="text-sm text-gray-500 mb-3 ml-1" *ngIf="activeSource() === 'packages' && selectedPackageId()">
+      @if (activeSource() === 'packages' && selectedPackageId()) {
+      <p class="text-sm text-gray-500 mb-3 ml-1">
         <i class="fas fa-info-circle"></i> Đang hiển thị câu hỏi từ gói đã chọn. Bạn có thể chọn câu hỏi cụ thể bên
         dưới.
       </p>
+      }
 
-      <app-question-selector [questions]="questions" [selectedIds]="selectedQuestionIds()"
+      <app-question-selector [questions]="questions()" [selectedIds]="selectedQuestionIds()"
         (selectionChange)="onQuestionsSelected($event)" (createNew)="onRequestCreateQuestion.emit()">
       </app-question-selector>
 
-      <div class="alert alert-warning" *ngIf="selectedQuestionIds().length === 0">
+      @if (selectedQuestionIds().length === 0) {
+      <div class="alert alert-warning">
         <i class="fas fa-exclamation-triangle"></i>
         Vui lòng chọn ít nhất 1 câu hỏi
       </div>
+      }
 
-      <div class="selected-count" *ngIf="selectedQuestionIds().length > 0">
+      @if (selectedQuestionIds().length > 0) {
+      <div class="selected-count">
         Đã chọn: <strong>{{ selectedQuestionIds().length }}</strong> câu hỏi
       </div>
+      }
     </div>
+    }
 
     <!-- Step 3: Review -->
-    <div class="form-step" *ngIf="currentStep() === 3">
+    @if (currentStep() === 3) {
+    <div class="form-step">
       <h3>Xác nhận thông tin</h3>
 
       <div class="review-section">
@@ -178,15 +207,19 @@
           <span class="label">Tiêu đề:</span>
           <span class="value">{{ quizForm.get('title')?.value }}</span>
         </div>
-        <div class="review-item" *ngIf="quizForm.get('description')?.value">
+        @if (quizForm.get('description')?.value) {
+        <div class="review-item">
           <span class="label">Mô tả:</span>
           <span class="value">{{ quizForm.get('description')?.value }}</span>
         </div>
+        }
         <div class="review-item">
           <span class="label">Thời gian:</span>
           <span class="value">
             {{ quizForm.get('timeLimitMinutes')?.value || 'Không giới hạn' }}
-            <span *ngIf="quizForm.get('timeLimitMinutes')?.value">phút</span>
+            @if (quizForm.get('timeLimitMinutes')?.value) {
+            <span>phút</span>
+            }
           </span>
         </div>
         <div class="review-item">
@@ -198,7 +231,8 @@
           <span class="value">{{ quizForm.get('passingScore')?.value }}%</span>
         </div>
 
-        <div class="review-item" *ngIf="config.showDates && quizForm.get('startDate')?.value">
+        @if (config().showDates && quizForm.get('startDate')?.value) {
+        <div class="review-item">
           <span class="label">Thời gian:</span>
           <span class="value">
             {{ quizForm.get('startDate')?.value | date:'dd/MM/yyyy HH:mm' }}
@@ -206,6 +240,7 @@
             {{ quizForm.get('endDate')?.value | date:'dd/MM/yyyy HH:mm' }}
           </span>
         </div>
+        }
       </div>
 
       <div class="review-section">
@@ -219,14 +254,25 @@
       <div class="review-section">
         <h4>Cài đặt</h4>
         <div class="settings-list">
-          <span class="badge" *ngIf="quizForm.get('shuffleQuestions')?.value">Xáo trộn câu hỏi</span>
-          <span class="badge" *ngIf="quizForm.get('shuffleOptions')?.value">Xáo trộn đáp án</span>
-          <span class="badge" *ngIf="quizForm.get('showResultsImmediately')?.value">Hiển thị kết quả ngay</span>
-          <span class="badge" *ngIf="quizForm.get('showCorrectAnswers')?.value">Hiển thị đáp án đúng</span>
-          <span class="badge badge-primary" *ngIf="quizForm.get('publishImmediately')?.value">Xuất bản ngay</span>
+          @if (quizForm.get('shuffleQuestions')?.value) {
+          <span class="badge">Xáo trộn câu hỏi</span>
+          }
+          @if (quizForm.get('shuffleOptions')?.value) {
+          <span class="badge">Xáo trộn đáp án</span>
+          }
+          @if (quizForm.get('showResultsImmediately')?.value) {
+          <span class="badge">Hiển thị kết quả ngay</span>
+          }
+          @if (quizForm.get('showCorrectAnswers')?.value) {
+          <span class="badge">Hiển thị đáp án đúng</span>
+          }
+          @if (quizForm.get('publishImmediately')?.value) {
+          <span class="badge badge-primary">Xuất bản ngay</span>
+          }
         </div>
       </div>
     </div>
+    }
 
     <!-- Action Buttons -->
     <div class="form-actions">
@@ -235,18 +281,23 @@
       </button>
 
       <div class="action-right">
-        <button type="button" class="btn btn-outline" (click)="prevStep()" *ngIf="currentStep() > 1">
+        @if (currentStep() > 1) {
+        <button type="button" class="btn btn-outline" (click)="prevStep()">
           <i class="fas fa-arrow-left"></i> Quay lại
         </button>
+        }
 
-        <button type="button" class="btn btn-primary" (click)="nextStep()" *ngIf="currentStep() < 3"
+        @if (currentStep() < 3) { <button type="button" class="btn btn-primary" (click)="nextStep()"
           [disabled]="currentStep() === 1 && !isStep1Valid || currentStep() === 2 && !isStep2Valid">
           Tiếp theo <i class="fas fa-arrow-right"></i>
-        </button>
+          </button>
+          }
 
-        <button type="submit" class="btn btn-success" *ngIf="currentStep() === 3" [disabled]="!canSubmit">
-          <i class="fas fa-check"></i> Hoàn thành
-        </button>
+          @if (currentStep() === 3) {
+          <button type="submit" class="btn btn-success" [disabled]="!canSubmit">
+            <i class="fas fa-check"></i> Hoàn thành
+          </button>
+          }
       </div>
     </div>
   </form>

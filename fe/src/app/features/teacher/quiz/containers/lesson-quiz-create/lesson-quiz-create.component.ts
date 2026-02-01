@@ -236,7 +236,7 @@ export class LessonQuizCreateComponent implements OnInit {
         } else {
             console.log('👉 Creating Lesson Quiz (Legacy)...');
             // Fallback to Lesson (Legacy V2)
-            this.quizApi.createLessonQuizV2(this.lessonId(), request)
+            this.quizApi.createLessonQuizV3(this.lessonId(), request)
                 .subscribe({
                     next: (response: any) => {
                         console.log('✅ Lesson Quiz Created!', response);

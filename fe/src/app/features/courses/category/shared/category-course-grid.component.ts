@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, input, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { CategoryCourseCardComponent } from './category-course-card.component';
@@ -19,22 +19,26 @@ export interface CategoryCourseItem {
   standalone: true,
   imports: [CommonModule, RouterModule, CategoryCourseCardComponent],
   template: `
-    <section class="py-16 bg-gray-50" role="region" [attr.aria-label]="'Khóa học ' + title">
+    <section class="py-16 bg-gray-50" role="region" [attr.aria-label]="'Khóa học ' + title()">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-end justify-between mb-8">
           <div>
-            <h2 class="text-3xl font-bold text-gray-900 mb-2">{{ title }}</h2>
-            <p class="text-gray-600" *ngIf="subtitle">{{ subtitle }}</p>
+            <h2 class="text-3xl font-bold text-gray-900 mb-2">{{ title() }}</h2>
+            @if (subtitle()) {
+              <p class="text-gray-600">{{ subtitle() }}</p>
+            }
           </div>
-          <a *ngIf="viewAllLink" [routerLink]="viewAllLink" [queryParams]="viewAllQueryParams" class="font-semibold transition-colors"
-             [ngClass]="accentTextClass">{{ viewAllText || 'Xem thêm →' }}</a>
+          @if (viewAllLink()) {
+            <a [routerLink]="viewAllLink()" [queryParams]="viewAllQueryParams()" class="font-semibold transition-colors"
+               [ngClass]="accentTextClass()">{{ viewAllText() || 'Xem thêm →' }}</a>
+          }
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          @for (item of items; track item.id) {
+          @for (item of items(); track item.id) {
             <app-category-course-card 
               [course]="convertToExtendedCourse(item)"
-              [brandColor]="brandColor">
+              [brandColor]="brandColor()">
             </app-category-course-card>
           }
         </div>
@@ -43,15 +47,13 @@ export interface CategoryCourseItem {
   `
 })
 export class CategoryCourseGridComponent {
-  @Input() title = '';
-  @Input() subtitle?: string;
-  @Input() items: CategoryCourseItem[] = [];
-  @Input() brandColor: 'blue' | 'green' | 'amber' | 'indigo' | 'rose' | 'cyan' = 'blue';
-  @Input() viewAllLink?: string | any[];
-  @Input() viewAllQueryParams?: Record<string, unknown>;
-  @Input() viewAllText?: string;
-
-  trackById = (_: number, item: CategoryCourseItem) => item.id;
+  title = input('');
+  subtitle = input<string | undefined>(undefined);
+  items = input<CategoryCourseItem[]>([]);
+  brandColor = input<'blue' | 'green' | 'amber' | 'indigo' | 'rose' | 'cyan'>('blue');
+  viewAllLink = input<string | any[] | undefined>(undefined);
+  viewAllQueryParams = input<Record<string, unknown> | undefined>(undefined);
+  viewAllText = input<string | undefined>(undefined);
 
   convertToExtendedCourse(item: CategoryCourseItem): ExtendedCourse {
     // Convert CategoryCourseItem to ExtendedCourse for the enhanced card
@@ -97,8 +99,8 @@ export class CategoryCourseGridComponent {
     };
   }
 
-  get accentTextClass(): string {
-    switch (this.brandColor) {
+  accentTextClass = computed(() => {
+    switch (this.brandColor()) {
       case 'green': return 'text-green-700 hover:text-green-800';
       case 'amber': return 'text-amber-700 hover:text-amber-800';
       case 'indigo': return 'text-indigo-700 hover:text-indigo-800';
@@ -106,5 +108,5 @@ export class CategoryCourseGridComponent {
       case 'cyan': return 'text-cyan-700 hover:text-cyan-800';
       default: return 'text-blue-700 hover:text-blue-800';
     }
-  }
+  });
 }

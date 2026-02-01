@@ -61,14 +61,14 @@ interface PageableResponse {
 })
 export class CourseStudentsListComponent implements OnInit {
   courseId = input.required<string>();
-  
+
   private http = inject(HttpClient);
-  
+
   // State
   students = signal<StudentEnrollment[]>([]);
   loading = signal(false);
   error = signal('');
-  
+
   // Pagination
   currentPage = signal(0);
   pageSize = 20;
@@ -76,7 +76,7 @@ export class CourseStudentsListComponent implements OnInit {
   totalStudents = signal(0);
   isFirstPage = signal(true);
   isLastPage = signal(false);
-  
+
   // Search
   searchTerm = '';
   private searchTimeout: any;
@@ -90,7 +90,7 @@ export class CourseStudentsListComponent implements OnInit {
     this.error.set('');
 
     const searchParam = this.searchTerm ? `&search=${encodeURIComponent(this.searchTerm)}` : '';
-    const url = `/api/v1/courses/${this.courseId()}/students?page=${this.currentPage()}&size=${this.pageSize}${searchParam}`;
+    const url = `/api/v3/courses/${this.courseId()}/students?page=${this.currentPage()}&size=${this.pageSize}${searchParam}`;
 
     this.http.get<{ success: boolean; data: PageableResponse }>(url).subscribe({
       next: (response) => {

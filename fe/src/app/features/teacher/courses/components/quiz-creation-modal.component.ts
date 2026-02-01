@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output, Input, signal, computed, inject } from '@angular/core';
+import { Component, input, output, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
@@ -19,7 +19,8 @@ interface QuizMetadata {
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div *ngIf="isOpen()" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    @if (isOpen()) {
+    <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
       <!-- Backdrop -->
       <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" (click)="close()"></div>
       
@@ -60,9 +61,11 @@ interface QuizMetadata {
                          placeholder="Nhập tiêu đề bài trắc nghiệm"
                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                          [class.border-red-500]="showValidation() && !quizTitle()">
-                  <p *ngIf="showValidation() && !quizTitle()" class="text-xs text-red-500 mt-1">
+                  @if (showValidation() && !quizTitle()) {
+                  <p class="text-xs text-red-500 mt-1">
                     Tiêu đề là bắt buộc
                   </p>
+                  }
                 </div>
 
                 <!-- Description -->
@@ -100,9 +103,11 @@ interface QuizMetadata {
                            placeholder="70"
                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                            [class.border-red-500]="showValidation() && !isValidPassingScore()">
-                    <p *ngIf="showValidation() && !isValidPassingScore()" class="text-xs text-red-500 mt-1">
+                    @if (showValidation() && !isValidPassingScore()) {
+                    <p class="text-xs text-red-500 mt-1">
                       Điểm đạt phải từ 0-100
                     </p>
+                    }
                   </div>
                 </div>
               </div>
@@ -127,9 +132,11 @@ interface QuizMetadata {
                           class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                           [class.border-red-500]="showValidation() && !selectedPackageId()">
                     <option value="">-- Chọn gói câu hỏi --</option>
-                    <option *ngFor="let pkg of packages()" [value]="pkg.id">
+                    @for (pkg of packages(); track pkg.id) {
+                    <option [value]="pkg.id">
                       {{ pkg.name }} ({{ pkg.questionCount }} câu)
                     </option>
+                    }
                   </select>
                   <button (click)="loadPackages()" 
                           [disabled]="packagesLoading()"
@@ -138,13 +145,16 @@ interface QuizMetadata {
                     <span [class]="packagesLoading() ? 'animate-spin' : ''">🔄</span>
                   </button>
                 </div>
-                <p *ngIf="showValidation() && !selectedPackageId()" class="text-xs text-red-500 mt-1">
+                @if (showValidation() && !selectedPackageId()) {
+                <p class="text-xs text-red-500 mt-1">
                   Vui lòng chọn gói câu hỏi
                 </p>
+                }
               </div>
 
               <!-- Questions List -->
-              <div *ngIf="availableQuestions().length > 0" class="border border-gray-200 rounded-lg p-4">
+              @if (availableQuestions().length > 0) {
+              <div class="border border-gray-200 rounded-lg p-4">
                 <div class="flex justify-between items-center mb-3">
                   <div>
                     <h5 class="font-medium text-gray-900">
@@ -167,8 +177,8 @@ interface QuizMetadata {
                 </div>
 
                 <div class="max-h-64 overflow-y-auto space-y-2">
-                  <div *ngFor="let question of availableQuestions()" 
-                       class="flex items-start gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
+                  @for (question of availableQuestions(); track question.id) {
+                  <div class="flex items-start gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
                        (click)="toggleQuestionSelection(question.id)">
                     <input type="checkbox" 
                            [checked]="selectedQuestionIds().has(question.id)"
@@ -181,51 +191,65 @@ interface QuizMetadata {
                         <span class="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded">
                           {{ question.difficulty === 'EASY' ? 'Dễ' : question.difficulty === 'MEDIUM' ? 'Trung bình' : 'Khó' }}
                         </span>
-                        <span *ngIf="question.tags" class="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
+                        @if (question.tags) {
+                        <span class="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
                           {{ question.tags }}
                         </span>
+                        }
                       </div>
                     </div>
                   </div>
+                  }
                 </div>
                 
-                <p *ngIf="showValidation() && selectedQuestionIds().size === 0" class="text-xs text-red-500 mt-2">
+                @if (showValidation() && selectedQuestionIds().size === 0) {
+                <p class="text-xs text-red-500 mt-2">
                   Vui lòng chọn ít nhất một câu hỏi
                 </p>
+                }
               </div>
+              }
 
               <!-- Loading State -->
-              <div *ngIf="questionsLoading()" class="text-center py-8">
+              @if (questionsLoading()) {
+              <div class="text-center py-8">
                 <div class="animate-spin inline-block w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full"></div>
                 <p class="text-gray-600 mt-2">Đang tải câu hỏi...</p>
               </div>
+              }
 
               <!-- Empty State -->
-              <div *ngIf="selectedPackageId() && availableQuestions().length === 0 && !questionsLoading()" 
-                   class="text-center py-8 bg-yellow-50 border border-yellow-200 rounded-lg">
+              @if (selectedPackageId() && availableQuestions().length === 0 && !questionsLoading()) {
+              <div class="text-center py-8 bg-yellow-50 border border-yellow-200 rounded-lg">
                 <p class="text-yellow-700">📦 Gói này chưa có câu hỏi nào.</p>
                 <p class="text-sm text-yellow-600 mt-1">Hãy thêm câu hỏi vào gói hoặc chọn gói khác.</p>
               </div>
+              }
 
-              <div *ngIf="!selectedPackageId() && !questionsLoading()" 
-                   class="text-center py-8 bg-gray-50 border border-gray-200 rounded-lg">
+              @if (!selectedPackageId() && !questionsLoading()) {
+              <div class="text-center py-8 bg-gray-50 border border-gray-200 rounded-lg">
                 <p class="text-gray-600">Chọn gói câu hỏi để bắt đầu</p>
                 <p class="text-sm text-gray-500 mt-1">💡 Gói câu hỏi giúp tổ chức câu hỏi theo chủ đề</p>
               </div>
+              }
 
               <!-- Error State -->
-              <div *ngIf="questionsError()" class="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+              @if (questionsError()) {
+              <div class="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
                 <p class="text-red-700">{{ questionsError() }}</p>
               </div>
+              }
             </div>
           </div>
 
           <!-- Footer -->
           <div class="bg-gray-50 px-6 py-4 flex justify-between items-center border-t border-gray-200">
             <div class="text-sm text-gray-600">
-              <span *ngIf="selectedQuestionIds().size > 0">
+              @if (selectedQuestionIds().size > 0) {
+              <span>
                 ✓ {{ selectedQuestionIds().size }} câu hỏi đã chọn
               </span>
+              }
             </div>
             <div class="flex gap-3">
               <button (click)="close()" 
@@ -235,7 +259,9 @@ interface QuizMetadata {
               <button (click)="createQuiz()" 
                       [disabled]="!isFormValid() || isCreating()"
                       class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
-                <span *ngIf="isCreating()" class="animate-spin">⟳</span>
+                @if (isCreating()) {
+                <span class="animate-spin">⟳</span>
+                }
                 <span>{{ isCreating() ? 'Đang tạo...' : 'Tạo bài trắc nghiệm' }}</span>
               </button>
             </div>
@@ -243,6 +269,7 @@ interface QuizMetadata {
         </div>
       </div>
     </div>
+    }
   `,
   styles: [`
     :host {
@@ -251,14 +278,17 @@ interface QuizMetadata {
   `]
 })
 export class QuizCreationModalComponent {
-  @Input() courseId: string = '';
-  @Input() sectionId: string = '';
-  @Output() quizCreated = new EventEmitter<string>();
-  @Output() closed = new EventEmitter<void>();
+  // Signal inputs (Angular v20+)
+  readonly courseId = input<string>('');
+  readonly sectionId = input<string>('');
 
-  private packageApi = inject(PackageApi);
-  private quizApi = inject(QuizApi);
-  private lessonApi = inject(LessonApi);
+  // Output functions (Angular v20+)
+  readonly quizCreated = output<string>();
+  readonly closed = output<void>();
+
+  private readonly packageApi = inject(PackageApi);
+  private readonly quizApi = inject(QuizApi);
+  private readonly lessonApi = inject(LessonApi);
 
   // Modal state
   isOpen = signal<boolean>(false);
@@ -285,9 +315,9 @@ export class QuizCreationModalComponent {
   // Computed
   isFormValid = computed(() => {
     return this.quizTitle().trim().length > 0 &&
-           this.isValidPassingScore() &&
-           this.selectedPackageId().length > 0 &&
-           this.selectedQuestionIds().size > 0;
+      this.isValidPassingScore() &&
+      this.selectedPackageId().length > 0 &&
+      this.selectedQuestionIds().size > 0;
   });
 
   isValidPassingScore(): boolean {
@@ -335,7 +365,7 @@ export class QuizCreationModalComponent {
   async onPackageChange(packageId: string) {
     this.selectedPackageId.set(packageId);
     this.selectedQuestionIds.set(new Set());
-    
+
     if (!packageId) {
       this.availableQuestions.set([]);
       return;
@@ -347,7 +377,7 @@ export class QuizCreationModalComponent {
   async loadQuestionsFromPackage(packageId: string) {
     this.questionsLoading.set(true);
     this.questionsError.set('');
-    
+
     try {
       const questions = await firstValueFrom(
         this.packageApi.getQuestionsInPackage(packageId)
@@ -404,9 +434,9 @@ export class QuizCreationModalComponent {
 
       console.log('📝 Creating quiz lesson...', lessonPayload);
       const lessonResponse = await firstValueFrom(
-        this.lessonApi.createLesson(this.sectionId, lessonPayload)
+        this.lessonApi.createLesson(this.sectionId(), lessonPayload)
       );
-      
+
       const lessonId = lessonResponse.data.id;
       console.log('✅ Lesson created with ID:', lessonId);
 
@@ -416,7 +446,7 @@ export class QuizCreationModalComponent {
         const existingQuizResponse = await firstValueFrom(
           this.quizApi.getQuizByLessonId(lessonId)
         );
-        
+
         // Quiz exists, update questions
         console.log('📝 Quiz already exists, updating questions...');
         await firstValueFrom(
@@ -425,7 +455,7 @@ export class QuizCreationModalComponent {
           })
         );
         console.log('✅ Quiz updated successfully with', this.selectedQuestionIds().size, 'questions');
-        
+
       } catch (getQuizError: any) {
         // Quiz doesn't exist (404), create new one
         if (getQuizError?.status === 404 || getQuizError?.error?.message?.includes('not found')) {
@@ -451,7 +481,7 @@ export class QuizCreationModalComponent {
           throw getQuizError;
         }
       }
-      
+
       this.quizCreated.emit(lessonId);
       this.close();
     } catch (error: any) {

@@ -1,9 +1,9 @@
 import {
   Component,
-  Input,
+  input,
   OnInit,
   OnDestroy,
-  ViewChild,
+  viewChild,
   ElementRef,
   effect,
   signal,
@@ -145,28 +145,36 @@ import { interval, Subscription } from 'rxjs';
   ],
 })
 export class VideoPlayerTrackedComponent implements OnInit, AfterViewInit, OnDestroy {
-  @ViewChild('videoPlayer', { static: true }) videoElementRef!: ElementRef<HTMLVideoElement>;
+  videoPlayerRef = viewChild<ElementRef<HTMLVideoElement>>('videoPlayer');
 
-  @Input() videoUrl: string = '';
-  @Input() sectionId: string = '';
-  @Input() autoplay: boolean = false;
-  @Input() trackingInterval: number = 5000; // Track every 5 seconds
+  // Signal inputs - Angular v20+
+  videoUrl = input<string>('');
+  sectionId = input<string>('');
+  autoplay = input<boolean>(false);
+  trackingInterval = input<number>(5000); // Track every 5 seconds
 
   private videoProgressApi = inject(VideoProgressApi);
   private player: Player | null = null;
   private trackingSubscription?: Subscription;
   private lastTrackedTime: number = 0;
 
-  // Signals
+  // Signals for state
   currentProgress = signal<number>(0);
   isCompleted = signal<boolean>(false);
   showProgressOverlay = signal<boolean>(true);
 
+  // Effect to load progress when sectionId changes
+  constructor() {
+    effect(() => {
+      const id = this.sectionId();
+      if (id) {
+        this.loadExistingProgress();
+      }
+    });
+  }
+
   ngOnInit(): void {
-    // Load existing progress when component initializes
-    if (this.sectionId) {
-      this.loadExistingProgress();
-    }
+    // Progress loading now handled by effect
   }
 
   ngAfterViewInit(): void {
@@ -178,22 +186,23 @@ export class VideoPlayerTrackedComponent implements OnInit, AfterViewInit, OnDes
   }
 
   private initializePlayer(): void {
-    if (!this.videoElementRef?.nativeElement) {
+    const videoElement = this.videoPlayerRef();
+    if (!videoElement?.nativeElement) {
       console.error('Video element not found');
       return;
     }
 
     // Initialize Video.js
-    this.player = videojs(this.videoElementRef.nativeElement, {
+    this.player = videojs(videoElement.nativeElement, {
       controls: true,
-      autoplay: this.autoplay,
+      autoplay: this.autoplay(),
       preload: 'auto',
       fluid: true,
       responsive: true,
       sources: [
         {
-          src: this.videoUrl,
-          type: this.getVideoType(this.videoUrl),
+          src: this.videoUrl(),
+          type: this.getVideoType(this.videoUrl()),
         },
       ],
     });
@@ -243,7 +252,7 @@ export class VideoPlayerTrackedComponent implements OnInit, AfterViewInit, OnDes
     if (this.trackingSubscription) return;
 
     // Track progress every N seconds
-    this.trackingSubscription = interval(this.trackingInterval).subscribe(() => {
+    this.trackingSubscription = interval(this.trackingInterval()).subscribe(() => {
       this.trackProgressNow();
     });
   }
@@ -256,7 +265,7 @@ export class VideoPlayerTrackedComponent implements OnInit, AfterViewInit, OnDes
   }
 
   private trackProgressNow(): void {
-    if (!this.player || !this.sectionId) return;
+    if (!this.player || !this.sectionId()) return;
 
     const currentTime = Math.floor(this.player.currentTime() || 0);
     const duration = Math.floor(this.player.duration() || 0);
@@ -269,7 +278,7 @@ export class VideoPlayerTrackedComponent implements OnInit, AfterViewInit, OnDes
     this.lastTrackedTime = currentTime;
 
     const request: TrackProgressRequest = {
-      sectionId: this.sectionId,
+      sectionId: this.sectionId(),
       currentPosition: currentTime,
       duration,
     };
@@ -305,7 +314,7 @@ export class VideoPlayerTrackedComponent implements OnInit, AfterViewInit, OnDes
   }
 
   private loadExistingProgress(): void {
-    this.videoProgressApi.getProgress(this.sectionId).subscribe({
+    this.videoProgressApi.getProgress(this.sectionId()).subscribe({
       next: (response) => {
         if (response.success && response.data) {
           const progress = response.data;

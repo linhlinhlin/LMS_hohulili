@@ -1,41 +1,62 @@
 import { Injectable, inject } from '@angular/core';
 import { OfflineStorageService } from './offline-storage.service';
-import { AuthService } from './auth.service';
 
 @Injectable({
     providedIn: 'root'
 })
 export class ContentIdentityService {
     private offlineStorage = inject(OfflineStorageService);
-    private authService = inject(AuthService);
-    private readonly CDN_BASE_URL = '/api/v1/files/view/'; // Adjust based on FileView logic
+
+    // Store UUID -> R2 URL mappings (populated when images are uploaded)
+    private static imageUrlMap = new Map<string, string>();
+
+    /**
+     * Register a UUID -> URL mapping (called after successful upload)
+     */
+    static registerImageUrl(uuid: string, url: string) {
+        this.imageUrlMap.set(uuid, url);
+    }
+
+    /**
+     * Get the URL for a UUID
+     */
+    static getImageUrl(uuid: string): string | undefined {
+        return this.imageUrlMap.get(uuid);
+    }
 
     /**
      * Resolves a Content Block UUID to a usable URL.
      * Logic:
-     * 1. Check if Offline Mode & Image is in IDB -> Return Blob URL
-     * 2. If Online -> Return CDN URL with Token (SOTA for 403 fix)
+     * 1. Check if it's already a full URL -> return as-is
+     * 2. Check if we have a registered R2 URL for this UUID -> return it
+     * 3. Fallback: return placeholder
      */
     resolveUrl(uuid: string): string {
         if (!uuid) return '';
 
-        // Check if it's already a full URL (legacy)
+        // Check if it's already a full URL (R2 CDN URL or legacy)
         if (uuid.startsWith('http') || uuid.startsWith('assets/')) {
             return uuid;
         }
 
-        const token = this.authService.getToken();
-        const baseUrl = `${this.CDN_BASE_URL}${uuid}`;
+        // Check if we have a registered R2 URL for this UUID
+        const registeredUrl = ContentIdentityService.imageUrlMap.get(uuid);
+        if (registeredUrl) {
+            return registeredUrl;
+        }
 
-        return token ? `${baseUrl}?token=${token}` : baseUrl;
+        // Fallback: placeholder (image not found)
+        console.warn(`ContentIdentityService: No URL found for UUID ${uuid}`);
+        return 'assets/placeholder.png';
     }
 
     /**
      * Resolves the thumbnail URL for a video or generic file
      */
     resolveThumbnail(uuid: string): string {
-        const token = this.authService.getToken();
-        const baseUrl = `${this.CDN_BASE_URL}${uuid}/thumbnail`;
-        return token ? `${baseUrl}?token=${token}` : baseUrl;
+        const url = this.resolveUrl(uuid);
+        // For R2 URLs, append thumbnail suffix if supported
+        return url;
     }
 }
+

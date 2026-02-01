@@ -1,12 +1,12 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 @Component({
-    selector: 'app-knowledge-upload',
-    standalone: true,
-    imports: [CommonModule, FormsModule],
-    template: `
+  selector: 'app-knowledge-upload',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  template: `
     <div class="upload-container">
       <h3 class="upload-title">Tải lên tài liệu mới</h3>
       
@@ -18,7 +18,7 @@ import { FormsModule } from '@angular/forms';
             id="category" 
             [(ngModel)]="selectedCategory" 
             class="form-control"
-            [disabled]="isUploading"
+            [disabled]="isUploading()"
           >
             <option value="" disabled selected>Chọn danh mục...</option>
             <option value="COLREGs">COLREGs</option>
@@ -47,52 +47,60 @@ import { FormsModule } from '@angular/forms';
             hidden
           >
           
-          <div class="drop-content" *ngIf="!selectedFile">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="upload-icon">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-            </svg>
-            <p class="drop-text">Kéo thả file PDF vào đây hoặc <span>nhấn để chọn</span></p>
-            <p class="drop-hint">Chỉ hỗ trợ file PDF (Tối đa 50MB)</p>
-          </div>
-
-          <div class="file-preview" *ngIf="selectedFile">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="file-icon">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-            </svg>
-            <div class="file-info">
-              <div class="file-name">{{ selectedFile.name }}</div>
-              <div class="file-size">{{ formatFileSize(selectedFile.size) }}</div>
-            </div>
-            <button 
-              class="remove-file-btn" 
-              (click)="removeFile($event)"
-              [disabled]="isUploading"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          @if (!selectedFile) {
+            <div class="drop-content">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="upload-icon">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
               </svg>
-            </button>
-          </div>
+              <p class="drop-text">Kéo thả file PDF vào đây hoặc <span>nhấn để chọn</span></p>
+              <p class="drop-hint">Chỉ hỗ trợ file PDF (Tối đa 50MB)</p>
+            </div>
+          }
+
+          @if (selectedFile) {
+            <div class="file-preview">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="file-icon">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+              </svg>
+              <div class="file-info">
+                <div class="file-name">{{ selectedFile.name }}</div>
+                <div class="file-size">{{ formatFileSize(selectedFile.size) }}</div>
+              </div>
+              <button 
+                class="remove-file-btn" 
+                (click)="removeFile($event)"
+                [disabled]="isUploading()"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          }
         </div>
 
         <!-- Upload Button -->
         <button 
           class="upload-btn" 
-          [disabled]="!selectedFile || !selectedCategory || isUploading"
+          [disabled]="!selectedFile || !selectedCategory || isUploading()"
           (click)="onUpload()"
         >
-          <span *ngIf="!isUploading">Tải lên</span>
-          <span *ngIf="isUploading" class="loading-text">
-            <svg class="spinner" viewBox="0 0 50 50">
-              <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle>
-            </svg>
-            Đang tải lên...
-          </span>
+          @if (!isUploading()) {
+            <span>Tải lên</span>
+          }
+          @if (isUploading()) {
+            <span class="loading-text">
+              <svg class="spinner" viewBox="0 0 50 50">
+                <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle>
+              </svg>
+              Đang tải lên...
+            </span>
+          }
         </button>
       </div>
     </div>
   `,
-    styles: [`
+  styles: [`
     .upload-container {
       background: white;
       border-radius: 12px;
@@ -279,74 +287,74 @@ import { FormsModule } from '@angular/forms';
   `]
 })
 export class KnowledgeUploadComponent {
-    @Input() isUploading = false;
-    @Output() upload = new EventEmitter<{ file: File, category: string }>();
+  isUploading = input(false);
+  upload = output<{ file: File, category: string }>();
 
-    selectedCategory = '';
-    selectedFile: File | null = null;
-    isDragOver = false;
+  selectedCategory = '';
+  selectedFile: File | null = null;
+  isDragOver = false;
 
-    onDragOver(event: DragEvent) {
-        event.preventDefault();
-        event.stopPropagation();
-        this.isDragOver = true;
+  onDragOver(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragOver = true;
+  }
+
+  onDragLeave(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragOver = false;
+  }
+
+  onDrop(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragOver = false;
+
+    const files = event.dataTransfer?.files;
+    if (files && files.length > 0) {
+      this.handleFile(files[0]);
     }
+  }
 
-    onDragLeave(event: DragEvent) {
-        event.preventDefault();
-        event.stopPropagation();
-        this.isDragOver = false;
+  onFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      this.handleFile(input.files[0]);
     }
+  }
 
-    onDrop(event: DragEvent) {
-        event.preventDefault();
-        event.stopPropagation();
-        this.isDragOver = false;
-
-        const files = event.dataTransfer?.files;
-        if (files && files.length > 0) {
-            this.handleFile(files[0]);
-        }
+  handleFile(file: File) {
+    if (file.type !== 'application/pdf') {
+      alert('Chỉ hỗ trợ file PDF');
+      return;
     }
-
-    onFileSelected(event: Event) {
-        const input = event.target as HTMLInputElement;
-        if (input.files && input.files.length > 0) {
-            this.handleFile(input.files[0]);
-        }
+    if (file.size > 50 * 1024 * 1024) { // 50MB
+      alert('File quá lớn (Tối đa 50MB)');
+      return;
     }
+    this.selectedFile = file;
+  }
 
-    handleFile(file: File) {
-        if (file.type !== 'application/pdf') {
-            alert('Chỉ hỗ trợ file PDF');
-            return;
-        }
-        if (file.size > 50 * 1024 * 1024) { // 50MB
-            alert('File quá lớn (Tối đa 50MB)');
-            return;
-        }
-        this.selectedFile = file;
-    }
+  removeFile(event: Event) {
+    event.stopPropagation();
+    this.selectedFile = null;
+  }
 
-    removeFile(event: Event) {
-        event.stopPropagation();
-        this.selectedFile = null;
+  onUpload() {
+    if (this.selectedFile && this.selectedCategory) {
+      this.upload.emit({
+        file: this.selectedFile,
+        category: this.selectedCategory
+      });
     }
+  }
 
-    onUpload() {
-        if (this.selectedFile && this.selectedCategory) {
-            this.upload.emit({
-                file: this.selectedFile,
-                category: this.selectedCategory
-            });
-        }
-    }
-
-    formatFileSize(bytes: number): string {
-        if (bytes === 0) return '0 Bytes';
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    }
+  formatFileSize(bytes: number): string {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
 }

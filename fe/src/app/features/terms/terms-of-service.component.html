@@ -1,0 +1,437 @@
+﻿
+    <div class="min-h-screen bg-gray-50 text-gray-900 relative overflow-hidden">
+      <!-- Hero Section -->
+      <div class="relative py-16 bg-blue-50 border-b border-blue-100 overflow-hidden">
+        <!-- Background Elements -->
+        <div class="absolute inset-0 z-0 opacity-10">
+          <div class="absolute top-0 left-0 w-64 h-64 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full filter blur-3xl opacity-20 -translate-x-1/2 -translate-y-1/2"></div>
+          <div class="absolute bottom-0 right-0 w-64 h-64 bg-gradient-to-r from-purple-400 to-blue-500 rounded-full filter blur-3xl opacity-20 translate-x-1/2 translate-y-1/2"></div>
+        </div>
+
+        <div class="container mx-auto px-4 relative z-10">
+          <div class="max-w-4xl mx-auto text-center">
+            <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-gray-900">
+              Äiá»u Khoáº£n Sá»­ Dá»¥ng
+            </h1>
+            <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+              Hiá»ƒu rĂµ quyá»n vĂ  trĂ¡ch nhiá»‡m cá»§a báº¡n khi tham gia vĂ o há»‡ thá»‘ng há»c táº­p hĂ ng háº£i minh báº¡ch vĂ  an toĂ n cá»§a chĂºng tĂ´i
+            </p>
+
+            <div class="mt-8 flex flex-wrap justify-center gap-4">
+              <div class="flex items-center space-x-2 px-4 py-2 rounded-full bg-gray-100 text-gray-600">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span>Cáº­p nháº­t: 15/03/2025</span>
+              </div>
+              <div class="flex items-center space-x-2 px-4 py-2 rounded-full bg-gray-100 text-gray-600">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span>PhiĂªn báº£n: 2.1.0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Content -->
+      <main class="container mx-auto px-4 py-12 flex flex-col lg:flex-row gap-8">
+        <!-- Table of Contents - Sidebar -->
+        <aside class="w-full lg:w-1/4 lg:sticky lg:top-24 lg:self-start mb-8 lg:mb-0">
+          <div class="bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden transition-all duration-300">
+            <div class="p-4 border-b border-gray-200 flex justify-between items-center">
+              <h2 class="text-xl font-bold flex items-center">
+                <svg class="h-5 w-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                Má»¥c lá»¥c
+              </h2>
+              <button
+                (click)="setIsTocVisible(!isTocVisible())"
+                class="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                aria-label="Toggle Table of Contents">
+                @if (isTocVisible()) {
+                  <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
+                  </svg>
+                } @else {
+                  <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                }
+              </button>
+            </div>
+
+            @if (isTocVisible()) {
+              <nav class="p-4">
+                <ul class="space-y-1">
+                  @for (section of sections; track section.id) {
+                    <li>
+                      <button
+                        (click)="scrollToSection(section.id)"
+                        [class]="getSectionClass(section.id)"
+                        class="w-full text-left px-3 py-2 rounded-lg flex items-center transition-colors">
+                        <div [class]="getDotClass(section.id)" class="w-1.5 h-1.5 rounded-full mr-2"></div>
+                        {{ section.title }}
+                      </button>
+                    </li>
+                  }
+                </ul>
+              </nav>
+            }
+
+            <div class="p-4 border-t border-gray-200">
+              <a routerLink="/privacy" class="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700 transition-colors">
+                <svg class="h-4 w-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                </svg>
+                <span>Xem ChĂ­nh SĂ¡ch Báº£o Máº­t</span>
+              </a>
+            </div>
+          </div>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="w-full lg:w-3/4">
+          <div class="bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden mb-8">
+            <div class="p-6 md:p-8">
+              <section id="gioi-thieu" class="mb-12">
+                <div class="flex items-center mb-4">
+                  <div class="mr-4 p-3 rounded-full bg-gradient-to-br from-blue-500 to-purple-600">
+                    <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                  </div>
+                  <h2 class="text-2xl md:text-3xl font-bold">Giá»›i Thiá»‡u</h2>
+                </div>
+
+                <div class="ml-16">
+                  <p class="text-gray-600 mb-4 leading-relaxed">
+                    ChĂ o má»«ng báº¡n Ä‘áº¿n vá»›i ná»n táº£ng LMS Maritime - má»™t há»‡ thá»‘ng há»c táº­p hiá»‡n Ä‘áº¡i
+                    chuyĂªn vá» lÄ©nh vá»±c hĂ ng háº£i, Ä‘Æ°á»£c thiáº¿t káº¿ Ä‘á»ƒ Ä‘áº£m báº£o tĂ­nh minh báº¡ch, báº£o máº­t
+                    vĂ  hiá»‡u quáº£ trong viá»‡c Ä‘Ă o táº¡o vĂ  há»c táº­p.
+                  </p>
+
+                  <p class="text-gray-600 mb-4 leading-relaxed">
+                    Äiá»u khoáº£n sá»­ dá»¥ng nĂ y ("Äiá»u Khoáº£n") quy Ä‘á»‹nh cĂ¡c Ä‘iá»u kiá»‡n vĂ  Ä‘iá»u khoáº£n chi
+                    phá»‘i viá»‡c sá»­ dá»¥ng ná»n táº£ng LMS Maritime cá»§a chĂºng tĂ´i, bao gá»“m táº¥t cáº£ cĂ¡c
+                    tĂ­nh nÄƒng, chá»©c nÄƒng vĂ  dá»‹ch vá»¥ liĂªn quan (gá»i chung lĂ  "Ná»n Táº£ng"). Báº±ng
+                    viá»‡c truy cáº­p hoáº·c sá»­ dá»¥ng Ná»n Táº£ng, báº¡n Ä‘á»“ng Ă½ bá»‹ rĂ ng buá»™c bá»Ÿi cĂ¡c Äiá»u Khoáº£n
+                    nĂ y.
+                  </p>
+
+                  <div class="p-4 rounded-lg bg-blue-50 flex items-start space-x-3 mb-4">
+                    <svg class="h-5 w-5 mt-0.5 flex-shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                    </svg>
+                    <p class="text-sm text-gray-700">
+                      Vui lĂ²ng Ä‘á»c ká»¹ cĂ¡c Äiá»u Khoáº£n nĂ y trÆ°á»›c khi sá»­ dá»¥ng Ná»n Táº£ng. Náº¿u báº¡n khĂ´ng
+                      Ä‘á»“ng Ă½ vá»›i báº¥t ká»³ pháº§n nĂ o cá»§a Äiá»u Khoáº£n, vui lĂ²ng khĂ´ng sá»­ dá»¥ng Ná»n Táº£ng.
+                    </p>
+                  </div>
+
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                    <div class="p-4 rounded-lg border border-gray-200 bg-white">
+                      <svg class="h-8 w-8 text-blue-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                      </svg>
+                      <h3 class="font-semibold mb-2">Báº£o Máº­t Tuyá»‡t Äá»‘i</h3>
+                      <p class="text-sm text-gray-600">
+                        Dá»¯ liá»‡u Ä‘Æ°á»£c mĂ£ hĂ³a vĂ  lÆ°u trá»¯ an toĂ n trĂªn há»‡ thá»‘ng
+                      </p>
+                    </div>
+                    <div class="p-4 rounded-lg border border-gray-200 bg-white">
+                      <svg class="h-8 w-8 text-purple-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                      </svg>
+                      <h3 class="font-semibold mb-2">Minh Báº¡ch HoĂ n ToĂ n</h3>
+                      <p class="text-sm text-gray-600">
+                        Má»i hoáº¡t Ä‘á»™ng há»c táº­p Ä‘á»u Ä‘Æ°á»£c ghi láº¡i vĂ  cĂ³ thá»ƒ kiá»ƒm chá»©ng
+                      </p>
+                    </div>
+                    <div class="p-4 rounded-lg border border-gray-200 bg-white">
+                      <svg class="h-8 w-8 text-green-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                      </svg>
+                      <h3 class="font-semibold mb-2">KhĂ´ng Thá»ƒ Thay Äá»•i</h3>
+                      <p class="text-sm text-gray-600">
+                        Dá»¯ liá»‡u má»™t khi Ä‘Ă£ Ä‘Æ°á»£c ghi vĂ o há»‡ thá»‘ng khĂ´ng thá»ƒ bá»‹ sá»­a Ä‘á»•i
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section id="chap-nhan-dieu-khoan" class="mb-12">
+                <div class="flex items-center mb-4">
+                  <div class="mr-4 p-3 rounded-full bg-gradient-to-br from-green-500 to-teal-600">
+                    <svg class="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                  </div>
+                  <h2 class="text-2xl md:text-3xl font-bold">Cháº¥p Nháº­n Äiá»u Khoáº£n</h2>
+                </div>
+
+                <div class="ml-16">
+                  <p class="text-gray-600 mb-4 leading-relaxed">
+                    Báº±ng viá»‡c truy cáº­p hoáº·c sá»­ dá»¥ng Ná»n Táº£ng, báº¡n xĂ¡c nháº­n ráº±ng báº¡n Ä‘Ă£ Ä‘á»c, hiá»ƒu vĂ 
+                    Ä‘á»“ng Ă½ bá»‹ rĂ ng buá»™c bá»Ÿi cĂ¡c Äiá»u Khoáº£n nĂ y. Náº¿u báº¡n khĂ´ng Ä‘á»“ng Ă½ vá»›i báº¥t ká»³ pháº§n
+                    nĂ o cá»§a Äiá»u Khoáº£n, vui lĂ²ng khĂ´ng sá»­ dá»¥ng Ná»n Táº£ng.
+                  </p>
+
+                  <h3 class="text-xl font-semibold mb-3">Äiá»u Kiá»‡n Sá»­ Dá»¥ng</h3>
+                  <ul class="list-disc pl-5 space-y-2 mb-4">
+                    <li class="text-gray-600">
+                      <span class="font-medium">Äá»™ tuá»•i:</span> Báº¡n pháº£i tá»« 16 tuá»•i trá»Ÿ lĂªn Ä‘á»ƒ sá»­ dá»¥ng ná»n táº£ng há»c táº­p.
+                    </li>
+                    <li class="text-gray-600">
+                      <span class="font-medium">NÄƒng lá»±c phĂ¡p lĂ½:</span> Báº¡n pháº£i cĂ³ Ä‘áº§y Ä‘á»§ nÄƒng
+                      lá»±c phĂ¡p lĂ½ Ä‘á»ƒ tham gia vĂ o má»™t thá»a thuáº­n rĂ ng buá»™c phĂ¡p lĂ½.
+                    </li>
+                    <li class="text-gray-600">
+                      <span class="font-medium">TuĂ¢n thá»§ phĂ¡p luáº­t:</span> Báº¡n Ä‘á»“ng Ă½ sá»­ dá»¥ng
+                      Ná»n Táº£ng tuĂ¢n theo táº¥t cáº£ cĂ¡c luáº­t vĂ  quy Ä‘á»‹nh hiá»‡n hĂ nh.
+                    </li>
+                  </ul>
+
+                  <div class="p-4 rounded-lg bg-gray-50 border-l-4 border-blue-600 mb-4">
+                    <h4 class="font-semibold mb-2">LÆ°u Ă½ quan trá»ng</h4>
+                    <p class="text-sm text-gray-700">
+                      ChĂºng tĂ´i cĂ³ quyá»n thay Ä‘á»•i, sá»­a Ä‘á»•i, bá»• sung hoáº·c xĂ³a bá» cĂ¡c pháº§n cá»§a Äiá»u
+                      Khoáº£n nĂ y vĂ o báº¥t ká»³ lĂºc nĂ o. Nhá»¯ng thay Ä‘á»•i sáº½ cĂ³ hiá»‡u lá»±c ngay khi Ä‘Æ°á»£c Ä‘Äƒng
+                      táº£i trĂªn Ná»n Táº£ng. Viá»‡c báº¡n tiáº¿p tá»¥c sá»­ dá»¥ng Ná»n Táº£ng sau khi cĂ¡c thay Ä‘á»•i
+                      Ä‘Æ°á»£c Ä‘Äƒng táº£i Ä‘á»“ng nghÄ©a vá»›i viá»‡c báº¡n cháº¥p nháº­n nhá»¯ng thay Ä‘á»•i Ä‘Ă³.
+                    </p>
+                  </div>
+
+                  <div class="flex items-center justify-between p-4 rounded-lg bg-gradient-to-r from-blue-500 to-purple-600">
+                    <div class="flex items-center">
+                      <svg class="h-10 w-10 text-white mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                      </svg>
+                      <div>
+                        <h3 class="text-white font-bold">Cam Káº¿t Báº£o Máº­t</h3>
+                        <p class="text-white text-opacity-90 text-sm">
+                          ChĂºng tĂ´i cam káº¿t báº£o vá»‡ thĂ´ng tin cĂ¡ nhĂ¢n cá»§a báº¡n
+                        </p>
+                      </div>
+                    </div>
+                    <a
+                      routerLink="/privacy"
+                      class="px-4 py-2 bg-white text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition-colors">
+                      TĂ¬m hiá»ƒu thĂªm
+                    </a>
+                  </div>
+                </div>
+              </section>
+
+              <section id="muc-dich-su-dung" class="mb-12">
+                <div class="flex items-center mb-4">
+                  <div class="mr-4 p-3 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600">
+                    <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    </svg>
+                  </div>
+                  <h2 class="text-2xl md:text-3xl font-bold">Má»¥c ÄĂ­ch Sá»­ Dá»¥ng</h2>
+                </div>
+
+                <div class="ml-16">
+                  <p class="text-gray-600 mb-4 leading-relaxed">
+                    Ná»n Táº£ng cá»§a chĂºng tĂ´i Ä‘Æ°á»£c thiáº¿t káº¿ Ä‘á»ƒ cung cáº¥p má»™t há»‡ thá»‘ng há»c táº­p minh báº¡ch,
+                    an toĂ n vĂ  Ä‘Ă¡ng tin cáº­y chuyĂªn vá» lÄ©nh vá»±c hĂ ng háº£i. Má»¥c Ä‘Ă­ch sá»­ dá»¥ng cá»§a Ná»n
+                    Táº£ng bao gá»“m:
+                  </p>
+
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div class="p-4 rounded-lg border border-gray-200 bg-white">
+                      <h3 class="font-semibold mb-2 flex items-center">
+                        <span class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mr-2">
+                          1
+                        </span>
+                        ÄĂ o Táº¡o HĂ ng Háº£i
+                      </h3>
+                      <p class="text-sm text-gray-600">
+                        Cung cáº¥p cĂ¡c khĂ³a há»c chuyĂªn sĂ¢u vá» hĂ ng háº£i, an toĂ n biá»ƒn, Ä‘iá»u khiá»ƒn tĂ u vĂ  cĂ¡c chá»©ng chá»‰ chuyĂªn mĂ´n.
+                      </p>
+                    </div>
+                    <div class="p-4 rounded-lg border border-gray-200 bg-white">
+                      <h3 class="font-semibold mb-2 flex items-center">
+                        <span class="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center mr-2">
+                          2
+                        </span>
+                        Há»c Táº­p TÆ°Æ¡ng TĂ¡c
+                      </h3>
+                      <p class="text-sm text-gray-600">
+                        Cho phĂ©p há»c viĂªn tham gia há»c táº­p má»™t cĂ¡ch tÆ°Æ¡ng tĂ¡c, lĂ m bĂ i táº­p vĂ  kiá»ƒm tra trá»±c tuyáº¿n.
+                      </p>
+                    </div>
+                    <div class="p-4 rounded-lg border border-gray-200 bg-white">
+                      <h3 class="font-semibold mb-2 flex items-center">
+                        <span class="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center mr-2">
+                          3
+                        </span>
+                        Quáº£n LĂ½ Tiáº¿n Äá»™
+                      </h3>
+                      <p class="text-sm text-gray-600">
+                        Theo dĂµi vĂ  Ä‘Ă¡nh giĂ¡ tiáº¿n Ä‘á»™ há»c táº­p cá»§a há»c viĂªn má»™t cĂ¡ch chĂ­nh xĂ¡c vĂ  minh báº¡ch.
+                      </p>
+                    </div>
+                    <div class="p-4 rounded-lg border border-gray-200 bg-white">
+                      <h3 class="font-semibold mb-2 flex items-center">
+                        <span class="w-8 h-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mr-2">
+                          4
+                        </span>
+                        Cáº¥p Chá»©ng Chá»‰
+                      </h3>
+                      <p class="text-sm text-gray-600">
+                        Cáº¥p phĂ¡t cĂ¡c chá»©ng chá»‰ chuyĂªn mĂ´n hĂ ng háº£i Ä‘Æ°á»£c cĂ´ng nháº­n vĂ  cĂ³ giĂ¡ trá»‹ phĂ¡p lĂ½.
+                      </p>
+                    </div>
+                  </div>
+
+                  <h3 class="text-xl font-semibold mb-3">Äá»‘i TÆ°á»£ng Sá»­ Dá»¥ng</h3>
+                  <ul class="list-disc pl-5 space-y-2 mb-4">
+                    <li class="text-gray-600">
+                      <span class="font-medium">Há»c viĂªn:</span> CĂ¡ nhĂ¢n tham gia cĂ¡c khĂ³a há»c hĂ ng háº£i trĂªn Ná»n Táº£ng.
+                    </li>
+                    <li class="text-gray-600">
+                      <span class="font-medium">Giáº£ng viĂªn:</span> CĂ¡ nhĂ¢n hoáº·c tá»• chá»©c táº¡o vĂ  quáº£n lĂ½ cĂ¡c khĂ³a há»c.
+                    </li>
+                    <li class="text-gray-600">
+                      <span class="font-medium">Quáº£n trá»‹ viĂªn:</span> CĂ¡ nhĂ¢n hoáº·c tá»• chá»©c Ä‘Æ°á»£c
+                      á»§y quyá»n Ä‘á»ƒ quáº£n lĂ½ há»‡ thá»‘ng vĂ  giĂ¡m sĂ¡t hoáº¡t Ä‘á»™ng.
+                    </li>
+                    <li class="text-gray-600">
+                      <span class="font-medium">Doanh nghiá»‡p:</span> CĂ¡c cĂ´ng ty hĂ ng háº£i sá»­ dá»¥ng
+                      ná»n táº£ng Ä‘á»ƒ Ä‘Ă o táº¡o nhĂ¢n viĂªn.
+                    </li>
+                  </ul>
+
+                  <div class="p-4 rounded-lg bg-amber-50 border-l-4 border-amber-500 mb-4">
+                    <h4 class="font-semibold mb-2 flex items-center">
+                      <svg class="h-5 w-5 mr-2 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                      </svg>
+                      Háº¡n cháº¿ sá»­ dá»¥ng
+                    </h4>
+                    <p class="text-sm text-gray-700">
+                      Ná»n Táº£ng khĂ´ng Ä‘Æ°á»£c sá»­ dá»¥ng cho cĂ¡c má»¥c Ä‘Ă­ch báº¥t há»£p phĂ¡p, gian láº­n, hoáº·c báº¥t
+                      ká»³ hoáº¡t Ä‘á»™ng nĂ o vi pháº¡m phĂ¡p luáº­t hiá»‡n hĂ nh. ChĂºng tĂ´i cĂ³ quyá»n tá»« chá»‘i dá»‹ch
+                      vá»¥ Ä‘á»‘i vá»›i báº¥t ká»³ ngÆ°á»i dĂ¹ng nĂ o vi pháº¡m cĂ¡c Ä‘iá»u khoáº£n nĂ y.
+                    </p>
+                  </div>
+                </div>
+              </section>
+
+              <section id="lien-he" class="mb-12">
+                <div class="flex items-center mb-4">
+                  <div class="mr-4 p-3 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600">
+                    <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                  </div>
+                  <h2 class="text-2xl md:text-3xl font-bold">LiĂªn Há»‡</h2>
+                </div>
+
+                <div class="ml-16">
+                  <p class="text-gray-600 mb-4 leading-relaxed">
+                    Náº¿u báº¡n cĂ³ báº¥t ká»³ cĂ¢u há»i, tháº¯c máº¯c hoáº·c pháº£n há»“i nĂ o vá» cĂ¡c Äiá»u Khoáº£n nĂ y hoáº·c
+                    Ná»n Táº£ng, vui lĂ²ng liĂªn há»‡ vá»›i chĂºng tĂ´i qua:
+                  </p>
+
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div class="p-4 rounded-lg border border-gray-200 bg-white flex items-start space-x-3">
+                      <div class="p-2 rounded-full bg-blue-50">
+                        <svg class="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                        </svg>
+                      </div>
+                      <div>
+                        <h3 class="font-semibold mb-1">Email</h3>
+                        <a href="mailto:contact@lms-maritime.vn" class="text-blue-600 hover:text-blue-700">
+                          contact@lms-maritime.vn
+                        </a>
+                      </div>
+                    </div>
+                    <div class="p-4 rounded-lg border border-gray-200 bg-white flex items-start space-x-3">
+                      <div class="p-2 rounded-full bg-blue-50">
+                        <svg class="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+                        </svg>
+                      </div>
+                      <div>
+                        <h3 class="font-semibold mb-1">Äiá»‡n Thoáº¡i</h3>
+                        <a href="tel:+84123456789" class="text-blue-600 hover:text-blue-700">
+                          +84 123 456 789
+                        </a>
+                      </div>
+                    </div>
+                    <div class="p-4 rounded-lg border border-gray-200 bg-white flex items-start space-x-3">
+                      <div class="p-2 rounded-full bg-blue-50">
+                        <svg class="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                      </div>
+                      <div>
+                        <h3 class="font-semibold mb-1">Äá»‹a Chá»‰</h3>
+                        <p class="text-gray-600">
+                          484 Láº¡ch Tray, KĂªnh DÆ°Æ¡ng, LĂª ChĂ¢n, Háº£i PhĂ²ng, Viá»‡t Nam
+                        </p>
+                      </div>
+                    </div>
+                    <div class="p-4 rounded-lg border border-gray-200 bg-white flex items-start space-x-3">
+                      <div class="p-2 rounded-full bg-blue-50">
+                        <svg class="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                      </div>
+                      <div>
+                        <h3 class="font-semibold mb-1">Há»— Trá»£</h3>
+                        <a routerLink="/contact" class="text-blue-600 hover:text-blue-700">
+                          Gá»­i yĂªu cáº§u há»— trá»£
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="flex flex-col md:flex-row items-center justify-between p-6 rounded-lg bg-gradient-to-r from-blue-500 to-purple-600">
+                    <div class="mb-4 md:mb-0 text-center md:text-left">
+                      <h3 class="text-white font-bold text-xl mb-2">CĂ²n Tháº¯c Máº¯c?</h3>
+                      <p class="text-white text-opacity-90">
+                        ChĂºng tĂ´i luĂ´n sáºµn sĂ ng giáº£i Ä‘Ă¡p má»i tháº¯c máº¯c cá»§a báº¡n
+                      </p>
+                    </div>
+                    <a
+                      routerLink="/contact"
+                      class="px-6 py-3 bg-white text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition-colors shadow-lg">
+                      LiĂªn Há»‡ Ngay
+                    </a>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <footer class="text-center mb-8">
+            <p class="text-gray-600">Cáº­p nháº­t láº§n cuá»‘i: 15/03/2025 | PhiĂªn báº£n: 2.1.0</p>
+            <div class="flex justify-center mt-4 space-x-4">
+              <a routerLink="/" class="text-blue-600 hover:text-blue-700">
+                Trang Chá»§
+              </a>
+              <span class="text-gray-600">â€¢</span>
+              <a routerLink="/privacy" class="text-blue-600 hover:text-blue-700">
+                ChĂ­nh SĂ¡ch Báº£o Máº­t
+              </a>
+              <span class="text-gray-600">â€¢</span>
+              <a routerLink="/contact" class="text-blue-600 hover:text-blue-700">
+                LiĂªn Há»‡
+              </a>
+            </div>
+          </footer>
+        </div>
+      </main>
+    </div>
+  

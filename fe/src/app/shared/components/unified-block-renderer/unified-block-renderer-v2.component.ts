@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, OnChanges, SimpleChanges, inject, signal, ElementRef, ViewEncapsulation } from '@angular/core';
+import { Component, input, inject, signal, ViewEncapsulation, effect, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { ContentBlock, TextBlock, FormulaBlock, ImageBlock } from '../../../api/types/content-block.types';
@@ -11,52 +11,57 @@ import katex from 'katex';
     imports: [CommonModule],
     template: `
     <div class="space-y-4">
-      <div *ngFor="let block of renderedBlocks()" [ngSwitch]="block.type">
-        
-        <!-- TEXT BLOCK -->
-        <div *ngSwitchCase="'text'" 
-             class="prose max-w-none text-gray-800"
-             [innerHTML]="getSafeHtml(block)">
-        </div>
-
-        <!-- FORMULA BLOCK -->
-        <div *ngSwitchCase="'formula'" 
-             class="my-4 py-2 px-4 bg-gray-50 rounded-lg overflow-x-auto text-center"
-             [innerHTML]="renderMath(block)">
-        </div>
-
-        <!-- IMAGE BLOCK -->
-        <div *ngSwitchCase="'image'" class="flex justify-center my-4">
-            <div class="relative max-w-full">
-                <img [src]="getImageUrl(block)" 
-                     [alt]="getCaption(block)"
-                     class="rounded-lg shadow-sm"
-                     [style.width.px]="getWidth(block)"
-                     loading="lazy"
-                     (error)="onImageError($event)">
-                <p *ngIf="getCaption(block)" class="text-xs text-center text-gray-500 mt-2 italic">
-                    {{ getCaption(block) }}
-                </p>
-                <!-- Offline Indicator -->
-                <div *ngIf="isPending(block)" class="absolute top-2 right-2 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full flex items-center gap-1">
-                    <span class="material-symbols-outlined text-[14px]">cloud_off</span> Pending
+      @for (block of renderedBlocks(); track block.id) {
+        @switch (block.type) {
+          @case ('text') {
+            <div class="prose max-w-none text-gray-800"
+                 [innerHTML]="getSafeHtml(block)">
+            </div>
+          }
+          @case ('formula') {
+            <div class="my-4 py-2 px-4 bg-gray-50 rounded-lg overflow-x-auto text-center"
+                 [innerHTML]="renderMath(block)">
+            </div>
+          }
+          @case ('image') {
+            <div class="flex justify-center my-4">
+                <div class="relative max-w-full">
+                    <img [src]="getImageUrl(block)" 
+                         [alt]="getCaption(block)"
+                         class="rounded-lg shadow-sm"
+                         [style.width.px]="getWidth(block)"
+                         loading="lazy"
+                         (error)="onImageError($event)">
+                    @if (getCaption(block)) {
+                      <p class="text-xs text-center text-gray-500 mt-2 italic">
+                          {{ getCaption(block) }}
+                      </p>
+                    }
+                    @if (isPending(block)) {
+                      <div class="absolute top-2 right-2 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                          <span class="material-symbols-outlined text-[14px]">cloud_off</span> Pending
+                      </div>
+                    }
                 </div>
             </div>
+          }
+        }
+      }
+
+      @if (isLoading()) {
+        <div class="flex justify-center py-4">
+          <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
         </div>
-
-      </div>
-
-      <div *ngIf="isLoading()" class="flex justify-center py-4">
-        <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-      </div>
+      }
     </div>
   `,
     styleUrls: [], // Uses global katex.min.css
     encapsulation: ViewEncapsulation.None // Needed for KaTeX styles to apply inside innerHTML
 })
-export class UnifiedBlockRendererV2Component implements OnInit, OnChanges {
-    @Input() rawData: string | ContentBlock[] = [];
-    @Input() storageKey?: string; // Cache key for offline
+export class UnifiedBlockRendererV2Component implements OnDestroy {
+    // Signal inputs - Angular v20+
+    rawData = input<string | ContentBlock[]>([]);
+    storageKey = input<string | undefined>(undefined); // Cache key for offline
 
     private sanitizer = inject(DomSanitizer);
     private offlineService = inject(OfflineStorageService);
@@ -66,30 +71,35 @@ export class UnifiedBlockRendererV2Component implements OnInit, OnChanges {
 
     private worker: Worker | undefined;
 
-    ngOnInit() {
+    constructor() {
+        // Initialize worker
         if (typeof Worker !== 'undefined') {
             const workerUrl = new URL('../../workers/content-parser.worker', import.meta.url);
             this.worker = new Worker(workerUrl);
             this.worker.onmessage = ({ data }: MessageEvent) => {
                 this.renderedBlocks.set(data);
                 this.isLoading.set(false);
-                if (this.storageKey) {
-                    this.offlineService.saveBlocks(this.storageKey, data);
+                const key = this.storageKey();
+                if (key) {
+                    this.offlineService.saveBlocks(key, data);
                 }
             };
         } else {
-            // Fallback if workers not supported (rare)
             console.warn('Web Workers not supported, processing on main thread implementation needed');
         }
+
+        // Effect to handle rawData changes (replaces ngOnChanges)
+        effect(() => {
+            const data = this.rawData();
+            if (data && this.worker) {
+                this.isLoading.set(true);
+                this.worker.postMessage(data);
+            }
+        });
     }
 
-    ngOnChanges(changes: SimpleChanges) {
-        if (changes['rawData'] && this.rawData) {
-            if (this.worker) {
-                this.isLoading.set(true);
-                this.worker.postMessage(this.rawData);
-            }
-        }
+    ngOnDestroy(): void {
+        this.worker?.terminate();
     }
 
     getSafeHtml(block: ContentBlock): SafeHtml {

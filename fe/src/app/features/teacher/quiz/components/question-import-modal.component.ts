@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, signal, inject } from '@angular/core';
+import { Component, input, output, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { QuestionApi, QuestionImportResult } from '../../../../api/endpoints/question.api';
@@ -196,9 +196,12 @@ import { firstValueFrom } from 'rxjs';
 export class QuestionImportModalComponent {
   private questionApi = inject(QuestionApi);
 
-  @Input() packageId: string | null = null;
-  @Output() imported = new EventEmitter<QuestionImportResult>();
-  @Output() closed = new EventEmitter<void>();
+  // Signal inputs (Angular v20+)
+  readonly packageId = input<string | null>(null);
+
+  // Output functions (Angular v20+)
+  readonly imported = output<QuestionImportResult>();
+  readonly closed = output<void>();
 
   isOpen = signal(false);
   isImporting = signal(false);
@@ -245,7 +248,7 @@ export class QuestionImportModalComponent {
   }
 
   async import() {
-    if (!this.selectedFile || !this.packageId) {
+    if (!this.selectedFile || !this.packageId()) {
       this.errorMessage.set('Vui lòng chọn file và gói câu hỏi');
       return;
     }
@@ -256,16 +259,16 @@ export class QuestionImportModalComponent {
     try {
       console.log('📥 Starting import...');
       console.log('   - File:', this.selectedFile.name);
-      console.log('   - Package:', this.packageId);
+      console.log('   - Package:', this.packageId());
       console.log('   - Difficulty:', this.difficulty);
 
       const result = await firstValueFrom(
-        this.questionApi.importFromExcel(this.selectedFile, this.packageId, this.difficulty)
+        this.questionApi.importFromExcel(this.selectedFile, this.packageId()!, this.difficulty)
       );
 
       console.log('✅ Import result:', result);
       this.importResult.set(result);
-      
+
       if (result.successCount > 0) {
         this.imported.emit(result);
       }

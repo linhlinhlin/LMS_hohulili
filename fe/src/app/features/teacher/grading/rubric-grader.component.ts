@@ -1,8 +1,8 @@
-import { Component, ChangeDetectionStrategy, ViewEncapsulation, Input, Output, EventEmitter, signal, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, ViewEncapsulation, input, output, signal, computed, effect, OnInit, OnChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { 
+import {
   Rubric, RubricCriterion, RubricLevel, RubricGradeSelection, RubricScoreResult,
-  calculateRubricScore 
+  calculateRubricScore
 } from './utils/rubric-calculator';
 
 /**
@@ -20,14 +20,14 @@ import {
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    @if (rubric) {
+    @if (rubric(); as rb) {
       <div class="border rounded-lg overflow-hidden">
         <!-- Header -->
         <div class="px-4 py-3 bg-gray-50 border-b flex items-center justify-between">
           <div>
-            <h3 class="font-medium text-gray-900">{{ rubric.name }}</h3>
-            @if (rubric.description) {
-              <p class="text-sm text-gray-500">{{ rubric.description }}</p>
+            <h3 class="font-medium text-gray-900">{{ rb.name }}</h3>
+            @if (rb.description) {
+              <p class="text-sm text-gray-500">{{ rb.description }}</p>
             }
           </div>
           @if (scoreResult()) {
@@ -40,7 +40,7 @@ import {
         
         <!-- Criteria List -->
         <div class="divide-y">
-          @for (criterion of rubric.criteria; track criterion.id) {
+          @for (criterion of rb.criteria; track criterion.id) {
             <div class="p-4">
               <div class="flex items-start justify-between mb-3">
                 <div>
@@ -137,44 +137,49 @@ import {
     }
   `
 })
-export class RubricGraderComponent {
-  @Input() rubric: Rubric | null = null;
-  @Input() initialSelections: RubricGradeSelection[] = [];
-  
-  @Output() selectionsChange = new EventEmitter<RubricGradeSelection[]>();
-  @Output() scoreChange = new EventEmitter<RubricScoreResult>();
-  
+export class RubricGraderComponent implements OnInit, OnChanges {
+  // Signal inputs (Angular v20+)
+  readonly rubric = input<Rubric | null>(null);
+  readonly initialSelections = input<RubricGradeSelection[]>([]);
+
+  // Output functions (Angular v20+)
+  readonly selectionsChange = output<RubricGradeSelection[]>();
+  readonly scoreChange = output<RubricScoreResult>();
+
   // State
   private _selections = signal<RubricGradeSelection[]>([]);
-  
+
   // Computed
   selections = computed(() => this._selections());
-  
+
   scoreResult = computed((): RubricScoreResult | null => {
-    if (!this.rubric) return null;
+    const rb = this.rubric();
+    if (!rb) return null;
     const sels = this._selections();
     if (sels.length === 0) return null;
-    return calculateRubricScore(this.rubric, sels);
+    return calculateRubricScore(rb, sels);
   });
-  
+
   ngOnInit(): void {
-    if (this.initialSelections.length > 0) {
-      this._selections.set([...this.initialSelections]);
+    const initial = this.initialSelections();
+    if (initial.length > 0) {
+      this._selections.set([...initial]);
     }
   }
-  
+
   ngOnChanges(): void {
-    if (this.initialSelections.length > 0) {
-      this._selections.set([...this.initialSelections]);
+    const initial = this.initialSelections();
+    if (initial.length > 0) {
+      this._selections.set([...initial]);
     }
   }
-  
+
   isLevelSelected(criterionId: string, levelId: string): boolean {
     return this._selections().some(
       (s: RubricGradeSelection) => s.criterionId === criterionId && s.levelId === levelId
     );
   }
-  
+
   selectLevel(criterion: RubricCriterion, level: RubricLevel): void {
     this._selections.update((selections: RubricGradeSelection[]) => {
       // Remove existing selection for this criterion
@@ -182,39 +187,39 @@ export class RubricGraderComponent {
       // Add new selection
       return [...filtered, { criterionId: criterion.id, levelId: level.id, points: level.points }];
     });
-    
+
     // Emit changes
     this.selectionsChange.emit(this._selections());
-    
+
     const result = this.scoreResult();
     if (result) {
       this.scoreChange.emit(result);
     }
   }
-  
+
   getCriterionScore(criterionId: string): { points: number; weightedScore: number } | null {
     const result = this.scoreResult();
     if (!result) return null;
-    
+
     const criterionScore = result.criteriaScores.find(cs => cs.criterionId === criterionId);
     if (!criterionScore || !criterionScore.selectedLevelId) return null;
-    
+
     return {
       points: criterionScore.points,
       weightedScore: criterionScore.weightedScore
     };
   }
-  
+
   // Public method to get current selections
   getSelections(): RubricGradeSelection[] {
     return this._selections();
   }
-  
+
   // Public method to get current score
   getScore(): RubricScoreResult | null {
     return this.scoreResult();
   }
-  
+
   // Public method to reset selections
   resetSelections(): void {
     this._selections.set([]);

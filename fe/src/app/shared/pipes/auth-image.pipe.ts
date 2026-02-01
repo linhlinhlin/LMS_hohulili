@@ -1,6 +1,5 @@
 import { Pipe, PipeTransform, inject } from '@angular/core';
-import { environment } from '../../../environments/environment';
-import { AuthService } from '../../core/services/auth.service';
+import { ContentIdentityService } from '../../core/services/content-identity.service';
 
 @Pipe({
     name: 'authImage',
@@ -8,23 +7,18 @@ import { AuthService } from '../../core/services/auth.service';
     pure: true
 })
 export class AuthImagePipe implements PipeTransform {
-    private authService = inject(AuthService);
-    private apiUrl = `${environment.apiUrl}/api/v1/files/view`;
+    private identityService = inject(ContentIdentityService);
 
     transform(fileId: string | null): string {
         if (!fileId) return 'assets/placeholder.png';
 
-        // Check if full URL
+        // Check if full URL (R2 CDN or other)
         if (fileId.startsWith('http')) {
             return fileId;
         }
 
-        // Check if full URL
-        if (fileId.startsWith('http')) {
-            return fileId;
-        }
-
-        const token = this.authService.getToken();
-        return `${this.apiUrl}/${fileId}?token=${token}`;
+        // Use ContentIdentityService to resolve UUID to R2 URL
+        return this.identityService.resolveUrl(fileId);
     }
 }
+

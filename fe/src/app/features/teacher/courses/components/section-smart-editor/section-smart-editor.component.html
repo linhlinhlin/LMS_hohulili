@@ -47,23 +47,28 @@
                 <!-- DYNAMIC CONTENT AREA -->
 
                 <!-- CASE 1: TEXT (Rich Editor) -->
-                <div *ngIf="selectedType() === 'TEXT'" class="animate-fade-in">
+                @if (selectedType() === 'TEXT') {
+                <div class="animate-fade-in">
                     <label class="block text-sm font-semibold text-gray-700 mb-1">Nội dung chi tiết</label>
                     <app-rich-text-editor formControlName="content" [height]="300"
                         placeholder="Soạn thảo bài giảng..."></app-rich-text-editor>
                 </div>
+                }
 
                 <!-- CASE 2: VIDEO (URL Input) -->
-                <div *ngIf="selectedType() === 'VIDEO'" class="animate-fade-in">
+                @if (selectedType() === 'VIDEO') {
+                <div class="animate-fade-in">
                     <label class="block text-sm font-semibold text-gray-700 mb-1">Đường dẫn Video</label>
                     <input formControlName="content"
                         class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                         placeholder="https://youtube.com/...">
                     <p class="text-xs text-gray-500 mt-1">Hỗ trợ Youtube, Vimeo hoặc link trực tiếp.</p>
                 </div>
+                }
 
                 <!-- CASE 3: FILE (Upload Zone) -->
-                <div *ngIf="selectedType() === 'FILE'" class="animate-fade-in">
+                @if (selectedType() === 'FILE') {
+                <div class="animate-fade-in">
                     <label class="block text-sm font-semibold text-gray-700 mb-1">Tải lên tài liệu</label>
 
                     <div
@@ -71,7 +76,8 @@
                         <input type="file" (change)="onFileSelected($event)"
                             class="absolute inset-0 opacity-0 cursor-pointer">
 
-                        <div *ngIf="!selectedFile" class="text-center">
+                        @if (!selectedFile) {
+                        <div class="text-center">
                             <svg class="w-10 h-10 text-gray-400 mx-auto mb-2" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -80,8 +86,10 @@
                             <p class="text-sm font-medium text-gray-600">Nhấn để chọn hoặc kéo thả file vào đây</p>
                             <p class="text-xs text-gray-400 mt-1">PDF, DOCX, XLSX (Max 50MB)</p>
                         </div>
+                        }
 
-                        <div *ngIf="selectedFile"
+                        @if (selectedFile) {
+                        <div
                             class="flex items-center gap-3 bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200 z-10">
                             <span class="text-2xl">📄</span>
                             <div class="text-left">
@@ -92,11 +100,14 @@
                             <button type="button" (click)="selectedFile = null; $event.stopPropagation()"
                                 class="ml-2 text-red-500 hover:bg-red-50 p-1 rounded">✕</button>
                         </div>
+                        }
                     </div>
                 </div>
+                }
 
                 <!-- CASE 4: QUIZ (Link to Full Creator) -->
-                <div *ngIf="selectedType() === 'QUIZ'"
+                @if (selectedType() === 'QUIZ') {
+                <div
                     class="animate-fade-in flex flex-col items-center justify-center p-8 text-center bg-indigo-50 rounded-xl border border-indigo-100">
                     <div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mb-4 text-3xl">
                         ❓
@@ -116,6 +127,7 @@
                         Lưu ý: Bạn sẽ được chuyển hướng và modal này sẽ đóng lại.
                     </p>
                 </div>
+                }
 
             </form>
         </div>
@@ -127,8 +139,9 @@
                 bỏ</button>
             <button (click)="submit()" [disabled]="isSubmitting()"
                 class="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2">
-                <span *ngIf="isSubmitting()"
-                    class="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
+                @if (isSubmitting()) {
+                <span class="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
+                }
                 <span>{{ isSubmitting() ? 'Đang lưu...' : 'Tạo mới' }}</span>
             </button>
         </div>

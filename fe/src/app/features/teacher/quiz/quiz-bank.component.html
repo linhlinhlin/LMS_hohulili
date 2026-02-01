@@ -1,0 +1,409 @@
+﻿<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+  rel="stylesheet" />
+
+<div class="relative flex h-auto min-h-screen w-full flex-col bg-gray-50">
+  <!-- Add to Quiz Mode Banner -->
+  @if (addToQuizLessonId) {
+  <div class="bg-green-600 text-white px-4 py-3">
+    <div class="mx-auto max-w-7xl flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="material-symbols-outlined">add_circle</span>
+        <span class="font-medium">Cháº¿ Ä‘á»™ thĂªm cĂ¢u há»i vĂ o Quiz</span>
+        <span class="text-green-200">- Chá»n cĂ¢u há»i vĂ  nháº¥n "ThĂªm vĂ o Quiz"</span>
+      </div>
+      @if (returnUrl) {
+      <button (click)="goBack()"
+        class="px-3 py-1 bg-white text-green-600 rounded text-sm font-medium hover:bg-green-50">
+        â† Quay láº¡i
+      </button>
+      }
+    </div>
+  </div>
+  }
+
+  <main class="flex-1 p-8 overflow-y-auto">
+    <div class="mx-auto max-w-7xl">
+      <!-- Header -->
+      <div class="flex flex-wrap justify-between items-start gap-4 mb-6">
+        <div class="flex flex-col gap-2">
+          <p class="text-gray-900 text-4xl font-black leading-tight tracking-tight">BĂ i kiá»ƒm tra</p>
+          <p class="text-gray-600 text-base font-normal leading-normal">Quáº£n lĂ½ ngĂ¢n hĂ ng cĂ¢u há»i vĂ  táº¡o cĂ¡c
+            bĂ i kiá»ƒm tra má»›i.</p>
+        </div>
+      </div>
+
+      <!-- Tabs removed -->
+
+      <!-- Main Content Card -->
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
+        <!-- Toolbar -->
+        <div class="p-6 border-b border-gray-200">
+          <!-- Label row -->
+          <label class="block text-sm font-medium text-gray-700 mb-2">Chá»n gĂ³i cĂ¢u há»i</label>
+
+          <div class="flex flex-wrap gap-4 items-center justify-between">
+            <!-- Left: Package selector -->
+            <div class="flex items-center gap-3 flex-1 min-w-0">
+              <div class="relative flex-1 max-w-md">
+                <select [(ngModel)]="selectedPackageId" (ngModelChange)="onPackageChange()"
+                  class="w-full h-11 pl-10 pr-10 rounded-lg border-2 border-gray-300 bg-white text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer hover:border-gray-400 transition-colors">
+                  <option value="ALL">Táº¥t cáº£ cĂ¢u há»i</option>
+                  @for (pkg of packages(); track pkg.id) {
+                  <option [value]="pkg.id">
+                    {{ pkg.name }} ({{ pkg.questionCount }} cĂ¢u)
+                  </option>
+                  }
+                </select>
+                <span
+                  class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">folder</span>
+                <span
+                  class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">expand_more</span>
+              </div>
+
+              <button (click)="showCreatePackageModal = true"
+                class="flex items-center gap-2 h-11 px-4 rounded-lg border-2 border-blue-600 text-blue-600 text-sm font-semibold hover:bg-blue-50 transition-colors whitespace-nowrap">
+                <span class="material-symbols-outlined text-base">add</span>
+                <span>Táº¡o gĂ³i</span>
+              </button>
+
+              @if (selectedPackage() && !selectedPackage()!.name.includes('ChÆ°a phĂ¢n loáº¡i')) {
+              <button (click)="showManagePackageMenu = !showManagePackageMenu"
+                class="flex items-center gap-1 h-11 px-3 rounded-lg border-2 border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors">
+                <span class="material-symbols-outlined text-base">more_vert</span>
+              </button>
+              }
+
+              <!-- Package menu dropdown -->
+              @if (showManagePackageMenu && selectedPackage()) {
+              <div class="absolute mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10"
+                style="top: 180px;">
+                <button (click)="deleteCurrentPackage(); showManagePackageMenu = false"
+                  class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2">
+                  <span class="material-symbols-outlined text-base">delete</span>
+                  <span>XĂ³a gĂ³i nĂ y</span>
+                </button>
+              </div>
+              }
+            </div>
+
+            <!-- Right: Action buttons -->
+            <div class="flex items-center gap-2">
+              <!-- Import button -->
+              <button (click)="openImportModal()" [disabled]="!selectedPackage()"
+                class="flex items-center justify-center gap-2 h-11 px-4 rounded-lg border-2 border-green-600 text-green-600 text-sm font-semibold hover:bg-green-50 disabled:border-gray-300 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors whitespace-nowrap">
+                <span class="material-symbols-outlined text-base">upload_file</span>
+                <span>Táº£i file lĂªn</span>
+              </button>
+
+              <!-- Add question button -->
+              <button (click)="createNewQuestion()"
+                class="flex items-center justify-center gap-2 h-11 px-5 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors whitespace-nowrap">
+                <span class="material-symbols-outlined text-base">add</span>
+                <span>ThĂªm cĂ¢u há»i</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Package info -->
+          @if (selectedPackage()) {
+          <div class="mt-4 flex flex-wrap items-center gap-3 text-sm">
+            <div class="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg">
+              <span class="material-symbols-outlined text-base">quiz</span>
+              <span class="font-medium">{{ selectedPackage()!.questionCount }} cĂ¢u há»i</span>
+            </div>
+            @if (selectedPackage()!.subject) {
+            <div class="flex items-center gap-2 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg">
+              <span class="material-symbols-outlined text-base">book</span>
+              <span>{{ selectedPackage()!.subject }}</span>
+            </div>
+            }
+            <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg"
+              [class]="selectedPackage()!.visibility === 'PUBLIC' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600'">
+              <span class="material-symbols-outlined text-base">{{ selectedPackage()!.visibility === 'PUBLIC' ? 'public'
+                : 'lock' }}</span>
+              <span>{{ selectedPackage()!.visibility === 'PUBLIC' ? 'CĂ´ng khai' : 'RiĂªng tÆ°' }}</span>
+            </div>
+            @if (selectedPackage()!.description) {
+            <p class="text-gray-600 ml-2">{{ selectedPackage()!.description }}</p>
+            }
+          </div>
+          }
+        </div>
+
+        <!-- Filters -->
+        @if (selectedPackageId) {
+        <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div class="relative md:col-span-2">
+              <input type="text" [(ngModel)]="filters.search" (ngModelChange)="filterQuestions()"
+                class="w-full h-10 px-4 pl-10 rounded-lg border border-gray-300 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="TĂ¬m kiáº¿m cĂ¢u há»i..." />
+              <span
+                class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
+            </div>
+            <select [(ngModel)]="filters.difficulty" (ngModelChange)="filterQuestions()"
+              class="h-10 px-4 rounded-lg border border-gray-300 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+              <option value="">Táº¥t cáº£ Ä‘á»™ khĂ³</option>
+              <option value="EASY">Dá»…</option>
+              <option value="MEDIUM">Trung bĂ¬nh</option>
+              <option value="HARD">KhĂ³</option>
+            </select>
+          </div>
+        </div>
+        }
+
+        <!-- Empty state -->
+        @if (!selectedPackageId) {
+        <div class="p-16 text-center">
+          <span class="material-symbols-outlined text-gray-300" style="font-size: 80px;">folder_open</span>
+          <p class="text-gray-500 text-lg mt-4 mb-2">Chá»n má»™t gĂ³i cĂ¢u há»i Ä‘á»ƒ báº¯t Ä‘áº§u</p>
+          <p class="text-gray-400 text-sm mb-6">Hoáº·c táº¡o gĂ³i má»›i Ä‘á»ƒ tá»• chá»©c cĂ¢u há»i cá»§a báº¡n</p>
+          <button (click)="showCreatePackageModal = true"
+            class="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">
+            <span class="material-symbols-outlined text-base">add</span>
+            <span>Táº¡o gĂ³i Ä‘áº§u tiĂªn</span>
+          </button>
+        </div>
+        }
+
+        <!-- Questions table -->
+        @if (selectedPackageId) {
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-gray-50 text-gray-600 border-b border-gray-200">
+              <tr>
+                <th class="p-4 font-semibold">
+                  <input type="checkbox" [checked]="isAllSelected()" (change)="toggleSelectAll()"
+                    class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500" />
+                </th>
+                <th class="p3 align-middle font-semibold">Ná»™i dung cĂ¢u há»i</th>
+                <th class="px-6 py-3 align-middle font-semibold">Chá»§ Ä‘á»</th>
+                <th class="px-4 py-3 align-middle font-semibold">Äá»™ khĂ³</th>
+                <th class="px-4 py-3 align-middle font-semibold">NgĂ y táº¡o</th>
+                <th class="px-4 py-3 align-middle font-semibold text-center tracking-wider w-35">HĂ nh Ä‘á»™ng</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+              @for (question of filteredQuestions(); track question.id) {
+              <tr class="hover:bg-gray-50 transition-colors">
+                <td class="py-1 px-2">
+                  <input type="checkbox" [checked]="isQuestionSelected(question.id)"
+                    (change)="toggleQuestionSelection(question.id)"
+                    class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500" />
+                </td>
+                <td class="py-1 px-2 text-gray-800 max-w-xl">
+                  <div class="line-clamp-2">{{ question.content }}</div>
+                </td>
+                <td class="py-1 px-2 text-gray-600">
+                  <span class="inline-flex px-2.5 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-700">
+                    {{ question.tags || 'ChÆ°a phĂ¢n loáº¡i' }}
+                  </span>
+                </td>
+                <td class="py-2 px-2">
+                  <span class="inline-flex px-2.5 py-1 text-xs font-medium rounded-full" [ngClass]="{
+                                  'bg-green-100 text-green-800': question.difficulty === 'EASY', 
+                                  'bg-yellow-100 text-yellow-800': question.difficulty === 'MEDIUM', 
+                                  'bg-red-100 text-red-800': question.difficulty === 'HARD'
+                                }">
+                    {{ getDifficultyLabel(question.difficulty) }}
+                  </span>
+                </td>
+                <td class="py-1 px-2 text-gray-600 whitespace-nowrap">{{ question.createdAt | date:'dd/MM/yyyy' }}</td>
+                <td class="py-1 px-2 text-center">
+                  <div class="flex justify-end gap-1 mr-2">
+                    <button (click)="editQuestion(question)"
+                      class="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-md transition-colors text-xs font-medium inline-flex items-center gap-1"
+                      title="Sá»­a">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
+                        </path>
+                      </svg>
+                      Sá»­a
+                    </button>
+
+                    <button (click)="deleteQuestion(question)"
+                      class="px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-md transition-colors text-xs font-medium disabled:opacity-50 inline-flex items-center gap-1"
+                      title="XĂ³a">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                        </path>
+                      </svg>
+                      XĂ³a
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              }
+              @if (filteredQuestions().length === 0) {
+              <tr>
+                <td colspan="6" class="p-12 text-center">
+                  <div class="flex flex-col items-center gap-3">
+                    <span class="material-symbols-outlined text-gray-300" style="font-size: 56px;">quiz</span>
+                    <p class="text-gray-500 text-base">KhĂ´ng tĂ¬m tháº¥y cĂ¢u há»i nĂ o</p>
+                    <button (click)="createNewQuestion()"
+                      class="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">
+                      Táº¡o cĂ¢u há»i Ä‘áº§u tiĂªn
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        }
+
+        <!-- Bulk actions bar -->
+        @if (selectedQuestions().length > 0) {
+        <div
+          class="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-blue-50 border-2 border-blue-200 rounded-2xl px-6 py-4 shadow-lg flex items-center gap-6">
+          <div class="flex items-center gap-2">
+            <span
+              class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 text-white text-sm font-bold">
+              {{ selectedQuestions().length }}
+            </span>
+            <span class="text-sm font-medium text-blue-900">
+              cĂ¢u há»i Ä‘Ă£ chá»n
+            </span>
+          </div>
+          <div class="flex gap-2">
+            <!-- Add to Quiz button - only show when in addToQuiz mode -->
+            @if (addToQuizLessonId) {
+            <button (click)="addSelectedToQuiz()" [disabled]="addingToQuiz()"
+              class="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-bold transition-colors disabled:opacity-50">
+              <span class="material-symbols-outlined text-base">add_circle</span>
+              <span>{{ addingToQuiz() ? 'Äang thĂªm...' : 'ThĂªm vĂ o Quiz' }}</span>
+            </button>
+            }
+            <button (click)="showMoveModal = true"
+              class="flex items-center gap-2 px-4 py-2 bg-white border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 text-sm font-medium transition-colors">
+              <span class="material-symbols-outlined text-base">drive_file_move</span>
+              <span>Di chuyá»ƒn</span>
+            </button>
+            <button (click)="clearSelection()"
+              class="flex items-center gap-2 px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors">
+              <span class="material-symbols-outlined text-base">close</span>
+              <span>Bá» chá»n</span>
+            </button>
+          </div>
+        </div>
+        }
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Modal: Create Package -->
+@if (showCreatePackageModal) {
+<div class="fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity flex items-center justify-center z-50 p-4"
+  (click)="showCreatePackageModal = false">
+  <div class="bg-white rounded-xl p-6 w-full max-w-lg shadow-2xl" (click)="$event.stopPropagation()">
+    <div class="flex items-center justify-between mb-6">
+      <h3 class="text-2xl font-bold text-gray-900">Táº¡o gĂ³i cĂ¢u há»i má»›i</h3>
+      <button (click)="showCreatePackageModal = false" class="p-1 hover:bg-gray-100 rounded-lg">
+        <span class="material-symbols-outlined text-gray-400">close</span>
+      </button>
+    </div>
+
+    <form (ngSubmit)="createPackage()" class="space-y-4">
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">TĂªn gĂ³i <span
+            class="text-red-500">*</span></label>
+        <input type="text" [(ngModel)]="newPackage.name" name="name" required
+          class="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          placeholder="VD: Luáº­t HĂ ng háº£i - ChÆ°Æ¡ng 1" />
+      </div>
+
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">MĂ´ táº£</label>
+        <textarea [(ngModel)]="newPackage.description" name="description" rows="3"
+          class="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          placeholder="MĂ´ táº£ ngáº¯n gá»n vá» gĂ³i cĂ¢u há»i"></textarea>
+      </div>
+
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">MĂ´n há»c</label>
+        <input type="text" [(ngModel)]="newPackage.subject" name="subject"
+          class="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          placeholder="VD: Luáº­t HĂ ng háº£i" />
+      </div>
+
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">Hiá»ƒn thá»‹</label>
+        <select [(ngModel)]="newPackage.visibility" name="visibility"
+          class="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          <option value="PRIVATE">RiĂªng tÆ° (chá»‰ mĂ¬nh tĂ´i)</option>
+          <option value="PUBLIC">CĂ´ng khai (má»i ngÆ°á»i xem Ä‘Æ°á»£c)</option>
+        </select>
+      </div>
+
+      <div class="flex gap-3 pt-4">
+        <button type="button" (click)="showCreatePackageModal = false"
+          class="flex-1 px-4 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors">
+          Há»§y
+        </button>
+        <button type="submit"
+          class="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors">
+          Táº¡o gĂ³i
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+}
+
+<!-- Modal: Move Questions -->
+@if (showMoveModal) {
+<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+  (click)="showMoveModal = false">
+  <div class="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl" (click)="$event.stopPropagation()">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-xl font-bold text-gray-900">Di chuyá»ƒn cĂ¢u há»i</h3>
+      <button (click)="showMoveModal = false" class="p-1 hover:bg-gray-100 rounded-lg">
+        <span class="material-symbols-outlined text-gray-400">close</span>
+      </button>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-4">
+      Chá»n gĂ³i Ä‘Ă­ch Ä‘á»ƒ di chuyá»ƒn <span class="font-semibold text-blue-600">{{ selectedQuestions().length
+        }}</span> cĂ¢u há»i
+    </p>
+
+    <div class="space-y-2 max-h-96 overflow-y-auto mb-4">
+      @for (pkg of packages(); track pkg.id) {
+      <button [disabled]="pkg.id === selectedPackage()?.id" (click)="moveQuestionsToPackage(pkg.id)"
+        class="w-full text-left p-4 rounded-lg border-2 transition-all" [class]="pkg.id === selectedPackage()?.id
+                  ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-50'
+                  : 'border-gray-200 hover:border-blue-500 hover:bg-blue-50'">
+        <div class="flex items-center justify-between">
+          <div class="flex-1 min-w-0">
+            <div class="font-semibold text-sm text-gray-900 truncate">{{ pkg.name }}</div>
+            <div class="flex items-center gap-2 mt-1">
+              <span class="text-xs text-gray-500">{{ pkg.questionCount }} cĂ¢u há»i</span>
+              @if (pkg.subject) {
+              <span class="text-xs text-gray-400">â€¢ {{ pkg.subject }}</span>
+              }
+            </div>
+          </div>
+          @if (pkg.id !== selectedPackage()?.id) {
+          <span class="material-symbols-outlined text-gray-400">arrow_forward</span>
+          }
+        </div>
+      </button>
+      }
+    </div>
+
+    <button (click)="showMoveModal = false"
+      class="w-full px-4 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors">
+      ÄĂ³ng
+    </button>
+  </div>
+</div>
+}
+
+<!-- Import Modal -->
+<app-question-import-modal [packageId]="selectedPackageId" (imported)="onQuestionsImported($event)"
+  (closed)="onImportModalClosed()">
+</app-question-import-modal>

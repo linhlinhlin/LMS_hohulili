@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, ChangeDetectorRef, ViewEncapsulation, inject, signal, OnDestroy, ViewChild, resource } from '@angular/core';
+﻿import { Component, ChangeDetectionStrategy, ChangeDetectorRef, ViewEncapsulation, inject, signal, OnDestroy, ViewChild, resource } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../environments/environment';
@@ -60,1717 +60,7 @@ import { SectionSmartEditorComponent } from './components/section-smart-editor/s
       animation: slideInRight 0.3s ease-out;
     }
   `],
-  template: `
-  <div class="min-h-screen bg-gray-50">
-    
-    <!-- Delete Confirmation Modal - Minimalist Design -->
-    @if (showDeleteModal()) {
-      <div class="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fadeIn">
-        <!-- Backdrop -->
-        <div class="absolute inset-0 bg-black/20 backdrop-blur-sm" (click)="cancelDelete()"></div>
-        
-        <!-- Modal -->
-        <div class="relative bg-white rounded-2xl shadow-xl max-w-sm w-full animate-slideUp">
-          <!-- Content -->
-          <div class="p-6 text-center">
-            <!-- Icon -->
-            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-red-50 flex items-center justify-center">
-              <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-              </svg>
-            </div>
-            
-            <!-- Title -->
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">
-              Xóa bài học?
-            </h3>
-            
-            <!-- Message -->
-            <p class="text-gray-600 text-sm mb-6">
-              Bạn có chắc muốn xóa "<span class="font-medium text-gray-900">{{ lessonToDelete()?.title }}</span>"? 
-              <span class="text-red-600">Hành động này không thể hoàn tác.</span>
-            </p>
-            
-            <!-- Actions -->
-            <div class="flex gap-3">
-              <button type="button" 
-                      (click)="cancelDelete()"
-                      [disabled]="isDeleting()"
-                      class="flex-1 px-4 py-2.5 text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors font-medium disabled:opacity-50">
-                Hủy
-              </button>
-              <button type="button" 
-                      (click)="executeDelete()"
-                      [disabled]="isDeleting()"
-                      class="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors font-medium disabled:opacity-50 flex items-center justify-center gap-2">
-                @if (isDeleting()) {
-                  <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                } @else {
-                  Xóa
-                }
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    }
-    
-    <!-- Success Toast -->
-    @if (showSuccessToast()) {
-      <div class="fixed top-6 right-6 z-50 animate-slideInRight">
-        <div class="bg-white border border-green-200 text-gray-900 px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 min-w-[280px]">
-          <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
-          </div>
-          <div>
-            <p class="font-medium text-sm">Đã xóa bài học</p>
-            <p class="text-xs text-gray-500">Thao tác hoàn tất thành công</p>
-          </div>
-        </div>
-      </div>
-    }
-
-    <div class="max-w-7xl mx-auto p-6">
-      <!-- Header -->
-      <div class="mb-8">
-        <div class="flex items-center gap-2 text-sm text-gray-500 mb-2">
-          <a [routerLink]="['/teacher/courses']" class="hover:text-blue-600">Khóa học</a>
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-          </svg>
-          <a [routerLink]="['/teacher/courses', courseId, 'editor', 'curriculum']" class="hover:text-blue-600">Nội dung khóa học</a>
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-          </svg>
-          <span class="text-gray-900">Quản lý bài học</span>
-        </div>
-        <div class="flex items-center justify-between">
-          <div>
-            <h1 class="text-2xl font-bold text-gray-900">Quản lý bài học</h1>
-            <p class="text-gray-500 mt-1">Thêm, sửa, xóa bài học và bài trắc nghiệm trong chương</p>
-          </div>
-          <div class="flex items-center gap-3">
-            <a class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2 shadow-sm" 
-               [routerLink]="['/teacher/courses', courseId, 'editor', 'curriculum']">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-              </svg>
-              Quay lại
-            </a>
-          </div>
-        </div>
-      </div>
-
-      <!-- Lessons Card -->
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200">
-        <!-- Card Header -->
-        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-            </svg>
-            <span class="font-semibold text-gray-900">Danh sách bài học</span>
-            <span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">{{ lessons().length }} bài</span>
-          </div>
-          <button (click)="toggleCreateForm()" 
-                  class="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-            </svg>
-            Thêm nội dung mới
-          </button>
-        </div>
-        
-        <!-- Empty State -->
-        <div class="p-12 text-center" *ngIf="lessons().length === 0">
-          <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-            </svg>
-          </div>
-          <h3 class="text-lg font-medium text-gray-900 mb-1">Chưa có bài học</h3>
-          <p class="text-gray-500 mb-4">Bắt đầu thêm nội dung cho chương này</p>
-          <button (click)="toggleCreateForm()" 
-                  class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-            Thêm bài học đầu tiên
-          </button>
-        </div>
-        <div class="p-6 text-red-600" *ngIf="error()">{{ error() }}</div>
-
-        <!-- Lessons Table -->
-        <div *ngIf="lessons().length > 0">
-          <table class="min-w-full">
-            <thead class="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-16">STT</th>
-                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Tên bài học</th>
-                <th class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-48">Loại</th>
-                <th class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-48">Trạng thái</th>
-                <th class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-100">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100">
-              <tr *ngFor="let l of lessons(); let i = index" class="hover:bg-blue-50/50 transition-colors">
-                <td class="px-6 py-2 text-sm text-gray-500 font-medium text-center">{{ i + 1 }}</td>
-                <td class="px-6 py-2">
-                  <div class="flex items-start gap-3">
-                    
-                    <div class="min-w-0">
-                      <div class="text-sm font-semibold text-gray-900 truncate">{{ l.title }}</div>
-                      <div class="text-xs text-gray-500 mt-0.5" *ngIf="l.description">{{ l.description | slice:0:80 }}{{ l.description?.length > 80 ? '...' : '' }}</div>
-                    </div>
-                  </div>
-                </td>
-                <td class="px-6 py-2 text-center">
-                  <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium"
-                        [ngClass]="{
-                          'bg-blue-100 text-blue-700': !l.lessonType || l.lessonType === 'LECTURE',
-                          'bg-green-100 text-green-700': l.lessonType === 'ASSIGNMENT',
-                          'bg-purple-100 text-purple-700': l.lessonType === 'QUIZ'
-                        }">
-                    <ng-container *ngIf="l.lessonType === 'ASSIGNMENT'">Bài tập</ng-container>
-                    <ng-container *ngIf="!l.lessonType || l.lessonType === 'LECTURE'">Bài học</ng-container>
-                    <ng-container *ngIf="l.lessonType === 'QUIZ'">Trắc nghiệm</ng-container>
-                  </span>
-                </td>
-                <td class="px-6 py-2 text-center">
-                  <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                    <span class="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5"></span>
-                    Đã xuất bản
-                  </span>
-                </td>
-                <td class="px-6 py-2">
-                  <div class="flex items-center justify-center gap-2">
-                    <!-- View button - for all lesson types -->
-                    <button (click)="viewLesson(l)"
-                            class="px-3 py-1.5 text-sm bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors text-xs font-medium inline-flex items-center gap-1">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                      </svg>
-                      Xem
-                    </button>
-                    
-                    <!-- Quiz-specific: Try quiz button -->
-                    <button *ngIf="l.lessonType === 'QUIZ'"
-                            (click)="previewQuizLesson(l)"
-                            class="px-3 py-1.5 bg-purple-50 text-purple-600 hover:bg-purple-100 rounded-md transition-colors text-xs font-medium inline-flex items-center gap-1">
-                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                      </svg>
-                      Thử làm
-                    </button>
-                    
-                    <!-- Regular edit button for non-quiz lessons -->
-                    <button *ngIf="l.lessonType !== 'QUIZ'" 
-                            (click)="startEdit(l)"
-                            class="px-3 py-1.5 bg-gray-100 text-gray-600 hover:bg-gray-200 rounded-md transition-colors text-xs font-medium inline-flex items-center gap-1">
-                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                      </svg>
-                      Sửa
-                    </button>
-                    
-                    <!-- Delete button - for all lesson types -->
-                    <button (click)="confirmDeleteLesson(l); $event.stopPropagation()"
-                            class="px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-md transition-colors text-xs font-medium disabled:opacity-50 inline-flex items-center gap-1">
-                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                      </svg>
-                      Xóa
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Lesson Viewer -->
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 mt-6 overflow-hidden" *ngIf="selected() as s">
-        <!-- Header -->
-        <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-              </svg>
-            </div>
-            <div>
-              <h3 class="text-lg font-semibold text-gray-900">{{ s.title }}</h3>
-              <p class="text-sm text-gray-500">Xem chi tiết bài học</p>
-            </div>
-          </div>
-          <button (click)="closeViewer()" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
-          </button>
-        </div>
-
-        <!-- Content -->
-        <div class="p-6">
-        <div class="text-sm text-gray-600 mb-3" *ngIf="s.description">{{ s.description }}</div>
-        
-        <!-- Video Section - Only show if video URL exists and is valid -->
-        <div *ngIf="hasValidVideoUrl(s)" class="mb-4">
-          <div class="font-semibold mb-2">Video bài học</div>
-          <ng-container *ngIf="s.videoUrl">
-            <div *ngIf="isYouTube(s.videoUrl); else nativeVideo">
-              <div class="aspect-video w-full rounded overflow-hidden">
-                <iframe class="w-full h-full" [src]="sanitizedEmbed()" frameborder="0" allowfullscreen></iframe>
-              </div>
-            </div>
-            <ng-template #nativeVideo>
-              <video class="w-full rounded" controls [src]="s.videoUrl"></video>
-            </ng-template>
-          </ng-container>
-        </div>
-
-        <!-- Lesson content displayed in viewer -->
-        <div class="mt-4">
-          <!-- LECTURE Content (Sections) -->
-          <ng-container *ngIf="s.lessonType === 'LECTURE' || !s.lessonType">
-            <div class="flex items-center justify-between mb-4">
-                <h4 class="font-semibold text-gray-900">Nội dung bài học (Sections)</h4>
-                <div class="flex gap-2">
-                    <button type="button" (click)="openSmartEditor(s.id)" 
-                            class="px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors flex items-center gap-1">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                        Thêm nội dung
-                    </button>
-                </div>
-            </div>
-
-            <!-- Sections List -->
-            <div class="space-y-3">
-                <div *ngFor="let sec of s.sections" class="group bg-white border border-gray-200 rounded-lg p-3 hover:border-blue-300 hover:shadow-sm transition-all flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-full flex items-center justify-center"
-                             [class.bg-blue-100]="sec.type === 'TEXT'"
-                             [class.text-blue-600]="sec.type === 'TEXT'"
-                             [class.bg-red-100]="sec.type === 'VIDEO'"
-                             [class.text-red-600]="sec.type === 'VIDEO'">
-                             <svg *ngIf="sec.type === 'TEXT'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                             <svg *ngIf="sec.type === 'VIDEO'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        </div>
-                        <div>
-                            <h5 class="text-sm font-medium text-gray-900">{{ sec.title }}</h5>
-                            <p class="text-xs text-gray-500 flex items-center gap-2">
-                                <span *ngIf="sec.type === 'VIDEO'" class="flex items-center gap-1">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3"></path></svg>
-                                    Video
-                                </span>
-                                <span *ngIf="sec.type === 'TEXT'" class="flex items-center gap-1">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
-                                    Bài đọc
-                                </span>
-                            </p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button (click)="deleteSection(sec.id)" class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Xóa">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Empty State for Sections -->
-                <div *ngIf="!s.sections || s.sections.length === 0" class="text-center py-8 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg">
-                    <svg class="w-10 h-10 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                    <p class="text-sm text-gray-500">Bài học chưa có nội dung</p>
-                    <p class="text-xs text-gray-400 mt-1">Chọn "Thêm bài đọc" hoặc "Thêm Video" ở trên</p>
-                </div>
-            </div>
-          </ng-container>
-
-          <!-- ASSIGNMENT Content -->
-          <ng-container *ngIf="s.lessonType === 'ASSIGNMENT'">
-            <div class="font-semibold mb-1">Thông tin bài tập</div>
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
-              <!-- Assignment Description -->
-              <div class="bg-white rounded p-3 border border-blue-300">
-                <h4 class="font-medium text-blue-900 mb-2">Mô tả bài tập</h4>
-                <div class="text-blue-800 whitespace-pre-line">{{ s.content || 'Chưa có mô tả.' }}</div>
-              </div>
-              
-              <!-- Assignment Instructions (if available) -->
-              <div *ngIf="s.assignment?.instructions" class="bg-white rounded p-3 border border-blue-300">
-                <h4 class="font-medium text-blue-900 mb-2">🧾 Hướng dẫn chi tiết</h4>
-                <div class="text-blue-800 whitespace-pre-line">{{ s.assignment.instructions }}</div>
-              </div>
-              
-              <!-- Assignment Info Grid -->
-              <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div class="bg-white rounded p-3 text-center border border-blue-300">
-                  <div class="text-lg font-bold text-blue-600">{{ getAssignmentStatus(s) }}</div>
-                  <div class="text-xs text-blue-500">Trạng thái</div>
-                </div>
-                
-                <div *ngIf="getAssignmentMaxScore(s)" class="bg-white rounded p-3 text-center border border-blue-300">
-                  <div class="text-lg font-bold text-green-600">{{ getAssignmentMaxScore(s) }}</div>
-                  <div class="text-xs text-green-500">Điểm tối đa</div>
-                </div>
-                
-                <div *ngIf="getAssignmentDueDate(s)" class="bg-white rounded p-3 text-center border border-blue-300">
-                  <div class="text-sm font-bold text-orange-600">{{ getAssignmentDueDate(s) }}</div>
-                  <div class="text-xs text-orange-500">Hạn nộp</div>
-                </div>
-                
-                <div class="bg-white rounded p-3 text-center border border-blue-300">
-                  <div class="text-lg font-bold text-purple-600">{{ getAssignmentSubmissionCount(s) }}</div>
-                  <div class="text-xs text-purple-500">Bài nộp</div>
-                </div>
-              </div>
-
-              <!-- Assignment Management Actions -->
-              <div class="flex gap-2 pt-2 border-t border-blue-300">
-                <button class="px-3 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 flex items-center gap-2">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                  </svg>
-                  Chỉnh sửa bài tập
-                </button>
-                
-                <button class="px-3 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 flex items-center gap-2" 
-                        (click)="viewAssignmentSubmissions(s)">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                  </svg>
-                  Xem bài nộp ({{ getAssignmentSubmissionCount(s) }})
-                </button>
-                
-                <button class="px-3 py-2 bg-yellow-600 text-white text-sm rounded hover:bg-yellow-700 flex items-center gap-2"
-                        (click)="toggleAssignmentStatus(s)">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                  </svg>
-                  {{ s.assignment?.status === 'PUBLISHED' ? 'Đóng bài tập' : 'Mở bài tập' }}
-                </button>
-              </div>
-            </div>
-          </ng-container>
-
-          <!-- QUIZ Content - Professional Coursera Style -->
-          <ng-container *ngIf="s.lessonType === 'QUIZ'">
-            <div class="space-y-6">
-              <!-- Quiz Header -->
-              <div class="flex items-center justify-between">
-                <h3 class="text-lg font-semibold text-gray-900">Thông tin bài trắc nghiệm</h3>
-                <button (click)="previewQuizLesson(s)"
-                        class="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors flex items-center gap-2">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                  </svg>
-                  Xem trước Quiz
-                </button>
-              </div>
-
-              <!-- Quiz Stats Cards -->
-              <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                  <div class="flex items-center justify-between">
-                    <div>
-                      <p class="text-sm text-gray-500">Thời gian</p>
-                      <p class="text-2xl font-bold text-blue-600 mt-1">{{ s.quizTimeLimit || 30 }}</p>
-                      <p class="text-xs text-gray-400">phút</p>
-                    </div>
-                    <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
-                      <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                  <div class="flex items-center justify-between">
-                    <div>
-                      <p class="text-sm text-gray-500">Điểm đạt</p>
-                      <p class="text-2xl font-bold text-green-600 mt-1">{{ s.quizMaxScore || 60 }}%</p>
-                      <p class="text-xs text-gray-400">tối thiểu</p>
-                    </div>
-                    <div class="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center">
-                      <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                  <div class="flex items-center justify-between">
-                    <div>
-                      <p class="text-sm text-gray-500">Số lần làm</p>
-                      <p class="text-2xl font-bold text-orange-600 mt-1">{{ s.quizMaxAttempts || 1 }}</p>
-                      <p class="text-xs text-gray-400">lần tối đa</p>
-                    </div>
-                    <div class="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center">
-                      <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                  <div class="flex items-center justify-between">
-                    <div>
-                      <p class="text-sm text-gray-500">Câu hỏi</p>
-                      <p class="text-2xl font-bold text-purple-600 mt-1">{{ quizQuestions().length }}</p>
-                      <p class="text-xs text-gray-400">câu</p>
-                    </div>
-                    <div class="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center">
-                      <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Questions Section -->
-              <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                <!-- Header -->
-                <div class="px-6 py-4 bg-gray-50 border-b flex items-center justify-between">
-                  <div class="flex items-center gap-3">
-                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                    </svg>
-                    <span class="font-medium text-gray-900">Danh sách câu hỏi</span>
-                    <span class="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded-full">{{ quizQuestions().length }} câu</span>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <button (click)="loadQuizQuestions(s.id)" 
-                            class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
-                            title="Làm mới">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                      </svg>
-                    </button>
-                    <button (click)="openAddQuestionsModal(s.id)"
-                            class="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors flex items-center gap-2">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                      </svg>
-                      Thêm câu hỏi
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Loading -->
-                <div *ngIf="quizQuestionsLoading()" class="p-8 text-center">
-                  <div class="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-3"></div>
-                  <p class="text-gray-500">Đang tải câu hỏi...</p>
-                </div>
-
-                <!-- Empty State -->
-                <div *ngIf="!quizQuestionsLoading() && quizQuestions().length === 0" class="p-8">
-                  <div class="text-center">
-                    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                      </svg>
-                    </div>
-                    <h4 class="text-lg font-medium text-gray-900 mb-1">Chưa có câu hỏi</h4>
-                    <p class="text-gray-500 text-sm mb-4">Thêm câu hỏi từ ngân hàng câu hỏi để bắt đầu</p>
-                    <button (click)="openAddQuestionsModal(s.id)"
-                            class="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                      </svg>
-                      Thêm câu hỏi
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Questions List -->
-                <div *ngIf="!quizQuestionsLoading() && quizQuestions().length > 0" class="divide-y divide-gray-100">
-                  <div *ngFor="let q of quizQuestions(); let i = index" 
-                       class="p-4 hover:bg-gray-50 transition-colors">
-                    <div class="flex items-start gap-4">
-                      <!-- Number Badge -->
-                      <div class="flex-shrink-0 w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-semibold text-sm">
-                        {{ i + 1 }}
-                      </div>
-                      
-                      <!-- Content -->
-                      <div class="flex-1 min-w-0">
-                        <p class="text-gray-900 mb-3">{{ q.content }}</p>
-                        
-                        <!-- Options Grid -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                          <div *ngFor="let opt of q.options" 
-                               class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm"
-                               [class.bg-green-50]="(opt.key || opt.optionKey) === q.correctOption"
-                               [class.border-green-200]="(opt.key || opt.optionKey) === q.correctOption"
-                               [class.border]="(opt.key || opt.optionKey) === q.correctOption"
-                               [class.text-green-800]="(opt.key || opt.optionKey) === q.correctOption"
-                               [class.bg-gray-50]="(opt.key || opt.optionKey) !== q.correctOption"
-                               [class.text-gray-700]="(opt.key || opt.optionKey) !== q.correctOption">
-                            <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium"
-                                  [class.bg-green-200]="(opt.key || opt.optionKey) === q.correctOption"
-                                  [class.text-green-800]="(opt.key || opt.optionKey) === q.correctOption"
-                                  [class.bg-gray-200]="(opt.key || opt.optionKey) !== q.correctOption"
-                                  [class.text-gray-600]="(opt.key || opt.optionKey) !== q.correctOption">
-                              {{ opt.key || opt.optionKey }}
-                            </span>
-                            <span class="flex-1">{{ opt.content }}</span>
-                            <svg *ngIf="(opt.key || opt.optionKey) === q.correctOption" class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                            </svg>
-                          </div>
-                        </div>
-
-                        <!-- Meta Tags -->
-                        <div class="flex items-center gap-3 mt-3">
-                          <span class="px-2 py-1 rounded-full text-xs font-medium"
-                                [class.bg-green-100]="q.difficulty === 'EASY'"
-                                [class.text-green-700]="q.difficulty === 'EASY'"
-                                [class.bg-yellow-100]="q.difficulty === 'MEDIUM'"
-                                [class.text-yellow-700]="q.difficulty === 'MEDIUM'"
-                                [class.bg-red-100]="q.difficulty === 'HARD'"
-                                [class.text-red-700]="q.difficulty === 'HARD'">
-                            {{ q.difficulty === 'EASY' ? 'Dễ' : q.difficulty === 'MEDIUM' ? 'Trung bình' : 'Khó' }}
-                          </span>
-                          <span *ngIf="q.tags" class="text-xs text-gray-500">{{ q.tags }}</span>
-                        </div>
-                      </div>
-
-                      <!-- Actions -->
-                      <div class="flex-shrink-0 flex items-center gap-1">
-                        <button (click)="removeQuestionFromQuiz(s.id, q.id)" 
-                                class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" 
-                                title="Xóa khỏi quiz">
-                          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </ng-container>
-        </div>
-
-        <!-- Lesson attachments with direct viewing -->
-        <div class="mt-4" *ngIf="s.attachments && s.attachments.length > 0">
-          <div class="font-semibold mb-2">Tài liệu bài học ({{ s.attachments.length }})</div>
-          <div class="space-y-3">
-            <div *ngFor="let attachment of s.attachments; let i = index" class="border rounded-lg overflow-hidden">
-              <!-- Attachment Header -->
-              <div class="flex items-center justify-between bg-gray-50 p-3 border-b">
-                <div class="flex items-center gap-3">
-                  <div class="text-xs px-2 py-1 rounded font-medium" 
-                       [class]="getFileTypeClass(attachment.originalFileName)">
-                    {{ getFileExtension(attachment.originalFileName) }}
-                  </div>
-                  <div>
-                    <div class="font-medium text-sm">{{ attachment.originalFileName }}</div>
-                    <div class="text-xs text-gray-500">{{ formatFileSize(attachment.fileSize) }} • {{ attachment.fileType }}</div>
-                  </div>
-                </div>
-                <div class="flex items-center gap-2">
-                  <button *ngIf="isPresentationFile(attachment.originalFileName)" 
-                          (click)="toggleAttachmentViewer(i)"
-                          class="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700">
-                    {{ expandedAttachment() === i ? 'Thu gọn' : 'Xem slide' }}
-                  </button>
-                  <button *ngIf="isPdfFile(attachment.originalFileName)" 
-                          (click)="toggleAttachmentViewer(i)"
-                          class="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700">
-                    {{ expandedAttachment() === i ? 'Thu gọn' : 'Xem PDF' }}
-                  </button>
-                  <a [href]="attachment.fileUrl" target="_blank" 
-                     class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">
-                    Tải về
-                  </a>
-                  <button class="px-3 py-1 border text-sm rounded hover:bg-gray-50" 
-                          (click)="removeAttachmentFromLesson(s.id, attachment.id)">
-                    Xóa
-                  </button>
-                </div>
-              </div>
-              
-              <!-- Inline File Viewer -->
-              <div *ngIf="expandedAttachment() === i" class="p-4 bg-white">
-                <!-- PDF Viewer - Simple như professional-learning -->
-                <div *ngIf="isPdfFile(attachment.originalFileName)" class="w-full">
-                  <iframe *ngIf="pdfResource.value(); else loadingPdf"
-                          [src]="pdfResource.value()"
-                          class="w-full border-0 rounded"
-                          style="height: 600px;"
-                          frameborder="0">
-                    <p>Trình duyệt không hỗ trợ xem PDF. <a [href]="attachment.fileUrl" target="_blank">Tải về để xem</a></p>
-                  </iframe>
-                  <ng-template #loadingPdf>
-                    <div class="flex flex-col items-center justify-center p-12 bg-gray-50 rounded border-2 border-dashed border-gray-200">
-                       <div class="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mb-4"></div>
-                       <p class="text-gray-500 font-medium">Đang tải tài liệu PDF an toàn...</p>
-                       <p class="text-xs text-gray-400 mt-2">Đang khởi tạo session xem trước</p>
-                    </div>
-                  </ng-template>
-                  <!-- PDF Preview Controls -->
-                  <div class="mt-2 flex items-center justify-between bg-gray-50 p-2 rounded">
-                    <div class="text-sm text-gray-600">
-                      <span class="font-medium">Xem trước PDF:</span> {{ attachment.originalFileName }}
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <a [href]="attachment.fileUrl" target="_blank"
-                         class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">
-                        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
-                        </svg>
-                        Mở tab mới
-                      </a>
-                      <a [href]="attachment.fileUrl" 
-                         download
-                         class="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700">
-                        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                        </svg>
-                        Tải xuống
-                      </a>
-                      <button class="px-3 py-1 bg-purple-600 text-white text-sm rounded hover:bg-purple-700"
-                              (click)="openPdfFullscreen(attachment)">
-                        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path>
-                        </svg>
-                        Phóng to
-                      </button>
-                    </div>
-                  </div>
-                </div>
-                
-                <!-- Office Document Viewer (using Office Online) -->
-                <div *ngIf="isOfficeFile(attachment.originalFileName)" class="w-full">
-                  <iframe [src]="getOfficeViewerUrl(attachment.fileUrl)" 
-                          class="w-full border-0 rounded"
-                          style="height: 600px;"
-                          frameborder="0">
-                    <p>Không thể hiển thị file. <a [href]="attachment.fileUrl" target="_blank">Tải về để xem</a></p>
-                  </iframe>
-                </div>
-                
-                <!-- Image Viewer -->
-                <div *ngIf="isImageFile(attachment.originalFileName)" class="text-center">
-                  <img [src]="attachment.fileUrl" [alt]="attachment.originalFileName" 
-                       class="max-w-full h-auto rounded border">
-                </div>
-                
-                <!-- Video Player -->
-                <div *ngIf="isVideoFile(attachment.originalFileName)" class="w-full">
-                  <video controls class="w-full rounded">
-                    <source [src]="attachment.fileUrl" [type]="getVideoMimeType(attachment.originalFileName)">
-                    Trình duyệt không hỗ trợ video này.
-                  </video>
-                </div>
-                
-                <!-- Audio Player -->
-                <div *ngIf="isAudioFile(attachment.originalFileName)" class="w-full">
-                  <audio controls class="w-full">
-                    <source [src]="attachment.fileUrl" [type]="getAudioMimeType(attachment.originalFileName)">
-                    Trình duyệt không hỗ trợ audio này.
-                  </audio>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        </div>
-      </div>
-
-      <!-- PDF Fullscreen Viewer Modal - TRUE FULLSCREEN -->
-      <div *ngIf="pdfFullscreenAttachment" 
-           class="fixed inset-0 bg-black z-50"
-           (mousemove)="onFullscreenMouseMove()">
-        <!-- Header overlay với controls - Auto hide -->
-        <div class="absolute top-0 left-0 right-0 bg-black bg-opacity-80 text-white p-4 z-10 
-                    transition-all duration-500 hover:bg-opacity-100"
-             [ngClass]="{'opacity-100 translate-y-0': showFullscreenHeader, 'opacity-0 -translate-y-full pointer-events-none': !showFullscreenHeader}">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <div class="text-red-400">
-                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path>
-                </svg>
-              </div>
-              <div>
-                <h3 class="text-lg font-semibold text-white">{{ pdfFullscreenAttachment.originalFileName }}</h3>
-                <p class="text-sm text-gray-300">{{ formatFileSize(pdfFullscreenAttachment.fileSize) }}</p>
-              </div>
-            </div>
-            <div class="flex items-center gap-2">
-              <a [href]="pdfFullscreenAttachment.fileUrl" target="_blank"
-                 class="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                </svg>
-                Tải về
-              </a>
-              <button (click)="closePdfFullscreen()"
-                      class="px-4 py-2 bg-gray-800 text-white text-sm rounded hover:bg-gray-700 flex items-center gap-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-                Thoát
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- PDF Viewer - Full screen -->
-        <div class="w-full h-full transition-all duration-500"
-             [ngClass]="{'pt-20': showFullscreenHeader, 'pt-4': !showFullscreenHeader}">
-          <iframe [src]="getSafeUrl(pdfFullscreenAttachment.fileUrl)"
-                  class="w-full h-full border-0"
-                  frameborder="0">
-            <div class="flex items-center justify-center h-full text-white">
-              <div class="text-center">
-                <p class="text-lg mb-4">Trình duyệt không hỗ trợ xem PDF.</p>
-                <a [href]="pdfFullscreenAttachment.fileUrl" target="_blank" 
-                   class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 inline-flex items-center gap-2">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                  </svg>
-                  Tải về để xem
-                </a>
-              </div>
-            </div>
-          </iframe>
-        </div>
-      </div>
-
-      <!-- Create New Lesson Form - Professional Style -->
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 mt-6 overflow-hidden" *ngIf="showCreateForm()">
-        <!-- Header -->
-        <div class="px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700 flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-              </svg>
-            </div>
-            <div>
-              <h3 class="text-lg font-semibold text-white">Thêm nội dung mới</h3>
-              <p class="text-sm text-blue-100">Tạo bài học, bài tập hoặc bài trắc nghiệm</p>
-            </div>
-          </div>
-          <button (click)="toggleCreateForm()" class="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
-          </button>
-        </div>
-
-        <!-- Form Content -->
-        <form [formGroup]="createForm" class="p-6 space-y-6">
-          <!-- Basic Info -->
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="md:col-span-1">
-              <label class="block text-sm font-medium text-gray-700 mb-2">Loại nội dung</label>
-              <select class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white" formControlName="lessonType">
-                <option *ngFor="let option of lessonTypeOptions" [value]="option.value">
-                  {{ option.label }}
-                </option>
-              </select>
-            </div>
-            <div class="md:col-span-2">
-              <label class="block text-sm font-medium text-gray-700 mb-2">Tiêu đề</label>
-              <input class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                     formControlName="title" 
-                     placeholder="Nhập tiêu đề bài học" />
-            </div>
-          </div>
-          
-          <!-- Video URL - Only for LECTURE type -->
-          <div *ngIf="!isAssignmentType && !isQuizType">
-            <label class="block text-sm font-medium text-gray-700 mb-2">URL Video (tùy chọn)</label>
-            <input class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                   formControlName="videoUrl" 
-                   placeholder="https://youtube.com/watch?v=..." />
-          </div>
-
-          <!-- Assignment-specific fields (conditional) -->
-          <div *ngIf="isAssignmentType" class="bg-blue-50 rounded-xl p-5 border border-blue-200">
-            <div class="flex items-center gap-2 mb-4">
-              <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
-                </svg>
-              </div>
-              <h4 class="font-semibold text-blue-800">Thông tin bài tập</h4>
-            </div>
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-blue-700 mb-2">Mô tả bài tập</label>
-                <textarea class="w-full border border-blue-200 rounded-lg px-4 py-3 min-h-[80px] focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white" 
-                          formControlName="assignmentDescription" 
-                          placeholder="Mô tả ngắn gọn về bài tập..."></textarea>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-blue-700 mb-2">Hướng dẫn chi tiết</label>
-                <textarea class="w-full border border-blue-200 rounded-lg px-4 py-3 min-h-[80px] focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white" 
-                          formControlName="assignmentInstructions" 
-                          placeholder="Hướng dẫn chi tiết cho học viên..."></textarea>
-              </div>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label class="block text-sm font-medium text-blue-700 mb-2">Ngày hết hạn</label>
-                  <input type="datetime-local" 
-                         class="w-full border border-blue-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white" 
-                         formControlName="dueDate" />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-blue-700 mb-2">Điểm tối đa</label>
-                  <input type="number" 
-                         class="w-full border border-blue-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white" 
-                         formControlName="maxScore" 
-                         placeholder="100" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- File Attachments Section - Hidden for Quiz type -->
-          <div *ngIf="!isQuizType" class="bg-gray-50 rounded-xl p-5 border border-gray-200">
-            <div class="flex items-center gap-2 mb-4">
-              <div class="w-8 h-8 bg-gray-200 rounded-lg flex items-center justify-center">
-                <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
-                </svg>
-              </div>
-              <div>
-                <h4 class="font-semibold text-gray-800" *ngIf="!isAssignmentType">File đính kèm</h4>
-                <h4 class="font-semibold text-gray-800" *ngIf="isAssignmentType">File đính kèm & Template</h4>
-                <p class="text-xs text-gray-500" *ngIf="!isAssignmentType">PDF, Word, Excel, PowerPoint, Video, Audio</p>
-                <p class="text-xs text-gray-500" *ngIf="isAssignmentType">Mẫu/template cho sinh viên tham khảo</p>
-              </div>
-            </div>
-            <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 bg-white hover:border-blue-400 transition-colors">
-              <input
-                type="file"
-                accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.mp4,.avi,.mov,.mp3,.wav,.zip,.rar"
-                multiple
-                (change)="onFileAttachmentsUpload($event)"
-                class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
-              />
-            </div>
-            <p class="text-xs text-gray-500 mt-2">
-              <span *ngIf="!isAssignmentType">Hỗ trợ: PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX, MP4, AVI, MOV, MP3, WAV (tối đa 100MB/file)</span>
-              <span *ngIf="isAssignmentType">Hỗ trợ: PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX, MP4, AVI, MOV, MP3, WAV, ZIP, RAR (tối đa 100MB/file)</span>
-            </p>
-
-            <!-- Upload Progress -->
-            <div *ngIf="attachmentUploadProgress()" class="mt-4 bg-white rounded-lg p-3 border border-gray-200">
-              <div class="flex items-center justify-between text-sm mb-2">
-                <span class="text-blue-600 font-medium">{{ attachmentUploadProgress()?.message }}</span>
-                <span class="text-blue-600 font-medium">{{ attachmentUploadProgress()?.progress }}%</span>
-              </div>
-              <div class="w-full bg-gray-200 rounded-full h-2">
-                <div class="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                     [style.width.%]="attachmentUploadProgress()?.progress"></div>
-              </div>
-            </div>
-
-            <!-- Upload Success Message -->
-            <div *ngIf="attachmentUploadSuccess()" class="mt-4 p-3 bg-green-100 text-green-700 rounded-lg text-sm flex items-center gap-2">
-              <svg class="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-              </svg>
-              {{ attachmentUploadSuccess() }}
-            </div>
-
-            <!-- Selected Attachments List -->
-            <div *ngIf="tempAttachments.length > 0" class="mt-4">
-              <div class="flex items-center justify-between mb-2">
-                <span class="text-sm font-medium text-gray-700">File đã chọn</span>
-                <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">{{ tempAttachments.length }} file</span>
-              </div>
-              <div class="space-y-2">
-                <div *ngFor="let file of tempAttachments; let i = index" 
-                     class="flex items-center justify-between bg-white p-3 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
-                  <div class="flex items-center gap-3">
-                    <div class="text-xs px-2 py-1 rounded font-medium" [class]="getFileTypeClass(file.name)">
-                      {{ getFileExtension(file.name) }}
-                    </div>
-                    <div>
-                      <span class="text-sm font-medium text-gray-900">{{ file.name }}</span>
-                      <span class="text-xs text-gray-500 ml-2">({{ formatFileSize(file.size) }})</span>
-                    </div>
-                  </div>
-                  <button type="button" 
-                          (click)="removeAttachment(i)" 
-                          class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Assignment Instructions Document Upload -->
-          <div *ngIf="isAssignmentType" class="bg-green-50 rounded-xl p-5 border border-green-200">
-            <div class="flex items-center gap-2 mb-4">
-              <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                </svg>
-              </div>
-              <div>
-                <h4 class="font-semibold text-green-800">Tải file Word</h4>
-                <p class="text-xs text-green-600">Tự động điền hướng dẫn chi tiết</p>
-              </div>
-            </div>
-            <div class="border-2 border-dashed border-green-300 rounded-lg p-4 bg-white hover:border-green-400 transition-colors">
-              <input
-                type="file"
-                accept=".doc,.docx"
-                (change)="onInstructionsDocumentUpload($event)"
-                class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-green-50 file:text-green-700 hover:file:bg-green-100 cursor-pointer"
-              />
-            </div>
-            <p class="text-xs text-green-600 mt-2">.doc, .docx (tối đa 10MB) - Nội dung sẽ được điền vào "Hướng dẫn chi tiết"</p>
-
-            <!-- Upload Progress -->
-            <div *ngIf="uploadProgress()" class="mt-4 bg-white rounded-lg p-3 border border-green-200">
-              <div class="flex items-center justify-between text-sm mb-2">
-                <span class="text-green-600 font-medium">{{ uploadProgress()?.message }}</span>
-                <span class="text-green-600 font-medium">{{ uploadProgress()?.progress }}%</span>
-              </div>
-              <div class="w-full bg-gray-200 rounded-full h-2">
-                <div class="bg-green-600 h-2 rounded-full transition-all duration-300"
-                     [style.width.%]="uploadProgress()?.progress"></div>
-              </div>
-            </div>
-
-            <!-- Upload Success Message -->
-            <div *ngIf="uploadSuccess()" class="mt-4 p-3 bg-green-100 text-green-700 rounded-lg text-sm flex items-center gap-2">
-              <svg class="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-              </svg>
-              Đã tải và xử lý file thành công: <strong class="ml-1">{{ uploadSuccess() }}</strong>
-            </div>
-          </div>
-
-          <!-- Content Document Upload - Only for LECTURE type -->
-          <div *ngIf="createForm.get('lessonType')?.value === 'LECTURE'" class="bg-blue-50 rounded-xl p-5 border border-blue-200">
-            <div class="flex items-center gap-2 mb-4">
-              <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                </svg>
-              </div>
-              <div>
-                <h4 class="font-semibold text-blue-800">Tải file Word</h4>
-                <p class="text-xs text-blue-600">Tự động điền nội dung bài học</p>
-              </div>
-            </div>
-            <div class="border-2 border-dashed border-blue-300 rounded-lg p-4 bg-white hover:border-blue-400 transition-colors">
-              <input
-                type="file"
-                accept=".doc,.docx"
-                (change)="onDocumentUpload($event)"
-                class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
-              />
-            </div>
-            <p class="text-xs text-blue-600 mt-2">.doc, .docx (tối đa 10MB) - Nội dung sẽ được điền vào "Nội dung bài học"</p>
-            
-            <!-- Upload Progress -->
-            <div *ngIf="uploadProgress()" class="mt-4 bg-white rounded-lg p-3 border border-blue-200">
-              <div class="flex items-center justify-between text-sm mb-2">
-                <span class="text-blue-600 font-medium">{{ uploadProgress()?.message }}</span>
-                <span class="text-blue-600 font-medium">{{ uploadProgress()?.progress }}%</span>
-              </div>
-              <div class="w-full bg-gray-200 rounded-full h-2">
-                <div class="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                     [style.width.%]="uploadProgress()?.progress"></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Content Textarea - Only for LECTURE type -->
-          <div *ngIf="createForm.get('lessonType')?.value === 'LECTURE'">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Nội dung bài học</label>
-            <textarea 
-              class="w-full border border-gray-300 rounded-lg px-4 py-3 min-h-[200px] focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
-              formControlName="content" 
-              placeholder="Nhập nội dung bài học hoặc tải file .doc/.docx ở trên để tự động điền...">
-            </textarea>
-          </div>
-
-          <!-- Quiz Configuration Section - Consistent with Create Form -->
-          <div *ngIf="isQuizType" class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-            <!-- Header - Matching Create Form Style -->
-            <div class="px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700 flex items-center justify-between">
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                  <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                  </svg>
-                </div>
-                <div>
-                  <h3 class="text-lg font-semibold text-white">⚙️ Cấu hình bài trắc nghiệm</h3>
-                  <p class="text-sm text-blue-100">Thiết lập thời gian, điểm số và chọn câu hỏi</p>
-                </div>
-              </div>
-            </div>
-
-            <!-- Form Content - Matching Create Form Spacing -->
-            <form class="p-6 space-y-6">
-
-            <!-- Quiz Settings Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <!-- Time Limit -->
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">
-                  <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                  </svg>
-                  Thời gian làm bài (phút)
-                </label>
-                <input type="number"
-                       formControlName="quizTimeLimit"
-                       min="1"
-                       max="180"
-                       placeholder="30"
-                       [class.border-red-300]="createForm.get('quizTimeLimit')?.invalid && createForm.get('quizTimeLimit')?.touched"
-                       class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900" />
-                <p *ngIf="createForm.get('quizTimeLimit')?.invalid && createForm.get('quizTimeLimit')?.touched"
-                   class="text-xs text-red-600 mt-1">
-                  ⚠️ Thời gian phải từ 1-180 phút
-                </p>
-                <p *ngIf="!createForm.get('quizTimeLimit')?.invalid || !createForm.get('quizTimeLimit')?.touched"
-                   class="text-xs text-gray-500 mt-1">
-                  Từ 1-180 phút (mặc định: 30)
-                </p>
-              </div>
-
-              <!-- Passing Score -->
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">
-                  <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                  </svg>
-                  Điểm tối thiểu để đạt (%)
-                </label>
-                <input type="number"
-                       formControlName="quizMaxScore"
-                       min="0"
-                       max="100"
-                       placeholder="60"
-                       [class.border-red-300]="createForm.get('quizMaxScore')?.invalid && createForm.get('quizMaxScore')?.touched"
-                       class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900" />
-                <p *ngIf="createForm.get('quizMaxScore')?.invalid && createForm.get('quizMaxScore')?.touched"
-                   class="text-xs text-red-600 mt-1">
-                  ⚠️ Điểm phải từ 0-100%
-                </p>
-                <p *ngIf="!createForm.get('quizMaxScore')?.invalid || !createForm.get('quizMaxScore')?.touched"
-                   class="text-xs text-gray-500 mt-1">
-                  Từ 0-100% (mặc định: 60)
-                </p>
-              </div>
-
-              <!-- Max Attempts -->
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">
-                  <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                  </svg>
-                  Số lần làm tối đa
-                </label>
-                <input type="number"
-                       formControlName="quizMaxAttempts"
-                       min="1"
-                       max="10"
-                       placeholder="1"
-                       [class.border-red-300]="createForm.get('quizMaxAttempts')?.invalid && createForm.get('quizMaxAttempts')?.touched"
-                       class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900" />
-                <p *ngIf="createForm.get('quizMaxAttempts')?.invalid && createForm.get('quizMaxAttempts')?.touched"
-                   class="text-xs text-red-600 mt-1">
-                  ⚠️ Số lần làm phải từ 1-10
-                </p>
-                <p *ngIf="!createForm.get('quizMaxAttempts')?.invalid || !createForm.get('quizMaxAttempts')?.touched"
-                   class="text-xs text-gray-500 mt-1">
-                  Từ 1-10 lần (mặc định: 1)
-                </p>
-              </div>
-            </div>
-
-            <!-- Question Selection Section -->
-            <div class="border-t border-gray-200 pt-6">
-              <div class="flex items-center gap-3 mb-4">
-                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                <div>
-                  <h5 class="text-base font-medium text-gray-900">Chọn câu hỏi (tùy chọn)</h5>
-                  <p class="text-sm text-gray-600">Bạn có thể thêm câu hỏi sau khi tạo quiz</p>
-                </div>
-              </div>
-
-              <!-- Package Selector -->
-              <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">
-                  <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
-                  </svg>
-                  Chọn gói câu hỏi
-                </label>
-                <select [(ngModel)]="quizPackageId"
-                        (change)="loadQuizPackageQuestions()"
-                        [ngModelOptions]="{standalone: true}"
-                        style="position: relative; z-index: 10;"
-                        class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 cursor-pointer">
-                  <option [value]="''" [disabled]="true">{{ quizPackages().length === 0 ? '-- Đang tải gói câu hỏi... --' : '-- Chọn gói câu hỏi (' + quizPackages().length + ' gói) --' }}</option>
-                  @for (pkg of quizPackages(); track pkg.id) {
-                    <option [value]="pkg.id">
-                      {{ pkg.name }} ({{ pkg.questionCount || 0 }} câu)
-                    </option>
-                  }
-                </select>
-                <p class="text-xs text-gray-500 mt-1">Chọn gói để xem danh sách câu hỏi</p>
-              </div>
-
-              <!-- Question List with Checkboxes -->
-              @if (quizPackageQuestions().length > 0) {
-                <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                  <!-- Header with Select All/Deselect All -->
-                  <div class="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                    <div class="flex items-center justify-between">
-                      <div class="flex items-center gap-3">
-                        <span class="text-sm font-medium text-gray-900">Danh sách câu hỏi</span>
-                        <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
-                          {{ quizPackageQuestions().length }} câu
-                        </span>
-                      </div>
-                      <div class="flex items-center gap-2">
-                        <button type="button"
-                                (click)="selectAllQuizQuestions()"
-                                class="px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors border border-blue-200">
-                          <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                          </svg>
-                          Chọn tất cả
-                        </button>
-                        <button type="button"
-                                (click)="clearQuizQuestionSelection()"
-                                [disabled]="selectedQuizQuestions().size === 0"
-                                class="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed">
-                          <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                          </svg>
-                          Bỏ chọn tất cả
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Questions List -->
-                  <div class="max-h-96 overflow-y-auto p-4 space-y-3">
-                    @for (q of quizPackageQuestions(); track q.id) {
-                      <label class="flex items-start gap-3 p-3 rounded-lg border border-gray-200 hover:border-blue-200 hover:bg-blue-50 cursor-pointer transition-all"
-                             [class.border-blue-500]="selectedQuizQuestions().has(q.id)"
-                             [class.bg-blue-50]="selectedQuizQuestions().has(q.id)">
-                        <input type="checkbox"
-                               [checked]="selectedQuizQuestions().has(q.id)"
-                               (change)="toggleQuizQuestionSelection(q.id)"
-                               class="mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
-                        <div class="flex-1 min-w-0">
-                          <p class="text-sm text-gray-900 mb-2 leading-relaxed">{{ q.content }}</p>
-                          <div class="flex items-center gap-2">
-                            <span class="text-xs px-2 py-0.5 rounded-full font-medium"
-                                  [class.bg-green-100]="q.difficulty === 'EASY'"
-                                  [class.text-green-700]="q.difficulty === 'EASY'"
-                                  [class.bg-yellow-100]="q.difficulty === 'MEDIUM'"
-                                  [class.text-yellow-700]="q.difficulty === 'MEDIUM'"
-                                  [class.bg-red-100]="q.difficulty === 'HARD'"
-                                  [class.text-red-700]="q.difficulty === 'HARD'">
-                              {{ q.difficulty === 'EASY' ? 'Dễ' : q.difficulty === 'MEDIUM' ? 'TB' : 'Khó' }}
-                            </span>
-                            @if (q.tags) {
-                              <span class="text-xs text-gray-500">{{ q.tags }}</span>
-                            }
-                          </div>
-                        </div>
-                      </label>
-                    }
-                  </div>
-                </div>
-              }
-
-              <!-- Selected Questions Summary -->
-              @if (selectedQuizQuestions().size > 0) {
-                <div class="mt-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-4 border border-green-200 shadow-sm">
-                  <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                      </svg>
-                    </div>
-                    <div class="flex-1">
-                      <p class="text-sm font-semibold text-green-900">
-                        Đã chọn {{ selectedQuizQuestions().size }} / {{ quizPackageQuestions().length }} câu hỏi
-                      </p>
-                      <p class="text-xs text-green-700 mt-0.5">
-                        Sẵn sàng tạo bài trắc nghiệm với các câu hỏi đã chọn
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              }
-
-              <!-- Empty State -->
-              @if (quizPackageId && quizPackageQuestions().length === 0) {
-                <div class="text-center py-8 bg-white rounded-lg border-2 border-dashed border-gray-300">
-                  <svg class="w-12 h-12 mx-auto text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
-                  </svg>
-                  <p class="text-sm text-gray-600">Gói này chưa có câu hỏi</p>
-                </div>
-              }
-            </div>
-          </form>
-          </div>
-
-          <!-- Error Message -->
-          <div *ngIf="opError()" class="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 flex items-center gap-2">
-            <svg class="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
-            </svg>
-            {{ opError() }}
-          </div>
-
-          <!-- Actions -->
-          <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
-            <button type="button" 
-                    (click)="resetForm()"
-                    class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-              Xóa form
-            </button>
-            <button type="button" 
-                    (click)="toggleCreateForm()"
-                    class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-              Hủy
-            </button>
-            <button type="button" 
-                    [disabled]="createForm.invalid || uploadProgress() || isCreating()" 
-                    (click)="createLesson()"
-                    class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
-              @if (isCreating()) {
-                <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Đang tạo...
-              } @else {
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                </svg>
-                {{ isAssignmentType ? 'Tạo bài tập' : isQuizType ? 'Tạo bài trắc nghiệm' : 'Tạo bài học' }}
-              }
-            </button>
-          </div>
-        </form>
-      </div>
-
-      <!-- Edit Lesson Panel - Professional Style -->
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 mt-6 overflow-hidden" *ngIf="editingId() as id">
-        <!-- Header -->
-        <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-              </svg>
-            </div>
-            <div>
-              <h3 class="text-lg font-semibold text-gray-900">Chỉnh sửa bài học</h3>
-              <p class="text-sm text-gray-500">Cập nhật thông tin và nội dung bài học</p>
-            </div>
-          </div>
-          <button (click)="cancelEdit()" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
-          </button>
-        </div>
-
-        <!-- Form Content -->
-        <form [formGroup]="editForm" class="p-6 space-y-6">
-          <!-- Basic Info -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Tiêu đề bài học</label>
-              <input class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
-                     formControlName="title" 
-                     placeholder="Nhập tiêu đề bài học" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">URL Video (tùy chọn)</label>
-              <input class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
-                     formControlName="videoUrl" 
-                     placeholder="https://youtube.com/watch?v=..." />
-            </div>
-          </div>
-
-          <!-- Document Upload for Edit -->
-          <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-            <div class="flex items-center gap-2 mb-3">
-              <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-              </svg>
-              <span class="text-sm font-medium text-gray-700">Tải file Word để thay thế nội dung</span>
-            </div>
-            <input 
-              type="file" 
-              accept=".doc,.docx"
-              (change)="onDocumentUploadEdit($event)"
-              class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
-            />
-          </div>
-
-          <!-- File Attachments Management for Edit -->
-          <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
-            <div class="flex items-center gap-2 mb-3">
-              <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
-              </svg>
-              <span class="text-sm font-medium text-blue-800">Quản lý tệp đính kèm</span>
-            </div>
-            
-            <!-- Add New Attachments -->
-            <div class="mb-4">
-              <label class="block text-xs text-blue-700 mb-2">Thêm tệp đính kèm mới:</label>
-              <input
-                type="file"
-                accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.mp4,.avi,.mov,.mp3,.wav"
-                multiple
-                (change)="onEditAttachmentsUpload($event)"
-                class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-white file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
-              />
-              <p class="text-xs text-blue-600 mt-1">PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX, MP4, AVI, MOV, MP3, WAV (tối đa 100MB/file)</p>
-            </div>
-
-            <!-- Upload Progress for Edit -->
-            <div *ngIf="editAttachmentUploadProgress()" class="mb-4 bg-white rounded-lg p-3">
-              <div class="flex items-center justify-between text-sm mb-2">
-                <span class="text-blue-600 font-medium">{{ editAttachmentUploadProgress()?.message }}</span>
-                <span class="text-blue-600">{{ editAttachmentUploadProgress()?.progress }}%</span>
-              </div>
-              <div class="w-full bg-gray-200 rounded-full h-2">
-                <div class="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                     [style.width.%]="editAttachmentUploadProgress()?.progress"></div>
-              </div>
-            </div>
-
-            <!-- Upload Success Message for Edit -->
-            <div *ngIf="editAttachmentUploadSuccess()" class="mb-4 p-3 bg-green-100 text-green-700 rounded-lg text-sm flex items-center gap-2">
-              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-              </svg>
-              {{ editAttachmentUploadSuccess() }}
-            </div>
-
-            <!-- Current Attachments List -->
-            <div *ngIf="getCurrentLessonForEdit()?.attachments?.length > 0">
-              <label class="block text-xs text-blue-700 mb-2">Tệp đính kèm hiện có ({{ getCurrentLessonForEdit()?.attachments?.length }}):</label>
-              <div class="space-y-2">
-                <div *ngFor="let attachment of getCurrentLessonForEdit()?.attachments; let i = index" 
-                     class="flex items-center justify-between bg-white p-3 rounded-lg border border-blue-100">
-                  <div class="flex items-center gap-3">
-                    <div class="text-xs px-2 py-1 rounded font-medium" 
-                         [class]="getFileTypeClass(attachment.originalFileName)">
-                      {{ getFileExtension(attachment.originalFileName) }}
-                    </div>
-                    <div>
-                      <div class="font-medium text-gray-900 text-sm">{{ attachment.originalFileName }}</div>
-                      <div class="text-xs text-gray-500">{{ formatFileSize(attachment.fileSize) }}</div>
-                    </div>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <a [href]="attachment.fileUrl" target="_blank" 
-                       class="px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors">
-                      Xem
-                    </a>
-                    <button type="button" 
-                            class="px-3 py-1.5 bg-red-50 text-red-600 text-xs rounded-lg hover:bg-red-100 border border-red-200 transition-colors" 
-                            (click)="removeAttachmentFromEditingLesson(attachment.id)">
-                      Xóa
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Content Textarea -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Nội dung bài học</label>
-            <textarea class="w-full border border-gray-300 rounded-lg px-4 py-3 min-h-[200px] focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
-                      formControlName="content" 
-                      placeholder="Nhập nội dung bài học..."></textarea>
-          </div>
-
-          <!-- Actions -->
-          <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
-            <button type="button" 
-                    (click)="cancelEdit()"
-                    class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-              Hủy
-            </button>
-            <button type="button" 
-                    (click)="saveEdit(id)"
-                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-              </svg>
-              Lưu thay đổi
-            </button>
-          </div>
-        </form>
-      </div>
-
-    <!-- Quiz Preview Modal -->
-    @if (showQuizPreview()) {
-      <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div class="flex items-start justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-          <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" (click)="closeQuizPreview()"></div>
-
-          <div class="inline-block align-top bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
-            <!-- Header -->
-            <div class="bg-indigo-600 px-6 py-4">
-              <div class="flex items-center justify-between">
-                <h3 class="text-lg font-medium text-white">
-                  Xem trước: {{ previewQuizTitle() }}
-                </h3>
-                <button (click)="closeQuizPreview()" class="text-indigo-200 hover:text-white">
-                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                  </svg>
-                </button>
-              </div>
-              <p class="text-indigo-200 text-sm mt-1">
-                Đây là giao diện mà học viên sẽ thấy khi làm quiz
-              </p>
-            </div>
-
-            <!-- Quiz Content -->
-            <div class="bg-white px-6 py-6 max-h-96 overflow-y-auto">
-              <div class="space-y-8">
-                @for (question of previewQuestions(); track question.id; let idx = $index) {
-                  <div class="border border-gray-200 rounded-lg p-6">
-                    <!-- Question Header -->
-                    <div class="flex items-start gap-4 mb-4">
-                      <div class="flex-shrink-0 w-8 h-8 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center font-semibold">
-                        {{ question.questionNumber }}
-                      </div>
-                      <div class="flex-1">
-                        <h4 class="text-lg font-medium text-gray-900">{{ question.content }}</h4>
-                      </div>
-                    </div>
-
-                    <!-- Options -->
-                    <div class="ml-12 space-y-3">
-                      @for (option of question.options; track option.optionKey) {
-                        <label class="flex items-start gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
-                               [class.border-indigo-500]="question.selectedAnswer === option.optionKey"
-                               [class.bg-indigo-50]="question.selectedAnswer === option.optionKey">
-                          <input type="radio" 
-                                 [name]="'preview-q-' + question.id"
-                                 [value]="option.optionKey"
-                                 [checked]="question.selectedAnswer === option.optionKey"
-                                 (change)="selectPreviewAnswer(question.id, option.optionKey)"
-                                 class="mt-0.5 h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500">
-                          <div class="flex-1">
-                            <div class="flex items-center gap-2">
-                              <span class="font-medium text-gray-900">{{ option.optionKey }}.</span>
-                              <span class="text-gray-700">{{ option.content }}</span>
-                            </div>
-                          </div>
-                        </label>
-                      }
-                    </div>
-                  </div>
-                }
-              </div>
-            </div>
-
-            <!-- Footer -->
-            <div class="bg-gray-50 px-6 py-4 flex justify-between items-center">
-              <div class="text-sm text-gray-600">
-                Tổng {{ previewQuestions().length }} câu hỏi
-              </div>
-              <div class="flex gap-3">
-                <button (click)="closeQuizPreview()" 
-                        class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                  Đóng
-                </button>
-                <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
-                  Xem kết quả
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    }
-
-    <!-- Inline Add Questions Modal -->
-    @if (showInlineAddQuestionsModal()) {
-      <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-          <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" (click)="closeInlineAddQuestionsModal()"></div>
-
-          <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full">
-            <!-- Header -->
-            <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
-              <div class="flex items-center justify-between">
-                <h3 class="text-lg font-semibold text-white">Thêm câu hỏi vào Quiz</h3>
-                <button (click)="closeInlineAddQuestionsModal()" class="text-white/80 hover:text-white">
-                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                  </svg>
-                </button>
-              </div>
-              <p class="text-blue-100 text-sm mt-1">Chọn gói câu hỏi và các câu hỏi muốn thêm</p>
-            </div>
-
-            <!-- Content -->
-            <div class="bg-white px-6 py-6 max-h-96 overflow-y-auto">
-              <!-- Package Selector -->
-              <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Chọn gói câu hỏi</label>
-                <select [(ngModel)]="inlinePackageId"
-                        (change)="onInlinePackageChange(inlinePackageId)"
-                        class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                  <option value="">-- Chọn gói câu hỏi --</option>
-                  @for (pkg of quizPackages(); track pkg.id) {
-                    <option [value]="pkg.id">{{ pkg.name }} ({{ pkg.questionCount || 0 }} câu)</option>
-                  }
-                </select>
-              </div>
-
-              <!-- Questions List -->
-              @if (inlinePackageQuestions().length > 0) {
-                <div class="space-y-3">
-                  <div class="flex items-center justify-between mb-3">
-                    <span class="text-sm font-medium text-gray-900">Danh sách câu hỏi</span>
-                    <div class="flex items-center gap-2">
-                      <button type="button"
-                              (click)="selectAllInlineQuestions()"
-                              class="px-3 py-1 text-xs text-blue-600 bg-blue-50 rounded hover:bg-blue-100">
-                        Chọn tất cả
-                      </button>
-                      <button type="button"
-                              (click)="clearInlineQuestionSelection()"
-                              class="px-3 py-1 text-xs text-gray-600 bg-gray-50 rounded hover:bg-gray-100">
-                        Bỏ chọn
-                      </button>
-                    </div>
-                  </div>
-
-                  @for (q of inlinePackageQuestions(); track q.id) {
-                    <label class="flex items-start gap-3 p-3 rounded-lg border border-gray-200 hover:border-blue-200 hover:bg-blue-50 cursor-pointer transition-all"
-                           [class.border-blue-500]="selectedInlineQuestions().includes(q.id)"
-                           [class.bg-blue-50]="selectedInlineQuestions().includes(q.id)">
-                      <input type="checkbox"
-                             [checked]="selectedInlineQuestions().includes(q.id)"
-                             (change)="toggleInlineQuestionSelection(q.id)"
-                             class="mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
-                      <div class="flex-1 min-w-0">
-                        <p class="text-sm text-gray-900 mb-2">{{ q.content }}</p>
-                        <div class="flex items-center gap-2">
-                          <span class="text-xs px-2 py-0.5 rounded-full font-medium"
-                                [class.bg-green-100]="q.difficulty === 'EASY'"
-                                [class.text-green-700]="q.difficulty === 'EASY'"
-                                [class.bg-yellow-100]="q.difficulty === 'MEDIUM'"
-                                [class.text-yellow-700]="q.difficulty === 'MEDIUM'"
-                                [class.bg-red-100]="q.difficulty === 'HARD'"
-                                [class.text-red-700]="q.difficulty === 'HARD'">
-                            {{ q.difficulty === 'EASY' ? 'Dễ' : q.difficulty === 'MEDIUM' ? 'TB' : 'Khó' }}
-                          </span>
-                        </div>
-                      </div>
-                    </label>
-                  }
-                </div>
-              }
-
-              @if (inlinePackageId && inlinePackageQuestions().length === 0) {
-                <div class="text-center py-8 text-gray-500">
-                  <p>Gói này chưa có câu hỏi</p>
-                </div>
-              }
-            </div>
-
-            <!-- Footer -->
-            <div class="bg-gray-50 px-6 py-4 flex justify-between items-center border-t">
-              <div class="text-sm text-gray-600">
-                @if (selectedInlineQuestions().length > 0) {
-                  <span class="font-medium text-blue-600">Đã chọn {{ selectedInlineQuestions().length }} câu hỏi</span>
-                } @else {
-                  <span>Chưa chọn câu hỏi nào</span>
-                }
-              </div>
-              <div class="flex gap-3">
-                <button (click)="closeInlineAddQuestionsModal()" 
-                        class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                  Hủy
-                </button>
-                <button (click)="addInlineQuestionsToQuiz(inlineAddQuizLessonId()!)"
-                        [disabled]="selectedInlineQuestions().length === 0 || addingInlineQuestions()"
-                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
-                  @if (addingInlineQuestions()) {
-                    <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Đang thêm...
-                  } @else {
-                    Thêm câu hỏi
-                  }
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    }
-
-    <!-- Quiz Edit Modal -->
-    <app-quiz-edit-modal
-      (saved)="onQuizSettingsSaved()"
-      (closed)="onQuizEditModalClosed()">
-    </app-quiz-edit-modal>
-
-    <!-- Quiz Creation Modal -->
-    <app-quiz-creation-modal
-      [courseId]="courseId"
-      [sectionId]="sectionId"
-      (quizCreated)="onQuizCreated($event)"
-      (closed)="onQuizCreationModalClosed()">
-    </app-quiz-creation-modal>
-    <!-- Smart Editor Modal -->
-    <app-section-smart-editor
-      *ngIf="showSmartEditor()"
-      [lessonId]="activeLessonIdForEditor()!"
-      [courseId]="courseId"
-      (close)="closeSmartEditor()"
-      (saved)="onSmartEditorSaved()">
-    </app-section-smart-editor>
-  `,
+  templateUrl: './section-editor.component.html',
   // changeDetection: ChangeDetectionStrategy.OnPush  // Temporarily disabled for debugging
 })
 export class SectionEditorComponent implements OnDestroy {
@@ -1791,11 +81,11 @@ export class SectionEditorComponent implements OnDestroy {
       const id = params.request;
       if (!id) return null;
       try {
-        const blob = await firstValueFrom(this.http.get(`${environment.apiUrl}/api/v1/files/stream/${id}`, { responseType: 'blob' }));
+        const blob = await firstValueFrom(this.http.get(`${environment.apiUrl}/api/v3/files/stream/${id}`, { responseType: 'blob' }));
         const url = URL.createObjectURL(blob);
         return this.sanitizer.bypassSecurityTrustResourceUrl(url);
       } catch (err) {
-        console.error('❌ Error loading PDF blob:', err);
+        console.error('âŒ Error loading PDF blob:', err);
         return null;
       }
     }
@@ -1856,7 +146,7 @@ export class SectionEditorComponent implements OnDestroy {
   // Show/hide create lesson form
   showCreateForm = signal<boolean>(false);
 
-  // Store recently created quiz ID for Ngân hàng câu hỏi navigation
+  // Store recently created quiz ID for NgĂ¢n hĂ ng cĂ¢u há»i navigation
   lastCreatedQuizId = signal<string | null>(null);
   lastCreatedQuizTitle = signal<string>('');
 
@@ -1913,9 +203,9 @@ export class SectionEditorComponent implements OnDestroy {
 
 
   lessonTypeOptions = [
-    { value: 'LECTURE', label: '📖 Bài giảng', icon: 'book' },
-    { value: 'ASSIGNMENT', label: '📋 Bài tập', icon: 'assignment' },
-    { value: 'QUIZ', label: '❓ Trắc nghiệm', icon: 'quiz' }
+    { value: 'LECTURE', label: 'đŸ“– BĂ i giáº£ng', icon: 'book' },
+    { value: 'ASSIGNMENT', label: 'đŸ“‹ BĂ i táº­p', icon: 'assignment' },
+    { value: 'QUIZ', label: 'â“ Tráº¯c nghiá»‡m', icon: 'quiz' }
   ];
 
   createForm = this.fb.group({
@@ -1961,7 +251,7 @@ export class SectionEditorComponent implements OnDestroy {
       || '';
     this.lessonApi.listBySection(this.sectionId).subscribe({
       next: (res) => this.lessons.set(res?.data || []),
-      error: (err) => this.error.set(err?.message || 'Không tải được danh sách bài học')
+      error: (err) => this.error.set(err?.message || 'KhĂ´ng táº£i Ä‘Æ°á»£c danh sĂ¡ch bĂ i há»c')
     });
 
     // Subscribe to router events to reload quiz questions when navigating back
@@ -2074,7 +364,7 @@ export class SectionEditorComponent implements OnDestroy {
           this.isCreating.set(false);
         },
         error: (err) => {
-          this.opError.set(err?.message || 'Tạo bài tập thất bại');
+          this.opError.set(err?.message || 'Táº¡o bĂ i táº­p tháº¥t báº¡i');
           this.isCreating.set(false);
         }
       });
@@ -2109,7 +399,7 @@ export class SectionEditorComponent implements OnDestroy {
                 // If quiz exists, update it with new questions
                 if (createdQuiz && Array.from(selectedQuestionIds).length > 0) {
                   await firstValueFrom(this.quizApi.updateQuizQuestions(lesson.id, { questionIds: Array.from(selectedQuestionIds) }));
-                  console.log('✅ Updated existing quiz with new questions');
+                  console.log('âœ… Updated existing quiz with new questions');
                 }
               } catch (getQuizError: any) {
                 // Quiz doesn't exist yet, create it
@@ -2128,7 +418,7 @@ export class SectionEditorComponent implements OnDestroy {
                   // Create Quiz entity
                   const quizResponse = await firstValueFrom(this.quizApi.createQuiz(lesson.id, quizPayload));
                   createdQuiz = quizResponse as any;
-                  console.log('✅ Created new quiz');
+                  console.log('âœ… Created new quiz');
                 } else {
                   throw getQuizError;
                 }
@@ -2137,7 +427,7 @@ export class SectionEditorComponent implements OnDestroy {
               if (createdQuiz) {
                 this.lessons.update(list => [...list, lesson]);
 
-                // Save quiz ID and title for Ngân hàng câu hỏi navigation
+                // Save quiz ID and title for NgĂ¢n hĂ ng cĂ¢u há»i navigation
                 this.lastCreatedQuizId.set(createdQuiz.id || lesson.id);
                 this.lastCreatedQuizTitle.set(lesson.title);
 
@@ -2168,12 +458,12 @@ export class SectionEditorComponent implements OnDestroy {
                 // Show success message
                 this.opError.set('');
                 const questionCount = Array.from(selectedQuestionIds).length;
-                alert(`✅ Đã tạo bài trắc nghiệm "${lesson.title}" thành công!\n\n📝 ${questionCount} câu hỏi đã được thêm vào quiz.`);
+                alert(`âœ… ÄĂ£ táº¡o bĂ i tráº¯c nghiá»‡m "${lesson.title}" thĂ nh cĂ´ng!\n\nđŸ“ ${questionCount} cĂ¢u há»i Ä‘Ă£ Ä‘Æ°á»£c thĂªm vĂ o quiz.`);
               } else {
                 // Lesson created but Quiz creation failed
                 this.lessons.update(list => [...list, lesson]);
                 this.opError.set('');
-                alert(`⚠️ Đã tạo lesson "${lesson.title}" nhưng không thể tạo Quiz entity. Vui lòng kiểm tra logs.`);
+                alert(`â ï¸ ÄĂ£ táº¡o lesson "${lesson.title}" nhÆ°ng khĂ´ng thá»ƒ táº¡o Quiz entity. Vui lĂ²ng kiá»ƒm tra logs.`);
               }
               this.isCreating.set(false);
             } catch (quizError) {
@@ -2182,12 +472,12 @@ export class SectionEditorComponent implements OnDestroy {
               this.lessons.update(list => [...list, lesson]);
               this.opError.set('');
               this.isCreating.set(false);
-              alert(`⚠️ Đã tạo lesson "${lesson.title}" nhưng lỗi khi tạo Quiz entity: ${(quizError as any)?.message || 'Lỗi không xác định'}`);
+              alert(`â ï¸ ÄĂ£ táº¡o lesson "${lesson.title}" nhÆ°ng lá»—i khi táº¡o Quiz entity: ${(quizError as any)?.message || 'Lá»—i khĂ´ng xĂ¡c Ä‘á»‹nh'}`);
             }
           }
         },
         error: (err) => {
-          this.opError.set(err?.message || 'Tạo bài trắc nghiệm thất bại');
+          this.opError.set(err?.message || 'Táº¡o bĂ i tráº¯c nghiá»‡m tháº¥t báº¡i');
           this.isCreating.set(false);
         }
       });
@@ -2230,7 +520,7 @@ export class SectionEditorComponent implements OnDestroy {
           this.isCreating.set(false);
         },
         error: (err) => {
-          this.opError.set(err?.message || 'Tạo bài học thất bại');
+          this.opError.set(err?.message || 'Táº¡o bĂ i há»c tháº¥t báº¡i');
           this.isCreating.set(false);
         }
       });
@@ -2279,14 +569,14 @@ export class SectionEditorComponent implements OnDestroy {
         this.lessons.update(list => list.map(it => it.id === id ? { ...it, ...payload } : it));
         this.cancelEdit();
       },
-      error: (err) => this.opError.set(err?.message || 'Cập nhật bài học thất bại')
+      error: (err) => this.opError.set(err?.message || 'Cáº­p nháº­t bĂ i há»c tháº¥t báº¡i')
     });
   }
 
   deleteLesson(id: string) {
     this.lessonApi.deleteLesson(id, this.courseId).subscribe({
       next: () => this.lessons.update(list => list.filter(i => i.id !== id)),
-      error: (err) => this.opError.set(err?.message || 'Xóa bài học thất bại')
+      error: (err) => this.opError.set(err?.message || 'XĂ³a bĂ i há»c tháº¥t báº¡i')
     });
   }
 
@@ -2332,7 +622,7 @@ export class SectionEditorComponent implements OnDestroy {
         }, 3000);
       },
       error: (err) => {
-        this.opError.set(err?.message || 'Xóa bài học thất bại');
+        this.opError.set(err?.message || 'XĂ³a bĂ i há»c tháº¥t báº¡i');
         this.isDeleting.set(false);
       }
     });
@@ -2344,11 +634,11 @@ export class SectionEditorComponent implements OnDestroy {
     if (!lesson) return '';
 
     if (lesson.lessonType === 'QUIZ') {
-      return 'Tất cả câu hỏi trong quiz và kết quả làm bài của học viên sẽ bị xóa vĩnh viễn.';
+      return 'Táº¥t cáº£ cĂ¢u há»i trong quiz vĂ  káº¿t quáº£ lĂ m bĂ i cá»§a há»c viĂªn sáº½ bá»‹ xĂ³a vÄ©nh viá»…n.';
     } else if (lesson.lessonType === 'ASSIGNMENT') {
-      return 'Tất cả bài nộp của học viên sẽ bị xóa vĩnh viễn.';
+      return 'Táº¥t cáº£ bĂ i ná»™p cá»§a há»c viĂªn sáº½ bá»‹ xĂ³a vÄ©nh viá»…n.';
     }
-    return 'Hành động này không thể hoàn tác.';
+    return 'HĂ nh Ä‘á»™ng nĂ y khĂ´ng thá»ƒ hoĂ n tĂ¡c.';
   }
 
   // Preview quiz - simulate student experience
@@ -2359,7 +649,7 @@ export class SectionEditorComponent implements OnDestroy {
       const questions = Array.isArray(response) ? response : (response as any).data || [];
 
       if (questions.length === 0) {
-        alert('⚠️ Quiz này chưa có câu hỏi nào.\n\nVui lòng thêm câu hỏi trước khi xem trước.');
+        alert('â ï¸ Quiz nĂ y chÆ°a cĂ³ cĂ¢u há»i nĂ o.\n\nVui lĂ²ng thĂªm cĂ¢u há»i trÆ°á»›c khi xem trÆ°á»›c.');
         return;
       }
 
@@ -2372,14 +662,14 @@ export class SectionEditorComponent implements OnDestroy {
       });
     } catch (error: any) {
       console.error('Error previewing quiz:', error);
-      alert('Không thể xem trước quiz: ' + (error?.message || 'Lỗi không xác định'));
+      alert('KhĂ´ng thá»ƒ xem trÆ°á»›c quiz: ' + (error?.message || 'Lá»—i khĂ´ng xĂ¡c Ä‘á»‹nh'));
     }
   }
 
   // --- Viewer helpers ---
   viewLesson(l: any) {
-    console.log('🎯 viewLesson called for:', l);
-    console.log('🎥 Video URL check:', {
+    console.log('đŸ¯ viewLesson called for:', l);
+    console.log('đŸ¥ Video URL check:', {
       raw: l?.videoUrl,
       hasValid: this.hasValidVideoUrl(l)
     });
@@ -2395,24 +685,24 @@ export class SectionEditorComponent implements OnDestroy {
       if (this.isYouTube(url)) {
         const embed = this.toYouTubeEmbed(url);
         this._sanitizedEmbed.set(this.sanitizer.bypassSecurityTrustResourceUrl(embed));
-        console.log('✅ YouTube embed setup for:', url);
+        console.log('âœ… YouTube embed setup for:', url);
       } else {
         this._sanitizedEmbed.set(null);
-        console.log('📹 Non-YouTube video URL:', url);
+        console.log('đŸ“¹ Non-YouTube video URL:', url);
       }
     } else {
       // No valid video URL, clear any previous embed
       this._sanitizedEmbed.set(null);
-      console.log('❌ No valid video URL, clearing embed');
+      console.log('âŒ No valid video URL, clearing embed');
     }
 
     // Load attachments for this lesson - THIS IS CRITICAL!
-    console.log('📎 Loading attachments for lesson:', l.id);
+    console.log('đŸ“ Loading attachments for lesson:', l.id);
     this.loadLessonAttachments(l.id);
 
     // Auto-load quiz questions if this is a QUIZ lesson
     if (l.lessonType === 'QUIZ') {
-      console.log('🎯 Auto-loading quiz questions for lesson:', l.id);
+      console.log('đŸ¯ Auto-loading quiz questions for lesson:', l.id);
       this.loadQuizQuestions(l.id);
       // Also load packages for inline add questions
       this.loadQuizPackages();
@@ -2521,7 +811,7 @@ export class SectionEditorComponent implements OnDestroy {
 
     const lesson = this.getCurrentLessonForEdit();
     if (!lesson) {
-      this.opError.set('Không tìm thấy bài học để chỉnh sửa');
+      this.opError.set('KhĂ´ng tĂ¬m tháº¥y bĂ i há»c Ä‘á»ƒ chá»‰nh sá»­a');
       return;
     }
 
@@ -2539,11 +829,11 @@ export class SectionEditorComponent implements OnDestroy {
     // Validate file
     const validation = this.validateAttachmentFile(file);
     if (!validation.isValid) {
-      this.opError.set(validation.error || 'File không hợp lệ');
+      this.opError.set(validation.error || 'File khĂ´ng há»£p lá»‡');
       return;
     }
 
-    console.log('📤 Uploading attachment to lesson (edit):', lessonId, 'File:', file.name);
+    console.log('đŸ“¤ Uploading attachment to lesson (edit):', lessonId, 'File:', file.name);
 
     // Reset states
     this.editAttachmentUploadProgress.set(null);
@@ -2559,10 +849,10 @@ export class SectionEditorComponent implements OnDestroy {
         } else {
           // Upload completed
           this.editAttachmentUploadProgress.set(null);
-          this.editAttachmentUploadSuccess.set(`Đã thêm: ${file.name}`);
+          this.editAttachmentUploadSuccess.set(`ÄĂ£ thĂªm: ${file.name}`);
 
           // Reload attachments for this lesson
-          console.log('🔄 Reloading attachments after edit upload...');
+          console.log('đŸ”„ Reloading attachments after edit upload...');
           this.loadLessonAttachments(lessonId);
 
           // Clear success message after 3 seconds
@@ -2572,16 +862,16 @@ export class SectionEditorComponent implements OnDestroy {
         }
       },
       error: (error) => {
-        console.error('📤 Edit upload error:', error);
+        console.error('đŸ“¤ Edit upload error:', error);
         this.editAttachmentUploadProgress.set(null);
 
-        let errorMsg = `Lỗi upload: ${file.name}`;
+        let errorMsg = `Lá»—i upload: ${file.name}`;
         if (error?.status === 403) {
-          errorMsg += ' - Không có quyền upload';
+          errorMsg += ' - KhĂ´ng cĂ³ quyá»n upload';
         } else if (error?.status === 401) {
-          errorMsg += ' - Phiên đăng nhập hết hạn';
+          errorMsg += ' - PhiĂªn Ä‘Äƒng nháº­p háº¿t háº¡n';
         } else {
-          errorMsg += ` - ${error?.message || 'Lỗi không xác định'}`;
+          errorMsg += ` - ${error?.message || 'Lá»—i khĂ´ng xĂ¡c Ä‘á»‹nh'}`;
         }
 
         this.opError.set(errorMsg);
@@ -2603,13 +893,13 @@ export class SectionEditorComponent implements OnDestroy {
 
     this.lessonAttachmentApi.deleteAttachment(attachmentId).subscribe({
       next: () => {
-        console.log('🗑️ Attachment deleted successfully');
+        console.log('đŸ—‘ï¸ Attachment deleted successfully');
         // Reload attachments for this lesson
         this.loadLessonAttachments(lesson.id);
       },
       error: (error) => {
-        console.error('🗑️ Delete attachment error:', error);
-        this.opError.set('Lỗi xóa tệp đính kèm: ' + (error?.message || 'Lỗi không xác định'));
+        console.error('đŸ—‘ï¸ Delete attachment error:', error);
+        this.opError.set('Lá»—i xĂ³a tá»‡p Ä‘Ă­nh kĂ¨m: ' + (error?.message || 'Lá»—i khĂ´ng xĂ¡c Ä‘á»‹nh'));
       }
     });
   }
@@ -2651,7 +941,7 @@ export class SectionEditorComponent implements OnDestroy {
       },
       error: (error) => {
         console.error('Document upload error:', error);
-        this.opError.set(error?.error?.message || 'Có lỗi xảy ra khi tải file');
+        this.opError.set(error?.error?.message || 'CĂ³ lá»—i xáº£y ra khi táº£i file');
         this.uploadProgress.set(null);
       }
     });
@@ -2685,7 +975,7 @@ export class SectionEditorComponent implements OnDestroy {
             this.createForm.patchValue({
               assignmentInstructions: response.content
             });
-            this.uploadSuccess.set(`Đã điền hướng dẫn từ: ${response.filename}`);
+            this.uploadSuccess.set(`ÄĂ£ Ä‘iá»n hÆ°á»›ng dáº«n tá»«: ${response.filename}`);
             this.uploadProgress.set(null);
           } else {
             this.opError.set(response.message || 'Upload failed');
@@ -2695,7 +985,7 @@ export class SectionEditorComponent implements OnDestroy {
       },
       error: (error) => {
         console.error('Instructions document upload error:', error);
-        this.opError.set(error?.error?.message || 'Có lỗi xảy ra khi tải file hướng dẫn');
+        this.opError.set(error?.error?.message || 'CĂ³ lá»—i xáº£y ra khi táº£i file hÆ°á»›ng dáº«n');
         this.uploadProgress.set(null);
       }
     });
@@ -2733,7 +1023,7 @@ export class SectionEditorComponent implements OnDestroy {
       this.tempAttachments = [];
     }
     this.tempAttachments.push(file);
-    this.attachmentUploadSuccess.set(`Đã thêm file: ${file.name}. File sẽ được đính kèm khi tạo bài học.`);
+    this.attachmentUploadSuccess.set(`ÄĂ£ thĂªm file: ${file.name}. File sáº½ Ä‘Æ°á»£c Ä‘Ă­nh kĂ¨m khi táº¡o bĂ i há»c.`);
   }
 
   private validateAttachmentFile(file: File): { isValid: boolean; error?: string } {
@@ -2765,7 +1055,7 @@ export class SectionEditorComponent implements OnDestroy {
     const sectionId = this.route.snapshot.paramMap.get('sectionId')!;
     this.lessonApi.listBySection(sectionId).subscribe({
       next: (res) => this.lessons.set(res?.data || []),
-      error: (err) => this.error.set(err?.message || 'Không tải được danh sách bài học')
+      error: (err) => this.error.set(err?.message || 'KhĂ´ng táº£i Ä‘Æ°á»£c danh sĂ¡ch bĂ i há»c')
     });
   }
 
@@ -2780,7 +1070,7 @@ export class SectionEditorComponent implements OnDestroy {
   }
 
   openQuizBankInNewTab() {
-    // Navigate to Ngân hàng câu hỏi in same tab with quiz context if available
+    // Navigate to NgĂ¢n hĂ ng cĂ¢u há»i in same tab with quiz context if available
     const quizId = this.lastCreatedQuizId();
     const quizTitle = this.lastCreatedQuizTitle();
 
@@ -2805,8 +1095,8 @@ export class SectionEditorComponent implements OnDestroy {
     try {
       const packages = await firstValueFrom(this.packageApi.getMyPackages());
       this.quizPackages.set(packages || []);
-      console.log('📦 Loaded packages:', packages?.length || 0);
-      console.log('📦 Package details:', packages);
+      console.log('đŸ“¦ Loaded packages:', packages?.length || 0);
+      console.log('đŸ“¦ Package details:', packages);
     } catch (error) {
       console.error('Failed to load packages:', error);
       this.quizPackages.set([]);
@@ -2823,7 +1113,7 @@ export class SectionEditorComponent implements OnDestroy {
       const questions = await firstValueFrom(this.packageApi.getQuestionsInPackage(this.quizPackageId));
       const questionList = Array.isArray(questions) ? questions : [];
       this.quizPackageQuestions.set(questionList);
-      console.log('📝 Loaded questions for package:', questionList.length);
+      console.log('đŸ“ Loaded questions for package:', questionList.length);
     } catch (error) {
       console.error('Failed to load package questions:', error);
       this.quizPackageQuestions.set([]);
@@ -2844,7 +1134,7 @@ export class SectionEditorComponent implements OnDestroy {
       const questions = await firstValueFrom(this.packageApi.getQuestionsInPackage(packageId));
       const questionList = Array.isArray(questions) ? questions : [];
       this.quizPackageQuestions.set(questionList);
-      console.log('📝 Loaded questions for package:', questionList.length);
+      console.log('đŸ“ Loaded questions for package:', questionList.length);
     } catch (error) {
       console.error('Failed to load package questions:', error);
       this.quizPackageQuestions.set([]);
@@ -2866,7 +1156,7 @@ export class SectionEditorComponent implements OnDestroy {
       const questions = await firstValueFrom(this.packageApi.getQuestionsInPackage(packageId));
       const questionList = Array.isArray(questions) ? questions : [];
       this.inlinePackageQuestions.set(questionList);
-      console.log('📝 Loaded inline questions for package:', questionList.length);
+      console.log('đŸ“ Loaded inline questions for package:', questionList.length);
     } catch (error) {
       console.error('Failed to load inline package questions:', error);
       this.inlinePackageQuestions.set([]);
@@ -2923,13 +1213,13 @@ export class SectionEditorComponent implements OnDestroy {
 
       for (const questionId of selectedIds) {
         try {
-          console.log('🔄 Adding question to quiz - lessonId:', lessonId, 'questionId:', questionId);
+          console.log('đŸ”„ Adding question to quiz - lessonId:', lessonId, 'questionId:', questionId);
           const result = await firstValueFrom(this.quizApi.addQuestionToQuiz(lessonId, questionId));
-          console.log('✅ Add question result:', result);
+          console.log('âœ… Add question result:', result);
           addedCount++;
         } catch (error: any) {
-          console.error('❌ Error adding question:', questionId, error);
-          if (error?.error?.message?.includes('đã tồn tại')) {
+          console.error('âŒ Error adding question:', questionId, error);
+          if (error?.error?.message?.includes('Ä‘Ă£ tá»“n táº¡i')) {
             skippedCount++;
           } else {
             // Log full error for debugging
@@ -2947,23 +1237,23 @@ export class SectionEditorComponent implements OnDestroy {
       this.inlinePackageQuestions.set([]);
 
       // Show result
-      console.log('📊 Add result - added:', addedCount, 'skipped:', skippedCount);
+      console.log('đŸ“ Add result - added:', addedCount, 'skipped:', skippedCount);
       if (addedCount > 0) {
-        let msg = `✅ Đã thêm ${addedCount} câu hỏi vào Quiz!`;
+        let msg = `âœ… ÄĂ£ thĂªm ${addedCount} cĂ¢u há»i vĂ o Quiz!`;
         if (skippedCount > 0) {
-          msg += ` (${skippedCount} câu đã có sẵn)`;
+          msg += ` (${skippedCount} cĂ¢u Ä‘Ă£ cĂ³ sáºµn)`;
         }
         alert(msg);
         // Close modal after success
         this.closeInlineAddQuestionsModal();
       } else if (skippedCount > 0) {
-        alert('⚠️ Tất cả câu hỏi đã có trong Quiz rồi!');
+        alert('â ï¸ Táº¥t cáº£ cĂ¢u há»i Ä‘Ă£ cĂ³ trong Quiz rá»“i!');
       } else {
-        alert('⚠️ Không có câu hỏi nào được thêm. Kiểm tra console log để biết chi tiết.');
+        alert('â ï¸ KhĂ´ng cĂ³ cĂ¢u há»i nĂ o Ä‘Æ°á»£c thĂªm. Kiá»ƒm tra console log Ä‘á»ƒ biáº¿t chi tiáº¿t.');
       }
     } catch (error: any) {
       console.error('Error adding inline questions:', error);
-      alert('❌ Lỗi: ' + (error?.message || error?.error?.message || 'Không xác định'));
+      alert('âŒ Lá»—i: ' + (error?.message || error?.error?.message || 'KhĂ´ng xĂ¡c Ä‘á»‹nh'));
     } finally {
       this.addingInlineQuestions.set(false);
     }
@@ -2974,16 +1264,16 @@ export class SectionEditorComponent implements OnDestroy {
     this.currentViewingQuizId.set(lessonId);
 
     try {
-      console.log('🔍 Loading quiz questions for lesson:', lessonId);
+      console.log('đŸ” Loading quiz questions for lesson:', lessonId);
 
       // Fetch real questions from API using lesson ID
       const response = await firstValueFrom(this.quizApi.getQuizQuestions(lessonId));
-      console.log('📦 Raw API response:', response);
+      console.log('đŸ“¦ Raw API response:', response);
 
       // Handle ApiResponse wrapper
       const questions = Array.isArray(response) ? response : (response as any).data || [];
 
-      console.log('📊 Loaded quiz questions:', questions.length, 'questions');
+      console.log('đŸ“ Loaded quiz questions:', questions.length, 'questions');
 
       // Transform to display format - handle both optionKey and key
       this.quizQuestions.set(questions.map((q: any) => ({
@@ -3000,12 +1290,12 @@ export class SectionEditorComponent implements OnDestroy {
       })));
 
     } catch (error: any) {
-      console.error('❌ Error loading quiz questions:', error);
-      console.error('❌ Error details:', JSON.stringify(error, null, 2));
+      console.error('âŒ Error loading quiz questions:', error);
+      console.error('âŒ Error details:', JSON.stringify(error, null, 2));
 
       // Show error to user if quiz not found
       if (error?.error?.message?.includes('Quiz not found')) {
-        console.log('⚠️ Quiz entity does not exist for this lesson. It will be created when adding questions.');
+        console.log('â ï¸ Quiz entity does not exist for this lesson. It will be created when adding questions.');
       }
 
       this.quizQuestions.set([]);
@@ -3014,7 +1304,7 @@ export class SectionEditorComponent implements OnDestroy {
     }
   }
 
-  // Open modal to add questions from Ngân hàng câu hỏi
+  // Open modal to add questions from NgĂ¢n hĂ ng cĂ¢u há»i
   showInlineAddQuestionsModal = signal<boolean>(false);
   inlineAddQuizLessonId = signal<string | null>(null);
 
@@ -3039,20 +1329,20 @@ export class SectionEditorComponent implements OnDestroy {
 
   // Remove question from quiz
   async removeQuestionFromQuiz(lessonId: string, questionId: string) {
-    if (!confirm('Bạn có chắc muốn xóa câu hỏi này khỏi quiz?')) return;
+    if (!confirm('Báº¡n cĂ³ cháº¯c muá»‘n xĂ³a cĂ¢u há»i nĂ y khá»i quiz?')) return;
 
     try {
       await firstValueFrom(this.quizApi.removeQuestionFromQuiz(lessonId, questionId));
       // Reload questions
       await this.loadQuizQuestions(lessonId);
-      console.log('✅ Removed question from quiz');
+      console.log('âœ… Removed question from quiz');
     } catch (error) {
       console.error('Error removing question:', error);
-      alert('Không thể xóa câu hỏi: ' + (error as any).message);
+      alert('KhĂ´ng thá»ƒ xĂ³a cĂ¢u há»i: ' + (error as any).message);
     }
   }
 
-  // Edit question - navigate to Ngân hàng câu hỏi with question ID
+  // Edit question - navigate to NgĂ¢n hĂ ng cĂ¢u há»i with question ID
   editQuestionInQuizBank(questionId: string) {
     this.router.navigate(['/teacher/quiz/quiz-bank'], {
       queryParams: {
@@ -3064,17 +1354,17 @@ export class SectionEditorComponent implements OnDestroy {
 
   async previewQuiz(quizId: string, quizTitle: string) {
     try {
-      console.log('🔍 Preview Quiz - ID:', quizId, 'Title:', quizTitle);
+      console.log('đŸ” Preview Quiz - ID:', quizId, 'Title:', quizTitle);
 
       // Load quiz questions first to validate
       const response = await firstValueFrom(this.quizApi.getQuizQuestions(quizId));
-      console.log('🔍 Preview Quiz - API Response:', response);
+      console.log('đŸ” Preview Quiz - API Response:', response);
 
       const questions = Array.isArray(response) ? response : (response as any).data || [];
-      console.log('🔍 Preview Quiz - Questions:', questions);
+      console.log('đŸ” Preview Quiz - Questions:', questions);
 
       if (questions.length === 0) {
-        alert('Quiz này chưa có câu hỏi nào. Vui lòng thêm câu hỏi trước khi xem trước.');
+        alert('Quiz nĂ y chÆ°a cĂ³ cĂ¢u há»i nĂ o. Vui lĂ²ng thĂªm cĂ¢u há»i trÆ°á»›c khi xem trÆ°á»›c.');
         return;
       }
 
@@ -3082,8 +1372,8 @@ export class SectionEditorComponent implements OnDestroy {
       this.router.navigate(['/teacher/quiz/preview', quizId]);
 
     } catch (error) {
-      console.error('❌ Error loading quiz for preview:', error);
-      alert('Không thể tải quiz để xem trước: ' + (error as any).message);
+      console.error('âŒ Error loading quiz for preview:', error);
+      alert('KhĂ´ng thá»ƒ táº£i quiz Ä‘á»ƒ xem trÆ°á»›c: ' + (error as any).message);
     }
   }
 
@@ -3103,7 +1393,7 @@ export class SectionEditorComponent implements OnDestroy {
   }
 
   openQuizBankToAddQuestions(quizId: string, quizTitle: string) {
-    // Navigate to Ngân hàng câu hỏi to add questions to an existing quiz
+    // Navigate to NgĂ¢n hĂ ng cĂ¢u há»i to add questions to an existing quiz
     this.router.navigate(['/teacher/quiz/quiz-bank'], {
       queryParams: {
         quizId: quizId,
@@ -3132,7 +1422,7 @@ export class SectionEditorComponent implements OnDestroy {
     // Debug authentication
     const token = localStorage.getItem('access_token');
     const userStr = localStorage.getItem('lms_user');
-    console.log('🔐 Debug Auth Status:', {
+    console.log('đŸ” Debug Auth Status:', {
       hasToken: !!token,
       tokenLength: token?.length || 0,
       hasUser: !!userStr,
@@ -3174,7 +1464,7 @@ export class SectionEditorComponent implements OnDestroy {
           }
         },
         error: (error) => {
-          console.error('📤 Attachment upload error:', {
+          console.error('đŸ“¤ Attachment upload error:', {
             file: file.name,
             error: error,
             status: error?.status,
@@ -3182,13 +1472,13 @@ export class SectionEditorComponent implements OnDestroy {
             details: error?.error
           });
 
-          let errorMsg = `Lỗi upload ${file.name}`;
+          let errorMsg = `Lá»—i upload ${file.name}`;
           if (error?.status === 403) {
-            errorMsg += ': Không có quyền. Vui lòng đăng nhập với tài khoản TEACHER.';
+            errorMsg += ': KhĂ´ng cĂ³ quyá»n. Vui lĂ²ng Ä‘Äƒng nháº­p vá»›i tĂ i khoáº£n TEACHER.';
           } else if (error?.status === 401) {
-            errorMsg += ': Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.';
+            errorMsg += ': PhiĂªn Ä‘Äƒng nháº­p háº¿t háº¡n. Vui lĂ²ng Ä‘Äƒng nháº­p láº¡i.';
           } else {
-            errorMsg += `: ${error?.message || 'Lỗi không xác định'}`;
+            errorMsg += `: ${error?.message || 'Lá»—i khĂ´ng xĂ¡c Ä‘á»‹nh'}`;
           }
 
           this.opError.set(errorMsg);
@@ -3310,7 +1600,7 @@ export class SectionEditorComponent implements OnDestroy {
   }
 
   getGoogleDocsPdfUrl(fileUrl: string): any {
-    // Sử dụng Google Docs viewer cho PDF
+    // Sá»­ dá»¥ng Google Docs viewer cho PDF
     const encodedUrl = encodeURIComponent(fileUrl);
     const viewerUrl = `https://docs.google.com/viewer?url=${encodedUrl}&embedded=true`;
     return this.sanitizer.bypassSecurityTrustResourceUrl(viewerUrl);
@@ -3320,22 +1610,22 @@ export class SectionEditorComponent implements OnDestroy {
 
   // Quiz Edit Modal Methods
   editQuizSettings(lessonId: string) {
-    console.log('🔧 Opening quiz edit modal for lesson:', lessonId);
+    console.log('đŸ”§ Opening quiz edit modal for lesson:', lessonId);
     if (this.quizEditModal) {
-      this.quizEditModal.lessonId = lessonId;
+      this.quizEditModal.lessonId.set(lessonId);
       this.quizEditModal.open();
     }
   }
 
   onQuizSettingsSaved() {
-    console.log('✅ Quiz settings updated, refreshing lessons...');
+    console.log('âœ… Quiz settings updated, refreshing lessons...');
     // Reload lessons to show updated quiz settings
     this.lessonApi.listBySection(this.sectionId).subscribe({
       next: (res) => {
         this.lessons.set(res?.data || []);
-        console.log('✅ Lessons refreshed after quiz settings update');
+        console.log('âœ… Lessons refreshed after quiz settings update');
       },
-      error: (err) => this.error.set(err?.message || 'Không tải được danh sách bài học')
+      error: (err) => this.error.set(err?.message || 'KhĂ´ng táº£i Ä‘Æ°á»£c danh sĂ¡ch bĂ i há»c')
     });
   }
 
@@ -3443,12 +1733,12 @@ export class SectionEditorComponent implements OnDestroy {
     const selectedIds = Array.from(this.selectedQuestionIds());
 
     if (selectedIds.length === 0) {
-      alert('Vui lòng chọn ít nhất một câu hỏi để thêm vào quiz.');
+      alert('Vui lĂ²ng chá»n Ă­t nháº¥t má»™t cĂ¢u há»i Ä‘á»ƒ thĂªm vĂ o quiz.');
       return;
     }
 
     try {
-      console.log('🔄 Adding selected questions to quiz:', selectedIds.length, 'questions');
+      console.log('đŸ”„ Adding selected questions to quiz:', selectedIds.length, 'questions');
 
       let addedCount = 0;
       let skippedCount = 0;
@@ -3460,7 +1750,7 @@ export class SectionEditorComponent implements OnDestroy {
           addedCount++;
         } catch (error: any) {
           // Question might already exist
-          if (error?.error?.message?.includes('đã tồn tại')) {
+          if (error?.error?.message?.includes('Ä‘Ă£ tá»“n táº¡i')) {
             skippedCount++;
           } else {
             throw error;
@@ -3476,19 +1766,19 @@ export class SectionEditorComponent implements OnDestroy {
 
       // Show success message
       if (addedCount > 0) {
-        let msg = `✅ Đã thêm ${addedCount} câu hỏi vào quiz!`;
+        let msg = `âœ… ÄĂ£ thĂªm ${addedCount} cĂ¢u há»i vĂ o quiz!`;
         if (skippedCount > 0) {
-          msg += `\n⚠️ ${skippedCount} câu đã có sẵn trong quiz.`;
+          msg += `\nâ ï¸ ${skippedCount} cĂ¢u Ä‘Ă£ cĂ³ sáºµn trong quiz.`;
         }
         alert(msg);
       } else if (skippedCount > 0) {
-        alert('⚠️ Tất cả câu hỏi đã có trong quiz rồi!');
+        alert('â ï¸ Táº¥t cáº£ cĂ¢u há»i Ä‘Ă£ cĂ³ trong quiz rá»“i!');
       }
 
-      console.log('✅ Added:', addedCount, 'Skipped:', skippedCount);
+      console.log('âœ… Added:', addedCount, 'Skipped:', skippedCount);
     } catch (error: any) {
-      console.error('❌ Error adding selected questions to quiz:', error);
-      alert('❌ Lỗi khi thêm câu hỏi vào quiz: ' + (error?.message || 'Lỗi không xác định'));
+      console.error('âŒ Error adding selected questions to quiz:', error);
+      alert('âŒ Lá»—i khi thĂªm cĂ¢u há»i vĂ o quiz: ' + (error?.message || 'Lá»—i khĂ´ng xĂ¡c Ä‘á»‹nh'));
     }
   }
 
@@ -3500,17 +1790,17 @@ export class SectionEditorComponent implements OnDestroy {
         // Refresh lesson attachments
         this.loadLessonAttachments(lessonId);
       },
-      error: (err) => this.opError.set(err?.message || 'Xóa file đính kèm thất bại')
+      error: (err) => this.opError.set(err?.message || 'XĂ³a file Ä‘Ă­nh kĂ¨m tháº¥t báº¡i')
     });
   }
 
   private loadLessonAttachments(lessonId: string) {
-    console.log('📎 loadLessonAttachments called for lesson:', lessonId);
+    console.log('đŸ“ loadLessonAttachments called for lesson:', lessonId);
 
     this.lessonAttachmentApi.getAttachments(lessonId).subscribe({
       next: (attachments) => {
-        console.log('✅ Attachments loaded:', attachments);
-        console.log('📊 Attachment details:', {
+        console.log('âœ… Attachments loaded:', attachments);
+        console.log('đŸ“ Attachment details:', {
           count: attachments?.length || 0,
           attachments: attachments
         });
@@ -3519,7 +1809,7 @@ export class SectionEditorComponent implements OnDestroy {
         this.selected.update(lesson => {
           if (lesson && lesson.id === lessonId) {
             const updatedLesson = { ...lesson, attachments };
-            console.log('🔄 Updated selected lesson with attachments:', updatedLesson);
+            console.log('đŸ”„ Updated selected lesson with attachments:', updatedLesson);
             return updatedLesson;
           }
           return lesson;
@@ -3533,14 +1823,14 @@ export class SectionEditorComponent implements OnDestroy {
         );
       },
       error: (err) => {
-        console.error('❌ Failed to load attachments for lesson', lessonId, ':', err);
-        console.error('❌ Error details:', {
+        console.error('âŒ Failed to load attachments for lesson', lessonId, ':', err);
+        console.error('âŒ Error details:', {
           status: err?.status,
           message: err?.message,
           error: err?.error
         });
         // Show error in UI
-        this.opError.set(`Không thể tải attachments: ${err?.message || 'Lỗi không xác định'}`);
+        this.opError.set(`KhĂ´ng thá»ƒ táº£i attachments: ${err?.message || 'Lá»—i khĂ´ng xĂ¡c Ä‘á»‹nh'}`);
       }
     });
   }
@@ -3582,7 +1872,7 @@ export class SectionEditorComponent implements OnDestroy {
   // Assignment helper methods
   getAssignmentStatus(lesson: any): string {
     if (lesson.lessonType !== 'ASSIGNMENT' || !lesson.assignment) {
-      return 'Không áp dụng';
+      return 'KhĂ´ng Ă¡p dá»¥ng';
     }
 
     const assignment = lesson.assignment;
@@ -3591,16 +1881,16 @@ export class SectionEditorComponent implements OnDestroy {
 
     switch (assignment.status) {
       case 'DRAFT':
-        return 'Đang soạn thảo';
+        return 'Äang soáº¡n tháº£o';
       case 'PUBLISHED':
         if (dueDate && now > dueDate) {
-          return 'Đã hết hạn';
+          return 'ÄĂ£ háº¿t háº¡n';
         }
-        return 'Đang mở';
+        return 'Äang má»Ÿ';
       case 'CLOSED':
-        return 'Đã đóng';
+        return 'ÄĂ£ Ä‘Ă³ng';
       default:
-        return 'Không xác định';
+        return 'KhĂ´ng xĂ¡c Ä‘á»‹nh';
     }
   }
 
@@ -3648,7 +1938,7 @@ export class SectionEditorComponent implements OnDestroy {
     console.log('Viewing submissions for assignment:', lesson.assignment?.id);
 
     // For now, show an alert with placeholder info
-    alert(`Xem bài nộp cho bài tập: ${lesson.title}\n\nTính năng này sẽ được phát triển trong phase tiếp theo.`);
+    alert(`Xem bĂ i ná»™p cho bĂ i táº­p: ${lesson.title}\n\nTĂ­nh nÄƒng nĂ y sáº½ Ä‘Æ°á»£c phĂ¡t triá»ƒn trong phase tiáº¿p theo.`);
   }
 
   // Load course questions for quiz creation
@@ -3656,28 +1946,28 @@ export class SectionEditorComponent implements OnDestroy {
     try {
       this.courseQuestionsError.set('');
 
-      console.log('🔍 Loading questions for course:', courseId);
+      console.log('đŸ” Loading questions for course:', courseId);
 
       const response = await firstValueFrom(
         this.questionApi.getQuestionsByCourse(courseId, 'ACTIVE')
       );
 
-      console.log('📦 API Response:', response);
-      console.log('📦 Response type:', typeof response);
-      console.log('📦 Response.data:', (response as any).data);
+      console.log('đŸ“¦ API Response:', response);
+      console.log('đŸ“¦ Response type:', typeof response);
+      console.log('đŸ“¦ Response.data:', (response as any).data);
 
-      // Backend trả về {data: Question[], pagination: null, message: null}
+      // Backend tráº£ vá» {data: Question[], pagination: null, message: null}
       if (response && (response as any).data) {
         this.courseQuestions.set((response as any).data);
-        console.log('✅ Loaded', (response as any).data.length, 'questions for course');
+        console.log('âœ… Loaded', (response as any).data.length, 'questions for course');
       } else {
-        console.log('❌ No data in response:', response);
-        this.courseQuestionsError.set('Không có dữ liệu câu hỏi');
+        console.log('âŒ No data in response:', response);
+        this.courseQuestionsError.set('KhĂ´ng cĂ³ dá»¯ liá»‡u cĂ¢u há»i');
       }
     } catch (error: any) {
-      console.error('❌ Error loading course questions:', error);
+      console.error('âŒ Error loading course questions:', error);
       this.courseQuestionsError.set(
-        error?.error?.message || error?.message || 'Có lỗi xảy ra khi tải câu hỏi'
+        error?.error?.message || error?.message || 'CĂ³ lá»—i xáº£y ra khi táº£i cĂ¢u há»i'
       );
     }
   }
@@ -3685,7 +1975,7 @@ export class SectionEditorComponent implements OnDestroy {
   // Add question to quiz (single question) - Uses QuizQuestion table
   async addQuestionToQuiz(questionId: string, lessonId: string): Promise<void> {
     try {
-      console.log('🔍 Adding question', questionId, 'to quiz (lesson)', lessonId);
+      console.log('đŸ” Adding question', questionId, 'to quiz (lesson)', lessonId);
 
       // Use the correct API that adds to quiz_questions table
       await firstValueFrom(this.quizApi.addQuestionToQuiz(lessonId, questionId));
@@ -3700,14 +1990,14 @@ export class SectionEditorComponent implements OnDestroy {
       // Refresh quiz questions display
       await this.loadQuizQuestions(lessonId);
 
-      console.log('✅ Successfully added question to quiz');
+      console.log('âœ… Successfully added question to quiz');
     } catch (error: any) {
-      console.error('❌ Error adding question to quiz:', error);
-      const errorMsg = error?.error?.message || error?.message || 'Lỗi không xác định';
-      if (errorMsg.includes('đã tồn tại')) {
-        alert('⚠️ Câu hỏi này đã có trong quiz rồi!');
+      console.error('âŒ Error adding question to quiz:', error);
+      const errorMsg = error?.error?.message || error?.message || 'Lá»—i khĂ´ng xĂ¡c Ä‘á»‹nh';
+      if (errorMsg.includes('Ä‘Ă£ tá»“n táº¡i')) {
+        alert('â ï¸ CĂ¢u há»i nĂ y Ä‘Ă£ cĂ³ trong quiz rá»“i!');
       } else {
-        alert('❌ Lỗi khi thêm câu hỏi: ' + errorMsg);
+        alert('âŒ Lá»—i khi thĂªm cĂ¢u há»i: ' + errorMsg);
       }
     }
   }
@@ -3722,7 +2012,7 @@ export class SectionEditorComponent implements OnDestroy {
     //   next: () => {
     //     lesson.assignment.status = newStatus;
     //   },
-    //   error: (err) => this.opError.set(err?.message || 'Cập nhật trạng thái thất bại')
+    //   error: (err) => this.opError.set(err?.message || 'Cáº­p nháº­t tráº¡ng thĂ¡i tháº¥t báº¡i')
     // });
 
     // For now, update locally
@@ -3737,19 +2027,19 @@ export class SectionEditorComponent implements OnDestroy {
     console.log('Edit assignment:', lesson.assignment?.id);
 
     // For now, show an alert
-    alert(`Chỉnh sửa bài tập: ${lesson.title}\n\nTính năng này sẽ được phát triển trong phase tiếp theo.`);
+    alert(`Chá»‰nh sá»­a bĂ i táº­p: ${lesson.title}\n\nTĂ­nh nÄƒng nĂ y sáº½ Ä‘Æ°á»£c phĂ¡t triá»ƒn trong phase tiáº¿p theo.`);
   }
 
   // Quiz Creation Modal Methods (DEPRECATED - using inline form now)
   openQuizCreationModal() {
-    console.log('🚀 Opening quiz creation modal');
+    console.log('đŸ€ Opening quiz creation modal');
     if (this.quizCreationModal) {
       this.quizCreationModal.open();
     }
   }
 
   onQuizCreated(lessonId: string) {
-    console.log('✅ Quiz created successfully, lesson ID:', lessonId);
+    console.log('âœ… Quiz created successfully, lesson ID:', lessonId);
     // Reload lessons to show the new quiz
     this.refreshLessons();
     // Navigate to quiz preview/edit page
@@ -3773,9 +2063,9 @@ export class SectionEditorComponent implements OnDestroy {
       if (type === 'TEXT') {
         const payload = {
           lessonId: lessonId,
-          title: 'Bài đọc mới',
+          title: 'BĂ i Ä‘á»c má»›i',
           type: 'TEXT' as const,
-          content: '<p>Nội dung bài đọc...</p>',
+          content: '<p>Ná»™i dung bĂ i Ä‘á»c...</p>',
           orderIndex: 0 // Backend should handle order
         };
         await firstValueFrom(this.sectionApi.createSection(lessonId, payload));
@@ -3783,11 +2073,11 @@ export class SectionEditorComponent implements OnDestroy {
         setTimeout(() => this.showSuccessToast.set(false), 3000);
         await this.refreshLessons();
       } else if (type === 'VIDEO') {
-        const url = prompt('Nhập URL Video (YouTube):');
+        const url = prompt('Nháº­p URL Video (YouTube):');
         if (url) {
           const payload = {
             lessonId: lessonId,
-            title: 'Video mới',
+            title: 'Video má»›i',
             type: 'VIDEO' as const,
             videoUrl: url,
             orderIndex: 0
@@ -3799,15 +2089,15 @@ export class SectionEditorComponent implements OnDestroy {
         }
       }
     } catch (err: any) {
-      console.error('Lỗi khi tạo section:', err);
-      alert('Lỗi: ' + (err.error?.message || err.message));
+      console.error('Lá»—i khi táº¡o section:', err);
+      alert('Lá»—i: ' + (err.error?.message || err.message));
     } finally {
       this.loading.set(false);
     }
   }
 
   async deleteSection(sectionId: string) {
-    if (!confirm('Bạn có chắc muốn xóa nội dung này?')) return;
+    if (!confirm('Báº¡n cĂ³ cháº¯c muá»‘n xĂ³a ná»™i dung nĂ y?')) return;
 
     this.loading.set(true);
     try {
@@ -3818,8 +2108,8 @@ export class SectionEditorComponent implements OnDestroy {
       setTimeout(() => this.showSuccessToast.set(false), 3000);
       await this.refreshLessons();
     } catch (err: any) {
-      console.error('Lỗi khi xóa section:', err);
-      alert('Lỗi: ' + (err.error?.message || err.message));
+      console.error('Lá»—i khi xĂ³a section:', err);
+      alert('Lá»—i: ' + (err.error?.message || err.message));
     } finally {
       this.loading.set(false);
     }
@@ -3842,3 +2132,4 @@ export class SectionEditorComponent implements OnDestroy {
     this.refreshLessons(); // Reload everything
   }
 }
+

@@ -1,4 +1,4 @@
-import { Component, signal, computed, inject, OnInit, OnDestroy, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
+﻿import { Component, signal, computed, inject, OnInit, OnDestroy, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -66,286 +66,7 @@ interface NotificationTemplate {
   selector: 'app-advanced-notification-system',
   imports: [CommonModule, RouterModule, FormsModule, LoadingComponent],
   encapsulation: ViewEncapsulation.None,
-  template: `
-    <!-- Loading State -->
-    <app-loading 
-      [show]="isLoading()" 
-      text="Đang tải hệ thống thông báo..."
-      subtext="Vui lòng chờ trong giây lát"
-      variant="overlay"
-      color="blue">
-    </app-loading>
-
-    <div class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 min-h-screen">
-      <div class="max-w-7xl mx-auto px-6 py-8">
-        <!-- Header -->
-        <div class="mb-8">
-          <div class="flex items-center justify-between">
-            <div>
-              <h1 class="text-3xl font-bold text-gray-900 mb-2">🔔 Hệ thống thông báo</h1>
-              <p class="text-gray-600">Quản lý và theo dõi tất cả thông báo trong hệ thống</p>
-            </div>
-            <div class="flex items-center space-x-4">
-              <button (click)="markAllAsRead()"
-                      class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                <svg class="w-4 h-4 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                </svg>
-                Đánh dấu tất cả đã đọc
-              </button>
-              <button (click)="openSettings()"
-                      class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                <svg class="w-4 h-4 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path>
-                </svg>
-                Cài đặt
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Stats Overview -->
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
-          <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 border-l-4 border-red-500">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm font-medium text-gray-600 mb-1">Chưa đọc</p>
-                <p class="text-3xl font-bold text-gray-900">{{ unreadNotifications() }}</p>
-                <p class="text-sm text-red-600 flex items-center mt-1">
-                  <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                  </svg>
-                  Cần xem
-                </p>
-              </div>
-              <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
-                <svg class="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"></path>
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 border-l-4 border-green-500">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm font-medium text-gray-600 mb-1">Đã đọc</p>
-                <p class="text-3xl font-bold text-gray-900">{{ readNotifications() }}</p>
-                <p class="text-sm text-green-600 flex items-center mt-1">
-                  <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                  </svg>
-                  Hoàn thành
-                </p>
-              </div>
-              <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                <svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 border-l-4 border-blue-500">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm font-medium text-gray-600 mb-1">Hôm nay</p>
-                <p class="text-3xl font-bold text-gray-900">{{ todayNotifications() }}</p>
-                <p class="text-sm text-blue-600 flex items-center mt-1">
-                  <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path>
-                  </svg>
-                  Mới
-                </p>
-              </div>
-              <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                <svg class="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path>
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 border-l-4 border-purple-500">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm font-medium text-gray-600 mb-1">Ưu tiên cao</p>
-                <p class="text-3xl font-bold text-gray-900">{{ highPriorityNotifications() }}</p>
-                <p class="text-sm text-purple-600 flex items-center mt-1">
-                  <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                  </svg>
-                  Quan trọng
-                </p>
-              </div>
-              <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                <svg class="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                </svg>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Filter and Search -->
-        <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
-          <div class="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
-            <div class="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4">
-              <div class="relative">
-                <input type="text" 
-                       [(ngModel)]="searchQuery"
-                       placeholder="Tìm kiếm thông báo..."
-                       class="w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                <svg class="absolute left-3 top-2.5 w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"></path>
-                </svg>
-              </div>
-              
-              <select [(ngModel)]="selectedType" 
-                      class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="">Tất cả loại</option>
-                <option value="assignment">Bài tập</option>
-                <option value="course">Khóa học</option>
-                <option value="system">Hệ thống</option>
-                <option value="social">Xã hội</option>
-                <option value="announcement">Thông báo</option>
-              </select>
-              
-              <select [(ngModel)]="selectedPriority" 
-                      class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="">Tất cả mức độ</option>
-                <option value="urgent">Khẩn cấp</option>
-                <option value="high">Cao</option>
-                <option value="medium">Trung bình</option>
-                <option value="low">Thấp</option>
-              </select>
-              
-              <select [(ngModel)]="selectedStatus" 
-                      class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="">Tất cả trạng thái</option>
-                <option value="unread">Chưa đọc</option>
-                <option value="read">Đã đọc</option>
-                <option value="archived">Đã lưu trữ</option>
-              </select>
-            </div>
-            
-            <div class="flex items-center space-x-2">
-              <button (click)="toggleSortOrder()"
-                      class="px-3 py-2 text-gray-600 hover:text-gray-900 transition-colors">
-                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h4.586l-1.293-1.293a1 1 0 011.414-1.414L10 15.414l2.293-2.293a1 1 0 111.414 1.414L12.414 15H17a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                </svg>
-              </button>
-              <span class="text-sm text-gray-600">{{ filteredNotifications().length }} thông báo</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Notifications List -->
-        <div class="bg-white rounded-xl shadow-lg">
-          <div class="p-6 border-b border-gray-200">
-            <h3 class="text-lg font-semibold text-gray-900">Danh sách thông báo</h3>
-          </div>
-          
-          <div class="divide-y divide-gray-200">
-            @for (notification of filteredNotifications(); track notification.id) {
-              <div class="p-6 hover:bg-gray-50 transition-colors"
-                   [class]="notification.isRead ? 'bg-gray-50' : 'bg-white'">
-                <div class="flex items-start space-x-4">
-                  <!-- Notification Icon -->
-                  <div class="flex-shrink-0">
-                    <div class="w-10 h-10 rounded-full flex items-center justify-center"
-                         [class]="getNotificationIconClass(notification.type)">
-                      <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                        <path [attr.d]="getNotificationIconPath(notification.type)"></path>
-                      </svg>
-                    </div>
-                  </div>
-                  
-                  <!-- Notification Content -->
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-center justify-between">
-                      <div class="flex items-center space-x-2">
-                        <h4 class="text-lg font-semibold text-gray-900">{{ notification.title }}</h4>
-                        @if (!notification.isRead) {
-                          <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
-                        }
-                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
-                              [class]="getPriorityClass(notification.priority)">
-                          {{ getPriorityText(notification.priority) }}
-                        </span>
-                      </div>
-                      
-                      <div class="flex items-center space-x-2">
-                        <span class="text-sm text-gray-500">{{ formatTime(notification.createdAt) }}</span>
-                        <div class="flex items-center space-x-1">
-                          <button (click)="toggleRead(notification)"
-                                  class="p-1 text-gray-400 hover:text-gray-600 transition-colors">
-                            @if (notification.isRead) {
-                              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                              </svg>
-                            } @else {
-                              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                              </svg>
-                            }
-                          </button>
-                          <button (click)="archiveNotification(notification)"
-                                  class="p-1 text-gray-400 hover:text-gray-600 transition-colors">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                              <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"></path>
-                            </svg>
-                          </button>
-                          <button (click)="deleteNotification(notification)"
-                                  class="p-1 text-gray-400 hover:text-red-600 transition-colors">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                              <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <p class="text-gray-600 mt-2">{{ notification.message }}</p>
-                    
-                    @if (notification.sender) {
-                      <div class="flex items-center space-x-2 mt-3">
-                        <img [src]="notification.sender.avatar" [alt]="notification.sender.name" 
-                             class="w-6 h-6 rounded-full">
-                        <span class="text-sm text-gray-500">{{ notification.sender.name }}</span>
-                        <span class="text-xs text-gray-400">{{ getRoleText(notification.sender.role) }}</span>
-                      </div>
-                    }
-                    
-                    @if (notification.actionUrl && notification.actionText) {
-                      <div class="mt-3">
-                        <button (click)="performAction(notification)"
-                                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
-                          {{ notification.actionText }}
-                        </button>
-                      </div>
-                    }
-                  </div>
-                </div>
-              </div>
-            }
-          </div>
-        </div>
-
-        <!-- Empty State -->
-        @if (filteredNotifications().length === 0) {
-          <div class="text-center py-12">
-            <svg class="w-24 h-24 text-gray-300 mx-auto mb-4" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"></path>
-            </svg>
-            <h3 class="text-lg font-medium text-gray-900 mb-2">Không có thông báo nào</h3>
-            <p class="text-gray-500">Bạn đã xem tất cả thông báo</p>
-          </div>
-        }
-      </div>
-    </div>
-  `,
+  templateUrl: './advanced-notification-system.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AdvancedNotificationSystemComponent implements OnInit, OnDestroy {
@@ -438,8 +159,8 @@ export class AdvancedNotificationSystemComponent implements OnInit, OnDestroy {
     return [
       {
         id: '1',
-        title: 'Bài tập mới: Navigation Safety Quiz',
-        message: 'Bạn có bài tập mới cần hoàn thành trong khóa học Navigation Safety. Hạn nộp: 25/12/2024',
+        title: 'BĂ i táº­p má»›i: Navigation Safety Quiz',
+        message: 'Báº¡n cĂ³ bĂ i táº­p má»›i cáº§n hoĂ n thĂ nh trong khĂ³a há»c Navigation Safety. Háº¡n ná»™p: 25/12/2024',
         type: 'assignment',
         priority: 'high',
         category: 'assignment',
@@ -447,22 +168,22 @@ export class AdvancedNotificationSystemComponent implements OnInit, OnDestroy {
         isArchived: false,
         createdAt: new Date(),
         actionUrl: '/student/assignments/1',
-        actionText: 'Xem bài tập',
+        actionText: 'Xem bĂ i táº­p',
         metadata: {
           assignmentId: '1',
           courseId: 'nav-safety'
         },
         sender: {
           id: 't1',
-          name: 'Thầy Nguyễn Văn A',
+          name: 'Tháº§y Nguyá»…n VÄƒn A',
           avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
           role: 'teacher'
         }
       },
       {
         id: '2',
-        title: 'Khóa học mới: Marine Engineering',
-        message: 'Khóa học Marine Engineering đã được mở đăng ký. Hãy đăng ký ngay để không bỏ lỡ cơ hội học tập.',
+        title: 'KhĂ³a há»c má»›i: Marine Engineering',
+        message: 'KhĂ³a há»c Marine Engineering Ä‘Ă£ Ä‘Æ°á»£c má»Ÿ Ä‘Äƒng kĂ½. HĂ£y Ä‘Äƒng kĂ½ ngay Ä‘á»ƒ khĂ´ng bá» lá»¡ cÆ¡ há»™i há»c táº­p.',
         type: 'course',
         priority: 'medium',
         category: 'course',
@@ -470,15 +191,15 @@ export class AdvancedNotificationSystemComponent implements OnInit, OnDestroy {
         isArchived: false,
         createdAt: new Date(Date.now() - 86400000), // 1 day ago
         actionUrl: '/courses/marine-engineering',
-        actionText: 'Đăng ký ngay',
+        actionText: 'ÄÄƒng kĂ½ ngay',
         metadata: {
           courseId: 'marine-eng'
         }
       },
       {
         id: '3',
-        title: 'Thông báo hệ thống: Bảo trì định kỳ',
-        message: 'Hệ thống sẽ được bảo trì từ 2:00 - 4:00 ngày 20/12/2024. Vui lòng lưu công việc trước thời gian này.',
+        title: 'ThĂ´ng bĂ¡o há»‡ thá»‘ng: Báº£o trĂ¬ Ä‘á»‹nh ká»³',
+        message: 'Há»‡ thá»‘ng sáº½ Ä‘Æ°á»£c báº£o trĂ¬ tá»« 2:00 - 4:00 ngĂ y 20/12/2024. Vui lĂ²ng lÆ°u cĂ´ng viá»‡c trÆ°á»›c thá»i gian nĂ y.',
         type: 'system',
         priority: 'urgent',
         category: 'system',
@@ -517,7 +238,7 @@ export class AdvancedNotificationSystemComponent implements OnInit, OnDestroy {
   }
 
   deleteNotification(notification: Notification): void {
-    if (confirm(`Bạn có chắc chắn muốn xóa thông báo "${notification.title}"?`)) {
+    if (confirm(`Báº¡n cĂ³ cháº¯c cháº¯n muá»‘n xĂ³a thĂ´ng bĂ¡o "${notification.title}"?`)) {
       this.notifications.update(notifications => 
         notifications.filter(n => n.id !== notification.id)
       );
@@ -568,20 +289,20 @@ export class AdvancedNotificationSystemComponent implements OnInit, OnDestroy {
 
   getPriorityText(priority: string): string {
     switch (priority) {
-      case 'urgent': return 'Khẩn cấp';
+      case 'urgent': return 'Kháº©n cáº¥p';
       case 'high': return 'Cao';
-      case 'medium': return 'Trung bình';
-      case 'low': return 'Thấp';
-      default: return 'Không xác định';
+      case 'medium': return 'Trung bĂ¬nh';
+      case 'low': return 'Tháº¥p';
+      default: return 'KhĂ´ng xĂ¡c Ä‘á»‹nh';
     }
   }
 
   getRoleText(role: string): string {
     switch (role) {
-      case 'teacher': return 'Giảng viên';
-      case 'student': return 'Học viên';
-      case 'admin': return 'Quản trị viên';
-      default: return 'Người dùng';
+      case 'teacher': return 'Giáº£ng viĂªn';
+      case 'student': return 'Há»c viĂªn';
+      case 'admin': return 'Quáº£n trá»‹ viĂªn';
+      default: return 'NgÆ°á»i dĂ¹ng';
     }
   }
 
@@ -590,12 +311,13 @@ export class AdvancedNotificationSystemComponent implements OnInit, OnDestroy {
     const diff = now.getTime() - date.getTime();
     const minutes = Math.floor(diff / 60000);
     
-    if (minutes < 1) return 'Vừa xong';
-    if (minutes < 60) return `${minutes} phút trước`;
+    if (minutes < 1) return 'Vá»«a xong';
+    if (minutes < 60) return `${minutes} phĂºt trÆ°á»›c`;
     const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours} giờ trước`;
+    if (hours < 24) return `${hours} giá» trÆ°á»›c`;
     const days = Math.floor(hours / 24);
-    if (days < 7) return `${days} ngày trước`;
+    if (days < 7) return `${days} ngĂ y trÆ°á»›c`;
     return date.toLocaleDateString('vi-VN');
   }
 }
+

@@ -234,6 +234,4 @@ export interface FileUploadResponse {
   uploadedAt: string;
 }
 
-export interface EnrollStudentRequest {
-  email: string;
-}
+// Note: EnrollStudentRequest is defined in enrollment.types.ts

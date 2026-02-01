@@ -37,7 +37,7 @@ export interface R2PublicUrlResponse {
 })
 export class R2StorageApi {
   private http = inject(HttpClient);
-  private baseUrl = `${environment.apiUrl}/api/v1/storage/r2`;
+  private baseUrl = `${environment.apiUrl}/api/v3/storage/r2`;
 
   /**
    * Get presigned URL for uploading to R2

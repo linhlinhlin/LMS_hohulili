@@ -171,7 +171,7 @@ export class AssignmentQuizCreateComponent implements OnInit {
             classId: this.scope() === 'CLASS' ? this.selectedClassId() : undefined
         };
 
-        this.quizApi.createAssignmentQuizV2(this.courseId(), request)
+        this.quizApi.createAssignmentQuizV3(this.courseId(), request)
             .subscribe({
                 next: (response: any) => {
                     const msg = this.scope() === 'CLASS'

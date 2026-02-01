@@ -12,9 +12,8 @@
  */
 import {
   Component,
-  Input,
-  Output,
-  EventEmitter,
+  input,
+  output,
   signal,
   computed,
   ChangeDetectionStrategy,
@@ -269,11 +268,13 @@ export interface StudentAssignment {
   `,
 })
 export class StudentAssignmentsComponent implements OnInit {
-  @Input({ required: true }) studentId!: string;
-  @Input() studentName: string = '';
+  // Signal inputs (Angular v20+)
+  readonly studentId = input.required<string>();
+  readonly studentName = input<string>('');
 
-  @Output() assignTask = new EventEmitter<void>();
-  @Output() removeAssignment = new EventEmitter<StudentAssignment>();
+  // Output functions (Angular v20+)
+  readonly assignTask = output<void>();
+  readonly removeAssignment = output<StudentAssignment>();
 
   private distributionService = inject(DistributionService);
 
@@ -311,7 +312,7 @@ export class StudentAssignmentsComponent implements OnInit {
   private loadAssignments(): void {
     this.loading.set(true);
 
-    this.distributionService.getStudentTasks(this.studentId).subscribe({
+    this.distributionService.getStudentTasks(this.studentId()).subscribe({
       next: (tasks) => {
         // Convert tasks to StudentAssignment format
         const assignments: StudentAssignment[] = tasks.map(task => ({
@@ -401,7 +402,7 @@ export class StudentAssignmentsComponent implements OnInit {
     if (confirm(`Bạn có chắc muốn hủy giao bài tập "${assignment.assignmentTitle}" cho học viên này?`)) {
       this.removeAssignment.emit(assignment);
       // Remove from local state
-      this.assignments.update(current => 
+      this.assignments.update(current =>
         current.filter(a => a.id !== assignment.id)
       );
     }

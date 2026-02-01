@@ -1,8 +1,7 @@
 import {
   Component,
-  Input,
-  Output,
-  EventEmitter,
+  input,
+  output,
   signal,
   ChangeDetectionStrategy,
 } from '@angular/core';
@@ -72,15 +71,15 @@ export interface StudentInfo {
               <!-- Student Info -->
               <div class="bg-gray-50 rounded-lg p-4">
                 <p class="text-sm text-gray-500">Học viên</p>
-                <p class="font-medium text-gray-900">{{ student?.name }}</p>
-                <p class="text-sm text-gray-600">{{ student?.email }}</p>
+                <p class="font-medium text-gray-900">{{ student()?.name }}</p>
+                <p class="text-sm text-gray-600">{{ student()?.email }}</p>
               </div>
 
               <!-- Current Deadline -->
               <div class="bg-blue-50 rounded-lg p-4">
                 <p class="text-sm text-blue-600">Hạn nộp hiện tại</p>
                 <p class="font-medium text-blue-900">
-                  {{ formatDate(originalDeadline) }}
+                  {{ formatDate(originalDeadline()) }}
                 </p>
               </div>
 
@@ -176,12 +175,14 @@ export interface StudentInfo {
   `,
 })
 export class DeadlineOverrideModalComponent {
-  @Input() student: StudentInfo | null = null;
-  @Input() assignmentId: string = '';
-  @Input() originalDeadline: string = '';
+  // Signal inputs (Angular v20+)
+  readonly student = input<StudentInfo | null>(null);
+  readonly assignmentId = input<string>('');
+  readonly originalDeadline = input<string>('');
 
-  @Output() confirmed = new EventEmitter<DeadlineOverrideRequest>();
-  @Output() closed = new EventEmitter<void>();
+  // Output functions (Angular v20+)
+  readonly confirmed = output<DeadlineOverrideRequest>();
+  readonly closed = output<void>();
 
   // State
   isOpen = signal(false);
@@ -239,8 +240,9 @@ export class DeadlineOverrideModalComponent {
   }
 
   getDaysExtended(): number {
-    if (!this.newDeadline || !this.originalDeadline) return 0;
-    return calculateDaysExtended(this.originalDeadline, this.newDeadline);
+    const orig = this.originalDeadline();
+    if (!this.newDeadline || !orig) return 0;
+    return calculateDaysExtended(orig, this.newDeadline);
   }
 
   formatDate(dateString: string): string {
@@ -249,14 +251,15 @@ export class DeadlineOverrideModalComponent {
   }
 
   submit(): void {
-    if (!this.isValid() || !this.student) return;
+    const studentVal = this.student();
+    if (!this.isValid() || !studentVal) return;
 
     this.loading.set(true);
 
     const request: DeadlineOverrideRequest = {
-      assignmentId: this.assignmentId,
-      studentId: this.student.id,
-      studentName: this.student.name,
+      assignmentId: this.assignmentId(),
+      studentId: studentVal.id,
+      studentName: studentVal.name,
       newDeadline: new Date(this.newDeadline).toISOString(),
       reason: this.reason.trim(),
     };
@@ -270,3 +273,7 @@ export class DeadlineOverrideModalComponent {
     }, 500);
   }
 }
+
+
+
+

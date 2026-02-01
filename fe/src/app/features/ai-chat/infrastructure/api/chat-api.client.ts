@@ -169,7 +169,7 @@ export class ChatApiClient {
 
   /**
    * Get chat history from server (Server-Side Sync)
-   * API: GET /api/v1/history/{user_id}
+   * API: GET /api/v3/ai/history/{user_id}
    */
   getChatHistory(userId: string, limit = 20, offset = 0): Observable<HistoryResponse> {
     return this.http
@@ -184,7 +184,7 @@ export class ChatApiClient {
 
   /**
    * Delete all chat history for a user
-   * API: DELETE /api/v1/history/{user_id}
+   * API: DELETE /api/v3/ai/history/{user_id}
    */
   deleteChatHistory(userId: string): Observable<void> {
     return this.http

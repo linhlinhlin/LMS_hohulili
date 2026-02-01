@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, ViewChild, ElementRef, AfterViewChecked, OnChanges, OnDestroy } from '@angular/core';
+import { Component, input, output, viewChild, ElementRef, AfterViewChecked, OnChanges, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ChatMessage } from '../../../domain/types';
 import { ChatMessageComponent } from '../chat-message/chat-message.component';
@@ -17,25 +17,27 @@ import { SourcePanelComponent } from '../source-panel/source-panel.component';
         <!-- Scrollable Messages Area -->
         <div class="messages-scroll" #scrollContainer>
           <div class="messages-inner">
-            <ng-container *ngIf="messages.length > 0; else welcomeTemplate">
+            @if (messages().length > 0) {
               <!-- Each message with its source citation directly below -->
-              <ng-container *ngFor="let msg of messages; let i = index">
+              @for (msg of messages(); track msg.id; let i = $index) {
               <app-chat-message
                 [message]="msg"
-                [isStreaming]="isStreaming && i === messages.length - 1"
-                [streamingThinking]="i === messages.length - 1 ? streamingThinking : ''"
+                [isStreaming]="isStreaming() && i === messages().length - 1"
+                [streamingThinking]="i === messages().length - 1 ? streamingThinking() : ''"
                 (retry)="onRetry(msg)"
                 (regenerate)="onRegenerate(msg)"
               ></app-chat-message>
               <!-- Source Citations - Displayed directly after its AI message -->
+              @if (msg.sender === 'ai' && msg.metadata?.sources?.length) {
               <app-source-citation 
-                *ngIf="msg.sender === 'ai' && msg.metadata?.sources?.length"
                 [sources]="msg.metadata!.sources!"
               ></app-source-citation>
-            </ng-container>
+              }
+            }
             
             <!-- Loading Indicator - Only show when loading AND NOT streaming -->
-            <div *ngIf="isLoading && !isStreaming" class="thinking-indicator">
+            @if (isLoading() && !isStreaming()) {
+            <div class="thinking-indicator">
               <div class="thinking-avatar">
                 <svg class="avatar-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M12 2L13.09 8.26L19 6L14.74 10.91L21 12L14.74 13.09L19 18L13.09 15.74L12 22L10.91 15.74L5 18L9.26 13.09L3 12L9.26 10.91L5 6L10.91 8.26L12 2Z" fill="currentColor"/>
@@ -50,23 +52,25 @@ import { SourcePanelComponent } from '../source-panel/source-panel.component';
                 <span class="thinking-text">{{ thinkingSteps[currentThinkingStep] }}</span>
               </div>
             </div>
+            }
 
             <!-- Suggested Questions -->
-            <div *ngIf="!isLoading && suggestedQuestions.length > 0" class="suggestions-section">
+            @if (!isLoading() && suggestedQuestions().length > 0) {
+            <div class="suggestions-section">
               <div class="suggestions-label">Câu hỏi gợi ý:</div>
               <div class="suggestions-list">
+                @for (question of suggestedQuestions(); track question) {
                 <button 
-                  *ngFor="let question of suggestedQuestions"
                   class="suggestion-btn"
                   (click)="onSelectSuggestion(question)"
                 >
                   {{ question }}
                 </button>
+                }
               </div>
             </div>
-          </ng-container>
-
-          <ng-template #welcomeTemplate>
+            }
+            } @else {
             <div class="welcome-container">
               <!-- Welcome Header -->
               <div class="welcome-header">
@@ -142,7 +146,7 @@ import { SourcePanelComponent } from '../source-panel/source-panel.component';
                 </div>
               </div>
             </div>
-          </ng-template>
+            }
         </div>
       </div>
 
@@ -150,7 +154,7 @@ import { SourcePanelComponent } from '../source-panel/source-panel.component';
       <div class="input-section">
         <div class="input-container">
           <app-chat-message-input
-            [isLoading]="isLoading"
+            [isLoading]="isLoading()"
             (messageSent)="onSendMessage($event)"
           ></app-chat-message-input>
         </div>
@@ -475,17 +479,20 @@ import { SourcePanelComponent } from '../source-panel/source-panel.component';
   `]
 })
 export class ChatMainAreaComponent implements AfterViewChecked, OnChanges, OnDestroy {
-  @Input() messages: ChatMessage[] = [];
-  @Input() isLoading: boolean = false;
-  @Input() isStreaming: boolean = false;
-  @Input() streamingThinking: string = '';
-  @Input() suggestedQuestions: string[] = [];
+  // Signal inputs (Angular v20+)
+  readonly messages = input<ChatMessage[]>([]);
+  readonly isLoading = input<boolean>(false);
+  readonly isStreaming = input<boolean>(false);
+  readonly streamingThinking = input<string>('');
+  readonly suggestedQuestions = input<string[]>([]);
 
-  @Output() sendMessage = new EventEmitter<string>();
-  @Output() selectSuggestion = new EventEmitter<string>();
-  @Output() regenerate = new EventEmitter<void>();
+  // Output functions (Angular v20+)
+  readonly sendMessage = output<string>();
+  readonly selectSuggestion = output<string>();
+  readonly regenerate = output<void>();
 
-  @ViewChild('scrollContainer') private scrollContainer!: ElementRef;
+  // ViewChild signal (Angular v20+)
+  private readonly scrollContainer = viewChild<ElementRef>('scrollContainer');
 
   thinkingSteps = [
     'Đang tìm kiếm trong cơ sở tri thức...',
@@ -500,7 +507,7 @@ export class ChatMainAreaComponent implements AfterViewChecked, OnChanges, OnDes
   }
 
   ngOnChanges() {
-    if (this.isLoading) {
+    if (this.isLoading()) {
       this.startThinkingAnimation();
     } else {
       this.stopThinkingAnimation();
@@ -528,8 +535,9 @@ export class ChatMainAreaComponent implements AfterViewChecked, OnChanges, OnDes
 
   scrollToBottom(): void {
     try {
-      if (this.scrollContainer?.nativeElement) {
-        this.scrollContainer.nativeElement.scrollTop = this.scrollContainer.nativeElement.scrollHeight;
+      const container = this.scrollContainer();
+      if (container?.nativeElement) {
+        container.nativeElement.scrollTop = container.nativeElement.scrollHeight;
       }
     } catch (err) { }
   }

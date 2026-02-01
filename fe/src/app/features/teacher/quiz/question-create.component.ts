@@ -1,10 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, signal, ViewChild, ElementRef, Input, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, signal, viewChild, ElementRef, input, output, computed, inject } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, FormArray, ReactiveFormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { QuestionApi, CreateQuestionRequest } from '../../../api/endpoints/question.api';
 import { BlockEditorComponent } from '../../../shared/components/block-editor/block-editor.component';
 import { EnrichedInputFieldComponent } from '../../../shared/components/enriched-input/enriched-input.component';
+import { QuestionPreviewComponent } from '../../../shared/components/question-preview/question-preview.component';
 import { ContentBlock } from '../../../api/types/content-block.types';
 import { ContentIdentityService } from '../../../core/services/content-identity.service';
 import { AuthImagePipe } from '../../../shared/pipes/auth-image.pipe';
@@ -12,14 +13,24 @@ import { AuthImagePipe } from '../../../shared/pipes/auth-image.pipe';
 @Component({
   selector: 'app-question-create',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, BlockEditorComponent, EnrichedInputFieldComponent, AuthImagePipe],
+  imports: [CommonModule, ReactiveFormsModule, BlockEditorComponent, EnrichedInputFieldComponent, AuthImagePipe, QuestionPreviewComponent],
   template: `
     <div class="min-h-screen bg-gray-50 p-6">
       <div class="max-w-4xl mx-auto">
-        <!-- Header -->
-        <div class="mb-8">
-          <h1 class="text-3xl font-bold text-gray-900 mb-2">Tạo Câu Hỏi Mới</h1>
-          <p class="text-gray-600">Soạn thảo câu hỏi trắc nghiệm vói công thức toán học và hình ảnh minh họa</p>
+        <!-- Header with Preview Button -->
+        <div class="mb-8 flex justify-between items-start">
+          <div>
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Tạo Câu Hỏi Mới</h1>
+            <p class="text-gray-600">Soạn thảo câu hỏi trắc nghiệm với công thức toán học và hình ảnh minh họa</p>
+          </div>
+          <button type="button" (click)="showPreview = true" 
+                  class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-md">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+            </svg>
+            Xem trước
+          </button>
         </div>
 
         <!-- Question Creation Form -->
@@ -191,31 +202,74 @@ import { AuthImagePipe } from '../../../shared/pipes/auth-image.pipe';
         </form>
       </div>
     </div>
+
+    <!-- Preview Modal -->
+    <div *ngIf="showPreview" 
+         class="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-6"
+         (click)="showPreview = false">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden"
+           (click)="$event.stopPropagation()">
+        <!-- Modal Header -->
+        <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 flex justify-between items-center">
+          <span class="text-white text-lg font-semibold flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+            </svg>
+            Xem trước câu hỏi
+          </span>
+          <button (click)="showPreview = false" 
+                  class="text-white hover:text-red-300 transition-colors p-1">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        <!-- Modal Content -->
+        <div class="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
+          <app-question-preview
+            [questionContent]="rawQuestionContent()"
+            [optionsList]="_previewOptions()"
+            [correctOption]="getCorrectOptionKey() || ''"
+            [showCorrectAnswer]="true">
+          </app-question-preview>
+        </div>
+      </div>
+    </div>
   `
 })
 export class QuestionCreateComponent implements OnInit {
-  @Input() isDialog = false;
-  @Output() created = new EventEmitter<any>();
-  @Output() cancel = new EventEmitter<void>();
+  // Signal inputs (Angular v20+)
+  readonly isDialog = input(false);
+
+  // Output functions (Angular v20+)
+  readonly created = output<any>();
+  readonly cancel = output<void>();
 
   questionForm: FormGroup;
   isLoading = false;
   courseId: string | null = null;
   packageId: string | null = null;
+  showPreview = false;
 
   // Signals for Content Blocks
   questionBlocks = signal<ContentBlock[]>([]);
+  rawQuestionContent = signal<string>('');
+
+  // SOTA 2025: Cached options for preview (prevents infinite re-render)
+  _previewOptions = signal<{ key: string; content: string }[]>([]);
 
   // Track blocks for each option
   // Map index -> ContentBlock[]
   optionBlocksMap = new Map<number, ContentBlock[]>();
 
-  constructor(
-    private fb: FormBuilder,
-    private router: Router,
-    private route: ActivatedRoute,
-    private questionApi: QuestionApi
-  ) {
+  // Injected dependencies
+  private readonly fb = inject(FormBuilder);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly questionApi = inject(QuestionApi);
+
+  constructor() {
     this.questionForm = this.fb.group({
       difficulty: ['MEDIUM', Validators.required],
       tags: [''],
@@ -240,10 +294,48 @@ export class QuestionCreateComponent implements OnInit {
 
   onQuestionContentChange(blocks: ContentBlock[]) {
     this.questionBlocks.set(blocks);
+    // Parse EditorJS blocks to raw string for preview
+    const rawContent = blocks.map((block: any) => {
+      if (block.type === 'paragraph' || block.type === 'text') {
+        return block.data?.text || block.content || '';
+      } else if (block.type === 'image') {
+        // SOTA 2025: Use FULL URL for persistence to ensure images load across sessions.
+        // We do strictly prefer R2/S3 URLs, but we store what the backend returned.
+        const url = block.data?.file?.url || block.data?.url || block.url || '';
+        if (url) {
+          return `[IMG:${url}]`;
+        }
+        return '';
+      } else if (block.type === 'math' || block.type === 'formula') {
+        const content = block.data?.text || block.content || '';
+        return `$$${content}$$`;
+      }
+      return '';
+    }).filter(s => s.trim()).join(' ');
+    this.rawQuestionContent.set(rawContent);
+    // SOTA 2025: Also update cached preview options
+    this.updatePreviewOptions();
   }
 
   updateOptionText(index: number, text: string) {
     this.options.at(index).get('content')?.setValue(text);
+    // SOTA 2025: Update cached preview options
+    this.updatePreviewOptions();
+  }
+
+  /**
+   * SOTA 2025: Update cached preview options signal.
+   * Called after form changes to prevent method calls creating new arrays in template.
+   */
+  private updatePreviewOptions(): void {
+    const result: { key: string; content: string }[] = [];
+    for (let i = 0; i < this.options.length; i++) {
+      result.push({
+        key: this.getOptionKey(i),
+        content: this.options.at(i).get('content')?.value || ''
+      });
+    }
+    this._previewOptions.set(result);
   }
 
   updateOptionBlocks(index: number, blocks: ContentBlock[]) {
@@ -257,7 +349,8 @@ export class QuestionCreateComponent implements OnInit {
 
   extractFileId(text: string): string {
     if (!text) return '';
-    const match = text.match(/\[IMG:([a-zA-Z0-9-]+)\]/);
+    // SOTA 2025: Extract content inside [IMG:...] which is now a URL
+    const match = text.match(/\[IMG:([^\]]+)\]/);
     return match ? match[1] : '';
   }
 
@@ -322,6 +415,9 @@ export class QuestionCreateComponent implements OnInit {
       return;
     }
 
+    // SOTA 2025: Prevent duplicate submissions
+    if (this.isLoading) return;
+
     this.isLoading = true;
     const formValue = this.questionForm.value;
 
@@ -360,14 +456,17 @@ export class QuestionCreateComponent implements OnInit {
     this.questionApi.createQuestion(request).subscribe({
       next: (question) => {
         console.log('✅ Question created successfully:', question);
-        if (this.isDialog) {
+        if (this.isDialog()) {
           this.created.emit(question);
         } else {
           const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
           if (returnUrl) {
             this.router.navigateByUrl(returnUrl);
           } else {
-            this.router.navigate(['/teacher/quiz/quiz-bank']);
+            // Navigate back to quiz-bank, preserving packageId selection
+            this.router.navigate(['/teacher/quiz/quiz-bank'], {
+              queryParams: this.packageId ? { packageId: this.packageId } : {}
+            });
           }
         }
       },
@@ -377,7 +476,11 @@ export class QuestionCreateComponent implements OnInit {
         this.isLoading = false;
       },
       complete: () => {
-        this.isLoading = false;
+        // Only set isLoading to false on ERROR. On success, we navigate away, so keep it true to prevent double clicks.
+        // If isDialog is true, we might stay, so...
+        if (this.isDialog()) {
+          this.isLoading = false;
+        }
       }
     });
   }
@@ -397,10 +500,21 @@ export class QuestionCreateComponent implements OnInit {
         data.latex = rest.content || rest.data?.latex || '';
         data.format = rest.format || rest.data?.format || 'inline';
       } else if (type === 'image') {
-        // EditorJS Image Tool returns: { file: { url: "http://localhost:8088/.../view/UUID" }, ... }
-        // SOTA 2025: Extract UUID only - DO NOT store full URL (portability, R2 migration, PWA)
-        const rawUrl = rest.url || rest.file?.url || rest.data?.file?.url || rest.data?.url || '';
-        data.url = this.extractUuidFromUrl(rawUrl);
+        // EditorJS Image Tool returns: { file: { url: "..." }, ... }
+        // SOTA 2025: Persist FULL URL to ensure availability.
+        // The backend returns { file: { url, id, storageKey } } in the upload response.
+        // We must preserve this structure or at least the URL.
+        const fileObj = rest.file || rest.data?.file || {};
+        const url = fileObj.url || rest.url || rest.data?.url || '';
+
+        data.file = {
+          url: url,
+          // If we have id/storageKey from the upload response, keep them if possible,
+          // but the critical part is 'url' for the frontend to render it later.
+          id: fileObj.id,
+          storageKey: fileObj.storageKey
+        };
+        data.url = url; // Some viewers might look here
         data.caption = rest.caption || rest.data?.caption || '';
         data.width = rest.width || rest.data?.width;
       } else if (type === 'header') {
@@ -422,33 +536,7 @@ export class QuestionCreateComponent implements OnInit {
   }
 
   /**
-   * SOTA 2025: Extract UUID from full URL for portable storage
-   * Input: "http://localhost:8088/api/v1/files/view/c75e2c59-8a48-41c8-838f-9a095e812cc8"
-   * Output: "c75e2c59-8a48-41c8-838f-9a095e812cc8"
-   */
-  private extractUuidFromUrl(url: string): string {
-    if (!url) return '';
-    
-    // If already a UUID (no slashes), return as-is
-    if (!url.includes('/') && this.isValidUuid(url)) {
-      return url;
-    }
-    
-    // Extract last segment from URL path
-    const segments = url.split('/');
-    const lastSegment = segments.pop() || '';
-    
-    // Validate it's a UUID format
-    if (this.isValidUuid(lastSegment)) {
-      return lastSegment;
-    }
-    
-    // Fallback: return original if can't extract UUID
-    return url;
-  }
-
-  /**
-   * Validate UUID format (v4)
+   * SOTA 2025: Removed extractUuidFromUrl as we now prefer Full URLs for stability.
    */
   private isValidUuid(str: string): boolean {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -456,7 +544,7 @@ export class QuestionCreateComponent implements OnInit {
   }
 
   onCancel(): void {
-    if (this.isDialog) {
+    if (this.isDialog()) {
       this.cancel.emit();
       return;
     }
@@ -466,6 +554,49 @@ export class QuestionCreateComponent implements OnInit {
     } else {
       this.router.navigate(['/teacher/quiz/quiz-bank']);
     }
+  }
+
+  // ==========================================
+  // Preview Helper Methods (Kahoot-style)
+  // ==========================================
+
+  /**
+   * Get question content for preview component.
+   * Extracts text from blocks and returns as string.
+   */
+  getQuestionContentForPreview(): string {
+    const blocks = this.questionBlocks();
+    if (blocks.length === 0) return '';
+
+    return blocks.map(block => {
+      if (block.type === 'text') {
+        return (block as any).content || '';
+      } else if (block.type === 'formula') {
+        const content = (block as any).content || '';
+        const format = (block as any).format;
+        return format === 'display' ? `$$${content}$$` : `$${content}$`;
+      } else if (block.type === 'image') {
+        // SOTA 2025: Use URL
+        const url = (block as any).url || (block as any).data?.file?.url || (block as any).data?.url;
+        return `[IMG:${url}]`;
+      }
+      return '';
+    }).join(' ');
+  }
+
+  /**
+   * Get options for preview component.
+   * Returns array of {key, content} objects.
+   */
+  getOptionsForPreview(): { key: string; content: string }[] {
+    const result: { key: string; content: string }[] = [];
+    for (let i = 0; i < this.options.length; i++) {
+      result.push({
+        key: this.getOptionKey(i),
+        content: this.options.at(i).get('content')?.value || ''
+      });
+    }
+    return result;
   }
 }
 

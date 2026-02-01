@@ -496,7 +496,7 @@ export class AdminService {
 
     // TODO: Update endpoint when Backend implements it
     // Current implementation uses toggle endpoint as fallback
-    return this.apiClient.patchWithResponse<BackendUser>(`/api/v1/admin/users/${userId}/status`, request).pipe(
+    return this.apiClient.patchWithResponse<BackendUser>(`/api/v3/admin/users/${userId}/status`, request).pipe(
       finalize(() => this._isLoading.next(false)),
       map(response => {
         console.log('[ADMIN SERVICE] ✅ User status updated successfully:', response);

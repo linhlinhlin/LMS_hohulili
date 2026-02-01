@@ -65,7 +65,7 @@ export class QuestionApi {
   private readonly apiClient = inject(ApiClient);
 
   getQuestionsByIds(request: GetQuestionsByIdsRequest) {
-    return this.apiClient.post<Question[]>('/api/v1/questions/by-ids', request);
+    return this.apiClient.post<Question[]>('/api/v3/questions/by-ids', request);
   }
 
   getQuestions(status?: string, difficulty?: string, tags?: string) {
@@ -74,11 +74,11 @@ export class QuestionApi {
     if (difficulty) params.difficulty = difficulty;
     if (tags) params.tags = tags;
 
-    return this.apiClient.get<Question[]>('/api/v1/questions', { params });
+    return this.apiClient.get<Question[]>('/api/v3/questions', { params });
   }
 
   getQuestionById(id: string) {
-    return this.apiClient.get<{ success: boolean; data: Question; message?: string }>(`/api/v1/questions/${id}`)
+    return this.apiClient.get<{ success: boolean; data: Question; message?: string }>(`/api/v3/questions/${id}`)
       .pipe(
         map((response: any) => {
           console.log('📦 getQuestionById raw response:', response);
@@ -145,7 +145,17 @@ export class QuestionApi {
     formData.append('packageId', packageId);
     formData.append('difficulty', difficulty);
 
-    return this.apiClient.post<QuestionImportResult>('/api/v1/questions/import/excel', formData);
+    return this.apiClient.post<QuestionImportResult>('/api/v3/questions/import/excel', formData)
+      .pipe(
+        map((response: any) => {
+          const result = response?.data || response;
+          // Ensure errors array exists to prevent null pointer
+          return {
+            ...result,
+            errors: result.errors || []
+          } as QuestionImportResult;
+        })
+      );
   }
 }
 

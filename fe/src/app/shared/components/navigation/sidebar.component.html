@@ -1,0 +1,85 @@
+<div class="sidebar-container" [class]="getSidebarClasses()">
+    <!-- Header -->
+    <div class="sidebar-header">
+        <div class="flex items-center space-x-3">
+            <!-- Logo -->
+            <div class="sidebar-logo" [class]="getLogoClasses()">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" [attr.d]="config().logoIcon">
+                    </path>
+                </svg>
+            </div>
+
+            <div class="flex-1 min-w-0">
+                <h2 class="sidebar-title">{{ config().title }}</h2>
+                <p class="sidebar-subtitle">{{ authService.currentUser()?.fullName }}</p>
+            </div>
+        </div>
+
+        <!-- Progress Card (optional) -->
+        @if (config().showProgress) {
+        <div class="sidebar-progress-card">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-sm font-medium text-gray-700">{{ config().progressLabel || 'Tiến độ học tập' }}</span>
+                <span class="text-sm font-bold" [class]="getProgressTextClass()">{{ config().progressValue || 0
+                    }}%</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+                <div class="progress-bar" [style.width.%]="config().progressValue || 0"></div>
+            </div>
+            <p class="text-xs text-gray-600 mt-2">{{ getProgressSubtext() }}</p>
+        </div>
+        }
+    </div>
+
+    <!-- Navigation Menu -->
+    <nav class="sidebar-nav">
+        @for (item of config().menuItems; track item.route) {
+        <div class="nav-item-container">
+            <a [routerLink]="item.route" routerLinkActive="active"
+                [routerLinkActiveOptions]="{exact: item.exact ?? false}" class="nav-item">
+                <div class="nav-icon" [class]="getIconClasses(item)">
+                    <svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" [attr.d]="item.icon">
+                        </path>
+                    </svg>
+                </div>
+                <span class="nav-label">{{ item.label }}</span>
+                @if (item.badge) {
+                <span class="nav-badge">{{ item.badge }}</span>
+                }
+            </a>
+
+            <!-- Sub-menu items -->
+            @if (item.children && isSubMenuOpen(item)) {
+            <div class="sub-menu">
+                @for (child of item.children; track child.route) {
+                <a [routerLink]="child.route" routerLinkActive="active"
+                    [routerLinkActiveOptions]="{exact: child.exact ?? false}" class="sub-menu-item">
+                    <div class="sub-icon" [class]="getIconClasses(child)">
+                        <svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" [attr.d]="child.icon">
+                            </path>
+                        </svg>
+                    </div>
+                    {{ child.label }}
+                </a>
+                }
+            </div>
+            }
+        </div>
+        }
+    </nav>
+
+    <!-- Footer -->
+    <div class="sidebar-footer">
+        <button (click)="logout()" class="logout-btn">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
+                </path>
+            </svg>
+            <span>Đăng xuất</span>
+        </button>
+    </div>
+</div>
