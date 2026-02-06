@@ -36,8 +36,7 @@ export class AssignmentRepositoryImpl implements IAssignmentRepository {
         }
         return null;
       }),
-      catchError(err => {
-        console.error('Error fetching assignment by id:', err);
+      catchError(() => {
         return of(null);
       })
     );
@@ -69,8 +68,7 @@ export class AssignmentRepositoryImpl implements IAssignmentRepository {
 
         return assignments;
       }),
-      catchError(err => {
-        console.error('Error fetching assignments by student:', err);
+      catchError(() => {
         return of([]);
       })
     );
@@ -82,8 +80,7 @@ export class AssignmentRepositoryImpl implements IAssignmentRepository {
         if (!response.data) return [];
         return response.data.map(item => this.mapSummaryToEntity(item));
       }),
-      catchError(err => {
-        console.error('Error fetching assignments by course:', err);
+      catchError(() => {
         return of([]);
       })
     );
@@ -95,8 +92,7 @@ export class AssignmentRepositoryImpl implements IAssignmentRepository {
         if (!response.data) return [];
         return response.data.map(item => this.mapSummaryToEntity(item));
       }),
-      catchError(err => {
-        console.error('Error fetching assignments by instructor:', err);
+      catchError(() => {
         return of([]);
       })
     );
@@ -118,8 +114,7 @@ export class AssignmentRepositoryImpl implements IAssignmentRepository {
         }
         throw new Error('Failed to create assignment');
       }),
-      catchError(err => {
-        console.error('Error saving assignment:', err);
+      catchError(() => {
         return throwError(() => new Error('Không thể lưu bài tập. Vui lòng thử lại.'));
       })
     );
@@ -142,8 +137,7 @@ export class AssignmentRepositoryImpl implements IAssignmentRepository {
         }
         throw new Error('Failed to update assignment');
       }),
-      catchError(err => {
-        console.error('Error updating assignment:', err);
+      catchError(() => {
         return throwError(() => new Error('Không thể cập nhật bài tập. Vui lòng thử lại.'));
       })
     );
@@ -152,8 +146,7 @@ export class AssignmentRepositoryImpl implements IAssignmentRepository {
   delete(id: AssignmentId): Observable<boolean> {
     return this.assignmentApi.deleteAssignment(id).pipe(
       map(() => true),
-      catchError(err => {
-        console.error('Error deleting assignment:', err);
+      catchError(() => {
         return of(false);
       })
     );

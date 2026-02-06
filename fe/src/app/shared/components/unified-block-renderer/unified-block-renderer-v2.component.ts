@@ -1,14 +1,14 @@
-import { Component, input, inject, signal, ViewEncapsulation, effect, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, input, inject, signal, ViewEncapsulation, effect, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
+
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { ContentBlock, TextBlock, FormulaBlock, ImageBlock } from '../../../api/types/content-block.types';
 import { OfflineStorageService } from '../../../core/services/offline-storage.service';
 import katex from 'katex';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
     selector: 'app-unified-block-renderer-v2',
-    standalone: true,
-    imports: [CommonModule],
+    imports: [],
     template: `
     <div class="space-y-4">
       @for (block of renderedBlocks(); track block.id) {
@@ -85,7 +85,6 @@ export class UnifiedBlockRendererV2Component implements OnDestroy {
                 }
             };
         } else {
-            console.warn('Web Workers not supported, processing on main thread implementation needed');
         }
 
         // Effect to handle rawData changes (replaces ngOnChanges)

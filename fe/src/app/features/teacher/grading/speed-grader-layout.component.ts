@@ -1,5 +1,5 @@
 import { Component, ViewEncapsulation, inject, signal, OnInit, computed, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AssignmentApi, SubmissionDetail, GradeSubmissionRequest } from '../../../api/client/assignment.api';
@@ -8,8 +8,7 @@ import { calculateRubricScore, Rubric, RubricGradeSelection, RubricScoreResult }
 
 @Component({
   selector: 'app-speed-grader-layout',
-  standalone: true,
-  imports: [CommonModule, RouterModule, ReactiveFormsModule],
+  imports: [RouterModule, ReactiveFormsModule],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -172,8 +171,7 @@ export class SpeedGraderLayoutComponent implements OnInit, OnDestroy {
         this.loadCurrentSubmissionData();
         this.loading.set(false);
       },
-      error: (err: unknown) => {
-        console.error('Error loading submissions:', err);
+      error: () => {
         this.loading.set(false);
       }
     });
@@ -253,8 +251,7 @@ export class SpeedGraderLayoutComponent implements OnInit, OnDestroy {
       localStorage.setItem(draftKey, JSON.stringify(draft));
       this.autoSaveStatus.set(isAutoSave ? `Tu dong luu luc ${new Date().toLocaleTimeString()}` : 'Da luu nhap');
       setTimeout(() => this.autoSaveStatus.set(''), 3000);
-    } catch (e) {
-      console.warn('Failed to save draft:', e);
+    } catch {
     }
   }
 
@@ -289,8 +286,7 @@ export class SpeedGraderLayoutComponent implements OnInit, OnDestroy {
         this.autoSaveStatus.set('Da cham diem thanh cong!');
         if (this.hasNext()) setTimeout(() => this.nextSubmission(), 1000);
       },
-      error: (err: unknown) => {
-        console.error('Error submitting grade:', err);
+      error: () => {
         this.saving.set(false);
         this.autoSaveStatus.set('Loi khi luu diem');
       }

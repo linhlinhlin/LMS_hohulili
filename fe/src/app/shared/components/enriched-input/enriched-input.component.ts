@@ -1,5 +1,5 @@
-import { Component, input, output, signal, viewChild, ElementRef, computed, effect } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, input, output, signal, viewChild, ElementRef, computed, effect, inject, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { ContentIdentityService } from '../../../core/services/content-identity.service';
 import { ImageLifecycleService } from '../../../core/services/image-lifecycle.service';
@@ -18,9 +18,9 @@ import katex from 'katex';
  * - Clean, professional UI
  */
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
     selector: 'app-enriched-input',
-    standalone: true,
-    imports: [CommonModule, FormsModule, MathQuickToolbarComponent],
+    imports: [FormsModule, MathQuickToolbarComponent],
     template: `
     <div class="relative w-full group">
       <!-- Math Toolbar (Visible when focused or has math) -->
@@ -180,6 +180,10 @@ import katex from 'katex';
   `]
 })
 export class EnrichedInputFieldComponent {
+    private identityService = inject(ContentIdentityService);
+    private imageService = inject(ImageLifecycleService);
+    private sanitizer = inject(DomSanitizer);
+
     // Signal inputs - Angular v20+
     placeholder = input<string>('');
     initialValue = input<string>('');
@@ -249,11 +253,7 @@ export class EnrichedInputFieldComponent {
 
     inputRef = viewChild<ElementRef<HTMLInputElement>>('inputRef');
 
-    constructor(
-        private identityService: ContentIdentityService,
-        private imageService: ImageLifecycleService,
-        private sanitizer: DomSanitizer
-    ) {
+    constructor() {
         effect(() => {
             const initVal = this.initialValue();
             if (initVal && this.rawValue() === '') {
@@ -347,7 +347,6 @@ export class EnrichedInputFieldComponent {
                 });
             });
         } catch (e) {
-            console.warn('Math render error', e);
         }
 
         return this.sanitizer.bypassSecurityTrustHtml(text);
@@ -412,8 +411,7 @@ export class EnrichedInputFieldComponent {
                 this.isProcessing.set(false);
                 this.emitChanges();
             },
-            error: (err) => {
-                console.error('Upload failed', err);
+            error: () => {
                 this.isProcessing.set(false);
             }
         });

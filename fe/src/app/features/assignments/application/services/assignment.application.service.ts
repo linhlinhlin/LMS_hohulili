@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { AssignmentFilters, StudentId, AssignmentId } from '../../domain/types';
 import { GetStudentAssignmentsUseCase, AssignmentListView } from '../use-cases/get-student-assignments.use-case';
@@ -13,11 +13,9 @@ import { SubmitAssignmentUseCase, SubmissionResult, DraftResult } from '../use-c
   providedIn: 'root'
 })
 export class AssignmentApplicationService {
+  private getAssignmentsUseCase = inject(GetStudentAssignmentsUseCase);
+  private submitAssignmentUseCase = inject(SubmitAssignmentUseCase);
 
-  constructor(
-    private getAssignmentsUseCase: GetStudentAssignmentsUseCase,
-    private submitAssignmentUseCase: SubmitAssignmentUseCase
-  ) {}
 
   /**
    * Get all assignments for a student

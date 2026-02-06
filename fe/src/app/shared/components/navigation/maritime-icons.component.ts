@@ -1,9 +1,9 @@
 import { Component, input, ChangeDetectionStrategy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 
 @Component({
   selector: 'app-maritime-icon',
-  imports: [CommonModule],
+  imports: [],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @switch (iconName()) {
@@ -78,8 +78,7 @@ import { CommonModule } from '@angular/common';
         </svg>
       }
     }
-  `,
-  standalone: true
+  `
 })
 export class MaritimeIconComponent {
   iconName = input('');

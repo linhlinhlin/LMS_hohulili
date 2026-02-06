@@ -1,5 +1,5 @@
 ﻿import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, signal, OnInit, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AssignmentApi, SubmissionSummary, SubmissionGrade } from '../../../api/client/assignment.api';
@@ -55,7 +55,7 @@ interface AssignmentDetail {
  */
 @Component({
   selector: 'app-assignment-submissions',
-  imports: [CommonModule, RouterLink, ReactiveFormsModule],
+  imports: [RouterLink, ReactiveFormsModule],
   encapsulation: ViewEncapsulation.None,
   templateUrl: './assignment-submissions.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -105,31 +105,31 @@ export class AssignmentSubmissionsComponent implements OnInit {
     setTimeout(() => {
       this.assignment.set({
         id: this.assignmentId,
-        title: 'BĂ i táº­p An toĂ n HĂ ng háº£i - ChÆ°Æ¡ng 1',
-        description: 'PhĂ¢n tĂ­ch cĂ¡c quy Ä‘á»‹nh SOLAS',
-        instructions: 'Ná»™p bĂ¡o cĂ¡o PDF vĂ  báº£n Ä‘á»“ hĂ ng háº£i',
+        title: 'Bài tập An toàn Hàng hải - Chương 1',
+        description: 'Phân tích các quy định SOLAS',
+        instructions: 'Nộp báo cáo PDF và bản đồ hàng hải',
         dueDate: '2025-12-20T23:59:59Z',
         maxScore: 100,
         status: 'PUBLISHED',
         submissionCount: 3,
         totalStudents: 5,
-        courseTitle: 'An toĂ n HĂ ng háº£i CÆ¡ báº£n'
+        courseTitle: 'An toàn Hàng hải Cơ bản'
       });
       this.submissions.set([
         {
-          id: '1', studentId: 's1', studentName: 'Nguyá»…n VÄƒn A', studentEmail: 'nva@email.com',
-          submittedAt: '2025-12-18T14:30:00Z', status: 'graded', grade: 85, feedback: 'Tá»‘t',
-          content: 'BĂ¡o cĂ¡o phĂ¢n tĂ­ch SOLAS...', attachments: [
+          id: '1', studentId: 's1', studentName: 'Nguyễn Văn A', studentEmail: 'nva@email.com',
+          submittedAt: '2025-12-18T14:30:00Z', status: 'graded', grade: 85, feedback: 'Tốt',
+          content: 'Báo cáo phân tích SOLAS...', attachments: [
             { id: 'f1', fileName: 'baocao.pdf', fileUrl: '/uploads/baocao.pdf', mimeType: 'application/pdf' }
           ]
         },
         {
-          id: '2', studentId: 's2', studentName: 'Tráº§n Thá»‹ B', studentEmail: 'ttb@email.com',
-          submittedAt: '2025-12-21T10:00:00Z', status: 'late', content: 'BĂ i ná»™p muá»™n', attachments: []
+          id: '2', studentId: 's2', studentName: 'Trần Thị B', studentEmail: 'ttb@email.com',
+          submittedAt: '2025-12-21T10:00:00Z', status: 'late', content: 'Bài nộp muộn', attachments: []
         },
         {
-          id: '3', studentId: 's3', studentName: 'LĂª VÄƒn C', studentEmail: 'lvc@email.com',
-          submittedAt: '2025-12-19T16:00:00Z', status: 'pending', content: 'Äang chá» cháº¥m', attachments: [
+          id: '3', studentId: 's3', studentName: 'Lê Văn C', studentEmail: 'lvc@email.com',
+          submittedAt: '2025-12-19T16:00:00Z', status: 'pending', content: 'Đang chờ chấm', attachments: [
             { id: 'f2', fileName: 'chart.png', fileUrl: '/uploads/chart.png', mimeType: 'image/png',
               metadata: { scale: '1:50000', captureDate: '2025-12-01' } }
           ]
@@ -208,7 +208,7 @@ export class AssignmentSubmissionsComponent implements OnInit {
         a.click();
         window.URL.revokeObjectURL(url);
       },
-      error: (err: unknown) => console.error('Export failed:', err)
+      error: () => {}
     });
   }
 
@@ -248,7 +248,7 @@ export class AssignmentSubmissionsComponent implements OnInit {
 
   getStatusText(status: string): string {
     const texts: Record<string, string> = {
-      'PUBLISHED': 'Äang má»Ÿ', 'DRAFT': 'NhĂ¡p', 'CLOSED': 'ÄĂ£ Ä‘Ă³ng'
+      'PUBLISHED': 'Đang mở', 'DRAFT': 'Nháp', 'CLOSED': 'Đã đóng'
     };
     return texts[status] || status;
   }
@@ -263,7 +263,7 @@ export class AssignmentSubmissionsComponent implements OnInit {
 
   getSubmissionStatusText(status: string): string {
     const texts: Record<string, string> = {
-      'graded': 'ÄĂ£ cháº¥m', 'pending': 'Chá» cháº¥m', 'submitted': 'ÄĂ£ ná»™p', 'late': 'Ná»™p muá»™n'
+      'graded': 'Đã chấm', 'pending': 'Chờ chấm', 'submitted': 'Đã nộp', 'late': 'Nộp muộn'
     };
     return texts[status] || status;
   }

@@ -1,5 +1,5 @@
 import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
@@ -37,7 +37,7 @@ interface RubricItem {
 
 @Component({
   selector: 'app-assignment-detail',
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [RouterModule, FormsModule],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
@@ -334,7 +334,6 @@ export class AssignmentDetailComponent implements OnInit {
 
   loadAssignment(id: string): void {
     // Load assignment data based on ID
-    console.log('Loading assignment:', id);
   }
 
   formatDate(date: Date): string {
@@ -355,7 +354,6 @@ export class AssignmentDetailComponent implements OnInit {
   }
 
   startSubmission(): void {
-    console.log('Start submission');
   }
 
   viewCourse(): void {
@@ -363,11 +361,9 @@ export class AssignmentDetailComponent implements OnInit {
   }
 
   contactInstructor(): void {
-    console.log('Contact instructor');
   }
 
   viewSubmission(): void {
-    console.log('View submission');
   }
 
   calculatePercentage(grade: number, maxPoints: number): number {

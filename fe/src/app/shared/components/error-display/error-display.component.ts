@@ -1,12 +1,11 @@
 import { Component, signal, inject, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { ErrorHandlingService, AppError } from '../../services/error-handling.service';
 
 @Component({
   selector: 'app-error-display',
-  imports: [CommonModule],
+  imports: [],
   encapsulation: ViewEncapsulation.None,
-  standalone: true,
   template: `
     <!-- Error Container -->
     <div class="fixed top-4 right-4 z-50 space-y-3 max-w-md">

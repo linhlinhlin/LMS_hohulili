@@ -3,16 +3,18 @@ package com.example.lms.course_authoring.infrastructure.web;
 import com.example.lms.course_authoring.domain.model.Course;
 import com.example.lms.course_authoring.domain.model.Chapter;
 import com.example.lms.course_authoring.domain.model.Lesson;
-import com.example.lms.course_authoring.infrastructure.persistence.JpaCourseRepository;
-import com.example.lms.course_authoring.infrastructure.persistence.JpaLessonRepository;
-import com.example.lms.learning_delivery.infrastructure.persistence.JpaLearningClassRepository;
-import com.example.lms.learning_delivery.infrastructure.persistence.JpaEnrollmentRepository;
+import com.example.lms.course_authoring.domain.repository.CourseRepository;
+import com.example.lms.course_authoring.infrastructure.persistence.entity.LessonJpaEntity;
+import com.example.lms.course_authoring.infrastructure.persistence.repository.LessonJpaRepository;
+import com.example.lms.learning_delivery.infrastructure.persistence.EnrollmentRepositoryImpl;
 import com.example.lms.learning_delivery.domain.model.LearningClass;
+import com.example.lms.learning_delivery.domain.repository.LearningClassRepository;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -29,16 +31,17 @@ import org.springframework.security.core.context.SecurityContextHolder;
  * V3 Controller for Course queries.
  * Provides read-only endpoints for listing and viewing courses.
  */
+@Slf4j
 @Tag(name = "Course Query V3", description = "Course query endpoints")
 @RestController
 @RequestMapping("/api/v3/courses")
 @RequiredArgsConstructor
 public class CourseQueryControllerV3 {
 
-    private final JpaCourseRepository courseRepository;
-    private final JpaLessonRepository lessonRepository;
-    private final JpaLearningClassRepository learningClassRepository;
-    private final JpaEnrollmentRepository enrollmentRepository;
+    private final CourseRepository courseRepository;
+    private final LessonJpaRepository lessonRepository;
+    private final LearningClassRepository learningClassRepository;
+    private final EnrollmentRepositoryImpl enrollmentRepository;
     private final com.example.lms.course_authoring.infrastructure.persistence.repository.ChapterJpaRepository chapterRepository;
 
     @Operation(summary = "Get all published courses")
@@ -145,9 +148,8 @@ public class CourseQueryControllerV3 {
                     })
                     .orElse(ResponseEntity.notFound().build());
         } catch (Exception e) {
-            System.err.println("❌ Error loading course content: " + e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.ok(ApiResponse.success(new ArrayList<>(), "Error loading content: " + e.getMessage()));
+            log.error("Error loading course content", e);
+            return ResponseEntity.ok(ApiResponse.success(new ArrayList<>(), "Error loading content"));
         }
     }
 
@@ -217,7 +219,7 @@ public class CourseQueryControllerV3 {
     @Operation(summary = "Search classes for a course")
     @GetMapping("/{courseId}/classes/search")
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
-    public ResponseEntity<ApiResponse<PageResponse<ClassInfoResponse>>> searchCourseClasses(
+    public ResponseEntity<ApiResponse<Page<ClassInfoResponse>>> searchCourseClasses(
             @PathVariable UUID courseId,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String status,
@@ -225,49 +227,10 @@ public class CourseQueryControllerV3 {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        // Get all classes for the course
-        List<LearningClass> allClasses = learningClassRepository.findByCourseId(courseId);
-        
-        // Filter
-        List<LearningClass> filteredClasses = allClasses.stream()
-                .filter(c -> {
-                    if (search != null && !search.isBlank()) {
-                        String s = search.toLowerCase();
-                        return (c.getName() != null && c.getName().toLowerCase().contains(s)) ||
-                               (c.getCode() != null && c.getCode().toLowerCase().contains(s));
-                    }
-                    return true;
-                })
-                .filter(c -> {
-                    if (status != null && !status.isBlank()) {
-                        return c.getStatus() != null && c.getStatus().name().equalsIgnoreCase(status);
-                    }
-                    return true;
-                })
-                .toList(); // Collect LearningClass first
-
-        // Manual pagination
-        int total = filteredClasses.size();
-        int fromIndex = Math.min(page * size, total);
-        int toIndex = Math.min(fromIndex + size, total);
-        List<LearningClass> pageContentClasses = filteredClasses.subList(fromIndex, toIndex);
-        
-        // Map ONLY the page content to DTOs (prevents N+1 on entire dataset)
-        List<ClassInfoResponse> pageContent = pageContentClasses.stream()
-                .map(this::toClassInfoResponse)
-                .toList();
-
-        int totalPages = (int) Math.ceil((double) total / size);
-        
-        PageResponse<ClassInfoResponse> pageResponse = PageResponse.<ClassInfoResponse>builder()
-                .content(pageContent)
-                .totalElements(total)
-                .totalPages(totalPages)
-                .number(page)
-                .size(size)
-                .build();
-                
-        return ResponseEntity.ok(ApiResponse.success(pageResponse, "Classes search completed"));
+        PageRequest pageable = PageRequest.of(page, size);
+        Page<LearningClass> classPage = learningClassRepository.searchByCourseId(courseId, search, status, pageable);
+        Page<ClassInfoResponse> response = classPage.map(this::toClassInfoResponse);
+        return ResponseEntity.ok(ApiResponse.success(response, "Classes search completed"));
     }
     
     private ClassInfoResponse toClassInfoResponse(LearningClass lc) {
@@ -295,18 +258,6 @@ public class CourseQueryControllerV3 {
 
     @lombok.Builder
     @lombok.Data
-    @lombok.NoArgsConstructor
-    @lombok.AllArgsConstructor
-    public static class PageResponse<T> {
-        private List<T> content;
-        private int totalElements;
-        private int totalPages;
-        private int number;
-        private int size;
-    }
-
-    @lombok.Builder
-    @lombok.Data
     public static class ClassInfoResponse {
         private String id;
         private String name;
@@ -319,39 +270,39 @@ public class CourseQueryControllerV3 {
     }
 
     @Operation(summary = "Get lesson details by ID")
-    @GetMapping("/sections/lessons/{lessonId}")
+    @GetMapping("/lessons/{lessonId}")
     public ResponseEntity<ApiResponse<LessonDetailResponse>> getLessonById(
             @PathVariable UUID lessonId
     ) {
         try {
-            // SOTA: O(1) indexed query instead of O(n³) nested loops
-            return lessonRepository.findByIdWithContext(lessonId)
-                    .map(lesson -> {
-                        Chapter chapter = lesson.getChapter();
-                        Course course = chapter.getCourse();
-                        
-                        LessonDetailResponse response = LessonDetailResponse.builder()
-                                .id(lesson.getId().toString())
-                                .title(lesson.getTitle())
-                                .description(lesson.getDescription())
-                                .lessonType(lesson.getLessonType() != null ? lesson.getLessonType().name() : "LECTURE")
-                                .durationMinutes(lesson.getDurationMinutes())
-                                .orderIndex(lesson.getOrderIndex())
-                                .content(lesson.getContent())
-                                .videoUrl(lesson.getVideoUrl())
-                                .sectionId(chapter.getId().toString())
-                                .sectionTitle(chapter.getTitle())
-                                .courseId(course.getId().toString())
-                                .courseTitle(course.getTitle())
-                                .isPreview(lesson.getIsPreview() != null && lesson.getIsPreview())
-                                .build();
-                        return ResponseEntity.ok(ApiResponse.success(response, "Lesson loaded"));
-                    })
+            // Query chain: Lesson -> Chapter -> Course (3 indexed queries, no nested loops)
+            return lessonRepository.findById(lessonId)
+                    .flatMap(lesson -> chapterRepository.findById(lesson.getChapterId())
+                            .flatMap(chapter -> courseRepository.findById(chapter.getCourseId())
+                                    .map(course -> {
+                                        LessonDetailResponse response = LessonDetailResponse.builder()
+                                                .id(lesson.getId().toString())
+                                                .title(lesson.getTitle())
+                                                .description(lesson.getDescription())
+                                                .lessonType(lesson.getType() != null ? lesson.getType().name() : "LECTURE")
+                                                .durationMinutes(lesson.getDurationMinutes())
+                                                .orderIndex(lesson.getOrderIndex())
+                                                .content(null) // LessonJpaEntity doesn't have content field
+                                                .videoUrl(lesson.getVideoUrl())
+                                                .sectionId(chapter.getId().toString())
+                                                .sectionTitle(chapter.getTitle())
+                                                .courseId(course.getId().toString())
+                                                .courseTitle(course.getTitle())
+                                                .isPreview(lesson.getIsFree() != null && lesson.getIsFree())
+                                                .build();
+                                        return ResponseEntity.ok(ApiResponse.success(response, "Lesson loaded"));
+                                    })
+                            )
+                    )
                     .orElse(ResponseEntity.notFound().build());
         } catch (Exception e) {
-            System.err.println("❌ Error loading lesson: " + e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.ok(ApiResponse.success(null, "Error loading lesson: " + e.getMessage()));
+            log.error("Error loading lesson", e);
+            return ResponseEntity.ok(ApiResponse.success(null, "Error loading lesson"));
         }
     }
 
@@ -361,17 +312,17 @@ public class CourseQueryControllerV3 {
     public ResponseEntity<ApiResponse<List<LessonResponse>>> getChapterLessons(
             @PathVariable UUID chapterId
     ) {
-        List<Lesson> lessons = lessonRepository.findByChapterId(chapterId);
-        
+        List<LessonJpaEntity> lessons = lessonRepository.findByChapterIdOrderByOrderIndex(chapterId);
+
         List<LessonResponse> response = lessons.stream()
                 .map(l -> LessonResponse.builder()
                         .id(l.getId().toString())
                         .title(l.getTitle())
                         .description(l.getDescription())
-                        .type(l.getLessonType() != null ? l.getLessonType().name() : "LECTURE")
+                        .type(l.getType() != null ? l.getType().name() : "LECTURE")
                         .durationMinutes(l.getDurationMinutes())
                         .orderIndex(l.getOrderIndex())
-                        .isFree(l.getIsPreview() != null && l.getIsPreview())
+                        .isFree(l.getIsFree() != null && l.getIsFree())
                         .build())
                 .toList();
 

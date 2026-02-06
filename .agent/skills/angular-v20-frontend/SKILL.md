@@ -43,26 +43,38 @@ description: Modern Angular v20+ frontend development standards covering signals
 
 ```typescript
 // ✅ 2026 CORRECT Pattern
-@Component({...})
+@Component({
+  selector: 'app-modern',
+  // NO standalone: true (default in Angular 20+, specifying it is redundant)
+  imports: [],  // Only add CommonModule if using pipes (| date) or [ngClass]
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `...`
+})
 export class ModernComponent {
+  // DI - always inject(), never constructor injection
+  private userService = inject(UserService);
+
   // Signal inputs/outputs (NOT decorators)
   userId = input.required<string>();
   userChange = output<User>();
-  
+
   // Local state
   isLoading = signal(false);
-  
+
   // Derived state (computed, NOT methods)
   displayName = computed(() => this.user()?.name ?? 'Unknown');
-  
+
   // HTTP data (httpResource for simple cases)
   userResource = httpResource<User>({
     url: () => `/api/users/${this.userId()}`
   });
-  
+
   // Side effects (sparingly)
-  private logEffect = effect(() => {
-    console.log('User changed:', this.userId());
+  private trackEffect = effect(() => {
+    const id = this.userId();
+    if (id) {
+      this.userService.trackView(id);
+    }
   });
 }
 ```
@@ -128,22 +140,28 @@ src/app/
 
 ### 2. Standalone Components (Default)
 
-All components MUST be standalone (Angular v19+ default):
+All components MUST be standalone (Angular v20+ default). Do NOT specify `standalone: true` as it is redundant:
 
 ```typescript
-// ✅ CORRECT: Standalone component
+// ✅ CORRECT: Standalone component (standalone is default, don't specify it)
 @Component({
   selector: 'app-user-profile',
-  standalone: true,
-  imports: [CommonModule, RouterLink, UserAvatarComponent],
+  // NO standalone: true - it's the default in Angular 20+
+  imports: [RouterLink, UserAvatarComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `...`
 })
 export class UserProfileComponent {
   private userService = inject(UserService);
-  
+
   user = this.userService.currentUser;
 }
+
+// ❌ WRONG: Redundant standalone: true
+@Component({
+  standalone: true,  // Don't specify - it's already the default!
+  ...
+})
 
 // ❌ WRONG: NgModule-based component
 @NgModule({
@@ -152,6 +170,10 @@ export class UserProfileComponent {
 })
 export class UserModule {}
 ```
+
+### CommonModule Rules
+- **Add** CommonModule to `imports` ONLY if template uses: `| date`, `| number`, `| currency`, `| slice`, `[ngClass]`, `[ngStyle]`
+- **Do NOT add** CommonModule if template only uses `@if`, `@for`, `@switch` (built-in control flow doesn't need it)
 
 ### 3. Signals-First State Management
 
@@ -649,6 +671,65 @@ export class VideoPlayerComponent {
   // Access in template: config() (already a signal)
   // Access in code: this.config()
 }
+```
+
+### 9. Template Variables with @let (v18+)
+
+```typescript
+@Component({
+  template: `
+    @let user = currentUser();
+    @let fullName = user?.firstName + ' ' + user?.lastName;
+
+    @if (user) {
+      <h1>Welcome, {{ fullName }}</h1>
+      <p>Role: {{ user.role }}</p>
+    }
+
+    @let total = items().length;
+    @if (total > 0) {
+      <p>{{ total }} items found</p>
+    }
+  `
+})
+```
+
+### 10. Signal Interop: toSignal() and toObservable()
+
+```typescript
+import { toSignal, toObservable } from '@angular/core/rxjs-interop';
+
+@Component({...})
+export class InteropComponent {
+  private route = inject(ActivatedRoute);
+  private searchService = inject(SearchService);
+
+  // Observable → Signal (use in templates without async pipe)
+  routeParams = toSignal(this.route.params, { initialValue: {} });
+
+  // Signal → Observable (when you need RxJS operators)
+  searchTerm = signal('');
+  searchResults$ = toObservable(this.searchTerm).pipe(
+    debounceTime(300),
+    distinctUntilChanged(),
+    switchMap(term => this.searchService.search(term))
+  );
+
+  // Convert the results back to a signal for template use
+  results = toSignal(this.searchResults$, { initialValue: [] });
+}
+```
+
+### 11. Sass: Use @use Instead of @import
+
+```scss
+// ✅ CORRECT: Modern Sass with @use
+@use 'variables' as *;
+@use '@angular/material' as mat;
+
+// ❌ WRONG: Deprecated @import
+@import 'variables';
+@import '~@angular/material/theming';
 ```
 
 ## Performance Best Practices

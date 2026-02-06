@@ -1,19 +1,20 @@
 package com.example.lms.assessment.infrastructure.web;
 
-import com.example.lms.assessment.application.usecase.AssignmentUseCase;
-import com.example.lms.assessment.application.usecase.CreateAssignmentCommand;
+import com.example.lms.assessment.application.usecase.GetTeacherAssignmentsSummaryUseCase;
+import com.example.lms.assessment.application.usecase.GetAssignmentsByCourseUseCase;
+import com.example.lms.assessment.application.dto.CreateAssignmentCommand;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import jakarta.validation.Valid;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v3/teacher/assignments")
@@ -21,11 +22,12 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Teacher - Assignments", description = "Endpoints for teachers to manage assignments")
 public class AssignmentControllerV3 {
 
-    private final AssignmentUseCase assignmentUseCase;
-
+    private final GetTeacherAssignmentsSummaryUseCase getTeacherAssignmentsSummaryUseCase;
+    private final GetAssignmentsByCourseUseCase getAssignmentsByCourseUseCase;
     private final com.example.lms.assessment.infrastructure.persistence.repository.AssignmentJpaRepository assignmentRepository;
     private final com.example.lms.assessment.application.usecase.CreateAssignmentUseCaseV3 createAssignmentUseCaseV3;
     private final com.example.lms.assessment.application.usecase.DeleteAssignmentUseCaseV3 deleteAssignmentUseCaseV3;
+    private final com.example.lms.assessment.application.usecase.UpdateAssignmentUseCaseV3 updateAssignmentUseCaseV3;
 
     @GetMapping("/summary")
     @PreAuthorize("hasAnyRole('TEACHER', 'INSTRUCTOR', 'ADMIN')")
@@ -33,7 +35,7 @@ public class AssignmentControllerV3 {
     public ResponseEntity<ApiResponse<Object>> getTeacherAssignmentsSummary(
             @AuthenticationPrincipal UserJpaEntity user) {
         
-        var summary = assignmentUseCase.getTeacherAssignmentsSummary(user.getId());
+        var summary = getTeacherAssignmentsSummaryUseCase.execute(user.getId());
         return ResponseEntity.ok(ApiResponse.success(summary));
     }
 
@@ -41,7 +43,7 @@ public class AssignmentControllerV3 {
     @PreAuthorize("hasAnyRole('TEACHER', 'INSTRUCTOR', 'ADMIN')")
     @Operation(summary = "Get assignments for a specific course")
     public ResponseEntity<ApiResponse<Object>> getAssignmentsByCourse(@PathVariable java.util.UUID courseId) {
-        var result = assignmentUseCase.getAssignmentsByCourse(courseId);
+        var result = getAssignmentsByCourseUseCase.execute(courseId);
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 
@@ -73,12 +75,12 @@ public class AssignmentControllerV3 {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @org.springframework.web.bind.annotation.PostMapping("/courses/{courseId}")
+    @PostMapping("/courses/{courseId}")
     @PreAuthorize("hasAnyRole('TEACHER', 'INSTRUCTOR', 'ADMIN')")
     @Operation(summary = "Create new assignment")
     public ResponseEntity<ApiResponse<java.util.UUID>> createAssignment(
             @PathVariable java.util.UUID courseId,
-            @org.springframework.web.bind.annotation.RequestBody CreateAssignmentRequest request
+            @Valid @RequestBody CreateAssignmentRequest request
     ) {
         var command = new CreateAssignmentCommand(
             null, // lessonId is optional now
@@ -100,29 +102,25 @@ public class AssignmentControllerV3 {
         return ResponseEntity.ok(ApiResponse.success(id, "Assignment created"));
     }
     
-    @org.springframework.web.bind.annotation.PutMapping("/{id}")
+    @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('TEACHER', 'INSTRUCTOR', 'ADMIN')")
     @Operation(summary = "Update assignment")
     public ResponseEntity<ApiResponse<Void>> updateAssignment(
             @PathVariable java.util.UUID id,
-            @org.springframework.web.bind.annotation.RequestBody UpdateAssignmentRequest request
+            @Valid @RequestBody UpdateAssignmentRequest request
     ) {
-        var assignment = assignmentRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Assignment not found"));
-                
-        if (request.title() != null) assignment.setTitle(request.title());
-        if (request.description() != null) assignment.setDescription(request.description());
-        if (request.instructions() != null) assignment.setInstructions(request.instructions());
-        
-        if (request.dueDate() != null) {
-            assignment.setDueDate(java.time.Instant.parse(request.dueDate()));
-        }
-        
-        assignmentRepository.save(assignment);
+        var command = new com.example.lms.assessment.application.usecase.UpdateAssignmentUseCaseV3.Command(
+                request.title(),
+                request.description(),
+                request.instructions(),
+                request.dueDate(),
+                request.maxScore()
+        );
+        updateAssignmentUseCaseV3.execute(id, command);
         return ResponseEntity.ok(ApiResponse.success(null, "Assignment updated"));
     }
     
-    @org.springframework.web.bind.annotation.DeleteMapping("/{id}")
+    @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('TEACHER', 'INSTRUCTOR', 'ADMIN')")
     @Operation(summary = "Delete assignment")
     public ResponseEntity<ApiResponse<Void>> deleteAssignment(
@@ -133,10 +131,12 @@ public class AssignmentControllerV3 {
     }
 
     public record CreateAssignmentRequest(
+        @NotBlank(message = "Title is required")
         String title,
         String description,
         String instructions,
         String dueDate,
+        @Positive(message = "Max score must be positive")
         Integer maxScore,
         String distributionType,
         java.util.List<java.util.UUID> studentIds

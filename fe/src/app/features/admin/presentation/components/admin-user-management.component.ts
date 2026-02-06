@@ -1,5 +1,5 @@
-﻿import { Component, signal, computed, inject, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+﻿import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
+
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AdminService, AdminUser, UserAccountStatus, UpdateUserStatusRequest } from '../../infrastructure/services/admin.service';
@@ -9,9 +9,9 @@ import { AdminService, AdminUser, UserAccountStatus, UpdateUserStatusRequest } f
  * SOTA Design: Coursera-inspired with role change, status actions
  */
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin-user-management',
-  standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [RouterModule, FormsModule],
   styles: [`
     select.role-select {
       cursor: pointer;
@@ -28,12 +28,12 @@ import { AdminService, AdminUser, UserAccountStatus, UpdateUserStatusRequest } f
         <div class="mb-8">
           <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div>
-              <h1 class="text-2xl font-bold text-gray-900 mb-1">Quáº£n lĂ½ Quáº£n trá»‹ viĂªn</h1>
-              <p class="text-sm text-gray-600">Quáº£n lĂ½ cĂ¡c tĂ i khoáº£n cĂ³ quyá»n quáº£n trá»‹ há»‡ thá»‘ng</p>
+              <h1 class="text-2xl font-bold text-gray-900 mb-1">Quản lý Quản trị viên</h1>
+              <p class="text-sm text-gray-600">Quản lý các tài khoản có quyền quản trị hệ thống</p>
             </div>
             <button (click)="openCreateModal()" class="inline-flex items-center px-4 py-2.5 bg-orange-600 text-white text-sm font-medium rounded hover:bg-orange-700 transition-colors">
               <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
-              ThĂªm Quáº£n trá»‹ viĂªn
+              Thêm Quản trị viên
             </button>
           </div>
         </div>
@@ -43,9 +43,9 @@ import { AdminService, AdminUser, UserAccountStatus, UpdateUserStatusRequest } f
           <div class="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
             <div class="flex items-start justify-between">
               <div>
-                <p class="text-xs font-medium text-gray-500 uppercase mb-2">Tá»•ng Admin</p>
+                <p class="text-xs font-medium text-gray-500 uppercase mb-2">Tổng Admin</p>
                 <p class="text-2xl font-bold text-gray-900">{{ totalAdmins() }}</p>
-                <p class="text-xs text-gray-600 mt-2">{{ activeAdmins() }} Ä‘ang hoáº¡t Ä‘á»™ng</p>
+                <p class="text-xs text-gray-600 mt-2">{{ activeAdmins() }} đang hoạt động</p>
               </div>
               <div class="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center">
                 <svg class="w-5 h-5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
@@ -59,7 +59,7 @@ import { AdminService, AdminUser, UserAccountStatus, UpdateUserStatusRequest } f
               <div>
                 <p class="text-xs font-medium text-gray-500 uppercase mb-2">Super Admin</p>
                 <p class="text-2xl font-bold text-gray-900">{{ superAdmins() }}</p>
-                <p class="text-xs text-gray-600 mt-2">Quyá»n cao nháº¥t</p>
+                <p class="text-xs text-gray-600 mt-2">Quyền cao nhất</p>
               </div>
               <div class="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center">
                 <svg class="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
@@ -71,9 +71,9 @@ import { AdminService, AdminUser, UserAccountStatus, UpdateUserStatusRequest } f
           <div class="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
             <div class="flex items-start justify-between">
               <div>
-                <p class="text-xs font-medium text-gray-500 uppercase mb-2">Bá»‹ khĂ³a</p>
+                <p class="text-xs font-medium text-gray-500 uppercase mb-2">Bị khóa</p>
                 <p class="text-2xl font-bold text-gray-900">{{ blockedAdmins() }}</p>
-                <p class="text-xs text-gray-600 mt-2">TĂ i khoáº£n bá»‹ khĂ³a</p>
+                <p class="text-xs text-gray-600 mt-2">Tài khoản bị khóa</p>
               </div>
               <div class="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center">
                 <svg class="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
@@ -85,9 +85,9 @@ import { AdminService, AdminUser, UserAccountStatus, UpdateUserStatusRequest } f
           <div class="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
             <div class="flex items-start justify-between">
               <div>
-                <p class="text-xs font-medium text-gray-500 uppercase mb-2">Hoáº¡t Ä‘á»™ng gáº§n Ä‘Ă¢y</p>
+                <p class="text-xs font-medium text-gray-500 uppercase mb-2">Hoạt động gần đây</p>
                 <p class="text-2xl font-bold text-gray-900">{{ recentlyActive() }}</p>
-                <p class="text-xs text-gray-600 mt-2">Trong 7 ngĂ y qua</p>
+                <p class="text-xs text-gray-600 mt-2">Trong 7 ngày qua</p>
               </div>
               <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
                 <svg class="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
@@ -106,21 +106,21 @@ import { AdminService, AdminUser, UserAccountStatus, UpdateUserStatusRequest } f
                 <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
               </svg>
               <input type="text" [value]="searchQuery()" (input)="onSearchInput($any($event.target).value)"
-                     placeholder="TĂ¬m kiáº¿m theo tĂªn hoáº·c email..."
+                     placeholder="Tìm kiếm theo tên hoặc email..."
                      class="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-orange-500 focus:border-transparent">
             </div>
             <select [value]="statusFilter()" (change)="onStatusFilterChange($any($event.target).value)"
                     class="px-3 py-2 text-sm border border-gray-300 rounded bg-white focus:ring-2 focus:ring-orange-500">
-              <option value="">Táº¥t cáº£ tráº¡ng thĂ¡i</option>
-              <option value="ACTIVE">Äang hoáº¡t Ä‘á»™ng</option>
-              <option value="BLOCKED">Bá»‹ khĂ³a</option>
-              <option value="RESTRICTED">Háº¡n cháº¿</option>
+              <option value="">Tất cả trạng thái</option>
+              <option value="ACTIVE">Đang hoạt động</option>
+              <option value="BLOCKED">Bị khóa</option>
+              <option value="RESTRICTED">Hạn chế</option>
             </select>
           </div>
           <div class="mt-3 pt-3 border-t border-gray-200">
             <p class="text-xs text-gray-600">
-              Hiá»ƒn thá»‹ <span class="font-medium text-gray-900">{{ filteredAdmins().length }}</span>
-              trong tá»•ng sá»‘ <span class="font-medium text-gray-900">{{ totalAdmins() }}</span> quáº£n trá»‹ viĂªn
+              Hiển thị <span class="font-medium text-gray-900">{{ filteredAdmins().length }}</span>
+              trong tổng số <span class="font-medium text-gray-900">{{ totalAdmins() }}</span> quản trị viên
             </p>
           </div>
         </div>
@@ -130,27 +130,27 @@ import { AdminService, AdminUser, UserAccountStatus, UpdateUserStatusRequest } f
           @if (isLoading()) {
             <div class="p-12 text-center">
               <div class="w-12 h-12 border-4 border-gray-200 border-t-orange-600 rounded-full animate-spin mx-auto"></div>
-              <p class="mt-4 text-sm text-gray-600">Äang táº£i danh sĂ¡ch quáº£n trá»‹ viĂªn...</p>
+              <p class="mt-4 text-sm text-gray-600">Đang tải danh sách quản trị viên...</p>
             </div>
           } @else if (filteredAdmins().length === 0) {
             <div class="p-12 text-center">
               <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path>
               </svg>
-              <h3 class="text-base font-medium text-gray-900 mb-2">KhĂ´ng tĂ¬m tháº¥y quáº£n trá»‹ viĂªn</h3>
-              <p class="text-sm text-gray-600">Thá»­ Ä‘iá»u chá»‰nh bá»™ lá»c hoáº·c tĂ¬m kiáº¿m vá»›i tá»« khĂ³a khĂ¡c</p>
+              <h3 class="text-base font-medium text-gray-900 mb-2">Không tìm thấy quản trị viên</h3>
+              <p class="text-sm text-gray-600">Thử điều chỉnh bộ lọc hoặc tìm kiếm với từ khóa khác</p>
             </div>
           } @else {
             <div class="overflow-x-auto">
               <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                   <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Quáº£n trá»‹ viĂªn</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Vai trĂ²</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Tráº¡ng thĂ¡i</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Hoáº¡t Ä‘á»™ng cuá»‘i</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">ÄÄƒng nháº­p</th>
-                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase">Thao tĂ¡c</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Quản trị viên</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Vai trò</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Trạng thái</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Hoạt động cuối</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Đăng nhập</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-100">
@@ -171,9 +171,9 @@ import { AdminService, AdminUser, UserAccountStatus, UpdateUserStatusRequest } f
                         <select [ngModel]="getRoleValue(admin.role)"
                                 (ngModelChange)="onRoleChange(admin.id, $event)"
                                 class="role-select px-2 py-1 text-xs font-medium rounded border border-gray-300 bg-white focus:ring-2 focus:ring-orange-500">
-                          <option value="STUDENT">Há»c viĂªn</option>
-                          <option value="TEACHER">Giáº£ng viĂªn</option>
-                          <option value="ADMIN">Quáº£n trá»‹ viĂªn</option>
+                          <option value="STUDENT">Học viên</option>
+                          <option value="TEACHER">Giảng viên</option>
+                          <option value="ADMIN">Quản trị viên</option>
                         </select>
                       </td>
                       <!-- Status -->
@@ -185,7 +185,7 @@ import { AdminService, AdminUser, UserAccountStatus, UpdateUserStatusRequest } f
                       </td>
                       <!-- Last Login -->
                       <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-600">
-                        {{ admin.lastLogin ? formatDateValue(admin.lastLogin) : 'ChÆ°a Ä‘Äƒng nháº­p' }}
+                        {{ admin.lastLogin ? formatDateValue(admin.lastLogin) : 'Chưa đăng nhập' }}
                       </td>
                       <!-- Login Count -->
                       <td class="px-6 py-4 whitespace-nowrap">
@@ -193,7 +193,7 @@ import { AdminService, AdminUser, UserAccountStatus, UpdateUserStatusRequest } f
                           <svg class="w-3 h-3 mr-1.5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5z"></path>
                           </svg>
-                          {{ admin.loginCount || 0 }} láº§n
+                          {{ admin.loginCount || 0 }} lần
                         </div>
                       </td>
                       <!-- Actions -->
@@ -202,21 +202,21 @@ import { AdminService, AdminUser, UserAccountStatus, UpdateUserStatusRequest } f
                           <!-- Status Actions -->
                           <select (change)="onStatusActionChange(admin, $any($event.target).value); $any($event.target).value = ''"
                                   class="text-xs px-2 py-1 border border-gray-300 rounded bg-white cursor-pointer hover:border-gray-400">
-                            <option value="" disabled selected>Tráº¡ng thĂ¡i</option>
+                            <option value="" disabled selected>Trạng thái</option>
                             @if (admin.accountStatus !== 'ACTIVE') {
-                              <option value="ACTIVE">âœ“ KĂ­ch hoáº¡t</option>
+                              <option value="ACTIVE">âœ“ Kích hoạt</option>
                             }
                             @if (admin.accountStatus !== 'BLOCKED') {
-                              <option value="BLOCKED">đŸ”’ KhĂ³a</option>
+                              <option value="BLOCKED">đŸ”’ Khóa</option>
                             }
                             @if (admin.accountStatus !== 'RESTRICTED') {
-                              <option value="RESTRICTED">â ï¸ Háº¡n cháº¿</option>
+                              <option value="RESTRICTED">â ï¸ Hạn chế</option>
                             }
                           </select>
                           <!-- Revoke Admin -->
                           <button (click)="revokeAdmin(admin)"
                                   class="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                                  title="Thu há»“i quyá»n Admin">
+                                  title="Thu hồi quyền Admin">
                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                               <path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"></path>
                             </svg>
@@ -239,7 +239,7 @@ import { AdminService, AdminUser, UserAccountStatus, UpdateUserStatusRequest } f
         <div class="flex items-center justify-center min-h-screen p-4">
           <div class="bg-white rounded-lg shadow-xl max-w-md w-full" (click)="$event.stopPropagation()">
             <div class="flex items-center justify-between p-6 border-b">
-              <h3 class="text-xl font-semibold text-gray-900">ThĂªm Quáº£n trá»‹ viĂªn má»›i</h3>
+              <h3 class="text-xl font-semibold text-gray-900">Thêm Quản trị viên mới</h3>
               <button (click)="closeCreateModal()" class="text-gray-400 hover:text-gray-600">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -248,8 +248,8 @@ import { AdminService, AdminUser, UserAccountStatus, UpdateUserStatusRequest } f
             </div>
             <div class="p-6 space-y-4">
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">TĂªn Ä‘áº§y Ä‘á»§ <span class="text-red-500">*</span></label>
-                <input type="text" [(ngModel)]="newAdminName" placeholder="Nháº­p há» vĂ  tĂªn"
+                <label class="block text-sm font-medium text-gray-700 mb-2">Tên đầy đủ <span class="text-red-500">*</span></label>
+                <input type="text" [(ngModel)]="newAdminName" placeholder="Nhập họ và tên"
                        class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-orange-500 focus:border-transparent">
               </div>
               <div>
@@ -263,16 +263,16 @@ import { AdminService, AdminUser, UserAccountStatus, UpdateUserStatusRequest } f
                     <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
                   </svg>
                   <p class="text-xs text-orange-700">
-                    <span class="font-medium">Cáº£nh bĂ¡o:</span> ÄĂ¢y lĂ  vai trĂ² cĂ³ quyá»n cao nháº¥t. Máº­t kháº©u máº·c Ä‘á»‹nh: Password123!
+                    <span class="font-medium">Cảnh báo:</span> Đây là vai trò có quyền cao nhất. Mật khẩu mặc định: Password123!
                   </p>
                 </div>
               </div>
             </div>
             <div class="flex justify-end gap-3 px-6 py-4 bg-gray-50 border-t">
-              <button (click)="closeCreateModal()" class="px-4 py-2 text-sm text-gray-700 bg-white border rounded hover:bg-gray-50">Há»§y</button>
+              <button (click)="closeCreateModal()" class="px-4 py-2 text-sm text-gray-700 bg-white border rounded hover:bg-gray-50">Hủy</button>
               <button (click)="createAdmin()" [disabled]="!newAdminName() || !newAdminEmail()"
                       class="px-4 py-2 text-sm text-white bg-orange-600 rounded hover:bg-orange-700 disabled:opacity-50">
-                ThĂªm quáº£n trá»‹ viĂªn
+                Thêm quản trị viên
               </button>
             </div>
           </div>
@@ -377,7 +377,7 @@ export class AdminUserManagementComponent implements OnInit {
 
   // Role change handler
   onRoleChange(userId: string, newRole: string) {
-    if (!confirm(`Báº¡n cĂ³ cháº¯c muá»‘n thay Ä‘á»•i vai trĂ² ngÆ°á»i dĂ¹ng nĂ y thĂ nh ${this.getRoleLabel(newRole)}?`)) {
+    if (!confirm(`Bạn có chắc muốn thay đổi vai trò người dùng này thành ${this.getRoleLabel(newRole)}?`)) {
       this.loadUsers(); // Reload to reset dropdown
       return;
     }
@@ -392,7 +392,7 @@ export class AdminUserManagementComponent implements OnInit {
     if (!newStatus) return;
 
     const statusLabel = this.getStatusLabel(newStatus);
-    const reason = prompt(`Nháº­p lĂ½ do ${statusLabel.toLowerCase()} tĂ i khoáº£n (tĂ¹y chá»n):`);
+    const reason = prompt(`Nhập lý do ${statusLabel.toLowerCase()} tài khoản (tùy chọn):`);
 
     this.adminService.updateUserStatus(user.id, {
       status: newStatus as UserAccountStatus,
@@ -409,7 +409,7 @@ export class AdminUserManagementComponent implements OnInit {
   }
 
   revokeAdmin(admin: AdminUser) {
-    if (!confirm(`Báº¡n cĂ³ cháº¯c muá»‘n thu há»“i quyá»n Admin cá»§a ${admin.name}? Há» sáº½ trá»Ÿ thĂ nh Há»c viĂªn.`)) return;
+    if (!confirm(`Bạn có chắc muốn thu hồi quyền Admin của ${admin.name}? Họ sẽ trở thành Học viên.`)) return;
 
     this.adminService.updateUser(admin.id, { role: 'STUDENT' }).subscribe({
       next: () => this.loadUsers()
@@ -423,9 +423,9 @@ export class AdminUserManagementComponent implements OnInit {
 
   getRoleLabel(role: string): string {
     switch (role.toUpperCase()) {
-      case 'ADMIN': return 'Quáº£n trá»‹ viĂªn';
-      case 'TEACHER': return 'Giáº£ng viĂªn';
-      case 'STUDENT': return 'Há»c viĂªn';
+      case 'ADMIN': return 'Quản trị viên';
+      case 'TEACHER': return 'Giảng viên';
+      case 'STUDENT': return 'Học viên';
       default: return role;
     }
   }
@@ -461,10 +461,10 @@ export class AdminUserManagementComponent implements OnInit {
 
   getStatusLabel(status: string): string {
     switch (status) {
-      case 'ACTIVE': return 'Hoáº¡t Ä‘á»™ng';
-      case 'BLOCKED': return 'Bá»‹ khĂ³a';
-      case 'RESTRICTED': return 'Háº¡n cháº¿';
-      default: return 'Chá» xĂ¡c thá»±c';
+      case 'ACTIVE': return 'Hoạt động';
+      case 'BLOCKED': return 'Bị khóa';
+      case 'RESTRICTED': return 'Hạn chế';
+      default: return 'Chờ xác thực';
     }
   }
 }

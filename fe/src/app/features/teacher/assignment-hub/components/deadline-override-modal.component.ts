@@ -5,7 +5,7 @@ import {
   signal,
   ChangeDetectionStrategy,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import {
   DeadlineOverrideRequest,
@@ -31,8 +31,7 @@ export interface StudentInfo {
  */
 @Component({
   selector: 'app-deadline-override-modal',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (isOpen()) {

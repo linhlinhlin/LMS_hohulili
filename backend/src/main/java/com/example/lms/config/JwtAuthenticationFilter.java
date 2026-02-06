@@ -7,6 +7,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -18,6 +19,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -32,60 +34,36 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
-        
-        // Aggressive logging to confirm filter execution
-        System.out.println("JWT FILTER HIT: " + request.getRequestURI());
 
         // Skip JWT filter for public endpoints
         String path = request.getRequestURI();
         if (shouldSkipFilter(path)) {
-            System.out.println("JWT FILTER SKIPPING: " + path);
             filterChain.doFilter(request, response);
             return;
         }
-        
+
         final String authHeader = request.getHeader("Authorization");
         final String jwt;
         final String username;
 
         // Check if Authorization header exists and starts with "Bearer "
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            System.out.println("JWT DEBUG: No Bearer token found in request to " + request.getRequestURI());
             filterChain.doFilter(request, response);
             return;
         }
 
         // Extract JWT token
         jwt = authHeader.substring(7);
-        
-        // Enhanced JWT debugging for question endpoints
-        if (request.getRequestURI().contains("/questions")) {
-            System.out.println("=== JWT DEBUG FOR QUESTIONS ===");
-            System.out.println("Request URI: " + request.getRequestURI());
-            System.out.println("JWT Token present: " + (jwt != null && !jwt.isEmpty()));
-        }
-        System.out.println("JWT Token: " + jwt.substring(0, Math.min(20, jwt.length())) + "...");
-        
+
         try {
             username = jwtService.extractUsername(jwt);
-            if (request.getRequestURI().contains("/questions")) {
-                System.out.println("Extracted username: " + username);
-            }
 
             // If username is extracted and no authentication is set in SecurityContext
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
-                
-                if (request.getRequestURI().contains("/questions")) {
-                    System.out.println("Loaded UserDetails: " + userDetails.getUsername());
-                    System.out.println("User Authorities: " + userDetails.getAuthorities());
-                }
-                
+
                 // Validate token
                 if (jwtService.isTokenValid(jwt, userDetails)) {
-                    if (request.getRequestURI().contains("/questions")) {
-                        System.out.println("✅ JWT Token is valid");
-                    }
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                             userDetails,
                             null,
@@ -95,26 +73,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             new WebAuthenticationDetailsSource().buildDetails(request)
                     );
                     SecurityContextHolder.getContext().setAuthentication(authToken);
-                    if (request.getRequestURI().contains("/questions")) {
-                        System.out.println("✅ Authentication set in SecurityContext");
-                    }
-                } else {
-                    if (request.getRequestURI().contains("/questions")) {
-                        System.out.println("❌ JWT Token is INVALID");
-                    }
                 }
             }
-            if (request.getRequestURI().contains("/questions") || request.getRequestURI().contains("/api/v2/quizzes") || request.getRequestURI().contains("/api/v3/quizzes")) {
-                System.out.println("=== END JWT DEBUG ===");
-            }
         } catch (Exception e) {
-            // Log the error but don't block the request
-            logger.error("Cannot set user authentication: {}", e);
+            log.warn("Cannot set user authentication for request {}: {}", path, e.getMessage());
         }
 
         filterChain.doFilter(request, response);
     }
-    
+
     /**
      * Check if the request path should skip JWT authentication
      */

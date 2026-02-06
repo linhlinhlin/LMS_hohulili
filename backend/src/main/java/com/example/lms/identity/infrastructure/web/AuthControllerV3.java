@@ -8,6 +8,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
@@ -145,7 +148,7 @@ public class AuthControllerV3 {
     @PostMapping("/refresh")
     @Operation(summary = "Làm mới token (DDD)")
     public ResponseEntity<ApiResponse<AuthResponse>> refreshToken(
-            @RequestBody RefreshTokenRequest request
+            @Valid @RequestBody RefreshTokenRequest request
     ) {
         AuthResponse response = refreshTokenUseCase.execute(request.refreshToken());
         return ResponseEntity.ok(ApiResponse.success(response));
@@ -154,29 +157,45 @@ public class AuthControllerV3 {
     // ==================== Request DTOs ====================
 
     public record RefreshTokenRequest(
+            @NotBlank(message = "Refresh token is required")
             String refreshToken
     ) {}
 
     public record RegisterRequest(
+        @NotBlank(message = "Username is required")
+        @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
         String username,
+        @NotBlank(message = "Email is required")
+        @Email(message = "Email must be valid")
         String email,
+        @NotBlank(message = "Password is required")
+        @Size(min = 6, message = "Password must be at least 6 characters")
         String password,
+        @NotBlank(message = "Full name is required")
         String fullName,
         String role
     ) {}
 
     public record LoginRequest(
+        @NotBlank(message = "Email is required")
+        @Email(message = "Email must be valid")
         String email,
+        @NotBlank(message = "Password is required")
         String password
     ) {}
 
     public record UpdateProfileRequest(
+        @Size(max = 255, message = "Full name must not exceed 255 characters")
         String fullName,
+        @Email(message = "Email must be valid")
         String email
     ) {}
 
     public record ChangePasswordRequest(
+        @NotBlank(message = "Current password is required")
         String currentPassword,
+        @NotBlank(message = "New password is required")
+        @Size(min = 6, message = "New password must be at least 6 characters")
         String newPassword
     ) {}
 }

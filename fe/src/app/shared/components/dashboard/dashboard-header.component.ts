@@ -1,5 +1,5 @@
 import { Component, inject, output, signal, ChangeDetectionStrategy, ViewEncapsulation } from "@angular/core"
-import { CommonModule } from "@angular/common"
+
 import { RouterModule, Router } from "@angular/router"
 import { FormsModule } from "@angular/forms"
 import { AuthService } from "../../../core/services/auth.service"
@@ -8,8 +8,7 @@ import { SmartBreadcrumbsComponent } from "../navigation/smart-breadcrumbs.compo
 
 @Component({
   selector: "app-dashboard-header",
-  standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, SmartBreadcrumbsComponent],
+  imports: [RouterModule, FormsModule, SmartBreadcrumbsComponent],
   encapsulation: ViewEncapsulation.None,
   template: `
     <header class="bg-white shadow-lg border-b border-gray-200 sticky top-0 z-30 backdrop-blur-sm bg-white/95">

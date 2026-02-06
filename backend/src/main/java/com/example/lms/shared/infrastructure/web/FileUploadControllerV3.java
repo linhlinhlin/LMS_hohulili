@@ -3,104 +3,152 @@ package com.example.lms.shared.infrastructure.web;
 import com.example.lms.shared.infrastructure.service.R2StorageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v3/files")
-@RequiredArgsConstructor
 @Tag(name = "File Upload V3", description = "File Management (V3) - Cloudflare R2")
 public class FileUploadControllerV3 {
 
-    private final R2StorageService r2StorageService;
+    private static final Set<String> ALLOWED_MIME_TYPES = Set.of(
+        "image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml",
+        "application/pdf",
+        "video/mp4", "video/webm",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.ms-powerpoint",
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+    );
+
+    private static final long MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+
+    private final Optional<R2StorageService> r2StorageService;
     private final com.example.lms.shared.application.service.FileManagementService fileManagementService;
 
-    @Value("${cloudflare.r2.enabled:true}")
+    @Value("${cloudflare.r2.enabled:false}")
     private boolean r2Enabled;
 
-    /**
-     * EditorJS Image Tool expects response format:
-     * { success: 1, file: { url: "...", id: "..." } }
-     * 
-     * Uploads to Cloudflare R2 and returns public CDN URL.
-     */
+    @Autowired
+    public FileUploadControllerV3(
+            @Autowired(required = false) R2StorageService r2StorageService,
+            com.example.lms.shared.application.service.FileManagementService fileManagementService) {
+        this.r2StorageService = Optional.ofNullable(r2StorageService);
+        this.fileManagementService = fileManagementService;
+    }
+
     @PostMapping(value = "/upload/editor", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAnyRole('TEACHER', 'INSTRUCTOR', 'ADMIN')")
     @Operation(summary = "Upload file to Cloudflare R2 for EditorJS")
     public ResponseEntity<Map<String, Object>> uploadForEditor(
             @RequestParam("file") MultipartFile file,
-            @RequestParam(value = "folder", defaultValue = "question-images") String folder) {
+            @RequestParam(value = "folder", defaultValue = "question-images") String folder,
+            @AuthenticationPrincipal UserJpaEntity user) {
         try {
-            // SOTA 2026: Hybrid storage (R2 + Relational DB)
-            // Use FileManagementService to handle both physical and logical constraints
-            var attachment = fileManagementService.uploadFile(file, folder, getCurrentUserId());
-            
-            // EditorJS-native format: { success: 1, file: { url: "...", id: "..." } }
+            if (!r2Enabled || r2StorageService.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "success", 0,
+                    "message", "File upload is not available: R2 storage is not configured"
+                ));
+            }
+
+            // Validate file
+            String validationError = validateFile(file);
+            if (validationError != null) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "success", 0,
+                    "message", validationError
+                ));
+            }
+
+            // Sanitize folder name
+            String sanitizedFolder = sanitizePath(folder);
+
+            UUID uploadedBy = user != null ? user.getId() : UUID.fromString("00000000-0000-0000-0000-000000000000");
+            var attachment = fileManagementService.uploadFile(file, sanitizedFolder, uploadedBy);
+
             Map<String, Object> fileData = new HashMap<>();
             fileData.put("url", attachment.getFileUrl());
-            fileData.put("id", attachment.getEntityId()); // Actually we return fileId, but for EditorJS logical ID usually suffices. 
-            // Better to return the FileAttachment ID:
+            fileData.put("id", attachment.getEntityId());
             fileData.put("uuid", attachment.getId());
             fileData.put("storageKey", attachment.getFileName());
-            
+
             Map<String, Object> response = new HashMap<>();
             response.put("success", 1);
             response.put("file", fileData);
-            
+
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            e.printStackTrace();
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("success", 0);
-            errorResponse.put("message", "Upload failed: " + e.getMessage());
-            return ResponseEntity.internalServerError().body(errorResponse);
+            log.error("File upload failed", e);
+            return ResponseEntity.internalServerError().body(Map.of(
+                "success", 0,
+                "message", "Upload failed: " + e.getMessage()
+            ));
         }
     }
 
-    private java.util.UUID getCurrentUserId() {
-        // Mock method - in real app use SecurityContext
-        // For now, returning a hardcoded UUID or extracting from SecurityContextHolder
-        // Assuming SecurityContext is available
-        // For MVP speed, let's look at how other controllers do it or just return a placeholder if auth is disabled in dev
-        // Let's defer to a helper or null for now if not critical, but FileAttachment requires it.
-        // Let's use a dummy UUID if auth is missing or implement proper extraction.
-        try {
-             // Basic extraction
-             return java.util.UUID.fromString("00000000-0000-0000-0000-000000000000"); // System/Admin default
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    /**
-     * Delete a file from R2 storage.
-     */
     @DeleteMapping("/{storageKey}")
     @PreAuthorize("hasAnyRole('TEACHER', 'INSTRUCTOR', 'ADMIN')")
     @Operation(summary = "Delete file from Cloudflare R2")
     public ResponseEntity<Map<String, Object>> deleteFile(@PathVariable String storageKey) {
         try {
-            r2StorageService.delete(storageKey);
-            
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("message", "File deleted successfully");
-            
-            return ResponseEntity.ok(response);
+            if (!r2Enabled || r2StorageService.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", "File deletion is not available: R2 storage is not configured"
+                ));
+            }
+
+            String sanitizedKey = sanitizePath(storageKey);
+            r2StorageService.get().delete(sanitizedKey);
+
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "File deleted successfully"
+            ));
         } catch (Exception e) {
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("success", false);
-            errorResponse.put("message", "Delete failed: " + e.getMessage());
-            return ResponseEntity.internalServerError().body(errorResponse);
+            log.error("File deletion failed for key: {}", storageKey, e);
+            return ResponseEntity.internalServerError().body(Map.of(
+                "success", false,
+                "message", "Delete failed: " + e.getMessage()
+            ));
         }
+    }
+
+    private String validateFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            return "File is empty";
+        }
+        if (file.getSize() > MAX_FILE_SIZE) {
+            return "File size exceeds maximum allowed size of 50MB";
+        }
+        String contentType = file.getContentType();
+        if (contentType == null || !ALLOWED_MIME_TYPES.contains(contentType.toLowerCase())) {
+            return "File type not allowed: " + contentType;
+        }
+        String originalName = file.getOriginalFilename();
+        if (originalName != null && originalName.contains("..")) {
+            return "Invalid filename";
+        }
+        return null;
+    }
+
+    private String sanitizePath(String input) {
+        if (input == null) return "default";
+        return input.replaceAll("[^a-zA-Z0-9._-]", "_");
     }
 }

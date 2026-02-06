@@ -2,6 +2,9 @@ package com.example.lms.course_authoring.infrastructure.web;
 
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -59,7 +62,7 @@ public class PackageControllerV3 {
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<PackageDTO>> createPackage(
-            @RequestBody CreatePackageRequest request,
+            @Valid @RequestBody CreatePackageRequest request,
             @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
         
         var entity = com.example.lms.shared.infrastructure.persistence.entity.PackageJpaEntity.builder()
@@ -83,7 +86,7 @@ public class PackageControllerV3 {
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<PackageDTO>> updatePackage(
             @PathVariable java.util.UUID id,
-            @RequestBody UpdatePackageRequest request) {
+            @Valid @RequestBody UpdatePackageRequest request) {
         
         return packageRepository.findById(id)
                 .map(entity -> {
@@ -153,7 +156,7 @@ public class PackageControllerV3 {
     @Operation(summary = "Move questions to package")
     @PostMapping("/move-questions")
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
-    public ResponseEntity<ApiResponse<String>> moveQuestions(@RequestBody MoveQuestionsRequest request) {
+    public ResponseEntity<ApiResponse<String>> moveQuestions(@Valid @RequestBody MoveQuestionsRequest request) {
         if (request.getQuestionIds() == null || request.getQuestionIds().isEmpty()) {
              return ResponseEntity.badRequest().body(ApiResponse.error("400", "No questions specified"));
         }
@@ -224,6 +227,7 @@ public class PackageControllerV3 {
 
     @lombok.Data
     public static class CreatePackageRequest {
+        @NotBlank(message = "Name is required")
         private String name;
         private String description;
         private String subject;
@@ -242,6 +246,7 @@ public class PackageControllerV3 {
 
     @lombok.Data
     public static class MoveQuestionsRequest {
+        @NotEmpty(message = "Question IDs cannot be empty")
         private List<String> questionIds;
         private String targetPackageId;
     }

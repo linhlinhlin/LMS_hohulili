@@ -1,7 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { ApiClient } from './api-client';
 import { SECTION_ENDPOINTS } from '../endpoints/section.endpoints';
-import { CHAPTER_ENDPOINTS } from '../endpoints/chapter.endpoints';
 import { ApiResponse } from '../types/common.types';
 import { CreateSectionRequest, SectionDetail, UpdateSectionRequest } from '../types/course.types';
 
@@ -10,29 +9,26 @@ export class SectionApi {
   private api = inject(ApiClient);
 
   createSection(lessonId: string, payload: CreateSectionRequest | FormData) {
-    // Note: If payload is FormData, HttpClient handles Content-Type automatically
     return this.api.postWithResponse<SectionDetail>(SECTION_ENDPOINTS.CREATE(lessonId), payload);
   }
 
   updateSection(lessonId: string, sectionId: string, payload: UpdateSectionRequest | FormData) {
-    // Note: If payload is FormData, HttpClient handles Content-Type automatically
-    // Update endpoints in V3 might need lessonId context
-    return this.api.putWithResponse<SectionDetail>(SECTION_ENDPOINTS.UPDATE(sectionId).replace('{lessonId}', lessonId), payload);
+    return this.api.putWithResponse<SectionDetail>(SECTION_ENDPOINTS.UPDATE(lessonId, sectionId), payload);
   }
 
   deleteSection(lessonId: string, sectionId: string) {
-    return this.api.delete<ApiResponse<string>>(SECTION_ENDPOINTS.DELETE(sectionId).replace('{lessonId}', lessonId));
+    return this.api.delete<ApiResponse<string>>(SECTION_ENDPOINTS.DELETE(lessonId, sectionId));
   }
 
-  getSection(sectionId: string) {
-    return this.api.getWithResponse<SectionDetail>(SECTION_ENDPOINTS.GET(sectionId));
+  getSection(lessonId: string, sectionId: string) {
+    return this.api.getWithResponse<SectionDetail>(SECTION_ENDPOINTS.GET(lessonId, sectionId));
   }
 
-  updateVideo(sectionId: string, params: { videoType?: string; videoUrl?: string; cfObjectKey?: string }) {
+  updateVideo(lessonId: string, sectionId: string, params: { videoType?: string; videoUrl?: string; cfObjectKey?: string }) {
     const query = new URLSearchParams();
     if (params.videoType) query.set('videoType', params.videoType);
     if (params.videoUrl) query.set('videoUrl', params.videoUrl);
     if (params.cfObjectKey) query.set('cfObjectKey', params.cfObjectKey);
-    return this.api.patchWithResponse<SectionDetail>(`${SECTION_ENDPOINTS.UPDATE_VIDEO(sectionId)}?${query.toString()}`, {});
+    return this.api.patchWithResponse<SectionDetail>(`${SECTION_ENDPOINTS.UPDATE_VIDEO(lessonId, sectionId)}?${query.toString()}`, {});
   }
 }

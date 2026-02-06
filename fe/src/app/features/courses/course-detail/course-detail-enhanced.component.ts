@@ -49,7 +49,6 @@ export class CourseDetailEnhancedComponent implements OnInit, OnDestroy {
         this.updateSEO(course);
       }
     } catch (error) {
-      console.error('Error loading course detail:', error);
     }
   }
 
@@ -107,7 +106,6 @@ export class CourseDetailEnhancedComponent implements OnInit, OnDestroy {
       const userId = 'current-user-id'; // Mock user ID
       await this.courseDetailService.enrollInCourse(course.id, userId);
     } catch (error) {
-      console.error('Error enrolling in course:', error);
     }
   }
 

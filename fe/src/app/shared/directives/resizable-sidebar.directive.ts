@@ -1,10 +1,12 @@
-import { Directive, ElementRef, HostListener, input, OnInit, Renderer2, signal, effect } from '@angular/core';
+import { Directive, ElementRef, HostListener, input, OnInit, Renderer2, signal, effect, inject } from '@angular/core';
 
 @Directive({
-    selector: '[appResizableSidebar]',
-    standalone: true
+    selector: '[appResizableSidebar]'
 })
 export class ResizableSidebarDirective implements OnInit {
+    private el = inject(ElementRef);
+    private renderer = inject(Renderer2);
+
     storageKey = input('sidebar_width');
     minWidth = input(260);
     maxWidth = input(600);
@@ -13,7 +15,7 @@ export class ResizableSidebarDirective implements OnInit {
     private isResizing = false;
     private width = signal(320);
 
-    constructor(private el: ElementRef, private renderer: Renderer2) {
+    constructor() {
         // SOTA 2025: Reactive persistence via effect
         effect(() => {
             const currentWidth = this.width();

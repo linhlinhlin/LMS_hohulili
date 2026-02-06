@@ -1,4 +1,4 @@
-import { Component, input, output, signal, computed } from '@angular/core';
+import { Component, input, output, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Question } from '../../../../../api/endpoints/question.api';
@@ -17,8 +17,8 @@ import { Question } from '../../../../../api/endpoints/question.api';
  * - Store selection state (parent manages it)
  */
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
     selector: 'app-question-selector',
-    standalone: true,
     imports: [CommonModule, FormsModule],
     templateUrl: './question-selector.component.html',
     styleUrls: ['./question-selector.component.scss']

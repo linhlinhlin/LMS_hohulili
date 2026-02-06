@@ -1,6 +1,7 @@
 package com.example.lms.shared.infrastructure.event;
 
 import com.example.lms.shared.domain.event.DomainEvent;
+import com.example.lms.shared.domain.event.DomainEventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -9,10 +10,10 @@ import org.springframework.stereotype.Component;
 
 /**
  * Kafka-based implementation of DomainEventPublisher.
- * 
+ *
  * This publisher sends domain events to Kafka topics for asynchronous
  * processing by other bounded contexts.
- * 
+ *
  * This bean is only created when KafkaTemplate is available.
  * When Kafka is not configured, SpringEventPublisher (marked @Primary) handles events.
  */

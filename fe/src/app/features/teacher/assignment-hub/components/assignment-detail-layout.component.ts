@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule, RouterOutlet, ActivatedRoute, Router } from '@angular/router';
 import { AssignmentDetailStore } from '../stores/assignment-detail.store';
 import { SubmissionsStore } from '../stores/submissions.store';
@@ -14,8 +14,7 @@ import { SubmissionsStore } from '../stores/submissions.store';
  */
 @Component({
   selector: 'app-assignment-detail-layout',
-  standalone: true,
-  imports: [CommonModule, RouterModule, RouterOutlet],
+  imports: [RouterModule, RouterOutlet],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="min-h-screen bg-gray-50">

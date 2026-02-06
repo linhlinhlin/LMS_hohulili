@@ -1,5 +1,5 @@
-import { Component, signal, OnInit, OnDestroy, ElementRef, viewChild, Output, EventEmitter } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, signal, OnInit, OnDestroy, ElementRef, viewChild, output, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { debounceTime, distinctUntilChanged, startWith, takeUntil, Subject } from 'rxjs';
@@ -17,9 +17,9 @@ interface SearchResult {
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-search',
-  standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  imports: [ReactiveFormsModule, RouterModule],
   template: `
     <div class="relative" #searchContainer>
       <!-- Search Input -->
@@ -120,7 +120,7 @@ export class SearchComponent implements OnInit, OnDestroy {
   isSearchFocused = signal(false);
   isLoading = signal(false);
   
-  @Output() searchQuery = new EventEmitter<string>();
+  readonly searchQuery = output<string>();
   
   private destroy$ = new Subject<void>();
   private searchContainer = viewChild<ElementRef>('searchContainer');

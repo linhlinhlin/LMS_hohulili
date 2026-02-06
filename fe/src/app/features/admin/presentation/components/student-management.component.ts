@@ -1,5 +1,5 @@
-﻿import { Component, signal, computed, inject, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+﻿import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
+
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AdminService, AdminUser, UserAccountStatus, UpdateUserStatusRequest } from '../../infrastructure/services/admin.service';
@@ -9,9 +9,9 @@ import { AdminService, AdminUser, UserAccountStatus, UpdateUserStatusRequest } f
  * SOTA: Coursera-inspired design with role change, status actions, and course statistics
  */
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-student-management',
-  standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [RouterModule, FormsModule],
   styles: [`
     select.role-select {
       cursor: pointer;
@@ -125,7 +125,7 @@ export class StudentManagementComponent implements OnInit {
 
   // Role change handler
   onRoleChange(userId: string, newRole: string) {
-    if (!confirm(`Báº¡n cĂ³ cháº¯c muá»‘n thay Ä‘á»•i vai trĂ² ngÆ°á»i dĂ¹ng nĂ y thĂ nh ${this.getRoleLabel(newRole)}?`)) {
+    if (!confirm(`Bạn có chắc muốn thay đổi vai trò người dùng này thành ${this.getRoleLabel(newRole)}?`)) {
       this.loadUsers(); // Reload to reset dropdown
       return;
     }
@@ -140,7 +140,7 @@ export class StudentManagementComponent implements OnInit {
     if (!newStatus) return;
 
     const statusLabel = this.getStatusLabel(newStatus);
-    const reason = prompt(`Nháº­p lĂ½ do ${statusLabel.toLowerCase()} tĂ i khoáº£n (tĂ¹y chá»n):`);
+    const reason = prompt(`Nhập lý do ${statusLabel.toLowerCase()} tài khoản (tùy chọn):`);
 
     this.adminService.updateUserStatus(user.id, {
       status: newStatus as UserAccountStatus,
@@ -157,7 +157,7 @@ export class StudentManagementComponent implements OnInit {
   }
 
   deleteUser(userId: string) {
-    if (!confirm('Báº¡n cĂ³ cháº¯c muá»‘n vĂ´ hiá»‡u hĂ³a tĂ i khoáº£n nĂ y?')) return;
+    if (!confirm('Bạn có chắc muốn vô hiệu hóa tài khoản này?')) return;
 
     this.adminService.deleteUser(userId).subscribe({
       next: () => this.loadUsers()
@@ -213,9 +213,9 @@ export class StudentManagementComponent implements OnInit {
 
   getRoleLabel(role: string): string {
     switch (role.toUpperCase()) {
-      case 'ADMIN': return 'Quáº£n trá»‹ viĂªn';
-      case 'TEACHER': return 'Giáº£ng viĂªn';
-      case 'STUDENT': return 'Há»c viĂªn';
+      case 'ADMIN': return 'Quản trị viên';
+      case 'TEACHER': return 'Giảng viên';
+      case 'STUDENT': return 'Học viên';
       default: return role;
     }
   }
@@ -251,10 +251,10 @@ export class StudentManagementComponent implements OnInit {
 
   getStatusLabel(status: string): string {
     switch (status) {
-      case 'ACTIVE': return 'Hoáº¡t Ä‘á»™ng';
-      case 'BLOCKED': return 'Bá»‹ khĂ³a';
-      case 'RESTRICTED': return 'Háº¡n cháº¿';
-      default: return 'Chá» xĂ¡c thá»±c';
+      case 'ACTIVE': return 'Hoạt động';
+      case 'BLOCKED': return 'Bị khóa';
+      case 'RESTRICTED': return 'Hạn chế';
+      default: return 'Chờ xác thực';
     }
   }
 }

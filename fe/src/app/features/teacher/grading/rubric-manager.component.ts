@@ -1,5 +1,5 @@
 import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, signal, OnInit, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterLink } from '@angular/router';
 import { Rubric, validateRubricDeletion } from './utils/rubric-calculator';
 
@@ -19,8 +19,7 @@ interface RubricApi {
  */
 @Component({
   selector: 'app-rubric-manager',
-  standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [RouterLink],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -207,8 +206,7 @@ export class RubricManagerComponent implements OnInit {
         this.rubrics.set(response.data || []);
         this.loading.set(false);
       },
-      error: (err: unknown) => {
-        console.error('Error loading rubrics:', err);
+      error: () => {
         this.error.set('Không thể tải danh sách rubric');
         this.loading.set(false);
       }
@@ -218,8 +216,7 @@ export class RubricManagerComponent implements OnInit {
       next: (response: { data?: string[] }) => {
         this.assignmentRubricIds.set(response.data || []);
       },
-      error: (err: unknown) => {
-        console.error('Error loading assignment rubric IDs:', err);
+      error: () => {
       }
     });
   }
@@ -256,8 +253,7 @@ export class RubricManagerComponent implements OnInit {
         this.cancelDelete();
         this.deleting.set(false);
       },
-      error: (err: unknown) => {
-        console.error('Error deleting rubric:', err);
+      error: () => {
         this.deleteError.set('Không thể xóa rubric. Vui lòng thử lại.');
         this.deleting.set(false);
       }

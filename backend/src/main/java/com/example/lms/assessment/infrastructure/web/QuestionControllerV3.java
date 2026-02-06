@@ -1,16 +1,20 @@
 package com.example.lms.assessment.infrastructure.web;
 
 import com.example.lms.assessment.application.usecase.CreateQuestionUseCaseV3;
+import com.example.lms.assessment.application.usecase.UpdateQuestionUseCaseV3;
+import com.example.lms.assessment.domain.model.Question;
 import com.example.lms.assessment.infrastructure.persistence.entity.QuestionJpaEntity;
 import com.example.lms.assessment.infrastructure.persistence.repository.QuestionJpaRepository;
 import com.example.lms.shared.domain.model.ContentBlock;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
+import jakarta.validation.Valid;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,6 +29,7 @@ import java.util.stream.Collectors;
 public class QuestionControllerV3 {
 
     private final CreateQuestionUseCaseV3 createQuestionUseCase;
+    private final UpdateQuestionUseCaseV3 updateQuestionUseCase;
     private final QuestionJpaRepository questionRepository;
 
     @GetMapping("/my-questions")
@@ -98,76 +103,36 @@ public class QuestionControllerV3 {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('TEACHER', 'INSTRUCTOR', 'ADMIN')")
-    @Transactional
     @Operation(summary = "Update question by ID")
     public ResponseEntity<ApiResponse<java.util.Map<String, Object>>> updateQuestion(
-            @PathVariable UUID id, 
-            @RequestBody UpdateQuestionRequest request) {
-        
-        var question = questionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Question not found: " + id));
-        
-        // Update fields
-        if (request.blocks() != null) {
-            question.setContentBlocks(request.blocks());
-        }
-        if (request.difficulty() != null) {
-            question.setDifficulty(request.difficulty());
-        }
-        if (request.tags() != null) {
-            question.setTags(request.tags());
-        }
-        if (request.correctOption() != null) {
-            question.setCorrectOption(request.correctOption());
-        }
-        if (request.status() != null) {
-            question.setStatus(request.status());
-        }
-        
-        // Update options if provided
-        if (request.options() != null && !request.options().isEmpty()) {
-            String[] keys = {"A", "B", "C", "D", "E", "F"};
-            question.getOptions().clear();
-            
-            for (int i = 0; i < request.options().size(); i++) {
-                String optText = request.options().get(i);
-                String key = (i < keys.length) ? keys[i] : "?";
-                
-                ContentBlock block = new ContentBlock();
-                block.setId(UUID.randomUUID().toString());
-                block.setType("text");
-                java.util.Map<String, Object> data = new java.util.HashMap<>();
-                data.put("text", optText);
-                block.setData(data);
-                
-                var optEntity = com.example.lms.assessment.infrastructure.persistence.entity.QuestionOptionJpaEntity.builder()
-                        .key(key)
-                        .contentBlocks(List.of(block))
-                        .isCorrect(key.equals(request.correctOption()))
-                        .orderIndex(i)
-                        .question(question)
-                        .build();
-                question.getOptions().add(optEntity);
-            }
-        }
-        
-        questionRepository.save(question);
-        
-        // Return updated question
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateQuestionRequest request) {
+
+        var command = new UpdateQuestionUseCaseV3.Command(
+                request.blocks(),
+                request.correctOption(),
+                request.options(),
+                request.difficulty(),
+                request.tags(),
+                request.status()
+        );
+        updateQuestionUseCase.execute(id, command);
+
         java.util.Map<String, Object> result = new java.util.HashMap<>();
-        result.put("id", question.getId().toString());
+        result.put("id", id.toString());
         result.put("message", "Question updated successfully");
-        
+
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 
     public record UpdateQuestionRequest(
             List<ContentBlock> blocks,
+            @NotNull(message = "Correct option is required")
             String correctOption,
             List<String> options,
-            QuestionJpaEntity.Difficulty difficulty,
+            Question.Difficulty difficulty,
             String tags,
-            QuestionJpaEntity.Status status
+            Question.Status status
     ) {}
 
     @DeleteMapping("/{id}")
@@ -188,7 +153,7 @@ public class QuestionControllerV3 {
     @PostMapping
     @PreAuthorize("hasAnyRole('TEACHER', 'INSTRUCTOR', 'ADMIN')")
     @Operation(summary = "Create a new question")
-    public ResponseEntity<ApiResponse<UUID>> createQuestion(@RequestBody CreateQuestionRequest request) {
+    public ResponseEntity<ApiResponse<UUID>> createQuestion(@Valid @RequestBody CreateQuestionRequest request) {
         UUID userId;
         try {
             var authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -234,12 +199,9 @@ public class QuestionControllerV3 {
                 boolean isCorrect = key.equals(request.correctOption());
                 
                 // Convert string to simple ContentBlock
-                ContentBlock block = new ContentBlock();
-                block.setType("text");
-                // Simplified data structure for text block if needed, or just standard map
                 java.util.Map<String, Object> data = new java.util.HashMap<>();
                 data.put("text", optText);
-                block.setData(data);
+                ContentBlock block = ContentBlock.create("text", data);
                 
                 optionCommands.add(CreateQuestionUseCaseV3.OptionCommand.builder()
                         .contentBlocks(List.of(block))
@@ -251,9 +213,14 @@ public class QuestionControllerV3 {
              }
         }
         
+        // Map JPA enum to domain enum
+        Question.Difficulty domainDifficulty = request.difficulty() != null
+                ? Question.Difficulty.valueOf(request.difficulty().name())
+                : Question.Difficulty.MEDIUM;
+
         return CreateQuestionUseCaseV3.Command.builder()
                 .contentBlocks(request.blocks())
-                .difficulty(request.difficulty())
+                .difficulty(domainDifficulty)
                 .tags(request.tags())
                 .correctOption(request.correctOption())
                 .createdBy(userId)
@@ -265,11 +232,13 @@ public class QuestionControllerV3 {
     public record CreateQuestionRequest(
             String content, // unused in favor of blocks
             List<ContentBlock> blocks,
+            @NotNull(message = "Correct option is required")
             String correctOption,
             List<String> options, // simple text options?
             List<List<ContentBlock>> optionBlocks, // rich text options
             QuestionJpaEntity.Difficulty difficulty,
             String tags,
+            @NotNull(message = "Package ID is required")
             UUID packageId
     ) {}
 
@@ -330,12 +299,9 @@ public class QuestionControllerV3 {
                     }
                     
                     // Create ContentBlocks for question
-                    ContentBlock questionBlock = new ContentBlock();
-                    questionBlock.setId(UUID.randomUUID().toString());
-                    questionBlock.setType("paragraph");
                     java.util.Map<String, Object> questionData = new java.util.HashMap<>();
                     questionData.put("text", questionText);
-                    questionBlock.setData(questionData);
+                    ContentBlock questionBlock = ContentBlock.create("paragraph", questionData);
                     
                     // Create options
                     String[] optionTexts = {optionA, optionB, optionC, optionD};
@@ -346,12 +312,9 @@ public class QuestionControllerV3 {
                     for (int i = 0; i < 4; i++) {
                         if (optionTexts[i] == null || optionTexts[i].isBlank()) continue;
                         
-                        ContentBlock optBlock = new ContentBlock();
-                        optBlock.setId(UUID.randomUUID().toString());
-                        optBlock.setType("text");
                         java.util.Map<String, Object> optData = new java.util.HashMap<>();
                         optData.put("text", optionTexts[i]);
-                        optBlock.setData(optData);
+                        ContentBlock optBlock = ContentBlock.create("text", optData);
                         
                         var optEntity = com.example.lms.assessment.infrastructure.persistence.entity.QuestionOptionJpaEntity.builder()
                                 .key(optionKeys[i])

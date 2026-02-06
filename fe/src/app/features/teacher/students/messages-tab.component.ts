@@ -22,7 +22,7 @@ import {
   computed,
   ChangeDetectionStrategy,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MessagingService, SendMessageRequest } from '../../../core/services/messaging.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { MessageBubbleComponent } from '../../../shared/components/message-bubble.component';
@@ -35,8 +35,7 @@ import { Message, sortMessagesByDate } from '../../student/messages/utils/messag
 
 @Component({
   selector: 'app-messages-tab',
-  standalone: true,
-  imports: [CommonModule, MessageBubbleComponent, MessageInputComponent],
+  imports: [MessageBubbleComponent, MessageInputComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-col h-[600px] bg-gray-50 rounded-lg overflow-hidden">
@@ -182,8 +181,7 @@ export class MessagesTabComponent implements OnInit, OnDestroy, AfterViewChecked
           this.loading.set(false);
         }
       },
-      error: (err) => {
-        console.error('Error loading conversation:', err);
+      error: () => {
         this.error.set('Không thể tải cuộc hội thoại');
         this.loading.set(false);
       },
@@ -199,8 +197,7 @@ export class MessagesTabComponent implements OnInit, OnDestroy, AfterViewChecked
         // Start polling for new messages
         this.messagingService.startPolling(conversationId);
       },
-      error: (err) => {
-        console.error('Error loading messages:', err);
+      error: () => {
         this.error.set('Không thể tải tin nhắn');
         this.loading.set(false);
       },
@@ -231,8 +228,7 @@ export class MessagesTabComponent implements OnInit, OnDestroy, AfterViewChecked
           this.conversationId = response.conversationId;
         }
       },
-      error: (err) => {
-        console.error('Error sending message:', err);
+      error: () => {
         this.messageInput()?.onSendError('Không thể gửi tin nhắn. Vui lòng thử lại.');
       },
     });

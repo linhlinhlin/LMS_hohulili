@@ -1,5 +1,5 @@
-﻿import { Component, signal, ChangeDetectionStrategy, ViewEncapsulation, inject, OnInit, OnDestroy, HostListener, HostBinding, Inject, PLATFORM_ID, computed } from '@angular/core';
-import { CommonModule, isPlatformBrowser } from '@angular/common';
+﻿import { Component, signal, ChangeDetectionStrategy, ViewEncapsulation, inject, OnInit, OnDestroy, HostListener, HostBinding, PLATFORM_ID, computed } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MegaMenuComponent } from './mega-menu/mega-menu.component';
@@ -7,14 +7,15 @@ import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-public-header',
-  standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, MegaMenuComponent],
+  imports: [RouterModule, FormsModule, MegaMenuComponent],
   encapsulation: ViewEncapsulation.None,
   styleUrls: ['./public-header.component.scss'],
   templateUrl: './public-header.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class PublicHeaderComponent implements OnInit, OnDestroy {
+  private platformId = inject<Object>(PLATFORM_ID);
+
   private router = inject(Router);
 
   // Signals
@@ -80,8 +81,6 @@ export class PublicHeaderComponent implements OnInit, OnDestroy {
     }
   }
 
-  constructor(@Inject(PLATFORM_ID) private platformId: Object) { }
-
   ngOnInit(): void {
     // Subscribe to auth state changes for reactive updates
     this.userSubscription = this.authService.currentUser$.subscribe(user => {
@@ -141,21 +140,21 @@ export class PublicHeaderComponent implements OnInit, OnDestroy {
 
   // Maritime search suggestions data
   private suggestions = [
-    // ChuyĂªn ngĂ nh ná»•i báº­t
-    'Äiá»u hÆ°á»›ng & Radar nĂ¢ng cao â€“ Há»£p tĂ¡c vá»›i IMO',
-    'An toĂ n & Cá»©u sinh â€“ Chá»©ng chá»‰ SOLAS',
-    'Quáº£n lĂ½ cáº£ng biá»ƒn hiá»‡n Ä‘áº¡i â€“ ÄH HĂ ng háº£i VN',
-    'GMDSS â€“ ThĂ´ng tin liĂªn láº¡c tĂ u biá»ƒn â€“ Bá»™ GTVT',
+    // Chuyên ngành nổi bật
+    'Điều hướng & Radar nâng cao â€“ Hợp tác với IMO',
+    'An toàn & Cứu sinh â€“ Chứng chỉ SOLAS',
+    'Quản lý cảng biển hiện đại â€“ ĐH Hàng hải VN',
+    'GMDSS â€“ Thông tin liên lạc tàu biển â€“ Bộ GTVT',
 
-    // Äang phá»• biáº¿n hiá»‡n nay
+    // Đang phổ biến hiện nay
     'ECDIS',
     'Radar ARPA',
-    'STCW cÆ¡ báº£n',
-    'Quáº£n lĂ½ Ä‘á»™i tĂ u',
+    'STCW cơ bản',
+    'Quản lý đội tàu',
     'MARPOL',
 
-    // CTA Ä‘á»‹nh hÆ°á»›ng
-    'KhĂ´ng cháº¯c nĂªn báº¯t Ä‘áº§u tá»« Ä‘Ă¢u? â†’ LĂ m bĂ i kiá»ƒm tra Ä‘á»‹nh hÆ°á»›ng lá»™ trĂ¬nh há»c'
+    // CTA định hướng
+    'Không chắc nên bắt đầu từ đâu? â†’ Làm bài kiểm tra định hướng lộ trình học'
   ];
 
   onSearch(event: Event): void {
@@ -207,16 +206,16 @@ export class PublicHeaderComponent implements OnInit, OnDestroy {
   private navigateToSearch(query: string): void {
     // Map suggestions to specific routes
     const suggestionRoutes: { [key: string]: string } = {
-      'Äiá»u hÆ°á»›ng & Radar nĂ¢ng cao â€“ Há»£p tĂ¡c vá»›i IMO': '/courses/navigation',
-      'An toĂ n & Cá»©u sinh â€“ Chá»©ng chá»‰ SOLAS': '/courses/safety',
-      'Quáº£n lĂ½ cáº£ng biá»ƒn hiá»‡n Ä‘áº¡i â€“ ÄH HĂ ng háº£i VN': '/courses/logistics',
-      'GMDSS â€“ ThĂ´ng tin liĂªn láº¡c tĂ u biá»ƒn â€“ Bá»™ GTVT': '/courses/navigation',
+      'Điều hướng & Radar nâng cao â€“ Hợp tác với IMO': '/courses/navigation',
+      'An toàn & Cứu sinh â€“ Chứng chỉ SOLAS': '/courses/safety',
+      'Quản lý cảng biển hiện đại â€“ ĐH Hàng hải VN': '/courses/logistics',
+      'GMDSS â€“ Thông tin liên lạc tàu biển â€“ Bộ GTVT': '/courses/navigation',
       'ECDIS': '/courses/navigation',
       'Radar ARPA': '/courses/navigation',
-      'STCW cÆ¡ báº£n': '/courses/safety',
-      'Quáº£n lĂ½ Ä‘á»™i tĂ u': '/courses/logistics',
+      'STCW cơ bản': '/courses/safety',
+      'Quản lý đội tàu': '/courses/logistics',
       'MARPOL': '/courses/law',
-      'KhĂ´ng cháº¯c nĂªn báº¯t Ä‘áº§u tá»« Ä‘Ă¢u? â†’ LĂ m bĂ i kiá»ƒm tra Ä‘á»‹nh hÆ°á»›ng lá»™ trĂ¬nh há»c': '/assessment'
+      'Không chắc nên bắt đầu từ đâu? â†’ Làm bài kiểm tra định hướng lộ trình học': '/assessment'
     };
 
     const route = suggestionRoutes[query];
@@ -230,8 +229,6 @@ export class PublicHeaderComponent implements OnInit, OnDestroy {
 
   setUserType(type: string): void {
     this.selectedUserType.set(type);
-    // TODO: Update user type context
-    console.log('User type set to:', type);
   }
 
   getUserTypeClass(type: string): string {

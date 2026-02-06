@@ -1,5 +1,5 @@
 import { Component, signal, computed, inject, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule } from '@angular/router';
 
 interface VideoLesson {
@@ -33,7 +33,7 @@ interface Course {
 
 @Component({
   selector: 'app-learning-course-simple',
-  imports: [CommonModule, RouterModule],
+  imports: [RouterModule],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="min-h-screen bg-gray-50">

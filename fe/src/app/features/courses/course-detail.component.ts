@@ -1,4 +1,4 @@
-import { Component, signal, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation, Inject } from '@angular/core';
+import { Component, signal, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
 import { CommonModule, isPlatformBrowser, DOCUMENT } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { Title, Meta } from '@angular/platform-browser';
@@ -24,13 +24,15 @@ import { PaymentService } from '../payment/payment.service';
  */
 @Component({
   selector: 'app-course-detail',
-  standalone: true,
   imports: [CommonModule, RouterModule, PaymentModalComponent],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './course-detail.component.html'
 })
 export class CourseDetailComponent implements OnInit {
+  private document = inject<Document>(DOCUMENT);
+  private platformId = inject<Object>(PLATFORM_ID);
+
   protected courseService = inject(CourseService);
   protected authService = inject(AuthService);
   private router = inject(Router);
@@ -38,11 +40,6 @@ export class CourseDetailComponent implements OnInit {
   private title = inject(Title);
   private meta = inject(Meta);
   private courseApi = inject(CourseApi);
-
-  constructor(
-    @Inject(DOCUMENT) private document: Document,
-    @Inject(PLATFORM_ID) private platformId: Object
-  ) { }
 
   // State
   course = signal<ExtendedCourse | null>(null);
@@ -145,7 +142,6 @@ export class CourseDetailComponent implements OnInit {
         this.showClassModal.set(true);
       }
     } catch (e) {
-      console.error(e);
       alert('Có lỗi xảy ra khi kiểm tra lớp học.');
     } finally {
       this.isEnrolling.set(false);
@@ -183,7 +179,6 @@ export class CourseDetailComponent implements OnInit {
         this.updateSeo(course);
       }
     } catch (error) {
-      console.error('Error loading course:', error);
     }
   }
 

@@ -49,6 +49,7 @@ public class PostgresCourseRepository implements CourseRepository {
                 .map(courseMapper::toDomain);
     }
     
+    @Override
     public Optional<Course> findByIdWithContent(UUID id) {
         return jpaCourseRepository.findById(id)
                 .map(courseMapper::toDomain);
@@ -92,6 +93,7 @@ public class PostgresCourseRepository implements CourseRepository {
         return Optional.empty();
     }
     
+    @Override
     public Integer getNextVersionNumber(UUID courseId) {
         Integer max = jpaCourseVersionRepository.findMaxVersionByCourseId(courseId);
         return max == null ? 1 : max + 1;

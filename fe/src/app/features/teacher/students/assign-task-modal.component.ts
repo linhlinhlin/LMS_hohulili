@@ -20,7 +20,7 @@ import {
   inject,
   OnInit,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { DistributionService } from '../../../core/services/distribution.service';
 
@@ -44,8 +44,7 @@ export interface AssignTaskRequest {
 
 @Component({
   selector: 'app-assign-task-modal',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -298,9 +297,7 @@ export class AssignTaskModalComponent implements OnInit {
         this.courses.set(data.courses || []);
         this.loading.set(false);
       },
-      error: (error) => {
-        console.error('Error loading assignments:', error);
-        // Load mock data for development
+      error: () => {
         this.loadMockData();
         this.loading.set(false);
       }

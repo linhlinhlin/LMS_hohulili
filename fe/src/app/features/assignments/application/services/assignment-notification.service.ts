@@ -364,7 +364,6 @@ export class AssignmentNotificationService {
       try {
         this._notificationSettings.set(JSON.parse(savedSettings));
       } catch (error) {
-        console.error('Error loading notification settings:', error);
       }
     }
 
@@ -379,7 +378,6 @@ export class AssignmentNotificationService {
         }));
         this._assignmentNotifications.set(notifications);
       } catch (error) {
-        console.error('Error loading notifications:', error);
       }
     }
 

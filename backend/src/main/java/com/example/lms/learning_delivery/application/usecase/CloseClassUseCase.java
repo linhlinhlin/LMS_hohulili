@@ -37,7 +37,7 @@ public class CloseClassUseCase {
             throw new BusinessRuleException("CLASS_ARCHIVED", "Không thể đóng lớp học đã lưu trữ");
         }
 
-        learningClass.setStatus(LearningClass.ClassStatus.CLOSED);
+        learningClass.close();
         learningClass = classRepository.save(learningClass);
 
         log.info("Learning class {} closed successfully", classId);

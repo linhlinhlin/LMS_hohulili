@@ -7,6 +7,8 @@ import com.example.lms.assessment.domain.model.QuizId;
 import com.example.lms.assessment.domain.repository.QuestionRepository;
 import com.example.lms.assessment.domain.repository.QuizAttemptRepository;
 import com.example.lms.assessment.domain.repository.QuizRepository;
+import com.example.lms.shared.exception.BusinessRuleException;
+import com.example.lms.shared.exception.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,10 +36,10 @@ public class QuizAttemptUseCase {
         log.info("Student {} starting quiz {}", studentId, quizId);
         
         Quiz quiz = quizRepository.findById(QuizId.of(quizId))
-                .orElseThrow(() -> new RuntimeException("Quiz not found: " + quizId));
-        
+                .orElseThrow(() -> new EntityNotFoundException("Quiz", quizId));
+
         if (!quiz.isPublished()) {
-            throw new RuntimeException("Quiz is not published");
+            throw new BusinessRuleException("QUIZ_NOT_PUBLISHED", "Quiz chưa được phát hành");
         }
         
         // TODO: Check max attempts, time, etc.
@@ -56,7 +58,7 @@ public class QuizAttemptUseCase {
         log.info("Submitting attempt {}", attemptId);
         
         QuizAttempt attempt = attemptRepository.findById(attemptId)
-                .orElseThrow(() -> new RuntimeException("Attempt not found: " + attemptId));
+                .orElseThrow(() -> new EntityNotFoundException("QuizAttempt", attemptId));
         
         if (attempt.getStatus() != QuizAttempt.AttemptStatus.IN_PROGRESS) {
              throw new IllegalStateException("Attempt is already submitted or timed out");
@@ -129,6 +131,6 @@ public class QuizAttemptUseCase {
     @Transactional(readOnly = true)
     public QuizAttempt getAttemptResult(UUID attemptId) {
         return attemptRepository.findById(attemptId)
-                .orElseThrow(() -> new RuntimeException("Attempt not found"));
+                .orElseThrow(() -> new EntityNotFoundException("QuizAttempt", attemptId));
     }
 }

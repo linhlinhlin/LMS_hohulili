@@ -1,12 +1,12 @@
 ﻿import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { AdminService, SystemSettings } from '../../infrastructure/services/admin.service';
 import { LoadingComponent } from '../../../../shared/components/loading/loading.component';
 
 @Component({
   selector: 'app-system-settings',
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   encapsulation: ViewEncapsulation.None,
   templateUrl: './system-settings.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -31,8 +31,7 @@ export class SystemSettingsComponent implements OnInit {
       next: (settings) => {
         this.settings.set(settings);
       },
-      error: (error) => {
-        console.error('Error loading settings:', error);
+      error: () => {
       }
     });
   }
@@ -48,8 +47,7 @@ export class SystemSettingsComponent implements OnInit {
         next: () => {
           this.isSaving.set(false);
         },
-        error: (error) => {
-          console.error('Error saving settings:', error);
+        error: () => {
           this.isSaving.set(false);
         }
       });

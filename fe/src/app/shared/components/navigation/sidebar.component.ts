@@ -1,5 +1,5 @@
 import { Component, input, signal, computed, inject, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule, Router, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { UserRole } from '../../../shared/types/user.types';
@@ -27,7 +27,7 @@ export interface SidebarConfig {
 
 @Component({
   selector: 'app-sidebar',
-  imports: [CommonModule, RouterModule, RouterLinkActive],
+  imports: [RouterModule, RouterLinkActive],
   encapsulation: ViewEncapsulation.None,
   templateUrl: './sidebar.component.html',
   styleUrl: './sidebar.component.css',

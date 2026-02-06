@@ -1,13 +1,13 @@
-﻿import { Component, signal, computed, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+﻿import { Component, signal, computed, inject, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-settings',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './settings.component.html'
 })
 export class SettingsComponent {
@@ -55,19 +55,16 @@ export class SettingsComponent {
   deleteAccount(): void {
     if (confirm('Bạn có chắc chắn muốn xóa tài khoản? Hành động này không thể hoàn tác.')) {
       // Simulate account deletion
-      console.log('Account deleted');
     }
   }
 
   exportData(): void {
     // Simulate data export
-    console.log('Data exported');
   }
 
   logoutAllDevices(): void {
     if (confirm('Bạn có chắc chắn muốn đăng xuất khỏi tất cả thiết bị?')) {
       // Simulate logout all devices
-      console.log('Logged out from all devices');
     }
   }
 }

@@ -12,12 +12,11 @@ import {
   computed,
   HostListener,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 
 @Component({
   selector: 'app-floating-chat-bubble',
-  standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
     <div
       class="floating-bubble-container"

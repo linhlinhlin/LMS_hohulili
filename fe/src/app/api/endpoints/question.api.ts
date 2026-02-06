@@ -81,13 +81,9 @@ export class QuestionApi {
     return this.apiClient.get<{ success: boolean; data: Question; message?: string }>(`/api/v3/questions/${id}`)
       .pipe(
         map((response: any) => {
-          console.log('📦 getQuestionById raw response:', response);
-          // Backend returns ApiResponse<QuestionDTO>
           if (response && response.data) {
-            console.log('✅ Extracted question:', response.data);
             return response.data as Question;
           }
-          console.warn('⚠️ No data in response');
           return response as Question;
         })
       );
@@ -99,14 +95,9 @@ export class QuestionApi {
     return this.apiClient.get<{ success: boolean; data: Question[]; message?: string }>('/api/v3/questions/my-questions', { params })
       .pipe(
         map((response: any) => {
-          console.log('📦 getMyQuestions raw response:', response);
-          // Backend returns ApiResponse<List<QuestionDTO>>
-          // Format: { success: true, data: [...], message: "..." }
           if (response && response.data) {
-            console.log('✅ Extracted questions:', response.data);
             return response.data;
           }
-          console.warn('⚠️ No data in response, returning empty array');
           return [];
         })
       );

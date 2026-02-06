@@ -87,7 +87,6 @@ export class CourseInstructorService {
      * Get list of instructors for a course
      */
     getInstructors(courseId: string): Observable<CourseInstructor[]> {
-        console.log('[INSTRUCTOR SERVICE] 📋 Loading instructors for course:', courseId);
         this._isLoading.next(true);
         this.isLoading.set(true);
 
@@ -97,13 +96,11 @@ export class CourseInstructorService {
                 this.isLoading.set(false);
             }),
             map(response => {
-                console.log('[INSTRUCTOR SERVICE] ✅ Instructors loaded:', response.data?.length ?? 0);
                 const instructors = response.data ?? [];
                 this._instructors.set(instructors);
                 return instructors;
             }),
             catchError(error => {
-                console.error('[INSTRUCTOR SERVICE] ❌ Error loading instructors:', error);
                 return throwError(() => error);
             })
         );
@@ -114,7 +111,6 @@ export class CourseInstructorService {
      * Maps frontend permissions to backend format
      */
     inviteInstructor(courseId: string, request: InviteInstructorRequest): Observable<{ message: string }> {
-        console.log('[INSTRUCTOR SERVICE] 📧 Inviting instructor:', request.email);
         this._isLoading.next(true);
         this.isLoading.set(true);
 
@@ -138,13 +134,11 @@ export class CourseInstructorService {
                 this.getInstructors(courseId).subscribe();
             }),
             map(response => {
-                console.log('[INSTRUCTOR SERVICE] ✅ Invitation sent successfully');
                 return {
                     message: response.message || 'Đã gửi lời mời thành công!'
                 };
             }),
             catchError(error => {
-                console.error('[INSTRUCTOR SERVICE] ❌ Error inviting instructor:', error);
                 return throwError(() => error);
             })
         );
@@ -154,7 +148,6 @@ export class CourseInstructorService {
      * Update instructor permissions
      */
     updatePermissions(courseId: string, userId: string, permissions: InstructorPermissions): Observable<{ message: string }> {
-        console.log('[INSTRUCTOR SERVICE] 🔐 Updating permissions for user:', userId);
         this._isLoading.next(true);
         this.isLoading.set(true);
 
@@ -168,13 +161,11 @@ export class CourseInstructorService {
                 this.getInstructors(courseId).subscribe();
             }),
             map(response => {
-                console.log('[INSTRUCTOR SERVICE] ✅ Permissions updated successfully');
                 return {
                     message: response.message || 'Đã cập nhật quyền thành công!'
                 };
             }),
             catchError(error => {
-                console.error('[INSTRUCTOR SERVICE] ❌ Error updating permissions:', error);
                 return throwError(() => error);
             })
         );
@@ -184,7 +175,6 @@ export class CourseInstructorService {
      * Remove instructor from course
      */
     removeInstructor(courseId: string, userId: string): Observable<{ message: string }> {
-        console.log('[INSTRUCTOR SERVICE] 🗑️ Removing instructor:', userId);
         this._isLoading.next(true);
         this.isLoading.set(true);
 
@@ -198,13 +188,11 @@ export class CourseInstructorService {
                 this._instructors.update(list => list.filter(i => i.userId !== userId));
             }),
             map(response => {
-                console.log('[INSTRUCTOR SERVICE] ✅ Instructor removed successfully');
                 return {
                     message: response.message || 'Đã xóa giảng viên thành công!'
                 };
             }),
             catchError(error => {
-                console.error('[INSTRUCTOR SERVICE] ❌ Error removing instructor:', error);
                 return throwError(() => error);
             })
         );
@@ -218,7 +206,6 @@ export class CourseInstructorService {
      * Get my pending invitations
      */
     getMyInvitations(): Observable<InvitationItem[]> {
-        console.log('[INSTRUCTOR SERVICE] 📬 Loading my invitations...');
         this._isLoading.next(true);
         this.isLoading.set(true);
 
@@ -228,13 +215,11 @@ export class CourseInstructorService {
                 this.isLoading.set(false);
             }),
             map(response => {
-                console.log('[INSTRUCTOR SERVICE] ✅ Invitations loaded:', response.data?.length ?? 0);
                 const invitations = response.data ?? [];
                 this._myInvitations.set(invitations);
                 return invitations;
             }),
             catchError(error => {
-                console.error('[INSTRUCTOR SERVICE] ❌ Error loading invitations:', error);
                 return throwError(() => error);
             })
         );
@@ -245,7 +230,6 @@ export class CourseInstructorService {
      * Uses invitationId from backend API
      */
     acceptInvitation(invitationId: string): Observable<{ message: string }> {
-        console.log('[INSTRUCTOR SERVICE] ✅ Accepting invitation:', invitationId);
         this._isLoading.next(true);
         this.isLoading.set(true);
 
@@ -259,13 +243,11 @@ export class CourseInstructorService {
                 this._myInvitations.update(list => list.filter(i => i.id !== invitationId));
             }),
             map(response => {
-                console.log('[INSTRUCTOR SERVICE] ✅ Invitation accepted');
                 return {
                     message: response.message || 'Đã chấp nhận lời mời!'
                 };
             }),
             catchError(error => {
-                console.error('[INSTRUCTOR SERVICE] ❌ Error accepting invitation:', error);
                 return throwError(() => error);
             })
         );
@@ -276,7 +258,6 @@ export class CourseInstructorService {
      * Uses invitationId from backend API
      */
     declineInvitation(invitationId: string): Observable<{ message: string }> {
-        console.log('[INSTRUCTOR SERVICE] ❌ Declining invitation:', invitationId);
         this._isLoading.next(true);
         this.isLoading.set(true);
 
@@ -290,13 +271,11 @@ export class CourseInstructorService {
                 this._myInvitations.update(list => list.filter(i => i.id !== invitationId));
             }),
             map(response => {
-                console.log('[INSTRUCTOR SERVICE] ✅ Invitation declined');
                 return {
                     message: response.message || 'Đã từ chối lời mời!'
                 };
             }),
             catchError(error => {
-                console.error('[INSTRUCTOR SERVICE] ❌ Error declining invitation:', error);
                 return throwError(() => error);
             })
         );

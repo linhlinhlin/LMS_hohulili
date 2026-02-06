@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, signal, ChangeDetectionStrategy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterLink, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AssignmentDetailStore } from '../stores/assignment-detail.store';
@@ -15,8 +15,7 @@ import { SubmissionGrade } from '../../../../api/client/assignment.api';
  */
 @Component({
   selector: 'app-submission-list',
-  standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule],
+  imports: [RouterLink, FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-4">

@@ -4,7 +4,6 @@ import com.example.lms.shared.domain.model.AggregateRoot;
 import com.example.lms.shared.domain.valueobject.CourseCode;
 import com.example.lms.shared.exception.BusinessRuleException;
 import com.example.lms.course_authoring.domain.event.*;
-import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.*;
@@ -12,89 +11,41 @@ import java.util.*;
 /**
  * Course aggregate root.
  * Represents a course that can be created, edited, and published by teachers.
- * 
+ *
  * Lifecycle: DRAFT -> PENDING -> APPROVED/REJECTED
  * - DRAFT: Initial state, can be edited
  * - PENDING: Submitted for approval, cannot be edited
  * - APPROVED: Published and visible to students
  * - REJECTED: Needs revision, can be edited and resubmitted
  */
-@Entity
-@Table(name = "courses")
 public class Course extends AggregateRoot {
 
-    @Embedded
-    @AttributeOverride(name = "value", column = @Column(name = "code", unique = true, nullable = false, length = 64))
     private CourseCode code;
-
-    @Column(nullable = false, length = 255)
     private String title;
-
-    @Column(columnDefinition = "TEXT")
     private String description;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
     private CourseStatus status = CourseStatus.DRAFT;
-
-    @Column(name = "teacher_id", nullable = false)
     private UUID teacherId;
-
-    @Column(name = "category_id")
     private UUID categoryId;
-
-    @ElementCollection
-    @CollectionTable(name = "course_tags", joinColumns = @JoinColumn(name = "course_id"))
-    @Column(name = "tag_name")
     private Set<String> tags = new HashSet<>();
-
-    @Column(columnDefinition = "TEXT")
     private String welcomeMessage;
-
-    @Column(name = "course_information", columnDefinition = "TEXT")
     private String courseInformation;
-
-    @Column(columnDefinition = "TEXT")
     private String benefits;
-
-    @Column(name = "intro_video_url")
     private String introVideoUrl;
-
-    @Column(name = "thumbnail_url")
     private String thumbnailUrl;
-
-    @Column
     private Integer credits;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
     private Visibility visibility = Visibility.PUBLIC;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "price_type", nullable = false)
     private PriceType priceType = PriceType.FREE;
-
-    @Column(precision = 19, scale = 2)
     private BigDecimal price;
-
-    @Column(name = "sale_price", precision = 19, scale = 2)
     private BigDecimal salePrice;
 
     // Review workflow fields
-    @Column(name = "review_comment", columnDefinition = "TEXT")
     private String reviewComment;
-
-    @Column(name = "reviewed_at")
     private Instant reviewedAt;
-
-    @Column(name = "reviewed_by_id")
     private UUID reviewedById;
 
-    @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderBy("orderIndex ASC")
     private Set<Chapter> chapters = new LinkedHashSet<>();
 
-    // JPA requires default constructor
+    // Default constructor
     protected Course() {}
 
     // ==================== Factory Methods ====================
@@ -364,9 +315,9 @@ public class Course extends AggregateRoot {
     // ==================== Query Methods ====================
 
     public boolean isEditable() {
-        // Allow editing for all statuses - teachers should be able to update content anytime
-        // Note: CourseStatus only has DRAFT, PENDING, APPROVED, REJECTED - no restriction needed
-        return true;
+        // Course is editable only in DRAFT or REJECTED status
+        // PENDING and APPROVED courses cannot be modified
+        return status == CourseStatus.DRAFT || status == CourseStatus.REJECTED;
     }
 
     public boolean isPublished() {
@@ -421,7 +372,9 @@ public class Course extends AggregateRoot {
         DRAFT("Bản nháp"),
         PENDING("Chờ duyệt"),
         APPROVED("Đã duyệt"),
-        REJECTED("Bị từ chối");
+        REJECTED("Bị từ chối"),
+        PUBLISHED("Đã xuất bản"),
+        ARCHIVED("Lưu trữ");
 
         private final String displayName;
 

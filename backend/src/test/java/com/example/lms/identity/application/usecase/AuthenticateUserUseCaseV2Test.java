@@ -2,10 +2,10 @@ package com.example.lms.identity.application.usecase;
 
 import com.example.lms.identity.application.dto.AuthResponse;
 import com.example.lms.identity.application.dto.AuthenticateCommand;
+import com.example.lms.identity.application.port.TokenService;
 import com.example.lms.identity.domain.model.Role;
 import com.example.lms.identity.domain.model.User;
 import com.example.lms.identity.domain.repository.UserRepository;
-import com.example.lms.identity.infrastructure.security.JwtTokenAdapter;
 import com.example.lms.shared.domain.valueobject.Email;
 import com.example.lms.shared.domain.valueobject.UserId;
 import com.example.lms.shared.exception.UnauthorizedException;
@@ -29,7 +29,7 @@ import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for AuthenticateUserUseCaseV2.
- * 
+ *
  * Tests business logic for user authentication including:
  * - Successful login flow
  * - Invalid credentials handling
@@ -41,10 +41,10 @@ class AuthenticateUserUseCaseV2Test {
 
     @Mock
     private UserRepository userRepository;
-    
+
     @Mock
-    private JwtTokenAdapter jwtTokenAdapter;
-    
+    private TokenService tokenService;
+
     @Mock
     private PasswordEncoder passwordEncoder;
 
@@ -83,8 +83,8 @@ class AuthenticateUserUseCaseV2Test {
             // Given
             when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(validUser));
             when(passwordEncoder.matches(RAW_PASSWORD, ENCODED_PASSWORD)).thenReturn(true);
-            when(jwtTokenAdapter.generateAccessToken(validUser)).thenReturn(ACCESS_TOKEN);
-            when(jwtTokenAdapter.generateRefreshToken(validUser)).thenReturn(REFRESH_TOKEN);
+            when(tokenService.generateAccessToken(any(UUID.class), anyString(), anyString())).thenReturn(ACCESS_TOKEN);
+            when(tokenService.generateRefreshToken(any(UUID.class), anyString(), anyString())).thenReturn(REFRESH_TOKEN);
 
             // When
             AuthResponse response = useCase.execute(validCommand);
@@ -104,8 +104,8 @@ class AuthenticateUserUseCaseV2Test {
             when(userRepository.findByEmail("testuser")).thenReturn(Optional.empty());
             when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(validUser));
             when(passwordEncoder.matches(RAW_PASSWORD, ENCODED_PASSWORD)).thenReturn(true);
-            when(jwtTokenAdapter.generateAccessToken(validUser)).thenReturn(ACCESS_TOKEN);
-            when(jwtTokenAdapter.generateRefreshToken(validUser)).thenReturn(REFRESH_TOKEN);
+            when(tokenService.generateAccessToken(any(UUID.class), anyString(), anyString())).thenReturn(ACCESS_TOKEN);
+            when(tokenService.generateRefreshToken(any(UUID.class), anyString(), anyString())).thenReturn(REFRESH_TOKEN);
 
             AuthenticateCommand usernameCommand = new AuthenticateCommand("testuser", RAW_PASSWORD);
 
@@ -123,8 +123,8 @@ class AuthenticateUserUseCaseV2Test {
             // Given
             when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(validUser));
             when(passwordEncoder.matches(RAW_PASSWORD, ENCODED_PASSWORD)).thenReturn(true);
-            when(jwtTokenAdapter.generateAccessToken(validUser)).thenReturn(ACCESS_TOKEN);
-            when(jwtTokenAdapter.generateRefreshToken(validUser)).thenReturn(REFRESH_TOKEN);
+            when(tokenService.generateAccessToken(any(UUID.class), anyString(), anyString())).thenReturn(ACCESS_TOKEN);
+            when(tokenService.generateRefreshToken(any(UUID.class), anyString(), anyString())).thenReturn(REFRESH_TOKEN);
 
             // When
             AuthResponse response = useCase.execute(validCommand);
@@ -153,7 +153,7 @@ class AuthenticateUserUseCaseV2Test {
                 .hasMessageContaining("User không tồn tại");
 
             verify(passwordEncoder, never()).matches(anyString(), anyString());
-            verify(jwtTokenAdapter, never()).generateAccessToken(any());
+            verify(tokenService, never()).generateAccessToken(any(), anyString(), anyString());
         }
 
         @Test
@@ -168,7 +168,7 @@ class AuthenticateUserUseCaseV2Test {
                 .isInstanceOf(UnauthorizedException.class)
                 .hasMessageContaining("Thông tin đăng nhập không chính xác");
 
-            verify(jwtTokenAdapter, never()).generateAccessToken(any());
+            verify(tokenService, never()).generateAccessToken(any(), anyString(), anyString());
         }
 
         @Test
@@ -203,20 +203,20 @@ class AuthenticateUserUseCaseV2Test {
     class TokenGenerationTests {
 
         @Test
-        @DisplayName("Should generate both access and refresh tokens")
+        @DisplayName("Should generate both access and refresh tokens via TokenService port")
         void shouldGenerateBothTokens() {
             // Given
             when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(validUser));
             when(passwordEncoder.matches(RAW_PASSWORD, ENCODED_PASSWORD)).thenReturn(true);
-            when(jwtTokenAdapter.generateAccessToken(validUser)).thenReturn(ACCESS_TOKEN);
-            when(jwtTokenAdapter.generateRefreshToken(validUser)).thenReturn(REFRESH_TOKEN);
+            when(tokenService.generateAccessToken(any(UUID.class), anyString(), anyString())).thenReturn(ACCESS_TOKEN);
+            when(tokenService.generateRefreshToken(any(UUID.class), anyString(), anyString())).thenReturn(REFRESH_TOKEN);
 
             // When
             useCase.execute(validCommand);
 
             // Then
-            verify(jwtTokenAdapter).generateAccessToken(validUser);
-            verify(jwtTokenAdapter).generateRefreshToken(validUser);
+            verify(tokenService).generateAccessToken(any(UUID.class), eq("test@example.com"), eq("STUDENT"));
+            verify(tokenService).generateRefreshToken(any(UUID.class), eq("test@example.com"), eq("STUDENT"));
         }
     }
 }

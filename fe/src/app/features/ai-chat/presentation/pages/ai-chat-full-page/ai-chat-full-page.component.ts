@@ -1,5 +1,5 @@
-import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
+
 import { ChatSidebarComponent } from '../../components/chat-sidebar/chat-sidebar.component';
 import { ChatMainAreaComponent } from '../../components/chat-main-area/chat-main-area.component';
 import { ChatToastContainerComponent } from '../../components/chat-toast/chat-toast.component';
@@ -8,15 +8,14 @@ import { ChatService } from '../../../application/services/chat.service';
 import { SessionManagementService } from '../../../application/services/session-management.service';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-ai-chat-full-page',
-  standalone: true,
   imports: [
-    CommonModule,
     ChatSidebarComponent,
     ChatMainAreaComponent,
     ChatToastContainerComponent,
     ChatDialogComponent
-  ],
+],
   template: `
     <div class="chat-layout">
       <!-- Sidebar - Fixed position -->
@@ -31,10 +30,12 @@ import { SessionManagementService } from '../../../application/services/session-
           (closeMobile)="closeMobileSidebar()"
         ></app-chat-sidebar>
       </aside>
-
+    
       <!-- Mobile Overlay -->
-      <div class="mobile-overlay" *ngIf="mobileSidebarOpen" (click)="closeMobileSidebar()"></div>
-
+      @if (mobileSidebarOpen) {
+        <div class="mobile-overlay" (click)="closeMobileSidebar()"></div>
+      }
+    
       <!-- Main Content Area -->
       <main class="chat-main-wrapper">
         <!-- Mobile Header -->
@@ -59,7 +60,7 @@ import { SessionManagementService } from '../../../application/services/session-
             </svg>
           </button>
         </header>
-
+    
         <!-- Chat Content -->
         <app-chat-main-area
           class="chat-content"
@@ -74,13 +75,13 @@ import { SessionManagementService } from '../../../application/services/session-
         ></app-chat-main-area>
       </main>
     </div>
-
+    
     <!-- Toast Notifications -->
     <app-chat-toast-container></app-chat-toast-container>
-
+    
     <!-- Confirmation Dialogs -->
     <app-chat-dialog></app-chat-dialog>
-  `,
+    `,
   styles: [`
     :host {
       display: block;

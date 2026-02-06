@@ -15,7 +15,6 @@ import {
  */
 @Component({
   selector: 'app-rubric-grader',
-  standalone: true,
   imports: [CommonModule],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,

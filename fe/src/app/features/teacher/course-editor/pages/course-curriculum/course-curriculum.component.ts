@@ -1,5 +1,5 @@
-﻿import { Component, inject, signal, computed, effect, ViewEncapsulation, OnDestroy, importProvidersFrom } from '@angular/core';
-import { CommonModule } from '@angular/common';
+﻿import { Component, inject, signal, computed, effect, ViewEncapsulation, OnDestroy, importProvidersFrom, ChangeDetectionStrategy } from '@angular/core';
+
 import { Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -42,9 +42,9 @@ import { VideoUploadComponent, VideoUploadResult } from '../../../../../shared/c
 import { QuestionCreateComponent } from '../../../quiz/question-create.component';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-course-curriculum',
-  standalone: true,
-  imports: [CommonModule, FormsModule, CKEditorModule, LucideAngularModule, VideoUploadComponent, QuestionCreateComponent],
+  imports: [FormsModule, CKEditorModule, LucideAngularModule, VideoUploadComponent, QuestionCreateComponent],
   styleUrl: './course-curriculum.component.scss',
   providers: [],
   templateUrl: './course-curriculum.component.html'
@@ -82,8 +82,7 @@ export class CourseCurriculumComponent implements OnDestroy {
       // Link question to quiz immediately
       await firstValueFrom(this.quizApi.addQuestionToQuiz(lesson.id, question.id));
       this.quizQuestions.update(prev => [...prev, question]);
-    } catch (err) {
-      console.error('Failed to link new question to quiz', err);
+    } catch {
     }
   }
 
@@ -166,7 +165,7 @@ export class CourseCurriculumComponent implements OnDestroy {
 
     const onMouseMove = (e: MouseEvent) => {
       const newHeight = startHeight + (e.clientY - startY);
-      if (newHeight > 200) { // Giá»›i háº¡n chi?u cao t?i thi?u
+      if (newHeight > 200) { // Giới hạn chi?u cao t?i thi?u
         this.editorHeight.set(newHeight);
       }
     };
@@ -481,7 +480,6 @@ export class CourseCurriculumComponent implements OnDestroy {
 
   // [NEW] Video Upload Handlers for R2 Storage
   onVideoUploaded(result: VideoUploadResult) {
-    console.log('Video uploaded to R2:', result);
     // Set the public URL from R2 as the video URL
     this.sectionVideoUrl = result.publicUrl;
     // Store Cloudflare metadata
@@ -494,7 +492,6 @@ export class CourseCurriculumComponent implements OnDestroy {
   }
 
   onVideoRemoved() {
-    console.log('Video removed');
     this.sectionVideoUrl = '';
     this.sectionVideoType = null;
     this.sectionCfObjectKey = null;
@@ -542,7 +539,6 @@ export class CourseCurriculumComponent implements OnDestroy {
     try {
       const courseId = this.store.courseTree()?.id;
       if (!courseId) {
-        console.error('Course ID not found');
         return;
       }
       await firstValueFrom(this.chapterApi.updateChapter(chapterId, {
@@ -551,8 +547,7 @@ export class CourseCurriculumComponent implements OnDestroy {
         description: this.chapterDescription.trim()
       }));
       this.store.loadCourse(courseId, true);
-    } catch (error) {
-      console.error('Error saving chapter:', error);
+    } catch {
     } finally {
       this.isSaving.set(false);
     }
@@ -567,7 +562,6 @@ export class CourseCurriculumComponent implements OnDestroy {
       const courseId = this.store.courseTree()?.id;
       const chapterId = this.selectedChapterId();
       if (!courseId || !chapterId) {
-        console.error('Course ID or Chapter ID not found');
         this.isSaving.set(false);
         return;
       }
@@ -594,8 +588,7 @@ export class CourseCurriculumComponent implements OnDestroy {
 
       await firstValueFrom(this.lessonApi.updateLesson(lesson.id, updateData));
       this.store.loadCourse(courseId, true);
-    } catch (error) {
-      console.error('Error saving lesson:', error);
+    } catch {
     } finally {
       this.isSaving.set(false);
     }
@@ -606,8 +599,7 @@ export class CourseCurriculumComponent implements OnDestroy {
     try {
       const packages = await firstValueFrom(this.packageApi.getMyPackages());
       this.quizPackages.set(packages || []);
-    } catch (error) {
-      console.error('Error loading packages:', error);
+    } catch {
       this.quizPackages.set([]);
     }
   }
@@ -630,8 +622,7 @@ export class CourseCurriculumComponent implements OnDestroy {
         correctOption: q.correctOption,
         options: q.options || []
       })));
-    } catch (error) {
-      console.error('Error loading quiz questions:', error);
+    } catch {
       this.quizQuestions.set([]);
     } finally {
       this.quizQuestionsLoading.set(false);
@@ -647,8 +638,7 @@ export class CourseCurriculumComponent implements OnDestroy {
       const questions = await firstValueFrom(this.packageApi.getQuestionsInPackage(this.selectedPackageId));
       this.packageQuestions.set(questions || []);
       this.selectedQuestionIds.set(new Set());
-    } catch (error) {
-      console.error('Error loading package questions:', error);
+    } catch {
       this.packageQuestions.set([]);
     }
   }
@@ -687,8 +677,7 @@ export class CourseCurriculumComponent implements OnDestroy {
       this.selectedQuestionIds.set(new Set());
       this.selectedPackageId = '';
       this.packageQuestions.set([]);
-    } catch (error) {
-      console.error('Error adding questions to quiz:', error);
+    } catch {
     }
   }
 
@@ -700,8 +689,7 @@ export class CourseCurriculumComponent implements OnDestroy {
     try {
       await firstValueFrom(this.quizApi.removeQuestionFromQuiz(lesson.id, questionId));
       await this.loadQuizQuestions();
-    } catch (error) {
-      console.error('Error removing question:', error);
+    } catch {
     }
   }
 
@@ -762,15 +750,14 @@ export class CourseCurriculumComponent implements OnDestroy {
           await firstValueFrom(this.quizApi.addQuestionToQuiz(lesson.id, q.id));
         } catch (e) {
           // Ignore duplicates or specific errors to continue adding others
-          console.warn(`Could not add question ${q.id}:`, e);
+          // Ignore duplicates or specific errors
         }
       }
 
       this.showRandomModal.set(false);
       await this.loadQuizQuestions();
       this.selectedPackageId = ''; // Reset
-    } catch (error) {
-      console.error('Error generating random questions:', error);
+    } catch {
       alert('Lỗi xảy ra khi tạo câu hỏi ngẫu nhiên.');
     } finally {
       this.quizQuestionsLoading.set(false);
@@ -832,9 +819,7 @@ export class CourseCurriculumComponent implements OnDestroy {
         this.sectionFileUrl.set(section.fileUrl);
         // Handle PDF secure streaming for preview in modal
         if (this.isPdfFile(section)) {
-          console.log('[CourseCurriculum] Section is identified as PDF, requesting secure stream:', section.fileUrl);
           this.pdfService.getSafePdfUrl(section.fileUrl).subscribe((url: SafeResourceUrl | null) => {
-            console.log('[CourseCurriculum] Received safeUrl for preview:', url ? 'SUCCESS' : 'NULL');
             this.safePdfUrl.set(url);
           });
         }
@@ -948,7 +933,6 @@ export class CourseCurriculumComponent implements OnDestroy {
       if (courseId) this.store.loadCourse(courseId, true);
       this.showSectionModal.set(false);
     } catch (e: any) {
-      console.error('Error saving section:', e);
       alert('Lỗi khi lưu Mục: ' + (e?.error?.message || e.message));
     } finally {
       this.isSaving.set(false);
@@ -968,8 +952,7 @@ export class CourseCurriculumComponent implements OnDestroy {
       await firstValueFrom(this.sectionApi.deleteSection(lesson.id, sectionId));
       const courseId = this.store.courseTree()?.id;
       if (courseId) this.store.loadCourse(courseId, true);
-    } catch (e) {
-      console.error(e);
+    } catch {
     } finally {
       this.isSaving.set(false);
     }
@@ -1007,13 +990,11 @@ export class CourseCurriculumComponent implements OnDestroy {
   goToQuizBuilder() {
     const lesson = this.selectedLesson();
     if (!lesson) {
-      console.warn('No lesson selected to navigate to quiz builder');
       return;
     }
 
     const courseId = this.store.courseTree()?.id;
     if (!courseId) {
-      console.warn('No course ID found');
       return;
     }
 
@@ -1082,8 +1063,7 @@ export class CourseCurriculumComponent implements OnDestroy {
       this.sectionQuizSelectedQuestions.update(current => [...current, ...newQuestions]);
       this.showSectionQuizBankModal.set(false);
       this.selectedQuestionIds.set(new Set());
-    } catch (error) {
-      console.error('Error adding questions:', error);
+    } catch {
     }
   }
 
@@ -1107,8 +1087,7 @@ export class CourseCurriculumComponent implements OnDestroy {
 
       this.sectionQuizSelectedQuestions.update(current => [...current, ...newQuestions]);
       this.showSectionQuizRandomModal.set(false);
-    } catch (error) {
-      console.error('Error generating random questions:', error);
+    } catch {
       alert('Lỗi khi tạo câu hỏi ngẫu nhiên.');
     }
   }

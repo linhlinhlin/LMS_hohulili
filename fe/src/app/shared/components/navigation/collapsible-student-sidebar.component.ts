@@ -1,5 +1,5 @@
 import { Component, signal, computed, inject, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { MaritimeIconComponent } from './maritime-icon.component';
@@ -15,7 +15,7 @@ interface NavigationItem {
 
 @Component({
   selector: 'app-collapsible-student-sidebar',
-  imports: [CommonModule, RouterModule, MaritimeIconComponent],
+  imports: [RouterModule, MaritimeIconComponent],
   encapsulation: ViewEncapsulation.None,
   template: `
     <aside class="relative h-full bg-white flex flex-col shadow-2xl transition-all duration-500 ease-in-out"

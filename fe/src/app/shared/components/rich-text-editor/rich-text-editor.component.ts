@@ -1,5 +1,5 @@
-import { Component, input, output, ViewEncapsulation, forwardRef, effect } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, input, output, ViewEncapsulation, forwardRef, effect, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormsModule, NG_VALUE_ACCESSOR, ControlValueAccessor } from '@angular/forms';
 import { CKEditorModule } from '@ckeditor/ckeditor5-angular';
 import {
@@ -17,9 +17,9 @@ import 'ckeditor5/ckeditor5.css';
 import { Base64UploadAdapterPlugin } from '../../../core/utils/base64-upload-adapter';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
     selector: 'app-rich-text-editor',
-    standalone: true,
-    imports: [CommonModule, FormsModule, CKEditorModule],
+    imports: [FormsModule, CKEditorModule],
     template: `
     <div class="editor-container-wrapper" [style.height.px]="height()">
         <ckeditor

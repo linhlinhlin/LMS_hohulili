@@ -16,7 +16,7 @@ import {
   afterNextRender,
   computed,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { ChatService } from '../../../application/services/chat.service';
 import { SessionManagementService } from '../../../application/services/session-management.service';
 import { ChatMessageComponent } from '../../components/chat-message/chat-message.component';
@@ -28,15 +28,13 @@ import { AuthService } from '../../../../../core/services/auth.service';
 
 @Component({
   selector: 'app-chat-page',
-  standalone: true,
   imports: [
-    CommonModule,
     ChatMessageComponent,
     ChatMessageInputComponent,
     TypingIndicatorComponent,
     SuggestedQuestionsComponent,
-    SourceCitationComponent,
-  ],
+    SourceCitationComponent
+],
   templateUrl: './chat-page.component.html',
   styleUrls: ['./chat-page.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

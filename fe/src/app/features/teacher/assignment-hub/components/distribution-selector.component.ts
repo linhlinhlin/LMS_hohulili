@@ -7,7 +7,7 @@
   ChangeDetectionStrategy,
   OnInit,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { inject } from '@angular/core';
 import { ClassService } from '../../../../state/class.service';
@@ -40,8 +40,7 @@ export type ViewMode = 'assigned' | 'manage';
  */
 @Component({
   selector: 'app-distribution-selector',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './distribution-selector.component.html',
 })
@@ -104,7 +103,7 @@ export class DistributionSelectorComponent implements OnInit {
   selectedClassName = computed(() => {
     const classId = this.selectedClassId();
     const cls = this.availableClasses().find((c: ClassSummary) => c.id === classId);
-    return cls ? cls.name : 'ChÆ°a chá»n lá»›p';
+    return cls ? cls.name : 'Chưa chọn lớp';
   });
 
   unassignedStudents = computed(() => {
@@ -145,8 +144,7 @@ export class DistributionSelectorComponent implements OnInit {
     try {
       const classes = await firstValueFrom(this.classService.getClassesByCourse(courseId));
       this.availableClasses.set(classes);
-    } catch (error) {
-      console.error('Failed to load classes for distribution selector:', error);
+    } catch {
     }
   }
 
@@ -241,13 +239,13 @@ export class DistributionSelectorComponent implements OnInit {
       this.selectedStudentIds().length === 0
     ) {
       this.showError.set(true);
-      this.errorMessage.set('Vui lĂ²ng chá»n Ă­t nháº¥t má»™t há»c viĂªn');
+      this.errorMessage.set('Vui lòng chọn ít nhất một học viên');
     } else if (
       this.distributionType() === 'CLASS' &&
       !this.selectedClassId()
     ) {
       this.showError.set(true);
-      this.errorMessage.set('Vui lĂ²ng chá»n má»™t lá»›p há»c');
+      this.errorMessage.set('Vui lòng chọn một lớp học');
     } else {
       this.showError.set(false);
     }
@@ -273,7 +271,7 @@ export class DistributionSelectorComponent implements OnInit {
       this.selectedStudentIds().length === 0
     ) {
       this.showError.set(true);
-      this.errorMessage.set('Vui lĂ²ng chá»n Ă­t nháº¥t má»™t há»c viĂªn');
+      this.errorMessage.set('Vui lòng chọn ít nhất một học viên');
       return false;
     }
     if (
@@ -281,7 +279,7 @@ export class DistributionSelectorComponent implements OnInit {
       !this.selectedClassId()
     ) {
       this.showError.set(true);
-      this.errorMessage.set('Vui lĂ²ng chá»n má»™t lá»›p há»c');
+      this.errorMessage.set('Vui lòng chọn một lớp học');
       return false;
     }
     return true;

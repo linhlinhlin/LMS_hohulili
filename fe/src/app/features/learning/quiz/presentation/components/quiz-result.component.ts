@@ -1,5 +1,5 @@
 import { Component, OnInit, signal, inject, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { TakeQuizUseCase } from '../../application/use-cases/take-quiz.use-case';
 import { AuthService } from '../../../../../core/services/auth.service';
@@ -10,7 +10,7 @@ import { ErrorHandlingService } from '../../../../../shared/services/error-handl
  */
 @Component({
   selector: 'app-quiz-result',
-  imports: [CommonModule, RouterModule],
+  imports: [RouterModule],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">

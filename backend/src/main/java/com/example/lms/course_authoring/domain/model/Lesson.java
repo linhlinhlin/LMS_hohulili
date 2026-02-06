@@ -1,61 +1,29 @@
 package com.example.lms.course_authoring.domain.model;
 
 import com.example.lms.shared.domain.model.BaseEntity;
-import jakarta.persistence.*;
-import java.util.*;
 import com.example.lms.shared.domain.model.ContentBlock;
-import io.hypersistence.utils.hibernate.type.json.JsonType;
-import org.hibernate.annotations.Type;
+import java.util.*;
 
 /**
  * Lesson entity representing a single learning unit within a chapter.
  * Lessons can be of different types: LECTURE, VIDEO, QUIZ, ASSIGNMENT.
  */
-@Entity
-@Table(name = "lessons")
 public class Lesson extends BaseEntity {
 
-    @Column(nullable = false, length = 255)
     private String title;
-
-    @Column(columnDefinition = "TEXT")
     private String description;
-
-    @Column(columnDefinition = "TEXT")
     private String content;
-
-    @Column(name = "video_url")
     private String videoUrl;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "lesson_type", nullable = false)
     private LessonType lessonType = LessonType.LECTURE;
-
-    @Column(name = "order_index", nullable = false)
     private Integer orderIndex = 0;
-
-    @Column(name = "duration_minutes")
     private Integer durationMinutes;
-
-    @Column(name = "is_required")
     private Boolean isRequired = true;
-
-    @Column(name = "is_preview")
     private Boolean isPreview = false;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "chapter_id", nullable = false)
     private Chapter chapter;
-
-    @OneToMany(mappedBy = "lesson", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderBy("orderIndex ASC")
     private List<Section> sections = new ArrayList<>();
-
-    @Type(JsonType.class)
-    @Column(columnDefinition = "jsonb")
     private List<ContentBlock> contentBlocks = new ArrayList<>();
 
-    // JPA requires default constructor
+    // Default constructor
     protected Lesson() {}
 
     // ==================== Factory Methods ====================

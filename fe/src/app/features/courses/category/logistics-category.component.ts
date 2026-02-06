@@ -1,5 +1,5 @@
-import { Component, signal, OnInit, Inject } from '@angular/core';
-import { CommonModule, DOCUMENT, isPlatformBrowser } from '@angular/common';
+import { Component, signal, OnInit, inject, ChangeDetectionStrategy } from '@angular/core';
+import { DOCUMENT, isPlatformBrowser } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { CategoryHeroComponent } from './shared/category-hero.component';
 import { CategoryCourseGridComponent } from './shared/category-course-grid.component';
@@ -9,9 +9,9 @@ import { Meta, Title } from '@angular/platform-browser';
 import { PLATFORM_ID } from '@angular/core';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-logistics-category',
-  standalone: true,
-  imports: [CommonModule, RouterModule, CategoryHeroComponent, CategoryCourseGridComponent, CategoryCareerComponent, CategoryTrendsComponent],
+  imports: [RouterModule, CategoryHeroComponent, CategoryCourseGridComponent, CategoryCareerComponent, CategoryTrendsComponent],
   template: `
     <div class="min-h-screen bg-gray-50">
       <app-category-hero
@@ -59,12 +59,11 @@ import { PLATFORM_ID } from '@angular/core';
   `
 })
 export class LogisticsCategoryComponent implements OnInit {
-  constructor(
-    private title: Title,
-    private meta: Meta,
-    @Inject(DOCUMENT) private document: Document,
-    @Inject(PLATFORM_ID) private platformId: Object
-  ) {}
+  private title = inject(Title);
+  private meta = inject(Meta);
+  private document = inject<Document>(DOCUMENT);
+  private platformId = inject<Object>(PLATFORM_ID);
+
 
   ngOnInit(): void {
     const pageTitle = 'Logistics Hàng hải - LMS Maritime';

@@ -1,5 +1,5 @@
 import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
@@ -48,7 +48,7 @@ interface StudyPlan {
 
 @Component({
   selector: 'app-study-planner',
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [FormsModule, RouterModule],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
@@ -467,7 +467,6 @@ export class StudyPlannerComponent implements OnInit {
 
   createNewPlan(): void {
     // Navigate to create plan page or open modal
-    console.log('Create new plan');
   }
 
   goToCalendar(): void {
@@ -491,15 +490,12 @@ export class StudyPlannerComponent implements OnInit {
   }
 
   editPlan(planId: string): void {
-    console.log('Edit plan:', planId);
   }
 
   viewAllGoals(planId: string): void {
-    console.log('View all goals for plan:', planId);
   }
 
   viewPlanDetails(planId: string): void {
-    console.log('View plan details:', planId);
   }
 
   pausePlan(planId: string): void {

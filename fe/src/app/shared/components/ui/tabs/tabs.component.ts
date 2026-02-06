@@ -1,5 +1,5 @@
-import { Component, input, output, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, input, output, signal, computed, ChangeDetectionStrategy } from '@angular/core';
+
 
 export interface Tab {
   id: string;
@@ -9,9 +9,9 @@ export interface Tab {
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-tabs',
-  standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
     <div class="tabs-container">
       <div class="tabs" role="tablist" [attr.aria-label]="ariaLabel()">

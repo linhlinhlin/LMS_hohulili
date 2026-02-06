@@ -1,5 +1,5 @@
-import { Component, input, output, viewChild, ElementRef, AfterViewChecked, OnChanges, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, input, output, viewChild, ElementRef, AfterViewChecked, OnChanges, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
+
 import { ChatMessage } from '../../../domain/types';
 import { ChatMessageComponent } from '../chat-message/chat-message.component';
 import { ChatMessageInputComponent } from '../chat-message-input/chat-message-input.component';
@@ -7,9 +7,9 @@ import { SourceCitationComponent } from '../source-citation/source-citation.comp
 import { SourcePanelComponent } from '../source-panel/source-panel.component';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-chat-main-area',
-  standalone: true,
-  imports: [CommonModule, ChatMessageComponent, ChatMessageInputComponent, SourceCitationComponent, SourcePanelComponent],
+  imports: [ChatMessageComponent, ChatMessageInputComponent, SourceCitationComponent, SourcePanelComponent],
   template: `
     <div class="chat-container">
       <!-- Main Chat Area -->

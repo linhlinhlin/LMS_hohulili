@@ -1,12 +1,12 @@
-import { Component, input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, input, ChangeDetectionStrategy } from '@angular/core';
+
 
 type SpinnerSize = 'sm' | 'md' | 'lg';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-loading-spinner',
-  standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
     <div [class]="containerClasses()">
       <div [class]="spinnerClasses()" role="status" [attr.aria-label]="ariaLabel()">

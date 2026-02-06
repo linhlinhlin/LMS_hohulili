@@ -11,7 +11,7 @@ import {
   OnInit,
   OnDestroy,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Router } from '@angular/router';
 import { FloatingChatBubbleComponent } from '../floating-chat-bubble/floating-chat-bubble.component';
 import { ChatPanelComponent } from '../chat-panel/chat-panel.component';
@@ -21,8 +21,7 @@ import { AuthService } from '../../../../../core/services/auth.service';
 
 @Component({
   selector: 'app-chat-widget',
-  standalone: true,
-  imports: [CommonModule, FloatingChatBubbleComponent, ChatPanelComponent],
+  imports: [FloatingChatBubbleComponent, ChatPanelComponent],
   template: `
     @if (isEnabled()) {
       <!-- Chat Panel -->

@@ -149,8 +149,7 @@ export class GradingStateService {
           this._pendingSubmissions.set([]);
         }
       }),
-      catchError((err: unknown) => {
-        console.error('Error loading pending submissions:', err);
+      catchError(() => {
         this._error.set('Không thể tải danh sách bài nộp chờ chấm. Vui lòng thử lại.');
         this._pendingSubmissions.set([]);
         return of({ data: [] });
@@ -187,7 +186,6 @@ export class GradingStateService {
       catchError((err: unknown) => {
         const errorMessage = err instanceof Error ? err.message : 'Không thể lưu điểm';
         this._error.set(errorMessage);
-        console.error('Error submitting grade:', err);
         return of(false);
       }),
       finalize(() => this._savingDrafts.set(false))
@@ -214,15 +212,13 @@ export class GradingStateService {
   private syncDraftsToServer(): void {
     const drafts = Array.from(this._draftGrades().values());
     if (drafts.length === 0) return;
-    console.log('Auto-saving drafts:', drafts.length);
   }
   
   private saveDraftsToStorage(): void {
     try {
       const drafts = Array.from(this._draftGrades().entries());
       localStorage.setItem(this.DRAFT_STORAGE_KEY, JSON.stringify(drafts));
-    } catch (error) {
-      console.warn('Failed to save drafts to localStorage:', error);
+    } catch {
     }
   }
   
@@ -233,8 +229,7 @@ export class GradingStateService {
         const drafts = JSON.parse(stored) as [string, DraftGrade][];
         this._draftGrades.set(new Map(drafts));
       }
-    } catch (error) {
-      console.warn('Failed to load drafts from localStorage:', error);
+    } catch {
       this._draftGrades.set(new Map());
     }
   }

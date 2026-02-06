@@ -104,7 +104,6 @@ export class TeacherRevenueService {
      * Get revenue summary (total, this month, growth)
      */
     getRevenueSummary(): Observable<RevenueSummary> {
-        console.log('[TEACHER REVENUE] 📊 Loading revenue summary...');
         this._isLoading.next(true);
         this.isLoading.set(true);
 
@@ -114,13 +113,11 @@ export class TeacherRevenueService {
                 this.isLoading.set(false);
             }),
             map(response => {
-                console.log('[TEACHER REVENUE] ✅ Revenue summary loaded:', response.data);
                 const summary = response.data;
                 this._revenueSummary.set(summary);
                 return summary;
             }),
             catchError(error => {
-                console.error('[TEACHER REVENUE] ❌ Error loading revenue summary:', error);
                 return throwError(() => error);
             })
         );
@@ -130,7 +127,6 @@ export class TeacherRevenueService {
      * Get revenue history with pagination
      */
     getRevenueHistory(params?: { page?: number; size?: number; status?: string }): Observable<RevenueHistoryItem[]> {
-        console.log('[TEACHER REVENUE] 📋 Loading revenue history...', params);
         this._isLoading.next(true);
         this.isLoading.set(true);
 
@@ -140,13 +136,11 @@ export class TeacherRevenueService {
                 this.isLoading.set(false);
             }),
             map(response => {
-                console.log('[TEACHER REVENUE] ✅ Revenue history loaded:', response.data?.length ?? 0, 'items');
                 const history = response.data ?? [];
                 this._revenueHistory.set(history);
                 return history;
             }),
             catchError(error => {
-                console.error('[TEACHER REVENUE] ❌ Error loading revenue history:', error);
                 return throwError(() => error);
             })
         );
@@ -160,7 +154,6 @@ export class TeacherRevenueService {
      * Get payout balance (available, pending, withdrawn)
      */
     getPayoutBalance(): Observable<PayoutBalance> {
-        console.log('[TEACHER REVENUE] 💰 Loading payout balance...');
         this._isLoading.next(true);
         this.isLoading.set(true);
 
@@ -170,13 +163,11 @@ export class TeacherRevenueService {
                 this.isLoading.set(false);
             }),
             map(response => {
-                console.log('[TEACHER REVENUE] ✅ Payout balance loaded:', response.data);
                 const balance = response.data;
                 this._payoutBalance.set(balance);
                 return balance;
             }),
             catchError(error => {
-                console.error('[TEACHER REVENUE] ❌ Error loading payout balance:', error);
                 return throwError(() => error);
             })
         );
@@ -186,7 +177,6 @@ export class TeacherRevenueService {
      * Request a payout (withdrawal)
      */
     requestPayout(request: PayoutRequest): Observable<{ message: string; payoutId: string }> {
-        console.log('[TEACHER REVENUE] 🏦 Requesting payout:', request);
         this._isLoading.next(true);
         this.isLoading.set(true);
 
@@ -201,14 +191,12 @@ export class TeacherRevenueService {
                 this.getPayoutHistory().subscribe();
             }),
             map(response => {
-                console.log('[TEACHER REVENUE] ✅ Payout requested successfully:', response);
                 return {
                     message: response.message || 'Yêu cầu rút tiền đã được gửi thành công!',
                     payoutId: response.data?.payoutId ?? ''
                 };
             }),
             catchError(error => {
-                console.error('[TEACHER REVENUE] ❌ Error requesting payout:', error);
                 return throwError(() => error);
             })
         );
@@ -218,7 +206,6 @@ export class TeacherRevenueService {
      * Get payout history
      */
     getPayoutHistory(params?: { page?: number; size?: number; status?: string }): Observable<PayoutHistoryItem[]> {
-        console.log('[TEACHER REVENUE] 📜 Loading payout history...', params);
         this._isLoading.next(true);
         this.isLoading.set(true);
 
@@ -228,13 +215,11 @@ export class TeacherRevenueService {
                 this.isLoading.set(false);
             }),
             map(response => {
-                console.log('[TEACHER REVENUE] ✅ Payout history loaded:', response.data?.length ?? 0, 'items');
                 const history = response.data ?? [];
                 this._payoutHistory.set(history);
                 return history;
             }),
             catchError(error => {
-                console.error('[TEACHER REVENUE] ❌ Error loading payout history:', error);
                 return throwError(() => error);
             })
         );
@@ -248,17 +233,13 @@ export class TeacherRevenueService {
      * Load all dashboard data at once
      */
     async loadDashboardData(): Promise<void> {
-        console.log('[TEACHER REVENUE] 🔄 Loading all dashboard data...');
-
         try {
             await Promise.all([
                 this.getRevenueSummary().toPromise(),
                 this.getRevenueHistory().toPromise(),
                 this.getPayoutBalance().toPromise()
             ]);
-            console.log('[TEACHER REVENUE] ✅ All dashboard data loaded');
         } catch (error) {
-            console.error('[TEACHER REVENUE] ❌ Error loading dashboard data:', error);
             throw error;
         }
     }

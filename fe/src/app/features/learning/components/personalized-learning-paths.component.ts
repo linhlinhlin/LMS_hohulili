@@ -6,7 +6,6 @@ import { LearningPath, LearningGoal, AdaptiveLearningRecommendation } from '../.
 
 @Component({
   selector: 'app-personalized-learning-paths',
-  standalone: true,
   imports: [CommonModule, RouterModule],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,

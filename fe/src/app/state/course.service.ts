@@ -92,7 +92,6 @@ export class CourseService {
         }
       };
     } catch (error) {
-      console.error('Error loading courses:', error);
       this._error.set('Không thể tải danh sách khóa học');
       throw error;
     } finally {
@@ -119,7 +118,6 @@ export class CourseService {
       this._currentCourse.set(null);
       return null;
     } catch (error) {
-      console.error('Error loading course:', error);
       this._error.set('Không thể tải thông tin khóa học');
       throw error;
     } finally {
@@ -159,7 +157,6 @@ export class CourseService {
       this._lessons.set(lessons);
       return lessons;
     } catch (error) {
-      console.error('Error loading lessons:', error);
       this._error.set('Không thể tải danh sách bài học');
       throw error;
     } finally {
@@ -193,7 +190,6 @@ export class CourseService {
         this._progress.update(progress => [...progress, newProgress]);
       }
     } catch (error) {
-      console.error('Error enrolling in course:', error);
       this._error.set('Không thể đăng ký khóa học');
       throw error;
     } finally {
@@ -206,7 +202,6 @@ export class CourseService {
       const res = await firstValueFrom(this.courseApi.getAvailableClasses(courseId));
       return res.data || [];
     } catch (e) {
-      console.error('Error fetching classes', e);
       return [];
     }
   }

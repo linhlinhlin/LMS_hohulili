@@ -1,5 +1,5 @@
 import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
@@ -7,7 +7,7 @@ import { DiscussionThread, DiscussionReply, DiscussionBoard } from '../../api/ty
 
 @Component({
   selector: 'app-discussion-boards',
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [FormsModule, RouterModule],
   encapsulation: ViewEncapsulation.None,
   templateUrl: './discussion-boards.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -160,7 +160,6 @@ export class DiscussionBoardsComponent implements OnInit {
   }
 
   createNewThread(): void {
-    console.log('Create new thread');
   }
 
   filterByCourse(): void {
@@ -176,15 +175,12 @@ export class DiscussionBoardsComponent implements OnInit {
   }
 
   viewAllThreads(boardId: string): void {
-    console.log('View all threads for board:', boardId);
   }
 
   createThreadForBoard(boardId: string): void {
-    console.log('Create thread for board:', boardId);
   }
 
   viewThread(threadId: string): void {
-    console.log('View thread:', threadId);
   }
 
   getCategoryClass(category: string): string {

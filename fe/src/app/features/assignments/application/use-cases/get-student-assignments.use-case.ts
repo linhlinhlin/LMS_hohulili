@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { AssignmentFilters, StudentId, DeadlineStatus, PriorityLevel } from '../../domain/types';
 import { AssignmentDomainService } from '../../domain/services/assignment-domain.service';
@@ -14,9 +14,8 @@ import { AssignmentDomainService } from '../../domain/services/assignment-domain
   providedIn: 'root'
 })
 export class GetStudentAssignmentsUseCase {
-  constructor(
-    private assignmentDomainService: AssignmentDomainService
-  ) {}
+  private assignmentDomainService = inject(AssignmentDomainService);
+
 
   /**
    * Execute the use case - Get all assignments for a student

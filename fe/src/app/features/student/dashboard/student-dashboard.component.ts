@@ -1,5 +1,5 @@
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, signal, computed, OnInit, ChangeDetectionStrategy } from '@angular/core';
+
 import { RouterModule, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
@@ -53,16 +53,15 @@ interface Course {
  * - Sidebar widgets (Goals, Learning Plan, Statistics)
  */
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-student-dashboard',
-  standalone: true,
   imports: [
-    CommonModule,
     RouterModule,
     IconComponent,
     IconComponent,
     ButtonComponent,
     CardComponent
-  ],
+],
   templateUrl: './student-dashboard.component.html',
   styleUrls: ['./student-dashboard.component.scss']
 })
@@ -152,7 +151,6 @@ export class StudentDashboardComponent implements OnInit {
         return newMap;
       });
     } catch (error) {
-      console.error(`Error loading content for course ${courseId}:`, error);
     }
   }
 
@@ -365,18 +363,15 @@ export class StudentDashboardComponent implements OnInit {
         this.router.navigate(['/student/learn/course', courseId]);
       }
     } catch (error) {
-      console.error('Error getting next lesson:', error);
       // Fallback to course overview
       this.router.navigate(['/student/learn/course', courseId]);
     }
   }
 
   editGoal(): void {
-    console.log('Edit goal clicked');
   }
 
   setLearningPlan(): void {
-    console.log('Set learning plan clicked');
   }
 
   toggleModules(courseId: string): void {

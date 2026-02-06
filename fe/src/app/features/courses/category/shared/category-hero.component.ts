@@ -1,4 +1,4 @@
-import { Component, input, computed } from '@angular/core';
+import { Component, input, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 
@@ -10,8 +10,8 @@ export interface CategoryCta {
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-category-hero',
-  standalone: true,
   imports: [CommonModule, RouterModule],
   template: `
     <section class="relative text-white" [ngClass]="gradientClass()" role="banner" [attr.aria-label]="'Trang chủ danh mục ' + title()">

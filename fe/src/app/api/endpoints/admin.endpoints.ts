@@ -4,9 +4,9 @@
  * Backend: AdminCoursesControllerV3, UserControllerV3
  */
 export const ADMIN_ENDPOINTS = {
-  // === Analytics ===
-  ANALYTICS: '/api/v3/admin/analytics',
-  USER_ANALYTICS: '/api/v3/admin/users/analytics',
+  // === Analytics (BE: AdminCoursesControllerV3 only has /courses/analytics) ===
+  ANALYTICS: '/api/v3/admin/courses/analytics',
+  USER_ANALYTICS: '/api/v3/admin/courses/analytics',
   COURSE_ANALYTICS: '/api/v3/admin/courses/analytics',
 
   // === Course Management ===

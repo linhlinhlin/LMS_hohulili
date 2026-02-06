@@ -2,13 +2,13 @@ package com.example.lms.identity.application.usecase;
 
 import com.example.lms.identity.application.dto.AuthResponse;
 import com.example.lms.identity.application.dto.RegisterUserCommand;
+import com.example.lms.identity.application.port.TokenService;
 import com.example.lms.identity.domain.model.Role;
 import com.example.lms.identity.domain.model.User;
 import com.example.lms.identity.domain.repository.UserRepository;
-import com.example.lms.identity.infrastructure.security.JwtTokenAdapter;
+import com.example.lms.shared.domain.event.DomainEventPublisher;
 import com.example.lms.shared.domain.valueobject.Email;
 import com.example.lms.shared.exception.ValidationException;
-import com.example.lms.shared.infrastructure.event.DomainEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -21,6 +21,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.UUID;
+
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -28,7 +30,7 @@ import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for RegisterUserUseCaseV2.
- * 
+ *
  * Tests business logic for user registration including:
  * - Successful registration flow
  * - Validation error handling
@@ -40,23 +42,23 @@ class RegisterUserUseCaseV2Test {
 
     @Mock
     private UserRepository userRepository;
-    
+
     @Mock
-    private JwtTokenAdapter jwtTokenAdapter;
-    
+    private TokenService tokenService;
+
     @Mock
     private PasswordEncoder passwordEncoder;
-    
+
     @Mock
     private DomainEventPublisher eventPublisher;
 
     @InjectMocks
     private RegisterUserUseCaseV2 useCase;
-    
+
     @Captor
     private ArgumentCaptor<User> userCaptor;
 
-    private RegisterUserCommand validCommand;  
+    private RegisterUserCommand validCommand;
     private static final String ENCODED_PASSWORD = "encoded_password";
     private static final String ACCESS_TOKEN = "access_token_123";
     private static final String REFRESH_TOKEN = "refresh_token_456";
@@ -84,8 +86,8 @@ class RegisterUserUseCaseV2Test {
             when(userRepository.existsByEmail(anyString())).thenReturn(false);
             when(passwordEncoder.encode(anyString())).thenReturn(ENCODED_PASSWORD);
             when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-            when(jwtTokenAdapter.generateAccessToken(any(User.class))).thenReturn(ACCESS_TOKEN);
-            when(jwtTokenAdapter.generateRefreshToken(any(User.class))).thenReturn(REFRESH_TOKEN);
+            when(tokenService.generateAccessToken(any(UUID.class), anyString(), anyString())).thenReturn(ACCESS_TOKEN);
+            when(tokenService.generateRefreshToken(any(UUID.class), anyString(), anyString())).thenReturn(REFRESH_TOKEN);
 
             // When
             AuthResponse response = useCase.execute(validCommand);
@@ -106,8 +108,8 @@ class RegisterUserUseCaseV2Test {
             when(userRepository.existsByEmail(anyString())).thenReturn(false);
             when(passwordEncoder.encode("Password123!")).thenReturn(ENCODED_PASSWORD);
             when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-            when(jwtTokenAdapter.generateAccessToken(any(User.class))).thenReturn(ACCESS_TOKEN);
-            when(jwtTokenAdapter.generateRefreshToken(any(User.class))).thenReturn(REFRESH_TOKEN);
+            when(tokenService.generateAccessToken(any(UUID.class), anyString(), anyString())).thenReturn(ACCESS_TOKEN);
+            when(tokenService.generateRefreshToken(any(UUID.class), anyString(), anyString())).thenReturn(REFRESH_TOKEN);
 
             // When
             useCase.execute(validCommand);
@@ -126,8 +128,8 @@ class RegisterUserUseCaseV2Test {
             when(userRepository.existsByEmail(anyString())).thenReturn(false);
             when(passwordEncoder.encode(anyString())).thenReturn(ENCODED_PASSWORD);
             when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-            when(jwtTokenAdapter.generateAccessToken(any(User.class))).thenReturn(ACCESS_TOKEN);
-            when(jwtTokenAdapter.generateRefreshToken(any(User.class))).thenReturn(REFRESH_TOKEN);
+            when(tokenService.generateAccessToken(any(UUID.class), anyString(), anyString())).thenReturn(ACCESS_TOKEN);
+            when(tokenService.generateRefreshToken(any(UUID.class), anyString(), anyString())).thenReturn(REFRESH_TOKEN);
 
             // When
             useCase.execute(validCommand);
@@ -147,8 +149,8 @@ class RegisterUserUseCaseV2Test {
             when(userRepository.existsByEmail(anyString())).thenReturn(false);
             when(passwordEncoder.encode(anyString())).thenReturn(ENCODED_PASSWORD);
             when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-            when(jwtTokenAdapter.generateAccessToken(any(User.class))).thenReturn(ACCESS_TOKEN);
-            when(jwtTokenAdapter.generateRefreshToken(any(User.class))).thenReturn(REFRESH_TOKEN);
+            when(tokenService.generateAccessToken(any(UUID.class), anyString(), anyString())).thenReturn(ACCESS_TOKEN);
+            when(tokenService.generateRefreshToken(any(UUID.class), anyString(), anyString())).thenReturn(REFRESH_TOKEN);
 
             // When
             useCase.execute(commandWithoutRole);
@@ -170,8 +172,8 @@ class RegisterUserUseCaseV2Test {
             when(userRepository.existsByEmail(anyString())).thenReturn(false);
             when(passwordEncoder.encode(anyString())).thenReturn(ENCODED_PASSWORD);
             when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-            when(jwtTokenAdapter.generateAccessToken(any(User.class))).thenReturn(ACCESS_TOKEN);
-            when(jwtTokenAdapter.generateRefreshToken(any(User.class))).thenReturn(REFRESH_TOKEN);
+            when(tokenService.generateAccessToken(any(UUID.class), anyString(), anyString())).thenReturn(ACCESS_TOKEN);
+            when(tokenService.generateRefreshToken(any(UUID.class), anyString(), anyString())).thenReturn(REFRESH_TOKEN);
 
             // When
             useCase.execute(teacherCommand);
@@ -249,8 +251,8 @@ class RegisterUserUseCaseV2Test {
             when(userRepository.existsByEmail(anyString())).thenReturn(false);
             when(passwordEncoder.encode("Password123!")).thenReturn(ENCODED_PASSWORD);
             when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-            when(jwtTokenAdapter.generateAccessToken(any(User.class))).thenReturn(ACCESS_TOKEN);
-            when(jwtTokenAdapter.generateRefreshToken(any(User.class))).thenReturn(REFRESH_TOKEN);
+            when(tokenService.generateAccessToken(any(UUID.class), anyString(), anyString())).thenReturn(ACCESS_TOKEN);
+            when(tokenService.generateRefreshToken(any(UUID.class), anyString(), anyString())).thenReturn(REFRESH_TOKEN);
 
             // When
             useCase.execute(validCommand);
@@ -260,22 +262,22 @@ class RegisterUserUseCaseV2Test {
         }
 
         @Test
-        @DisplayName("Should call jwtTokenAdapter with saved user")
+        @DisplayName("Should call tokenService with user details")
         void shouldGenerateTokensForSavedUser() {
             // Given
             when(userRepository.existsByUsername(anyString())).thenReturn(false);
             when(userRepository.existsByEmail(anyString())).thenReturn(false);
             when(passwordEncoder.encode(anyString())).thenReturn(ENCODED_PASSWORD);
             when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-            when(jwtTokenAdapter.generateAccessToken(any(User.class))).thenReturn(ACCESS_TOKEN);
-            when(jwtTokenAdapter.generateRefreshToken(any(User.class))).thenReturn(REFRESH_TOKEN);
+            when(tokenService.generateAccessToken(any(UUID.class), anyString(), anyString())).thenReturn(ACCESS_TOKEN);
+            when(tokenService.generateRefreshToken(any(UUID.class), anyString(), anyString())).thenReturn(REFRESH_TOKEN);
 
             // When
             useCase.execute(validCommand);
 
             // Then
-            verify(jwtTokenAdapter).generateAccessToken(any(User.class));
-            verify(jwtTokenAdapter).generateRefreshToken(any(User.class));
+            verify(tokenService).generateAccessToken(any(UUID.class), eq("test@example.com"), eq("STUDENT"));
+            verify(tokenService).generateRefreshToken(any(UUID.class), eq("test@example.com"), eq("STUDENT"));
         }
     }
 }

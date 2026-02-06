@@ -1,12 +1,11 @@
 import { Component, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule } from '@angular/router';
 import { ParallaxBackgroundComponent } from '../../shared/components/ui/parallax-background/parallax-background.component';
 
 @Component({
   selector: 'app-home-simple',
-  standalone: true,
-  imports: [CommonModule, RouterModule, ParallaxBackgroundComponent],
+  imports: [RouterModule, ParallaxBackgroundComponent],
   encapsulation: ViewEncapsulation.None,
   template: `
     <!-- Parallax Hero Section -->

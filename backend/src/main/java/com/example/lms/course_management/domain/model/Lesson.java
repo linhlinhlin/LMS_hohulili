@@ -111,20 +111,27 @@ public class Lesson {
     public Integer getMinQuizScore() { return minQuizScore; }
     public Instant getCreatedAt() { return createdAt; }
 
-    // ============ SETTERS ============
-    
-    public void setId(UUID id) { this.id = id; }
-    public void setChapter(Chapter chapter) { this.chapter = chapter; }
-    public void setTitle(String title) { this.title = title; }
-    public void setType(LessonType type) { this.type = type; }
-    public void setContentUrl(String contentUrl) { this.contentUrl = contentUrl; }
-    public void setContentHtml(String contentHtml) { this.contentHtml = contentHtml; }
-    public void setDurationSeconds(Integer durationSeconds) { this.durationSeconds = durationSeconds; }
-    public void setOrderIndex(Integer orderIndex) { this.orderIndex = orderIndex; }
-    public void setRequired(boolean isRequired) { this.isRequired = isRequired; }
-    public void setMinWatchPercent(Integer minWatchPercent) { this.minWatchPercent = minWatchPercent; }
-    public void setMinQuizScore(Integer minQuizScore) { this.minQuizScore = minQuizScore; }
-    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+    // ============ BEHAVIOR METHODS ============
+
+    public void updateInfo(String title, LessonType type) {
+        if (title != null && !title.isBlank()) this.title = title;
+        if (type != null) this.type = type;
+    }
+
+    public void updateContent(String contentUrl, String contentHtml) {
+        if (contentUrl != null) this.contentUrl = contentUrl;
+        if (contentHtml != null) this.contentHtml = contentHtml;
+    }
+
+    public void updateSettings(Integer durationSeconds, Boolean isRequired, Integer minWatchPercent, Integer minQuizScore) {
+        if (durationSeconds != null) this.durationSeconds = durationSeconds;
+        if (isRequired != null) this.isRequired = isRequired;
+        if (minWatchPercent != null) this.minWatchPercent = minWatchPercent;
+        if (minQuizScore != null) this.minQuizScore = minQuizScore;
+    }
+
+    // Package-private: only Chapter aggregate can set parent reference
+    void setChapter(Chapter chapter) { this.chapter = chapter; }
 
     // ============ BUILDER ============
     

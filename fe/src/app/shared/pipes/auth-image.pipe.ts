@@ -3,7 +3,6 @@ import { ContentIdentityService } from '../../core/services/content-identity.ser
 
 @Pipe({
     name: 'authImage',
-    standalone: true,
     pure: true
 })
 export class AuthImagePipe implements PipeTransform {

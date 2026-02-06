@@ -4,7 +4,7 @@ import com.example.lms.course_authoring.application.dto.CourseResponse;
 import com.example.lms.course_authoring.domain.model.Course;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
 import com.example.lms.shared.exception.EntityNotFoundException;
-import com.example.lms.shared.infrastructure.event.DomainEventPublisher;
+import com.example.lms.shared.domain.event.DomainEventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

@@ -1,5 +1,5 @@
-import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, inject, ChangeDetectionStrategy } from '@angular/core';
+
 import { ActivatedRoute, Router } from '@angular/router';
 
 /**
@@ -9,9 +9,9 @@ import { ActivatedRoute, Router } from '@angular/router';
  * Extracts params and redirects to success/failed page
  */
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
     selector: 'app-payment-callback',
-    standalone: true,
-    imports: [CommonModule],
+    imports: [],
     template: `
         <div class="callback-container">
             <div class="loading-card">

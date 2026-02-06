@@ -1,9 +1,9 @@
 import { Component, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 
 @Component({
   selector: 'app-assignment-grader',
-  imports: [CommonModule],
+  imports: [],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="p-6">

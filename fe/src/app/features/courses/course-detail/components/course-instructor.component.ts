@@ -1,11 +1,12 @@
-import { Component, input, computed } from '@angular/core';
-import { CommonModule, NgOptimizedImage } from '@angular/common';
+import { Component, input, computed, ChangeDetectionStrategy } from '@angular/core';
+import { NgOptimizedImage } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { ExtendedCourse } from '../../../../shared/types/course.types';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-course-instructor',
-  imports: [CommonModule, RouterModule, NgOptimizedImage],
+  imports: [RouterModule, NgOptimizedImage],
   templateUrl: './course-instructor.component.html'
 })
 export class CourseInstructorComponent {
@@ -75,7 +76,6 @@ export class CourseInstructorComponent {
 
   contactInstructor(): void {
     // Mock contact functionality
-    console.log('Contacting instructor:', this.instructor()?.name);
     // Trong thực tế sẽ mở contact modal hoặc redirect đến contact page
   }
 }

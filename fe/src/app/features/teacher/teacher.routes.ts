@@ -31,7 +31,7 @@ export const teacherRoutes: Routes = [
   // Section Editor - Standalone (quản lý bài học trong chương)
   {
     path: 'courses/:courseId/sections/:sectionId',
-    loadComponent: () => import('./courses/section-editor.component').then(m => m.SectionEditorComponent),
+    loadComponent: () => import('./courses/section-editor/section-editor-refactored.component').then(m => m.SectionEditorRefactoredComponent),
     canActivate: [teacherGuard],
     title: 'Quản lý bài học'
   },
@@ -99,7 +99,7 @@ export const teacherRoutes: Routes = [
       },
       {
         path: 'classes/:classId/students',
-        loadComponent: () => import('./course-editor/tabs/course-classes/class-students/class-students.component').then(m => m.ClassStudentsComponent),
+        loadComponent: () => import('./course-editor/pages/course-classes/class-students/class-students.component').then(m => m.ClassStudentsComponent),
         title: 'Danh sách học viên'
       },
       {

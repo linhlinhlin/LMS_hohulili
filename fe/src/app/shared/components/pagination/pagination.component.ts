@@ -12,7 +12,6 @@ export interface PaginationInfo {
 
 @Component({
   selector: 'app-pagination',
-  standalone: true,
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `

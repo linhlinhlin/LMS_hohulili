@@ -8,12 +8,11 @@ import {
   input,
   output,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 
 @Component({
   selector: 'app-suggested-questions',
-  standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
     @if (questions().length > 0) {
       <div class="suggested-questions">

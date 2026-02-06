@@ -1,5 +1,5 @@
-import { Component, signal, computed, inject, OnInit, OnDestroy, ElementRef, viewChild, HostListener, input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, signal, computed, inject, OnInit, OnDestroy, ElementRef, viewChild, HostListener, input, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { debounceTime, distinctUntilChanged, switchMap, startWith, takeUntil, Subject } from 'rxjs';
@@ -19,9 +19,9 @@ interface SearchResult {
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-global-search',
-  standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule, IconComponent],
+  imports: [ReactiveFormsModule, RouterModule, IconComponent],
   template: `
     <form role="search" class="relative" (submit)="goFullSearch()">
       <label for="global-search" class="sr-only">Tìm kiếm khóa học</label>

@@ -1,5 +1,5 @@
-import { Component, input, output, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, input, output, signal, computed, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { AssignmentFilters, AssignmentStatus, AssignmentType, PriorityLevel, DeadlineStatus } from '../../domain/types';
 
@@ -9,8 +9,9 @@ import { AssignmentFilters, AssignmentStatus, AssignmentType, PriorityLevel, Dea
  * Supports search, status, type, priority, and date range filters
  */
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-assignment-filter-panel',
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   template: `
     <div class="bg-white border-b border-gray-200 px-6 py-4">
       <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">

@@ -1,5 +1,5 @@
 import { Component, ChangeDetectionStrategy, ViewEncapsulation, input, output, signal, computed, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { FileUploadService, FileUploadOptions, UploadProgress } from '../../services/file-upload.service';
 import { UploadedFile } from '../../models/uploaded-file.model';
@@ -14,13 +14,12 @@ export interface FileUploadConfig {
 
 @Component({
   selector: 'app-file-upload',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="file-upload-container">
       <!-- Drop Zone -->
-      <div 
+      <div
         class="border-2 border-dashed rounded-lg p-6 text-center transition-colors duration-200"
         [class.border-blue-300]="!isDragOver() && !hasError()"
         [class.bg-blue-50]="!isDragOver() && !hasError()"
@@ -33,104 +32,126 @@ export interface FileUploadConfig {
         (drop)="onDrop($event)"
         (click)="fileInput.click()"
         style="cursor: pointer">
-        
+    
         <div class="flex flex-col items-center">
           <svg class="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-          </svg>
-          
-          <div class="text-lg font-medium text-gray-700 mb-2">
-            {{ isDragOver() ? 'Thả file ở đây' : 'Tải lên file' }}
-          </div>
-          
-          <div class="text-sm text-gray-500 mb-4">
-            Kéo thả hoặc nhấp để chọn file
-          </div>
-          
-          <div class="text-xs text-gray-400" *ngIf="config().allowedTypes || config().maxSize">
-            <div *ngIf="config().allowedTypes">
-              Định dạng: {{ config().allowedTypes?.join(', ') }}
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+    
+            <div class="text-lg font-medium text-gray-700 mb-2">
+              {{ isDragOver() ? 'Thả file ở đây' : 'Tải lên file' }}
             </div>
-            <div *ngIf="config().maxSize">
-              Tối đa: {{ config().maxSize }}MB per file
+    
+            <div class="text-sm text-gray-500 mb-4">
+              Kéo thả hoặc nhấp để chọn file
             </div>
-            <div *ngIf="config().maxFiles && config().maxFiles! > 1">
-              Tối đa {{ config().maxFiles }} file
+    
+            @if (config().allowedTypes || config().maxSize) {
+              <div class="text-xs text-gray-400">
+                @if (config().allowedTypes) {
+                  <div>
+                    Định dạng: {{ config().allowedTypes?.join(', ') }}
+                  </div>
+                }
+                @if (config().maxSize) {
+                  <div>
+                    Tối đa: {{ config().maxSize }}MB per file
+                  </div>
+                }
+                @if (config().maxFiles && config().maxFiles! > 1) {
+                  <div>
+                    Tối đa {{ config().maxFiles }} file
+                  </div>
+                }
+              </div>
+            }
+          </div>
+    
+          <input
+            #fileInput
+            type="file"
+            class="hidden"
+            [accept]="acceptString()"
+            [multiple]="config().acceptMultiple"
+            (change)="onFileSelect($event)" />
+          </div>
+    
+          <!-- Error Messages -->
+          @if (errorMessage()) {
+            <div class="mt-3 text-sm text-red-600">
+              {{ errorMessage() }}
             </div>
-          </div>
-        </div>
-        
-        <input 
-          #fileInput
-          type="file"
-          class="hidden"
-          [accept]="acceptString()"
-          [multiple]="config().acceptMultiple"
-          (change)="onFileSelect($event)" />
-      </div>
-
-      <!-- Error Messages -->
-      <div class="mt-3 text-sm text-red-600" *ngIf="errorMessage()">
-        {{ errorMessage() }}
-      </div>
-
-      <!-- Upload Progress -->
-      <div class="mt-4 space-y-2" *ngIf="uploadProgresses().length > 0">
-        <h4 class="text-sm font-medium text-gray-700">Đang tải lên...</h4>
-        <div *ngFor="let progress of uploadProgresses()" class="bg-white border rounded-lg p-3">
-          <div class="flex items-center justify-between text-sm mb-2">
-            <span class="font-medium text-gray-700 truncate">{{ progress.fileName }}</span>
-            <span class="text-gray-500">{{ progress.progress }}%</span>
-          </div>
-          <div class="w-full bg-gray-200 rounded-full h-2">
-            <div 
-              class="bg-blue-600 h-2 rounded-full transition-all duration-300"
-              [style.width.%]="progress.progress"
-              [class.bg-green-600]="progress.status === 'completed'"
-              [class.bg-red-600]="progress.status === 'error'">
+          }
+    
+          <!-- Upload Progress -->
+          @if (uploadProgresses().length > 0) {
+            <div class="mt-4 space-y-2">
+              <h4 class="text-sm font-medium text-gray-700">Đang tải lên...</h4>
+              @for (progress of uploadProgresses(); track progress) {
+                <div class="bg-white border rounded-lg p-3">
+                  <div class="flex items-center justify-between text-sm mb-2">
+                    <span class="font-medium text-gray-700 truncate">{{ progress.fileName }}</span>
+                    <span class="text-gray-500">{{ progress.progress }}%</span>
+                  </div>
+                  <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      class="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                      [style.width.%]="progress.progress"
+                      [class.bg-green-600]="progress.status === 'completed'"
+                      [class.bg-red-600]="progress.status === 'error'">
+                    </div>
+                  </div>
+                  @if (progress.error) {
+                    <div class="text-xs text-red-600 mt-1">
+                      {{ progress.error }}
+                    </div>
+                  }
+                </div>
+              }
             </div>
+          }
+    
+          <!-- Uploaded Files -->
+          @if (uploadedFiles().length > 0) {
+            <div class="mt-4 space-y-2">
+              <h4 class="text-sm font-medium text-gray-700">File đã tải lên ({{ uploadedFiles().length }})</h4>
+              @for (file of uploadedFiles(); track trackByFileId($index, file)) {
+                <div
+                  class="bg-white border rounded-lg p-3 flex items-center justify-between">
+                  <div class="flex items-center space-x-3">
+                    <div class="flex-shrink-0">
+                      <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </div>
+                      <div class="min-w-0 flex-1">
+                        <p class="text-sm font-medium text-gray-900 truncate">{{ file.originalName }}</p>
+                        <p class="text-xs text-gray-500">{{ formatFileSize(file.size || 0) }} • {{ formatDate(file.uploadedAt) }}</p>
+                      </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                      @if (file.url) {
+                        <a
+                          [href]="file.url"
+                          target="_blank"
+                          class="text-blue-600 hover:text-blue-800 text-sm">
+                          Xem
+                        </a>
+                      }
+                      <button
+                        (click)="removeFile(file.id)"
+                        class="text-red-600 hover:text-red-800 text-sm">
+                        Xóa
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
           </div>
-          <div class="text-xs text-red-600 mt-1" *ngIf="progress.error">
-            {{ progress.error }}
-          </div>
-        </div>
-      </div>
-
-      <!-- Uploaded Files -->
-      <div class="mt-4 space-y-2" *ngIf="uploadedFiles().length > 0">
-        <h4 class="text-sm font-medium text-gray-700">File đã tải lên ({{ uploadedFiles().length }})</h4>
-        <div *ngFor="let file of uploadedFiles(); trackBy: trackByFileId" 
-             class="bg-white border rounded-lg p-3 flex items-center justify-between">
-          <div class="flex items-center space-x-3">
-            <div class="flex-shrink-0">
-              <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            </div>
-            <div class="min-w-0 flex-1">
-              <p class="text-sm font-medium text-gray-900 truncate">{{ file.originalName }}</p>
-              <p class="text-xs text-gray-500">{{ formatFileSize(file.size || 0) }} • {{ formatDate(file.uploadedAt) }}</p>
-            </div>
-          </div>
-          <div class="flex items-center space-x-2">
-            <a *ngIf="file.url" 
-               [href]="file.url" 
-               target="_blank"
-               class="text-blue-600 hover:text-blue-800 text-sm">
-              Xem
-            </a>
-            <button 
-              (click)="removeFile(file.id)"
-              class="text-red-600 hover:text-red-800 text-sm">
-              Xóa
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  `,
+    `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class FileUploadComponent {

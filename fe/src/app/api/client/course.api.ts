@@ -26,8 +26,8 @@ export class CourseApi {
   }
 
   publishCourse(id: string) {
-    // Backend uses PATCH for publish endpoint
-    return this.api.patch<ApiResponse<CourseDetail>>(COURSE_ENDPOINTS.AUTHORING.PUBLISH(id), {});
+    // Backend uses POST for publish endpoint (CourseAuthoringController)
+    return this.api.post<ApiResponse<CourseDetail>>(COURSE_ENDPOINTS.AUTHORING.PUBLISH(id), {});
   }
 
   myCourses() {

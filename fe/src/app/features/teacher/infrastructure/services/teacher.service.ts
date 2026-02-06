@@ -220,8 +220,7 @@ export class TeacherService {
 
       // Initialize mock data for students and assignments (until backend provides these)
       this.initializeMockStudentsAndAssignments();
-    } catch (error) {
-      console.error('Failed to load courses:', error);
+    } catch {
       this._error.set('Failed to load courses');
       // Fallback to mock data on error
       this.initializeMockData();
@@ -547,9 +546,7 @@ export class TeacherService {
   }
 
   // Error Handling
-  private handleError(error: any, context: string): void {
-    console.error(`TeacherService Error [${context}]:`, error);
-
+  private handleError(error: any, _context: string): void {
     if (error instanceof Error) {
       // Already a proper error with message
       return;

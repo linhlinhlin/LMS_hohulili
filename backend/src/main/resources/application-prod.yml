@@ -5,3 +5,89 @@ spring:
 
 server:
   port: 8080
+
+  # Production: Graceful shutdown
+  shutdown: graceful
+  tomcat:
+    connection-timeout: 5000
+    max-connections: 200
+    accept-count: 100
+
+# Database
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/lms}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    hikari:
+      maximum-pool-size: ${HIKARI_MAX_POOL:20}
+      minimum-idle: ${HIKARI_MIN_IDLE:10}
+      connection-timeout: 5000
+      idle-timeout: 300000
+      max-lifetime: 1200000
+
+  # JPA - Production
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+        show_sql: false
+        default_batch_fetch_size: 16
+        jdbc:
+          batch_size: 25
+        order_inserts: true
+        order_updates: true
+
+  # Flyway - ENABLED in production
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 25
+    locations: classpath:db/migration
+    validate-on-migrate: true
+
+  # File upload limits
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 60MB
+
+# CORS - Configurable via environment
+app:
+  cors:
+    allowed-origins: ${APP_CORS_ORIGINS:https://yourdomain.com}
+  jwt:
+    secret: ${APP_JWT_SECRET}
+    expiration: ${APP_JWT_EXPIRATION:86400000}
+    refresh-expiration: ${APP_JWT_REFRESH_EXPIRATION:604800000}
+
+# R2 Storage
+cloudflare:
+  r2:
+    enabled: ${CLOUDFLARE_R2_ENABLED:true}
+    account-id: ${CLOUDFLARE_R2_ACCOUNT_ID}
+    access-key: ${CLOUDFLARE_R2_ACCESS_KEY}
+    secret-key: ${CLOUDFLARE_R2_SECRET_KEY}
+    bucket-name: ${CLOUDFLARE_R2_BUCKET:lms-files}
+    public-url: ${CLOUDFLARE_R2_PUBLIC_URL}
+
+# Actuator - Production endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+
+# Logging - Production
+logging:
+  level:
+    root: WARN
+    com.example.lms: INFO
+    org.hibernate.SQL: WARN
+    org.springframework.security: WARN

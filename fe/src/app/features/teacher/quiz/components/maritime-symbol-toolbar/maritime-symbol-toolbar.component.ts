@@ -1,10 +1,10 @@
-import { Component, output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, output, ChangeDetectionStrategy } from '@angular/core';
+
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-maritime-symbol-toolbar',
-  standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
     <div class="flex flex-wrap gap-2 p-2 bg-gray-50 border border-gray-200 rounded-lg mb-2">
       @for (symbol of symbols; track symbol.char) {

@@ -1,5 +1,5 @@
 import { Component, signal, inject, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule, Router } from '@angular/router';
 import { FormBuilder, FormGroup, FormControl, Validators, ReactiveFormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
@@ -11,7 +11,7 @@ type ForgotPasswordForm = {
 
 @Component({
   selector: 'app-forgot-password',
-  imports: [CommonModule, RouterModule, ReactiveFormsModule],
+  imports: [RouterModule, ReactiveFormsModule],
   encapsulation: ViewEncapsulation.Emulated,
   template: `
     <style>
@@ -303,10 +303,10 @@ export class ForgotPasswordComponent {
       this.lastEmailSent.set(email);
       this.isLoading.set(false);
 
-      console.log('Password reset email sent to:', email);
+
 
     } catch (error) {
-      console.error('Forgot password error:', error);
+
       this.isLoading.set(false);
       this.errorMessage.set('Không thể gửi email. Vui lòng thử lại sau.');
     }

@@ -6,10 +6,10 @@ import { AuthService } from '../../core/services/auth.service';
 
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
-  constructor(private authService: AuthService) { }
+  private authService = inject(AuthService);
+
 
   intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-    // Add authorization header
     const token = this.authService.getToken();
     if (token) {
       request = request.clone({
@@ -22,9 +22,7 @@ export class AuthInterceptor implements HttpInterceptor {
     return next.handle(request).pipe(
       catchError((error) => {
         if (error.status === 401) {
-          // Token expired or invalid
           this.authService.logout();
-          // Redirect to login page
           window.location.href = '/login';
         }
         return throwError(error);
@@ -36,71 +34,29 @@ export class AuthInterceptor implements HttpInterceptor {
 export const authInterceptor = (req: HttpRequest<any>, next: HttpHandlerFn): Observable<HttpEvent<any>> => {
   const authService = inject(AuthService);
 
-  // SSR-safe: Check if running in browser before accessing localStorage
   const isBrowser = typeof localStorage !== 'undefined';
-
-  // 🔍 DEBUG: Try multiple token keys
-  let token = authService.getToken(); // Primary: lms_access_token (already has SSR guard)
+  let token = authService.getToken();
 
   if (!token && isBrowser) {
-    // Fallback: check other possible keys (only in browser)
     token = localStorage.getItem('token') ||
       localStorage.getItem('access_token') ||
       localStorage.getItem('auth_token');
   }
 
-  console.log('🔗 AuthInterceptor: Processing request to:', req.url);
-  console.log('🔗 AuthInterceptor: Token exists:', !!token);
-  console.log('🔗 AuthInterceptor: Token source:', token ? 'found' : 'NOT FOUND');
-
   if (token) {
-    console.log('🔗 AuthInterceptor: Adding Authorization header, token length:', token.length);
-
-    // 🔍 DEBUG: Decode JWT payload for student endpoints (only in browser with atob)
-    if (isBrowser && req.url.includes('/student/')) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        console.log('🔗 AuthInterceptor: JWT Payload for student endpoint:', {
-          sub: payload.sub,
-          roles: payload.roles || payload.authorities,
-          exp: new Date(payload.exp * 1000).toISOString(),
-          isExpired: payload.exp * 1000 < Date.now()
-        });
-      } catch (decodeError) {
-        console.error('🔗 AuthInterceptor: Cannot decode JWT:', decodeError);
-      }
-    }
-
     req = req.clone({
       setHeaders: {
         Authorization: `Bearer ${token}`
       }
     });
-    console.log('🔗 AuthInterceptor: Request cloned with Authorization header');
-  } else {
-    console.log('🔗 AuthInterceptor: ⚠️  NO TOKEN FOUND - Request will be sent WITHOUT Authorization header');
-    // SSR-safe: Only access localStorage.keys in browser
-    if (isBrowser) {
-      console.log('🔗 AuthInterceptor: Available localStorage keys:', Object.keys(localStorage));
-    }
   }
 
   return next(req).pipe(
     catchError((error) => {
-      // Check if error is HttpErrorResponse before accessing status
       const status = error?.status;
-      console.log('🔗 AuthInterceptor: Error response status:', status ?? 'N/A (Network/CORS error)');
-
-      // 🔍 DEBUG: Log 403 errors for student endpoints
-      if (status === 403 && req.url.includes('/student/')) {
-        console.error('🔗 AuthInterceptor: 403 Forbidden on student endpoint:', req.url);
-        console.error('🔗 AuthInterceptor: Check token validity and user roles');
-      }
 
       if (status === 401) {
-        console.log('🔗 AuthInterceptor: 401 Unauthorized - Logging out and redirecting to login');
         authService.logout();
-        // SSR-safe: Only redirect in browser
         if (typeof window !== 'undefined') {
           window.location.href = '/login';
         }

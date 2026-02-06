@@ -18,7 +18,7 @@ import {
   computed,
   ChangeDetectionStrategy,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { MessagingService } from '../../../core/services/messaging.service';
@@ -35,8 +35,7 @@ import {
 
 @Component({
   selector: 'app-student-inbox',
-  standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, ConversationListItemComponent],
+  imports: [FormsModule, RouterModule, ConversationListItemComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="min-h-screen bg-gray-50">
@@ -203,7 +202,6 @@ export class StudentInboxComponent implements OnInit, OnDestroy {
         this.loading.set(false);
       },
       error: (err) => {
-        console.error('Error loading conversations:', err);
         this.error.set('Không thể tải danh sách hội thoại');
         this.loading.set(false);
       },

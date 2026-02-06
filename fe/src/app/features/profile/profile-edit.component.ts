@@ -1,5 +1,5 @@
 ﻿import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
@@ -53,9 +53,8 @@ interface SocialPlatform {
 
 @Component({
   selector: 'app-profile-edit',
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [RouterModule, FormsModule],
   encapsulation: ViewEncapsulation.None,
-  standalone: true,
   templateUrl: './profile-edit.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -65,18 +64,18 @@ export class ProfileEditComponent implements OnInit {
 
   // Component state
   profile = signal<ProfileEdit>({
-    fullName: 'Nguyá»…n VÄƒn Háº£i',
+    fullName: 'Nguyễn Văn Hải',
     email: 'student@demo.com',
     phone: '0123456789',
     dateOfBirth: '1995-06-15',
-    address: '123 ÄÆ°á»ng ABC, Quáº­n 1, TP.HCM',
-    bio: 'TĂ´i lĂ  sinh viĂªn nÄƒm 3 chuyĂªn ngĂ nh HĂ ng háº£i táº¡i TrÆ°á»ng Äáº¡i há»c HĂ ng háº£i Viá»‡t Nam.',
-    interests: ['An toĂ n hĂ ng háº£i', 'Äiá»u khiá»ƒn tĂ u'],
+    address: '123 Đường ABC, Quận 1, TP.HCM',
+    bio: 'Tôi là sinh viên năm 3 chuyên ngành Hàng hải tại Trường Đại học Hàng hải Việt Nam.',
+    interests: ['An toàn hàng hải', 'Điều khiển tàu'],
     learningGoals: [
-      'HoĂ n thĂ nh chá»©ng chá»‰ STCW',
-      'Äáº¡t Ä‘Æ°á»£c chá»©ng chá»‰ thuyá»n trÆ°á»Ÿng háº¡ng 2'
+      'Hoàn thành chứng chỉ STCW',
+      'Đạt được chứng chỉ thuyền trưởng hạng 2'
     ],
-    preferredSubjects: ['An toĂ n hĂ ng háº£i', 'Äiá»u khiá»ƒn tĂ u'],
+    preferredSubjects: ['An toàn hàng hải', 'Điều khiển tàu'],
     studySchedule: {
       preferredStudyTime: 'evening',
       studyDays: ['monday', 'wednesday', 'friday', 'sunday'],
@@ -107,37 +106,37 @@ export class ProfileEditComponent implements OnInit {
 
   // Mock data
   availableInterests = signal<string[]>([
-    'An toĂ n hĂ ng háº£i',
-    'Äiá»u khiá»ƒn tĂ u',
-    'Ká»¹ thuáº­t tĂ u biá»ƒn',
-    'Luáº­t hĂ ng háº£i',
-    'Quáº£n lĂ½ cáº£ng',
-    'Logistics hĂ ng háº£i',
-    'CĂ´ng nghá»‡ hĂ ng háº£i',
-    'MĂ´i trÆ°á»ng biá»ƒn'
+    'An toàn hàng hải',
+    'Điều khiển tàu',
+    'Kỹ thuật tàu biển',
+    'Luật hàng hải',
+    'Quản lý cảng',
+    'Logistics hàng hải',
+    'Công nghệ hàng hải',
+    'Môi trường biển'
   ]);
 
   availableSubjects = signal<string[]>([
-    'An toĂ n hĂ ng háº£i',
-    'Äiá»u khiá»ƒn tĂ u',
-    'Ká»¹ thuáº­t tĂ u biá»ƒn',
-    'Luáº­t hĂ ng háº£i',
-    'Quáº£n lĂ½ cáº£ng',
-    'Logistics hĂ ng háº£i',
-    'CĂ´ng nghá»‡ hĂ ng háº£i',
-    'MĂ´i trÆ°á»ng biá»ƒn',
-    'Kinh táº¿ hĂ ng háº£i',
-    'Tiáº¿ng Anh hĂ ng háº£i'
+    'An toàn hàng hải',
+    'Điều khiển tàu',
+    'Kỹ thuật tàu biển',
+    'Luật hàng hải',
+    'Quản lý cảng',
+    'Logistics hàng hải',
+    'Công nghệ hàng hải',
+    'Môi trường biển',
+    'Kinh tế hàng hải',
+    'Tiếng Anh hàng hải'
   ]);
 
   studyDays = signal<StudyDay[]>([
-    { value: 'monday', label: 'Thá»© 2' },
-    { value: 'tuesday', label: 'Thá»© 3' },
-    { value: 'wednesday', label: 'Thá»© 4' },
-    { value: 'thursday', label: 'Thá»© 5' },
-    { value: 'friday', label: 'Thá»© 6' },
-    { value: 'saturday', label: 'Thá»© 7' },
-    { value: 'sunday', label: 'Chá»§ nháº­t' }
+    { value: 'monday', label: 'Thứ 2' },
+    { value: 'tuesday', label: 'Thứ 3' },
+    { value: 'wednesday', label: 'Thứ 4' },
+    { value: 'thursday', label: 'Thứ 5' },
+    { value: 'friday', label: 'Thứ 6' },
+    { value: 'saturday', label: 'Thứ 7' },
+    { value: 'sunday', label: 'Chủ nhật' }
   ]);
 
   socialPlatforms = signal<SocialPlatform[]>([
@@ -150,7 +149,6 @@ export class ProfileEditComponent implements OnInit {
   ]);
 
   ngOnInit(): void {
-    console.log('đŸ”§ Profile Edit - Component initialized');
   }
 
   updateProfile(field: string, value: any): void {
@@ -158,7 +156,6 @@ export class ProfileEditComponent implements OnInit {
       ...p,
       [field]: value
     }));
-    console.log('đŸ”§ Profile Edit - Profile field updated:', field, value);
   }
 
   updateLearningGoal(index: number, value: string): void {
@@ -166,7 +163,6 @@ export class ProfileEditComponent implements OnInit {
       ...p,
       learningGoals: p.learningGoals.map((goal, i) => i === index ? value : goal)
     }));
-    console.log('đŸ”§ Profile Edit - Learning goal updated:', index, value);
   }
 
   updateStudySchedule(field: string, value: any): void {
@@ -177,7 +173,6 @@ export class ProfileEditComponent implements OnInit {
         [field]: value
       }
     }));
-    console.log('đŸ”§ Profile Edit - Study schedule updated:', field, value);
   }
 
   updateSocialLink(index: number, field: string, value: any): void {
@@ -187,7 +182,6 @@ export class ProfileEditComponent implements OnInit {
         i === index ? { ...link, [field]: value } : link
       )
     }));
-    console.log('đŸ”§ Profile Edit - Social link updated:', index, field, value);
   }
 
   updateNotifications(field: string, value: any): void {
@@ -198,7 +192,6 @@ export class ProfileEditComponent implements OnInit {
         [field]: value
       }
     }));
-    console.log('đŸ”§ Profile Edit - Notifications updated:', field, value);
   }
 
   updatePrivacy(field: string, value: any): void {
@@ -209,7 +202,6 @@ export class ProfileEditComponent implements OnInit {
         [field]: value
       }
     }));
-    console.log('đŸ”§ Profile Edit - Privacy updated:', field, value);
   }
 
   toggleInterest(interest: string): void {
@@ -219,7 +211,6 @@ export class ProfileEditComponent implements OnInit {
         ? p.interests.filter(i => i !== interest)
         : [...p.interests, interest]
     }));
-    console.log('đŸ”§ Profile Edit - Interest toggled:', interest);
   }
 
   toggleSubject(subject: string): void {
@@ -229,7 +220,6 @@ export class ProfileEditComponent implements OnInit {
         ? p.preferredSubjects.filter(s => s !== subject)
         : [...p.preferredSubjects, subject]
     }));
-    console.log('đŸ”§ Profile Edit - Subject toggled:', subject);
   }
 
   toggleStudyDay(day: string): void {
@@ -242,7 +232,6 @@ export class ProfileEditComponent implements OnInit {
           : [...p.studySchedule.studyDays, day]
       }
     }));
-    console.log('đŸ”§ Profile Edit - Study day toggled:', day);
   }
 
   addLearningGoal(): void {
@@ -250,7 +239,6 @@ export class ProfileEditComponent implements OnInit {
       ...p,
       learningGoals: [...p.learningGoals, '']
     }));
-    console.log('đŸ”§ Profile Edit - Learning goal added');
   }
 
   removeLearningGoal(index: number): void {
@@ -258,7 +246,6 @@ export class ProfileEditComponent implements OnInit {
       ...p,
       learningGoals: p.learningGoals.filter((_, i) => i !== index)
     }));
-    console.log('đŸ”§ Profile Edit - Learning goal removed:', index);
   }
 
   addSocialLink(): void {
@@ -266,7 +253,6 @@ export class ProfileEditComponent implements OnInit {
       ...p,
       socialLinks: [...p.socialLinks, { platform: 'linkedin', url: '', isPublic: true }]
     }));
-    console.log('đŸ”§ Profile Edit - Social link added');
   }
 
   removeSocialLink(index: number): void {
@@ -274,25 +260,24 @@ export class ProfileEditComponent implements OnInit {
       ...p,
       socialLinks: p.socialLinks.filter((_, i) => i !== index)
     }));
-    console.log('đŸ”§ Profile Edit - Social link removed:', index);
   }
 
   resetProfile(): void {
-    if (confirm('Báº¡n cĂ³ cháº¯c cháº¯n muá»‘n Ä‘áº·t láº¡i táº¥t cáº£ thĂ´ng tin?')) {
+    if (confirm('Bạn có chắc chắn muốn đặt lại tất cả thông tin?')) {
       // Reset to original values
       this.profile.set({
-        fullName: 'Nguyá»…n VÄƒn Háº£i',
+        fullName: 'Nguyễn Văn Hải',
         email: 'student@demo.com',
         phone: '0123456789',
         dateOfBirth: '1995-06-15',
-        address: '123 ÄÆ°á»ng ABC, Quáº­n 1, TP.HCM',
-        bio: 'TĂ´i lĂ  sinh viĂªn nÄƒm 3 chuyĂªn ngĂ nh HĂ ng háº£i táº¡i TrÆ°á»ng Äáº¡i há»c HĂ ng háº£i Viá»‡t Nam.',
-        interests: ['An toĂ n hĂ ng háº£i', 'Äiá»u khiá»ƒn tĂ u'],
+        address: '123 Đường ABC, Quận 1, TP.HCM',
+        bio: 'Tôi là sinh viên năm 3 chuyên ngành Hàng hải tại Trường Đại học Hàng hải Việt Nam.',
+        interests: ['An toàn hàng hải', 'Điều khiển tàu'],
         learningGoals: [
-          'HoĂ n thĂ nh chá»©ng chá»‰ STCW',
-          'Äáº¡t Ä‘Æ°á»£c chá»©ng chá»‰ thuyá»n trÆ°á»Ÿng háº¡ng 2'
+          'Hoàn thành chứng chỉ STCW',
+          'Đạt được chứng chỉ thuyền trưởng hạng 2'
         ],
-        preferredSubjects: ['An toĂ n hĂ ng háº£i', 'Äiá»u khiá»ƒn tĂ u'],
+        preferredSubjects: ['An toàn hàng hải', 'Điều khiển tàu'],
         studySchedule: {
           preferredStudyTime: 'evening',
           studyDays: ['monday', 'wednesday', 'friday', 'sunday'],
@@ -320,36 +305,19 @@ export class ProfileEditComponent implements OnInit {
           showProgress: true
         }
       });
-      console.log('đŸ”§ Profile Edit - Profile reset');
     }
   }
 
   saveProfile(): void {
-    console.log('đŸ”§ Profile Edit - Save profile');
-    console.log('đŸ”§ Profile Edit - Profile data:', this.profile());
-    
     // Mock save functionality
-    alert('ÄĂ£ lÆ°u thĂ´ng tin há»“ sÆ¡ thĂ nh cĂ´ng!');
+    alert('Đã lưu thông tin hồ sơ thành công!');
     
     // Navigate back to profile
-    this.router.navigate(['/student/profile']).then(success => {
-      if (success) {
-        console.log('đŸ”§ Profile Edit - Navigation to profile successful');
-      } else {
-        console.error('đŸ”§ Profile Edit - Navigation to profile failed');
-      }
-    });
+    this.router.navigate(['/student/profile']);
   }
 
   goBack(): void {
-    console.log('đŸ”§ Profile Edit - Go back');
-    this.router.navigate(['/student/profile']).then(success => {
-      if (success) {
-        console.log('đŸ”§ Profile Edit - Navigation back successful');
-      } else {
-        console.error('đŸ”§ Profile Edit - Navigation back failed');
-      }
-    });
+    this.router.navigate(['/student/profile']);
   }
 }
 

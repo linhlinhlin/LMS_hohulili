@@ -1,5 +1,5 @@
 import { Component, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule, NgOptimizedImage } from '@angular/common';
+import { NgOptimizedImage } from '@angular/common';
 
 interface Testimonial {
   id: string;
@@ -19,7 +19,7 @@ interface Partner {
 
 @Component({
   selector: 'app-social-proof',
-  imports: [CommonModule, NgOptimizedImage],
+  imports: [NgOptimizedImage],
   encapsulation: ViewEncapsulation.None,
   template: `
     <section class="py-16 bg-white">

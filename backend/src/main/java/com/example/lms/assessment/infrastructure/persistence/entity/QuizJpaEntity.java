@@ -2,6 +2,7 @@ package com.example.lms.assessment.infrastructure.persistence.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -81,6 +82,7 @@ public class QuizJpaEntity {
 
     @OneToMany(mappedBy = "quiz", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("displayOrder ASC")
+    @BatchSize(size = 50) // SOTA: Prevent N+1 when loading multiple quizzes
     private java.util.List<QuizQuestionJpaEntity> questions;
 
     @CreationTimestamp

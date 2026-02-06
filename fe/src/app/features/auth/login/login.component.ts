@@ -1,5 +1,5 @@
-﻿import { Component, signal, inject, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, signal, inject, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
+
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, FormControl, Validators, ReactiveFormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
@@ -15,7 +15,7 @@ type LoginForm = {
 
 @Component({
   selector: 'app-login',
-  imports: [CommonModule, RouterModule, ReactiveFormsModule],
+  imports: [RouterModule, ReactiveFormsModule],
   encapsulation: ViewEncapsulation.Emulated,
   templateUrl: './login.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -41,7 +41,7 @@ export class LoginComponent {
       password: ['', [Validators.required, Validators.minLength(6)]],
       rememberMe: [false]
     }) as FormGroup<LoginForm>;
-    
+
     // Get return URL from route parameters or default to dashboard
     this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/dashboard';
   }
@@ -63,12 +63,10 @@ export class LoginComponent {
 
     this.authService.login(credentials).subscribe({
       next: (response: any) => {
-        console.log('âœ… Login successful in component:', response);
         this.isLoading.set(false);
 
         // Redirect based on user role
         const userRole = response.user.role.toLowerCase();
-        console.log('đŸ‘¤ User role:', userRole);
 
         let redirectUrl = '/';
         switch (userRole) {
@@ -85,22 +83,11 @@ export class LoginComponent {
             redirectUrl = '/';
         }
 
-        console.log('đŸ”„ Redirecting to:', redirectUrl);
-        console.log('đŸ”„ Calling router.navigate with:', [redirectUrl]);
-
-        this.router.navigate([redirectUrl]).then((success: boolean) => {
-          console.log('đŸ”„ Navigation result:', success);
-          if (!success) {
-            console.error('âŒ Navigation failed!');
-          }
-        }).catch((error: any) => {
-          console.error('âŒ Navigation error:', error);
-        });
+        this.router.navigate([redirectUrl]);
       },
       error: (error: any) => {
-        console.error('âŒ Login failed in component:', error);
         this.isLoading.set(false);
-        this.errorMessage.set(error.error?.message || 'ÄÄƒng nháº­p tháº¥t báº¡i. Vui lĂ²ng thá»­ láº¡i.');
+        this.errorMessage.set(error.error?.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
       }
     });
   }
@@ -120,7 +107,7 @@ export class LoginComponent {
 
       // Show success message
       const roleName = this.getRoleDisplayName(role);
-      this.successMessage.set(`ÄĂ£ Ä‘Äƒng nháº­p thĂ nh cĂ´ng vá»›i tĂ i khoáº£n ${roleName}!`);
+      this.successMessage.set(`Đã đăng nhập thành công với tài khoản ${roleName}!`);
       this.showSuccessMessage.set(true);
 
       // Hide success message after 3 seconds
@@ -128,7 +115,7 @@ export class LoginComponent {
         this.showSuccessMessage.set(false);
       }, 3000);
 
-      // âœ… Redirect is handled by AuthService
+      // Redirect is handled by AuthService
     } catch (error) {
       // Error is handled by the store
     }
@@ -136,23 +123,23 @@ export class LoginComponent {
 
   private getRoleDisplayName(role: UserRole): string {
     switch (role) {
-      case UserRole.STUDENT: return 'Há»c viĂªn';
-      case UserRole.TEACHER: return 'Giáº£ng viĂªn';
-      case UserRole.ADMIN: return 'Quáº£n trá»‹ viĂªn';
-      default: return 'NgÆ°á»i dĂ¹ng';
+      case UserRole.STUDENT: return 'Học viên';
+      case UserRole.TEACHER: return 'Giảng viên';
+      case UserRole.ADMIN: return 'Quản trị viên';
+      default: return 'Người dùng';
     }
   }
 
   getErrorMessage(error: string): string {
     // Map common error messages to user-friendly Vietnamese messages
     const errorMappings: Record<string, string> = {
-      'Invalid credentials': 'TĂªn Ä‘Äƒng nháº­p hoáº·c máº­t kháº©u khĂ´ng Ä‘Ăºng',
-      'User not found': 'TĂ i khoáº£n khĂ´ng tá»“n táº¡i',
-      'Account locked': 'TĂ i khoáº£n Ä‘Ă£ bá»‹ khĂ³a',
-      'Too many attempts': 'QuĂ¡ nhiá»u láº§n thá»­ Ä‘Äƒng nháº­p. Vui lĂ²ng thá»­ láº¡i sau.',
-      'Network error': 'Lá»—i káº¿t ná»‘i máº¡ng. Vui lĂ²ng kiá»ƒm tra káº¿t ná»‘i internet.',
-      'Server error': 'Lá»—i mĂ¡y chá»§. Vui lĂ²ng thá»­ láº¡i sau.',
-      'Login failed': 'ÄÄƒng nháº­p tháº¥t báº¡i. Vui lĂ²ng thá»­ láº¡i.'
+      'Invalid credentials': 'Tên đăng nhập hoặc mật khẩu không đúng',
+      'User not found': 'Tài khoản không tồn tại',
+      'Account locked': 'Tài khoản đã bị khóa',
+      'Too many attempts': 'Quá nhiều lần thử đăng nhập. Vui lòng thử lại sau.',
+      'Network error': 'Lỗi kết nối mạng. Vui lòng kiểm tra kết nối internet.',
+      'Server error': 'Lỗi máy chủ. Vui lòng thử lại sau.',
+      'Login failed': 'Đăng nhập thất bại. Vui lòng thử lại.'
     };
 
     // Check if the error message contains any known patterns
@@ -166,4 +153,3 @@ export class LoginComponent {
     return error;
   }
 }
-

@@ -45,14 +45,6 @@ export class ErrorHandlingService {
       setTimeout(() => this.removeError(newError.id), 5000);
     }
 
-    const printable = (() => {
-      try {
-        return typeof newError.message === 'string' ? newError.message : JSON.stringify(newError.message);
-      } catch {
-        return String(newError.message);
-      }
-    })();
-    console.error('🚨 App Error:', printable, newError);
   }
 
   /**

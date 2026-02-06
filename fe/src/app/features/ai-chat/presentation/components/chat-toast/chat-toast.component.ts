@@ -1,5 +1,5 @@
-import { Component, signal, Injectable } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, signal, Injectable, inject, ChangeDetectionStrategy } from '@angular/core';
+
 
 // ============ TOAST SERVICE ============
 export interface Toast {
@@ -52,9 +52,9 @@ export class ChatToastService {
 
 // ============ TOAST CONTAINER COMPONENT ============
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
     selector: 'app-chat-toast-container',
-    standalone: true,
-    imports: [CommonModule],
+    imports: [],
     template: `
     <div class="toast-container">
       @for (toast of toastService.toasts(); track toast.id) {
@@ -219,5 +219,6 @@ export class ChatToastService {
   `]
 })
 export class ChatToastContainerComponent {
-    constructor(public toastService: ChatToastService) { }
+    toastService = inject(ChatToastService);
+
 }

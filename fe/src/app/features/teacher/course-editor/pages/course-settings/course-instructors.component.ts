@@ -1,12 +1,12 @@
-import { Component, inject, signal, input, effect } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, signal, input, effect, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { CourseInstructorService, CourseInstructor, InstructorPermissions, DEFAULT_PERMISSIONS } from '../../services/course-instructor.service';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-course-instructors',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   template: `
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
       <div class="flex items-center justify-between mb-6">
@@ -237,7 +237,6 @@ export class CourseInstructorsComponent {
     effect(() => {
       const id = this.courseId();
       if (id && id !== this.loadedCourseId) {
-        console.log('[CourseInstructors] 📋 Loading instructors for course:', id);
         this.loadedCourseId = id;
         this.loadInstructors(id);
       }

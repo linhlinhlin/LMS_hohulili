@@ -1,5 +1,5 @@
-import { Component, signal, computed, OnInit, Inject } from '@angular/core';
-import { CommonModule, DOCUMENT, isPlatformBrowser } from '@angular/common';
+import { Component, signal, computed, OnInit, inject, ChangeDetectionStrategy } from '@angular/core';
+import { DOCUMENT, isPlatformBrowser } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { CategoryHeroComponent } from './shared/category-hero.component';
 import { CategoryCourseGridComponent, CategoryCourseItem } from './shared/category-course-grid.component';
@@ -45,9 +45,9 @@ interface Course {
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-safety-category',
-  standalone: true,
-  imports: [CommonModule, RouterModule, CategoryHeroComponent, CategoryCourseGridComponent, CategoryCareerComponent, CategoryTrendsComponent],
+  imports: [RouterModule, CategoryHeroComponent, CategoryCourseGridComponent, CategoryCareerComponent, CategoryTrendsComponent],
   template: `
     <div class="min-h-screen bg-gray-50">
       <app-category-hero
@@ -97,12 +97,11 @@ interface Course {
   `
 })
 export class SafetyCategoryComponent implements OnInit {
-  constructor(
-    private title: Title,
-    private meta: Meta,
-    @Inject(DOCUMENT) private document: Document,
-    @Inject(PLATFORM_ID) private platformId: Object
-  ) {}
+  private title = inject(Title);
+  private meta = inject(Meta);
+  private document = inject<Document>(DOCUMENT);
+  private platformId = inject<Object>(PLATFORM_ID);
+
 
   ngOnInit(): void {
     const pageTitle = 'An toàn Hàng hải - Khóa học STCW, ISM, IMO | LMS Maritime';

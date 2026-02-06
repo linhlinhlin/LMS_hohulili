@@ -2,24 +2,27 @@ package com.example.lms.learning_delivery.infrastructure.web;
 
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
 
 /**
  * Teacher Students Controller V3
- * 
+ *
  * Provides endpoints for teachers to view and manage students enrolled in their courses.
- * Following SOTA patterns from major platforms (Dec 2025).
  */
 @RestController
 @RequestMapping("/api/v3/teacher/students")
+@PreAuthorize("hasAnyRole('TEACHER', 'INSTRUCTOR', 'ADMIN')")
 @Tag(name = "Teacher - Students", description = "Teacher student management endpoints")
 public class TeacherStudentControllerV3 {
 
@@ -97,7 +100,7 @@ public class TeacherStudentControllerV3 {
     @PatchMapping("/{studentId}/status")
     public ResponseEntity<ApiResponse<StudentSummaryResponse>> updateStudentStatus(
             @PathVariable UUID studentId,
-            @RequestBody StatusUpdateRequest request
+            @Valid @RequestBody StatusUpdateRequest request
     ) {
         // Stub implementation
         StudentSummaryResponse stub = StudentSummaryResponse.builder()
@@ -113,7 +116,7 @@ public class TeacherStudentControllerV3 {
     @PostMapping("/{studentId}/messages")
     public ResponseEntity<ApiResponse<String>> sendMessage(
             @PathVariable UUID studentId,
-            @RequestBody MessageRequest request
+            @Valid @RequestBody MessageRequest request
     ) {
         // Stub implementation
         return ResponseEntity.ok(ApiResponse.success("Message sent", "Message delivered successfully"));
@@ -216,6 +219,7 @@ public class TeacherStudentControllerV3 {
     public static class LearningActivityResponse {}
 
     public static class StatusUpdateRequest {
+        @NotBlank(message = "Status is required")
         private String status;
         public String getStatus() { return status; }
         public void setStatus(String status) { this.status = status; }
@@ -223,6 +227,7 @@ public class TeacherStudentControllerV3 {
 
     public static class MessageRequest {
         private String subject;
+        @NotBlank(message = "Content is required")
         private String content;
         public String getSubject() { return subject; }
         public void setSubject(String subject) { this.subject = subject; }

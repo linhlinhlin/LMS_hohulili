@@ -1,35 +1,21 @@
 package com.example.lms.course_authoring.domain.model;
 
 import com.example.lms.shared.domain.model.BaseEntity;
-import jakarta.persistence.*;
 import java.util.*;
 
 /**
  * Chapter entity representing a section/module within a course.
  * Chapters contain lessons and are ordered within a course.
  */
-@Entity
-@Table(name = "chapters")
 public class Chapter extends BaseEntity {
 
-    @Column(nullable = false, length = 255)
     private String title;
-
-    @Column(columnDefinition = "TEXT")
     private String description;
-
-    @Column(name = "order_index", nullable = false)
     private Integer orderIndex = 0;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "course_id", nullable = false)
     private Course course;
-
-    @OneToMany(mappedBy = "chapter", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderBy("orderIndex ASC")
     private Set<Lesson> lessons = new LinkedHashSet<>();
 
-    // JPA requires default constructor
+    // Default constructor
     protected Chapter() {}
 
     // ==================== Factory Methods ====================

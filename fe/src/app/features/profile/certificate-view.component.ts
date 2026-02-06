@@ -1,5 +1,5 @@
 import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 
@@ -34,9 +34,8 @@ interface CertificateVerification {
 
 @Component({
   selector: 'app-certificate-view',
-  imports: [CommonModule, RouterModule],
+  imports: [RouterModule],
   encapsulation: ViewEncapsulation.None,
-  standalone: true,
   template: `
     <div class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 min-h-screen">
       <!-- Header -->
@@ -301,7 +300,6 @@ export class CertificateViewComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadCertificate();
-    console.log('🔧 Certificate View - Component initialized');
   }
 
   private loadCertificate(): void {
@@ -334,7 +332,6 @@ export class CertificateViewComponent implements OnInit {
     };
 
     this.certificate.set(mockCertificate);
-    console.log('🔧 Certificate View - Certificate loaded:', mockCertificate.certificateNumber);
   }
 
   formatDate(date: Date): string {
@@ -342,13 +339,11 @@ export class CertificateViewComponent implements OnInit {
   }
 
   downloadCertificate(): void {
-    console.log('🔧 Certificate View - Download certificate');
     // Mock download functionality
     alert('Tải xuống chứng chỉ PDF thành công!');
   }
 
   shareCertificate(): void {
-    console.log('🔧 Certificate View - Share certificate');
     // Mock share functionality
     if (navigator.share) {
       navigator.share({
@@ -364,39 +359,23 @@ export class CertificateViewComponent implements OnInit {
   }
 
   printCertificate(): void {
-    console.log('🔧 Certificate View - Print certificate');
     // Mock print functionality
     window.print();
   }
 
   verifyCertificate(): void {
-    console.log('🔧 Certificate View - Verify certificate');
     // Mock verification
     alert('Chứng chỉ đã được xác thực thành công!');
   }
 
   viewCourse(): void {
-    console.log('🔧 Certificate View - View course');
     const courseId = this.certificate()?.courseId;
     if (courseId) {
-      this.router.navigate(['/courses', courseId]).then(success => {
-        if (success) {
-          console.log('🔧 Certificate View - Navigation to course successful');
-        } else {
-          console.error('🔧 Certificate View - Navigation to course failed');
-        }
-      });
+      this.router.navigate(['/courses', courseId]);
     }
   }
 
   goBack(): void {
-    console.log('🔧 Certificate View - Go back');
-    this.router.navigate(['/student/profile']).then(success => {
-      if (success) {
-        console.log('🔧 Certificate View - Navigation back successful');
-      } else {
-        console.error('🔧 Certificate View - Navigation back failed');
-      }
-    });
+    this.router.navigate(['/student/profile']);
   }
 }

@@ -55,6 +55,8 @@ public class CourseEntityMapper {
             case PENDING -> CourseJpaEntity.CourseStatus.PENDING;
             case APPROVED -> CourseJpaEntity.CourseStatus.APPROVED;
             case REJECTED -> CourseJpaEntity.CourseStatus.REJECTED;
+            case PUBLISHED -> CourseJpaEntity.CourseStatus.PUBLISHED;
+            case ARCHIVED -> CourseJpaEntity.CourseStatus.ARCHIVED;
         };
     }
 
@@ -78,5 +80,107 @@ public class CourseEntityMapper {
             case FREE -> CourseJpaEntity.PriceType.FREE;
             case PAID -> CourseJpaEntity.PriceType.PAID;
         };
+    }
+
+    /**
+     * Convert JPA entity to domain model.
+     * Uses reflection to reconstruct immutable domain object during migration phase.
+     */
+    public Course toDomain(CourseJpaEntity entity) {
+        if (entity == null) {
+            return null;
+        }
+
+        try {
+            // Create instance using protected constructor
+            Course course = Course.class.getDeclaredConstructor().newInstance();
+
+            // Set ID from BaseEntity
+            setField(course, "id", entity.getId());
+
+            // Set Course fields using reflection
+            setField(course, "code", entity.getCode() != null
+                ? com.example.lms.shared.domain.valueobject.CourseCode.of(entity.getCode())
+                : null);
+            setField(course, "title", entity.getTitle());
+            setField(course, "description", entity.getDescription());
+            setField(course, "status", mapStatusToDomain(entity.getStatus()));
+            setField(course, "teacherId", entity.getTeacherId());
+            setField(course, "categoryId", entity.getCategoryId());
+            setField(course, "tags", entity.getTags() != null ? new java.util.HashSet<>(entity.getTags()) : new java.util.HashSet<>());
+            setField(course, "welcomeMessage", entity.getWelcomeMessage());
+            setField(course, "courseInformation", entity.getCourseInformation());
+            setField(course, "benefits", entity.getBenefits());
+            setField(course, "introVideoUrl", entity.getIntroVideoUrl());
+            setField(course, "credits", entity.getCredits());
+            setField(course, "visibility", mapVisibilityToDomain(entity.getVisibility()));
+            setField(course, "priceType", mapPriceTypeToDomain(entity.getPriceType()));
+            setField(course, "price", entity.getPrice());
+            setField(course, "salePrice", entity.getSalePrice());
+            setField(course, "reviewComment", entity.getReviewComment());
+            setField(course, "reviewedAt", entity.getReviewedAt());
+            setField(course, "reviewedById", entity.getReviewedById());
+
+            // Set timestamps from BaseEntity
+            setField(course, "createdAt", entity.getCreatedAt());
+            setField(course, "updatedAt", entity.getUpdatedAt());
+
+            return course;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to map CourseJpaEntity to Course domain model", e);
+        }
+    }
+
+    /**
+     * Map JPA entity CourseStatus to domain CourseStatus.
+     */
+    private Course.CourseStatus mapStatusToDomain(CourseJpaEntity.CourseStatus entityStatus) {
+        if (entityStatus == null) return Course.CourseStatus.DRAFT;
+        return switch (entityStatus) {
+            case DRAFT -> Course.CourseStatus.DRAFT;
+            case PENDING -> Course.CourseStatus.PENDING;
+            case APPROVED -> Course.CourseStatus.APPROVED;
+            case REJECTED -> Course.CourseStatus.REJECTED;
+            case PUBLISHED -> Course.CourseStatus.PUBLISHED;
+            case ARCHIVED -> Course.CourseStatus.ARCHIVED;
+        };
+    }
+
+    /**
+     * Map JPA entity Visibility to domain Visibility.
+     */
+    private Course.Visibility mapVisibilityToDomain(CourseJpaEntity.Visibility entityVisibility) {
+        if (entityVisibility == null) return Course.Visibility.PUBLIC;
+        return switch (entityVisibility) {
+            case PUBLIC -> Course.Visibility.PUBLIC;
+            case PRIVATE -> Course.Visibility.PRIVATE;
+        };
+    }
+
+    /**
+     * Map JPA entity PriceType to domain PriceType.
+     */
+    private Course.PriceType mapPriceTypeToDomain(CourseJpaEntity.PriceType entityPriceType) {
+        if (entityPriceType == null) return Course.PriceType.FREE;
+        return switch (entityPriceType) {
+            case FREE -> Course.PriceType.FREE;
+            case PAID -> Course.PriceType.PAID;
+        };
+    }
+
+    /**
+     * Reflection helper to set private fields during domain object reconstruction.
+     */
+    private void setField(Object target, String fieldName, Object value) throws Exception {
+        java.lang.reflect.Field field;
+        try {
+            // Try in Course class first
+            field = Course.class.getDeclaredField(fieldName);
+        } catch (NoSuchFieldException e) {
+            // Try in BaseEntity superclass
+            field = com.example.lms.shared.domain.model.BaseEntity.class.getDeclaredField(fieldName);
+        }
+        field.setAccessible(true);
+        field.set(target, value);
     }
 }

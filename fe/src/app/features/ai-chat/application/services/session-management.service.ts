@@ -89,8 +89,6 @@ export class SessionManagementService implements OnDestroy {
    * Handle user login - set up isolated storage
    */
   private handleUserLogin(userId: string, role: string): void {
-    console.log(`🔐 AI Chat: Setting up session for user ${userId}`);
-
     // Set user info
     this._userId.set(userId);
     this._role.set(parseRole(role));
@@ -107,8 +105,6 @@ export class SessionManagementService implements OnDestroy {
    * Handle user logout - clear session data
    */
   private handleUserLogout(): void {
-    console.log('🔐 AI Chat: User logged out, clearing session');
-
     // Clear current session
     this.clearSession();
 

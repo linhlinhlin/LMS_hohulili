@@ -1,4 +1,4 @@
-import { Component, ElementRef, forwardRef, OnDestroy, AfterViewInit, viewChild, input, output, ViewEncapsulation, inject, effect, signal } from '@angular/core';
+import { Component, ElementRef, forwardRef, OnDestroy, AfterViewInit, viewChild, input, output, ViewEncapsulation, inject, effect, signal, ChangeDetectionStrategy } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import EditorJS, { OutputData } from '@editorjs/editorjs';
@@ -32,8 +32,8 @@ import { environment } from '../../../../environments/environment';
  * - Link: Tránh xao nhãng khi làm bài
  */
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
     selector: 'app-block-editor',
-    standalone: true,
     templateUrl: './block-editor.component.html',
     styleUrl: './block-editor.component.scss',
     providers: [
@@ -93,11 +93,8 @@ export class BlockEditorComponent implements AfterViewInit, OnDestroy, ControlVa
     initializeEditor() {
         const container = this.editorContainer();
         if (!container) {
-            console.error('Editor container not found');
             return;
         }
-
-        console.log('Initializing Maritime EditorJS...');
 
         try {
             this.editor = new EditorJS({
@@ -274,7 +271,6 @@ export class BlockEditorComponent implements AfterViewInit, OnDestroy, ControlVa
                 }
             });
         } catch (e) {
-            console.error('EditorJS Initialization Error:', e);
         }
     }
 

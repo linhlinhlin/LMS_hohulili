@@ -1,5 +1,5 @@
 ﻿import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { RealVideoPlayerComponent, VideoPlayerConfig } from '../../../shared/components/video-player/real-video-player.component';
@@ -50,7 +50,7 @@ interface Course {
 
 @Component({
   selector: 'app-enhanced-learning-interface',
-  imports: [CommonModule, RouterModule, FormsModule, RealVideoPlayerComponent],
+  imports: [RouterModule, FormsModule, RealVideoPlayerComponent],
   encapsulation: ViewEncapsulation.None,
   templateUrl: './enhanced-learning-interface.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -62,19 +62,19 @@ export class EnhancedLearningInterfaceComponent implements OnInit {
   // Mock course data
   course = signal<Course>({
     id: 'course-1',
-    title: 'Ká»¹ thuáº­t TĂ u biá»ƒn CÆ¡ báº£n',
-    description: 'KhĂ³a há»c cung cáº¥p kiáº¿n thá»©c cÆ¡ báº£n vá» ká»¹ thuáº­t tĂ u biá»ƒn',
-    instructor: 'ThS. Nguyá»…n VÄƒn Háº£i',
+    title: 'Kỹ thuật Tàu biển Cơ bản',
+    description: 'Khóa học cung cấp kiến thức cơ bản về kỹ thuật tàu biển',
+    instructor: 'ThS. Nguyễn Văn Hải',
     thumbnail: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=300&h=200&fit=crop',
-    duration: '8 tuáº§n',
+    duration: '8 tuần',
     progress: 75,
     category: 'engineering',
     rating: 4.7,
     lessons: [
       {
         id: 'lesson-1',
-        title: 'Giá»›i thiá»‡u vá» Ká»¹ thuáº­t TĂ u biá»ƒn',
-        description: 'Tá»•ng quan vá» ngĂ nh ká»¹ thuáº­t tĂ u biá»ƒn vĂ  cĂ¡c thĂ nh pháº§n cÆ¡ báº£n',
+        title: 'Giới thiệu về Kỹ thuật Tàu biển',
+        description: 'Tổng quan về ngành kỹ thuật tàu biển và các thành phần cơ bản',
         videoUrl: 'https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4',
         duration: 1800, // 30 minutes
         thumbnail: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=300&h=200&fit=crop',
@@ -88,8 +88,8 @@ export class EnhancedLearningInterfaceComponent implements OnInit {
       },
       {
         id: 'lesson-2',
-        title: 'Cáº¥u trĂºc TĂ u biá»ƒn',
-        description: 'PhĂ¢n tĂ­ch chi tiáº¿t cĂ¡c thĂ nh pháº§n cáº¥u trĂºc cá»§a tĂ u biá»ƒn',
+        title: 'Cấu trúc Tàu biển',
+        description: 'Phân tích chi tiết các thành phần cấu trúc của tàu biển',
         videoUrl: 'https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_2mb.mp4',
         duration: 2400, // 40 minutes
         thumbnail: 'https://images.unsplash.com/photo-1506905925346-14b1e3d71e51?w=300&h=200&fit=crop',
@@ -102,8 +102,8 @@ export class EnhancedLearningInterfaceComponent implements OnInit {
           {
             id: 'bookmark-1',
             timestamp: 300,
-            title: 'Cáº¥u trĂºc thĂ¢n tĂ u',
-            description: 'Pháº§n quan trá»ng vá» cáº¥u trĂºc thĂ¢n tĂ u',
+            title: 'Cấu trúc thân tàu',
+            description: 'Phần quan trọng về cấu trúc thân tàu',
             createdAt: new Date()
           }
         ],
@@ -111,15 +111,15 @@ export class EnhancedLearningInterfaceComponent implements OnInit {
           {
             id: 'note-1',
             timestamp: 600,
-            content: 'Cáº¥u trĂºc tĂ u Ä‘Æ°á»£c chia thĂ nh nhiá»u pháº§n khĂ¡c nhau',
+            content: 'Cấu trúc tàu được chia thành nhiều phần khác nhau',
             createdAt: new Date()
           }
         ]
       },
       {
         id: 'lesson-3',
-        title: 'Há»‡ thá»‘ng Äá»™ng lá»±c',
-        description: 'TĂ¬m hiá»ƒu vá» cĂ¡c há»‡ thá»‘ng Ä‘á»™ng lá»±c trĂªn tĂ u biá»ƒn',
+        title: 'Hệ thống Động lực',
+        description: 'Tìm hiểu về các hệ thống động lực trên tàu biển',
         videoUrl: 'https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_5mb.mp4',
         duration: 2700, // 45 minutes
         thumbnail: 'https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?w=300&h=200&fit=crop',
@@ -231,7 +231,6 @@ export class EnhancedLearningInterfaceComponent implements OnInit {
 
   toggleBookmark(): void {
     // Toggle bookmark functionality
-    console.log('Toggle bookmark');
   }
 
   toggleNotes(): void {
@@ -287,12 +286,10 @@ export class EnhancedLearningInterfaceComponent implements OnInit {
 
   rewindVideo(): void {
     // Video player will handle this internally
-    console.log('Rewind video');
   }
 
   fastForwardVideo(): void {
     // Video player will handle this internally
-    console.log('Fast forward video');
   }
 
   changePlaybackRate(event: Event): void {
@@ -309,46 +306,36 @@ export class EnhancedLearningInterfaceComponent implements OnInit {
 
   toggleFullscreen(): void {
     // Video player will handle this internally
-    console.log('Toggle fullscreen');
   }
 
   onVideoPlayerReady(): void {
-    console.log('Video player is ready');
   }
 
   onVideoPlayerError(error: any): void {
-    console.error('Video player error:', error);
   }
 
   onVideoPlayerProgress(progress: number): void {
     // Update learning progress
-    console.log('Video progress:', progress);
   }
 
   onVideoStateChange(state: any): void {
-    console.log('Video state changed:', state);
   }
 
   onVideoTimeUpdate(time: number): void {
-    console.log('Video time update:', time);
   }
 
   onVideoPlay(): void {
-    console.log('Video started playing');
   }
 
   onVideoPause(): void {
-    console.log('Video paused');
   }
 
   onVideoEnded(): void {
-    console.log('Video ended');
     // Mark lesson as completed
     this.markLessonCompleted();
   }
 
   onVideoError(error: any): void {
-    console.error('Video error:', error);
   }
 
   markLessonCompleted(): void {

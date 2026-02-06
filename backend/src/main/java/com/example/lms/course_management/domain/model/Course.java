@@ -193,24 +193,48 @@ public class Course {
         return Collections.unmodifiableList(chapters);
     }
 
-    // ============ SETTERS (Domain mutations) ============
-    
-    public void setId(UUID id) { this.id = id; }
-    public void setCode(String code) { this.code = code; this.updatedAt = Instant.now(); }
-    public void setTitle(String title) { this.title = title; this.updatedAt = Instant.now(); }
-    public void setSlug(String slug) { this.slug = slug; this.updatedAt = Instant.now(); }
-    public void setDescription(String description) { this.description = description; this.updatedAt = Instant.now(); }
-    public void setThumbnailUrl(String thumbnailUrl) { this.thumbnailUrl = thumbnailUrl; this.updatedAt = Instant.now(); }
-    public void setTeacherId(UUID teacherId) { this.teacherId = teacherId; this.updatedAt = Instant.now(); }
-    public void setCategoryId(UUID categoryId) { this.categoryId = categoryId; this.updatedAt = Instant.now(); }
-    public void setPrice(BigDecimal price) { this.price = price; this.updatedAt = Instant.now(); }
-    public void setPriceType(CoursePriceType priceType) { this.priceType = priceType; this.updatedAt = Instant.now(); }
-    public void setPrerequisiteCourseId(UUID prerequisiteCourseId) { this.prerequisiteCourseId = prerequisiteCourseId; this.updatedAt = Instant.now(); }
-    public void setUnlockMode(CourseUnlockMode unlockMode) { this.unlockMode = unlockMode; this.updatedAt = Instant.now(); }
-    public void setStatus(CourseStatus status) { this.status = status; }
-    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
-    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
-    public void setChapters(List<Chapter> chapters) { this.chapters = chapters != null ? new ArrayList<>(chapters) : new ArrayList<>(); }
+    // ============ BEHAVIOR METHODS (Domain mutations) ============
+
+    public void updateInfo(String title, String description) {
+        if (title != null && !title.isBlank()) this.title = title;
+        if (description != null) this.description = description;
+        this.updatedAt = Instant.now();
+    }
+
+    public void updatePricing(CoursePriceType priceType, BigDecimal price) {
+        if (priceType != null) this.priceType = priceType;
+        if (price != null) this.price = price;
+        this.updatedAt = Instant.now();
+    }
+
+    public void updateThumbnail(String thumbnailUrl) {
+        this.thumbnailUrl = thumbnailUrl;
+        this.updatedAt = Instant.now();
+    }
+
+    public void updateCategory(UUID categoryId) {
+        this.categoryId = categoryId;
+        this.updatedAt = Instant.now();
+    }
+
+    public void updateSettings(UUID prerequisiteCourseId, CourseUnlockMode unlockMode) {
+        if (prerequisiteCourseId != null) this.prerequisiteCourseId = prerequisiteCourseId;
+        if (unlockMode != null) this.unlockMode = unlockMode;
+        this.updatedAt = Instant.now();
+    }
+
+    public void reorderChapters(List<UUID> orderedChapterIds) {
+        if (orderedChapterIds == null) return;
+        List<Chapter> reordered = new ArrayList<>();
+        for (UUID chapterId : orderedChapterIds) {
+            this.chapters.stream()
+                .filter(c -> c.getId().equals(chapterId))
+                .findFirst()
+                .ifPresent(reordered::add);
+        }
+        this.chapters = reordered;
+        this.updatedAt = Instant.now();
+    }
 
     // ============ BUILDER (for convenience) ============
     
@@ -240,7 +264,7 @@ public class Course {
     // ============ VALUE OBJECTS (Enums) ============
 
     public enum CourseStatus {
-        DRAFT, PENDING, APPROVED, REJECTED, ARCHIVED
+        DRAFT, PENDING, APPROVED, REJECTED, PUBLISHED, ARCHIVED
     }
 
     public enum CoursePriceType {

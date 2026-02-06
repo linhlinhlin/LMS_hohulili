@@ -1,9 +1,9 @@
 import { Component, input, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 
 @Component({
   selector: 'app-maritime-icon',
-  imports: [CommonModule],
+  imports: [],
   encapsulation: ViewEncapsulation.None,
   template: `
     @switch (iconName()) {

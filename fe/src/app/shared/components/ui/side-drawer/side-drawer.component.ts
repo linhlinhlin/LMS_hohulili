@@ -1,13 +1,13 @@
-import { Component, input, output, model } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, input, output, model, ChangeDetectionStrategy } from '@angular/core';
+
 import { animate, style, transition, trigger } from '@angular/animations';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-side-drawer',
-  standalone: true,
-  imports: [CommonModule, MatIconModule, MatButtonModule],
+  imports: [MatIconModule, MatButtonModule],
   template: `
     <!-- Backdrop -->
     @if (isOpen()) {

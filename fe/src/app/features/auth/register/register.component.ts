@@ -1,5 +1,5 @@
-﻿import { Component, signal, inject, ChangeDetectionStrategy, ViewEncapsulation, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, signal, inject, ChangeDetectionStrategy, ViewEncapsulation, OnInit } from '@angular/core';
+
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, FormControl, Validators, ReactiveFormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
@@ -20,7 +20,7 @@ type ProfileForm = {
 
 @Component({
   selector: 'app-register',
-  imports: [CommonModule, RouterModule, ReactiveFormsModule],
+  imports: [RouterModule, ReactiveFormsModule],
   encapsulation: ViewEncapsulation.Emulated,
   templateUrl: './register.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -67,7 +67,7 @@ export class RegisterComponent implements OnInit {
     this.errorMessage.set('');
 
     const formData = this.registerForm.getRawValue();
-    
+
     // Use email as username (backend requirement)
     const userData: RegisterRequest = {
       username: formData.email, // Email as username - unique and user-controlled
@@ -79,9 +79,9 @@ export class RegisterComponent implements OnInit {
 
     this.authService.register(userData).subscribe({
       next: (response) => {
-        console.log('âœ… Registration successful:', response);
+
         this.isLoading.set(false);
-        
+
         // Redirect based on user role
         const userRole = response.user.role.toLowerCase();
         let redirectUrl = '/';
@@ -98,15 +98,13 @@ export class RegisterComponent implements OnInit {
           default:
             redirectUrl = '/';
         }
-        
+
         this.router.navigate([redirectUrl]);
       },
       error: (error) => {
-        console.error('âŒ Registration failed:', error);
         this.isLoading.set(false);
-        this.errorMessage.set(error.error?.message || 'ÄÄƒng kĂ½ tháº¥t báº¡i. Vui lĂ²ng thá»­ láº¡i.');
+        this.errorMessage.set(error.error?.message || 'Đăng ký thất bại. Vui lòng thử lại.');
       }
     });
   }
 }
-

@@ -1,5 +1,5 @@
-import { Component, signal, computed, inject, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { FileUploadComponent } from '../../../shared/components/file-upload/file-upload.component';
 
@@ -15,8 +15,9 @@ interface Assignment {
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-assignment-submission',
-  imports: [CommonModule, ReactiveFormsModule, FileUploadComponent],
+  imports: [ReactiveFormsModule, FileUploadComponent],
   template: `
     <div class="max-w-4xl mx-auto p-6">
       <!-- Assignment Info -->
@@ -134,7 +135,6 @@ export class AssignmentSubmissionComponent implements OnInit {
       // Mock submission
       setTimeout(() => {
         this.isSubmitting.set(false);
-        console.log('Assignment submitted:', this.submissionForm.value);
         // Show success message
       }, 2000);
     }
@@ -142,7 +142,6 @@ export class AssignmentSubmissionComponent implements OnInit {
 
   saveDraft(): void {
     // Mock save draft
-    console.log('Draft saved:', this.submissionForm.value);
   }
 
   formatDate(date: Date): string {

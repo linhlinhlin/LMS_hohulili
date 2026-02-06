@@ -8,18 +8,17 @@ import {
   effect,
   signal,
   inject,
-  AfterViewInit,
-} from '@angular/core';
-import { CommonModule } from '@angular/common';
+  AfterViewInit, ChangeDetectionStrategy } from '@angular/core';
+
 import videojs from 'video.js';
 import Player from 'video.js/dist/types/player';
 import { VideoProgressApi, TrackProgressRequest } from '../../../api/client/video-progress.api';
 import { interval, Subscription } from 'rxjs';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-video-player-tracked',
-  standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
     <div class="video-player-container">
       <!-- Video Player -->
@@ -188,7 +187,6 @@ export class VideoPlayerTrackedComponent implements OnInit, AfterViewInit, OnDes
   private initializePlayer(): void {
     const videoElement = this.videoPlayerRef();
     if (!videoElement?.nativeElement) {
-      console.error('Video element not found');
       return;
     }
 
@@ -209,16 +207,13 @@ export class VideoPlayerTrackedComponent implements OnInit, AfterViewInit, OnDes
 
     // Setup event listeners
     this.player.ready(() => {
-      console.log('Video player is ready');
       this.setupTrackingListeners();
     });
 
     this.player.on('loadedmetadata', () => {
-      console.log('Video metadata loaded, duration:', this.player?.duration());
     });
 
-    this.player.on('error', (error: any) => {
-      console.error('Video player error:', error);
+    this.player.on('error', () => {
     });
   }
 
@@ -289,14 +284,11 @@ export class VideoPlayerTrackedComponent implements OnInit, AfterViewInit, OnDes
           this.currentProgress.set(Math.floor(response.data.progressPercentage));
           this.isCompleted.set(response.data.completed);
 
-          // Log completion event
-          if (response.data.completed && !this.isCompleted()) {
-            console.log('🎉 Video completed! 75% threshold reached');
-          }
+          // Completion event
+
         }
       },
-      error: (error) => {
-        console.error('Failed to track progress:', error);
+      error: () => {
       },
     });
   }
@@ -325,13 +317,11 @@ export class VideoPlayerTrackedComponent implements OnInit, AfterViewInit, OnDes
           if (progress.currentPosition > 0 && this.player) {
             setTimeout(() => {
               this.player?.currentTime(progress.currentPosition);
-              console.log(`Resumed from ${progress.currentPosition}s`);
             }, 500);
           }
         }
       },
-      error: (error) => {
-        console.error('Failed to load existing progress:', error);
+      error: () => {
       },
     });
   }

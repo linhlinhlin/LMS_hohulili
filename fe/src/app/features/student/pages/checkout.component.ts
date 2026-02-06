@@ -1,5 +1,5 @@
 import { Component, signal, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { CourseApi } from '../../../api/client/course.api';
 import { PaymentService, CheckoutRequest } from '../services/payment.service';
@@ -23,8 +23,7 @@ interface CourseInfo {
  */
 @Component({
   selector: 'app-checkout',
-  standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [RouterModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 py-8 px-4">
@@ -270,7 +269,6 @@ export class CheckoutComponent implements OnInit {
         }
       },
       error: (err: Error) => {
-        console.error('Error checking payment status:', err);
         // Vẫn load course info nếu check payment lỗi
         this.loadCourseInfo();
       }
@@ -294,7 +292,6 @@ export class CheckoutComponent implements OnInit {
         });
       },
       error: (err: Error) => {
-        console.error('Error loading course:', err);
       }
     });
   }
@@ -315,7 +312,6 @@ export class CheckoutComponent implements OnInit {
         this.isLoading.set(false);
       },
       error: (err: Error) => {
-        console.error('Error loading course:', err);
         this.error.set('Không thể tải thông tin khóa học');
         this.isLoading.set(false);
       }

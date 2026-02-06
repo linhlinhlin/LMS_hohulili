@@ -3,14 +3,14 @@ package com.example.lms.identity.application.usecase;
 import com.example.lms.identity.application.dto.AuthResponse;
 import com.example.lms.identity.application.dto.RegisterUserCommand;
 import com.example.lms.identity.application.dto.UserResponse;
+import com.example.lms.identity.application.port.TokenService;
 import com.example.lms.identity.domain.event.UserRegisteredEvent;
 import com.example.lms.identity.domain.model.Role;
 import com.example.lms.identity.domain.model.User;
 import com.example.lms.identity.domain.repository.UserRepository;
-import com.example.lms.identity.infrastructure.security.JwtTokenAdapter;
+import com.example.lms.shared.domain.event.DomainEventPublisher;
 import com.example.lms.shared.domain.valueobject.Email;
 import com.example.lms.shared.exception.ValidationException;
-import com.example.lms.shared.infrastructure.event.DomainEventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -20,13 +20,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Use case for registering a new user using DDD domain models.
- * 
- * This is the CLEAN version that uses:
- * - Domain model (User) instead of JPA entity
- * - Domain repository (UserRepository) instead of legacy UserDomainRepository
- * - Domain events for cross-module communication
- * 
- * Following Clean Architecture / Hexagonal Architecture principles.
+ *
+ * Clean Architecture: No infrastructure imports.
+ * Uses domain UserRepository, TokenService port, and DomainEventPublisher port only.
  */
 @Service("registerUserUseCaseV2")
 @RequiredArgsConstructor
@@ -35,7 +31,7 @@ public class RegisterUserUseCaseV2 {
 
     @Qualifier("newUserRepositoryAdapter")
     private final UserRepository userRepository;
-    private final JwtTokenAdapter jwtTokenAdapter;
+    private final TokenService tokenService;
     private final PasswordEncoder passwordEncoder;
     private final DomainEventPublisher eventPublisher;
 
@@ -75,9 +71,12 @@ public class RegisterUserUseCaseV2 {
         // Save using domain repository
         User savedUser = userRepository.save(user);
 
-        // Generate tokens using adapter
-        String accessToken = jwtTokenAdapter.generateAccessToken(savedUser);
-        String refreshToken = jwtTokenAdapter.generateRefreshToken(savedUser);
+        // Generate tokens via domain port
+        String email = savedUser.getEmail() != null ? savedUser.getEmail().getValue() : savedUser.getUsername();
+        String accessToken = tokenService.generateAccessToken(
+                savedUser.getId().value(), email, savedUser.getRole().name());
+        String refreshToken = tokenService.generateRefreshToken(
+                savedUser.getId().value(), email, savedUser.getRole().name());
 
         log.info("User registered successfully (V2): {}", savedUser.getId());
 

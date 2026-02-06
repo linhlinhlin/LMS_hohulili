@@ -1,0 +1,230 @@
+<div class="min-h-screen bg-gray-50 p-6">
+  <div class="max-w-4xl mx-auto">
+    <!-- Header with Preview Button -->
+    <div class="mb-8 flex justify-between items-start">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">Tạo Câu Hỏi Mới</h1>
+        <p class="text-gray-600">Soạn thảo câu hỏi trắc nghiệm với công thức toán học và hình ảnh minh họa</p>
+      </div>
+      <button type="button" (click)="showPreview = true"
+        class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-md">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+        </svg>
+        Xem trước
+      </button>
+    </div>
+
+    <!-- Question Creation Form -->
+    <form [formGroup]="questionForm" (ngSubmit)="onSubmit()" class="space-y-6">
+      <!-- Basic Information -->
+      <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-semibold mb-4 text-gray-800">Nội dung câu hỏi</h2>
+
+        <!-- Question Content Block Editor -->
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Soạn thảo nội dung (Text, Ảnh, Công thức) *
+          </label>
+
+          <div class="min-h-[150px]">
+            <app-block-editor
+              (blocksChange)="onQuestionContentChange($event)">
+            </app-block-editor>
+          </div>
+
+          @if (questionBlocks().length === 0 && questionForm.touched) {
+            <div
+              class="text-red-500 text-sm mt-1">
+              Nội dung câu hỏi là bắt buộc
+            </div>
+          }
+        </div>
+
+        <!-- Basic Info Grid (Difficulty, Tags) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Difficulty -->
+          <div>
+            <label for="difficulty" class="block text-sm font-medium text-gray-700 mb-2">
+              Độ khó
+            </label>
+            <select
+              id="difficulty"
+              formControlName="difficulty"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+              <option value="EASY">Dễ</option>
+              <option value="MEDIUM">Trung bình</option>
+              <option value="HARD">Khó</option>
+            </select>
+          </div>
+
+          <!-- Tags -->
+          <div>
+            <label for="tags" class="block text-sm font-medium text-gray-700 mb-2">
+              Thẻ (tags)
+            </label>
+            <input
+              id="tags"
+              type="text"
+              formControlName="tags"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="ví dụ: toán học, đại số"
+              >
+            <div class="text-xs text-gray-500 mt-1">
+              Phân cách bằng dấu phẩy
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Options -->
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-semibold text-gray-800">Đáp án</h2>
+          <button
+            type="button"
+            (click)="addOption()"
+            class="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+            Thêm đáp án
+          </button>
+        </div>
+
+        <!-- Options List -->
+        <div formArrayName="options" class="space-y-3">
+          @for (option of options.controls; track option; let i = $index) {
+            <div
+              [formGroupName]="i"
+              class="flex items-center space-x-3 p-3 border rounded-lg"
+              [class.border-green-500]="i === getCorrectOptionIndex()"
+              [class.bg-green-50]="i === getCorrectOptionIndex()">
+              <!-- Option Key -->
+              <div class="flex-shrink-0">
+                <span class="inline-flex items-center justify-center w-8 h-8 bg-gray-200 rounded-full text-sm font-medium">
+                  {{ getOptionKey(i) }}
+                </span>
+              </div>
+              <!-- Option Content (Enriched Input) -->
+              <div class="flex-1">
+                <app-enriched-input
+                  [placeholder]="'Nhập nội dung đáp án (dùng [IMG] hoặc $...$)'"
+                  (valueChange)="updateOptionText(i, $event)"
+                  (blocksChange)="updateOptionBlocks(i, $event)"
+                ></app-enriched-input>
+                <!-- Mini Preview for Option Image -->
+                @if (hasImageTag(options.at(i).get('content')?.value)) {
+                  <div class="absolute right-14 top-2 z-10">
+                    <img [src]="extractFileId(options.at(i).get('content')?.value) | authImage"
+                      class="w-10 h-10 rounded border shadow-sm object-cover bg-white hover:scale-150 transition-transform origin-top-right cursor-zoom-in"
+                      title="Image attached">
+                  </div>
+                }
+              </div>
+              <!-- Correct Option Radio -->
+              <div class="flex-shrink-0">
+                <input
+                  type="radio"
+                  [value]="getOptionKey(i)"
+                  [checked]="getCorrectOptionKey() === getOptionKey(i)"
+                  (change)="setCorrectOption(getOptionKey(i))"
+                  class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300"
+                  >
+                <label class="ml-1 text-xs text-gray-600">Đúng</label>
+              </div>
+              <!-- Remove Option -->
+              @if (options.length > 2) {
+                <div class="flex-shrink-0">
+                  <button
+                    type="button"
+                    (click)="removeOption(i)"
+                    class="text-red-500 hover:text-red-700 focus:outline-none"
+                    >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                  </button>
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Warning if no correct option selected -->
+        @if (!getCorrectOptionKey()) {
+          <div
+            class="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+            <div class="text-sm text-yellow-800">
+              <strong>Lưu ý:</strong> Bạn cần chọn ít nhất một đáp án đúng.
+            </div>
+          </div>
+        }
+
+        <!-- Minimum options warning -->
+        @if (options.length < 2) {
+          <div
+            class="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+            <div class="text-sm text-yellow-800">
+              Câu hỏi cần ít nhất 2 đáp án.
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Actions -->
+      <div class="flex justify-end space-x-4">
+        <button
+          type="button"
+          (click)="onCancel()"
+          class="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500"
+          >
+          Hủy
+        </button>
+        <button
+          type="submit"
+          [disabled]="questionForm.invalid || !getCorrectOptionKey() || options.length < 2 || questionBlocks().length === 0"
+          class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+          Tạo Câu Hỏi
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Preview Modal -->
+@if (showPreview) {
+  <div
+    class="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-6"
+    (click)="showPreview = false">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden"
+      (click)="$event.stopPropagation()">
+      <!-- Modal Header -->
+      <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 flex justify-between items-center">
+        <span class="text-white text-lg font-semibold flex items-center gap-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+          </svg>
+          Xem trước câu hỏi
+        </span>
+        <button (click)="showPreview = false"
+          class="text-white hover:text-red-300 transition-colors p-1">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <!-- Modal Content -->
+      <div class="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
+        <app-question-preview
+          [questionContent]="rawQuestionContent()"
+          [optionsList]="_previewOptions()"
+          [correctOption]="getCorrectOptionKey() || ''"
+          [showCorrectAnswer]="true">
+        </app-question-preview>
+      </div>
+    </div>
+  </div>
+}

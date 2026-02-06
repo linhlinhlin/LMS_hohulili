@@ -9,8 +9,8 @@
  *
  * @requirements 1.4, 5.2, 5.4, Security
  */
-import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, ChangeDetectionStrategy, input } from '@angular/core';
+
 import { RouterLink } from '@angular/router';
 import {
   Message,
@@ -22,8 +22,7 @@ import {
 
 @Component({
   selector: 'app-message-bubble',
-  standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
@@ -43,7 +42,7 @@ import {
         <!-- Sender name (only for received messages) -->
         @if (!isOwnMessage) {
           <p class="text-xs font-medium text-gray-500 mb-1">
-            {{ message.senderName }}
+            {{ message().senderName }}
           </p>
         }
 
@@ -99,19 +98,19 @@ import {
               </span>
             </div>
             <a
-              [routerLink]="['/student/assignments', message.assignmentReference?.assignmentId]"
+              [routerLink]="['/student/assignments', message().assignmentReference?.assignmentId]"
               class="block font-medium text-sm hover:underline"
               [class.text-white]="isOwnMessage"
               [class.text-blue-600]="!isOwnMessage"
             >
-              {{ message.assignmentReference?.assignmentTitle }}
+              {{ message().assignmentReference?.assignmentTitle }}
             </a>
             <p
               class="text-xs mt-1"
               [class.text-blue-200]="isOwnMessage"
               [class.text-gray-500]="!isOwnMessage"
             >
-              {{ message.assignmentReference?.courseName }}
+              {{ message().assignmentReference?.courseName }}
             </p>
           </div>
         }
@@ -131,8 +130,8 @@ import {
 
           <!-- Read status (only for own messages) -->
           @if (isOwnMessage) {
-            <span class="text-xs" [class.text-blue-200]="!message.isRead" [class.text-white]="message.isRead">
-              @if (message.isRead) {
+            <span class="text-xs" [class.text-blue-200]="!message().isRead" [class.text-white]="message().isRead">
+              @if (message().isRead) {
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                 </svg>
@@ -149,22 +148,22 @@ import {
   `,
 })
 export class MessageBubbleComponent {
-  @Input({ required: true }) message!: Message;
-  @Input({ required: true }) currentUserId!: string;
+  readonly message = input.required<Message>();
+  readonly currentUserId = input.required<string>();
 
   get isOwnMessage(): boolean {
-    return this.message.senderId === this.currentUserId;
+    return this.message().senderId === this.currentUserId();
   }
 
   get contentSegments(): TextSegment[] {
-    return parseMessageWithLinks(this.message.content);
+    return parseMessageWithLinks(this.message().content);
   }
 
   hasReference(): boolean {
-    return hasAssignmentReference(this.message);
+    return hasAssignmentReference(this.message());
   }
 
   formatTime(): string {
-    return formatMessageTime(this.message.createdAt);
+    return formatMessageTime(this.message().createdAt);
   }
 }

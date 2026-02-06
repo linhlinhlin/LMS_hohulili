@@ -1,5 +1,5 @@
 import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { ReactiveFormsModule, FormBuilder, Validators, FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { CourseApi } from '../../../api/client/course.api';
@@ -7,7 +7,7 @@ import { CreateCourseRequest, CourseSummary } from '../../../api/types/course.ty
 
 @Component({
   selector: 'app-course-creation',
-  imports: [CommonModule, ReactiveFormsModule, FormsModule],
+  imports: [ReactiveFormsModule, FormsModule],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="max-w-6xl mx-auto p-6 space-y-6">
@@ -16,32 +16,40 @@ import { CreateCourseRequest, CourseSummary } from '../../../api/types/course.ty
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Mã khóa học</label>
           <input formControlName="code" type="text" class="w-full border px-3 py-2" placeholder="VD: ME101" />
-          <div class="text-sm text-red-600 mt-1" *ngIf="form.controls.code.invalid && form.controls.code.touched">
-            Mã khóa học bắt buộc, tối đa 64 ký tự
-          </div>
+          @if (form.controls.code.invalid && form.controls.code.touched) {
+            <div class="text-sm text-red-600 mt-1">
+              Mã khóa học bắt buộc, tối đa 64 ký tự
+            </div>
+          }
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Tên khóa học</label>
           <input formControlName="title" type="text" class="w-full border px-3 py-2" placeholder="Tên khóa học" />
-          <div class="text-sm text-red-600 mt-1" *ngIf="form.controls.title.invalid && form.controls.title.touched">
-            Tên khóa học bắt buộc, tối đa 255 ký tự
-          </div>
+          @if (form.controls.title.invalid && form.controls.title.touched) {
+            <div class="text-sm text-red-600 mt-1">
+              Tên khóa học bắt buộc, tối đa 255 ký tự
+            </div>
+          }
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Mô tả</label>
           <textarea formControlName="description" rows="4" class="w-full border px-3 py-2" placeholder="Mô tả ngắn gọn..."></textarea>
         </div>
-
+    
         <div class="flex items-center gap-3">
           <button type="submit" [disabled]="form.invalid || isSubmitting()" class="px-4 py-2 bg-blue-600 text-white disabled:opacity-50">
             {{ isSubmitting() ? 'Đang tạo...' : 'Tạo khóa học' }}
           </button>
-          <span class="text-green-700" *ngIf="successMsg()">{{ successMsg() }}</span>
-          <span class="text-red-600" *ngIf="errorMsg()">{{ errorMsg() }}</span>
+          @if (successMsg()) {
+            <span class="text-green-700">{{ successMsg() }}</span>
+          }
+          @if (errorMsg()) {
+            <span class="text-red-600">{{ errorMsg() }}</span>
+          }
         </div>
       </form>
     </div>
-  `,
+    `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CourseCreationComponent {

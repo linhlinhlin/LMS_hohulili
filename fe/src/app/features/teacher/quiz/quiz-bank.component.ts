@@ -1,4 +1,4 @@
-﻿import { Component, signal, OnInit, inject, ViewChild } from '@angular/core';
+﻿import { Component, signal, OnInit, inject, viewChild, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
@@ -9,8 +9,8 @@ import { firstValueFrom } from 'rxjs';
 import { QuestionImportModalComponent } from './components/question-import-modal.component';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-quiz-bank',
-  standalone: true,
   imports: [CommonModule, FormsModule, QuestionImportModalComponent],
   templateUrl: './quiz-bank.component.html',
   styles: [`
@@ -26,7 +26,7 @@ import { QuestionImportModalComponent } from './components/question-import-modal
   `]
 })
 export class QuizBankComponent implements OnInit {
-  @ViewChild(QuestionImportModalComponent) importModal!: QuestionImportModalComponent;
+  readonly importModal = viewChild.required(QuestionImportModalComponent);
 
   private router = inject(Router);
   private route = inject(ActivatedRoute);
@@ -72,11 +72,6 @@ export class QuizBankComponent implements OnInit {
       const packageIdFromUrl = params['packageId'] || null;
       if (packageIdFromUrl) {
         this.selectedPackageId = packageIdFromUrl;
-        console.log('đŸ“¦ Auto-selecting package from URL:', packageIdFromUrl);
-      }
-
-      if (this.addToQuizLessonId) {
-        console.log('đŸ“ Add to Quiz mode - Lesson ID:', this.addToQuizLessonId);
       }
     });
 
@@ -94,8 +89,7 @@ export class QuizBankComponent implements OnInit {
       }
       // Always trigger change to load questions
       await this.onPackageChange();
-    } catch (error) {
-      console.error('Error loading packages:', error);
+    } catch {
     }
   }
 
@@ -113,8 +107,7 @@ export class QuizBankComponent implements OnInit {
           this.questions.set([]);
           this.filteredQuestions.set([]);
         }
-      } catch (error) {
-        console.error('Error loading all questions:', error);
+      } catch {
         this.questions.set([]);
         this.filteredQuestions.set([]);
       }
@@ -139,8 +132,7 @@ export class QuizBankComponent implements OnInit {
       const questions = await firstValueFrom(this.packageApi.getQuestionsInPackage(packageId));
       this.questions.set(questions);
       this.filteredQuestions.set(questions);
-    } catch (error) {
-      console.error('Error loading questions:', error);
+    } catch {
       this.questions.set([]);
       this.filteredQuestions.set([]);
     }
@@ -163,13 +155,13 @@ export class QuizBankComponent implements OnInit {
 
   async createPackage() {
     if (!this.newPackage.name.trim()) {
-      alert('Vui lĂ²ng nháº­p tĂªn gĂ³i!');
+      alert('Vui lòng nhập tên gói!');
       return;
     }
 
     try {
       const created = await firstValueFrom(this.packageApi.createPackage(this.newPackage));
-      alert('âœ… ÄĂ£ táº¡o gĂ³i cĂ¢u há»i thĂ nh cĂ´ng!');
+      alert('Đã tạo gói câu hỏi thành công!');
       this.showCreatePackageModal = false;
       this.newPackage = {
         name: '',
@@ -185,8 +177,7 @@ export class QuizBankComponent implements OnInit {
         await this.onPackageChange();
       }
     } catch (error: any) {
-      console.error('Error creating package:', error);
-      alert('Lá»—i khi táº¡o gĂ³i: ' + (error?.message || 'Lá»—i khĂ´ng xĂ¡c Ä‘á»‹nh'));
+      alert('Lỗi khi tạo gói: ' + (error?.message || 'Lỗi không xác định'));
     }
   }
 
@@ -194,12 +185,12 @@ export class QuizBankComponent implements OnInit {
     const pkg = this.selectedPackage();
     if (!pkg) return;
 
-    const confirmed = confirm(`Báº¡n cĂ³ cháº¯c cháº¯n muá»‘n xĂ³a gĂ³i "${pkg.name}"?\n\nCĂ¡c cĂ¢u há»i trong gĂ³i sáº½ Ä‘Æ°á»£c chuyá»ƒn vá» gĂ³i "ChÆ°a phĂ¢n loáº¡i".`);
+    const confirmed = confirm(`Bạn có chắc chắn muốn xóa gói "${pkg.name}"?\n\nCác câu hỏi trong gói sẽ được chuyển về gói "Chưa phân loại".`);
     if (!confirmed) return;
 
     try {
       await firstValueFrom(this.packageApi.deletePackage(pkg.id));
-      alert('âœ… ÄĂ£ xĂ³a gĂ³i thĂ nh cĂ´ng!');
+      alert('Đã xóa gói thành công!');
 
       this.selectedPackageId = '';
       this.selectedPackage.set(null);
@@ -208,17 +199,16 @@ export class QuizBankComponent implements OnInit {
 
       await this.loadPackages();
     } catch (error: any) {
-      console.error('Error deleting package:', error);
-      alert('Lá»—i khi xĂ³a gĂ³i: ' + (error?.message || 'Lá»—i khĂ´ng xĂ¡c Ä‘á»‹nh'));
+      alert('Lỗi khi xóa gói: ' + (error?.message || 'Lỗi không xác định'));
     }
   }
 
   getDifficultyLabel(difficulty: string): string {
     switch (difficulty) {
-      case 'EASY': return 'Dá»…';
-      case 'MEDIUM': return 'Trung bĂ¬nh';
-      case 'HARD': return 'KhĂ³';
-      default: return 'KhĂ´ng xĂ¡c Ä‘á»‹nh';
+      case 'EASY': return 'Dễ';
+      case 'MEDIUM': return 'Trung bình';
+      case 'HARD': return 'Khó';
+      default: return 'Không xác định';
     }
   }
 
@@ -239,12 +229,12 @@ export class QuizBankComponent implements OnInit {
   }
 
   async deleteQuestion(question: Question) {
-    const confirmed = confirm(`Báº¡n cĂ³ cháº¯c cháº¯n muá»‘n xĂ³a cĂ¢u há»i:\n\n"${question.content}"\n\nHĂ nh Ä‘á»™ng nĂ y khĂ´ng thá»ƒ hoĂ n tĂ¡c!`);
+    const confirmed = confirm(`Bạn có chắc chắn muốn xóa câu hỏi:\n\n"${question.content}"\n\nHành động này không thể hoàn tác!`);
     if (!confirmed) return;
 
     try {
       await firstValueFrom(this.questionApi.deleteQuestion(question.id));
-      alert('âœ… ÄĂ£ xĂ³a cĂ¢u há»i thĂ nh cĂ´ng!');
+      alert('Đã xóa câu hỏi thành công!');
 
       if (this.selectedPackage()) {
         await this.loadQuestionsInPackage(this.selectedPackage()!.id);
@@ -254,8 +244,7 @@ export class QuizBankComponent implements OnInit {
         await this.onPackageChange();
       }
     } catch (error: any) {
-      console.error('Error deleting question:', error);
-      alert('Lá»—i khi xĂ³a cĂ¢u há»i: ' + (error?.message || 'Lá»—i khĂ´ng xĂ¡c Ä‘á»‹nh'));
+      alert('Lỗi khi xóa câu hỏi: ' + (error?.message || 'Lỗi không xác định'));
     }
   }
 
@@ -293,13 +282,13 @@ export class QuizBankComponent implements OnInit {
   // Add selected questions to quiz
   async addSelectedToQuiz() {
     if (!this.addToQuizLessonId) {
-      alert('KhĂ´ng tĂ¬m tháº¥y Quiz Ä‘á»ƒ thĂªm cĂ¢u há»i');
+      alert('Không tìm thấy Quiz để thêm câu hỏi');
       return;
     }
 
     const selectedIds = this.selectedQuestions();
     if (selectedIds.length === 0) {
-      alert('Vui lĂ²ng chá»n Ă­t nháº¥t má»™t cĂ¢u há»i');
+      alert('Vui lòng chọn ít nhất một câu hỏi');
       return;
     }
 
@@ -312,30 +301,25 @@ export class QuizBankComponent implements OnInit {
       // Add each question using the API
       for (const questionId of selectedIds) {
         try {
-          console.log('đŸ”„ Adding question to quiz - lessonId:', this.addToQuizLessonId, 'questionId:', questionId);
           const result = await firstValueFrom(this.quizApi.addQuestionToQuiz(this.addToQuizLessonId!, questionId));
-          console.log('âœ… Add question result:', result);
           addedCount++;
         } catch (error: any) {
-          console.error('âŒ Error adding question:', questionId, error);
           // Question might already exist
-          if (error?.error?.message?.includes('Ä‘Ă£ tá»“n táº¡i')) {
+          if (error?.error?.message?.includes('đã tồn tại')) {
             skippedCount++;
-          } else {
-            console.error('Full error:', JSON.stringify(error, null, 2));
           }
         }
       }
 
       // Show result
       if (addedCount > 0) {
-        let msg = `âœ… ÄĂ£ thĂªm ${addedCount} cĂ¢u há»i vĂ o Quiz!`;
+        let msg = `Đã thêm ${addedCount} câu hỏi vào Quiz!`;
         if (skippedCount > 0) {
-          msg += `\nâ ï¸ ${skippedCount} cĂ¢u Ä‘Ă£ cĂ³ sáºµn trong Quiz.`;
+          msg += `\n${skippedCount} câu đã có sẵn trong Quiz.`;
         }
         alert(msg);
       } else if (skippedCount > 0) {
-        alert('â ï¸ Táº¥t cáº£ cĂ¢u há»i Ä‘Ă£ cĂ³ trong Quiz rá»“i!');
+        alert('Tất cả câu hỏi đã có trong Quiz rồi!');
       }
 
       this.clearSelection();
@@ -345,8 +329,7 @@ export class QuizBankComponent implements OnInit {
         this.router.navigateByUrl(this.returnUrl);
       }
     } catch (error: any) {
-      console.error('Error adding questions to quiz:', error);
-      alert('âŒ Lá»—i khi thĂªm cĂ¢u há»i: ' + (error?.message || 'Lá»—i khĂ´ng xĂ¡c Ä‘á»‹nh'));
+      alert('Lỗi khi thêm câu hỏi: ' + (error?.message || 'Lỗi không xác định'));
     } finally {
       this.addingToQuiz.set(false);
     }
@@ -366,7 +349,7 @@ export class QuizBankComponent implements OnInit {
         targetPackageId
       }));
 
-      alert('âœ… ÄĂ£ di chuyá»ƒn cĂ¢u há»i thĂ nh cĂ´ng!');
+      alert('Đã di chuyển câu hỏi thành công!');
       this.showMoveModal = false;
       this.clearSelection();
 
@@ -377,8 +360,7 @@ export class QuizBankComponent implements OnInit {
       }
       await this.loadPackages(); // Refresh package counts
     } catch (error: any) {
-      console.error('Error moving questions:', error);
-      alert('Lá»—i khi di chuyá»ƒn cĂ¢u há»i: ' + (error?.message || 'Lá»—i khĂ´ng xĂ¡c Ä‘á»‹nh'));
+      alert('Lỗi khi di chuyển câu hỏi: ' + (error?.message || 'Lỗi không xác định'));
     }
   }
 
@@ -386,16 +368,16 @@ export class QuizBankComponent implements OnInit {
 
   openImportModal() {
     if (!this.selectedPackageId) {
-      alert('Vui lĂ²ng chá»n gĂ³i cĂ¢u há»i trÆ°á»›c khi import');
+      alert('Vui lòng chọn gói câu hỏi trước khi import');
       return;
     }
-    if (this.importModal) {
-      this.importModal.open();
+    const importModal = this.importModal();
+    if (importModal) {
+      importModal.open();
     }
   }
 
   async onQuestionsImported(result: QuestionImportResult) {
-    console.log('âœ… Questions imported:', result);
     // Reload questions in current package
     if (this.selectedPackage()) {
       await this.loadQuestionsInPackage(this.selectedPackage()!.id);
@@ -405,7 +387,5 @@ export class QuizBankComponent implements OnInit {
   }
 
   onImportModalClosed() {
-    console.log('Import modal closed');
   }
 }
-

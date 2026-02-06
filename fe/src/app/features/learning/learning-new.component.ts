@@ -1,5 +1,5 @@
 import { Component, signal, inject, computed, ChangeDetectionStrategy, ViewEncapsulation, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule, Router } from '@angular/router';
 import { ResponsiveService } from '../../shared/services/responsive.service';
 import { ErrorHandlingService } from '../../shared/services/error-handling.service';
@@ -8,9 +8,8 @@ import { EnrolledCourse } from '../../shared/types/course.types';
 
 @Component({
   selector: 'app-learning-new',
-  imports: [CommonModule, RouterModule, LoadingComponent],
+  imports: [RouterModule, LoadingComponent],
   encapsulation: ViewEncapsulation.None,
-  standalone: true,
   template: `
     <!-- Loading State -->
     <app-loading 
@@ -337,8 +336,6 @@ export class LearningNewComponent implements OnInit {
       // Simulate loading data
       await this.simulateDataLoading();
       
-      console.log('🔧 Learning Interface - Component initialized successfully');
-      console.log('🔧 Learning Interface - Enrolled courses count:', this.enrolledCourses().length);
       
       this.errorService.showSuccess('Giao diện học tập đã được tải thành công!', 'learning');
       
@@ -381,28 +378,24 @@ export class LearningNewComponent implements OnInit {
   }
 
   goToCourseSelection(): void {
-    console.log('🔧 Learning Interface - Go to course selection');
     this.router.navigate(['/courses']).catch(error => {
       this.errorService.handleNavigationError(error, '/courses');
     });
   }
 
   goToQuizList(): void {
-    console.log('🔧 Learning Interface - Go to quiz list');
     this.router.navigate(['/student/quiz']).catch(error => {
       this.errorService.handleNavigationError(error, '/student/quiz');
     });
   }
 
   continueCourse(courseId: string): void {
-    console.log('🔧 Learning Interface - Continue course:', courseId);
     this.router.navigate(['/student/learn/course', courseId]).catch(error => {
       this.errorService.handleNavigationError(error, `/student/learn/course/${courseId}`);
     });
   }
 
   viewCourseDetail(courseId: string): void {
-    console.log('🔧 Learning Interface - View course detail:', courseId);
     this.router.navigate(['/courses', courseId]).catch(error => {
       this.errorService.handleNavigationError(error, `/courses/${courseId}`);
     });

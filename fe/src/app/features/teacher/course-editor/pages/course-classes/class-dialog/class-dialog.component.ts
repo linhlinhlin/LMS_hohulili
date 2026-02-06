@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit, inject } from '@angular/core';
+import { Component, Inject, OnInit, inject, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, FormControl } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
@@ -13,8 +13,8 @@ import { UserService, UserSummary } from '../../../../../../core/services/user.s
 import { ClassSummary } from '../../../../../../shared/types/course.types';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
     selector: 'app-class-dialog',
-    standalone: true,
     imports: [
         CommonModule,
         ReactiveFormsModule,
@@ -225,12 +225,12 @@ export class ClassDialogComponent implements OnInit {
         if (this.data.mode === 'create') {
             this.classService.createClass(payload).subscribe({
                 next: () => this.dialogRef.close(true),
-                error: (err: any) => console.error(err)
+                error: () => {}
             });
         } else if (this.data.mode === 'edit' && this.data.classData) {
             this.classService.updateClass(this.data.classData.id, payload).subscribe({
                 next: () => this.dialogRef.close(true),
-                error: (err: any) => console.error(err)
+                error: () => {}
             });
         }
     }

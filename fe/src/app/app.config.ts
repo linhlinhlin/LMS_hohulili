@@ -50,17 +50,12 @@ function initializeApp(authService: AuthService): () => Promise<void> {
   return () => {
     // ✅ Guard against SSR context where localStorage doesn't exist
     if (typeof localStorage === 'undefined') {
-      console.log('[APP INIT] Running in SSR context, skipping localStorage access');
       return Promise.resolve();
     }
 
-    console.log('[APP INIT] Initializing application...');
-
     // If user is already authenticated (token in localStorage), restore context
     if (authService.isAuthenticated()) {
-      console.log('[APP INIT] User already authenticated, restoring context...');
-      const user = authService.getCurrentUser();
-      console.log('[APP INIT] Restored user:', user?.fullName, 'role:', user?.role);
+      authService.getCurrentUser();
     }
 
     return Promise.resolve();

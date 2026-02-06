@@ -1,5 +1,5 @@
 import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
@@ -31,7 +31,7 @@ interface CalendarDay {
 
 @Component({
   selector: 'app-learning-calendar',
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [FormsModule, RouterModule],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
@@ -386,19 +386,15 @@ export class LearningCalendarComponent implements OnInit {
   }
 
   createEvent(): void {
-    console.log('Create new event');
   }
 
   addEventToDay(date: Date): void {
-    console.log('Add event to day:', date);
   }
 
   viewEvent(event: CalendarEvent): void {
-    console.log('View event:', event);
   }
 
   editEvent(eventId: string): void {
-    console.log('Edit event:', eventId);
   }
 
   getDayClasses(day: CalendarDay): string {

@@ -1,5 +1,5 @@
 import { Component, signal, computed, inject, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule, Router, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 
@@ -14,7 +14,7 @@ interface NavigationItem {
 
 @Component({
   selector: 'app-student-sidebar',
-  imports: [CommonModule, RouterModule, RouterLinkActive],
+  imports: [RouterModule, RouterLinkActive],
   encapsulation: ViewEncapsulation.None,
   templateUrl: './student-sidebar.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,

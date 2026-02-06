@@ -1,10 +1,11 @@
-import { Component, input, output, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, input, output, signal, ChangeDetectionStrategy } from '@angular/core';
+
 import { UploadedFile } from '../../models/uploaded-file.model';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-file-upload',
-  imports: [CommonModule],
+  imports: [],
   template: `
     <div class="file-upload-container">
       <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
@@ -110,7 +111,6 @@ export class FileUploadComponent {
 
       // Check file size
       if (file.size > this.maxFileSize()) {
-        console.warn(`File ${file.name} exceeds maximum size`);
         continue;
       }
 

@@ -82,8 +82,7 @@ export class AssignmentEditorComponent implements OnInit {
     const distChanged = JSON.stringify(currentDist) !== JSON.stringify(originalDist);
 
     const result = formChanged || distChanged;
-    console.log('hasChanges check:', { formChanged, distChanged, result });
-    
+
     return result;
   });
 
@@ -95,7 +94,7 @@ export class AssignmentEditorComponent implements OnInit {
     if (this.assignmentId) {
       this.loadAssignment();
     } else {
-      this.error.set('ID bĂ i táº­p khĂ´ng há»£p lá»‡');
+      this.error.set('ID bài tập không hợp lệ');
     }
   }
 
@@ -114,12 +113,11 @@ export class AssignmentEditorComponent implements OnInit {
           this.populateForm(assignment);
           this.loadEnrolledStudents(assignment.courseId);
         } else {
-          this.error.set('KhĂ´ng tĂ¬m tháº¥y bĂ i táº­p');
+          this.error.set('Không tìm thấy bài tập');
         }
       },
       error: (err: unknown) => {
-        console.error('Error loading assignment:', err);
-        this.error.set('KhĂ´ng thá»ƒ táº£i thĂ´ng tin bĂ i táº­p');
+        this.error.set('Không thể tải thông tin bài tập');
       },
       complete: () => {
         this.loading.set(false);
@@ -182,12 +180,7 @@ export class AssignmentEditorComponent implements OnInit {
    * Handles form submission
    */
   onSubmit(): void {
-    console.log('onSubmit called');
-    console.log('Form valid:', this.form.valid);
-    console.log('Has changes:', this.hasChanges());
-    
     if (this.form.invalid) {
-      console.log('Form invalid, returning');
       return;
     }
 
@@ -195,13 +188,12 @@ export class AssignmentEditorComponent implements OnInit {
     this.success.set('');
 
     const formValue = this.form.getRawValue();
-    console.log('Form value:', formValue);
 
     // Validate maxScore
     if (formValue.maxScore) {
       const validation = validateMaxScore(formValue.maxScore);
       if (!validation.isValid) {
-        this.formError.set(validation.errors[0]?.message || 'Äiá»ƒm tá»‘i Ä‘a khĂ´ng há»£p lá»‡');
+        this.formError.set(validation.errors[0]?.message || 'Điểm tối đa không hợp lệ');
         return;
       }
     }
@@ -213,7 +205,7 @@ export class AssignmentEditorComponent implements OnInit {
         const date = new Date(formValue.dueDate);
         dueDateInstant = date.toISOString();
       } catch {
-        this.formError.set('Äá»‹nh dáº¡ng ngĂ y háº¡n ná»™p khĂ´ng há»£p lá»‡');
+        this.formError.set('Định dạng ngày hạn nộp không hợp lệ');
         return;
       }
     }
@@ -221,7 +213,6 @@ export class AssignmentEditorComponent implements OnInit {
     this.saving.set(true);
 
     const distSettings = this.distributionSettings();
-    console.log('Distribution settings:', distSettings);
 
     const request: UpdateAssignmentRequest = {
       title: formValue.title || undefined,
@@ -234,30 +225,23 @@ export class AssignmentEditorComponent implements OnInit {
       distributionType: distSettings?.distributionType
     };
 
-    console.log('Update request:', request);
-    console.log('Assignment ID:', this.assignmentId);
-
     this.assignmentState.updateAssignment(this.assignmentId, request).subscribe({
       next: (result: unknown) => {
-        console.log('Update result:', result);
         if (result) {
-          this.success.set('ÄĂ£ lÆ°u thay Ä‘á»•i!');
+          this.success.set('Đã lưu thay đổi!');
           // Update original values
           this.originalValues.set(this.form.getRawValue());
           this.originalDistributionSettings.set(this.distributionSettings());
           // Clear success after 3 seconds
           setTimeout(() => this.success.set(''), 3000);
         } else {
-          console.error('Update failed:', this.assignmentState.error());
-          this.formError.set(this.assignmentState.error() || 'Cáº­p nháº­t tháº¥t báº¡i');
+          this.formError.set(this.assignmentState.error() || 'Cập nhật thất bại');
         }
       },
       error: (err: unknown) => {
-        console.error('Error updating assignment:', err);
-        this.formError.set('Cáº­p nháº­t bĂ i táº­p tháº¥t báº¡i');
+        this.formError.set('Cập nhật bài tập thất bại');
       },
       complete: () => {
-        console.log('Update complete');
         this.saving.set(false);
       }
     });
@@ -291,13 +275,12 @@ export class AssignmentEditorComponent implements OnInit {
         if (success) {
           this.router.navigate(['/teacher/assignments']);
         } else {
-          this.formError.set(this.assignmentState.error() || 'XĂ³a bĂ i táº­p tháº¥t báº¡i');
+          this.formError.set(this.assignmentState.error() || 'Xóa bài tập thất bại');
           this.showDeleteConfirm.set(false);
         }
       },
       error: (err: unknown) => {
-        console.error('Error deleting assignment:', err);
-        this.formError.set('XĂ³a bĂ i táº­p tháº¥t báº¡i');
+        this.formError.set('Xóa bài tập thất bại');
         this.showDeleteConfirm.set(false);
       },
       complete: () => {
@@ -310,11 +293,11 @@ export class AssignmentEditorComponent implements OnInit {
   getStatusLabel(): string {
     const status = this.form.get('status')?.value;
     const labels: Record<string, string> = {
-      'pending': 'NhĂ¡p',
-      'published': 'ÄĂ£ xuáº¥t báº£n',
-      'closed': 'ÄĂ£ Ä‘Ă³ng'
+      'pending': 'Nháp',
+      'published': 'Đã xuất bản',
+      'closed': 'Đã đóng'
     };
-    return labels[status || ''] || 'KhĂ´ng xĂ¡c Ä‘á»‹nh';
+    return labels[status || ''] || 'Không xác định';
   }
 
   getStatusBannerClass(): string {
@@ -357,7 +340,6 @@ export class AssignmentEditorComponent implements OnInit {
         }
       },
       error: (err: unknown) => {
-        console.error('Error loading enrolled students:', err);
         this.enrolledStudents.set([]);
       },
       complete: () => {

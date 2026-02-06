@@ -1,5 +1,5 @@
-import { CommonModule } from '@angular/common';
-import { Component, OnInit, signal, ViewChild } from '@angular/core';
+
+import { Component, OnInit, signal, viewChild, inject, ChangeDetectionStrategy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, FormArray, ReactiveFormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { QuestionApi, Question, UpdateQuestionRequest } from '../../../api/endpoints/question.api';
@@ -8,9 +8,9 @@ import { EnrichedInputFieldComponent } from '../../../shared/components/enriched
 import { ContentBlock } from '../../../api/types/content-block.types';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-question-edit',
-  standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, BlockEditorComponent, EnrichedInputFieldComponent],
+  imports: [ReactiveFormsModule, BlockEditorComponent, EnrichedInputFieldComponent],
   template: `
     <div class="min-h-screen bg-gray-50 p-6">
       <div class="max-w-4xl mx-auto">
@@ -19,215 +19,217 @@ import { ContentBlock } from '../../../api/types/content-block.types';
           <h1 class="text-3xl font-bold text-gray-900 mb-2">Chỉnh sửa Câu Hỏi</h1>
           <p class="text-gray-600">Cập nhật câu hỏi trắc nghiệm với nội dung phong phú</p>
         </div>
-
+    
         <!-- Loading State -->
-        <div *ngIf="isLoading" class="flex justify-center items-center py-12">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <span class="ml-2 text-gray-600">Đang tải...</span>
-        </div>
-
+        @if (isLoading) {
+          <div class="flex justify-center items-center py-12">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span class="ml-2 text-gray-600">Đang tải...</span>
+          </div>
+        }
+    
         <!-- Question Edit Form -->
-        <form *ngIf="!isLoading" [formGroup]="questionForm" (ngSubmit)="onSubmit()" class="space-y-6">
-          <!-- Question Info -->
-          <div class="bg-white rounded-lg shadow p-6">
-            <h2 class="text-xl font-semibold mb-4 text-gray-800">Thông tin câu hỏi</h2>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700">ID Câu hỏi</label>
-                <p class="text-sm text-gray-900 bg-gray-50 p-2 rounded">{{ question?.id }}</p>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Trạng thái</label>
-                <p class="text-sm text-gray-900 bg-gray-50 p-2 rounded">
-                  {{ getStatusText(question?.status) }}
-                </p>
+        @if (!isLoading) {
+          <form [formGroup]="questionForm" (ngSubmit)="onSubmit()" class="space-y-6">
+            <!-- Question Info -->
+            <div class="bg-white rounded-lg shadow p-6">
+              <h2 class="text-xl font-semibold mb-4 text-gray-800">Thông tin câu hỏi</h2>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">ID Câu hỏi</label>
+                  <p class="text-sm text-gray-900 bg-gray-50 p-2 rounded">{{ question?.id }}</p>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">Trạng thái</label>
+                  <p class="text-sm text-gray-900 bg-gray-50 p-2 rounded">
+                    {{ getStatusText(question?.status) }}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-
-          <!-- Basic Information -->
-          <div class="bg-white rounded-lg shadow p-6">
-            <h2 class="text-xl font-semibold mb-4 text-gray-800">Nội dung câu hỏi</h2>
-            
-            <!-- Question Content Block Editor -->
-            <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 mb-2">
-                Nội dung câu hỏi *
-              </label>
-              
-              <div class="min-h-[150px]">
-                  <app-block-editor 
+            <!-- Basic Information -->
+            <div class="bg-white rounded-lg shadow p-6">
+              <h2 class="text-xl font-semibold mb-4 text-gray-800">Nội dung câu hỏi</h2>
+              <!-- Question Content Block Editor -->
+              <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  Nội dung câu hỏi *
+                </label>
+                <div class="min-h-[150px]">
+                  <app-block-editor
                     #blockEditor
                     [initialBlocks]="questionBlocks()"
                     (blocksChange)="onQuestionContentChange($event)">
                   </app-block-editor>
-              </div>
-
-              <div *ngIf="questionBlocks().length === 0 && questionForm.touched" 
-                   class="text-red-500 text-sm mt-1">
-                Nội dung câu hỏi là bắt buộc
-              </div>
-            </div>
-
-            <!-- Difficulty and Tags -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <!-- Difficulty -->
-              <div>
-                <label for="difficulty" class="block text-sm font-medium text-gray-700 mb-2">
-                  Độ khó
-                </label>
-                <select
-                  id="difficulty"
-                  formControlName="difficulty"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="EASY">Dễ</option>
-                  <option value="MEDIUM">Trung bình</option>
-                  <option value="HARD">Khó</option>
-                </select>
-              </div>
-
-              <!-- Tags -->
-              <div>
-                <label for="tags" class="block text-sm font-medium text-gray-700 mb-2">
-                  Thẻ (tags)
-                </label>
-                <input
-                  id="tags"
-                  type="text"
-                  formControlName="tags"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="ví dụ: toán học, đại số"
-                >
-                <div class="text-xs text-gray-500 mt-1">
-                  Phân cách bằng dấu phẩy
                 </div>
+                @if (questionBlocks().length === 0 && questionForm.touched) {
+                  <div
+                    class="text-red-500 text-sm mt-1">
+                    Nội dung câu hỏi là bắt buộc
+                  </div>
+                }
               </div>
-            </div>
-
-            <!-- Status -->
-            <div class="mt-4">
-              <label for="status" class="block text-sm font-medium text-gray-700 mb-2">
-                Trạng thái
-              </label>
-              <select
-                id="status"
-                formControlName="status"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="DRAFT">Bản nháp</option>
-                <option value="ACTIVE">Hoạt động</option>
-                <option value="INACTIVE">Không hoạt động</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Options -->
-          <div class="bg-white rounded-lg shadow p-6">
-            <div class="flex justify-between items-center mb-4">
-              <h2 class="text-xl font-semibold text-gray-800">Đáp án</h2>
-              <button
-                type="button"
-                (click)="addOption()"
-                class="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                Thêm đáp án
-              </button>
-            </div>
-
-            <!-- Options List -->
-            <div formArrayName="options" class="space-y-3">
-              <div *ngFor="let option of options.controls; let i = index" 
-                   [formGroupName]="i"
-                   class="flex items-center space-x-3 p-3 border rounded-lg"
-                   [class.border-green-500]="i === getCorrectOptionIndex()"
-                   [class.bg-green-50]="i === getCorrectOptionIndex()">
-                
-                <!-- Option Key -->
-                <div class="flex-shrink-0">
-                  <span class="inline-flex items-center justify-center w-8 h-8 bg-gray-200 rounded-full text-sm font-medium">
-                    {{ getOptionKey(i) }}
-                  </span>
+              <!-- Difficulty and Tags -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Difficulty -->
+                <div>
+                  <label for="difficulty" class="block text-sm font-medium text-gray-700 mb-2">
+                    Độ khó
+                  </label>
+                  <select
+                    id="difficulty"
+                    formControlName="difficulty"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                    <option value="EASY">Dễ</option>
+                    <option value="MEDIUM">Trung bình</option>
+                    <option value="HARD">Khó</option>
+                  </select>
                 </div>
-
-                <!-- Option Content (Enriched Input) -->
-                <div class="flex-1">
-                  <app-enriched-input
-                    [placeholder]="'Nhập nội dung đáp án...'"
-                    [initialValue]="option.get('content')?.value"
-                    (valueChange)="updateOptionText(i, $event)"
-                    (blocksChange)="updateOptionBlocks(i, $event)"
-                  ></app-enriched-input>
-                </div>
-
-                <!-- Correct Option Radio -->
-                <div class="flex-shrink-0">
+                <!-- Tags -->
+                <div>
+                  <label for="tags" class="block text-sm font-medium text-gray-700 mb-2">
+                    Thẻ (tags)
+                  </label>
                   <input
-                    type="radio"
-                    [value]="getOptionKey(i)"
-                    [checked]="getCorrectOptionKey() === getOptionKey(i)"
-                    (change)="setCorrectOption(getOptionKey(i))"
-                    class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300"
-                  >
-                  <label class="ml-1 text-xs text-gray-600">Đúng</label>
+                    id="tags"
+                    type="text"
+                    formControlName="tags"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="ví dụ: toán học, đại số"
+                    >
+                    <div class="text-xs text-gray-500 mt-1">
+                      Phân cách bằng dấu phẩy
+                    </div>
+                  </div>
                 </div>
-
-                <!-- Remove Option -->
-                <div class="flex-shrink-0" *ngIf="options.length > 2">
+                <!-- Status -->
+                <div class="mt-4">
+                  <label for="status" class="block text-sm font-medium text-gray-700 mb-2">
+                    Trạng thái
+                  </label>
+                  <select
+                    id="status"
+                    formControlName="status"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                    <option value="DRAFT">Bản nháp</option>
+                    <option value="ACTIVE">Hoạt động</option>
+                    <option value="INACTIVE">Không hoạt động</option>
+                  </select>
+                </div>
+              </div>
+              <!-- Options -->
+              <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex justify-between items-center mb-4">
+                  <h2 class="text-xl font-semibold text-gray-800">Đáp án</h2>
                   <button
                     type="button"
-                    (click)="removeOption(i)"
-                    class="text-red-500 hover:text-red-700 focus:outline-none"
-                  >
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
+                    (click)="addOption()"
+                    class="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                    Thêm đáp án
                   </button>
                 </div>
-              </div>
-            </div>
-
-            <!-- Warning if no correct option selected -->
-            <div *ngIf="!getCorrectOptionKey()" 
-                 class="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-              <div class="text-sm text-yellow-800">
-                <strong>Lưu ý:</strong> Bạn cần chọn ít nhất một đáp án đúng.
-              </div>
-            </div>
-
-            <!-- Minimum options warning -->
-            <div *ngIf="options.length < 2" 
-                 class="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-              <div class="text-sm text-yellow-800">
-                Câu hỏi cần ít nhất 2 đáp án.
-              </div>
-            </div>
+                <!-- Options List -->
+                <div formArrayName="options" class="space-y-3">
+                  @for (option of options.controls; track option; let i = $index) {
+                    <div
+                      [formGroupName]="i"
+                      class="flex items-center space-x-3 p-3 border rounded-lg"
+                      [class.border-green-500]="i === getCorrectOptionIndex()"
+                      [class.bg-green-50]="i === getCorrectOptionIndex()">
+                      <!-- Option Key -->
+                      <div class="flex-shrink-0">
+                        <span class="inline-flex items-center justify-center w-8 h-8 bg-gray-200 rounded-full text-sm font-medium">
+                          {{ getOptionKey(i) }}
+                        </span>
+                      </div>
+                      <!-- Option Content (Enriched Input) -->
+                      <div class="flex-1">
+                        <app-enriched-input
+                          [placeholder]="'Nhập nội dung đáp án...'"
+                          [initialValue]="option.get('content')?.value"
+                          (valueChange)="updateOptionText(i, $event)"
+                          (blocksChange)="updateOptionBlocks(i, $event)"
+                        ></app-enriched-input>
+                      </div>
+                      <!-- Correct Option Radio -->
+                      <div class="flex-shrink-0">
+                        <input
+                          type="radio"
+                          [value]="getOptionKey(i)"
+                          [checked]="getCorrectOptionKey() === getOptionKey(i)"
+                          (change)="setCorrectOption(getOptionKey(i))"
+                          class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300"
+                          >
+                          <label class="ml-1 text-xs text-gray-600">Đúng</label>
+                        </div>
+                        <!-- Remove Option -->
+                        @if (options.length > 2) {
+                          <div class="flex-shrink-0">
+                            <button
+                              type="button"
+                              (click)="removeOption(i)"
+                              class="text-red-500 hover:text-red-700 focus:outline-none"
+                              >
+                              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                              </svg>
+                            </button>
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                  <!-- Warning if no correct option selected -->
+                  @if (!getCorrectOptionKey()) {
+                    <div
+                      class="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                      <div class="text-sm text-yellow-800">
+                        <strong>Lưu ý:</strong> Bạn cần chọn ít nhất một đáp án đúng.
+                      </div>
+                    </div>
+                  }
+                  <!-- Minimum options warning -->
+                  @if (options.length < 2) {
+                    <div
+                      class="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                      <div class="text-sm text-yellow-800">
+                        Câu hỏi cần ít nhất 2 đáp án.
+                      </div>
+                    </div>
+                  }
+                </div>
+                <!-- Actions -->
+                <div class="flex justify-end space-x-4">
+                  <button
+                    type="button"
+                    (click)="onCancel()"
+                    class="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                    >
+                    Hủy
+                  </button>
+                  <button
+                    type="submit"
+                    [disabled]="questionForm.invalid || !getCorrectOptionKey() || options.length < 2"
+                    class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                    Cập nhật Câu Hỏi
+                  </button>
+                </div>
+              </form>
+            }
           </div>
-
-          <!-- Actions -->
-          <div class="flex justify-end space-x-4">
-            <button
-              type="button"
-              (click)="onCancel()"
-              class="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500"
-            >
-              Hủy
-            </button>
-            <button
-              type="submit"
-              [disabled]="questionForm.invalid || !getCorrectOptionKey() || options.length < 2"
-              class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Cập nhật Câu Hỏi
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  `
+        </div>
+    `
 })
 export class QuestionEditComponent implements OnInit {
+  private fb = inject(FormBuilder);
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+  private questionApi = inject(QuestionApi);
+
   questionForm: FormGroup;
   isLoading = false;
   question: Question | null = null;
@@ -239,14 +241,9 @@ export class QuestionEditComponent implements OnInit {
 
   // Use ViewChild to set blocks on load
 
-  @ViewChild(BlockEditorComponent) blockEditor!: BlockEditorComponent;
+  readonly blockEditor = viewChild.required(BlockEditorComponent);
 
-  constructor(
-    private fb: FormBuilder,
-    private router: Router,
-    private route: ActivatedRoute,
-    private questionApi: QuestionApi
-  ) {
+  constructor() {
     this.questionForm = this.fb.group({
       difficulty: ['MEDIUM', Validators.required],
       tags: [''],
@@ -292,8 +289,7 @@ export class QuestionEditComponent implements OnInit {
         this.question = question;
         this.populateFormWithQuestion(question);
       },
-      error: (error) => {
-        console.error('Failed to load question:', error);
+      error: () => {
       },
       complete: () => {
         this.isLoading = false;
@@ -493,7 +489,6 @@ export class QuestionEditComponent implements OnInit {
         this.router.navigate(['/teacher/quiz/quiz-bank']);
       },
       error: (error) => {
-        console.error('Failed to update question:', error);
         alert('Lỗi khi cập nhật câu hỏi: ' + (error?.error?.message || error?.message)); // Show alert
         this.isLoading = false;
       },

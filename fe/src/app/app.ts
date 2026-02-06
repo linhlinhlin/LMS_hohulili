@@ -1,9 +1,10 @@
-import { Component, signal, ViewEncapsulation, inject } from '@angular/core';
+import { Component, signal, ViewEncapsulation, inject, ChangeDetectionStrategy } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { ErrorDisplayComponent } from './shared/components/error-display/error-display.component';
 import { PwaService } from './core/services/pwa.service';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-root',
   imports: [RouterOutlet],
   encapsulation: ViewEncapsulation.None,

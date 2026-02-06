@@ -3,9 +3,9 @@ package com.example.lms.identity.application.usecase;
 import com.example.lms.identity.application.dto.AuthResponse;
 import com.example.lms.identity.application.dto.AuthenticateCommand;
 import com.example.lms.identity.application.dto.UserResponse;
+import com.example.lms.identity.application.port.TokenService;
 import com.example.lms.identity.domain.model.User;
 import com.example.lms.identity.domain.repository.UserRepository;
-import com.example.lms.identity.infrastructure.security.JwtTokenAdapter;
 import com.example.lms.shared.exception.UnauthorizedException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,12 +15,9 @@ import org.springframework.stereotype.Service;
 
 /**
  * Use case for authenticating a user using DDD domain models.
- * 
- * This is the CLEAN version that uses:
- * - Domain model (User) instead of JPA entity
- * - Domain repository (UserRepository) instead of legacy UserDomainRepository
- * 
- * Following Clean Architecture / Hexagonal Architecture principles.
+ *
+ * Clean Architecture: No infrastructure imports.
+ * Uses domain UserRepository and TokenService port only.
  */
 @Service("authenticateUserUseCaseV2")
 @RequiredArgsConstructor
@@ -29,7 +26,7 @@ public class AuthenticateUserUseCaseV2 {
 
     @Qualifier("newUserRepositoryAdapter")
     private final UserRepository userRepository;
-    private final JwtTokenAdapter jwtTokenAdapter;
+    private final TokenService tokenService;
     private final PasswordEncoder passwordEncoder;
 
     public AuthResponse execute(AuthenticateCommand command) {
@@ -51,9 +48,12 @@ public class AuthenticateUserUseCaseV2 {
             throw new UnauthorizedException("Thông tin đăng nhập không chính xác");
         }
 
-        // Generate tokens using adapter
-        String accessToken = jwtTokenAdapter.generateAccessToken(user);
-        String refreshToken = jwtTokenAdapter.generateRefreshToken(user);
+        // Generate tokens via domain port
+        String email = user.getEmail() != null ? user.getEmail().getValue() : user.getUsername();
+        String accessToken = tokenService.generateAccessToken(
+                user.getId().value(), email, user.getRole().name());
+        String refreshToken = tokenService.generateRefreshToken(
+                user.getId().value(), email, user.getRole().name());
 
         log.info("User authenticated successfully (V2): {}", user.getId());
 

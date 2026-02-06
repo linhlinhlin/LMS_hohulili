@@ -1,5 +1,5 @@
 import { Component, signal, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { GetQuizListUseCase } from '../../application/use-cases/get-quiz-list.use-case';
@@ -17,7 +17,7 @@ import { LoadingComponent } from '../../../../../shared/components/loading/loadi
  */
 @Component({
   selector: 'app-quiz-list',
-  imports: [CommonModule, RouterModule, FormsModule, LoadingComponent],
+  imports: [RouterModule, FormsModule, LoadingComponent],
   encapsulation: ViewEncapsulation.None,
   template: `
     <!-- Loading State -->

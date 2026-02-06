@@ -1,5 +1,5 @@
-import { Component, input, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, input, computed, ChangeDetectionStrategy } from '@angular/core';
+
 
 /**
  * Assignment Loading Component
@@ -7,8 +7,9 @@ import { CommonModule } from '@angular/common';
  * Supports different variants and customization options
  */
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-assignment-loading',
-  imports: [CommonModule],
+  imports: [],
   template: `
     <!-- List Loading -->
     @if (variant() === 'list') {

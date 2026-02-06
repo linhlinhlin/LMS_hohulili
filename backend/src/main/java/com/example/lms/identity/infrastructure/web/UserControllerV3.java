@@ -1,9 +1,13 @@
 package com.example.lms.identity.infrastructure.web;
 
+import com.example.lms.identity.application.usecase.UpdateUserUseCaseV3;
+import com.example.lms.identity.domain.model.User;
 import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Size;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.*;
 import org.springframework.data.domain.Page;
@@ -27,6 +31,7 @@ import java.util.*;
 public class UserControllerV3 {
 
     private final UserJpaRepository userRepository;
+    private final UpdateUserUseCaseV3 updateUserUseCaseV3;
 
     @Operation(summary = "Get all users with pagination and filtering")
     @GetMapping
@@ -109,22 +114,15 @@ public class UserControllerV3 {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<UserResponse>> updateUser(
             @PathVariable UUID userId,
-            @RequestBody UpdateUserRequest request
+            @Valid @RequestBody UpdateUserRequest request
     ) {
-        return userRepository.findById(userId)
-                .map(user -> {
-                    if (request.getFullName() != null) user.setFullName(request.getFullName());
-                    if (request.getRole() != null) {
-                        try {
-                            user.setRole(UserJpaEntity.UserRole.valueOf(request.getRole().toUpperCase()));
-                        } catch (IllegalArgumentException e) {
-                            // Invalid role, ignore
-                        }
-                    }
-                    if (request.getEnabled() != null) user.setEnabled(request.getEnabled());
-                    userRepository.save(user);
-                    return ResponseEntity.ok(ApiResponse.success(toResponse(user), "User updated"));
-                })
+        var command = new UpdateUserUseCaseV3.Command(
+                request.getFullName(),
+                request.getRole(),
+                request.getEnabled()
+        );
+        return updateUserUseCaseV3.execute(userId, command)
+                .map(user -> ResponseEntity.ok(ApiResponse.success(toResponse(user), "User updated")))
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -144,6 +142,21 @@ public class UserControllerV3 {
                 .id(user.getId().toString())
                 .username(user.getUsername())
                 .email(user.getEmail())
+                .name(user.getFullName())
+                .fullName(user.getFullName())
+                .role(user.getRole() != null ? user.getRole().name().toLowerCase() : "student")
+                .isActive(user.isEnabled())
+                .enabled(user.isEnabled())
+                .createdAt(user.getCreatedAt() != null ? user.getCreatedAt().toString() : null)
+                .updatedAt(user.getUpdatedAt() != null ? user.getUpdatedAt().toString() : null)
+                .build();
+    }
+
+    private UserResponse toResponse(User user) {
+        return UserResponse.builder()
+                .id(user.getId().value().toString())
+                .username(user.getUsername())
+                .email(user.getEmail().getValue())
                 .name(user.getFullName())
                 .fullName(user.getFullName())
                 .role(user.getRole() != null ? user.getRole().name().toLowerCase() : "student")
@@ -178,6 +191,7 @@ public class UserControllerV3 {
 
     @Data @NoArgsConstructor @AllArgsConstructor
     public static class UpdateUserRequest {
+        @Size(max = 255, message = "Full name must not exceed 255 characters")
         private String fullName;
         private String role;
         private Boolean enabled;

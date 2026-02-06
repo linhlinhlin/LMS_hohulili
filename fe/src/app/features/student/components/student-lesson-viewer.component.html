@@ -1,6 +1,6 @@
 ﻿<div class="min-h-screen bg-gray-50">
   <!-- Loading State -->
-  <app-loading [show]="isLoading()" text="Äang táº£i bĂ i há»c..." subtext="Vui lĂ²ng chá» trong giĂ¢y lĂ¡t"
+  <app-loading [show]="isLoading()" text="Đang tải bài học..." subtext="Vui lòng chờ trong giây lát"
     variant="overlay" color="blue">
   </app-loading>
 
@@ -14,7 +14,7 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18">
               </path>
             </svg>
-            <span>Quay láº¡i khĂ³a há»c</span>
+            <span>Quay lại khóa học</span>
           </button>
         </div>
 
@@ -48,11 +48,11 @@
           </path>
         </svg>
       </div>
-      <h3 class="text-lg font-semibold text-red-900 mb-2">CĂ³ lá»—i xáº£y ra</h3>
+      <h3 class="text-lg font-semibold text-red-900 mb-2">Có lỗi xảy ra</h3>
       <p class="text-red-700 mb-4">{{ errorMsg }}</p>
       <button (click)="retryLoading()"
         class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors">
-        Thá»­ láº¡i
+        Thử lại
       </button>
     </div>
   </div>
@@ -71,10 +71,10 @@
 
           <!-- Lesson Content -->
           <div class="p-8">
-            <!-- Video Render (simple, giá»‘ng teacher) -->
+            <!-- Video Render (simple, giống teacher) -->
             @if (lesson.videoUrl && lesson.videoUrl.trim() !== '') {
             <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
-              <h2 class="text-3xl font-bold text-gray-900 mb-6">Video bĂ i há»c</h2>
+              <h2 class="text-3xl font-bold text-gray-900 mb-6">Video bài học</h2>
               <div style="color: #888; font-size: 12px; margin-bottom: 4px;">Video URL: {{ lesson.videoUrl }}</div>
               @if (lesson.videoUrl.includes('youtube.com') || lesson.videoUrl.includes('youtu.be')) {
               <div class="aspect-video w-full rounded overflow-hidden">
@@ -111,7 +111,7 @@
                     d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
                     clip-rule="evenodd"></path>
                 </svg>
-                <span class="text-sm font-medium">ÄĂ£ hoĂ n thĂ nh</span>
+                <span class="text-sm font-medium">Đã hoàn thành</span>
               </div>
               }
             </div>
@@ -162,7 +162,7 @@
                     </div>
                     <div
                       class="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm h-[600px] relative">
-                      <app-loading [show]="!safePdfUrls[section.id]" text="Äang táº£i PDF báº£o máº­t..."
+                      <app-loading [show]="!safePdfUrls[section.id]" text="Đang tải PDF bảo mật..."
                         variant="normal"></app-loading>
                       @if (safePdfUrls[section.id]) {
                       <embed [src]="safePdfUrls[section.id]" type="application/pdf" class="w-full h-full" />
@@ -177,12 +177,12 @@
                       </path>
                     </svg>
                     <div class="flex-1">
-                      <div class="text-sm font-semibold text-gray-900">TĂ i liá»‡u Ä‘Ă­nh kĂ¨m</div>
-                      <div class="text-xs text-gray-500">Báº¥m Ä‘á»ƒ táº£i vá» mĂ¡y</div>
+                      <div class="text-sm font-semibold text-gray-900">Tài liệu đính kèm</div>
+                      <div class="text-xs text-gray-500">Bấm để tải về máy</div>
                     </div>
                     <a [href]="section.fileUrl" target="_blank"
-                      class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700">Táº£i
-                      xuá»‘ng</a>
+                      class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700">Tải
+                      xuống</a>
                   </div>
                   }
                   }
@@ -200,19 +200,19 @@
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                   </svg>
-                  <span>BĂ i trÆ°á»›c</span>
+                  <span>Bài trước</span>
                 </button>
 
                 @if (!lesson.isCompleted) {
                 <button type="button" (click)="onCompleteButtonClick()"
                   class="px-6 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors">
-                  ÄĂ¡nh dáº¥u hoĂ n thĂ nh
+                  Đánh dấu hoàn thành
                 </button>
                 }
 
                 <button [disabled]="!hasNextLesson()"
                   class="flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 text-white hover:bg-blue-700">
-                  <span>BĂ i tiáº¿p theo</span>
+                  <span>Bài tiếp theo</span>
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                   </svg>
@@ -235,7 +235,7 @@
                 d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
               </path>
             </svg>
-            <span>TĂ i liá»‡u Ä‘Ă­nh kĂ¨m ({{ lesson.attachments.length }})</span>
+            <span>Tài liệu đính kèm ({{ lesson.attachments.length }})</span>
           </h3>
 
           <div class="space-y-4">
@@ -258,12 +258,12 @@
                   @if (isPdfFile(attachment.originalFileName)) {
                   <button (click)="toggleAttachmentViewer(i)"
                     class="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700">
-                    {{ expandedAttachment === i ? 'Thu gá»n' : 'Xem PDF' }}
+                    {{ expandedAttachment === i ? 'Thu gọn' : 'Xem PDF' }}
                   </button>
                   }
                   <a [href]="attachment.fileUrl" target="_blank"
                     class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">
-                    Táº£i vá»
+                    Tải về
                   </a>
                 </div>
               </div>
@@ -284,9 +284,9 @@
                   <div class="bg-blue-100 p-3 font-medium text-blue-800">đŸ“– Direct PDF Viewer</div>
                   <object [data]="attachment.fileUrl" type="application/pdf" class="w-full border-0"
                     style="height: 600px;">
-                    <p>TrĂ¬nh duyá»‡t khĂ´ng há»— trá»£ xem PDF.
-                      <a [href]="attachment.fileUrl" target="_blank" class="text-blue-600 underline ml-2">Táº£i vá»
-                        Ä‘á»ƒ xem</a>
+                    <p>Trình duyệt không hỗ trợ xem PDF.
+                      <a [href]="attachment.fileUrl" target="_blank" class="text-blue-600 underline ml-2">Tải về
+                        để xem</a>
                     </p>
                   </object>
                 </div>
@@ -306,11 +306,11 @@
                     <div class="space-x-3">
                       <a [href]="attachment.fileUrl" target="_blank"
                         class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">
-                        Má»Ÿ tab má»›i
+                        Mở tab mới
                       </a>
                       <a [href]="attachment.fileUrl" download
                         class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700">
-                        Táº£i xuá»‘ng
+                        Tải xuống
                       </a>
                     </div>
                   </div>
@@ -325,20 +325,20 @@
 
         <!-- Progress Info -->
         <div class="bg-white rounded-xl shadow-lg p-6">
-          <h3 class="font-semibold text-gray-900 mb-4">Tiáº¿n Ä‘á»™ há»c táº­p</h3>
+          <h3 class="font-semibold text-gray-900 mb-4">Tiến độ học tập</h3>
           <div class="space-y-4">
             <div class="flex items-center justify-between text-sm">
-              <span class="text-gray-600">Tráº¡ng thĂ¡i</span>
+              <span class="text-gray-600">Trạng thái</span>
               <span class="font-medium {{ lesson.isCompleted ? 'text-green-600' : 'text-yellow-600' }}">
-                {{ lesson.isCompleted ? 'ÄĂ£ hoĂ n thĂ nh' : 'Äang há»c' }}
+                {{ lesson.isCompleted ? 'Đã hoàn thành' : 'Đang học' }}
               </span>
             </div>
             <div class="flex items-center justify-between text-sm">
-              <span class="text-gray-600">Thá»i lÆ°á»£ng</span>
+              <span class="text-gray-600">Thời lượng</span>
               <span class="font-medium text-gray-900">{{ formatDuration(lesson.duration) }}</span>
             </div>
             <div class="flex items-center justify-between text-sm">
-              <span class="text-gray-600">Loáº¡i bĂ i há»c</span>
+              <span class="text-gray-600">Loại bài học</span>
               <span class="font-medium text-gray-900">{{ getLessonTypeLabel(lesson.type) }}</span>
             </div>
           </div>

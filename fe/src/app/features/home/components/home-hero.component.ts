@@ -9,13 +9,13 @@ import {
   ElementRef,
   viewChild,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-home-hero',
-  imports: [CommonModule, RouterModule],
+  imports: [RouterModule],
   encapsulation: ViewEncapsulation.None,
   template: `
     <!-- Hero Section - Enhanced with better messaging and video background support -->
@@ -142,7 +142,6 @@ export class HomeHeroComponent implements OnInit, AfterViewInit {
       }, "-=0.2");
 
     } catch (error) {
-      console.warn('GSAP failed to load, falling back to CSS animations:', error);
       // Fallback: show elements immediately if GSAP fails
       this.showElementsImmediately();
     }

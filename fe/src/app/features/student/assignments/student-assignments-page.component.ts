@@ -6,7 +6,7 @@
   computed,
   ChangeDetectionStrategy,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
@@ -30,16 +30,15 @@ import {
 /**
  * Student Assignments Page Component
  *
- * Trang há»£p nháº¥t hiá»ƒn thá»‹ táº¥t cáº£ bĂ i táº­p Ä‘Æ°á»£c giao cho há»c viĂªn.
- * Há»— trá»£ 2 cháº¿ Ä‘á»™ xem: Kanban vĂ  List
- * Káº¿t ná»‘i vá»›i API thá»±c thĂ´ng qua StudentAssignmentService
+ * Trang hợp nhất hiển thị tất cả bài tập được giao cho học viên.
+ * Hỗ trợ 2 chế độ xem: Kanban và List
+ * Kết nối với API thực thông qua StudentAssignmentService
  *
  * @requirements 1.1, 2.1, 2.2, 2.3, 3.1, 3.2, 4.1-4.5, 5.1-5.4, 6.1-6.4, 7.1-7.3
  */
 @Component({
   selector: 'app-student-assignments-page',
-  standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './student-assignments-page.component.html',
 })
@@ -93,7 +92,7 @@ export class StudentAssignmentsPageComponent implements OnInit {
   loadAssignments(): void {
     const user = this.authService.user();
     if (!user?.id) {
-      this.error.set('KhĂ´ng thá»ƒ xĂ¡c Ä‘á»‹nh ngÆ°á»i dĂ¹ng');
+      this.error.set('Không thể xác định người dùng');
       return;
     }
 
@@ -107,8 +106,7 @@ export class StudentAssignmentsPageComponent implements OnInit {
         this.loading.set(false);
       },
       error: (err) => {
-        console.error('Error loading assignments:', err);
-        this.error.set('KhĂ´ng thá»ƒ táº£i danh sĂ¡ch bĂ i táº­p. Vui lĂ²ng thá»­ láº¡i.');
+        this.error.set('Không thể tải danh sách bài tập. Vui lòng thử lại.');
         this.loading.set(false);
       }
     });
@@ -164,14 +162,14 @@ export class StudentAssignmentsPageComponent implements OnInit {
   getActionLabel(status: StudentTaskStatus): string {
     switch (status) {
       case 'NOT_STARTED':
-        return 'Báº¯t Ä‘áº§u';
+        return 'Bắt đầu';
       case 'IN_PROGRESS':
-        return 'Tiáº¿p tá»¥c';
+        return 'Tiếp tục';
       case 'SUBMITTED':
       case 'GRADED':
         return 'Xem';
       case 'OVERDUE':
-        return 'Ná»™p muá»™n';
+        return 'Nộp muộn';
       default:
         return 'Xem';
     }

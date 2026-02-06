@@ -1,12 +1,12 @@
-import { Component, signal, computed, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, signal, computed, inject, ChangeDetectionStrategy } from '@angular/core';
+
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-analytics',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   template: `
     <div class="min-h-screen bg-gray-50 py-8">
       <div class="container mx-auto px-4">
@@ -408,7 +408,6 @@ export class AnalyticsComponent {
 
   refreshAnalytics(): void {
     // Simulate refresh
-    console.log('Refreshing analytics...');
   }
 
   followRecommendation(id: number): void {

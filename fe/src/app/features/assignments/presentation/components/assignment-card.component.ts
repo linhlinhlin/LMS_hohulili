@@ -1,5 +1,5 @@
-﻿import { Component, input, output, computed, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+﻿import { Component, input, output, computed, signal, ChangeDetectionStrategy } from '@angular/core';
+
 import { RouterModule } from '@angular/router';
 import { AssignmentView } from '../../application/use-cases/get-student-assignments.use-case';
 
@@ -9,8 +9,9 @@ import { AssignmentView } from '../../application/use-cases/get-student-assignme
  * Follows Angular 20 patterns with standalone components and signals
  */
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-assignment-card',
-  imports: [CommonModule, RouterModule],
+  imports: [RouterModule],
   templateUrl: './assignment-card.component.html',
   styles: [`
     .line-clamp-2 {
@@ -115,15 +116,15 @@ export class AssignmentCardComponent {
     const priority = this.assignment().priority;
     switch (priority) {
       case 'urgent':
-        return 'Kháº©n cáº¥p';
+        return 'Khẩn cấp';
       case 'high':
         return 'Cao';
       case 'medium':
-        return 'Trung bĂ¬nh';
+        return 'Trung bình';
       case 'low':
-        return 'Tháº¥p';
+        return 'Thấp';
       default:
-        return 'KhĂ´ng xĂ¡c Ä‘á»‹nh';
+        return 'Không xác định';
     }
   }
 
@@ -144,13 +145,13 @@ export class AssignmentCardComponent {
     const dueDate = assignment.dueDate;
 
     if (assignment.isOverdue) {
-      return `QuĂ¡ háº¡n ${Math.abs(assignment.daysUntilDue)} ngĂ y`;
+      return `Quá hạn ${Math.abs(assignment.daysUntilDue)} ngày`;
     } else if (assignment.daysUntilDue === 0) {
-      return 'HĂ´m nay';
+      return 'Hôm nay';
     } else if (assignment.daysUntilDue === 1) {
-      return 'NgĂ y mai';
+      return 'Ngày mai';
     } else if (assignment.daysUntilDue <= 7) {
-      return `${assignment.daysUntilDue} ngĂ y ná»¯a`;
+      return `${assignment.daysUntilDue} ngày nữa`;
     } else {
       return dueDate.toLocaleDateString('vi-VN', {
         day: 'numeric',
@@ -163,13 +164,13 @@ export class AssignmentCardComponent {
     const status = this.assignment().submissionStatus;
     switch (status) {
       case 'submitted':
-        return 'ÄĂ£ ná»™p';
+        return 'Đã nộp';
       case 'graded':
-        return 'ÄĂ£ cháº¥m';
+        return 'Đã chấm';
       case 'draft':
-        return 'Báº£n nhĂ¡p';
+        return 'Bản nháp';
       default:
-        return 'ChÆ°a ná»™p';
+        return 'Chưa nộp';
     }
   }
 
@@ -177,15 +178,15 @@ export class AssignmentCardComponent {
     const type = this.assignment().type;
     switch (type) {
       case 'assignment':
-        return 'BĂ i táº­p';
+        return 'Bài tập';
       case 'quiz':
-        return 'BĂ i kiá»ƒm tra';
+        return 'Bài kiểm tra';
       case 'project':
-        return 'Dá»± Ă¡n';
+        return 'Dự án';
       case 'discussion':
-        return 'Tháº£o luáº­n';
+        return 'Thảo luận';
       default:
-        return 'BĂ i táº­p';
+        return 'Bài tập';
     }
   }
 }

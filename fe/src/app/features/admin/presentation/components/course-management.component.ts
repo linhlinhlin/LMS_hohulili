@@ -1,5 +1,5 @@
-﻿import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
+
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AdminService, AdminCourseSummary } from '../../infrastructure/services/admin.service';
@@ -7,7 +7,7 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
 
 @Component({
   selector: 'app-course-management',
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [RouterModule, FormsModule],
   encapsulation: ViewEncapsulation.None,
   templateUrl: './course-management.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -56,7 +56,6 @@ export class CourseManagementComponent implements OnInit {
 
     // Safety check: ensure courses is an array
     if (!Array.isArray(courses)) {
-      console.warn('[CourseManagement] courses is not an array:', courses);
       return [];
     }
 
@@ -94,25 +93,20 @@ export class CourseManagementComponent implements OnInit {
   }
 
   private loadCourses(): void {
-    console.log('[CourseManagement] Loading courses...');
     this.isLoading.set(true);
 
     this.adminService.getAllCourses().subscribe({
       next: (response) => {
-        console.log('[CourseManagement] Courses loaded:', response);
-
         // Ensure we have an array
         const coursesData = Array.isArray(response.data) ? response.data : [];
-        console.log('[CourseManagement] Setting courses:', coursesData.length, 'items');
 
         this.courses.set(coursesData);
         this.isLoading.set(false);
       },
-      error: (error) => {
-        console.error('[CourseManagement] Error loading courses:', error);
+      error: () => {
         this.courses.set([]); // Set empty array on error
         this.isLoading.set(false);
-        alert('KhĂ´ng thá»ƒ táº£i danh sĂ¡ch khĂ³a há»c. Vui lĂ²ng thá»­ láº¡i.');
+        alert('Không thể tải danh sách khóa học. Vui lòng thử lại.');
       }
     });
   }
@@ -123,8 +117,7 @@ export class CourseManagementComponent implements OnInit {
         // Reload courses after approval
         this.loadCourses();
       },
-      error: (error) => {
-        console.error('Error approving course:', error);
+      error: () => {
       }
     });
   }
@@ -148,24 +141,17 @@ export class CourseManagementComponent implements OnInit {
           this.closeRejectModal();
           this.loadCourses();
         },
-        error: (error) => {
-          console.error('Error rejecting course:', error);
+        error: () => {
         }
       });
     }
   }
 
   viewCourse(courseId: string): void {
-    console.log('đŸ” viewCourse called with ID:', courseId);
-    console.log('đŸ“ All courses:', this.courses());
     const course = this.courses().find(c => c.id === courseId);
-    console.log('âœ… Found course:', course);
     if (course) {
       this.selectedCourse.set(course);
       this.showDetailModal.set(true);
-      console.log('đŸ¯ Modal should show now. showDetailModal:', this.showDetailModal());
-    } else {
-      console.error('âŒ Course not found with ID:', courseId);
     }
   }
 
@@ -227,30 +213,30 @@ export class CourseManagementComponent implements OnInit {
     const normalizedStatus = status?.toLowerCase();
     switch (normalizedStatus) {
       case 'pending':
-        return 'Chá» phĂª duyá»‡t';
+        return 'Chờ phê duyệt';
       case 'approved':
-        return 'ÄĂ£ phĂª duyá»‡t';
+        return 'Đã phê duyệt';
       case 'rejected':
-        return 'Bá»‹ tá»« chá»‘i';
+        return 'Bị từ chối';
       case 'active':
-        return 'Äang hoáº¡t Ä‘á»™ng';
+        return 'Đang hoạt động';
       case 'archived':
-        return 'LÆ°u trá»¯';
+        return 'Lưu trữ';
       default:
-        return 'KhĂ´ng xĂ¡c Ä‘á»‹nh';
+        return 'Không xác định';
     }
   }
 
   getLevelText(level: string): string {
     switch (level) {
       case 'beginner':
-        return 'CÆ¡ báº£n';
+        return 'Cơ bản';
       case 'intermediate':
-        return 'Trung cáº¥p';
+        return 'Trung cấp';
       case 'advanced':
-        return 'NĂ¢ng cao';
+        return 'Nâng cao';
       default:
-        return 'KhĂ´ng xĂ¡c Ä‘á»‹nh';
+        return 'Không xác định';
     }
   }
 
@@ -266,19 +252,17 @@ export class CourseManagementComponent implements OnInit {
   }
 
   revokeCourse(courseId: string): void {
-    const reason = window.prompt('Nháº­p lĂ½ do thu há»“i phĂª duyá»‡t:', 'Cáº§n xem xĂ©t láº¡i ná»™i dung khĂ³a há»c');
+    const reason = window.prompt('Nhập lý do thu hồi phê duyệt:', 'Cần xem xét lại nội dung khóa học');
     if (reason) {
       this.adminService.revokeCourse(courseId, reason).subscribe({
         next: () => {
-          alert('ÄĂ£ thu há»“i phĂª duyá»‡t khĂ³a há»c');
+          alert('Đã thu hồi phê duyệt khóa học');
           this.loadCourses();
         },
         error: (error) => {
-          console.error('Error revoking course:', error);
-          alert('Lá»—i khi thu há»“i phĂª duyá»‡t: ' + (error.error?.message || error.message || 'KhĂ´ng xĂ¡c Ä‘á»‹nh'));
+          alert('Lỗi khi thu hồi phê duyệt: ' + (error.error?.message || error.message || 'Không xác định'));
         }
       });
     }
   }
 }
-

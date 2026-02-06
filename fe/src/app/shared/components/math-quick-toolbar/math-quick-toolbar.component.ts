@@ -1,5 +1,5 @@
-import { Component, EventEmitter, Output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, output, ChangeDetectionStrategy } from '@angular/core';
+
 
 /**
  * SOTA 2025: Math Quick Toolbar with user-friendly placeholders
@@ -8,9 +8,9 @@ import { CommonModule } from '@angular/common';
  * - Provides Vietnamese placeholders for non-LaTeX users
  */
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
     selector: 'app-math-quick-toolbar',
-    standalone: true,
-    imports: [CommonModule],
+    imports: [],
     template: `
     <div class="flex items-center gap-1 p-1.5 bg-white border border-gray-200 rounded-lg shadow-sm">
       
@@ -114,7 +114,7 @@ import { CommonModule } from '@angular/common';
   `]
 })
 export class MathQuickToolbarComponent {
-    @Output() insertSymbol = new EventEmitter<string>();
+    readonly insertSymbol = output<string>();
 
     /**
      * Handle button click with preventDefault to maintain input focus

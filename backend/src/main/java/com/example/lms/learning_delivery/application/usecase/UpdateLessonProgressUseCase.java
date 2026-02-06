@@ -52,7 +52,7 @@ public class UpdateLessonProgressUseCase {
 
     private void recalculateCompletion(Enrollment enrollment) {
         if (enrollment.getProgress() == null || enrollment.getProgress().isEmpty()) {
-            enrollment.setCompletionPercent(0);
+            enrollment.updateCompletionPercent(0);
             return;
         }
 
@@ -63,12 +63,6 @@ public class UpdateLessonProgressUseCase {
         int totalLessons = enrollment.getProgress().size();
         int percent = totalLessons > 0 ? (int) ((completedCount * 100) / totalLessons) : 0;
         
-        enrollment.setCompletionPercent(percent);
-
-        // Mark as completed if 100%
-        if (percent >= 100 && enrollment.getCompletedAt() == null) {
-            enrollment.setCompletedAt(Instant.now());
-            enrollment.setStatus(Enrollment.EnrollmentStatus.COMPLETED);
-        }
+        enrollment.updateCompletionPercent(percent);
     }
 }

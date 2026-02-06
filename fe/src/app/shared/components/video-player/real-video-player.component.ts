@@ -1,5 +1,5 @@
 import { Component, signal, computed, inject, input, output, OnInit, OnDestroy, ChangeDetectionStrategy, ViewEncapsulation, ElementRef, viewChild } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 
 export interface VideoPlayerConfig {
   src: string;
@@ -29,9 +29,8 @@ export interface VideoPlayerState {
 
 @Component({
   selector: 'app-real-video-player',
-  imports: [CommonModule],
+  imports: [],
   encapsulation: ViewEncapsulation.None,
-  standalone: true,
   template: `
     <div class="relative bg-black rounded-xl overflow-hidden">
       <!-- Video Element -->
@@ -469,7 +468,6 @@ export class RealVideoPlayerComponent implements OnInit, OnDestroy {
 
   setQuality(event: Event): void {
     const target = event.target as HTMLSelectElement;
-    console.log('Quality changed to:', target.value);
     // Implement quality change logic
   }
 

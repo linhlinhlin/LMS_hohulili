@@ -11,7 +11,7 @@ import {
   signal,
   inject,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { ChatMessage } from '../../../domain/types';
 import { renderMarkdown, parseAIResponse } from '../../../utils/markdown-renderer.util';
 import { getMessageAlignment } from '../../../domain/entities/chat-message.entity';
@@ -19,8 +19,7 @@ import { ChatToastService } from '../chat-toast/chat-toast.component';
 
 @Component({
   selector: 'app-chat-message',
-  standalone: true,
-  imports: [CommonModule],
+  imports: [],
   // Note: isStreaming input added for typewriter effect
   template: `
     <div

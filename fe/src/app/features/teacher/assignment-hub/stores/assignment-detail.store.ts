@@ -67,8 +67,7 @@ export class AssignmentDetailStore {
           this._assignment.set(null);
         }
       }),
-      catchError((err: unknown) => {
-        console.error('Error loading assignment:', err);
+      catchError(() => {
         this._error.set('Không thể tải bài tập. Vui lòng thử lại.');
         this._assignment.set(null);
         return of({ data: null });

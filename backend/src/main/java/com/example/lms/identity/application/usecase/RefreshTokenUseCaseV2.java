@@ -2,47 +2,46 @@ package com.example.lms.identity.application.usecase;
 
 import com.example.lms.identity.application.dto.AuthResponse;
 import com.example.lms.identity.application.dto.UserResponse;
-import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
-import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
-import com.example.lms.identity.infrastructure.security.JwtService;
+import com.example.lms.identity.application.port.TokenService;
+import com.example.lms.identity.domain.model.User;
+import com.example.lms.identity.domain.repository.UserRepository;
+import com.example.lms.shared.exception.BusinessRuleException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
+/**
+ * Use case for refreshing authentication tokens.
+ * V2 - Uses domain UserRepository and TokenService port only.
+ *
+ * Clean Architecture: No infrastructure imports.
+ */
 @Service("refreshTokenUseCaseV2")
 @RequiredArgsConstructor
 public class RefreshTokenUseCaseV2 {
 
-    private final JwtService jwtService;
-    private final UserJpaRepository userRepository;
+    private final TokenService tokenService;
+    private final UserRepository userRepository;
 
     public AuthResponse execute(String refreshToken) {
-        String userEmail = jwtService.extractUsername(refreshToken);
-        
+        String userEmail = tokenService.extractEmail(refreshToken);
+
         if (userEmail == null) {
-            throw new RuntimeException("Invalid token");
+            throw new BusinessRuleException("INVALID_TOKEN", "Token không hợp lệ");
         }
 
-        UserJpaEntity user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new BusinessRuleException("USER_NOT_FOUND", "Không tìm thấy người dùng"));
 
-        if (!jwtService.isTokenValid(refreshToken, user)) {
-            throw new RuntimeException("Refresh token verified failed");
+        if (!tokenService.isTokenValid(refreshToken, userEmail)) {
+            throw new BusinessRuleException("TOKEN_VERIFICATION_FAILED", "Xác thực refresh token thất bại");
         }
 
-        String accessToken = jwtService.generateToken(user);
-        // Rotate refresh token? Typically yes, but for now we can keep or rotate.
-        // Let's rotate it for security matching legacy behavior if appropriate.
-        String newRefreshToken = jwtService.generateRefreshToken(user);
+        String accessToken = tokenService.generateAccessToken(
+                user.getId().value(), userEmail, user.getRole().name());
+        String newRefreshToken = tokenService.generateRefreshToken(
+                user.getId().value(), userEmail, user.getRole().name());
 
-        UserResponse userResponse = new UserResponse(
-                user.getId(),
-                user.getUsername(),
-                user.getEmail(),
-                user.getFullName(),
-                user.getRole().name(),
-                user.getEnabled()
-        );
+        UserResponse userResponse = UserResponse.fromDomain(user);
 
         return new AuthResponse(accessToken, newRefreshToken, userResponse);
     }

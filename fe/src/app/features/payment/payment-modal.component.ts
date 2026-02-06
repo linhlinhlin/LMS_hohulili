@@ -1,4 +1,4 @@
-import { Component, inject, signal, input, output, computed } from '@angular/core';
+import { Component, inject, signal, input, output, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PaymentService } from './payment.service';
@@ -24,8 +24,8 @@ export interface CoursePaymentInfo {
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-payment-modal',
-  standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
     <div class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
@@ -193,7 +193,6 @@ export class PaymentModalComponent {
       this.paymentComplete.emit();
     } catch (error) {
       // Error is handled by service and displayed via error signal
-      console.error('Payment failed:', error);
     }
   }
 }

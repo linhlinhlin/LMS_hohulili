@@ -1,12 +1,13 @@
-import { Component, input, computed, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, input, computed, inject, ChangeDetectionStrategy } from '@angular/core';
+
 import { RouterModule } from '@angular/router';
 import { ExtendedCourse, CourseModule, EnhancedLesson } from '../../../../shared/types/course.types';
 import { CourseDetailService } from '../services/course-detail.service';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-course-curriculum',
-  imports: [CommonModule, RouterModule],
+  imports: [RouterModule],
   templateUrl: './course-curriculum.component.html'
 })
 export class CourseCurriculumComponent {

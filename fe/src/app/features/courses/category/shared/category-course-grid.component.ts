@@ -1,4 +1,4 @@
-import { Component, input, computed } from '@angular/core';
+import { Component, input, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { CategoryCourseCardComponent } from './category-course-card.component';
@@ -15,8 +15,8 @@ export interface CategoryCourseItem {
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-category-course-grid',
-  standalone: true,
   imports: [CommonModule, RouterModule, CategoryCourseCardComponent],
   template: `
     <section class="py-16 bg-gray-50" role="region" [attr.aria-label]="'Khóa học ' + title()">

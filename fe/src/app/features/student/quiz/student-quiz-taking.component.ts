@@ -1,5 +1,5 @@
-import { Component, OnInit, OnDestroy, signal, inject, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, OnDestroy, signal, inject, computed, ChangeDetectionStrategy } from '@angular/core';
+
 import { ActivatedRoute, Router } from '@angular/router';
 import { QuizApi } from '../../../api/endpoints/quiz.api';
 import { firstValueFrom } from 'rxjs';
@@ -16,9 +16,9 @@ interface QuizQuestion {
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-student-quiz-taking',
-  standalone: true,
-  imports: [CommonModule, IconComponent, BlockRendererComponent],
+  imports: [IconComponent, BlockRendererComponent],
   templateUrl: './student-quiz-taking.component.html',
   styles: [`
     @keyframes scale-in {
@@ -125,11 +125,8 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
     try {
       // First, try to auto-populate quiz if it has no questions
       try {
-        console.log('🔍 Attempting to auto-populate quiz questions...');
         await firstValueFrom(this.quizApi.autoPopulateQuizQuestions(this.lessonId));
-        console.log('✅ Quiz auto-populated');
       } catch (err: any) {
-        console.log('⚠️ Auto-populate failed (may already have questions):', err?.message);
         // Continue anyway - quiz might already have questions
       }
 
@@ -137,14 +134,11 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
       const questions = Array.isArray(response) ? response : (response as any).data || [];
 
       if (questions.length === 0) {
-        console.log('⚠️ No questions found, creating sample questions...');
         try {
           await firstValueFrom(this.quizApi.createSampleQuestions(this.lessonId));
-          console.log('✅ Sample questions created, reloading...');
           // Reload quiz after creating sample questions
           return this.loadQuiz();
         } catch (err: any) {
-          console.error('❌ Failed to create sample questions:', err);
           this.error.set('Bài kiểm tra này chưa có câu hỏi nào.');
           return;
         }
@@ -181,7 +175,6 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
       this.startTimer();
 
     } catch (err: any) {
-      console.error('Error loading quiz:', err);
       this.error.set(err?.message || 'Không thể tải bài kiểm tra');
     } finally {
       this.loading.set(false);

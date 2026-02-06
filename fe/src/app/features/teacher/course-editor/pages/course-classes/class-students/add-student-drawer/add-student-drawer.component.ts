@@ -1,5 +1,5 @@
-import { Component, inject, signal, computed, input, output, resource, effect } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, signal, computed, input, output, resource, effect, ChangeDetectionStrategy } from '@angular/core';
+
 import { firstValueFrom } from 'rxjs';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
@@ -17,9 +17,9 @@ interface EnrolledStudent {
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
     selector: 'app-add-student-drawer',
-    standalone: true,
-    imports: [CommonModule, ReactiveFormsModule, MatIconModule, MatButtonModule, MatTabsModule, SideDrawerComponent],
+    imports: [ReactiveFormsModule, MatIconModule, MatButtonModule, MatTabsModule, SideDrawerComponent],
     template: `
     <app-side-drawer 
         [isOpen]="isOpen()" 
@@ -302,8 +302,7 @@ export class AddStudentDrawerComponent {
         try {
             const students = await firstValueFrom(this.classService.getClassStudents(cid));
             this.enrolledStudents.set(students || []);
-        } catch (err) {
-            console.error('Error loading students:', err);
+        } catch {
             this.enrolledStudents.set([]);
         } finally {
             this.isLoadingStudents.set(false);
@@ -338,7 +337,6 @@ export class AddStudentDrawerComponent {
             this.loadEnrolledStudents();
             this.onSaved.emit();
         } catch (err: any) {
-            console.error('Error removing student:', err);
             alert(err.error?.message || 'Không thể xóa học viên này.');
         } finally {
             this.isLoading.set(false);

@@ -41,7 +41,7 @@ export const adminRoutes: Routes = [
           },
           {
             path: 'all',
-            loadComponent: () => import('./presentation/components/user-management.component').then(m => m.UserManagementComponent),
+            loadComponent: () => import('./presentation/components/user-management/user-management-refactored.component').then(m => m.UserManagementRefactoredComponent),
             title: 'Tất cả người dùng'
           },
           {

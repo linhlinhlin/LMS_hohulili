@@ -1,13 +1,13 @@
-import { Component, signal, computed, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, signal, computed, inject, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-profile',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   template: `
     <div class="min-h-screen bg-gray-50 py-8">
       <div class="container mx-auto px-4">
@@ -324,7 +324,6 @@ export class ProfileComponent {
   changePassword(): void {
     if (this.passwordData.newPassword === this.passwordData.confirmPassword) {
       // Simulate password change
-      console.log('Password changed');
       this.passwordData = {
         currentPassword: '',
         newPassword: '',
@@ -335,7 +334,6 @@ export class ProfileComponent {
 
   uploadAvatar(): void {
     // Simulate avatar upload
-    console.log('Upload avatar');
   }
 
   goToCourses(): void {

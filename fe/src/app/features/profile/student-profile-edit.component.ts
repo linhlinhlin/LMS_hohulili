@@ -1,5 +1,5 @@
 ﻿import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule, Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
@@ -29,9 +29,8 @@ interface StudentProfileForm {
 
 @Component({
   selector: 'app-student-profile-edit',
-  imports: [CommonModule, RouterModule, ReactiveFormsModule],
+  imports: [RouterModule, ReactiveFormsModule],
   encapsulation: ViewEncapsulation.None,
-  standalone: true,
   templateUrl: './student-profile-edit.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -46,13 +45,13 @@ export class StudentProfileEditComponent implements OnInit {
   avatarPreview = signal('https://ui-avatars.com/api/?name=Student&background=3b82f6&color=ffffff&size=150');
 
   weekDays = [
-    { value: 'monday', label: 'Thá»© 2' },
-    { value: 'tuesday', label: 'Thá»© 3' },
-    { value: 'wednesday', label: 'Thá»© 4' },
-    { value: 'thursday', label: 'Thá»© 5' },
-    { value: 'friday', label: 'Thá»© 6' },
-    { value: 'saturday', label: 'Thá»© 7' },
-    { value: 'sunday', label: 'Chá»§ nháº­t' }
+    { value: 'monday', label: 'Thứ 2' },
+    { value: 'tuesday', label: 'Thứ 3' },
+    { value: 'wednesday', label: 'Thứ 4' },
+    { value: 'thursday', label: 'Thứ 5' },
+    { value: 'friday', label: 'Thứ 6' },
+    { value: 'saturday', label: 'Thứ 7' },
+    { value: 'sunday', label: 'Chủ nhật' }
   ];
 
   // Form arrays for dynamic fields
@@ -89,15 +88,15 @@ export class StudentProfileEditComponent implements OnInit {
   private loadProfileData(): void {
     // Load existing profile data
     const mockProfile: StudentProfileForm = {
-      fullName: 'Nguyá»…n VÄƒn Háº£i',
+      fullName: 'Nguyễn Văn Hải',
       email: 'student@demo.com',
       phone: '0123456789',
       dateOfBirth: '1995-06-15',
-      address: '123 ÄÆ°á»ng ABC, Quáº­n 1, TP.HCM',
-      bio: 'TĂ´i lĂ  sinh viĂªn nÄƒm 3 chuyĂªn ngĂ nh HĂ ng háº£i...',
-      interests: ['An toĂ n hĂ ng háº£i', 'Äiá»u khiá»ƒn tĂ u', 'Ká»¹ thuáº­t tĂ u biá»ƒn'],
-      learningGoals: ['HoĂ n thĂ nh chá»©ng chá»‰ STCW', 'Äáº¡t Ä‘Æ°á»£c chá»©ng chá»‰ thuyá»n trÆ°á»Ÿng háº¡ng 2'],
-      preferredSubjects: ['An toĂ n hĂ ng háº£i', 'Äiá»u khiá»ƒn tĂ u'],
+      address: '123 Đường ABC, Quận 1, TP.HCM',
+      bio: 'Tôi là sinh viên năm 3 chuyên ngành Hàng hải...',
+      interests: ['An toàn hàng hải', 'Điều khiển tàu', 'Kỹ thuật tàu biển'],
+      learningGoals: ['Hoàn thành chứng chỉ STCW', 'Đạt được chứng chỉ thuyền trưởng hạng 2'],
+      preferredSubjects: ['An toàn hàng hải', 'Điều khiển tàu'],
       studySchedule: {
         preferredStudyTime: '18:00-21:00',
         studyDays: ['monday', 'wednesday', 'friday'],
@@ -218,13 +217,13 @@ export class StudentProfileEditComponent implements OnInit {
     if (file) {
       // Validate file size (5MB max)
       if (file.size > 5 * 1024 * 1024) {
-        alert('File quĂ¡ lá»›n. Vui lĂ²ng chá»n file nhá» hÆ¡n 5MB.');
+        alert('File quá lớn. Vui lòng chọn file nhỏ hơn 5MB.');
         return;
       }
 
       // Validate file type
       if (!file.type.startsWith('image/')) {
-        alert('Vui lĂ²ng chá»n file áº£nh.');
+        alert('Vui lòng chọn file ảnh.');
         return;
       }
 
@@ -261,9 +260,8 @@ export class StudentProfileEditComponent implements OnInit {
 
     // Simulate API call
     setTimeout(() => {
-      console.log('Saving profile:', formData);
       this.isSaving.set(false);
-      this.saveStatus.set('Há»“ sÆ¡ Ä‘Ă£ Ä‘Æ°á»£c cáº­p nháº­t thĂ nh cĂ´ng!');
+      this.saveStatus.set('Hồ sơ đã được cập nhật thành công!');
       
       // Clear status after 3 seconds
       setTimeout(() => {

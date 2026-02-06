@@ -1,5 +1,5 @@
-import { Component, input, output, signal, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, input, output, signal, OnInit, inject, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { QuizApi } from '../../../../api/endpoints/quiz.api';
 import { firstValueFrom } from 'rxjs';
@@ -17,9 +17,9 @@ interface QuizSettings {
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-quiz-edit-modal',
-  standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [ReactiveFormsModule],
   template: `
     @if (isOpen()) {
     <div class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
@@ -237,10 +237,8 @@ export class QuizEditModalComponent implements OnInit {
 
   async open() {
     const currentLessonId = this.lessonId();
-    console.log('🔧 QuizEditModal.open() called with lessonId:', currentLessonId);
 
     if (!currentLessonId) {
-      console.error('❌ No lessonId provided');
       this.errorMessage.set('Không tìm thấy lesson ID');
       return;
     }
@@ -251,9 +249,7 @@ export class QuizEditModalComponent implements OnInit {
 
     // Load current quiz settings
     try {
-      console.log('📡 Loading quiz settings for lesson:', currentLessonId);
       const quiz = await firstValueFrom(this.quizApi.getQuizByLessonId(currentLessonId));
-      console.log('✅ Quiz settings loaded:', quiz);
 
       this.quizSettings = {
         id: quiz.id,
@@ -271,7 +267,6 @@ export class QuizEditModalComponent implements OnInit {
       this.editForm.patchValue(this.quizSettings);
       this.isLoading.set(false);
     } catch (error: any) {
-      console.error('❌ Error loading quiz settings:', error);
       this.isLoading.set(false);
       this.errorMessage.set(error.message || 'Không thể tải thông tin quiz. Vui lòng thử lại.');
     }
@@ -311,7 +306,6 @@ export class QuizEditModalComponent implements OnInit {
       this.saved.emit();
       this.close();
     } catch (error: any) {
-      console.error('Error updating quiz:', error);
       this.errorMessage.set(error.message || 'Không thể cập nhật quiz');
     } finally {
       this.isSaving.set(false);

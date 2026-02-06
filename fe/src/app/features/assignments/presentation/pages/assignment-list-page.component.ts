@@ -1,5 +1,5 @@
-﻿import { Component, inject, OnInit, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+﻿import { Component, inject, OnInit, signal, computed, ChangeDetectionStrategy } from '@angular/core';
+
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
 import { AssignmentListState } from '../state/assignment-list.state';
@@ -14,15 +14,15 @@ import { AssignmentLoadingComponent } from '../components/assignment-loading.com
  * Orchestrates state management, component integration, and user interactions
  */
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-assignment-list-page',
   imports: [
-    CommonModule,
     RouterModule,
     AssignmentCardComponent,
     AssignmentFilterPanelComponent,
     AssignmentPaginationComponent,
     AssignmentLoadingComponent
-  ],
+],
   templateUrl: './assignment-list-page.component.html',
   styles: [`
     input[type="checkbox"]:indeterminate {
@@ -100,7 +100,6 @@ export class AssignmentListPageComponent implements OnInit {
 
   markAsRead(): void {
     // TODO: Implement mark as read functionality
-    console.log('Mark selected assignments as read');
     this.assignmentState.clearSelection();
   }
 
@@ -127,7 +126,6 @@ export class AssignmentListPageComponent implements OnInit {
 
   onBookmarkAssignment(assignmentId: string): void {
     // TODO: Implement bookmark functionality
-    console.log('Bookmark assignment:', assignmentId);
   }
 
   // ========================================

@@ -1,5 +1,5 @@
 ﻿import { Component, signal, computed, inject, OnInit, OnDestroy, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
@@ -64,7 +64,7 @@ interface NotificationTemplate {
 
 @Component({
   selector: 'app-advanced-notification-system',
-  imports: [CommonModule, RouterModule, FormsModule, LoadingComponent],
+  imports: [RouterModule, FormsModule, LoadingComponent],
   encapsulation: ViewEncapsulation.None,
   templateUrl: './advanced-notification-system.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -159,8 +159,8 @@ export class AdvancedNotificationSystemComponent implements OnInit, OnDestroy {
     return [
       {
         id: '1',
-        title: 'BĂ i táº­p má»›i: Navigation Safety Quiz',
-        message: 'Báº¡n cĂ³ bĂ i táº­p má»›i cáº§n hoĂ n thĂ nh trong khĂ³a há»c Navigation Safety. Háº¡n ná»™p: 25/12/2024',
+        title: 'Bài tập mới: Navigation Safety Quiz',
+        message: 'Bạn có bài tập mới cần hoàn thành trong khóa học Navigation Safety. Hạn nộp: 25/12/2024',
         type: 'assignment',
         priority: 'high',
         category: 'assignment',
@@ -168,22 +168,22 @@ export class AdvancedNotificationSystemComponent implements OnInit, OnDestroy {
         isArchived: false,
         createdAt: new Date(),
         actionUrl: '/student/assignments/1',
-        actionText: 'Xem bĂ i táº­p',
+        actionText: 'Xem bài tập',
         metadata: {
           assignmentId: '1',
           courseId: 'nav-safety'
         },
         sender: {
           id: 't1',
-          name: 'Tháº§y Nguyá»…n VÄƒn A',
+          name: 'Thầy Nguyễn Văn A',
           avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
           role: 'teacher'
         }
       },
       {
         id: '2',
-        title: 'KhĂ³a há»c má»›i: Marine Engineering',
-        message: 'KhĂ³a há»c Marine Engineering Ä‘Ă£ Ä‘Æ°á»£c má»Ÿ Ä‘Äƒng kĂ½. HĂ£y Ä‘Äƒng kĂ½ ngay Ä‘á»ƒ khĂ´ng bá» lá»¡ cÆ¡ há»™i há»c táº­p.',
+        title: 'Khóa học mới: Marine Engineering',
+        message: 'Khóa học Marine Engineering đã được mở đăng ký. Hãy đăng ký ngay để không bỏ lỡ cơ hội học tập.',
         type: 'course',
         priority: 'medium',
         category: 'course',
@@ -191,15 +191,15 @@ export class AdvancedNotificationSystemComponent implements OnInit, OnDestroy {
         isArchived: false,
         createdAt: new Date(Date.now() - 86400000), // 1 day ago
         actionUrl: '/courses/marine-engineering',
-        actionText: 'ÄÄƒng kĂ½ ngay',
+        actionText: 'Đăng ký ngay',
         metadata: {
           courseId: 'marine-eng'
         }
       },
       {
         id: '3',
-        title: 'ThĂ´ng bĂ¡o há»‡ thá»‘ng: Báº£o trĂ¬ Ä‘á»‹nh ká»³',
-        message: 'Há»‡ thá»‘ng sáº½ Ä‘Æ°á»£c báº£o trĂ¬ tá»« 2:00 - 4:00 ngĂ y 20/12/2024. Vui lĂ²ng lÆ°u cĂ´ng viá»‡c trÆ°á»›c thá»i gian nĂ y.',
+        title: 'Thông báo hệ thống: Bảo trì định kỳ',
+        message: 'Hệ thống sẽ được bảo trì từ 2:00 - 4:00 ngày 20/12/2024. Vui lòng lưu công việc trước thời gian này.',
         type: 'system',
         priority: 'urgent',
         category: 'system',
@@ -238,7 +238,7 @@ export class AdvancedNotificationSystemComponent implements OnInit, OnDestroy {
   }
 
   deleteNotification(notification: Notification): void {
-    if (confirm(`Báº¡n cĂ³ cháº¯c cháº¯n muá»‘n xĂ³a thĂ´ng bĂ¡o "${notification.title}"?`)) {
+    if (confirm(`Bạn có chắc chắn muốn xóa thông báo "${notification.title}"?`)) {
       this.notifications.update(notifications => 
         notifications.filter(n => n.id !== notification.id)
       );
@@ -289,20 +289,20 @@ export class AdvancedNotificationSystemComponent implements OnInit, OnDestroy {
 
   getPriorityText(priority: string): string {
     switch (priority) {
-      case 'urgent': return 'Kháº©n cáº¥p';
+      case 'urgent': return 'Khẩn cấp';
       case 'high': return 'Cao';
-      case 'medium': return 'Trung bĂ¬nh';
-      case 'low': return 'Tháº¥p';
-      default: return 'KhĂ´ng xĂ¡c Ä‘á»‹nh';
+      case 'medium': return 'Trung bình';
+      case 'low': return 'Thấp';
+      default: return 'Không xác định';
     }
   }
 
   getRoleText(role: string): string {
     switch (role) {
-      case 'teacher': return 'Giáº£ng viĂªn';
-      case 'student': return 'Há»c viĂªn';
-      case 'admin': return 'Quáº£n trá»‹ viĂªn';
-      default: return 'NgÆ°á»i dĂ¹ng';
+      case 'teacher': return 'Giảng viên';
+      case 'student': return 'Học viên';
+      case 'admin': return 'Quản trị viên';
+      default: return 'Người dùng';
     }
   }
 
@@ -311,12 +311,12 @@ export class AdvancedNotificationSystemComponent implements OnInit, OnDestroy {
     const diff = now.getTime() - date.getTime();
     const minutes = Math.floor(diff / 60000);
     
-    if (minutes < 1) return 'Vá»«a xong';
-    if (minutes < 60) return `${minutes} phĂºt trÆ°á»›c`;
+    if (minutes < 1) return 'Vừa xong';
+    if (minutes < 60) return `${minutes} phút trước`;
     const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours} giá» trÆ°á»›c`;
+    if (hours < 24) return `${hours} giờ trước`;
     const days = Math.floor(hours / 24);
-    if (days < 7) return `${days} ngĂ y trÆ°á»›c`;
+    if (days < 7) return `${days} ngày trước`;
     return date.toLocaleDateString('vi-VN');
   }
 }

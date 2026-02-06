@@ -88,6 +88,8 @@ public class CourseMapper {
             case PENDING -> Course.CourseStatus.PENDING;
             case APPROVED -> Course.CourseStatus.APPROVED;
             case REJECTED -> Course.CourseStatus.REJECTED;
+            case PUBLISHED -> Course.CourseStatus.PUBLISHED;
+            case ARCHIVED -> Course.CourseStatus.ARCHIVED;
         };
     }
 
@@ -98,7 +100,8 @@ public class CourseMapper {
             case PENDING -> CourseJpaEntity.CourseStatus.PENDING;
             case APPROVED -> CourseJpaEntity.CourseStatus.APPROVED;
             case REJECTED -> CourseJpaEntity.CourseStatus.REJECTED;
-            case ARCHIVED -> CourseJpaEntity.CourseStatus.DRAFT; // No ARCHIVED in JpaEntity
+            case PUBLISHED -> CourseJpaEntity.CourseStatus.PUBLISHED;
+            case ARCHIVED -> CourseJpaEntity.CourseStatus.ARCHIVED;
         };
     }
 }

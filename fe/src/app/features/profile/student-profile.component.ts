@@ -1,5 +1,5 @@
 import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
@@ -63,9 +63,8 @@ interface SocialLink {
 
 @Component({
   selector: 'app-student-profile',
-  imports: [CommonModule, RouterModule, FormsModule, LoadingComponent],
+  imports: [RouterModule, FormsModule, LoadingComponent],
   encapsulation: ViewEncapsulation.None,
-  standalone: true,
   template: `
     <!-- Loading State -->
     <app-loading 
@@ -407,9 +406,6 @@ export class StudentProfileComponent implements OnInit {
       // Simulate loading profile data
       await this.simulateProfileLoading();
       
-      console.log('🔧 Student Profile - Component initialized');
-      console.log('🔧 Student Profile - Profile data loaded:', this.profile());
-      
       this.errorService.showSuccess('Hồ sơ cá nhân đã được tải thành công!', 'profile');
       
     } catch (error) {
@@ -425,41 +421,34 @@ export class StudentProfileComponent implements OnInit {
   }
 
   editProfile(): void {
-    console.log('🔧 Student Profile - Edit profile');
     this.errorService.showInfo('Tính năng chỉnh sửa hồ sơ sẽ được phát triển trong phiên bản tiếp theo', 'profile');
   }
 
   editAvatar(): void {
-    console.log('🔧 Student Profile - Edit avatar');
     this.errorService.showInfo('Tính năng chỉnh sửa avatar sẽ được phát triển trong phiên bản tiếp theo', 'avatar');
   }
 
   goToDashboard(): void {
-    console.log('🔧 Student Profile - Go to dashboard');
     this.router.navigate(['/student/dashboard']).catch(error => {
       this.errorService.handleNavigationError(error, '/student/dashboard');
     });
   }
 
   viewAllAchievements(): void {
-    console.log('🔧 Student Profile - View all achievements');
     this.errorService.showInfo('Tính năng xem tất cả thành tích sẽ được phát triển trong phiên bản tiếp theo', 'achievements');
   }
 
   viewAllCertificates(): void {
-    console.log('🔧 Student Profile - View all certificates');
     this.errorService.showInfo('Tính năng xem tất cả chứng chỉ sẽ được phát triển trong phiên bản tiếp theo', 'certificates');
   }
 
   viewCertificate(certificateId: string): void {
-    console.log('🔧 Student Profile - View certificate:', certificateId);
     // Open certificate in new tab
     window.open(`/certificates/${certificateId}`, '_blank');
     this.errorService.showSuccess('Chứng chỉ đang được mở trong tab mới', 'certificate');
   }
 
   downloadCertificate(certificateId: string): void {
-    console.log('🔧 Student Profile - Download certificate:', certificateId);
     const certificate = this.profile().certificates.find(cert => cert.id === certificateId);
     if (certificate) {
       const link = document.createElement('a');
@@ -471,12 +460,10 @@ export class StudentProfileComponent implements OnInit {
   }
 
   shareAchievement(achievementId: string): void {
-    console.log('🔧 Student Profile - Share achievement:', achievementId);
     this.errorService.showInfo('Tính năng chia sẻ thành tích sẽ được phát triển trong phiên bản tiếp theo', 'achievement');
   }
 
   updateSocialLink(platform: string, url: string): void {
-    console.log('🔧 Student Profile - Update social link:', platform, url);
     const socialLinks = this.profile().socialLinks;
     const updatedLinks = socialLinks.map(link => 
       link.platform === platform ? { ...link, url } : link
@@ -486,7 +473,6 @@ export class StudentProfileComponent implements OnInit {
   }
 
   toggleSocialLinkVisibility(platform: string): void {
-    console.log('🔧 Student Profile - Toggle social link visibility:', platform);
     const socialLinks = this.profile().socialLinks;
     const updatedLinks = socialLinks.map(link => 
       link.platform === platform ? { ...link, isPublic: !link.isPublic } : link

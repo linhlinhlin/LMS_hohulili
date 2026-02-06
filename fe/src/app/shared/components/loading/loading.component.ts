@@ -1,5 +1,5 @@
-import { Component, input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, input, ChangeDetectionStrategy } from '@angular/core';
+
 
 /**
  * Loading Component - Reusable loading indicator
@@ -7,8 +7,9 @@ import { CommonModule } from '@angular/common';
  * Angular v20+ signal inputs
  */
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-loading',
-  imports: [CommonModule],
+  imports: [],
   template: `
     @if (show()) {
       <div [class]="getContainerClasses()">

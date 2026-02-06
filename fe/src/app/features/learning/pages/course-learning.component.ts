@@ -1,5 +1,5 @@
 import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, HostListener } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { LearningService } from '../services/learning.service';
 import { LessonContentComponent } from '../components/lesson-content/lesson-content.component';
@@ -16,8 +16,7 @@ import { VideoProgressApi } from '../../../api/client/video-progress.api';
  */
 @Component({
   selector: 'app-course-learning',
-  standalone: true,
-  imports: [CommonModule, RouterModule, LessonContentComponent],
+  imports: [RouterModule, LessonContentComponent],
   templateUrl: './course-learning.component.html',
   styleUrls: ['./course-learning.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -118,7 +117,6 @@ export class CourseLearningComponent implements OnInit {
     const lessonId = this.route.snapshot.paramMap.get('lessonId');
 
     if (!courseId) {
-      console.error('No course ID in route');
       return;
     }
 
@@ -142,7 +140,6 @@ export class CourseLearningComponent implements OnInit {
     const nextLesson = allLessons.find(l => !l.isCompleted) ?? allLessons[0];
 
     if (nextLesson) {
-      console.log('[CourseLearning] Auto-selecting next uncompleted lesson:', nextLesson.id);
       this.learningService.loadLesson(nextLesson.id);
 
       // Update URL
@@ -224,8 +221,6 @@ export class CourseLearningComponent implements OnInit {
         const currentSection = currentLesson.sections[this.currentSectionIndex];
         
         if (currentSection.type === 'VIDEO' && currentSection.videoUrl) {
-          console.log('[CourseLearning] Checking 75% rule for VIDEO section:', currentSection.id);
-          
           try {
             const progressCheck = await firstValueFrom(
               this.videoProgressApi.canProceedToNext(currentSection.id)
@@ -242,10 +237,8 @@ export class CourseLearningComponent implements OnInit {
                 );
                 return; // Block navigation
               }
-              console.log('[CourseLearning] Video progress sufficient, proceeding to next section');
             }
           } catch (error) {
-            console.error('[CourseLearning] Failed to check video progress:', error);
             alert('Không thể kiểm tra tiến độ video. Vui lòng thử lại.');
             return; // Block navigation on error
           }
@@ -279,7 +272,6 @@ export class CourseLearningComponent implements OnInit {
     // Lấy lesson và section hiện tại
     const lesson = this.currentLesson();
     if (!lesson) {
-      console.log('[CourseLearning] onMarkComplete: no current lesson');
       return;
     }
 
@@ -287,16 +279,11 @@ export class CourseLearningComponent implements OnInit {
     if (lesson.sections && lesson.sections.length > 0) {
       const currentSection = lesson.sections[this.currentSectionIndex];
       if (!currentSection) {
-        console.error('[CourseLearning] No current section found');
         return;
       }
 
-      console.log('[CourseLearning] Marking section as complete:', currentSection.id);
-
       // 🔒 CHECK 75% RULE for VIDEO sections
       if (currentSection.type === 'VIDEO' && currentSection.videoUrl) {
-        console.log('[CourseLearning] Section is VIDEO, checking 75% rule...');
-        
         try {
           const progressCheck = await firstValueFrom(
             this.videoProgressApi.canProceedToNext(currentSection.id)
@@ -313,10 +300,8 @@ export class CourseLearningComponent implements OnInit {
               );
               return;
             }
-            console.log('[CourseLearning] Video progress sufficient (>=75%), marking as complete...');
           }
         } catch (error) {
-          console.error('[CourseLearning] Failed to check video progress:', error);
           alert('Không thể kiểm tra tiến độ video. Vui lòng thử lại.');
           return;
         }
@@ -337,14 +322,12 @@ export class CourseLearningComponent implements OnInit {
     }
 
     // No sections - mark lesson as complete (original logic)
-    console.log('[CourseLearning] No sections, marking lesson as complete');
 
     // Nếu đã completed rồi thì không gọi API nữa
     try {
       const alreadyCompleted = this.learningService
         .isLessonCompleted(lesson.id)();
       if (alreadyCompleted) {
-        console.log('[CourseLearning] onMarkComplete: lesson already completed');
         return;
       }
     } catch {
@@ -353,12 +336,9 @@ export class CourseLearningComponent implements OnInit {
 
     // 🔒 CHECK 75% RULE for VIDEO lessons
     if (this.hasVideoContent(lesson)) {
-      console.log('[CourseLearning] Lesson has video, checking 75% rule...');
-      
       // Get section ID from lesson's first video section
       const videoSection = this.getFirstVideoSection(lesson);
       if (!videoSection) {
-        console.warn('[CourseLearning] Video lesson but no video section found');
         alert('Không tìm thấy video trong bài học này.');
         return;
       }
@@ -367,8 +347,6 @@ export class CourseLearningComponent implements OnInit {
         const progressCheck = await firstValueFrom(
           this.videoProgressApi.canProceedToNext(videoSection.id)
         );
-
-        console.log('[CourseLearning] Video progress check:', progressCheck);
 
         if (progressCheck.success && progressCheck.data) {
           if (!progressCheck.data.canProceed) {
@@ -382,72 +360,25 @@ export class CourseLearningComponent implements OnInit {
             return;
           }
           // Đã đủ 75%, cho phép tiếp tục
-          console.log('[CourseLearning] Video progress sufficient (>=75%), proceeding...');
         }
       } catch (error) {
-        console.error('[CourseLearning] Failed to check video progress:', error);
         alert('Không thể kiểm tra tiến độ video. Vui lòng thử lại.');
         return;
       }
     }
 
-    console.log('[CourseLearning] onMarkComplete: START, lessonId =', lesson.id);
-
-    // 🔍 DEBUG: Check token
-    const token = localStorage.getItem('lms_access_token');
-    console.log('[CourseLearning] Token check:', {
-      tokenExists: !!token,
-      tokenLength: token?.length,
-      tokenPrefix: token?.substring(0, 20) + '...'
-    });
-
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        console.log('[CourseLearning] JWT Payload:', {
-          sub: payload.sub,
-          roles: payload.roles || payload.authorities,
-          exp: new Date(payload.exp * 1000).toISOString(),
-          isExpired: payload.exp * 1000 < Date.now()
-        });
-      } catch (e) {
-        console.error('[CourseLearning] Cannot decode JWT:', e);
-      }
-    }
-
     try {
-      console.log('[CourseLearning] BEFORE API CALL');
-
       const apiResult = await firstValueFrom(
         this.lessonApi.markLessonComplete(lesson.id)
       );
 
-      console.log('[CourseLearning] API call successful, response:', apiResult);
-
-      // ✅ Cập nhật state phía FE qua service chung
+      // Cập nhật state phía FE qua service chung
       this.learningService.markCurrentLessonComplete();
 
       // (tuỳ bạn) có thể expand section hiện tại để user thấy rõ
       this.expandCurrentLessonSection();
 
-      console.log('[CourseLearning] Lesson marked as completed in UI:', lesson.id);
     } catch (error: any) {
-      console.error('[CourseLearning] Failed to mark lesson as completed:', error);
-      console.error('[CourseLearning] Error details:', {
-        status: error?.status,
-        statusText: error?.statusText,
-        message: error?.message,
-        url: error?.url,
-        error: error?.error
-      });
-
-      if (error?.status === 403) {
-        console.error('[CourseLearning] 403 Forbidden - Check token and roles');
-      }
-
-      // Ở CourseLearningComponent không có _error, nên bạn có thể:
-      // - dùng 1 signal error riêng
-      // - hoặc tạm thời chỉ alert:
       alert('Không thể cập nhật trạng thái hoàn thành. Vui lòng thử lại.');
     }
   }
@@ -496,17 +427,14 @@ export class CourseLearningComponent implements OnInit {
         this.completedSections.set(new Set(sections));
       }
     } catch (error) {
-      console.error('[CourseLearning] Failed to load completed sections:', error);
     }
   }
 
   // Video events
   onVideoStateChange(state: any): void {
-    console.log('Video state changed:', state);
   }
 
   onVideoEnded(): void {
-    console.log('Video ended');
     this.learningService.markCurrentLessonComplete();
 
     // Auto-advance to next lesson if available

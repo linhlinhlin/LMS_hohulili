@@ -1,13 +1,13 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, OnInit, signal, ChangeDetectionStrategy } from '@angular/core';
+
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { TeacherRevenueService, PayoutHistoryItem } from '../infrastructure/services/teacher-revenue.service';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
     selector: 'app-teacher-payout-history',
-    standalone: true,
-    imports: [CommonModule, RouterModule, FormsModule],
+    imports: [RouterModule, FormsModule],
     template: `
     <div class="min-h-screen bg-gray-50 p-6">
       <div class="max-w-6xl mx-auto">
@@ -143,14 +143,13 @@ export class TeacherPayoutHistoryComponent implements OnInit {
     filteredPayouts = signal<PayoutHistoryItem[]>([]);
 
     ngOnInit(): void {
-        console.log('[PAYOUT HISTORY] Initializing...');
         this.loadData();
     }
 
     private loadData(): void {
         this.revenueService.getPayoutHistory().subscribe({
             next: () => this.applyFilter(),
-            error: (err) => console.error('[PAYOUT HISTORY] Error:', err)
+            error: () => {}
         });
     }
 

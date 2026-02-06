@@ -341,8 +341,7 @@ export class NotificationService {
       // TODO: Replace with real API call
       await this.simulateApiCall();
       return this._preferences();
-    } catch (error) {
-      console.warn('API unavailable, using default preferences:', error);
+    } catch {
       return this._preferences();
     }
   }

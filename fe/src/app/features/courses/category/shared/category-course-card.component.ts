@@ -1,9 +1,10 @@
-import { Component, input } from '@angular/core';
+import { Component, input, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule, NgOptimizedImage } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { ExtendedCourse } from '../../../../shared/types/course.types';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-category-course-card',
   imports: [CommonModule, RouterModule, NgOptimizedImage],
   template: `
@@ -134,7 +135,6 @@ export class CategoryCourseCardComponent {
     event.stopPropagation();
 
     // Mock preview functionality
-    console.log('Playing course preview for:', this.course().title);
     // Trong thực tế sẽ mở video player modal hoặc redirect đến preview page
   }
 }

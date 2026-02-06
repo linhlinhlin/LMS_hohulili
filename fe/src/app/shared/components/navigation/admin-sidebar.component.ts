@@ -1,5 +1,5 @@
 import { Component, signal, inject, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule, Router, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 
@@ -15,8 +15,7 @@ interface NavigationItem {
 
 @Component({
   selector: 'app-admin-sidebar',
-  standalone: true,
-  imports: [CommonModule, RouterModule, RouterLinkActive],
+  imports: [RouterModule, RouterLinkActive],
   encapsulation: ViewEncapsulation.None,
   template: `
     <aside class="admin-sidebar">

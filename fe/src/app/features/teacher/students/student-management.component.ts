@@ -1,5 +1,5 @@
 import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { StudentApi, StudentSummary } from '../../../api/client/student.api';
@@ -8,18 +8,20 @@ import { CourseSummary } from '../../../api/types/course.types';
 
 @Component({
   selector: 'app-student-management',
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [RouterModule, FormsModule],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="p-6 space-y-6">
       <h1 class="text-2xl font-bold text-gray-900">Học viên</h1>
-
+    
       <div class="bg-white rounded-xl shadow">
         <div class="p-4 flex flex-wrap gap-3 items-center">
           <input class="border rounded-lg px-3 py-2 w-64" placeholder="Tìm theo tên/email" [(ngModel)]="keyword" />
           <select class="border rounded-lg px-3 py-2" [(ngModel)]="selectedCourse" (ngModelChange)="onCourseChange()">
             <option value="">Tất cả khóa học</option>
-            <option *ngFor="let course of courses()" [value]="course.id">{{ course.title }}</option>
+            @for (course of courses(); track course) {
+              <option [value]="course.id">{{ course.title }}</option>
+            }
           </select>
           <select class="border rounded-lg px-3 py-2" [(ngModel)]="status" (ngModelChange)="onStatusChange()">
             <option value="">Tất cả trạng thái</option>
@@ -29,7 +31,7 @@ import { CourseSummary } from '../../../api/types/course.types';
           </select>
           <button class="px-4 py-2 border rounded-lg text-sm" (click)="applyFilters()">Lọc</button>
         </div>
-
+    
         <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
@@ -42,110 +44,118 @@ import { CourseSummary } from '../../../api/types/course.types';
                 <th class="px-6 py-4"></th>
               </tr>
             </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-              
-              <tr *ngIf="loading()">
-                <td colspan="6" class="px-6 py-12 text-center text-gray-600">
-                  <div class="flex items-center justify-center gap-2">
-                    <svg class="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span>Đang tải danh sách học viên...</span>
-                  </div>
-                </td>
-              </tr>
-              
-              <tr *ngIf="!loading() && error()">
-                <td colspan="6" class="px-6 py-12 text-center text-red-600">
-                  {{ error() }}
-                  <button (click)="onReload()" class="ml-2 text-blue-600 underline text-sm">Tải lại</button>
-                </td>
-              </tr>
-
-              <tr *ngIf="!loading() && !error() && paged().length === 0">
-                <td colspan="6" class="px-6 py-12 text-center text-gray-500">
-                  Không tìm thấy học viên nào.
-                </td>
-              </tr>
-
-              <tr *ngFor="let s of paged(); trackBy: trackById">
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{{ s.name }}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ s.email }}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                  <div class="flex items-center">
-                    <div class="w-16 bg-gray-200 rounded-full h-2 mr-2">
-                      <div class="bg-blue-600 h-2 rounded-full" [style.width.%]="s.progress"></div>
+            <tbody class="bg-white divide-y divide-gray-200">
+    
+              @if (loading()) {
+                <tr>
+                  <td colspan="6" class="px-6 py-12 text-center text-gray-600">
+                    <div class="flex items-center justify-center gap-2">
+                      <svg class="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>Đang tải danh sách học viên...</span>
                     </div>
-                    <span>{{ s.progress }}%</span>
-                  </div>
-                </td>
-                <td class="px-6 py-5 whitespace-nowrap text-sm text-gray-600 text-center">
-                  <span [class.text-green-600]="s.averageGrade >= 8" 
-                        [class.text-yellow-600]="s.averageGrade >= 6 && s.averageGrade < 8"
-                        [class.text-red-600]="s.averageGrade < 6">
-                    {{ s.averageGrade.toFixed(1) }}
-                  </span>
-                </td>
-                <td class="px-6 py-5 whitespace-nowrap text-base md:text-lg">
-                  <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
-                        [class.bg-green-100]="s.status === 'active'"
-                        [class.text-green-800]="s.status === 'active'"
-                        [class.bg-gray-100]="s.status === 'inactive'"
-                        [class.text-gray-800]="s.status === 'inactive'"
-                        [class.bg-red-100]="s.status === 'suspended'"
-                        [class.text-red-800]="s.status === 'suspended'">
-                    {{ s.status === 'active' ? 'Đang học' : s.status === 'inactive' ? 'Không hoạt động' : 'Tạm khóa' }}
-                  </span>
-                </td>
-                <td class="px-6 py-5 whitespace-nowrap text-right text-base md:text-lg">
-                  <a [routerLink]="['/teacher/students', s.id]" 
-                    class="px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:text-indigo-900 rounded-md transition-colors text-xs font-medium inline-flex items-center gap-1">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                    Chi tiết
-                  </a>
-                  <button (click)="sendMessage(s.id)"
-                    class="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-md transition-colors text-xs font-medium inline-flex items-center gap-1">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                        d="M7 8h10M7 12h6m2 8l-4-4H7a3 3 0 01-3-3V7a3 3 0 013-3h10a3 3 0 013 3v6a3 3 0 01-3 3h-3l-4 4" />
-                    </svg>
-                    Nhắn tin
-                  </button>
-                  <!-- <a [routerLink]="['/teacher/students', s.id]" class="text-indigo-600 hover:text-indigo-900 mr-4">Chi tiết</a>
-                  <button (click)="sendMessage(s.id)" class="text-blue-600 hover:text-blue-900">Nhắn tin</button>-->
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Pagination Controls -->
-      <div class="bg-white rounded-lg shadow p-4 flex flex-wrap items-center justify-between gap-3">
-        <div class="flex items-center gap-2">
-          <span class="text-sm text-gray-600">Hiển thị</span>
-          <select class="border rounded px-2 py-1" [ngModel]="pageSize()" (ngModelChange)="onPageSizeChange($event)">
-            <option [ngValue]="5">5</option>
-            <option [ngValue]="10">10</option>
-            <option [ngValue]="20">20</option>
-          </select>
-          <span class="text-sm text-gray-600">mỗi trang</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <button class="px-3 py-1 border rounded disabled:opacity-50" [disabled]="pageIndex() <= 1" (click)="prevPage()">Trước</button>
-          <span class="text-sm text-gray-700">Trang {{ pageIndex() }} / {{ totalPages() }}</span>
-          <button class="px-3 py-1 border rounded disabled:opacity-50" [disabled]="pageIndex() >= totalPages()" (click)="nextPage()">Sau</button>
-        </div>
-        <div class="text-sm text-gray-600">Tổng: {{ total() }}</div>
-      </div>
-    </div>
-  `,
+                  </td>
+                </tr>
+              }
+    
+              @if (!loading() && error()) {
+                <tr>
+                  <td colspan="6" class="px-6 py-12 text-center text-red-600">
+                    {{ error() }}
+                    <button (click)="onReload()" class="ml-2 text-blue-600 underline text-sm">Tải lại</button>
+                  </td>
+                </tr>
+              }
+    
+              @if (!loading() && !error() && paged().length === 0) {
+                <tr>
+                  <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                    Không tìm thấy học viên nào.
+                  </td>
+                </tr>
+              }
+    
+              @for (s of paged(); track trackById($index, s)) {
+                <tr>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{{ s.name }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ s.email }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                    <div class="flex items-center">
+                      <div class="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                        <div class="bg-blue-600 h-2 rounded-full" [style.width.%]="s.progress"></div>
+                      </div>
+                      <span>{{ s.progress }}%</span>
+                    </div>
+                  </td>
+                  <td class="px-6 py-5 whitespace-nowrap text-sm text-gray-600 text-center">
+                    <span [class.text-green-600]="s.averageGrade >= 8"
+                      [class.text-yellow-600]="s.averageGrade >= 6 && s.averageGrade < 8"
+                      [class.text-red-600]="s.averageGrade < 6">
+                      {{ s.averageGrade.toFixed(1) }}
+                    </span>
+                  </td>
+                  <td class="px-6 py-5 whitespace-nowrap text-base md:text-lg">
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
+                      [class.bg-green-100]="s.status === 'active'"
+                      [class.text-green-800]="s.status === 'active'"
+                      [class.bg-gray-100]="s.status === 'inactive'"
+                      [class.text-gray-800]="s.status === 'inactive'"
+                      [class.bg-red-100]="s.status === 'suspended'"
+                      [class.text-red-800]="s.status === 'suspended'">
+                      {{ s.status === 'active' ? 'Đang học' : s.status === 'inactive' ? 'Không hoạt động' : 'Tạm khóa' }}
+                    </span>
+                  </td>
+                  <td class="px-6 py-5 whitespace-nowrap text-right text-base md:text-lg">
+                    <a [routerLink]="['/teacher/students', s.id]"
+                      class="px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:text-indigo-900 rounded-md transition-colors text-xs font-medium inline-flex items-center gap-1">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                          Chi tiết
+                        </a>
+                        <button (click)="sendMessage(s.id)"
+                          class="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-md transition-colors text-xs font-medium inline-flex items-center gap-1">
+                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M7 8h10M7 12h6m2 8l-4-4H7a3 3 0 01-3-3V7a3 3 0 013-3h10a3 3 0 013 3v6a3 3 0 01-3 3h-3l-4 4" />
+                            </svg>
+                            Nhắn tin
+                          </button>
+                          <!-- <a [routerLink]="['/teacher/students', s.id]" class="text-indigo-600 hover:text-indigo-900 mr-4">Chi tiết</a>
+                          <button (click)="sendMessage(s.id)" class="text-blue-600 hover:text-blue-900">Nhắn tin</button>-->
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+    
+            <!-- Pagination Controls -->
+            <div class="bg-white rounded-lg shadow p-4 flex flex-wrap items-center justify-between gap-3">
+              <div class="flex items-center gap-2">
+                <span class="text-sm text-gray-600">Hiển thị</span>
+                <select class="border rounded px-2 py-1" [ngModel]="pageSize()" (ngModelChange)="onPageSizeChange($event)">
+                  <option [ngValue]="5">5</option>
+                  <option [ngValue]="10">10</option>
+                  <option [ngValue]="20">20</option>
+                </select>
+                <span class="text-sm text-gray-600">mỗi trang</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <button class="px-3 py-1 border rounded disabled:opacity-50" [disabled]="pageIndex() <= 1" (click)="prevPage()">Trước</button>
+                <span class="text-sm text-gray-700">Trang {{ pageIndex() }} / {{ totalPages() }}</span>
+                <button class="px-3 py-1 border rounded disabled:opacity-50" [disabled]="pageIndex() >= totalPages()" (click)="nextPage()">Sau</button>
+              </div>
+              <div class="text-sm text-gray-600">Tổng: {{ total() }}</div>
+            </div>
+          </div>
+    `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class StudentManagementComponent {
@@ -187,8 +197,7 @@ export class StudentManagementComponent {
           this.loadStudents();
         }
       },
-      error: (error) => {
-        console.error('Error loading courses:', error);
+      error: () => {
         this.error.set('Không thể tải danh sách khóa học');
       }
     });
@@ -217,14 +226,8 @@ export class StudentManagementComponent {
       params.search = this.keyword.trim();
     }
 
-    console.log('Loading students with params:', params);
-    const startTime = Date.now();
-
     this.studentApi.getTeacherStudents(params).subscribe({
       next: (response) => {
-        const loadTime = Date.now() - startTime;
-        console.log(`Students loaded in ${loadTime}ms`);
-        
         if (response.data) {
           // Map backend response to frontend format
           const mappedStudents = response.data.map((s: any) => ({
@@ -252,9 +255,7 @@ export class StudentManagementComponent {
         
         this.loading.set(false);
       },
-      error: (error) => {
-        const loadTime = Date.now() - startTime;
-        console.error(`Error loading students after ${loadTime}ms:`, error);
+      error: () => {
         this.error.set('Không thể tải danh sách học viên. Vui lòng thử lại.');
         this.students.set([]);
         this.totalElements.set(0);

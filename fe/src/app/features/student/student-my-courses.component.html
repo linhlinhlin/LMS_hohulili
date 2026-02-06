@@ -1,0 +1,192 @@
+<div class="my-courses-container">
+  <!-- Main Content Area (70%) -->
+  <div class="main-content">
+    <!-- Coursera-Style Header -->
+    <div class="coursera-header">
+      <div class="header-content">
+        <div class="avatar-circle">
+          {{ getUserInitials() }}
+        </div>
+        <div class="greeting-section">
+          <h1 class="greeting-title">{{ getGreeting() }}, {{ getUserFirstName() }}</h1>
+          <p class="greeting-subtitle">Tiếp tục hành trình học tập của bạn</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs-section">
+      <div class="tabs-container" role="tablist">
+        <button
+          class="tab-chip"
+          [class.active]="activeTab() === 'in-progress'"
+          (click)="onTabChange('in-progress')"
+          role="tab"
+          [attr.aria-selected]="activeTab() === 'in-progress'"
+          type="button">
+          <span class="tab-label">Đang học ({{ inProgressCount() }})</span>
+        </button>
+        <button
+          class="tab-chip"
+          [class.active]="activeTab() === 'completed'"
+          (click)="onTabChange('completed')"
+          role="tab"
+          [attr.aria-selected]="activeTab() === 'completed'"
+          type="button">
+          <span class="tab-label">Đã hoàn thành ({{ completedCount() }})</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    @if (filteredCourses().length === 0) {
+      <div class="empty-state">
+        <app-icon name="book-open" size="xl" />
+        <h3>{{ activeTab() === 'in-progress' ? 'Chưa có khóa học đang học' : 'Chưa hoàn thành khóa học nào' }}</h3>
+        <p>{{ activeTab() === 'in-progress' ? 'Hãy bắt đầu học một khóa học mới' : 'Tiếp tục học để hoàn thành khóa học đầu tiên' }}</p>
+      </div>
+    }
+
+    <!-- Courses List - Horizontal Cards -->
+    @else {
+      <div class="courses-list">
+        @for (course of filteredCourses(); track course.id) {
+          <div class="course-card-wrapper">
+            <!-- Course Thumbnail -->
+            <div class="course-thumbnail">
+              @if (course.thumbnail) {
+                <img [src]="course.thumbnail" [alt]="course.title" class="thumbnail-image" />
+              } @else {
+                <div class="thumbnail-placeholder">
+                  <app-icon name="academic-cap" size="lg" />
+                </div>
+              }
+            </div>
+
+            <!-- Course Metadata -->
+            <div class="course-metadata">
+              <div class="partner-info">
+                <span class="partner-name">LMS Maritime</span>
+              </div>
+              <h3 class="course-title">
+                <a [routerLink]="['/student/course', course.id]">
+                  {{ course.title }}
+                </a>
+              </h3>
+              <div class="course-meta">
+                <span>Khóa học</span>
+                <span class="separator">·</span>
+                <span>{{ course.progress }}% hoàn thành</span>
+                @if (course['estimatedCompletion']) {
+                  <span class="separator">·</span>
+                  <span class="estimated">Dự kiến: {{ course['estimatedCompletion'] }}</span>
+                }
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+              <app-button
+                variant="primary"
+                (clicked)="resumeCourse(course.id)">
+                {{ activeTab() === 'completed' ? 'Xem lại' : 'Tiếp tục học' }}
+              </app-button>
+              <button class="dropdown-button" (click)="toggleModules(course.id)" aria-label="Show lessons">
+                <app-icon [name]="course.showModules ? 'chevron-up' : 'chevron-down'" size="sm" />
+              </button>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="progress-bar-thin">
+              <div class="progress-fill" [style.width.%]="course.progress"></div>
+            </div>
+          </div>
+
+          <!-- Modules Dropdown -->
+          @if (course.showModules && course.modules && course.modules.length > 0) {
+            <div class="modules-dropdown">
+              @for (module of course.modules; track module.id) {
+                <div class="module-item">
+                  <div class="module-header">
+                    <app-icon name="book-open" size="xs" />
+                    <span class="module-title">{{ module.title }}</span>
+                  </div>
+                  <div class="lessons-list">
+                    @for (lesson of module.lessons; track lesson.id) {
+                      <a
+                        [routerLink]="['/student/courses', course.id, 'lessons', lesson.id]"
+                        class="lesson-item"
+                        [class.completed]="lesson.completed">
+                        <span class="lesson-title">{{ lesson.title }}</span>
+                        @if (lesson.completed) {
+                          <app-icon name="check-circle" size="xs" class="check-icon" />
+                        }
+                      </a>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        }
+      </div>
+    }
+  </div>
+
+  <!-- Sidebar (30%) - Filters -->
+  <aside class="filter-sidebar">
+    <div class="sidebar-section">
+      <h3 class="sidebar-title">Bộ lọc</h3>
+
+      <!-- Sort By -->
+      <div class="filter-group">
+        <label class="filter-label">Sắp xếp theo</label>
+        <select class="filter-select" [value]="sortBy()" (change)="onSortChange($event)">
+          <option value="recent">Gần đây nhất</option>
+          <option value="title">Tên khóa học</option>
+          <option value="progress">Tiến độ</option>
+        </select>
+      </div>
+
+      <!-- Filter by Progress -->
+      <div class="filter-group">
+        <label class="filter-label">Tiến độ</label>
+        <div class="checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" [checked]="filterNotStarted()" (change)="toggleFilterNotStarted()">
+            <span>Chưa bắt đầu</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" [checked]="filterInProgress()" (change)="toggleFilterInProgress()">
+            <span>Đang học</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" [checked]="filterCompleted()" (change)="toggleFilterCompleted()">
+            <span>Hoàn thành</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Statistics -->
+      <div class="stats-section">
+        <h4 class="stats-title">Thống kê</h4>
+        <div class="stat-item">
+          <span class="stat-label">Tổng khóa học</span>
+          <span class="stat-value">{{ enrolledCourses().length }}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Đang học</span>
+          <span class="stat-value">{{ inProgressCount() }}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Hoàn thành</span>
+          <span class="stat-value">{{ completedCount() }}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Tiến độ trung bình</span>
+          <span class="stat-value">{{ averageProgress() }}%</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+</div>

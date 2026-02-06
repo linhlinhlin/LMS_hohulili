@@ -1,12 +1,12 @@
-import { Component, input, output, signal, effect } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, input, output, signal, effect, ChangeDetectionStrategy } from '@angular/core';
+
 import { animate, style, transition, trigger, state } from '@angular/animations';
 import { LucideAngularModule, X } from 'lucide-angular';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
     selector: 'app-side-drawer',
-    standalone: true,
-    imports: [CommonModule, LucideAngularModule],
+    imports: [LucideAngularModule],
     animations: [
         trigger('drawerAnimation', [
             state('closed', style({ transform: 'translateX(100%)', opacity: 0 })),

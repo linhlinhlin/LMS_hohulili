@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, signal, computed, ChangeDetectionStrategy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AssignmentDetailStore } from '../stores/assignment-detail.store';
@@ -15,8 +15,7 @@ import { SubmissionDetail, SubmissionGrade } from '../../../../api/client/assign
  */
 @Component({
   selector: 'app-speed-grader',
-  standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [ReactiveFormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="h-screen flex flex-col bg-gray-100">
@@ -284,8 +283,7 @@ export class SpeedGraderComponent implements OnInit {
           setTimeout(() => this.nextSubmission(), 500);
         }
       },
-      error: (err) => {
-        console.error('Error grading submission:', err);
+      error: () => {
         this.saving.set(false);
         alert('Không thể chấm điểm. Vui lòng thử lại.');
       }

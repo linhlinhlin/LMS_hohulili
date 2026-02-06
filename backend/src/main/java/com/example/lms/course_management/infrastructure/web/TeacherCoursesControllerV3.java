@@ -2,6 +2,7 @@ package com.example.lms.course_management.infrastructure.web;
 
 import com.example.lms.course_authoring.domain.model.Course;
 import com.example.lms.course_authoring.infrastructure.persistence.JpaCourseRepository;
+import com.example.lms.course_management.application.usecase.GetCourseDraftUseCase;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -14,8 +15,12 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.UUID;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v3/teacher/courses")
 @RequiredArgsConstructor
@@ -23,7 +28,8 @@ import java.util.UUID;
 public class TeacherCoursesControllerV3 {
 
     private final com.example.lms.course_management.application.usecase.CourseAuthoringUseCase courseAuthoringUseCase;
-    private final com.example.lms.learning_delivery.infrastructure.persistence.JpaEnrollmentRepository enrollmentRepository;
+    private final GetCourseDraftUseCase getCourseDraftUseCase;
+    private final com.example.lms.learning_delivery.infrastructure.persistence.EnrollmentRepositoryImpl enrollmentRepository;
     private final com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository userRepository;
 
     @GetMapping("/my-courses")
@@ -36,39 +42,26 @@ public class TeacherCoursesControllerV3 {
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String status
     ) {
-        try {
-            // Debug: Check if currentUser is null
-            if (currentUser == null) {
-                System.err.println("DEBUG: currentUser is NULL in getMyCourses");
-                return ResponseEntity.badRequest().body(ApiResponse.error("AUTH_ERROR", "User not authenticated - currentUser is null"));
-            }
-            System.out.println("DEBUG: getMyCourses called for user: " + currentUser.getId() + " (" + currentUser.getEmail() + ")");
-            
-            PageRequest pageable = PageRequest.of(page, size);
-            var response = courseAuthoringUseCase.getMyCourses(currentUser.getId(), pageable);
-            
-            System.out.println("DEBUG: getMyCourses returned " + response.getTotalElements() + " courses");
-            return ResponseEntity.ok(ApiResponse.success(response));
-        } catch (Exception e) {
-            System.err.println("DEBUG ERROR in getMyCourses: " + e.getClass().getName() + " - " + e.getMessage());
-            e.printStackTrace();
-            // Return error details for debugging
-            return ResponseEntity.status(500).body(ApiResponse.error("DEBUG_ERROR", 
-                e.getClass().getSimpleName() + ": " + e.getMessage()));
+        if (currentUser == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("AUTH_ERROR", "User not authenticated"));
         }
+
+        PageRequest pageable = PageRequest.of(page, size);
+        var response = courseAuthoringUseCase.getMyCourses(currentUser.getId(), pageable);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @GetMapping("/{courseId}")
     @PreAuthorize("hasAnyRole('TEACHER', 'INSTRUCTOR', 'ADMIN')")
     public ResponseEntity<ApiResponse<Object>> getCourseById(@PathVariable UUID courseId) {
-        var draft = courseAuthoringUseCase.getCourseDraft(courseId);
+        var draft = getCourseDraftUseCase.execute(courseId);
         return ResponseEntity.ok(ApiResponse.success(draft));
     }
 
     @PostMapping
     @PreAuthorize("hasAnyRole('TEACHER', 'INSTRUCTOR', 'ADMIN')")
     public ResponseEntity<ApiResponse<Object>> createCourse(
-            @RequestBody com.example.lms.course_management.application.dto.CourseDTOs.CreateCourseRequest request,
+            @Valid @RequestBody com.example.lms.course_management.application.dto.CourseDTOs.CreateCourseRequest request,
             @AuthenticationPrincipal UserJpaEntity user) {
         var result = courseAuthoringUseCase.createCourse(request, user.getId());
         return ResponseEntity.ok(ApiResponse.success(result));
@@ -78,7 +71,7 @@ public class TeacherCoursesControllerV3 {
     @PreAuthorize("hasAnyRole('TEACHER', 'INSTRUCTOR', 'ADMIN')")
     public ResponseEntity<ApiResponse<Object>> updateCourse(
             @PathVariable UUID courseId,
-            @RequestBody com.example.lms.course_management.application.dto.CourseDTOs.UpdateCourseRequest request) {
+            @Valid @RequestBody com.example.lms.course_management.application.dto.CourseDTOs.UpdateCourseRequest request) {
         courseAuthoringUseCase.updateCourse(courseId, request);
         return ResponseEntity.ok(ApiResponse.success("Success"));
     }

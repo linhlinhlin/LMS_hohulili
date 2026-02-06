@@ -1,5 +1,5 @@
 import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
 
@@ -29,7 +29,7 @@ interface NoteFilter {
 
 @Component({
   selector: 'app-note-taking',
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="min-h-screen bg-gray-50">
@@ -415,12 +415,10 @@ export class NoteTakingComponent implements OnInit {
 
   private loadNotes(): void {
     // In real implementation, load from API
-    console.log('Loading notes...');
   }
 
   applyFilters(): void {
     // Filters are applied automatically through computed signal
-    console.log('Applying filters...');
   }
 
   toggleCourseFilter(courseId: string): void {
@@ -450,12 +448,10 @@ export class NoteTakingComponent implements OnInit {
 
   createNewNote(): void {
     // Navigate to note editor
-    console.log('Creating new note...');
   }
 
   editNote(noteId: string): void {
     // Navigate to note editor
-    console.log('Editing note:', noteId);
   }
 
   deleteNote(noteId: string): void {

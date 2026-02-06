@@ -1,5 +1,5 @@
 import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule, RouterOutlet, Router, NavigationEnd } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -8,67 +8,72 @@ import { ChatWidgetComponent } from '../../../ai-chat/presentation/components/ch
 
 @Component({
   selector: 'app-admin-layout-simple',
-  standalone: true,
-  imports: [CommonModule, RouterModule, RouterOutlet, AdminSidebarComponent, ChatWidgetComponent],
+  imports: [RouterModule, RouterOutlet, AdminSidebarComponent, ChatWidgetComponent],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="min-h-screen flex">
       <!-- Desktop Sidebar -->
-      <div class="hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:z-50"
-           *ngIf="!shouldHideSidebar()">
-        <app-admin-sidebar></app-admin-sidebar>
-      </div>
-
+      @if (!shouldHideSidebar()) {
+        <div class="hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:z-50"
+          >
+          <app-admin-sidebar></app-admin-sidebar>
+        </div>
+      }
+    
       <!-- Mobile sidebar overlay -->
       @if (isMobileSidebarOpen() && !shouldHideSidebar()) {
         <div class="fixed inset-0 z-50 lg:hidden"
-             (click)="toggleMobileSidebar()">
+          (click)="toggleMobileSidebar()">
           <div class="fixed inset-0 bg-black bg-opacity-50"></div>
           <div class="fixed inset-y-0 left-0 w-64 bg-white shadow-lg">
             <app-admin-sidebar></app-admin-sidebar>
           </div>
         </div>
       }
-
+    
       <!-- Main content area -->
       <div [class]="shouldHideSidebar() ? 'flex flex-col flex-1 min-w-0 min-h-screen' : 'lg:pl-64 flex flex-col flex-1 min-w-0 min-h-screen'">
         <!-- Mobile top bar -->
-        <header class="bg-white shadow-sm border-b border-gray-200 lg:hidden sticky top-0 z-40"
-                *ngIf="!shouldHideSidebar()">
-          <div class="px-4 sm:px-6">
-            <div class="flex justify-between items-center h-16">
-              <div class="flex items-center">
-                <button (click)="toggleMobileSidebar()" 
-                        class="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
-                        aria-label="Open sidebar">
-                  <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                  </svg>
-                </button>
-                <h1 class="ml-3 text-lg font-semibold text-gray-900">Admin Portal</h1>
-              </div>
-              <div class="flex items-center space-x-3">
-                <span class="text-sm text-gray-600 hidden sm:inline">{{ authService.currentUser()?.fullName }}</span>
-                <button (click)="logout()" 
-                        class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm"
-                        aria-label="Logout">
-                  Logout
-                </button>
+        @if (!shouldHideSidebar()) {
+          <header class="bg-white shadow-sm border-b border-gray-200 lg:hidden sticky top-0 z-40"
+            >
+            <div class="px-4 sm:px-6">
+              <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                  <button (click)="toggleMobileSidebar()"
+                    class="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
+                    aria-label="Open sidebar">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                  </button>
+                  <h1 class="ml-3 text-lg font-semibold text-gray-900">Admin Portal</h1>
+                </div>
+                <div class="flex items-center space-x-3">
+                  <span class="text-sm text-gray-600 hidden sm:inline">{{ authService.currentUser()?.fullName }}</span>
+                  <button (click)="logout()"
+                    class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm"
+                    aria-label="Logout">
+                    Logout
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        </header>
-
+          </header>
+        }
+    
         <!-- Page content -->
         <main class="flex-1">
           <router-outlet></router-outlet>
         </main>
       </div>
-
+    
       <!-- AI Chat Widget (hidden when in AI Chat full page) -->
-      <app-chat-widget *ngIf="!shouldHideSidebar()" />
+      @if (!shouldHideSidebar()) {
+        <app-chat-widget />
+      }
     </div>
-  `,
+    `,
   styles: [`
     :host {
       display: block;

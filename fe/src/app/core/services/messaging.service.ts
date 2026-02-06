@@ -117,7 +117,6 @@ export class MessagingService {
           this._loading.set(false);
         }),
         catchError((error) => {
-          console.error('Error fetching conversations:', error);
           this._error.set('Không thể tải danh sách hội thoại');
           this._loading.set(false);
           return of([]);
@@ -146,7 +145,6 @@ export class MessagingService {
           this._loading.set(false);
         }),
         catchError((error) => {
-          console.error('Error fetching conversation:', error);
           this._loading.set(false);
           return of(null);
         })
@@ -172,7 +170,6 @@ export class MessagingService {
           this._loading.set(false);
         }),
         catchError((error) => {
-          console.error('Error fetching messages:', error);
           this._error.set('Không thể tải tin nhắn');
           this._loading.set(false);
           return of([]);
@@ -220,7 +217,6 @@ export class MessagingService {
           this._loading.set(false);
         }),
         catchError((error) => {
-          console.error('Error sending message:', error);
           this._error.set('Không thể gửi tin nhắn');
           this._loading.set(false);
           throw error;
@@ -264,7 +260,6 @@ export class MessagingService {
           }
         }),
         catchError((error) => {
-          console.error('Error marking messages as read:', error);
           return of(undefined);
         })
       );
@@ -290,7 +285,6 @@ export class MessagingService {
           );
         }),
         catchError((error) => {
-          console.error('Error archiving conversation:', error);
           this._error.set('Không thể lưu trữ hội thoại');
           throw error;
         })
@@ -315,7 +309,6 @@ export class MessagingService {
           );
         }),
         catchError((error) => {
-          console.error('Error restoring conversation:', error);
           this._error.set('Không thể khôi phục hội thoại');
           throw error;
         })
@@ -342,7 +335,6 @@ export class MessagingService {
       })
       .pipe(
         catchError((error) => {
-          console.error('Error searching messages:', error);
           // Fallback to local search
           const filtered = filterConversationsBySearch(
             this._conversations(),
@@ -363,7 +355,6 @@ export class MessagingService {
     return this.http.get<{ count: number }>(`${this.apiUrl}/unread-count`).pipe(
       map((response) => response.count),
       catchError((error) => {
-        console.error('Error fetching unread count:', error);
         return of(this.totalUnreadCount());
       })
     );

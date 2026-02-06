@@ -1,5 +1,5 @@
 ﻿import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
@@ -40,9 +40,8 @@ interface Course {
 
 @Component({
   selector: 'app-post-creation',
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [RouterModule, FormsModule],
   encapsulation: ViewEncapsulation.None,
-  standalone: true,
   templateUrl: './post-creation.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -69,36 +68,36 @@ export class PostCreationComponent implements OnInit {
   categories = signal<ForumCategory[]>([
     {
       id: 'general',
-      name: 'Tháº£o luáº­n chung',
-      description: 'Tháº£o luáº­n vá» cĂ¡c chá»§ Ä‘á» chung trong há»c táº­p',
+      name: 'Thảo luận chung',
+      description: 'Thảo luận về các chủ đề chung trong học tập',
       icon: 'đŸ’¬',
       color: '#3B82F6'
     },
     {
       id: 'course',
-      name: 'KhĂ³a há»c',
-      description: 'Tháº£o luáº­n vá» ná»™i dung khĂ³a há»c',
+      name: 'Khóa học',
+      description: 'Thảo luận về nội dung khóa học',
       icon: 'đŸ“',
       color: '#10B981'
     },
     {
       id: 'assignment',
-      name: 'BĂ i táº­p',
-      description: 'Há»— trá»£ vĂ  tháº£o luáº­n vá» bĂ i táº­p',
+      name: 'Bài tập',
+      description: 'Hỗ trợ và thảo luận về bài tập',
       icon: 'đŸ“',
       color: '#F59E0B'
     },
     {
       id: 'exam',
-      name: 'Thi cá»­',
-      description: 'Chia sáº» kinh nghiá»‡m thi cá»­',
+      name: 'Thi cử',
+      description: 'Chia sẻ kinh nghiệm thi cử',
       icon: 'đŸ“‹',
       color: '#EF4444'
     },
     {
       id: 'help',
-      name: 'Há»— trá»£',
-      description: 'YĂªu cáº§u há»— trá»£ vĂ  giĂºp Ä‘á»¡',
+      name: 'Hỗ trợ',
+      description: 'Yêu cầu hỗ trợ và giúp đỡ',
       icon: 'đŸ†˜',
       color: '#8B5CF6'
     }
@@ -107,23 +106,22 @@ export class PostCreationComponent implements OnInit {
   courses = signal<Course[]>([
     {
       id: 'course-1',
-      title: 'Ká»¹ thuáº­t TĂ u biá»ƒn CÆ¡ báº£n',
-      instructor: 'ThS. Nguyá»…n VÄƒn Háº£i'
+      title: 'Kỹ thuật Tàu biển Cơ bản',
+      instructor: 'ThS. Nguyễn Văn Hải'
     },
     {
       id: 'course-2',
-      title: 'An toĂ n HĂ ng háº£i',
-      instructor: 'TS. Tráº§n Thá»‹ Lan'
+      title: 'An toàn Hàng hải',
+      instructor: 'TS. Trần Thị Lan'
     },
     {
       id: 'course-3',
-      title: 'Quáº£n lĂ½ Cáº£ng biá»ƒn',
-      instructor: 'ThS. LĂª VÄƒn Minh'
+      title: 'Quản lý Cảng biển',
+      instructor: 'ThS. Lê Văn Minh'
     }
   ]);
 
   ngOnInit(): void {
-    console.log('đŸ”§ Post Creation - Component initialized');
   }
 
   getWordCount(text: string): number {
@@ -157,7 +155,6 @@ export class PostCreationComponent implements OnInit {
         tags: [...p.tags, tag]
       }));
       this.tagInput.set('');
-      console.log('đŸ”§ Post Creation - Tag added:', tag);
     }
   }
 
@@ -166,7 +163,6 @@ export class PostCreationComponent implements OnInit {
       ...p,
       tags: p.tags.filter(t => t !== tag)
     }));
-    console.log('đŸ”§ Post Creation - Tag removed:', tag);
   }
 
   onFileSelected(event: Event): void {
@@ -189,7 +185,6 @@ export class PostCreationComponent implements OnInit {
         }));
       });
       
-      console.log('đŸ”§ Post Creation - Files selected:', files.length);
     }
   }
 
@@ -205,7 +200,6 @@ export class PostCreationComponent implements OnInit {
       ...p,
       attachments: p.attachments.filter(att => att.id !== attachmentId)
     }));
-    console.log('đŸ”§ Post Creation - Attachment removed:', attachmentId);
   }
 
   canSubmit(): boolean {
@@ -217,42 +211,25 @@ export class PostCreationComponent implements OnInit {
   }
 
   saveDraft(): void {
-    console.log('đŸ”§ Post Creation - Save draft');
     // Mock save draft functionality
-    alert('ÄĂ£ lÆ°u nhĂ¡p thĂ nh cĂ´ng!');
+    alert('Đã lưu nháp thành công!');
   }
 
   submitPost(): void {
     if (!this.canSubmit()) {
-      alert('Vui lĂ²ng Ä‘iá»n Ä‘áº§y Ä‘á»§ thĂ´ng tin báº¯t buá»™c.');
+      alert('Vui lòng điền đầy đủ thông tin bắt buộc.');
       return;
     }
 
-    console.log('đŸ”§ Post Creation - Submit post');
-    console.log('đŸ”§ Post Creation - Post data:', this.post());
-    
     // Mock submission
-    alert('ÄÄƒng bĂ i thĂ nh cĂ´ng! BĂ i viáº¿t sáº½ Ä‘Æ°á»£c kiá»ƒm duyá»‡t trÆ°á»›c khi hiá»ƒn thá»‹ cĂ´ng khai.');
+    alert('Đăng bài thành công! Bài viết sẽ được kiểm duyệt trước khi hiển thị công khai.');
     
     // Navigate back to forum
-    this.router.navigate(['/student/forum']).then(success => {
-      if (success) {
-        console.log('đŸ”§ Post Creation - Navigation to forum successful');
-      } else {
-        console.error('đŸ”§ Post Creation - Navigation to forum failed');
-      }
-    });
+    this.router.navigate(['/student/forum']);
   }
 
   goBack(): void {
-    console.log('đŸ”§ Post Creation - Go back');
-    this.router.navigate(['/student/forum']).then(success => {
-      if (success) {
-        console.log('đŸ”§ Post Creation - Navigation back successful');
-      } else {
-        console.error('đŸ”§ Post Creation - Navigation back failed');
-      }
-    });
+    this.router.navigate(['/student/forum']);
   }
 }
 

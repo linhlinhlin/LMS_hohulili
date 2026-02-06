@@ -1,11 +1,11 @@
 ﻿import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { CommunicationService, Message, Conversation, Announcement } from '../../services/communication.service';
 
 @Component({
   selector: 'app-communication',
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   encapsulation: ViewEncapsulation.None,
   templateUrl: './communication.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -125,20 +125,20 @@ export class CommunicationComponent implements OnInit {
     if (otherParticipants.length === 1) {
       return otherParticipants[0].name;
     } else if (otherParticipants.length > 1) {
-      return `${otherParticipants.length} ngÆ°á»i`;
+      return `${otherParticipants.length} người`;
     }
-    return 'Cuá»™c trĂ² chuyá»‡n';
+    return 'Cuộc trò chuyện';
   }
 
   formatTime(date: Date): string {
     const now = new Date();
     const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
     
-    if (diffInHours < 1) return 'Vá»«a xong';
-    if (diffInHours < 24) return `${diffInHours} giá» trÆ°á»›c`;
+    if (diffInHours < 1) return 'Vừa xong';
+    if (diffInHours < 24) return `${diffInHours} giờ trước`;
     
     const diffInDays = Math.floor(diffInHours / 24);
-    if (diffInDays < 7) return `${diffInDays} ngĂ y trÆ°á»›c`;
+    if (diffInDays < 7) return `${diffInDays} ngày trước`;
     
     return date.toLocaleDateString('vi-VN');
   }
@@ -155,10 +155,10 @@ export class CommunicationComponent implements OnInit {
 
   getTargetAudienceText(audience: string): string {
     const audienceMap: Record<string, string> = {
-      'all': 'Táº¥t cáº£',
-      'teachers': 'Giáº£ng viĂªn',
-      'students': 'Há»c viĂªn',
-      'specific': 'Cá»¥ thá»ƒ'
+      'all': 'Tất cả',
+      'teachers': 'Giảng viên',
+      'students': 'Học viên',
+      'specific': 'Cụ thể'
     };
     return audienceMap[audience] || audience;
   }
@@ -166,10 +166,10 @@ export class CommunicationComponent implements OnInit {
   getCategoryText(category: string): string {
     const categoryMap: Record<string, string> = {
       'general': 'Chung',
-      'course': 'KhĂ³a há»c',
-      'assignment': 'BĂ i táº­p',
-      'technical': 'Ká»¹ thuáº­t',
-      'announcement': 'ThĂ´ng bĂ¡o'
+      'course': 'Khóa học',
+      'assignment': 'Bài tập',
+      'technical': 'Kỹ thuật',
+      'announcement': 'Thông báo'
     };
     return categoryMap[category] || category;
   }

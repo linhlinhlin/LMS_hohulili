@@ -1,5 +1,5 @@
-import { Component, input, output, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, input, output, computed, ChangeDetectionStrategy } from '@angular/core';
+
 
 /**
  * Assignment Pagination Component
@@ -7,8 +7,9 @@ import { CommonModule } from '@angular/common';
  * Supports different page sizes and navigation
  */
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-assignment-pagination',
-  imports: [CommonModule],
+  imports: [],
   template: `
     @if (totalPages() > 1) {
       <div class="flex items-center justify-between px-6 py-4 bg-white border-t border-gray-200">

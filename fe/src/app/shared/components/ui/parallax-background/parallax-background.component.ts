@@ -1,11 +1,10 @@
 import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule, Router } from '@angular/router';
 
 @Component({
   selector: 'app-parallax-background',
-  standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [RouterModule],
   encapsulation: ViewEncapsulation.None,
   template: `
     <!-- Clean Professional Hero Section - Full viewport height -->
@@ -97,14 +96,12 @@ export class ParallaxBackgroundComponent {
   private router = inject(Router);
 
   navigateToCourses(): void {
-    this.router.navigate(['/courses']).catch(error => {
-      console.error('Navigation to courses failed:', error);
+    this.router.navigate(['/courses']).catch(() => {
     });
   }
 
   navigateToLogin(): void {
-    this.router.navigate(['/auth/login']).catch(error => {
-      console.error('Navigation to login failed:', error);
+    this.router.navigate(['/auth/login']).catch(() => {
     });
   }
 }

@@ -1,5 +1,5 @@
 ﻿import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
@@ -69,9 +69,8 @@ interface AssignmentFilter {
 
 @Component({
   selector: 'app-student-assignments',
-  imports: [CommonModule, RouterModule, FormsModule, LoadingComponent],
+  imports: [RouterModule, FormsModule, LoadingComponent],
   encapsulation: ViewEncapsulation.None,
-  standalone: true,
   templateUrl: './student-assignments.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -88,12 +87,12 @@ export class StudentAssignmentsComponent implements OnInit {
   assignments = signal<Assignment[]>([
     {
       id: 'assignment-1',
-      title: 'BĂ i táº­p vá» Cáº¥u trĂºc TĂ u',
-      description: 'PhĂ¢n tĂ­ch cáº¥u trĂºc tĂ u container vĂ  trĂ¬nh bĂ y bĂ¡o cĂ¡o chi tiáº¿t vá» cĂ¡c thĂ nh pháº§n chĂ­nh.',
+      title: 'Bài tập về Cấu trúc Tàu',
+      description: 'Phân tích cấu trúc tàu container và trình bày báo cáo chi tiết về các thành phần chính.',
       courseId: 'course-1',
-      courseName: 'Ká»¹ thuáº­t TĂ u biá»ƒn CÆ¡ báº£n',
+      courseName: 'Kỹ thuật Tàu biển Cơ bản',
       instructor: {
-        name: 'ThS. Nguyá»…n VÄƒn Háº£i',
+        name: 'ThS. Nguyễn Văn Hải',
         avatar: 'https://via.placeholder.com/150'
       },
       type: 'assignment',
@@ -104,13 +103,13 @@ export class StudentAssignmentsComponent implements OnInit {
       attachments: [
         {
           id: 'att-1',
-          name: 'HÆ°á»›ng dáº«n bĂ i táº­p.pdf',
+          name: 'Hướng dẫn bài tập.pdf',
           url: '/attachments/assignment-1-guide.pdf',
           type: 'pdf',
           size: 1024000
         }
       ],
-      instructions: 'Viáº¿t bĂ¡o cĂ¡o phĂ¢n tĂ­ch cáº¥u trĂºc tĂ u container vá»›i tá»‘i thiá»ƒu 2000 tá»«, bao gá»“m hĂ¬nh áº£nh minh há»a vĂ  tĂ i liá»‡u tham kháº£o.',
+      instructions: 'Viết báo cáo phân tích cấu trúc tàu container với tối thiểu 2000 từ, bao gồm hình ảnh minh họa và tài liệu tham khảo.',
       attempts: 0,
       maxAttempts: 3,
       wordCount: 2000,
@@ -118,12 +117,12 @@ export class StudentAssignmentsComponent implements OnInit {
     },
     {
       id: 'assignment-2',
-      title: 'Quiz An toĂ n HĂ ng háº£i',
-      description: 'Kiá»ƒm tra kiáº¿n thá»©c vá» quy Ä‘á»‹nh an toĂ n hĂ ng háº£i quá»‘c táº¿.',
+      title: 'Quiz An toàn Hàng hải',
+      description: 'Kiểm tra kiến thức về quy định an toàn hàng hải quốc tế.',
       courseId: 'course-2',
-      courseName: 'An toĂ n HĂ ng háº£i',
+      courseName: 'An toàn Hàng hải',
       instructor: {
-        name: 'TS. Pháº¡m VÄƒn Nam',
+        name: 'TS. Phạm Văn Nam',
         avatar: 'https://via.placeholder.com/150'
       },
       type: 'quiz',
@@ -134,9 +133,9 @@ export class StudentAssignmentsComponent implements OnInit {
       gradedAt: new Date('2024-09-16'),
       grade: 85,
       maxGrade: 100,
-      feedback: 'Báº¡n Ä‘Ă£ lĂ m tá»‘t bĂ i quiz nĂ y. Cáº§n chĂº Ă½ thĂªm vá» cĂ¡c quy Ä‘á»‹nh STCW má»›i nháº¥t.',
+      feedback: 'Bạn đã làm tốt bài quiz này. Cần chú ý thêm về các quy định STCW mới nhất.',
       attachments: [],
-      instructions: 'Tráº£ lá»i 20 cĂ¢u há»i tráº¯c nghiá»‡m trong thá»i gian 30 phĂºt.',
+      instructions: 'Trả lời 20 câu hỏi trắc nghiệm trong thời gian 30 phút.',
       attempts: 1,
       maxAttempts: 2,
       timeLimit: 30,
@@ -144,12 +143,12 @@ export class StudentAssignmentsComponent implements OnInit {
     },
     {
       id: 'assignment-3',
-      title: 'Dá»± Ă¡n Quáº£n lĂ½ Cáº£ng',
-      description: 'Thiáº¿t káº¿ há»‡ thá»‘ng quáº£n lĂ½ cáº£ng biá»ƒn hiá»‡n Ä‘áº¡i.',
+      title: 'Dự án Quản lý Cảng',
+      description: 'Thiết kế hệ thống quản lý cảng biển hiện đại.',
       courseId: 'course-3',
-      courseName: 'Quáº£n lĂ½ Cáº£ng biá»ƒn',
+      courseName: 'Quản lý Cảng biển',
       instructor: {
-        name: 'ThS. Tráº§n Thá»‹ Lan',
+        name: 'ThS. Trần Thị Lan',
         avatar: 'https://via.placeholder.com/150'
       },
       type: 'project',
@@ -160,19 +159,19 @@ export class StudentAssignmentsComponent implements OnInit {
       attachments: [
         {
           id: 'att-2',
-          name: 'Template dá»± Ă¡n.docx',
+          name: 'Template dự án.docx',
           url: '/attachments/project-template.docx',
           type: 'doc',
           size: 512000
         }
       ],
-      instructions: 'Thiáº¿t káº¿ há»‡ thá»‘ng quáº£n lĂ½ cáº£ng vá»›i cĂ¡c module chĂ­nh: quáº£n lĂ½ tĂ u, quáº£n lĂ½ hĂ ng hĂ³a, quáº£n lĂ½ nhĂ¢n viĂªn.',
+      instructions: 'Thiết kế hệ thống quản lý cảng với các module chính: quản lý tàu, quản lý hàng hóa, quản lý nhân viên.',
       attempts: 1,
       maxAttempts: 1,
       fileUploads: [
         {
           id: 'file-1',
-          name: 'BĂ¡o cĂ¡o tiáº¿n Ä‘á»™.docx',
+          name: 'Báo cáo tiến độ.docx',
           url: '/uploads/progress-report.docx',
           uploadedAt: new Date('2024-09-10'),
           size: 256000
@@ -285,11 +284,7 @@ export class StudentAssignmentsComponent implements OnInit {
       this.cdr.markForCheck();
       this.cdr.detectChanges();
       
-      console.log('đŸ”§ Student Assignments - Component initialized successfully');
-      console.log('đŸ”§ Student Assignments - Assignments count:', this.assignments().length);
-      console.log('đŸ”§ Student Assignments - Pending assignments:', this.pendingAssignments().length);
-      
-      this.errorService.showSuccess('BĂ i táº­p Ä‘Ă£ Ä‘Æ°á»£c táº£i thĂ nh cĂ´ng!', 'assignments');
+      this.errorService.showSuccess('Bài tập đã được tải thành công!', 'assignments');
       
     } catch (error) {
       this.errorService.handleApiError(error, 'assignments');
@@ -305,7 +300,6 @@ export class StudentAssignmentsComponent implements OnInit {
 
   applyFilters(): void {
     // Filters are applied automatically through computed signal
-    console.log('Applying filters...');
   }
 
   clearFilters(): void {
@@ -320,34 +314,28 @@ export class StudentAssignmentsComponent implements OnInit {
   }
 
   startAssignment(assignmentId: string): void {
-    console.log('đŸ”§ Student Assignments - Start assignment:', assignmentId);
     this.router.navigate(['/student/assignments/work', assignmentId]).catch(error => {
       this.errorService.handleNavigationError(error, `/student/assignments/work/${assignmentId}`);
     });
   }
 
   viewAssignmentDetail(assignmentId: string): void {
-    console.log('đŸ”§ Student Assignments - View assignment detail:', assignmentId);
-    this.errorService.showInfo('TĂ­nh nÄƒng xem chi tiáº¿t bĂ i táº­p sáº½ Ä‘Æ°á»£c phĂ¡t triá»ƒn trong phiĂªn báº£n tiáº¿p theo', 'assignment');
+    this.errorService.showInfo('Tính năng xem chi tiết bài tập sẽ được phát triển trong phiên bản tiếp theo', 'assignment');
   }
 
   viewSubmission(assignmentId: string): void {
-    console.log('đŸ”§ Student Assignments - View submission:', assignmentId);
-    this.errorService.showInfo('TĂ­nh nÄƒng xem bĂ i ná»™p sáº½ Ä‘Æ°á»£c phĂ¡t triá»ƒn trong phiĂªn báº£n tiáº¿p theo', 'submission');
+    this.errorService.showInfo('Tính năng xem bài nộp sẽ được phát triển trong phiên bản tiếp theo', 'submission');
   }
 
   viewGrade(assignmentId: string): void {
-    console.log('đŸ”§ Student Assignments - View grade:', assignmentId);
-    this.errorService.showInfo('TĂ­nh nÄƒng xem Ä‘iá»ƒm chi tiáº¿t sáº½ Ä‘Æ°á»£c phĂ¡t triá»ƒn trong phiĂªn báº£n tiáº¿p theo', 'grade');
+    this.errorService.showInfo('Tính năng xem điểm chi tiết sẽ được phát triển trong phiên bản tiếp theo', 'grade');
   }
 
   goToCalendar(): void {
-    console.log('đŸ”§ Student Assignments - Go to calendar');
-    this.errorService.showInfo('TĂ­nh nÄƒng lá»‹ch há»c táº­p sáº½ Ä‘Æ°á»£c phĂ¡t triá»ƒn trong phiĂªn báº£n tiáº¿p theo', 'calendar');
+    this.errorService.showInfo('Tính năng lịch học tập sẽ được phát triển trong phiên bản tiếp theo', 'calendar');
   }
 
   goToGrades(): void {
-    console.log('đŸ”§ Student Assignments - Go to grades');
     this.router.navigate(['/student/analytics']).catch(error => {
       this.errorService.handleNavigationError(error, '/student/analytics');
     });
@@ -373,17 +361,17 @@ export class StudentAssignmentsComponent implements OnInit {
   getStatusText(status: string): string {
     switch (status) {
       case 'pending':
-        return 'Chá» lĂ m';
+        return 'Chờ làm';
       case 'in-progress':
-        return 'Äang lĂ m';
+        return 'Đang làm';
       case 'submitted':
-        return 'ÄĂ£ ná»™p';
+        return 'Đã nộp';
       case 'graded':
-        return 'ÄĂ£ cháº¥m';
+        return 'Đã chấm';
       case 'overdue':
-        return 'QuĂ¡ háº¡n';
+        return 'Quá hạn';
       default:
-        return 'KhĂ´ng xĂ¡c Ä‘á»‹nh';
+        return 'Không xác định';
     }
   }
 
@@ -405,11 +393,11 @@ export class StudentAssignmentsComponent implements OnInit {
       case 'high':
         return 'Cao';
       case 'medium':
-        return 'Trung bĂ¬nh';
+        return 'Trung bình';
       case 'low':
-        return 'Tháº¥p';
+        return 'Thấp';
       default:
-        return 'KhĂ´ng xĂ¡c Ä‘á»‹nh';
+        return 'Không xác định';
     }
   }
 
@@ -418,13 +406,13 @@ export class StudentAssignmentsComponent implements OnInit {
       case 'quiz':
         return 'Quiz';
       case 'assignment':
-        return 'BĂ i táº­p';
+        return 'Bài tập';
       case 'project':
-        return 'Dá»± Ă¡n';
+        return 'Dự án';
       case 'discussion':
-        return 'Tháº£o luáº­n';
+        return 'Thảo luận';
       default:
-        return 'KhĂ´ng xĂ¡c Ä‘á»‹nh';
+        return 'Không xác định';
     }
   }
 
@@ -471,15 +459,15 @@ export class StudentAssignmentsComponent implements OnInit {
   getUrgencyText(urgency: string): string {
     switch (urgency) {
       case 'critical':
-        return 'Kháº©n cáº¥p';
+        return 'Khẩn cấp';
       case 'high':
         return 'Cao';
       case 'medium':
-        return 'Trung bĂ¬nh';
+        return 'Trung bình';
       case 'low':
-        return 'Tháº¥p';
+        return 'Thấp';
       default:
-        return 'KhĂ´ng xĂ¡c Ä‘á»‹nh';
+        return 'Không xác định';
     }
   }
 
@@ -489,7 +477,7 @@ export class StudentAssignmentsComponent implements OnInit {
     link.href = attachment.url;
     link.download = attachment.name;
     link.click();
-    this.errorService.showSuccess(`Äang táº£i xuá»‘ng: ${attachment.name}`, 'download');
+    this.errorService.showSuccess(`Đang tải xuống: ${attachment.name}`, 'download');
   }
 
   getTotalAssignments(): number {

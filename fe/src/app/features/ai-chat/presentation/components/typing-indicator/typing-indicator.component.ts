@@ -3,12 +3,11 @@
  * Animated typing indicator (3 dots) shown when AI is generating response
  */
 import { Component, ChangeDetectionStrategy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 
 @Component({
   selector: 'app-typing-indicator',
-  standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
     <div class="typing-container">
       <div class="ai-avatar">

@@ -12,15 +12,15 @@
                 </svg>
               </button>
               <div>
-                <h1 class="text-3xl font-bold text-gray-900">Chá»‰nh sá»­a há»“ sÆ¡</h1>
-                <p class="text-gray-600">Cáº­p nháº­t thĂ´ng tin cĂ¡ nhĂ¢n vĂ  há»c táº­p</p>
+                <h1 class="text-3xl font-bold text-gray-900">Chỉnh sửa hồ sơ</h1>
+                <p class="text-gray-600">Cập nhật thông tin cá nhân và học tập</p>
               </div>
             </div>
             
             <div class="flex items-center space-x-4">
               <button (click)="cancelEdit()"
                       class="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium">
-                Há»§y
+                Hủy
               </button>
               
               <button (click)="saveProfile()"
@@ -31,12 +31,12 @@
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Äang lÆ°u...
+                  Đang lưu...
                 } @else {
                   <svg class="w-5 h-5 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
                   </svg>
-                  LÆ°u thay Ä‘á»•i
+                  Lưu thay đổi
                 }
               </button>
             </div>
@@ -51,16 +51,16 @@
             <div class="lg:col-span-2 space-y-8">
               <!-- Personal Information -->
               <div class="bg-white rounded-2xl shadow-lg p-6">
-                <h3 class="text-xl font-bold text-gray-900 mb-6">ThĂ´ng tin cĂ¡ nhĂ¢n</h3>
+                <h3 class="text-xl font-bold text-gray-900 mb-6">Thông tin cá nhân</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Há» vĂ  tĂªn *</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Họ và tên *</label>
                     <input type="text" 
                            formControlName="fullName"
                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                           placeholder="Nháº­p há» vĂ  tĂªn">
+                           placeholder="Nhập họ và tên">
                     @if (profileForm.get('fullName')?.invalid && profileForm.get('fullName')?.touched) {
-                      <p class="mt-1 text-sm text-red-600">Há» vĂ  tĂªn lĂ  báº¯t buá»™c</p>
+                      <p class="mt-1 text-sm text-red-600">Họ và tên là bắt buộc</p>
                     }
                   </div>
                   
@@ -69,48 +69,48 @@
                     <input type="email" 
                            formControlName="email"
                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                           placeholder="Nháº­p email">
+                           placeholder="Nhập email">
                     @if (profileForm.get('email')?.invalid && profileForm.get('email')?.touched) {
-                      <p class="mt-1 text-sm text-red-600">Email khĂ´ng há»£p lá»‡</p>
+                      <p class="mt-1 text-sm text-red-600">Email không hợp lệ</p>
                     }
                   </div>
                   
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Sá»‘ Ä‘iá»‡n thoáº¡i</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Số điện thoại</label>
                     <input type="tel" 
                            formControlName="phone"
                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                           placeholder="Nháº­p sá»‘ Ä‘iá»‡n thoáº¡i">
+                           placeholder="Nhập số điện thoại">
                   </div>
                   
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">NgĂ y sinh</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Ngày sinh</label>
                     <input type="date" 
                            formControlName="dateOfBirth"
                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                   </div>
                   
                   <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Äá»‹a chá»‰</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Địa chỉ</label>
                     <textarea formControlName="address"
                               rows="3"
                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              placeholder="Nháº­p Ä‘á»‹a chá»‰"></textarea>
+                              placeholder="Nhập địa chỉ"></textarea>
                   </div>
                   
                   <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Giá»›i thiá»‡u báº£n thĂ¢n</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Giới thiệu bản thân</label>
                     <textarea formControlName="bio"
                               rows="4"
                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              placeholder="Viáº¿t má»™t vĂ i dĂ²ng vá» báº£n thĂ¢n..."></textarea>
+                              placeholder="Viết một vài dòng về bản thân..."></textarea>
                   </div>
                 </div>
               </div>
 
               <!-- Learning Goals -->
               <div class="bg-white rounded-2xl shadow-lg p-6">
-                <h3 class="text-xl font-bold text-gray-900 mb-6">Má»¥c tiĂªu há»c táº­p</h3>
+                <h3 class="text-xl font-bold text-gray-900 mb-6">Mục tiêu học tập</h3>
                 <div class="space-y-4">
                   @for (goal of learningGoalsArray(); track $index) {
                     <div class="flex items-center space-x-3">
@@ -118,7 +118,7 @@
                              [value]="goal"
                              (input)="updateLearningGoal($index, $event)"
                              class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                             placeholder="Nháº­p má»¥c tiĂªu há»c táº­p">
+                             placeholder="Nhập mục tiêu học tập">
                       <button type="button" 
                               (click)="removeLearningGoal($index)"
                               class="p-3 text-red-600 hover:text-red-800 transition-colors">
@@ -134,14 +134,14 @@
                     <svg class="w-5 h-5 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"></path>
                     </svg>
-                    ThĂªm má»¥c tiĂªu há»c táº­p
+                    Thêm mục tiêu học tập
                   </button>
                 </div>
               </div>
 
               <!-- Interests -->
               <div class="bg-white rounded-2xl shadow-lg p-6">
-                <h3 class="text-xl font-bold text-gray-900 mb-6">LÄ©nh vá»±c quan tĂ¢m</h3>
+                <h3 class="text-xl font-bold text-gray-900 mb-6">Lĩnh vực quan tâm</h3>
                 <div class="space-y-4">
                   @for (interest of interestsArray(); track $index) {
                     <div class="flex items-center space-x-3">
@@ -149,7 +149,7 @@
                              [value]="interest"
                              (input)="updateInterest($index, $event)"
                              class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                             placeholder="Nháº­p lÄ©nh vá»±c quan tĂ¢m">
+                             placeholder="Nhập lĩnh vực quan tâm">
                       <button type="button" 
                               (click)="removeInterest($index)"
                               class="p-3 text-red-600 hover:text-red-800 transition-colors">
@@ -165,30 +165,30 @@
                     <svg class="w-5 h-5 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"></path>
                     </svg>
-                    ThĂªm lÄ©nh vá»±c quan tĂ¢m
+                    Thêm lĩnh vực quan tâm
                   </button>
                 </div>
               </div>
 
               <!-- Study Schedule -->
               <div class="bg-white rounded-2xl shadow-lg p-6">
-                <h3 class="text-xl font-bold text-gray-900 mb-6">Lá»‹ch há»c táº­p</h3>
+                <h3 class="text-xl font-bold text-gray-900 mb-6">Lịch học tập</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Thá»i gian há»c Æ°a thĂ­ch</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Thời gian học ưa thích</label>
                     <select formControlName="preferredStudyTime"
                             class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                      <option value="06:00-09:00">SĂ¡ng sá»›m (06:00-09:00)</option>
-                      <option value="09:00-12:00">SĂ¡ng (09:00-12:00)</option>
-                      <option value="12:00-15:00">TrÆ°a (12:00-15:00)</option>
-                      <option value="15:00-18:00">Chiá»u (15:00-18:00)</option>
-                      <option value="18:00-21:00">Tá»‘i (18:00-21:00)</option>
+                      <option value="06:00-09:00">Sáng sớm (06:00-09:00)</option>
+                      <option value="09:00-12:00">Sáng (09:00-12:00)</option>
+                      <option value="12:00-15:00">Trưa (12:00-15:00)</option>
+                      <option value="15:00-18:00">Chiều (15:00-18:00)</option>
+                      <option value="18:00-21:00">Tối (18:00-21:00)</option>
                       <option value="21:00-24:00">Khuya (21:00-24:00)</option>
                     </select>
                   </div>
                   
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Thá»i gian há»c má»—i ngĂ y (giá»)</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Thời gian học mỗi ngày (giờ)</label>
                     <input type="number" 
                            formControlName="studyDuration"
                            min="1" max="12"
@@ -196,7 +196,7 @@
                   </div>
                   
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Thá»i gian nghá»‰ (phĂºt)</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Thời gian nghỉ (phút)</label>
                     <input type="number" 
                            formControlName="breakInterval"
                            min="5" max="60"
@@ -204,7 +204,7 @@
                   </div>
                   
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">NgĂ y há»c trong tuáº§n</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Ngày học trong tuần</label>
                     <div class="space-y-2">
                       @for (day of weekDays; track day.value) {
                         <label class="flex items-center space-x-2">
@@ -226,7 +226,7 @@
             <div class="space-y-8">
               <!-- Avatar Upload -->
               <div class="bg-white rounded-2xl shadow-lg p-6">
-                <h3 class="text-xl font-bold text-gray-900 mb-6">áº¢nh Ä‘áº¡i diá»‡n</h3>
+                <h3 class="text-xl font-bold text-gray-900 mb-6">Ảnh đại diện</h3>
                 <div class="text-center">
                   <div class="relative inline-block">
                     <img [src]="avatarPreview()" 
@@ -245,14 +245,14 @@
                          (change)="onAvatarSelected($event)"
                          accept="image/*"
                          class="hidden">
-                  <p class="text-sm text-gray-600 mt-4">Nháº¥n vĂ o biá»ƒu tÆ°á»£ng Ä‘á»ƒ thay Ä‘á»•i áº£nh Ä‘áº¡i diá»‡n</p>
-                  <p class="text-xs text-gray-500">Äá»‹nh dáº¡ng: JPG, PNG. KĂ­ch thÆ°á»›c tá»‘i Ä‘a: 5MB</p>
+                  <p class="text-sm text-gray-600 mt-4">Nhấn vào biểu tượng để thay đổi ảnh đại diện</p>
+                  <p class="text-xs text-gray-500">Định dạng: JPG, PNG. Kích thước tối đa: 5MB</p>
                 </div>
               </div>
 
               <!-- Social Links -->
               <div class="bg-white rounded-2xl shadow-lg p-6">
-                <h3 class="text-xl font-bold text-gray-900 mb-6">LiĂªn káº¿t xĂ£ há»™i</h3>
+                <h3 class="text-xl font-bold text-gray-900 mb-6">Liên kết xã hội</h3>
                 <div class="space-y-4">
                   @for (link of socialLinksArray(); track $index) {
                     <div class="space-y-3">
@@ -261,7 +261,7 @@
                                [value]="link.platform"
                                (input)="updateSocialLinkPlatform($index, $event)"
                                class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                               placeholder="Ná»n táº£ng (VD: LinkedIn)">
+                               placeholder="Nền tảng (VD: LinkedIn)">
                         <button type="button" 
                                 (click)="removeSocialLink($index)"
                                 class="p-3 text-red-600 hover:text-red-800 transition-colors">
@@ -280,7 +280,7 @@
                                [checked]="link.isPublic"
                                (change)="toggleSocialLinkVisibility($index, $event)"
                                class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                        <span class="text-sm text-gray-700">Hiá»ƒn thá»‹ cĂ´ng khai</span>
+                        <span class="text-sm text-gray-700">Hiển thị công khai</span>
                       </label>
                     </div>
                   }
@@ -290,7 +290,7 @@
                     <svg class="w-5 h-5 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"></path>
                     </svg>
-                    ThĂªm liĂªn káº¿t xĂ£ há»™i
+                    Thêm liên kết xã hội
                   </button>
                 </div>
               </div>

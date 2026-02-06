@@ -7,7 +7,6 @@ import { StudentEnrollmentService } from '../../../features/student/services/enr
 
 @Component({
   selector: 'app-course-card',
-  standalone: true,
   imports: [CommonModule, RouterModule, NgOptimizedImage],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -186,7 +185,6 @@ export class CourseCardComponent {
       if (error.availableClasses && error.availableClasses.length > 0) {
         this.showClassPicker(courseId, error.availableClasses);
       } else {
-        console.error('Enrollment error:', error);
         alert(error.message || 'Không thể đăng ký khóa học. Vui lòng thử lại.');
       }
     }
@@ -201,12 +199,10 @@ export class CourseCardComponent {
     const coursesComponent = this.getCoursesComponent();
     if (coursesComponent && typeof coursesComponent.enrolledCourseIds?.add === 'function') {
       coursesComponent.enrolledCourseIds.add(courseId);
-      console.log(`[COURSE CARD] Updated enrolled course IDs in parent component:`, Array.from(coursesComponent.enrolledCourseIds));
     }
 
     // Navigate to learning page after successful enrollment
     this.router.navigate(['/student/learn/course', courseId]).catch(error => {
-      console.error('Navigation error after enrollment:', error);
     });
   }
 
@@ -220,7 +216,6 @@ export class CourseCardComponent {
       const index = parseInt(choice, 10) - 1;
       if (index >= 0 && index < classes.length) {
         const selectedClass = classes[index];
-        console.log('🎯 User selected class:', selectedClass);
 
         // Retry enrollment with selected classId
         try {

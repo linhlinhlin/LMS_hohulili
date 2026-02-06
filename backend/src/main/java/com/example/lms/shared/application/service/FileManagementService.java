@@ -4,34 +4,49 @@ import com.example.lms.shared.domain.model.ContentBlock;
 import com.example.lms.shared.infrastructure.persistence.entity.FileAttachmentJpaEntity;
 import com.example.lms.shared.infrastructure.persistence.repository.FileAttachmentJpaRepository;
 import com.example.lms.shared.infrastructure.service.R2StorageService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class FileManagementService {
 
-    private final R2StorageService r2StorageService;
+    private final Optional<R2StorageService> r2StorageService;
     private final FileAttachmentJpaRepository fileRepository;
+
+    @Autowired
+    public FileManagementService(
+            @Autowired(required = false) R2StorageService r2StorageService,
+            FileAttachmentJpaRepository fileRepository) {
+        this.r2StorageService = Optional.ofNullable(r2StorageService);
+        this.fileRepository = fileRepository;
+    }
 
     /**
      * Uploads a file to R2 and creates a metadata record in DB.
      * The record is initially "orphan" (no entity linked).
+     *
+     * If R2 storage is not configured, throws an exception.
      */
     @Transactional
     public FileAttachmentJpaEntity uploadFile(MultipartFile file, String folder, UUID uploadedBy) throws IOException {
+        // Check if R2 is available
+        if (r2StorageService.isEmpty()) {
+            throw new IllegalStateException("File upload is not available: R2 storage is not configured");
+        }
+
         // 1. Upload to R2
-        R2StorageService.UploadResult result = r2StorageService.upload(file, folder);
+        R2StorageService.UploadResult result = r2StorageService.get().upload(file, folder);
 
         // 2. Save metadata to DB
         FileAttachmentJpaEntity attachment = FileAttachmentJpaEntity.builder()

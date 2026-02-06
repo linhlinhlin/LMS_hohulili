@@ -1,5 +1,5 @@
-import { Component, computed, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, computed, inject, ChangeDetectionStrategy } from '@angular/core';
+
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 
 interface BreadcrumbItem {
@@ -8,8 +8,9 @@ interface BreadcrumbItem {
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-smart-breadcrumbs',
-  imports: [CommonModule, RouterModule],
+  imports: [RouterModule],
   template: `
     <nav class="flex items-center space-x-2 text-sm" aria-label="Breadcrumb">
       <a [routerLink]="getDashboardLink()" class="text-gray-500 hover:text-gray-700 flex items-center">
@@ -31,8 +32,7 @@ interface BreadcrumbItem {
         }
       }
     </nav>
-  `,
-  standalone: true
+  `
 })
 export class SmartBreadcrumbsComponent {
   private router = inject(Router);

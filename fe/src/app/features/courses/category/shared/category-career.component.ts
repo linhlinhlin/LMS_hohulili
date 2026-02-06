@@ -1,4 +1,4 @@
-import { Component, input, computed } from '@angular/core';
+import { Component, input, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 export interface CareerCard {
@@ -9,8 +9,8 @@ export interface CareerCard {
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-category-career',
-  standalone: true,
   imports: [CommonModule],
   template: `
     <section class="py-16 bg-gray-50" id="career" role="region" [attr.aria-label]="'Cơ hội nghề nghiệp: ' + title()">

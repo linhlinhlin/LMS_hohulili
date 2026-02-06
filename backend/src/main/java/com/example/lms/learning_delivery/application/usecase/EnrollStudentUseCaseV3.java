@@ -2,11 +2,11 @@ package com.example.lms.learning_delivery.application.usecase;
 
 import com.example.lms.identity.domain.model.User;
 import com.example.lms.identity.domain.repository.UserRepository;
-import com.example.lms.shared.domain.valueobject.UserId;
+import com.example.lms.learning_delivery.domain.model.Enrollment;
+import com.example.lms.learning_delivery.domain.model.LearningClass;
 import com.example.lms.learning_delivery.domain.repository.EnrollmentRepositoryPort;
 import com.example.lms.learning_delivery.domain.repository.LearningClassRepositoryPort;
-import com.example.lms.learning_delivery.infrastructure.persistence.entity.EnrollmentJpaEntity;
-import com.example.lms.learning_delivery.infrastructure.persistence.entity.LearningClassJpaEntity;
+import com.example.lms.shared.domain.valueobject.UserId;
 import com.example.lms.shared.exception.BusinessRuleException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,7 +18,7 @@ import java.util.UUID;
 
 /**
  * Use case for enrolling a student in a class.
- * V3 - Uses pure domain models only.
+ * V3 - Uses domain repository ports only (Clean Architecture compliant).
  */
 @Service("enrollStudentUseCaseV3")
 @RequiredArgsConstructor
@@ -39,23 +39,26 @@ public class EnrollStudentUseCaseV3 {
                 .orElseThrow(() -> new BusinessRuleException("Student not found: " + studentId));
 
         // 2. Validate Class exists
-        // Note: Need to implement findById in LearningClassRepositoryPort
-        
+        LearningClass learningClass = learningClassRepository.findById(classId)
+                .orElseThrow(() -> new BusinessRuleException("Learning class not found: " + classId));
+
         // 3. Check Duplicate Enrollment
         if (enrollmentRepository.existsByClassIdAndStudentId(classId, studentId)) {
             throw new BusinessRuleException("Student already enrolled in this class");
         }
 
-        // 4. Create and Save Enrollment
-        EnrollmentJpaEntity enrollment = EnrollmentJpaEntity.builder()
-                .classId(classId)
+        // 4. Create and Save Enrollment using domain model
+        Enrollment enrollment = Enrollment.builder()
+                .learningClass(learningClass)
                 .studentId(studentId)
-                .status(EnrollmentJpaEntity.EnrollmentStatus.ACTIVE)
+                .status(Enrollment.EnrollmentStatus.ACTIVE)
                 .build();
 
-        log.info("Student {} enrolled successfully in class {} (V3)", studentId, classId);
-        
-        // Return enrollment ID (placeholder - need full repository implementation)
-        return UUID.randomUUID();
+        Enrollment saved = enrollmentRepository.save(enrollment);
+
+        log.info("Student {} enrolled successfully in class {} with enrollment ID {}",
+                studentId, classId, saved.getId());
+
+        return saved.getId();
     }
 }

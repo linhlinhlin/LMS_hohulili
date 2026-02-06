@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { Component, OnInit, signal, inject, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -12,8 +12,8 @@ import { Page } from '../../../../../api/types/common.types';
 import { AddStudentDrawerComponent } from './class-students/add-student-drawer/add-student-drawer.component';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
     selector: 'app-course-classes',
-    standalone: true,
     imports: [CommonModule, ReactiveFormsModule, MatDialogModule, AddStudentDrawerComponent],
     templateUrl: './course-classes.component.html',
 })
@@ -130,8 +130,7 @@ export class CourseClassesComponent implements OnInit {
                 this.totalPages = page.totalPages;
                 this.isLoading.set(false);
             },
-            error: (err: any) => {
-                console.error('Error loading classes', err);
+            error: () => {
                 this.isLoading.set(false);
             }
         });

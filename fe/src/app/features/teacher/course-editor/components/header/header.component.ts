@@ -1,5 +1,5 @@
-import { Component, inject, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, computed, ChangeDetectionStrategy } from '@angular/core';
+
 import { Router, RouterModule } from '@angular/router';
 import { CourseEditorStore } from '../../store/course-editor.store';
 import { CourseAuthoringService } from '../../services/course-authoring.service';
@@ -7,9 +7,9 @@ import { AuthService } from '../../../../../core/services/auth.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
     selector: 'app-course-editor-header',
-    standalone: true,
-    imports: [CommonModule, RouterModule],
+    imports: [RouterModule],
     template: `
     <header class="h-16 flex items-center justify-between border-b border-[#dbe0e6] px-6 bg-white shadow-sm">
         <div class="flex items-center gap-4">

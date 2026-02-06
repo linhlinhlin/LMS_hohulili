@@ -1,12 +1,11 @@
 import { Component, input, viewChild, ElementRef, AfterViewInit, effect, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormulaBlockData } from '../block-types';
 import katex from 'katex';
 
 @Component({
     selector: 'app-formula-block',
-    standalone: true,
-    imports: [CommonModule],
+    imports: [],
     template: `
     <div #formulaContainer class="formula-container my-4 text-center overflow-x-auto py-2"></div>
   `,
@@ -49,7 +48,6 @@ export class FormulaBlockComponent implements AfterViewInit {
                 output: 'html'
             });
         } catch (e) {
-            console.error('KaTeX Render Error:', e);
             container.nativeElement.innerText = data.expression;
         }
     }

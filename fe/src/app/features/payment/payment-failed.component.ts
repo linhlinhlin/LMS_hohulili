@@ -1,5 +1,5 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, signal, inject, ChangeDetectionStrategy } from '@angular/core';
+
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 /**
@@ -8,9 +8,9 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
  * Shown when payment fails or is cancelled
  */
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
     selector: 'app-payment-failed',
-    standalone: true,
-    imports: [CommonModule, RouterLink],
+    imports: [RouterLink],
     template: `
         <div class="payment-result-container">
             <div class="result-card failed">

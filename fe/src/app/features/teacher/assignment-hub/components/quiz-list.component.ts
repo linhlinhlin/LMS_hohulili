@@ -1,12 +1,11 @@
 import { Component, ChangeDetectionStrategy, signal, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
   selector: 'app-quiz-list',
-  standalone: true,
-  imports: [CommonModule, RouterModule, LucideAngularModule],
+  imports: [RouterModule, LucideAngularModule],
   template: `
     <div class="p-6 max-w-7xl mx-auto">
       <div class="flex justify-between items-center mb-6">

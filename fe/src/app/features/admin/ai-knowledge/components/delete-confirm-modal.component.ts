@@ -1,10 +1,10 @@
-import { Component, input, output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, input, output, ChangeDetectionStrategy } from '@angular/core';
+
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-delete-confirm-modal',
-  standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
     @if (isOpen()) {
       <div class="modal-overlay" (click)="onCancel()">

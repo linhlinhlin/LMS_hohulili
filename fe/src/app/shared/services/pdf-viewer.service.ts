@@ -23,24 +23,19 @@ export class PdfViewerService {
      * and returns a safe resource URL for embedding.
      */
     getSafePdfUrl(fileUrl: string | null): Observable<SafeResourceUrl | null> {
-        console.log('[PdfViewerService] getSafePdfUrl called with:', fileUrl);
         if (!fileUrl) {
-            console.warn('[PdfViewerService] fileUrl is null or empty');
             return new Observable(observer => observer.next(null));
         }
 
         // Determine the full URL (handle both relative and absolute paths)
         const fullUrl = fileUrl.startsWith('http') ? fileUrl : `${this.baseUrl}${fileUrl}`;
-        console.log('[PdfViewerService] Fetching from fullUrl:', fullUrl);
 
         return this.http.get(fullUrl, { responseType: 'blob' }).pipe(
             map(blob => {
-                console.log('[PdfViewerService] Blob received:', blob.size, 'bytes, type:', blob.type);
                 // Revoke previous URL to prevent memory leaks before creating a new one
                 this.cleanup();
 
                 this.currentUrl = URL.createObjectURL(blob);
-                console.log('[PdfViewerService] Created objectURL:', this.currentUrl);
                 return this.sanitizer.bypassSecurityTrustResourceUrl(this.currentUrl);
             })
         );
@@ -52,7 +47,6 @@ export class PdfViewerService {
      */
     cleanup() {
         if (this.currentUrl) {
-            console.log('[PdfViewerService] Cleaning up URL:', this.currentUrl);
             URL.revokeObjectURL(this.currentUrl);
             this.currentUrl = undefined;
         }

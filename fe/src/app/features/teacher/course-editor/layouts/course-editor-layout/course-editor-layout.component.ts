@@ -1,5 +1,5 @@
-import { Component, inject, OnInit, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, OnInit, computed, ChangeDetectionStrategy } from '@angular/core';
+
 import { RouterOutlet, RouterModule, ActivatedRoute } from '@angular/router';
 import { CourseEditorSidebarComponent } from '../../components/sidebar/sidebar.component';
 import { CourseEditorHeaderComponent } from '../../components/header/header.component';
@@ -8,9 +8,9 @@ import { AuthService } from '../../../../../core/services/auth.service';
 import { filter, take, map } from 'rxjs/operators';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-course-editor-layout',
-  standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterModule, CourseEditorSidebarComponent, CourseEditorHeaderComponent],
+  imports: [RouterOutlet, RouterModule, CourseEditorSidebarComponent, CourseEditorHeaderComponent],
   template: `
     <div class="relative flex h-screen w-full flex-col overflow-hidden font-sans bg-white text-slate-900">
       <!-- Admin View-Only Mode Banner -->
@@ -101,7 +101,6 @@ export class CourseEditorLayoutComponent implements OnInit {
       take(1),
       filter((id): id is string => !!id)
     ).subscribe(id => {
-      console.log('CourseEditorLayout: Loading course', id);
       this.store.loadCourse(id);
     });
   }

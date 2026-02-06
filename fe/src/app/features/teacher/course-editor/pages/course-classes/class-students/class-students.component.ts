@@ -1,12 +1,12 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { Component, OnInit, signal, inject, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ClassService } from '../../../../../../state/class.service';
 import { AddStudentDrawerComponent } from './add-student-drawer/add-student-drawer.component';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
     selector: 'app-class-students',
-    standalone: true,
     imports: [CommonModule, AddStudentDrawerComponent],
     templateUrl: './class-students.component.html'
 })

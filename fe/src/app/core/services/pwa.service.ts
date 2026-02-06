@@ -26,7 +26,6 @@ export class PwaService {
                 // Clear the deferred prompt so it can't be used again
                 this.promptEvent = null;
                 this.showInstallButton.set(false);
-                console.log('PWA was installed');
             });
         }
     }
@@ -34,8 +33,7 @@ export class PwaService {
     public async installPwa() {
         if (this.promptEvent) {
             this.promptEvent.prompt();
-            const { outcome } = await this.promptEvent.userChoice;
-            console.log(`User response to the install prompt: ${outcome}`);
+            await this.promptEvent.userChoice;
             this.promptEvent = null;
             this.showInstallButton.set(false);
         }

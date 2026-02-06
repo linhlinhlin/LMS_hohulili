@@ -32,7 +32,6 @@ export class SourcePanelService {
      * Open the source panel with a list of sources
      */
     openWithSources(sources: MessageSource[], initialIndex = 0): void {
-        console.log('📚 Opening source panel with', sources.length, 'sources');
         this._sources.set(sources);
         this._selectedIndex.set(Math.min(initialIndex, sources.length - 1));
         this._isOpen.set(true);
@@ -42,7 +41,6 @@ export class SourcePanelService {
      * Close the source panel
      */
     close(): void {
-        console.log('📚 Closing source panel');
         this._isOpen.set(false);
     }
 

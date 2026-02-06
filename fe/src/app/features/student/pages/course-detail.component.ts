@@ -1,5 +1,5 @@
 import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { CourseApi } from '../../../api/client/course.api';
 import { CourseContentChapter, LessonSummary } from '../../../api/types/course.types';
@@ -48,7 +48,7 @@ interface Lesson {
 
 @Component({
   selector: 'app-course-detail',
-  imports: [CommonModule, RouterModule],
+  imports: [RouterModule],
   templateUrl: './course-detail.component.html',
   styleUrls: ['./course-detail.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -130,7 +130,6 @@ export class CourseDetailComponent implements OnInit {
         });
       },
       error: (err: any) => {
-        console.error('Error loading course:', err);
       }
     });
 
@@ -184,7 +183,6 @@ export class CourseDetailComponent implements OnInit {
         this.isLoading.set(false);
       },
       error: (err) => {
-        console.error('Error loading course content:', err);
         this.isLoading.set(false);
       }
     });
@@ -236,7 +234,6 @@ export class CourseDetailComponent implements OnInit {
         }
       }
     } catch (error) {
-      console.error('Error loading last viewed lesson:', error);
     }
 
     // Fallback to start learning
@@ -290,7 +287,6 @@ export class CourseDetailComponent implements OnInit {
         this.paymentLoading.set(false);
       },
       error: (err: any) => {
-        console.error('Error checking payment status:', err);
         this.paymentLoading.set(false);
       }
     });

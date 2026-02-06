@@ -34,7 +34,32 @@ public interface AssignmentRepository {
     void delete(Assignment assignment);
 
     /**
+     * Delete an assignment by ID with all related entities (cascade).
+     * This includes: submissions, rubrics, attachments, lesson links, allocations.
+     */
+    void deleteByIdWithCascade(AssignmentId id);
+
+    /**
      * Check if assignment exists.
      */
     boolean existsById(AssignmentId id);
+
+    /**
+     * Find all assignments for a course.
+     */
+    List<Assignment> findByCourseId(java.util.UUID courseId);
+
+    /**
+     * Find all assignments for multiple courses.
+     */
+    List<Assignment> findByCourseIdIn(List<java.util.UUID> courseIds);
+
+    /**
+     * Allocate an assignment with a distribution strategy and optional student list.
+     *
+     * @param assignmentId     the assignment to allocate
+     * @param distributionType e.g. "ALL_STUDENTS", "SPECIFIC_STUDENTS"
+     * @param studentIds       list of student IDs (used when distributionType is "SPECIFIC_STUDENTS")
+     */
+    void allocate(UUID assignmentId, String distributionType, List<UUID> studentIds);
 }

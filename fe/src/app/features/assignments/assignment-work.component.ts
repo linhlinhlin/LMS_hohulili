@@ -1,5 +1,5 @@
 ﻿import { Component, signal, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
@@ -7,9 +7,8 @@ import { AssignmentApi, AssignmentDetail, SubmissionDetail, CreateSubmissionRequ
 
 @Component({
   selector: 'app-assignment-work',
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [RouterModule, FormsModule],
   encapsulation: ViewEncapsulation.None,
-  standalone: true,
   templateUrl: './assignment-work.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -33,7 +32,7 @@ export class AssignmentWorkComponent implements OnInit {
     if (assignmentId) {
       this.loadAssignment(assignmentId);
     } else {
-      this.error.set('KhĂ´ng tĂ¬m tháº¥y ID bĂ i táº­p');
+      this.error.set('Không tìm thấy ID bài tập');
       this.isLoading.set(false);
     }
   }
@@ -50,13 +49,12 @@ export class AssignmentWorkComponent implements OnInit {
           // Load my submission after assignment is loaded
           this.loadMySubmission(assignmentId);
         } else {
-          this.error.set('KhĂ´ng tĂ¬m tháº¥y bĂ i táº­p');
+          this.error.set('Không tìm thấy bài tập');
           this.isLoading.set(false);
         }
       },
       error: (err) => {
-        console.error('Error loading assignment:', err);
-        this.error.set('KhĂ´ng thá»ƒ táº£i bĂ i táº­p. Vui lĂ²ng thá»­ láº¡i.');
+        this.error.set('Không thể tải bài tập. Vui lòng thử lại.');
         this.isLoading.set(false);
       }
     });
@@ -73,7 +71,6 @@ export class AssignmentWorkComponent implements OnInit {
       error: (err) => {
         // 404 means no submission yet - that's OK
         if (err.status !== 404) {
-          console.error('Error loading submission:', err);
         }
         this.isLoading.set(false);
       }
@@ -109,7 +106,7 @@ export class AssignmentWorkComponent implements OnInit {
   }
 
   formatDate(date: string | undefined): string {
-    if (!date) return 'KhĂ´ng cĂ³ háº¡n';
+    if (!date) return 'Không có hạn';
     return new Date(date).toLocaleDateString('vi-VN');
   }
 
@@ -132,10 +129,10 @@ export class AssignmentWorkComponent implements OnInit {
   }
 
   getStatusText(): string {
-    if (this.hasGrade()) return 'ÄĂ£ cháº¥m Ä‘iá»ƒm';
-    if (this.mySubmission()) return 'ÄĂ£ ná»™p';
-    if (this.isOverdue()) return 'QuĂ¡ háº¡n';
-    return 'ChÆ°a ná»™p';
+    if (this.hasGrade()) return 'Đã chấm điểm';
+    if (this.mySubmission()) return 'Đã nộp';
+    if (this.isOverdue()) return 'Quá hạn';
+    return 'Chưa nộp';
   }
 
   getGradeScore(grade: any): number {
@@ -204,13 +201,12 @@ export class AssignmentWorkComponent implements OnInit {
           this.mySubmission.set(response.data);
           this.submissionContent.set('');
           this.uploadedFiles.set([]);
-          alert('Ná»™p bĂ i thĂ nh cĂ´ng!');
+          alert('Nộp bài thành công!');
         }
         this.isSubmitting.set(false);
       },
       error: (err) => {
-        console.error('Error submitting assignment:', err);
-        alert('KhĂ´ng thá»ƒ ná»™p bĂ i. Vui lĂ²ng thá»­ láº¡i.');
+        alert('Không thể nộp bài. Vui lòng thử lại.');
         this.isSubmitting.set(false);
       }
     });

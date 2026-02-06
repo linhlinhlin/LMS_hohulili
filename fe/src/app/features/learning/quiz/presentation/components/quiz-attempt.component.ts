@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy, signal, inject, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { TakeQuizUseCase } from '../../application/use-cases/take-quiz.use-case';
@@ -17,7 +17,7 @@ import { LoadingComponent } from '../../../../../shared/components/loading/loadi
  */
 @Component({
   selector: 'app-quiz-attempt',
-  imports: [CommonModule, RouterModule, ReactiveFormsModule, LoadingComponent],
+  imports: [RouterModule, ReactiveFormsModule, LoadingComponent],
   encapsulation: ViewEncapsulation.None,
   template: `
     <!-- Loading State -->
@@ -400,7 +400,6 @@ export class QuizAttemptComponent implements OnInit, OnDestroy {
         // Answer submitted successfully
       },
       error: (error) => {
-        console.error('Error submitting answer:', error);
       }
     });
   }

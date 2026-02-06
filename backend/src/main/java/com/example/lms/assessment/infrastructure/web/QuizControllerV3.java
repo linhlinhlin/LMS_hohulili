@@ -4,13 +4,18 @@ import com.example.lms.assessment.application.usecase.CreateQuizUseCaseV3;
 import com.example.lms.assessment.application.usecase.QuizAttemptUseCase;
 import com.example.lms.assessment.application.usecase.QuizManagementUseCase;
 import com.example.lms.assessment.domain.model.QuizAttempt;
+import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -41,7 +46,7 @@ public class QuizControllerV3 {
     @Operation(summary = "Add a question to a quiz")
     public ResponseEntity<ApiResponse<Void>> addQuestion(
             @PathVariable UUID quizId,
-            @RequestBody AddQuestionRequest request) {
+            @Valid @RequestBody AddQuestionRequest request) {
         quizManagementUseCase.addQuestionToQuiz(quizId, request.questionId(), request.displayOrder());
         return ResponseEntity.ok(ApiResponse.success(null));
     }
@@ -71,7 +76,8 @@ public class QuizControllerV3 {
     @Operation(summary = "Start a quiz attempt")
     public ResponseEntity<ApiResponse<QuizAttempt>> startAttempt(
             @PathVariable UUID quizId,
-            @RequestParam UUID studentId) { // Should check currentUser matches studentId
+            @AuthenticationPrincipal UserJpaEntity user) {
+        UUID studentId = user.getId();
         QuizAttempt attempt = quizAttemptUseCase.startAttempt(quizId, studentId);
         return ResponseEntity.ok(ApiResponse.success(attempt));
     }
@@ -81,7 +87,7 @@ public class QuizControllerV3 {
     @Operation(summary = "Submit a quiz attempt")
     public ResponseEntity<ApiResponse<QuizAttempt>> submitAttempt(
             @PathVariable UUID attemptId,
-            @RequestBody List<QuizAttempt.AttemptAnswer> answers) {
+            @Valid @RequestBody List<QuizAttempt.AttemptAnswer> answers) {
         QuizAttempt result = quizAttemptUseCase.submitAttempt(attemptId, answers);
         return ResponseEntity.ok(ApiResponse.success(result));
     }
@@ -95,5 +101,11 @@ public class QuizControllerV3 {
     }
 
     // DTOs
-    public record AddQuestionRequest(UUID questionId, Integer displayOrder) {}
+    public record AddQuestionRequest(
+            @NotNull(message = "Question ID is required")
+            UUID questionId,
+            @NotNull(message = "Display order is required")
+            @PositiveOrZero(message = "Display order must be non-negative")
+            Integer displayOrder
+    ) {}
 }

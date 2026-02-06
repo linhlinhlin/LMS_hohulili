@@ -1,13 +1,13 @@
-import { Component, inject, OnInit, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, OnInit, signal, computed, ChangeDetectionStrategy } from '@angular/core';
+
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { TeacherRevenueService, RevenueSummary, RevenueHistoryItem, PayoutBalance } from '../infrastructure/services/teacher-revenue.service';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
     selector: 'app-teacher-revenue-dashboard',
-    standalone: true,
-    imports: [CommonModule, RouterModule, FormsModule],
+    imports: [RouterModule, FormsModule],
     template: `
     <div class="min-h-screen bg-gray-50 p-6">
       <div class="max-w-7xl mx-auto">
@@ -257,14 +257,12 @@ export class TeacherRevenueDashboardComponent implements OnInit {
     payoutNote = '';
 
     ngOnInit(): void {
-        console.log('[REVENUE DASHBOARD] Initializing...');
         this.loadData();
     }
 
     private loadData(): void {
         this.revenueService.loadDashboardData()
-            .then(() => console.log('[REVENUE DASHBOARD] Data loaded'))
-            .catch(err => console.error('[REVENUE DASHBOARD] Error loading data:', err));
+            .catch(() => {});
     }
 
     canRequestPayout(): boolean {

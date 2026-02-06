@@ -2,7 +2,8 @@ package com.example.lms.course_management.application.usecase;
 
 import com.example.lms.course_management.domain.model.Course;
 import com.example.lms.course_management.domain.model.CourseVersion;
-import com.example.lms.course_management.infrastructure.persistence.PostgresCourseRepository;
+import com.example.lms.course_management.domain.repo_port.CourseRepository;
+import com.example.lms.shared.exception.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -18,7 +19,7 @@ public class PublishCourseUseCase {
 
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(PublishCourseUseCase.class);
 
-    private final PostgresCourseRepository courseRepository;
+    private final CourseRepository courseRepository;
 
     @Transactional
     public CourseVersion publish(UUID courseId) {
@@ -26,7 +27,7 @@ public class PublishCourseUseCase {
 
         // 1. Load full aggregate with JOIN FETCH to prevent lazy loading issues during snapshotting
         Course course = courseRepository.findByIdWithContent(courseId)
-                .orElseThrow(() -> new RuntimeException("Course not found: " + courseId));
+                .orElseThrow(() -> new EntityNotFoundException("Khóa học", courseId));
 
         // 2. Execute Domain Logic
         course.publish(); // Validates not empty, changes status

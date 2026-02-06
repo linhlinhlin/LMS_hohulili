@@ -1,5 +1,5 @@
-import { Component, signal, inject, OnInit, OnDestroy, ElementRef, viewChild } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, signal, inject, OnInit, OnDestroy, ElementRef, viewChild, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { debounceTime, distinctUntilChanged, switchMap, startWith, takeUntil, Subject } from 'rxjs';
@@ -17,9 +17,9 @@ interface SearchResult {
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-search',
-  standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  imports: [ReactiveFormsModule, RouterModule],
   template: `
     <div class="relative" #searchContainer>
       <!-- Search Input -->

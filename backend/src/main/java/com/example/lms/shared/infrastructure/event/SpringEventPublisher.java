@@ -1,6 +1,7 @@
 package com.example.lms.shared.infrastructure.event;
 
 import com.example.lms.shared.domain.event.DomainEvent;
+import com.example.lms.shared.domain.event.DomainEventPublisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;

@@ -1,14 +1,14 @@
-import { Component, input, output, computed, signal, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, input, output, computed, signal, inject, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { SessionSummary } from '../../../domain/types';
 import { ChatDialogService } from '../chat-dialog/chat-dialog.component';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-chat-sidebar',
-  standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [FormsModule, RouterModule],
   template: `
     <div class="sidebar-wrapper">
       <!-- Header -->

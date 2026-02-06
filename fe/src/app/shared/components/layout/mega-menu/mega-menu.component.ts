@@ -1,5 +1,5 @@
 import { Component, ChangeDetectionStrategy, ViewEncapsulation, signal, computed, HostListener } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule } from '@angular/router';
 
 interface CategoryItem {
@@ -9,7 +9,7 @@ interface CategoryItem {
 
 @Component({
   selector: 'app-mega-menu',
-  imports: [CommonModule, RouterModule],
+  imports: [RouterModule],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="relative"

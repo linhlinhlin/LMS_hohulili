@@ -104,8 +104,7 @@ export class SubmissionsStore {
           this._submissions.set([]);
         }
       }),
-      catchError((err: unknown) => {
-        console.error('Error loading submissions:', err);
+      catchError(() => {
         this._error.set('Không thể tải danh sách bài nộp. Vui lòng thử lại.');
         this._submissions.set([]);
         return of({ data: [] });
@@ -131,7 +130,6 @@ export class SubmissionsStore {
 
     return this.assignmentApi.gradeSubmission(update.submissionId, request).pipe(
       map((response: { data?: SubmissionDetail; message?: string }) => {
-        console.log('Grade submission response:', response);
         if (response.data) {
           // Update local state with response data
           this._submissions.update(submissions =>
@@ -151,13 +149,11 @@ export class SubmissionsStore {
           );
           return true;
         } else {
-          console.error('No data in grade response:', response);
           this._error.set(response.message || 'Không thể lưu điểm');
           return false;
         }
       }),
       catchError((err: unknown) => {
-        console.error('Error saving grade:', err);
         const errorMessage = (err as { message?: string })?.message || 'Không thể lưu điểm';
         this._error.set(errorMessage);
         return of(false);
@@ -225,8 +221,7 @@ export class SubmissionsStore {
           );
         }
       }),
-      catchError((err: unknown) => {
-        console.error('Error loading submission detail:', err);
+      catchError(() => {
         return of({ data: null });
       })
     ) as unknown as Observable<SubmissionDetail | null>;

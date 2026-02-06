@@ -161,7 +161,6 @@ export class PaymentService {
             }),
             catchError(error => {
                 this._loading.set(false);
-                console.error('Error loading payment history:', error);
                 return of({ message: error.message, data: [] });
             })
         );

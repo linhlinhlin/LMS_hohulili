@@ -1,12 +1,11 @@
 import { Component, input, computed, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { ImageBlockData } from '../block-types';
 import { AuthImagePipe } from '../../pipes/auth-image.pipe';
 
 @Component({
   selector: 'app-image-block',
-  standalone: true,
-  imports: [CommonModule, AuthImagePipe],
+  imports: [AuthImagePipe],
   template: `
     <figure class="my-6">
         <img 

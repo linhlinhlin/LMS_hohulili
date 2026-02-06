@@ -17,7 +17,6 @@ import { CourseApi } from '../../../../api/client/course.api';
  */
 @Component({
   selector: 'app-assignment-overview',
-  standalone: true,
   imports: [CommonModule, RouterLink, DistributionSelectorComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `

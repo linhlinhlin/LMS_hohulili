@@ -34,40 +34,28 @@ export const roleGuard = (allowedRoles: UserRole[]): CanActivateFn => {
     const injector = inject(Injector);
 
     const userRole = authService.userRole();
-    console.log('🛡️ RoleGuard: Checking access for route:', state.url);
-    console.log('🛡️ RoleGuard: User role:', userRole);
-    console.log('🛡️ RoleGuard: Allowed roles:', allowedRoles);
 
     if (userRole && allowedRoles.includes(userRole as UserRole)) {
-      console.log('✅ RoleGuard: Access granted');
-
       // ✅ FIXED: Ensure role-specific service is initialized before component loads
       try {
         await ensureRoleServiceInitialized(userRole as UserRole, injector);
-        console.log('✅ RoleGuard: Service initialization completed');
       } catch (error) {
-        console.error('⚠️ RoleGuard: Service initialization failed:', error);
         // Continue anyway - component will handle missing data
       }
 
       return true;
     }
 
-    console.log('❌ RoleGuard: Access denied');
-
     // If user is authenticated but doesn't have the right role
     if (authService.isAuthenticated()) {
-      console.log('🔄 RoleGuard: User authenticated but wrong role, redirecting...');
       // Redirect to their appropriate area root, each module defaults to its own dashboard
       const role = authService.userRole();
       if (role) {
         const target = role === 'teacher' ? '/teacher' : role === 'admin' ? '/admin' : '/student';
-        console.log('🔄 RoleGuard: Redirecting to:', target);
         return router.createUrlTree([target]);
       }
     }
 
-    console.log('🔄 RoleGuard: User not authenticated, redirecting to login');
     // If not authenticated, redirect to login
     return router.createUrlTree(['/auth/login'], {
       queryParams: { returnUrl: state.url }
@@ -88,18 +76,15 @@ async function ensureRoleServiceInitialized(role: UserRole | string, injector: I
       const teacherService = injector.get(TeacherService);
 
       if (!teacherService.courses().length && !teacherService.isLoading()) {
-        console.log('🔄 RoleGuard: Loading teacher service data...');
         await teacherService.loadMyCourses();
       }
     } catch (err) {
-      console.warn('⚠️ RoleGuard: Failed to initialize TeacherService:', err);
+      // Failed to initialize TeacherService - component will handle missing data
     }
   } else if (normalizedRole === 'admin' || normalizedRole === UserRole.ADMIN) {
-    // AdminService will initialize on component init, but we can trigger it here if needed
-    console.log('🔄 RoleGuard: Admin role detected, service will initialize in component');
+    // AdminService will initialize on component init
   } else if (normalizedRole === 'student' || normalizedRole === UserRole.STUDENT) {
     // StudentEnrollmentService will initialize on component init
-    console.log('🔄 RoleGuard: Student role detected, service will initialize in component');
   }
 }
 

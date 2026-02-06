@@ -1,5 +1,5 @@
-﻿import { Component, OnInit, OnDestroy, signal, inject, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+﻿import { Component, OnInit, OnDestroy, signal, inject, computed, ChangeDetectionStrategy } from '@angular/core';
+
 import { ActivatedRoute, Router } from '@angular/router';
 import { QuizApi } from '../../../api/endpoints/quiz.api';
 import { firstValueFrom } from 'rxjs';
@@ -13,9 +13,9 @@ interface QuizQuestion {
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-quiz-preview',
-  standalone: true,
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './quiz-preview.component.html',
   styles: [`
     @keyframes scale-in {
@@ -36,7 +36,7 @@ export class QuizPreviewComponent implements OnInit, OnDestroy {
   Math = Math;
 
   lessonId = '';
-  quizTitle = signal('BĂ i kiá»ƒm tra');
+  quizTitle = signal('Bài kiểm tra');
   returnUrl = '';
 
   loading = signal(true);
@@ -89,7 +89,7 @@ export class QuizPreviewComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.lessonId = this.route.snapshot.paramMap.get('lessonId') || '';
-    this.quizTitle.set(this.route.snapshot.queryParamMap.get('title') || 'BĂ i kiá»ƒm tra');
+    this.quizTitle.set(this.route.snapshot.queryParamMap.get('title') || 'Bài kiểm tra');
     this.returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') || '/teacher/courses';
     this.loadQuiz();
   }
@@ -105,7 +105,7 @@ export class QuizPreviewComponent implements OnInit, OnDestroy {
       const response = await firstValueFrom(this.quizApi.getQuizQuestions(this.lessonId));
       const questions = Array.isArray(response) ? response : (response as any).data || [];
       if (questions.length === 0) {
-        this.error.set('BĂ i kiá»ƒm tra nĂ y chÆ°a cĂ³ cĂ¢u há»i nĂ o.');
+        this.error.set('Bài kiểm tra này chưa có câu hỏi nào.');
         return;
       }
       this.questions.set(questions.map((q: any) => ({
@@ -120,8 +120,7 @@ export class QuizPreviewComponent implements OnInit, OnDestroy {
       })));
       this.startTimer();
     } catch (err: any) {
-      console.error('Error loading quiz:', err);
-      this.error.set(err?.message || 'KhĂ´ng thá»ƒ táº£i bĂ i kiá»ƒm tra');
+      this.error.set(err?.message || 'Không thể tải bài kiểm tra');
     } finally {
       this.loading.set(false);
     }

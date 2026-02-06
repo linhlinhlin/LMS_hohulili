@@ -1,5 +1,5 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { QuizApi, CreateAssignmentQuizRequest } from '../../../../../api/endpoints/quiz.api';
@@ -8,64 +8,71 @@ import { CourseApi, ClassSummary } from '../../../../../api/client/course.api';
 import { QuizFormComponent, QuizFormConfig, QuizFormData } from '../../components/quiz-form/quiz-form.component';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
     selector: 'app-assignment-quiz-create',
-    standalone: true,
-    imports: [CommonModule, FormsModule, QuizFormComponent],
+    imports: [FormsModule, QuizFormComponent],
     template: `
     <div class="container mx-auto px-4 py-8">
       <div class="mb-6">
         <h2 class="text-2xl font-bold text-gray-800">Tạo bài tập về nhà</h2>
-        <p class="text-gray-600" *ngIf="courseTitle()">Khóa học: {{ courseTitle() }}</p>
+        @if (courseTitle()) {
+          <p class="text-gray-600">Khóa học: {{ courseTitle() }}</p>
+        }
       </div>
-      
-      <div *ngIf="isLoading()" class="flex justify-center py-12">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-      </div>
-
-      <ng-container *ngIf="!isLoading()">
-          <!-- Scope Selection -->
-          <div class="bg-white p-6 rounded-lg shadow-sm mb-6 border border-gray-100">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">Phạm vi giao bài</h3>
-            
-            <div class="flex gap-6 mb-4">
-              <label class="flex items-center gap-2 cursor-pointer">
-                <input type="radio" name="scope" [value]="'COURSE'" [checked]="scope() === 'COURSE'" (change)="scope.set('COURSE')" class="w-4 h-4 text-blue-600">
-                <span>Toàn bộ khóa học</span>
-              </label>
-              <label class="flex items-center gap-2 cursor-pointer">
-                <input type="radio" name="scope" [value]="'CLASS'" [checked]="scope() === 'CLASS'" (change)="scope.set('CLASS')" class="w-4 h-4 text-blue-600">
-                <span>Lớp học cụ thể</span>
-              </label>
-            </div>
-
-            <!-- Class Selector -->
-            <div *ngIf="scope() === 'CLASS'" class="animate-fade-in">
-               <label class="block text-sm font-medium text-gray-700 mb-1">Chọn lớp học</label>
-               <select 
-                 [value]="selectedClassId()"
-                 (change)="selectedClassId.set($any($event.target).value)" 
-                 class="w-full md:w-1/2 px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-white"
-                >
-                 <option value="" disabled>-- Chọn lớp --</option>
-                 <option *ngFor="let cls of classes()" [value]="cls.id">
-                   {{ cls.name }} (Code: {{ cls.code }})
-                 </option>
-               </select>
-               <p *ngIf="classes().length === 0" class="text-orange-500 text-sm mt-2">
-                 ⚠️ Khóa học này chưa có lớp nào đang hoạt động.
-               </p>
-            </div>
+    
+      @if (isLoading()) {
+        <div class="flex justify-center py-12">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+        </div>
+      }
+    
+      @if (!isLoading()) {
+        <!-- Scope Selection -->
+        <div class="bg-white p-6 rounded-lg shadow-sm mb-6 border border-gray-100">
+          <h3 class="text-lg font-semibold text-gray-800 mb-4">Phạm vi giao bài</h3>
+          <div class="flex gap-6 mb-4">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="scope" [value]="'COURSE'" [checked]="scope() === 'COURSE'" (change)="scope.set('COURSE')" class="w-4 h-4 text-blue-600">
+              <span>Toàn bộ khóa học</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="scope" [value]="'CLASS'" [checked]="scope() === 'CLASS'" (change)="scope.set('CLASS')" class="w-4 h-4 text-blue-600">
+              <span>Lớp học cụ thể</span>
+            </label>
           </div>
-
-          <app-quiz-form
-            [config]="formConfig"
-            [questions]="questions()"
-            (onSubmit)="handleSubmit($event)"
-            (onCancel)="handleCancel()">
-          </app-quiz-form>
-      </ng-container>
+          <!-- Class Selector -->
+          @if (scope() === 'CLASS') {
+            <div class="animate-fade-in">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Chọn lớp học</label>
+              <select
+                [value]="selectedClassId()"
+                (change)="selectedClassId.set($any($event.target).value)"
+                class="w-full md:w-1/2 px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-white"
+                >
+                <option value="" disabled>-- Chọn lớp --</option>
+                @for (cls of classes(); track cls) {
+                  <option [value]="cls.id">
+                    {{ cls.name }} (Code: {{ cls.code }})
+                  </option>
+                }
+              </select>
+              @if (classes().length === 0) {
+                <p class="text-orange-500 text-sm mt-2">
+                  ⚠️ Khóa học này chưa có lớp nào đang hoạt động.
+                </p>
+              }
+            </div>
+          }
+        </div>
+        <app-quiz-form
+          [config]="formConfig"
+          [questions]="questions()"
+          (onSubmit)="handleSubmit($event)"
+          (onCancel)="handleCancel()">
+        </app-quiz-form>
+      }
     </div>
-  `
+    `
 })
 export class AssignmentQuizCreateComponent implements OnInit {
     private route = inject(ActivatedRoute);
@@ -122,7 +129,7 @@ export class AssignmentQuizCreateComponent implements OnInit {
                     this.courseTitle.set(response.data.title);
                 }
             },
-            error: (err: any) => console.error('Failed to load course:', err)
+            error: () => {}
         });
 
         // Load Classes
@@ -130,7 +137,7 @@ export class AssignmentQuizCreateComponent implements OnInit {
             next: (res: any) => {
                 this.classes.set(res.data || []);
             },
-            error: (err) => console.error('Failed to load classes', err)
+            error: () => {}
         });
 
         // 2. Load Questions (My Questions)
@@ -139,8 +146,7 @@ export class AssignmentQuizCreateComponent implements OnInit {
                 this.questions.set(questions);
                 this.isLoading.set(false);
             },
-            error: (err: any) => {
-                console.error('Failed to load questions:', err);
+            error: () => {
                 this.isLoading.set(false);
             }
         });
@@ -184,8 +190,7 @@ export class AssignmentQuizCreateComponent implements OnInit {
                         this.handleCancel();
                     }
                 },
-                error: (error: any) => {
-                    console.error('Failed to create assignment quiz:', error);
+                error: () => {
                     alert('Có lỗi xảy ra khi tạo bài tập. Vui lòng thử lại.');
                 }
             });

@@ -20,7 +20,7 @@ import {
   inject,
   OnInit,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule } from '@angular/router';
 import { DistributionService } from '../../../core/services/distribution.service';
 
@@ -44,8 +44,7 @@ export interface StudentAssignment {
 
 @Component({
   selector: 'app-student-assignments',
-  standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [RouterModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-4">
@@ -336,9 +335,7 @@ export class StudentAssignmentsComponent implements OnInit {
         this.assignments.set(assignments);
         this.loading.set(false);
       },
-      error: (error) => {
-        console.error('Error loading student assignments:', error);
-        // Load mock data for development
+      error: () => {
         this.loadMockData();
         this.loading.set(false);
       }

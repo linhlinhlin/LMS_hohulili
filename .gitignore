@@ -76,3 +76,4 @@ backend-lms-postgres/uploads/**
 
 !api/src/main/resources/db/migration/*.sql
 fe/build_log*.txt
+nul 

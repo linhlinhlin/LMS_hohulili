@@ -1,5 +1,5 @@
-import { Component, signal, Injectable, EventEmitter } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, signal, Injectable, EventEmitter, inject, ChangeDetectionStrategy } from '@angular/core';
+
 
 // ============ DIALOG SERVICE ============
 export interface DialogConfig {
@@ -78,9 +78,9 @@ export class ChatDialogService {
 
 // ============ DIALOG COMPONENT ============
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
     selector: 'app-chat-dialog',
-    standalone: true,
-    imports: [CommonModule],
+    imports: [],
     template: `
     @if (dialogService.dialog(); as dialog) {
       <div class="dialog-overlay" (click)="onOverlayClick($event)">
@@ -274,7 +274,8 @@ export class ChatDialogService {
   `]
 })
 export class ChatDialogComponent {
-    constructor(public dialogService: ChatDialogService) { }
+    dialogService = inject(ChatDialogService);
+
 
     onOverlayClick(event: MouseEvent): void {
         if (event.target === event.currentTarget) {

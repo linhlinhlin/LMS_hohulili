@@ -3,8 +3,8 @@ package com.example.lms.learning_delivery.infrastructure.web;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.learning_delivery.domain.model.Enrollment;
 import com.example.lms.learning_delivery.domain.model.LearningClass;
-import com.example.lms.learning_delivery.infrastructure.persistence.JpaEnrollmentRepository;
-import com.example.lms.learning_delivery.infrastructure.persistence.JpaLearningClassRepository;
+import com.example.lms.learning_delivery.infrastructure.persistence.EnrollmentRepositoryImpl;
+import com.example.lms.learning_delivery.domain.repository.LearningClassRepository;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -28,16 +28,16 @@ import org.springframework.security.core.context.SecurityContextHolder;
  */
 @Tag(name = "Student Enrollment V3", description = "Student enrollment query endpoints")
 @RestController
-@RequestMapping("/api/v3")
+@RequestMapping("/api/v3/student")
 @RequiredArgsConstructor
 public class StudentEnrollmentControllerV3 {
 
-    private final JpaEnrollmentRepository enrollmentRepository;
-    private final JpaLearningClassRepository learningClassRepository;
+    private final EnrollmentRepositoryImpl enrollmentRepository;
+    private final LearningClassRepository learningClassRepository;
 
     @Operation(summary = "Get student's enrolled courses")
-    @GetMapping("/courses/enrolled-courses")
-    // @PreAuthorize("isAuthenticated()") - TEMP DISABLED for debugging
+    @GetMapping("/courses/enrolled")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<Page<EnrolledCourseResponse>>> getEnrolledCourses(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int limit
@@ -99,7 +99,7 @@ public class StudentEnrollmentControllerV3 {
     }
 
     @Operation(summary = "Get course progress for student")
-    @GetMapping("/student/progress/courses/{courseId}")
+    @GetMapping("/progress/courses/{courseId}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<CourseProgressResponse>> getCourseProgress(
             @PathVariable UUID courseId
@@ -120,18 +120,9 @@ public class StudentEnrollmentControllerV3 {
         UserJpaEntity currentUser = (UserJpaEntity) principal;
         UUID studentId = currentUser.getId();
         
-        // Find learning classes for this course
-        List<LearningClass> classes = learningClassRepository.findByCourseId(courseId);
-        
-        // Find enrollment for this student in any of these classes
-        Optional<Enrollment> enrollmentOpt = Optional.empty();
-        for (LearningClass lc : classes) {
-            Optional<Enrollment> e = enrollmentRepository.findByStudentIdAndClassId(studentId, lc.getId());
-            if (e.isPresent()) {
-                enrollmentOpt = e;
-                break;
-            }
-        }
+        // SOTA: Single query to find enrollment by studentId + courseId
+        // Replaces N+1 loop pattern with direct JOIN query
+        Optional<Enrollment> enrollmentOpt = enrollmentRepository.findByStudentIdAndCourseId(studentId, courseId);
         
         if (enrollmentOpt.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.success(
@@ -159,7 +150,7 @@ public class StudentEnrollmentControllerV3 {
     }
 
     @Operation(summary = "Get completed lesson IDs for a course")
-    @GetMapping("/student/progress/courses/{courseId}/completed-ids")
+    @GetMapping("/progress/courses/{courseId}/completed-ids")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<List<String>>> getCompletedLessonIds(
             @PathVariable UUID courseId
@@ -173,28 +164,24 @@ public class StudentEnrollmentControllerV3 {
         UserJpaEntity currentUser = (UserJpaEntity) principal;
         UUID studentId = currentUser.getId();
         
-        // Find learning classes for this course
-        List<LearningClass> classes = learningClassRepository.findByCourseId(courseId);
-        
-        // Find enrollment for this student in any of these classes
-        for (LearningClass lc : classes) {
-            Optional<Enrollment> enrollmentOpt = enrollmentRepository.findByStudentIdAndClassId(studentId, lc.getId());
-            if (enrollmentOpt.isPresent()) {
-                Enrollment enrollment = enrollmentOpt.get();
-                // Return completed lesson IDs from progress field (Map keys)
-                List<String> completedIds = enrollment.getProgress() != null 
-                    ? new ArrayList<>(enrollment.getProgress().keySet())
-                    : List.of();
-                return ResponseEntity.ok(ApiResponse.success(completedIds, "Completed lesson IDs loaded"));
-            }
+        // SOTA: Single query to find enrollment by studentId + courseId
+        Optional<Enrollment> enrollmentOpt = enrollmentRepository.findByStudentIdAndCourseId(studentId, courseId);
+
+        if (enrollmentOpt.isPresent()) {
+            Enrollment enrollment = enrollmentOpt.get();
+            // Return completed lesson IDs from progress field (Map keys)
+            List<String> completedIds = enrollment.getProgress() != null
+                ? new ArrayList<>(enrollment.getProgress().keySet())
+                : List.of();
+            return ResponseEntity.ok(ApiResponse.success(completedIds, "Completed lesson IDs loaded"));
         }
-        
+
         // Not enrolled - return empty list
         return ResponseEntity.ok(ApiResponse.success(List.of(), "Not enrolled in this course"));
     }
 
     @Operation(summary = "Get next lesson to learn for a course")
-    @GetMapping("/student/progress/courses/{courseId}/next-lesson")
+    @GetMapping("/progress/courses/{courseId}/next-lesson")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<String>> getNextLesson(
             @PathVariable UUID courseId
@@ -208,26 +195,22 @@ public class StudentEnrollmentControllerV3 {
         UserJpaEntity currentUser = (UserJpaEntity) principal;
         UUID studentId = currentUser.getId();
         
-        // Find learning classes for this course
-        List<LearningClass> classes = learningClassRepository.findByCourseId(courseId);
-        
-        // Find enrollment for this student
-        for (LearningClass lc : classes) {
-            Optional<Enrollment> enrollmentOpt = enrollmentRepository.findByStudentIdAndClassId(studentId, lc.getId());
-            if (enrollmentOpt.isPresent()) {
-                Enrollment enrollment = enrollmentOpt.get();
-                
-                // Get completed lesson IDs
-                Set<String> completedIds = enrollment.getProgress() != null 
-                    ? enrollment.getProgress().keySet() 
-                    : Set.of();
-                
-                // TODO: Get actual lesson IDs from course content and find first uncompleted
-                // For now, return null to indicate "start from beginning"
-                return ResponseEntity.ok(ApiResponse.success(null, "Next lesson - start from beginning"));
-            }
+        // SOTA: Single query to find enrollment by studentId + courseId
+        Optional<Enrollment> enrollmentOpt = enrollmentRepository.findByStudentIdAndCourseId(studentId, courseId);
+
+        if (enrollmentOpt.isPresent()) {
+            Enrollment enrollment = enrollmentOpt.get();
+
+            // Get completed lesson IDs
+            Set<String> completedIds = enrollment.getProgress() != null
+                ? enrollment.getProgress().keySet()
+                : Set.of();
+
+            // TODO: Get actual lesson IDs from course content and find first uncompleted
+            // For now, return null to indicate "start from beginning"
+            return ResponseEntity.ok(ApiResponse.success(null, "Next lesson - start from beginning"));
         }
-        
+
         return ResponseEntity.ok(ApiResponse.success(null, "Not enrolled"));
     }
 

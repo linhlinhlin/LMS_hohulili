@@ -4,9 +4,14 @@ import com.example.lms.communication.application.usecase.SendMessageUseCaseV3;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Collections;
@@ -20,6 +25,7 @@ import java.util.UUID;
 @Tag(name = "Communication V3", description = "DDD-based messaging endpoints")
 @RestController
 @RequestMapping("/api/v3/messages")
+@PreAuthorize("isAuthenticated()")
 @RequiredArgsConstructor
 public class CommunicationControllerV3 {
 
@@ -60,38 +66,20 @@ public class CommunicationControllerV3 {
     // ============== Message Endpoints ==============
 
     @Operation(summary = "Send a message to another user")
-    @PostMapping
-    public ResponseEntity<UUID> sendMessage(
-            @AuthenticationPrincipal Object principal,
-            @RequestBody SendMessageRequest request
-    ) {
-        UUID senderId = request.senderId();
-        
-        var command = new SendMessageUseCaseV3.SendMessageCommand(
-            senderId,
-            request.recipientId(),
-            request.content()
-        );
-        UUID messageId = sendMessageUseCase.execute(command);
-        return ResponseEntity.ok(messageId);
-    }
-
-    @Operation(summary = "Send message (V2 compatible)")
     @PostMapping("/send")
-    public ResponseEntity<ApiResponse<Object>> sendMessageV2(
+    public ResponseEntity<ApiResponse<Object>> sendMessage(
             @AuthenticationPrincipal Object principal,
-            @RequestBody SendMessageRequest request
+            @Valid @RequestBody SendMessageRequest request
     ) {
         UUID senderId = request.senderId();
-        
+
         var command = new SendMessageUseCaseV3.SendMessageCommand(
             senderId,
             request.recipientId(),
             request.content()
         );
         UUID messageId = sendMessageUseCase.execute(command);
-        
-        // Return in format frontend expects
+
         var response = new java.util.HashMap<String, Object>();
         response.put("message", java.util.Map.of(
             "id", messageId,
@@ -100,17 +88,17 @@ public class CommunicationControllerV3 {
             "createdAt", java.time.Instant.now()
         ));
         response.put("conversationId", UUID.randomUUID()); // TODO: Get real conversation ID
-        
+
         return ResponseEntity.ok(ApiResponse.success(response, "Gửi tin nhắn thành công"));
     }
 
     @Operation(summary = "Mark messages as read")
-    @PostMapping("/mark-read")
-    public ResponseEntity<Void> markAsRead(
-            @RequestBody MarkAsReadRequest request
+    @PatchMapping("/mark-read")
+    public ResponseEntity<ApiResponse<Void>> markAsRead(
+            @Valid @RequestBody MarkAsReadRequest request
     ) {
         // TODO: Implement mark as read
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(ApiResponse.success(null, "Messages marked as read"));
     }
 
     @Operation(summary = "Get unread message count")
@@ -123,14 +111,18 @@ public class CommunicationControllerV3 {
     }
 
     // ============== Request DTOs ==============
-    
+
     public record SendMessageRequest(
+        @NotNull(message = "Sender ID is required")
         UUID senderId,
+        @NotNull(message = "Recipient ID is required")
         UUID recipientId,
+        @NotBlank(message = "Content is required")
         String content
     ) {}
     
     public record MarkAsReadRequest(
+        @NotEmpty(message = "Message IDs cannot be empty")
         List<UUID> messageIds
     ) {}
 }

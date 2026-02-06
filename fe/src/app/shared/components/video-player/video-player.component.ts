@@ -1,10 +1,10 @@
-import { Component, input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, input, ChangeDetectionStrategy } from '@angular/core';
+
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-video-player',
-  standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
     <div class="video-player-container">
       @if (videoUrl()) {

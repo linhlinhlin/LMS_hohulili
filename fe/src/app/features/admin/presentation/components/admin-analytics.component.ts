@@ -1,11 +1,11 @@
 ﻿import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { AdminService, SystemAnalytics } from '../../infrastructure/services/admin.service';
 import { LoadingComponent } from '../../../../shared/components/loading/loading.component';
 
 @Component({
   selector: 'app-admin-analytics',
-  imports: [CommonModule],
+  imports: [],
   encapsulation: ViewEncapsulation.None,
   templateUrl: './admin-analytics.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -28,7 +28,6 @@ export class AdminAnalyticsComponent implements OnInit {
       const data = await this.adminService.getSystemAnalytics().toPromise();
       this.analytics.set(data || null);
     } catch (error) {
-      console.error('Failed to load analytics:', error);
     } finally {
       this.isLoading.set(false);
     }
@@ -95,13 +94,13 @@ export class AdminAnalyticsComponent implements OnInit {
   getHealthText(status: string): string {
     switch (status) {
       case 'healthy':
-        return 'Hoáº¡t Ä‘á»™ng tá»‘t';
+        return 'Hoạt động tốt';
       case 'warning':
-        return 'Cáº£nh bĂ¡o';
+        return 'Cảnh báo';
       case 'error':
-        return 'Lá»—i';
+        return 'Lỗi';
       default:
-        return 'KhĂ´ng xĂ¡c Ä‘á»‹nh';
+        return 'Không xác định';
     }
   }
 }

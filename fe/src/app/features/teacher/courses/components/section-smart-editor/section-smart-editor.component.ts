@@ -1,4 +1,4 @@
-import { Component, inject, signal, input, output } from '@angular/core';
+import { Component, inject, signal, input, output, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -6,8 +6,8 @@ import { SectionApi } from '../../../../../api/client/section.api';
 import { RichTextEditorComponent } from '../../../../../shared/components/rich-text-editor/rich-text-editor.component';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
     selector: 'app-section-smart-editor',
-    standalone: true,
     imports: [CommonModule, ReactiveFormsModule, RichTextEditorComponent],
     templateUrl: './section-smart-editor.component.html'
 })
@@ -71,8 +71,7 @@ export class SectionSmartEditorComponent {
                 this.router.navigate(['/teacher/quiz/create/section', section.id]);
                 this.close.emit();
             },
-            error: (err) => {
-                console.error(err);
+            error: () => {
                 this.isSubmitting.set(false);
                 alert('Có lỗi xảy ra khi tạo Section Quiz.');
             }
@@ -121,8 +120,7 @@ export class SectionSmartEditorComponent {
                     this.saved.emit();
                     this.close.emit();
                 },
-                error: (err) => {
-                    console.error(err);
+                error: () => {
                     this.isSubmitting.set(false);
                     alert('Có lỗi xảy ra khi lưu section.');
                 }
@@ -152,8 +150,7 @@ export class SectionSmartEditorComponent {
                     this.saved.emit();
                     this.close.emit();
                 },
-                error: (err) => {
-                    console.error(err);
+                error: () => {
                     this.isSubmitting.set(false);
                     alert('Có lỗi xảy ra khi lưu section.');
                 }

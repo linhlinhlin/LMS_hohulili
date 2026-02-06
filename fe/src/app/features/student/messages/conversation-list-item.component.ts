@@ -10,13 +10,12 @@
  * @requirements 2.4, 2.5
  */
 import { Component, input, output, ChangeDetectionStrategy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { ConversationListItem, formatMessageTime } from './utils/message-utils';
 
 @Component({
   selector: 'app-conversation-list-item',
-  standalone: true,
-  imports: [CommonModule],
+  imports: [],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <button

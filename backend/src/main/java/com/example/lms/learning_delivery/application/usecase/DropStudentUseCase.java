@@ -38,7 +38,7 @@ public class DropStudentUseCase {
                 "Không thể xóa học viên đã hoàn thành khóa học");
         }
 
-        enrollment.setStatus(Enrollment.EnrollmentStatus.DROPPED);
+        enrollment.drop();
         enrollmentRepository.save(enrollment);
 
         log.info("Student {} dropped from class {} successfully", 

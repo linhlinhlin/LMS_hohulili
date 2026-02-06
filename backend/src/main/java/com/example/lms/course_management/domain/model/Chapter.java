@@ -101,15 +101,26 @@ public class Chapter {
         return Collections.unmodifiableList(lessons);
     }
 
-    // ============ SETTERS ============
-    
-    public void setId(UUID id) { this.id = id; }
-    public void setCourse(Course course) { this.course = course; }
-    public void setTitle(String title) { this.title = title; }
-    public void setOrderIndex(Integer orderIndex) { this.orderIndex = orderIndex; }
-    public void setPublished(boolean isPublished) { this.isPublished = isPublished; }
-    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
-    public void setLessons(List<Lesson> lessons) { this.lessons = lessons != null ? new ArrayList<>(lessons) : new ArrayList<>(); }
+    // ============ BEHAVIOR METHODS ============
+
+    public void updateInfo(String title) {
+        if (title != null && !title.isBlank()) this.title = title;
+    }
+
+    public void reorderLessons(List<UUID> orderedLessonIds) {
+        if (orderedLessonIds == null) return;
+        List<Lesson> reordered = new ArrayList<>();
+        for (UUID lessonId : orderedLessonIds) {
+            this.lessons.stream()
+                .filter(l -> l.getId().equals(lessonId))
+                .findFirst()
+                .ifPresent(reordered::add);
+        }
+        this.lessons = reordered;
+    }
+
+    // Package-private: only Course aggregate can set parent reference
+    void setCourse(Course course) { this.course = course; }
 
     // ============ BUILDER ============
     

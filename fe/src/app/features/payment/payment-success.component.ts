@@ -1,5 +1,5 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, signal, inject, ChangeDetectionStrategy } from '@angular/core';
+
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 /**
@@ -8,9 +8,9 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
  * Shown after successful payment completion
  */
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
     selector: 'app-payment-success',
-    standalone: true,
-    imports: [CommonModule, RouterLink],
+    imports: [RouterLink],
     template: `
         <div class="payment-result-container">
             <div class="result-card success">

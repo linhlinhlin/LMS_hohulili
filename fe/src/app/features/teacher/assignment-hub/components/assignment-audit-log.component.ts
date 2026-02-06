@@ -1,5 +1,5 @@
 import { Component, signal, ChangeDetectionStrategy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 
 /**
  * Assignment Audit Log Component
@@ -23,8 +23,7 @@ interface AuditLogEntry {
 
 @Component({
   selector: 'app-assignment-audit-log',
-  standalone: true,
-  imports: [CommonModule],
+  imports: [],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="bg-white rounded shadow">

@@ -1,5 +1,5 @@
 import { Component, input, output, model, computed, ChangeDetectionStrategy, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { Router } from '@angular/router';
 import { LessonDetail } from '../../models/learning.models';
@@ -15,8 +15,7 @@ import { LessonType } from '../../models/lesson-types.enum';
  */
 @Component({
   selector: 'app-lesson-content',
-  standalone: true,
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './lesson-content.component.html',
   styleUrls: ['./lesson-content.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -94,37 +93,25 @@ export class LessonContentComponent {
 
   // Get sanitized HTML for any content (used by template)
   getSanitizedHtml(content: string | undefined): any {
-    // Debug: Check if content has images
-    if (content && content.includes('<img')) {
-      console.log('[LessonContent] Rendering HTML with image:', content.substring(0, 100) + '...');
-    } else if (content) {
-      console.log('[LessonContent] Rendering HTML (no image found in first check):', content.substring(0, 50) + '...');
-    }
     return this.sanitizer.bypassSecurityTrustHtml(content || '');
   }
 
   // Video player events
   onVideoPlay(): void {
-    console.log('Video playing');
   }
 
   onVideoPause(): void {
-    console.log('Video paused');
   }
 
   onVideoEnd(): void {
-    console.log('Video ended');
     this.videoEnded.emit();
   }
 
   onVideoError(error: any): void {
-    console.error('Video error:', error);
   }
 
   onVideoTimeUpdate(event: Event): void {
     // Track video progress if needed
-    const video = event.target as HTMLVideoElement;
-    console.log('Video time:', video.currentTime);
   }
 
   // Mark lesson as complete
@@ -133,7 +120,6 @@ export class LessonContentComponent {
   }
 
   onGoToQuiz(): void {
-    console.log('🎯 Quiz button clicked!');
     const ls = this.lesson();
     const currentUrl = this.router.url;
     this.router.navigate(['/student/quiz/take', ls.id], {

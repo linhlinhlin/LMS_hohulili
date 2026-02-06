@@ -14,7 +14,7 @@ import java.util.UUID;
 
 /**
  * JPA Entity for Enrollment persistence.
- * 
+ *
  * This entity is part of the INFRASTRUCTURE layer and should NOT be used
  * directly in domain/application layers. Use the domain model instead.
  */
@@ -32,8 +32,9 @@ public class EnrollmentJpaEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "class_id", nullable = false)
-    private UUID classId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "class_id", nullable = false)
+    private LearningClassJpaEntity learningClass;
 
     @Column(name = "student_id", nullable = false)
     private UUID studentId;
@@ -70,7 +71,8 @@ public class EnrollmentJpaEntity {
         ACTIVE("Đang học"),
         COMPLETED("Hoàn thành"),
         DROPPED("Bỏ học"),
-        EXPIRED("Hết hạn");
+        EXPIRED("Hết hạn"),
+        SUSPENDED("Tạm dừng");
 
         private final String displayName;
 

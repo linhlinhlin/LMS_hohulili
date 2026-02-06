@@ -1,11 +1,11 @@
-import { Component, input, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, input, computed, ChangeDetectionStrategy } from '@angular/core';
+
 import { KnowledgeStats } from '../domain/knowledge.types';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-knowledge-stats',
-  standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
     <div class="stats-grid">
       <!-- Total Documents -->

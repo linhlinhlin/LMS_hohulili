@@ -1,5 +1,5 @@
-import { Component, input, output, signal, computed, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, input, output, signal, computed, inject, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { PackageApi, PackageDTO } from '../../../../api/endpoints/package.api';
@@ -15,9 +15,9 @@ interface QuizMetadata {
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-quiz-creation-modal',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   template: `
     @if (isOpen()) {
     <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
@@ -354,9 +354,7 @@ export class QuizCreationModalComponent {
     try {
       const packages = await firstValueFrom(this.packageApi.getMyPackages());
       this.packages.set(packages);
-      console.log('📦 Loaded', packages.length, 'packages');
     } catch (error: any) {
-      console.error('❌ Error loading packages:', error);
     } finally {
       this.packagesLoading.set(false);
     }
@@ -383,9 +381,7 @@ export class QuizCreationModalComponent {
         this.packageApi.getQuestionsInPackage(packageId)
       );
       this.availableQuestions.set(questions);
-      console.log('📦 Loaded', questions.length, 'questions from package', packageId);
     } catch (error: any) {
-      console.error('❌ Error loading package questions:', error);
       this.questionsError.set('Không thể tải câu hỏi từ gói');
     } finally {
       this.questionsLoading.set(false);
@@ -432,13 +428,11 @@ export class QuizCreationModalComponent {
         videoUrl: ''
       };
 
-      console.log('📝 Creating quiz lesson...', lessonPayload);
       const lessonResponse = await firstValueFrom(
         this.lessonApi.createLesson(this.sectionId(), lessonPayload)
       );
 
       const lessonId = lessonResponse.data.id;
-      console.log('✅ Lesson created with ID:', lessonId);
 
       // Step 2: Check if quiz already exists, then create or update
       try {
@@ -448,13 +442,11 @@ export class QuizCreationModalComponent {
         );
 
         // Quiz exists, update questions
-        console.log('📝 Quiz already exists, updating questions...');
         await firstValueFrom(
           this.quizApi.updateQuizQuestions(lessonId, {
             questionIds: Array.from(this.selectedQuestionIds())
           })
         );
-        console.log('✅ Quiz updated successfully with', this.selectedQuestionIds().size, 'questions');
 
       } catch (getQuizError: any) {
         // Quiz doesn't exist (404), create new one
@@ -471,11 +463,9 @@ export class QuizCreationModalComponent {
             showCorrectAnswers: true
           };
 
-          console.log('🎯 Creating new quiz for lesson...', quizPayload);
           await firstValueFrom(
             this.quizApi.createQuiz(lessonId, quizPayload)
           );
-          console.log('✅ Quiz created successfully with', this.selectedQuestionIds().size, 'questions');
         } else {
           // Other error, rethrow
           throw getQuizError;
@@ -485,7 +475,6 @@ export class QuizCreationModalComponent {
       this.quizCreated.emit(lessonId);
       this.close();
     } catch (error: any) {
-      console.error('❌ Error creating quiz:', error);
       const errorMessage = error?.error?.message || error?.message || 'Không thể tạo bài trắc nghiệm. Vui lòng thử lại.';
       this.questionsError.set(errorMessage);
     } finally {

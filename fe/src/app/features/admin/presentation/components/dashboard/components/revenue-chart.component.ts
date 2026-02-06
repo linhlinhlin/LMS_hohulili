@@ -1,5 +1,5 @@
-import { Component, OnInit, ViewChild, ElementRef, signal, effect, input, ChangeDetectionStrategy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, ElementRef, signal, effect, input, ChangeDetectionStrategy, viewChild } from '@angular/core';
+
 import { Chart, ChartConfiguration, registerables } from 'chart.js';
 
 // Register Chart.js components
@@ -12,8 +12,7 @@ export interface RevenueData {
 
 @Component({
   selector: 'app-revenue-chart',
-  standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
     <div class="chart-container">
       <canvas #chartCanvas></canvas>
@@ -29,7 +28,7 @@ export interface RevenueData {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class RevenueChartComponent implements OnInit {
-  @ViewChild('chartCanvas', { static: true }) chartCanvas!: ElementRef<HTMLCanvasElement>;
+  readonly chartCanvas = viewChild.required<ElementRef<HTMLCanvasElement>>('chartCanvas');
   
   // Input data
   revenueData = input<RevenueData>({
@@ -56,7 +55,7 @@ export class RevenueChartComponent implements OnInit {
   }
 
   private initChart(): void {
-    const ctx = this.chartCanvas.nativeElement.getContext('2d');
+    const ctx = this.chartCanvas().nativeElement.getContext('2d');
     if (!ctx) return;
 
     const data = this.revenueData();

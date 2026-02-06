@@ -22,7 +22,7 @@ import {
   HostListener,
   ElementRef,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Router } from '@angular/router';
 import {
   NotificationService,
@@ -33,8 +33,7 @@ import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-notification-bell',
-  standalone: true,
-  imports: [CommonModule],
+  imports: [],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './notification-bell.component.html',
   styles: [`
@@ -66,7 +65,6 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
     this.subscription.add(
       this.notificationService.onNewNotification.subscribe((notification) => {
         // Could show a toast or play a sound here
-        console.log('New notification:', notification);
       })
     );
   }

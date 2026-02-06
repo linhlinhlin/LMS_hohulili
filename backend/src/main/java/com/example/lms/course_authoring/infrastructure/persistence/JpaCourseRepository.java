@@ -1,6 +1,6 @@
 package com.example.lms.course_authoring.infrastructure.persistence;
 
-import com.example.lms.course_authoring.domain.model.Course;
+import com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -12,39 +12,45 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Spring Data JPA repository for Course entity.
+ * Spring Data JPA repository for CourseJpaEntity.
+ * Uses JPA Entity (infrastructure layer), NOT domain model.
  */
 @Repository
-public interface JpaCourseRepository extends JpaRepository<Course, UUID> {
+public interface JpaCourseRepository extends JpaRepository<CourseJpaEntity, UUID> {
 
-    @Query("SELECT c FROM Course c WHERE c.code.value = :code")
-    Optional<Course> findByCodeValue(@Param("code") String code);
+    @Query("SELECT c FROM CourseJpaEntity c WHERE c.code = :code")
+    Optional<CourseJpaEntity> findByCodeValue(@Param("code") String code);
 
-    @Query("SELECT COUNT(c) > 0 FROM Course c WHERE c.code.value = :code")
+    @Query("SELECT COUNT(c) > 0 FROM CourseJpaEntity c WHERE c.code = :code")
     boolean existsByCodeValue(@Param("code") String code);
 
-    @Query("SELECT c FROM Course c LEFT JOIN FETCH c.chapters ch LEFT JOIN FETCH ch.lessons WHERE c.id = :id")
-    Optional<Course> findByIdWithContent(@Param("id") UUID id);
+    // Note: CourseJpaEntity doesn't have chapters relationship, so findByIdWithContent just returns the course
+    // Chapter/Lesson loading should be done separately via ChapterJpaRepository
+    @Query("SELECT c FROM CourseJpaEntity c WHERE c.id = :id")
+    Optional<CourseJpaEntity> findByIdWithContent(@Param("id") UUID id);
 
-    @Query(value = "SELECT c FROM Course c WHERE c.teacherId = :teacherId",
-           countQuery = "SELECT COUNT(c) FROM Course c WHERE c.teacherId = :teacherId")
-    Page<Course> findByTeacherId(@Param("teacherId") UUID teacherId, Pageable pageable);
+    @Query("SELECT c FROM CourseJpaEntity c WHERE c.id = :id")
+    Optional<CourseJpaEntity> findByIdSimple(@Param("id") UUID id);
 
-    Page<Course> findByStatus(Course.CourseStatus status, Pageable pageable);
+    @Query(value = "SELECT c FROM CourseJpaEntity c WHERE c.teacherId = :teacherId",
+           countQuery = "SELECT COUNT(c) FROM CourseJpaEntity c WHERE c.teacherId = :teacherId")
+    Page<CourseJpaEntity> findByTeacherId(@Param("teacherId") UUID teacherId, Pageable pageable);
 
-    @Query("SELECT c FROM Course c WHERE c.status = :status AND LOWER(c.title) LIKE LOWER(CONCAT('%', :search, '%'))")
-    Page<Course> findByStatusAndTitleContaining(
-            @Param("status") Course.CourseStatus status,
+    Page<CourseJpaEntity> findByStatus(CourseJpaEntity.CourseStatus status, Pageable pageable);
+
+    @Query("SELECT c FROM CourseJpaEntity c WHERE c.status = :status AND LOWER(c.title) LIKE LOWER(CONCAT('%', :search, '%'))")
+    Page<CourseJpaEntity> findByStatusAndTitleContaining(
+            @Param("status") CourseJpaEntity.CourseStatus status,
             @Param("search") String search,
             Pageable pageable);
 
     long countByTeacherId(UUID teacherId);
 
-    long countByStatus(Course.CourseStatus status);
+    long countByStatus(CourseJpaEntity.CourseStatus status);
 
-    @Query("SELECT c FROM Course c JOIN c.chapters ch WHERE ch.id = :chapterId")
-    Optional<Course> findByChapterId(@Param("chapterId") UUID chapterId);
+    @Query("SELECT c FROM CourseJpaEntity c WHERE c.id = (SELECT ch.courseId FROM ChapterJpaEntity ch WHERE ch.id = :chapterId)")
+    Optional<CourseJpaEntity> findByChapterId(@Param("chapterId") UUID chapterId);
 
-    @Query("SELECT c FROM Course c JOIN c.chapters ch JOIN ch.lessons l WHERE l.id = :lessonId")
-    Optional<Course> findByLessonId(@Param("lessonId") UUID lessonId);
+    @Query("SELECT c FROM CourseJpaEntity c WHERE c.id = (SELECT ch.courseId FROM ChapterJpaEntity ch JOIN LessonJpaEntity l ON l.chapterId = ch.id WHERE l.id = :lessonId)")
+    Optional<CourseJpaEntity> findByLessonId(@Param("lessonId") UUID lessonId);
 }

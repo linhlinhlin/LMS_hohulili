@@ -22,19 +22,19 @@
         <!-- Course Progress -->
         <div class="flex items-center space-x-6">
           <div class="text-center">
-            <div class="text-sm text-gray-500 mb-1">Tiáº¿n Ä‘á»™</div>
+            <div class="text-sm text-gray-500 mb-1">Tiến độ</div>
             <div class="text-lg font-bold text-blue-600">{{ course().progress }}%</div>
           </div>
 
           <div class="text-center">
-            <div class="text-sm text-gray-500 mb-1">BĂ i há»c</div>
+            <div class="text-sm text-gray-500 mb-1">Bài học</div>
             <div class="text-lg font-bold text-gray-900">
               {{ completedLessons() }}/{{ course().lessons.length }}
             </div>
           </div>
 
           <div class="text-center">
-            <div class="text-sm text-gray-500 mb-1">Thá»i gian</div>
+            <div class="text-sm text-gray-500 mb-1">Thời gian</div>
             <div class="text-lg font-bold text-gray-900">{{ course().duration }}</div>
           </div>
         </div>
@@ -76,7 +76,7 @@
                       d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
                       clip-rule="evenodd"></path>
                   </svg>
-                  <span class="text-sm">Tua láº¡i 10s</span>
+                  <span class="text-sm">Tua lại 10s</span>
                 </button>
 
                 <button (click)="fastForwardVideo()"
@@ -86,13 +86,13 @@
                       d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
                       clip-rule="evenodd"></path>
                   </svg>
-                  <span class="text-sm">Tua tá»›i 10s</span>
+                  <span class="text-sm">Tua tới 10s</span>
                 </button>
               </div>
 
               <div class="flex items-center space-x-4">
                 <div class="flex items-center space-x-2">
-                  <span class="text-sm text-gray-600">Tá»‘c Ä‘á»™:</span>
+                  <span class="text-sm text-gray-600">Tốc độ:</span>
                   <select [(ngModel)]="playbackRate" (ngModelChange)="changePlaybackRate($event)"
                     class="text-sm border border-gray-300 rounded px-2 py-1">
                     <option value="0.5">0.5x</option>
@@ -142,7 +142,7 @@
                     d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
                   </path>
                 </svg>
-                Ghi chĂº
+                Ghi chú
               </button>
             </div>
           </div>
@@ -150,7 +150,7 @@
           <!-- Notes Panel -->
           @if (showNotes()) {
           <div class="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6">
-            <h3 class="text-lg font-semibold text-blue-900 mb-4">Ghi chĂº cá»§a báº¡n</h3>
+            <h3 class="text-lg font-semibold text-blue-900 mb-4">Ghi chú của bạn</h3>
             <div class="space-y-4">
               @for (note of currentLesson()!.notes; track note.id) {
               <div class="bg-white p-4 rounded-lg border border-blue-200">
@@ -172,12 +172,12 @@
 
               <!-- Add New Note -->
               <div class="bg-white p-4 rounded-lg border border-blue-200">
-                <textarea [(ngModel)]="newNoteContent" placeholder="ThĂªm ghi chĂº má»›i..." rows="3"
+                <textarea [(ngModel)]="newNoteContent" placeholder="Thêm ghi chú mới..." rows="3"
                   class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
                 <div class="flex justify-end mt-3">
                   <button (click)="addNote()" [disabled]="!newNoteContent().trim()"
                     class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
-                    ThĂªm ghi chĂº
+                    Thêm ghi chú
                   </button>
                 </div>
               </div>
@@ -194,7 +194,7 @@
                   d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
                   clip-rule="evenodd"></path>
               </svg>
-              <span>BĂ i trÆ°á»›c</span>
+              <span>Bài trước</span>
             </button>
 
             <div class="flex items-center space-x-4">
@@ -207,16 +207,16 @@
                     d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
                     clip-rule="evenodd"></path>
                 </svg>
-                ÄĂ£ hoĂ n thĂ nh
+                Đã hoàn thành
                 } @else {
-                ÄĂ¡nh dáº¥u hoĂ n thĂ nh
+                Đánh dấu hoàn thành
                 }
               </button>
             </div>
 
             <button (click)="nextLesson()" [disabled]="isLastLesson()"
               class="flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-              <span>BĂ i tiáº¿p</span>
+              <span>Bài tiếp</span>
               <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd"
                   d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
@@ -235,12 +235,12 @@
               </path>
             </svg>
           </div>
-          <h3 class="text-2xl font-bold text-gray-900 mb-4">Chá»n bĂ i há»c Ä‘á»ƒ báº¯t Ä‘áº§u</h3>
-          <p class="text-gray-600 mb-6">HĂ£y chá»n má»™t bĂ i há»c tá»« danh sĂ¡ch bĂªn pháº£i Ä‘á»ƒ báº¯t Ä‘áº§u
-            há»c táº­p.</p>
+          <h3 class="text-2xl font-bold text-gray-900 mb-4">Chọn bài học để bắt đầu</h3>
+          <p class="text-gray-600 mb-6">Hãy chọn một bài học từ danh sách bên phải để bắt đầu
+            học tập.</p>
           <button (click)="selectFirstLesson()"
             class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-            Báº¯t Ä‘áº§u tá»« bĂ i Ä‘áº§u tiĂªn
+            Bắt đầu từ bài đầu tiên
           </button>
         </div>
         }
@@ -250,18 +250,18 @@
       <div class="col-span-12 xl:col-span-4 space-y-6">
         <!-- Course Progress -->
         <div class="bg-white rounded-2xl shadow-lg p-6">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">Tiáº¿n Ä‘á»™ khĂ³a há»c</h3>
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Tiến độ khóa học</h3>
           <div class="space-y-4">
             <div class="flex justify-between text-sm">
-              <span class="text-gray-600">Tá»•ng bĂ i há»c:</span>
+              <span class="text-gray-600">Tổng bài học:</span>
               <span class="font-medium">{{ course().lessons.length }}</span>
             </div>
             <div class="flex justify-between text-sm">
-              <span class="text-gray-600">ÄĂ£ hoĂ n thĂ nh:</span>
+              <span class="text-gray-600">Đã hoàn thành:</span>
               <span class="font-medium text-green-600">{{ completedLessons() }}</span>
             </div>
             <div class="flex justify-between text-sm">
-              <span class="text-gray-600">CĂ²n láº¡i:</span>
+              <span class="text-gray-600">Còn lại:</span>
               <span class="font-medium text-orange-600">{{ remainingLessons() }}</span>
             </div>
             <div class="w-full bg-gray-200 rounded-full h-3">
@@ -273,7 +273,7 @@
 
         <!-- Course Lessons -->
         <div class="bg-white rounded-2xl shadow-lg p-6">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">Danh sĂ¡ch bĂ i há»c</h3>
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Danh sách bài học</h3>
           <div class="space-y-3">
             @for (lesson of course().lessons; track lesson.id; let i = $index) {
             <div (click)="selectLesson(lesson)"
@@ -325,7 +325,7 @@
 
         <!-- Resources -->
         <div class="bg-white rounded-2xl shadow-lg p-6">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">TĂ i liá»‡u tham kháº£o</h3>
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Tài liệu tham khảo</h3>
           <div class="space-y-3">
             <a href="#" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
               <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
@@ -350,7 +350,7 @@
                 </svg>
               </div>
               <div class="flex-1">
-                <h4 class="font-medium text-gray-900">HÆ°á»›ng dáº«n An toĂ n.pdf</h4>
+                <h4 class="font-medium text-gray-900">Hướng dẫn An toàn.pdf</h4>
                 <p class="text-sm text-gray-600">1.8 MB</p>
               </div>
             </a>

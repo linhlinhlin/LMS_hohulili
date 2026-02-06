@@ -1,5 +1,5 @@
 import { Component, ChangeDetectionStrategy, ViewEncapsulation, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Router, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators, FormArray, FormGroup } from '@angular/forms';
 import { 
@@ -21,8 +21,7 @@ import {
  */
 @Component({
   selector: 'app-rubric-creator',
-  standalone: true,
-  imports: [CommonModule, RouterLink, ReactiveFormsModule],
+  imports: [RouterLink, ReactiveFormsModule],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -346,8 +345,6 @@ export class RubricCreatorComponent {
     };
     
     // TODO: Call API to save rubric
-    console.log('Saving rubric:', rubricData);
-    
     // Simulate API call
     setTimeout(() => {
       this.saving.set(false);

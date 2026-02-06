@@ -227,7 +227,6 @@ export class FileUploadService {
         return newMap;
       });
     } catch (error) {
-      console.error('Error deleting file:', error);
       throw error;
     }
   }
@@ -242,7 +241,6 @@ export class FileUploadService {
       
       return this._uploadedFiles();
     } catch (error) {
-      console.error('Error fetching files:', error);
       return this._uploadedFiles();
     }
   }

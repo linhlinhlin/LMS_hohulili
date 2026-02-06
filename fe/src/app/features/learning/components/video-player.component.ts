@@ -1,10 +1,10 @@
-import { Component, ElementRef, ViewChild, OnInit, OnDestroy, signal, inject, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, ElementRef, OnInit, OnDestroy, signal, inject, ChangeDetectionStrategy, ViewEncapsulation, viewChild } from '@angular/core';
+
 import { VideoPlayerService, VideoLesson } from '../services/video-player.service';
 
 @Component({
   selector: 'app-video-player',
-  imports: [CommonModule],
+  imports: [],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="bg-black rounded-lg overflow-hidden shadow-lg" [class.fullscreen]="videoPlayerService.isFullscreen()">
@@ -191,7 +191,7 @@ import { VideoPlayerService, VideoLesson } from '../services/video-player.servic
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class VideoPlayerComponent implements OnInit, OnDestroy {
-  @ViewChild('videoElement', { static: true }) videoElement!: ElementRef<HTMLVideoElement>;
+  readonly videoElement = viewChild.required<ElementRef<HTMLVideoElement>>('videoElement');
   
   protected videoPlayerService = inject(VideoPlayerService);
   
@@ -199,7 +199,7 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     // Initialize video element
-    if (this.videoElement) {
+    if (this.videoElement()) {
       this.setupVideoElement();
     }
   }
@@ -211,7 +211,7 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
   }
 
   private setupVideoElement(): void {
-    const video = this.videoElement.nativeElement;
+    const video = this.videoElement().nativeElement;
     
     // Set initial properties
     video.volume = this.videoPlayerService.volume();
@@ -219,12 +219,12 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
   }
 
   onVideoLoaded(): void {
-    const video = this.videoElement.nativeElement;
+    const video = this.videoElement().nativeElement;
     this.videoPlayerService.updateDuration(video.duration);
   }
 
   onTimeUpdate(): void {
-    const video = this.videoElement.nativeElement;
+    const video = this.videoElement().nativeElement;
     this.videoPlayerService.updateCurrentTime(video.currentTime);
   }
 
@@ -242,7 +242,7 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
   }
 
   togglePlayPause(): void {
-    const video = this.videoElement.nativeElement;
+    const video = this.videoElement().nativeElement;
     
     if (video.paused) {
       video.play();
@@ -252,7 +252,7 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
   }
 
   seekTo(event: MouseEvent): void {
-    const video = this.videoElement.nativeElement;
+    const video = this.videoElement().nativeElement;
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
     const clickX = event.clientX - rect.left;
     const percentage = clickX / rect.width;
@@ -264,38 +264,38 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
 
   seekForward(): void {
     this.videoPlayerService.seekForward();
-    this.videoElement.nativeElement.currentTime = this.videoPlayerService.currentTime();
+    this.videoElement().nativeElement.currentTime = this.videoPlayerService.currentTime();
   }
 
   seekBackward(): void {
     this.videoPlayerService.seekBackward();
-    this.videoElement.nativeElement.currentTime = this.videoPlayerService.currentTime();
+    this.videoElement().nativeElement.currentTime = this.videoPlayerService.currentTime();
   }
 
   onVolumeChange(event: Event): void {
     const target = event.target as HTMLInputElement;
     const volume = parseFloat(target.value);
     this.videoPlayerService.setVolume(volume);
-    this.videoElement.nativeElement.volume = volume;
+    this.videoElement().nativeElement.volume = volume;
   }
 
   toggleMute(): void {
     this.videoPlayerService.toggleMute();
-    this.videoElement.nativeElement.muted = this.videoPlayerService.isMuted();
+    this.videoElement().nativeElement.muted = this.videoPlayerService.isMuted();
   }
 
   onPlaybackRateChange(event: Event): void {
     const target = event.target as HTMLSelectElement;
     const rate = parseFloat(target.value);
     this.videoPlayerService.setPlaybackRate(rate);
-    this.videoElement.nativeElement.playbackRate = rate;
+    this.videoElement().nativeElement.playbackRate = rate;
   }
 
   toggleFullscreen(): void {
     this.videoPlayerService.toggleFullscreen();
     
     if (this.videoPlayerService.isFullscreen()) {
-      this.videoElement.nativeElement.requestFullscreen?.();
+      this.videoElement().nativeElement.requestFullscreen?.();
     } else {
       document.exitFullscreen?.();
     }

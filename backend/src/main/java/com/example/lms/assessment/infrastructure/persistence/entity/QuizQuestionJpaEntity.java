@@ -2,7 +2,10 @@ package com.example.lms.assessment.infrastructure.persistence.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.Instant;
 import java.util.UUID;
 
 /**
@@ -44,6 +47,14 @@ public class QuizQuestionJpaEntity {
     @Column
     private Integer points = 1;
 
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private Instant createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private Instant updatedAt;
+
     // Getters/Setters
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
@@ -55,6 +66,6 @@ public class QuizQuestionJpaEntity {
     public void setDisplayOrder(Integer displayOrder) { this.displayOrder = displayOrder; }
     public Integer getPoints() { return points; }
     public void setPoints(Integer points) { this.points = points; }
-    
-    // Additional fields like orderIndex are redundant with displayOrder, removing.
+    public Instant getCreatedAt() { return createdAt; }
+    public Instant getUpdatedAt() { return updatedAt; }
 }

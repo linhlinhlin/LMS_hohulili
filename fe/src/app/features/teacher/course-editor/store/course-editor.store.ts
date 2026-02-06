@@ -38,7 +38,6 @@ export class CourseEditorStore {
             const now = Date.now();
             if (cached && (now - cached.timestamp < this.CACHE_DURATION)) {
                 this.courseTree.set(cached.data);
-                console.log('Course loaded from cache (instant)');
                 return; // Don't make API call
             }
         }
@@ -49,12 +48,10 @@ export class CourseEditorStore {
             .pipe(finalize(() => this.isLoading.set(false)))
             .subscribe({
                 next: (data) => {
-                    console.log('Course loaded from API:', data);
                     this.courseTree.set(data);
                     this.courseCache.set(courseId, { data, timestamp: Date.now() });
                 },
                 error: (err: any) => {
-                    console.error('Failed to load course:', err);
                     const message = err?.error?.message || err?.message || 'Không thể tải khóa học';
                     this.error.set(message);
                     this.toast.open(message, 'Đóng', { duration: 5000 });

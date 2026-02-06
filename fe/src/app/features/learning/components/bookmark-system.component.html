@@ -5,8 +5,8 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div class="flex items-center justify-between">
             <div>
-              <h1 class="text-2xl font-bold text-gray-900">Dáº¥u trang</h1>
-              <p class="text-gray-600 mt-1">Quáº£n lĂ½ vĂ  tá»• chá»©c dáº¥u trang há»c táº­p</p>
+              <h1 class="text-2xl font-bold text-gray-900">Dấu trang</h1>
+              <p class="text-gray-600 mt-1">Quản lý và tổ chức dấu trang học tập</p>
             </div>
             <div class="flex items-center space-x-4">
               <button (click)="createNewFolder()"
@@ -14,14 +14,14 @@
                 <svg class="w-5 h-5 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path>
                 </svg>
-                Táº¡o thÆ° má»¥c
+                Tạo thư mục
               </button>
               <button (click)="addBookmark()"
                       class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
                 <svg class="w-5 h-5 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"></path>
                 </svg>
-                ThĂªm dáº¥u trang
+                Thêm dấu trang
               </button>
             </div>
           </div>
@@ -34,17 +34,17 @@
           <div class="lg:col-span-1">
             <!-- Search -->
             <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
-              <h3 class="text-lg font-semibold text-gray-900 mb-4">TĂ¬m kiáº¿m</h3>
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">Tìm kiếm</h3>
               <input type="text" 
                      [(ngModel)]="filters.search"
                      (ngModelChange)="applyFilters()"
-                     placeholder="TĂ¬m kiáº¿m dáº¥u trang..."
+                     placeholder="Tìm kiếm dấu trang..."
                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
 
             <!-- Folders -->
             <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
-              <h3 class="text-lg font-semibold text-gray-900 mb-4">ThÆ° má»¥c</h3>
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">Thư mục</h3>
               <div class="space-y-2">
                 <button (click)="selectFolder('all')"
                         [class]="selectedFolder() === 'all' ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'"
@@ -53,7 +53,7 @@
                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path>
                     </svg>
-                    <span>Táº¥t cáº£ ({{ bookmarks().length }})</span>
+                    <span>Tất cả ({{ bookmarks().length }})</span>
                   </div>
                 </button>
                 @for (folder of folders(); track folder.id) {
@@ -71,7 +71,7 @@
 
             <!-- Type Filter -->
             <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
-              <h3 class="text-lg font-semibold text-gray-900 mb-4">Loáº¡i</h3>
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">Loại</h3>
               <div class="space-y-2">
                 @for (type of availableTypes(); track type) {
                   <label class="flex items-center">
@@ -88,7 +88,7 @@
 
             <!-- Course Filter -->
             <div class="bg-white rounded-lg shadow-sm p-4">
-              <h3 class="text-lg font-semibold text-gray-900 mb-4">KhĂ³a há»c</h3>
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">Khóa học</h3>
               <div class="space-y-2">
                 @for (course of availableCourses(); track course.id) {
                   <label class="flex items-center">
@@ -111,7 +111,7 @@
               <div class="bg-white rounded-lg shadow-sm p-6">
                 <div class="flex items-center justify-between">
                   <div>
-                    <p class="text-sm font-medium text-gray-600 mb-1">Tá»•ng dáº¥u trang</p>
+                    <p class="text-sm font-medium text-gray-600 mb-1">Tổng dấu trang</p>
                     <p class="text-3xl font-bold text-gray-900">{{ bookmarks().length }}</p>
                   </div>
                   <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
@@ -139,7 +139,7 @@
               <div class="bg-white rounded-lg shadow-sm p-6">
                 <div class="flex items-center justify-between">
                   <div>
-                    <p class="text-sm font-medium text-gray-600 mb-1">TĂ i liá»‡u</p>
+                    <p class="text-sm font-medium text-gray-600 mb-1">Tài liệu</p>
                     <p class="text-3xl font-bold text-gray-900">{{ getBookmarksByType('document').length }}</p>
                   </div>
                   <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
@@ -153,7 +153,7 @@
               <div class="bg-white rounded-lg shadow-sm p-6">
                 <div class="flex items-center justify-between">
                   <div>
-                    <p class="text-sm font-medium text-gray-600 mb-1">ThÆ° má»¥c</p>
+                    <p class="text-sm font-medium text-gray-600 mb-1">Thư mục</p>
                     <p class="text-3xl font-bold text-gray-900">{{ folders().length }}</p>
                   </div>
                   <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
@@ -240,7 +240,7 @@
                       <svg class="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"></path>
                       </svg>
-                      Má»Ÿ
+                      Mở
                     </button>
                     <span class="text-xs text-gray-500">{{ formatDate(bookmark.createdAt) }}</span>
                   </div>
@@ -254,12 +254,12 @@
                 <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path>
                 </svg>
-                <h3 class="mt-2 text-sm font-medium text-gray-900">KhĂ´ng cĂ³ dáº¥u trang nĂ o</h3>
-                <p class="mt-1 text-sm text-gray-500">Báº¡n chÆ°a táº¡o dáº¥u trang nĂ o hoáº·c khĂ´ng cĂ³ dáº¥u trang phĂ¹ há»£p vá»›i bá»™ lá»c.</p>
+                <h3 class="mt-2 text-sm font-medium text-gray-900">Không có dấu trang nào</h3>
+                <p class="mt-1 text-sm text-gray-500">Bạn chưa tạo dấu trang nào hoặc không có dấu trang phù hợp với bộ lọc.</p>
                 <div class="mt-6">
                   <button (click)="addBookmark()"
                           class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
-                    ThĂªm dáº¥u trang Ä‘áº§u tiĂªn
+                    Thêm dấu trang đầu tiên
                   </button>
                 </div>
               </div>

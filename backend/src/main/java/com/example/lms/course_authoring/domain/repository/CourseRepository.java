@@ -78,4 +78,44 @@ public interface CourseRepository {
      * Count courses by status.
      */
     long countByStatus(Course.CourseStatus status);
+
+    /**
+     * Find all courses with pagination.
+     */
+    Page<Course> findAll(Pageable pageable);
+
+    /**
+     * Find courses by status with pagination.
+     */
+    Page<Course> findByStatus(Course.CourseStatus status, Pageable pageable);
+
+    /**
+     * Count all courses.
+     */
+    long count();
+
+    /**
+     * Check if course exists by ID.
+     */
+    boolean existsById(UUID id);
+
+    /**
+     * Check if course with given code exists.
+     */
+    boolean existsByCodeValue(String code);
+
+    /**
+     * Find course containing a specific chapter.
+     */
+    Optional<Course> findByChapterId(UUID chapterId);
+
+    /**
+     * Find course containing a specific lesson.
+     */
+    Optional<Course> findByLessonId(UUID lessonId);
+
+    /**
+     * Find courses by status and title containing search text.
+     */
+    Page<Course> findByStatusAndTitleContaining(Course.CourseStatus status, String search, Pageable pageable);
 }

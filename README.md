@@ -5,7 +5,7 @@
 ![Maritime LMS Banner](assets/banner.jpeg)
 
 [![Angular](https://img.shields.io/badge/Angular-20.3-dd0031?style=flat-square&logo=angular&logoColor=white)](https://angular.io)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.6-6db33f?style=flat-square&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.6-6db33f?style=flat-square&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
 [![Java](https://img.shields.io/badge/Java-21-ed8b00?style=flat-square&logo=openjdk&logoColor=white)](https://openjdk.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169e1?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org)
@@ -26,7 +26,7 @@
 
 ---
 
-## 📊 Project Status (Updated: December 5, 2025)
+## 📊 Project Status (Updated: February 6, 2026)
 
 ### Implementation Progress
 
@@ -101,7 +101,12 @@
 | Input | `chat-message-input.component.ts` | ✅ | Auto-resize textarea |
 | Service | `chat.service.ts` | ✅ | Server-side history sync |
 
-### Backend (Spring Boot 3.5.6)
+### Backend (Spring Boot 3.2.6 + PostgreSQL 16)
+
+**Architecture**: Clean Architecture / DDD (Domain-Driven Design)
+**Stats**: 302 Java files | 114 REST endpoints | 202 tests | 9 modules | 34 database tables
+
+**API Documentation**: [Swagger UI](http://localhost:8088/swagger-ui) - Interactive API docs với 114 endpoints, 17 modules
 
 #### API Controllers (30 total)
 | Controller | Endpoints | Status | Description |
@@ -147,31 +152,37 @@
 
 ```
 LMS_hohulili/
-├── api/                              # Backend (Java Spring Boot)
-│   └── src/main/java/com/example/lms/
-│       ├── controller/               # 30 REST Controllers
-│       ├── service/                  # Business Logic + AI Integration
-│       ├── entity/                   # JPA Entities
-│       ├── repository/               # Data Access
-│       └── dto/                      # Data Transfer Objects
+├── backend/                          # Backend (Spring Boot 3.2.6 + Java 21)
+│   ├── src/main/java/com/example/lms/
+│   │   ├── identity/                 # Auth, JWT (13 endpoints)
+│   │   ├── course_authoring/         # Course CRUD (20 endpoints)
+│   │   ├── course_management/        # Admin approval (16 endpoints)
+│   │   ├── learning_delivery/        # Enrollments, classes (17 endpoints)
+│   │   ├── assessment/               # Assignments, quizzes (26 endpoints)
+│   │   ├── communication/            # Messaging (6 endpoints)
+│   │   ├── ai_assistant/             # AI chatbot (10 endpoints)
+│   │   ├── shared/                   # Value objects, events
+│   │   └── config/                   # Security, CORS, JWT
+│   └── src/main/resources/db/
+│       ├── migration/                # Flyway V26-V30
+│       └── V1__lms_complete_schema.sql  # 1,241-line reference schema
 │
-├── fe/                               # Frontend (Angular 20.3)
+├── fe/                               # Frontend (Angular 20.3 + Signals)
 │   └── src/app/
-│       ├── core/                     # Guards, interceptors, services
-│       ├── shared/                   # 15+ reusable components
-│       └── features/
-│           ├── student/              # 25 components/pages
-│           ├── teacher/              # 85 components/pages
-│           ├── admin/                # 21 components/pages
-│           ├── ai-chat/              # 41 files (DDD architecture)
-│           ├── assignments/          # 29 components
-│           ├── learning/             # 59 components (quiz, viewer)
-│           └── courses/              # 33 components
+│       ├── features/
+│       │   ├── student/              # 12 components
+│       │   ├── teacher/              # 74 components
+│       │   ├── admin/                # 22 components
+│       │   ├── ai-chat/              # 15 components (streaming SSE)
+│       │   ├── assignments/          # 12 components (DDD)
+│       │   ├── learning/             # 20+ components (quiz, video)
+│       │   └── courses/              # 10+ components
+│       ├── core/services/            # Auth, guards (14 services)
+│       ├── api/client/               # 17 API clients
+│       └── shared/components/        # 52 reusable components
 │
-├── Documents/                        # Documentation
-│   ├── ai/                           # AI Integration Specs
-│   └── chuyengia/                    # Expert Reviews
-│
+├── ONBOARDING.md                     # 🆕 Team onboarding guide (15-min setup)
+├── CLAUDE.md                         # AI agent guide
 └── README.md                         # This file
 ```
 
@@ -195,10 +206,13 @@ LMS_hohulili/
 git clone <repository-url>
 cd LMS_hohulili
 
-# 2. Start Backend
-cd api
-docker compose up -d          # Start PostgreSQL
-mvn spring-boot:run           # Start Spring Boot
+# 2. Start Backend (Docker - Recommended)
+cd backend
+docker compose up -d          # Start PostgreSQL + API
+
+# Wait ~60s for Spring Boot startup, then verify:
+curl http://localhost:8088/actuator/health
+# Expected: {"status":"UP"}
 
 # 3. Start Frontend (new terminal)
 cd fe
@@ -207,9 +221,12 @@ npm start
 
 # 4. Access Application
 # Frontend: http://localhost:4200
-# Backend API: http://localhost:8088/api/v1
+# Backend API: http://localhost:8088/api/v3
 # Swagger UI: http://localhost:8088/swagger-ui
+# Health Check: http://localhost:8088/actuator/health
 ```
+
+**⚡ New Team Member?** Read [`ONBOARDING.md`](ONBOARDING.md) for detailed 15-minute setup guide.
 
 ### Default Accounts
 
@@ -249,15 +266,16 @@ npm start
 
 ---
 
-## 🔄 Recent Changes (December 2025)
+## 🔄 Recent Changes (February 2026)
 
-| Date | Change | Files Modified |
-|------|--------|----------------|
-| Dec 5 | Server-side chat history sync | `chat.service.ts`, `chat-api.client.ts` |
-| Dec 5 | AI Chatbot UI/UX redesign (Notion AI style) | `chat-main-area.component.ts`, `chat-sidebar.component.ts` |
-| Dec 4 | Admin AI Knowledge management | `ai-knowledge/*` components |
-| Dec 4 | Session isolation security fix | `session-management.service.ts` |
-| Dec 3 | Quiz system completion | `quiz/*` components |
+| Date | Change | Details |
+|------|--------|---------|
+| **Feb 6** | **V1 Comprehensive Schema** | `V1__lms_complete_schema.sql` - 1,241 lines, 34 tables, 94 indexes (BRIN, GIN, partial) |
+| **Feb 6** | **Health Check Fix** | Fixed Docker HEALTHCHECK 403 - `/actuator/health` now whitelisted |
+| **Feb 6** | **Documentation Update** | Created `ONBOARDING.md`, updated backend/README, CLAUDE.md |
+| Feb 6 | Backend cleanup | 0 dead files, 0 console.log, 202 tests passing |
+| Feb 6 | Clean Architecture | 0 infrastructure imports in use cases |
+| Feb 6 | Frontend modernization | 257/257 components OnPush, 0 legacy patterns |
 
 ---
 
@@ -270,11 +288,13 @@ npm start
 - **Chart.js** - Data visualization
 
 ### Backend
-- **Spring Boot 3.5.6** - Application framework
-- **Spring Security 6.x** - JWT authentication
-- **Spring Data JPA** - Data access
-- **PostgreSQL 16** - Primary database
-- **Flyway** - Database migrations
+- **Spring Boot 3.2.6** - Application framework (Java 21)
+- **Spring Security 6.x** - JWT authentication (JJWT 0.12.3)
+- **Spring Data JPA** - Data access with Clean Architecture
+- **PostgreSQL 16** - 34 tables, 94 indexes (BRIN, GIN, partial)
+- **Flyway 10.x** - Database migrations (V26-V30 + V1 reference)
+- **Caffeine Cache** - In-memory caching
+- **Cloudflare R2** - File storage (S3-compatible)
 
 ### AI Service
 - **FastAPI** - Python web framework

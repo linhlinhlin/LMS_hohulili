@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import org.hibernate.annotations.BatchSize;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -82,6 +83,7 @@ public class CourseJpaEntity {
     @ElementCollection
     @CollectionTable(name = "course_tags", joinColumns = @JoinColumn(name = "course_id"))
     @Column(name = "tag_name")
+    @BatchSize(size = 50) // SOTA: Prevent N+1 when loading multiple courses
     private Set<String> tags = new HashSet<>();
 
     @Column(columnDefinition = "TEXT")
@@ -198,7 +200,9 @@ public class CourseJpaEntity {
         DRAFT("Bản nháp"),
         PENDING("Chờ duyệt"),
         APPROVED("Đã duyệt"),
-        REJECTED("Bị từ chối");
+        REJECTED("Bị từ chối"),
+        PUBLISHED("Đã xuất bản"),
+        ARCHIVED("Lưu trữ");
 
         private final String displayName;
 

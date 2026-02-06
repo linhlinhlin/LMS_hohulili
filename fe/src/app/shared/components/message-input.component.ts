@@ -19,7 +19,7 @@ import {
   ElementRef,
   ChangeDetectionStrategy,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 
 export interface AssignmentOption {
@@ -35,8 +35,7 @@ export interface MessageSendEvent {
 
 @Component({
   selector: 'app-message-input',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="border-t bg-white p-4">

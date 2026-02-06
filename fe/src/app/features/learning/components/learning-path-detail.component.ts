@@ -1,13 +1,12 @@
 import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { LearningPathService } from '../../../core/services/learning-path.service';
 import { LearningPath, LearningPathCourse, LearningPathLesson } from '../../../shared/types/learning-path.types';
 
 @Component({
   selector: 'app-learning-path-detail',
-  standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [RouterModule],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `

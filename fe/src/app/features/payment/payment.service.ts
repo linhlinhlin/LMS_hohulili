@@ -88,7 +88,6 @@ export class PaymentService {
                 throw new Error(response.message || 'Failed to load payment status');
             }
         } catch (error: any) {
-            console.error('Failed to load payment status:', error);
             // Return default unpaid state
             return {
                 courseId,
@@ -196,7 +195,6 @@ export class PaymentService {
             const response = await firstValueFrom(this.paymentApi.getMyPayments());
             return response.success ? response.data : [];
         } catch (error) {
-            console.error('Failed to load payment history:', error);
             return [];
         }
     }

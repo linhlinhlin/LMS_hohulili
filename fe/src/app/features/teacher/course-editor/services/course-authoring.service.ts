@@ -291,7 +291,8 @@ export class CourseAuthoringService {
     }
 
     publishCourse(courseId: string): Observable<any> {
-        return this.http.post(`${this.baseUrl}/courses/${courseId}/submit-for-approval`, {});
+        // BE: TeacherCoursesControllerV3 POST /api/v3/teacher/courses/{courseId}/submit-for-approval
+        return this.http.post(`${this.baseUrl}/teacher/courses/${courseId}/submit-for-approval`, {});
     }
 
     // --- Reordering ---
@@ -335,7 +336,8 @@ export class CourseAuthoringService {
     }
 
     updateLesson(lessonId: string, data: Partial<LessonDraftDTO>): Observable<void> {
-        return this.http.patch<void>(`${this.baseUrl}/lessons/${lessonId}`, data);
+        // BE: CourseAuthoringControllerV3 PUT /api/v3/courses/lessons/{lessonId}
+        return this.http.put<void>(`${this.baseUrl}/courses/lessons/${lessonId}`, data);
     }
 
     // --- Uploads ---

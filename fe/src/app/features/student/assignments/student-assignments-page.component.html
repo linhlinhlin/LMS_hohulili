@@ -2,9 +2,9 @@
     <div class="min-h-screen bg-white p-6">
       <!-- Header -->
       <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-900">BĂ i táº­p cá»§a tĂ´i</h1>
+        <h1 class="text-3xl font-bold text-gray-900">Bài tập của tôi</h1>
         <p class="text-gray-600 mt-2">
-          Quáº£n lĂ½ vĂ  theo dĂµi cĂ¡c bĂ i táº­p Ä‘Æ°á»£c giao
+          Quản lý và theo dõi các bài tập được giao
         </p>
       </div>
 
@@ -12,7 +12,7 @@
       @if (loading()) {
         <div class="flex items-center justify-center py-12">
           <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#3b82f6]"></div>
-          <span class="ml-3 text-gray-600">Äang táº£i bĂ i táº­p...</span>
+          <span class="ml-3 text-gray-600">Đang tải bài tập...</span>
         </div>
       }
 
@@ -25,7 +25,7 @@
             </svg>
             <span class="text-red-700">{{ error() }}</span>
             <button (click)="loadAssignments()" class="ml-auto px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200">
-              Thá»­ láº¡i
+              Thử lại
             </button>
           </div>
         </div>
@@ -37,7 +37,7 @@
           <div class="bg-[#3b82f6] rounded-lg shadow p-4">
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-sm text-white/80">Tá»•ng bĂ i táº­p</p>
+                <p class="text-sm text-white/80">Tổng bài tập</p>
                 <p class="text-2xl font-bold text-white">{{ stats().total }}</p>
               </div>
               <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
@@ -51,7 +51,7 @@
           <div class="bg-white rounded-lg shadow p-4 border border-[#3b82f6]">
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-sm text-gray-500">Cáº§n lĂ m</p>
+                <p class="text-sm text-gray-500">Cần làm</p>
                 <p class="text-2xl font-bold text-[#3b82f6]">{{ stats().toDo }}</p>
               </div>
               <div class="w-10 h-10 bg-[#3b82f6]/10 rounded-full flex items-center justify-center">
@@ -65,7 +65,7 @@
           <div class="bg-white rounded-lg shadow p-4 border border-[#60a5fa]">
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-sm text-gray-500">HoĂ n thĂ nh</p>
+                <p class="text-sm text-gray-500">Hoàn thành</p>
                 <p class="text-2xl font-bold text-[#60a5fa]">{{ stats().completed }}</p>
               </div>
               <div class="w-10 h-10 bg-[#60a5fa]/10 rounded-full flex items-center justify-center">
@@ -79,7 +79,7 @@
           <div class="bg-white rounded-lg shadow p-4" [class.border]="stats().overdue > 0" [class.border-[#93c5fd]]="stats().overdue > 0">
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-sm text-gray-500">QuĂ¡ háº¡n</p>
+                <p class="text-sm text-gray-500">Quá hạn</p>
                 <p class="text-2xl font-bold" [class.text-[#93c5fd]]="stats().overdue > 0" [class.text-gray-400]="stats().overdue === 0">
                   {{ stats().overdue }}
                 </p>
@@ -99,13 +99,13 @@
         <div class="bg-white rounded-lg shadow p-4 mb-6">
           <div class="flex flex-wrap gap-4 items-center">
             <div class="flex-1 min-w-[200px]">
-              <label class="block text-sm text-gray-600 mb-1">KhĂ³a há»c</label>
+              <label class="block text-sm text-gray-600 mb-1">Khóa học</label>
               <select
                 [(ngModel)]="selectedCourse"
                 (ngModelChange)="onFilterChange()"
                 class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6] transition-all"
               >
-                <option value="">Táº¥t cáº£ khĂ³a há»c</option>
+                <option value="">Tất cả khóa học</option>
                 @for (course of courses(); track course.id) {
                   <option [value]="course.id">{{ course.title }}</option>
                 }
@@ -113,28 +113,28 @@
             </div>
 
             <div class="flex-1 min-w-[200px]">
-              <label class="block text-sm text-gray-600 mb-1">Tráº¡ng thĂ¡i</label>
+              <label class="block text-sm text-gray-600 mb-1">Trạng thái</label>
               <select
                 [(ngModel)]="selectedStatus"
                 (ngModelChange)="onFilterChange()"
                 class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6] transition-all"
               >
-                <option value="">Táº¥t cáº£ tráº¡ng thĂ¡i</option>
-                <option value="NOT_STARTED">ChÆ°a báº¯t Ä‘áº§u</option>
-                <option value="IN_PROGRESS">Äang lĂ m</option>
-                <option value="SUBMITTED">ÄĂ£ ná»™p</option>
-                <option value="GRADED">ÄĂ£ cháº¥m</option>
-                <option value="OVERDUE">QuĂ¡ háº¡n</option>
+                <option value="">Tất cả trạng thái</option>
+                <option value="NOT_STARTED">Chưa bắt đầu</option>
+                <option value="IN_PROGRESS">Đang làm</option>
+                <option value="SUBMITTED">Đã nộp</option>
+                <option value="GRADED">Đã chấm</option>
+                <option value="OVERDUE">Quá hạn</option>
               </select>
             </div>
 
             <div class="flex-1 min-w-[200px]">
-              <label class="block text-sm text-gray-600 mb-1">TĂ¬m kiáº¿m</label>
+              <label class="block text-sm text-gray-600 mb-1">Tìm kiếm</label>
               <input
                 type="text"
                 [(ngModel)]="searchQuery"
                 (ngModelChange)="onFilterChange()"
-                placeholder="TĂ¬m theo tĂªn bĂ i táº­p..."
+                placeholder="Tìm theo tên bài tập..."
                 class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6] transition-all"
               />
             </div>
@@ -144,7 +144,7 @@
                 (click)="resetFilters()"
                 class="px-4 py-2 text-[#3b82f6] hover:bg-[#3b82f6]/10 rounded-lg transition-all"
               >
-                XĂ³a bá»™ lá»c
+                Xóa bộ lọc
               </button>
             </div>
           </div>
@@ -153,7 +153,7 @@
         <!-- View Toggle -->
         <div class="flex justify-between items-center mb-4">
           <span class="text-sm text-gray-600">
-            Hiá»ƒn thá»‹ {{ filteredAssignments().length }} bĂ i táº­p
+            Hiển thị {{ filteredAssignments().length }} bài tập
           </span>
           <div class="bg-white rounded-lg shadow p-1 flex">
             <button
@@ -172,7 +172,7 @@
               [class.text-gray-600]="viewMode() !== 'list'"
               class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
             >
-              Danh sĂ¡ch
+              Danh sách
             </button>
           </div>
         </div>
@@ -184,14 +184,14 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
             </svg>
             @if (hasActiveFilters()) {
-              <h3 class="text-lg font-medium text-gray-900 mb-2">KhĂ´ng tĂ¬m tháº¥y bĂ i táº­p</h3>
-              <p class="text-gray-600 mb-4">KhĂ´ng cĂ³ bĂ i táº­p nĂ o phĂ¹ há»£p vá»›i bá»™ lá»c hiá»‡n táº¡i.</p>
+              <h3 class="text-lg font-medium text-gray-900 mb-2">Không tìm thấy bài tập</h3>
+              <p class="text-gray-600 mb-4">Không có bài tập nào phù hợp với bộ lọc hiện tại.</p>
               <button (click)="resetFilters()" class="px-4 py-2 bg-[#3b82f6] text-white rounded-lg hover:bg-[#2563eb]">
-                XĂ³a bá»™ lá»c
+                Xóa bộ lọc
               </button>
             } @else {
-              <h3 class="text-lg font-medium text-gray-900 mb-2">ChÆ°a cĂ³ bĂ i táº­p nĂ o</h3>
-              <p class="text-gray-600">Báº¡n chÆ°a Ä‘Æ°á»£c giao bĂ i táº­p nĂ o. HĂ£y liĂªn há»‡ giáº£ng viĂªn Ä‘á»ƒ Ä‘Æ°á»£c há»— trá»£.</p>
+              <h3 class="text-lg font-medium text-gray-900 mb-2">Chưa có bài tập nào</h3>
+              <p class="text-gray-600">Bạn chưa được giao bài tập nào. Hãy liên hệ giảng viên để được hỗ trợ.</p>
             }
           </div>
         }
@@ -204,7 +204,7 @@
               <div class="flex items-center justify-between mb-4">
                 <h2 class="font-semibold text-gray-700 flex items-center gap-2">
                   <span class="w-3 h-3 bg-[#3b82f6] rounded-full"></span>
-                  Cáº§n lĂ m
+                  Cần làm
                 </h2>
                 <span class="bg-[#3b82f6] text-white px-2 py-1 rounded text-sm">
                   {{ groupedAssignments().toDo.length }}
@@ -216,7 +216,7 @@
                     <div class="flex items-start justify-between mb-2">
                       <h3 class="font-medium text-gray-900 text-sm">{{ assignment.assignmentTitle }}</h3>
                       @if (assignment.isIndividual) {
-                        <span class="px-2 py-0.5 text-xs bg-[#3b82f6]/10 text-[#3b82f6] rounded">Giao riĂªng</span>
+                        <span class="px-2 py-0.5 text-xs bg-[#3b82f6]/10 text-[#3b82f6] rounded">Giao riêng</span>
                       }
                     </div>
                     <p class="text-xs text-gray-500 mb-2">{{ assignment.courseTitle }}</p>
@@ -226,13 +226,13 @@
                       </span>
                       <a [routerLink]="['/student/assignments', assignment.assignmentId, 'work']"
                          class="text-xs text-[#3b82f6] hover:text-[#2563eb]">
-                        LĂ m bĂ i â†’
+                        Làm bài â†’
                       </a>
                     </div>
                   </div>
                 } @empty {
                   <div class="text-center py-8 text-gray-500">
-                    <p class="text-sm">KhĂ´ng cĂ³ bĂ i táº­p cáº§n lĂ m</p>
+                    <p class="text-sm">Không có bài tập cần làm</p>
                   </div>
                 }
               </div>
@@ -243,7 +243,7 @@
               <div class="flex items-center justify-between mb-4">
                 <h2 class="font-semibold text-gray-700 flex items-center gap-2">
                   <span class="w-3 h-3 bg-[#60a5fa] rounded-full"></span>
-                  Äang lĂ m
+                  Đang làm
                 </h2>
                 <span class="bg-[#60a5fa] text-white px-2 py-1 rounded text-sm">
                   {{ groupedAssignments().inProgress.length }}
@@ -262,13 +262,13 @@
                       </span>
                       <a [routerLink]="['/student/assignments', assignment.assignmentId, 'work']"
                          class="text-xs text-[#3b82f6] hover:text-[#2563eb]">
-                        Tiáº¿p tá»¥c â†’
+                        Tiếp tục â†’
                       </a>
                     </div>
                   </div>
                 } @empty {
                   <div class="text-center py-8 text-gray-500">
-                    <p class="text-sm">KhĂ´ng cĂ³ bĂ i táº­p Ä‘ang lĂ m</p>
+                    <p class="text-sm">Không có bài tập đang làm</p>
                   </div>
                 }
               </div>
@@ -279,7 +279,7 @@
               <div class="flex items-center justify-between mb-4">
                 <h2 class="font-semibold text-gray-700 flex items-center gap-2">
                   <span class="w-3 h-3 bg-[#93c5fd] rounded-full"></span>
-                  HoĂ n thĂ nh
+                  Hoàn thành
                 </h2>
                 <span class="bg-[#93c5fd] text-white px-2 py-1 rounded text-sm">
                   {{ groupedAssignments().completed.length }}
@@ -298,10 +298,10 @@
                     <div class="flex items-center justify-between">
                       @if (assignment.grade !== undefined) {
                         <span class="text-xs font-medium text-[#60a5fa]">
-                          Äiá»ƒm: {{ assignment.grade }}/{{ assignment.maxScore }}
+                          Điểm: {{ assignment.grade }}/{{ assignment.maxScore }}
                         </span>
                       } @else {
-                        <span class="text-xs text-gray-500">Chá» cháº¥m Ä‘iá»ƒm</span>
+                        <span class="text-xs text-gray-500">Chờ chấm điểm</span>
                       }
                       <a [routerLink]="['/student/assignments', assignment.assignmentId, 'work']"
                          class="text-xs text-[#3b82f6] hover:text-[#2563eb]">
@@ -311,7 +311,7 @@
                   </div>
                 } @empty {
                   <div class="text-center py-8 text-gray-500">
-                    <p class="text-sm">ChÆ°a cĂ³ bĂ i táº­p hoĂ n thĂ nh</p>
+                    <p class="text-sm">Chưa có bài tập hoàn thành</p>
                   </div>
                 }
               </div>
@@ -325,11 +325,11 @@
             <table class="min-w-full divide-y divide-gray-200">
               <thead class="bg-gray-50">
                 <tr>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">BĂ i táº­p</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">KhĂ³a há»c</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Háº¡n ná»™p</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tráº¡ng thĂ¡i</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Äiá»ƒm</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bài tập</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Khóa học</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hạn nộp</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Điểm</th>
                   <th class="px-6 py-3"></th>
                 </tr>
               </thead>
@@ -340,7 +340,7 @@
                       <div class="flex items-center gap-2">
                         <span class="font-medium text-gray-900">{{ assignment.assignmentTitle }}</span>
                         @if (assignment.isIndividual) {
-                          <span class="px-2 py-0.5 text-xs bg-[#3b82f6]/10 text-[#3b82f6] rounded">Giao riĂªng</span>
+                          <span class="px-2 py-0.5 text-xs bg-[#3b82f6]/10 text-[#3b82f6] rounded">Giao riêng</span>
                         }
                       </div>
                     </td>

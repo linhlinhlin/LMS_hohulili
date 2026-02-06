@@ -1,8 +1,8 @@
 package com.example.lms.learning_delivery.application.usecase;
 
-import com.example.lms.learning_delivery.infrastructure.persistence.entity.LearningClassJpaEntity;
-import com.example.lms.learning_delivery.infrastructure.persistence.mapper.LearningClassEntityMapper;
-import com.example.lms.course_authoring.infrastructure.persistence.repository.CourseJpaRepositoryV2;
+import com.example.lms.learning_delivery.domain.model.LearningClass;
+import com.example.lms.learning_delivery.domain.repository.LearningClassRepository;
+import com.example.lms.shared.exception.BusinessRuleException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,7 +20,7 @@ import java.util.UUID;
 @Slf4j
 public class CreateLearningClassUseCaseV3 {
 
-    private final LearningClassEntityMapper mapper;
+    private final LearningClassRepository classRepository;
 
     public record CreateClassCommand(
         UUID courseId,
@@ -29,26 +29,51 @@ public class CreateLearningClassUseCaseV3 {
         String name,
         Instant startDate,
         Instant endDate,
-        Integer maxStudents
+        Integer maxStudents,
+        String scheduleType,
+        String semester
     ) {}
 
     @Transactional
     public UUID execute(CreateClassCommand command) {
         log.info("Creating learning class {} for course {} (V3)", command.name(), command.courseId());
 
-        LearningClassJpaEntity entity = mapper.toEntity(
-            command.courseId(),
-            command.teacherId(),
-            command.code(),
-            command.name(),
-            command.startDate(),
-            command.endDate(),
-            command.maxStudents()
-        );
+        // Validate code uniqueness if provided
+        if (command.code() != null && classRepository.existsByCode(command.code())) {
+            throw new BusinessRuleException("CLASS_CODE_EXISTS",
+                "Mã lớp học đã tồn tại: " + command.code());
+        }
 
-        // Note: Need to inject and use LearningClassJpaRepository
-        log.info("Learning class {} created (V3)", command.name());
-        
-        return UUID.randomUUID(); // Placeholder
+        // Determine schedule type
+        LearningClass.ScheduleType scheduleType = LearningClass.ScheduleType.CUSTOM;
+        if (command.scheduleType() != null) {
+            try {
+                scheduleType = LearningClass.ScheduleType.valueOf(command.scheduleType());
+            } catch (IllegalArgumentException e) {
+                // Default to CUSTOM
+            }
+        }
+
+        // Create domain model
+        LearningClass learningClass = LearningClass.builder()
+                .id(UUID.randomUUID())
+                .courseId(command.courseId())
+                .teacherId(command.teacherId())
+                .code(command.code())
+                .name(command.name())
+                .status(LearningClass.ClassStatus.OPEN)
+                .maxStudents(command.maxStudents() != null ? command.maxStudents() : 50)
+                .startDate(command.startDate())
+                .endDate(command.endDate())
+                .scheduleType(scheduleType)
+                .semester(command.semester())
+                .createdAt(Instant.now())
+                .build();
+
+        LearningClass saved = classRepository.save(learningClass);
+
+        log.info("Learning class {} created successfully with ID {}", command.name(), saved.getId());
+
+        return saved.getId();
     }
 }

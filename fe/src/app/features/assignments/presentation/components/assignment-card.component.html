@@ -47,7 +47,7 @@
             @if (assignment().progressPercentage > 0) {
               <div class="mb-4">
                 <div class="flex items-center justify-between text-sm text-gray-600 mb-1">
-                  <span>Tiáº¿n Ä‘á»™</span>
+                  <span>Tiến độ</span>
                   <span>{{ assignment().progressPercentage }}%</span>
                 </div>
                 <div class="w-full bg-gray-200 rounded-full h-2">
@@ -106,20 +106,20 @@
               <div class="flex items-center space-x-2">
                 <button (click)="onViewDetails($event)"
                         class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                  Xem chi tiáº¿t
+                  Xem chi tiết
                 </button>
 
                 @if (assignment().progressPercentage === 0) {
                   <span class="text-gray-400">â€¢</span>
                   <button (click)="onStartWorking($event)"
                           class="text-green-600 hover:text-green-800 text-sm font-medium">
-                    Báº¯t Ä‘áº§u lĂ m
+                    Bắt đầu làm
                   </button>
                 } @else if (assignment().progressPercentage < 100) {
                   <span class="text-gray-400">â€¢</span>
                   <button (click)="onContinueWorking($event)"
                           class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                    Tiáº¿p tá»¥c
+                    Tiếp tục
                   </button>
                 }
               </div>
@@ -183,7 +183,7 @@
           @if (assignment().progressPercentage > 0) {
             <div class="mb-4">
               <div class="flex items-center justify-between text-sm text-gray-600 mb-2">
-                <span>Tiáº¿n Ä‘á»™</span>
+                <span>Tiến độ</span>
                 <span>{{ assignment().progressPercentage }}%</span>
               </div>
               <div class="w-full bg-gray-200 rounded-full h-2">
@@ -228,24 +228,24 @@
           <div class="flex items-center justify-between pt-4 border-t border-gray-100">
             <button (click)="onViewDetails($event)"
                     class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-              Xem chi tiáº¿t
+              Xem chi tiết
             </button>
 
             <div class="flex items-center space-x-1">
               @if (assignment().progressPercentage === 0) {
                 <button (click)="onStartWorking($event)"
                         class="text-green-600 hover:text-green-800 text-sm font-medium">
-                  Báº¯t Ä‘áº§u
+                  Bắt đầu
                 </button>
               } @else if (assignment().progressPercentage < 100) {
                 <button (click)="onContinueWorking($event)"
                         class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                  Tiáº¿p tá»¥c
+                  Tiếp tục
                 </button>
               } @else {
                 <button (click)="onViewSubmission($event)"
                         class="text-gray-600 hover:text-gray-800 text-sm font-medium">
-                  Xem ná»™p
+                  Xem nộp
                 </button>
               }
 

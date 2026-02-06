@@ -1,5 +1,5 @@
 ﻿import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
@@ -42,7 +42,7 @@ interface BookmarkFilter {
 
 @Component({
   selector: 'app-bookmark-system',
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [FormsModule, RouterModule],
   encapsulation: ViewEncapsulation.None,
   templateUrl: './bookmark-system.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -55,16 +55,16 @@ export class BookmarkSystemComponent implements OnInit {
   bookmarks = signal<Bookmark[]>([
     {
       id: 'bookmark-1',
-      title: 'Cáº¥u trĂºc tĂ u container - Video bĂ i giáº£ng',
-      description: 'Video giáº£i thĂ­ch chi tiáº¿t vá» cáº¥u trĂºc tĂ u container vĂ  cĂ¡c thĂ nh pháº§n chĂ­nh',
+      title: 'Cấu trúc tàu container - Video bài giảng',
+      description: 'Video giải thích chi tiết về cấu trúc tàu container và các thành phần chính',
       url: '/learn/course/course-1/lesson/lesson-1',
       courseId: 'course-1',
-      courseName: 'Ká»¹ thuáº­t TĂ u biá»ƒn CÆ¡ báº£n',
+      courseName: 'Kỹ thuật Tàu biển Cơ bản',
       lessonId: 'lesson-1',
-      lessonTitle: 'Cáº¥u trĂºc tĂ u biá»ƒn',
+      lessonTitle: 'Cấu trúc tàu biển',
       timestamp: 1250, // 20:50
       type: 'video',
-      tags: ['cáº¥u trĂºc', 'container', 'video'],
+      tags: ['cấu trúc', 'container', 'video'],
       isPublic: false,
       createdAt: new Date('2024-09-10'),
       updatedAt: new Date('2024-09-15'),
@@ -72,30 +72,30 @@ export class BookmarkSystemComponent implements OnInit {
     },
     {
       id: 'bookmark-2',
-      title: 'Quy Ä‘á»‹nh STCW - TĂ i liá»‡u PDF',
-      description: 'TĂ i liá»‡u chi tiáº¿t vá» cĂ¡c quy Ä‘á»‹nh STCW vĂ  yĂªu cáº§u Ä‘Ă o táº¡o thuyá»n viĂªn',
+      title: 'Quy định STCW - Tài liệu PDF',
+      description: 'Tài liệu chi tiết về các quy định STCW và yêu cầu đào tạo thuyền viên',
       url: '/documents/stcw-regulations.pdf',
       courseId: 'course-2',
-      courseName: 'An toĂ n HĂ ng háº£i',
+      courseName: 'An toàn Hàng hải',
       lessonId: 'lesson-2',
-      lessonTitle: 'Quy Ä‘á»‹nh quá»‘c táº¿',
+      lessonTitle: 'Quy định quốc tế',
       type: 'document',
-      tags: ['STCW', 'quy Ä‘á»‹nh', 'PDF'],
+      tags: ['STCW', 'quy định', 'PDF'],
       isPublic: true,
       createdAt: new Date('2024-09-08'),
       updatedAt: new Date('2024-09-12')
     },
     {
       id: 'bookmark-3',
-      title: 'Quiz An toĂ n HĂ ng háº£i',
-      description: 'BĂ i kiá»ƒm tra kiáº¿n thá»©c vá» an toĂ n hĂ ng háº£i vá»›i 20 cĂ¢u há»i',
+      title: 'Quiz An toàn Hàng hải',
+      description: 'Bài kiểm tra kiến thức về an toàn hàng hải với 20 câu hỏi',
       url: '/learn/quiz/quiz-1',
       courseId: 'course-2',
-      courseName: 'An toĂ n HĂ ng háº£i',
+      courseName: 'An toàn Hàng hải',
       lessonId: 'lesson-3',
-      lessonTitle: 'Kiá»ƒm tra kiáº¿n thá»©c',
+      lessonTitle: 'Kiểm tra kiến thức',
       type: 'quiz',
-      tags: ['quiz', 'kiá»ƒm tra', 'an toĂ n'],
+      tags: ['quiz', 'kiểm tra', 'an toàn'],
       isPublic: false,
       createdAt: new Date('2024-09-05'),
       updatedAt: new Date('2024-09-10')
@@ -103,12 +103,12 @@ export class BookmarkSystemComponent implements OnInit {
     {
       id: 'bookmark-4',
       title: 'IMO Guidelines - External Link',
-      description: 'HÆ°á»›ng dáº«n cá»§a Tá»• chá»©c HĂ ng háº£i Quá»‘c táº¿ vá» an toĂ n hĂ ng háº£i',
+      description: 'Hướng dẫn của Tổ chức Hàng hải Quốc tế về an toàn hàng hải',
       url: 'https://www.imo.org/en/OurWork/Safety/Pages/Default.aspx',
       courseId: 'course-2',
-      courseName: 'An toĂ n HĂ ng háº£i',
+      courseName: 'An toàn Hàng hải',
       type: 'external',
-      tags: ['IMO', 'hÆ°á»›ng dáº«n', 'quá»‘c táº¿'],
+      tags: ['IMO', 'hướng dẫn', 'quốc tế'],
       isPublic: true,
       createdAt: new Date('2024-09-03'),
       updatedAt: new Date('2024-09-08')
@@ -118,16 +118,16 @@ export class BookmarkSystemComponent implements OnInit {
   folders = signal<BookmarkFolder[]>([
     {
       id: 'folder-1',
-      name: 'An toĂ n hĂ ng háº£i',
-      description: 'CĂ¡c dáº¥u trang liĂªn quan Ä‘áº¿n an toĂ n hĂ ng háº£i',
+      name: 'An toàn hàng hải',
+      description: 'Các dấu trang liên quan đến an toàn hàng hải',
       bookmarks: ['bookmark-2', 'bookmark-3', 'bookmark-4'],
       color: '#3B82F6',
       createdAt: new Date('2024-09-01')
     },
     {
       id: 'folder-2',
-      name: 'Ká»¹ thuáº­t tĂ u',
-      description: 'CĂ¡c dáº¥u trang vá» ká»¹ thuáº­t tĂ u biá»ƒn',
+      name: 'Kỹ thuật tàu',
+      description: 'Các dấu trang về kỹ thuật tàu biển',
       bookmarks: ['bookmark-1'],
       color: '#10B981',
       createdAt: new Date('2024-09-02')
@@ -237,12 +237,10 @@ export class BookmarkSystemComponent implements OnInit {
 
   private loadBookmarks(): void {
     // In real implementation, load from API
-    console.log('Loading bookmarks...');
   }
 
   applyFilters(): void {
     // Filters are applied automatically through computed signal
-    console.log('Applying filters...');
   }
 
   selectFolder(folderId: string): void {
@@ -275,32 +273,29 @@ export class BookmarkSystemComponent implements OnInit {
 
   getTypeLabel(type: string): string {
     const labels: Record<string, string> = {
-      'lesson': 'BĂ i há»c',
+      'lesson': 'Bài học',
       'video': 'Video',
-      'document': 'TĂ i liá»‡u',
+      'document': 'Tài liệu',
       'quiz': 'Quiz',
-      'external': 'LiĂªn káº¿t'
+      'external': 'Liên kết'
     };
     return labels[type] || type;
   }
 
   createNewFolder(): void {
     // Navigate to folder creation
-    console.log('Creating new folder...');
   }
 
   addBookmark(): void {
     // Navigate to bookmark creation
-    console.log('Adding new bookmark...');
   }
 
   editBookmark(bookmarkId: string): void {
     // Navigate to bookmark editor
-    console.log('Editing bookmark:', bookmarkId);
   }
 
   deleteBookmark(bookmarkId: string): void {
-    if (confirm('Báº¡n cĂ³ cháº¯c cháº¯n muá»‘n xĂ³a dáº¥u trang nĂ y?')) {
+    if (confirm('Bạn có chắc chắn muốn xóa dấu trang này?')) {
       this.bookmarks.update(bookmarks => bookmarks.filter(bookmark => bookmark.id !== bookmarkId));
     }
   }

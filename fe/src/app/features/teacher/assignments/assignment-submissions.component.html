@@ -3,7 +3,7 @@
       <!-- Header -->
       <div class="flex items-center justify-between mb-6">
         <div>
-          <h1 class="text-2xl font-bold text-gray-900">Quáº£n lĂ½ bĂ i ná»™p</h1>
+          <h1 class="text-2xl font-bold text-gray-900">Quản lý bài nộp</h1>
           @if (assignment()) {
             <p class="text-gray-600 mt-1">{{ assignment()!.title }}</p>
             <p class="text-sm text-gray-500">{{ assignment()!.courseTitle }}</p>
@@ -15,13 +15,13 @@
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
             </svg>
-            Xuáº¥t Excel
+            Xuất Excel
           </button>
           <a routerLink="/teacher/assignments" class="px-4 py-2 border rounded-lg hover:bg-gray-50 flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
             </svg>
-            Quay láº¡i
+            Quay lại
           </a>
         </div>
       </div>
@@ -31,23 +31,23 @@
         <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
           <div class="bg-white rounded-xl shadow-sm border p-4 text-center">
             <div class="text-2xl font-bold text-blue-600">{{ a.submissionCount }}</div>
-            <div class="text-sm text-gray-500">ÄĂ£ ná»™p</div>
+            <div class="text-sm text-gray-500">Đã nộp</div>
           </div>
           <div class="bg-white rounded-xl shadow-sm border p-4 text-center">
             <div class="text-2xl font-bold text-gray-600">{{ a.totalStudents - a.submissionCount }}</div>
-            <div class="text-sm text-gray-500">ChÆ°a ná»™p</div>
+            <div class="text-sm text-gray-500">Chưa nộp</div>
           </div>
           <div class="bg-white rounded-xl shadow-sm border p-4 text-center">
             <div class="text-2xl font-bold text-green-600">{{ gradedCount() }}</div>
-            <div class="text-sm text-gray-500">ÄĂ£ cháº¥m</div>
+            <div class="text-sm text-gray-500">Đã chấm</div>
           </div>
           <div class="bg-white rounded-xl shadow-sm border p-4 text-center">
             <div class="text-2xl font-bold text-orange-600">{{ pendingCount() }}</div>
-            <div class="text-sm text-gray-500">Chá» cháº¥m</div>
+            <div class="text-sm text-gray-500">Chờ chấm</div>
           </div>
           <div class="bg-white rounded-xl shadow-sm border p-4 text-center">
             <div class="text-2xl font-bold text-red-600">{{ lateCount() }}</div>
-            <div class="text-sm text-gray-500">Ná»™p muá»™n</div>
+            <div class="text-sm text-gray-500">Nộp muộn</div>
           </div>
         </div>
 
@@ -55,17 +55,17 @@
         <div class="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-xl p-6 mb-6">
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <span class="text-sm text-indigo-600 font-medium">Äiá»ƒm tá»‘i Ä‘a</span>
-              <div class="text-xl font-bold text-gray-900">{{ a.maxScore }} Ä‘iá»ƒm</div>
+              <span class="text-sm text-indigo-600 font-medium">Điểm tối đa</span>
+              <div class="text-xl font-bold text-gray-900">{{ a.maxScore }} điểm</div>
             </div>
             <div>
-              <span class="text-sm text-indigo-600 font-medium">Háº¡n ná»™p</span>
+              <span class="text-sm text-indigo-600 font-medium">Hạn nộp</span>
               <div class="text-xl font-bold text-gray-900">
-                {{ a.dueDate ? formatDate(a.dueDate) : 'KhĂ´ng giá»›i háº¡n' }}
+                {{ a.dueDate ? formatDate(a.dueDate) : 'Không giới hạn' }}
               </div>
             </div>
             <div>
-              <span class="text-sm text-indigo-600 font-medium">Tráº¡ng thĂ¡i</span>
+              <span class="text-sm text-indigo-600 font-medium">Trạng thái</span>
               <div class="text-xl font-bold" [class]="getStatusClass(a.status)">{{ getStatusText(a.status) }}</div>
             </div>
           </div>
@@ -76,7 +76,7 @@
       @if (loading()) {
         <div class="bg-white rounded-xl shadow-sm border p-8 text-center">
           <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-indigo-500 border-t-transparent"></div>
-          <p class="mt-2 text-gray-500">Äang táº£i danh sĂ¡ch bĂ i ná»™p...</p>
+          <p class="mt-2 text-gray-500">Đang tải danh sách bài nộp...</p>
         </div>
       }
 
@@ -84,13 +84,13 @@
       @if (!loading()) {
         <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
           <div class="px-6 py-4 border-b flex items-center justify-between">
-            <h2 class="text-lg font-semibold text-gray-900">Danh sĂ¡ch bĂ i ná»™p ({{ submissions().length }})</h2>
+            <h2 class="text-lg font-semibold text-gray-900">Danh sách bài nộp ({{ submissions().length }})</h2>
             <div class="flex items-center gap-2">
               <select class="border rounded-lg px-3 py-1 text-sm" [value]="filterStatus()" (change)="onFilterChange($event)">
-                <option value="">Táº¥t cáº£</option>
-                <option value="PENDING">Chá» cháº¥m</option>
-                <option value="GRADED">ÄĂ£ cháº¥m</option>
-                <option value="LATE">Ná»™p muá»™n</option>
+                <option value="">Tất cả</option>
+                <option value="PENDING">Chờ chấm</option>
+                <option value="GRADED">Đã chấm</option>
+                <option value="LATE">Nộp muộn</option>
               </select>
             </div>
           </div>
@@ -98,9 +98,9 @@
           @if (filteredSubmissions().length === 0) {
             <div class="p-8 text-center text-gray-500">
               @if (submissions().length === 0) {
-                ChÆ°a cĂ³ bĂ i ná»™p nĂ o.
+                Chưa có bài nộp nào.
               } @else {
-                KhĂ´ng cĂ³ bĂ i ná»™p phĂ¹ há»£p vá»›i bá»™ lá»c.
+                Không có bài nộp phù hợp với bộ lọc.
               }
             </div>
           } @else {
@@ -108,12 +108,12 @@
               <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                   <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Há»c viĂªn</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thá»i gian ná»™p</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">File Ä‘Ă­nh kĂ¨m</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tráº¡ng thĂ¡i</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Äiá»ƒm</th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Thao tĂ¡c</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Học viên</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thời gian nộp</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">File đính kèm</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Điểm</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200">
@@ -134,7 +134,7 @@
                         <div class="text-sm text-gray-900">{{ formatDate(submission.submittedAt || '') }}</div>
                         @if (getSubmissionLateInfo(submission); as lateInfo) {
                           <div class="text-xs" [class]="lateInfo.isLate ? 'text-red-500' : 'text-green-500'">
-                            {{ lateInfo.isLate ? formatLateDuration(lateInfo) : 'ÄĂºng háº¡n' }}
+                            {{ lateInfo.isLate ? formatLateDuration(lateInfo) : 'Đúng hạn' }}
                           </div>
                         }
                       </td>
@@ -153,7 +153,7 @@
                             }
                           </div>
                         } @else {
-                          <span class="text-gray-400 text-sm">KhĂ´ng cĂ³ file</span>
+                          <span class="text-gray-400 text-sm">Không có file</span>
                         }
                       </td>
                       <td class="px-6 py-4">
@@ -166,7 +166,7 @@
                           <div class="font-medium text-gray-900">{{ getGradeScore(submission.grade) }}/{{ assignment()?.maxScore }}</div>
                           <div class="text-xs text-gray-500">{{ getGradePercentage(getGradeScore(submission.grade)!) }}%</div>
                         } @else {
-                          <span class="text-gray-400">ChÆ°a cháº¥m</span>
+                          <span class="text-gray-400">Chưa chấm</span>
                         }
                       </td>
                       <td class="px-6 py-4 text-right space-x-2">
@@ -176,7 +176,7 @@
                         <button (click)="gradeSubmission(submission)" 
                                 class="text-sm" 
                                 [class]="submission.status === 'graded' ? 'text-purple-600 hover:text-purple-800' : 'text-green-600 hover:text-green-800'">
-                          {{ submission.status === 'graded' ? 'Sá»­a Ä‘iá»ƒm' : 'Cháº¥m Ä‘iá»ƒm' }}
+                          {{ submission.status === 'graded' ? 'Sửa điểm' : 'Chấm điểm' }}
                         </button>
                       </td>
                     </tr>
@@ -198,10 +198,10 @@
                 @if (previewingFile()!.metadata) {
                   <div class="text-xs text-gray-500 mt-1">
                     @if (previewingFile()!.metadata?.scale) {
-                      <span class="mr-3">Tá»‰ lá»‡: {{ previewingFile()!.metadata?.scale }}</span>
+                      <span class="mr-3">Tỉ lệ: {{ previewingFile()!.metadata?.scale }}</span>
                     }
                     @if (previewingFile()!.metadata?.captureDate) {
-                      <span>NgĂ y chá»¥p: {{ previewingFile()!.metadata?.captureDate }}</span>
+                      <span>Ngày chụp: {{ previewingFile()!.metadata?.captureDate }}</span>
                     }
                   </div>
                 }
@@ -209,7 +209,7 @@
               <div class="flex items-center gap-2">
                 <a [href]="previewingFile()!.fileUrl" target="_blank" download
                    class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
-                  Táº£i xuá»‘ng
+                  Tải xuống
                 </a>
                 <button (click)="closePreview()" class="p-1 text-gray-400 hover:text-gray-600">
                   <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -225,9 +225,9 @@
                 <iframe [src]="previewingFile()!.fileUrl" class="w-full h-[70vh] border-0"></iframe>
               } @else {
                 <div class="text-center py-8 text-gray-500">
-                  <p>KhĂ´ng thá»ƒ xem trÆ°á»›c file nĂ y.</p>
+                  <p>Không thể xem trước file này.</p>
                   <a [href]="previewingFile()!.fileUrl" target="_blank" download class="text-blue-600 hover:underline mt-2 inline-block">
-                    Táº£i xuá»‘ng Ä‘á»ƒ xem
+                    Tải xuống để xem
                   </a>
                 </div>
               }
@@ -241,7 +241,7 @@
         <div class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div class="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between p-6 border-b">
-              <h3 class="text-lg font-semibold">Cháº¥m Ä‘iá»ƒm bĂ i ná»™p</h3>
+              <h3 class="text-lg font-semibold">Chấm điểm bài nộp</h3>
               <button (click)="closeGradingModal()" class="text-gray-400 hover:text-gray-600">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -259,7 +259,7 @@
                   <div>
                     <div class="font-medium text-gray-900">{{ gradingSubmission()!.studentName }}</div>
                     <div class="text-sm text-gray-500">{{ gradingSubmission()!.studentEmail }}</div>
-                    <div class="text-xs text-gray-400">Ná»™p lĂºc: {{ formatDate(gradingSubmission()!.submittedAt || '') }}</div>
+                    <div class="text-xs text-gray-400">Nộp lúc: {{ formatDate(gradingSubmission()!.submittedAt || '') }}</div>
                   </div>
                 </div>
               </div>
@@ -267,7 +267,7 @@
               <!-- Submission Content -->
               @if (gradingSubmission()!.content) {
                 <div>
-                  <h4 class="font-medium text-gray-900 mb-2">Ná»™i dung bĂ i ná»™p</h4>
+                  <h4 class="font-medium text-gray-900 mb-2">Nội dung bài nộp</h4>
                   <div class="bg-gray-50 rounded-lg p-4 whitespace-pre-line text-sm">{{ gradingSubmission()!.content }}</div>
                 </div>
               }
@@ -276,26 +276,26 @@
               <form [formGroup]="gradingForm" class="space-y-4">
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-2">
-                    Äiá»ƒm sá»‘ (0 - {{ assignment()?.maxScore }})
+                    Điểm số (0 - {{ assignment()?.maxScore }})
                   </label>
                   <input type="number" formControlName="grade" [min]="0" [max]="assignment()?.maxScore ?? 100"
                          class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"/>
                   @if (gradingForm.controls.grade.invalid && gradingForm.controls.grade.touched) {
-                    <p class="text-sm text-red-600 mt-1">Äiá»ƒm pháº£i tá»« 0 Ä‘áº¿n {{ assignment()?.maxScore }}</p>
+                    <p class="text-sm text-red-600 mt-1">Điểm phải từ 0 đến {{ assignment()?.maxScore }}</p>
                   }
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Nháº­n xĂ©t</label>
-                  <textarea formControlName="feedback" rows="4" placeholder="Nháº­p nháº­n xĂ©t cho há»c viĂªn..."
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Nhận xét</label>
+                  <textarea formControlName="feedback" rows="4" placeholder="Nhập nhận xét cho học viên..."
                             class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"></textarea>
                 </div>
                 <div class="flex gap-3 pt-4">
                   <button type="button" (click)="submitGrade()" [disabled]="gradingForm.invalid || savingGrade()"
                           class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50">
-                    @if (savingGrade()) { Äang lÆ°u... } @else { LÆ°u Ä‘iá»ƒm }
+                    @if (savingGrade()) { Đang lưu... } @else { Lưu điểm }
                   </button>
                   <button type="button" (click)="closeGradingModal()" class="px-4 py-2 border rounded-lg hover:bg-gray-50">
-                    Há»§y
+                    Hủy
                   </button>
                 </div>
               </form>

@@ -27,7 +27,6 @@ export class CourseRepository {
       if (!course) return null;
       return this.mapDomainToExtended(course);
     } catch (error) {
-      console.error('Error fetching course by ID:', error);
       return null;
     }
   }
@@ -42,7 +41,6 @@ export class CourseRepository {
         .slice(0, limit)
         .map(course => this.mapDomainToRelated(course));
     } catch (error) {
-      console.error('Error fetching related courses:', error);
       return [];
     }
   }
@@ -438,7 +436,6 @@ export class CourseDetailService {
 
     } catch (error) {
       this._error.set('Không thể tải thông tin khóa học');
-      console.error('Error loading course detail:', error);
     } finally {
       this._isLoading.set(false);
     }
@@ -452,7 +449,6 @@ export class CourseDetailService {
       const relatedCourses = await this.courseRepository.getRelatedCourses(courseId, category, 4);
       this._relatedCourses.set(relatedCourses);
     } catch (error) {
-      console.error('Error loading related courses:', error);
     }
   }
 
@@ -464,7 +460,6 @@ export class CourseDetailService {
       const reviews = await this.reviewRepository.getReviewsByCourseId(courseId);
       this._reviews.set(reviews);
     } catch (error) {
-      console.error('Error loading reviews:', error);
     }
   }
 
@@ -476,7 +471,6 @@ export class CourseDetailService {
       const faq = await this.faqRepository.getFAQByCourseId(courseId);
       this._faq.set(faq);
     } catch (error) {
-      console.error('Error loading FAQ:', error);
     }
   }
 
@@ -488,7 +482,6 @@ export class CourseDetailService {
       const modules = await this.moduleRepository.getModulesByCourseId(courseId);
       this._modules.set(modules);
     } catch (error) {
-      console.error('Error loading modules:', error);
     }
   }
 

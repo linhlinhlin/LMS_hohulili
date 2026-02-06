@@ -109,7 +109,6 @@ export class AssignmentStateService {
       catchError((err: unknown) => {
         const errorMessage = err instanceof Error ? err.message : 'Không thể tải danh sách bài tập';
         this._error.set(errorMessage);
-        console.error('Error loading assignments:', err);
         return of({ data: [] as AssignmentSummary[] });
       }),
       finalize(() => this._loading.set(false)),
@@ -136,7 +135,6 @@ export class AssignmentStateService {
       catchError((err: unknown) => {
         const errorMessage = err instanceof Error ? err.message : 'Không thể tải thông tin bài tập';
         this._error.set(errorMessage);
-        console.error('Error loading assignment:', err);
         return of({ data: null });
       }),
       finalize(() => this._loading.set(false))
@@ -179,7 +177,6 @@ export class AssignmentStateService {
       catchError((err: unknown) => {
         const errorMessage = err instanceof Error ? err.message : 'Không thể tạo bài tập';
         this._error.set(errorMessage);
-        console.error('Error creating assignment:', err);
         return of({ data: null });
       }),
       finalize(() => this._saving.set(false))
@@ -230,7 +227,6 @@ export class AssignmentStateService {
 
         const errorMessage = err instanceof Error ? err.message : 'Không thể cập nhật bài tập';
         this._error.set(errorMessage);
-        console.error('Error updating assignment:', err);
         return of({ data: null });
       }),
       finalize(() => this._saving.set(false))
@@ -266,7 +262,6 @@ export class AssignmentStateService {
 
         const errorMessage = err instanceof Error ? err.message : 'Không thể xóa bài tập';
         this._error.set(errorMessage);
-        console.error('Error deleting assignment:', err);
         return of(false);
       }),
       finalize(() => this._saving.set(false))

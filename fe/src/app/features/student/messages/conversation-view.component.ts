@@ -13,15 +13,15 @@ import {
   Component,
   OnInit,
   OnDestroy,
-  ViewChild,
   ElementRef,
   AfterViewChecked,
   inject,
   signal,
   computed,
   ChangeDetectionStrategy,
+  viewChild
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { MessagingService, SendMessageRequest } from '../../../core/services/messaging.service';
 import { AuthService } from '../../../core/services/auth.service';
@@ -31,8 +31,7 @@ import { Message, sortMessagesByDate, Conversation } from './utils/message-utils
 
 @Component({
   selector: 'app-conversation-view',
-  standalone: true,
-  imports: [CommonModule, RouterModule, MessageBubbleComponent, MessageInputComponent],
+  imports: [RouterModule, MessageBubbleComponent, MessageInputComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-col h-screen bg-gray-50">
@@ -120,8 +119,8 @@ import { Message, sortMessagesByDate, Conversation } from './utils/message-utils
   `,
 })
 export class ConversationViewComponent implements OnInit, OnDestroy, AfterViewChecked {
-  @ViewChild('messagesContainer') messagesContainer!: ElementRef<HTMLDivElement>;
-  @ViewChild('messageInput') messageInput!: MessageInputComponent;
+  readonly messagesContainer = viewChild.required<ElementRef<HTMLDivElement>>('messagesContainer');
+  readonly messageInput = viewChild.required<MessageInputComponent>('messageInput');
 
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -193,7 +192,6 @@ export class ConversationViewComponent implements OnInit, OnDestroy, AfterViewCh
         this.messagingService.startPolling(this.conversationId!);
       },
       error: (err) => {
-        console.error('Error loading messages:', err);
         this.error.set('Không thể tải tin nhắn');
         this.loading.set(false);
       },
@@ -233,11 +231,10 @@ export class ConversationViewComponent implements OnInit, OnDestroy, AfterViewCh
       next: (response) => {
         this._messages.update((msgs) => [...msgs, response.message]);
         this.shouldScrollToBottom = true;
-        this.messageInput.onSendComplete();
+        this.messageInput().onSendComplete();
       },
       error: (err) => {
-        console.error('Error sending message:', err);
-        this.messageInput.onSendError();
+        this.messageInput().onSendError();
       },
     });
   }
@@ -251,7 +248,7 @@ export class ConversationViewComponent implements OnInit, OnDestroy, AfterViewCh
   }
 
   private scrollToBottom(): void {
-    const container = this.messagesContainer?.nativeElement;
+    const container = this.messagesContainer()?.nativeElement;
     if (container) {
       container.scrollTop = container.scrollHeight;
     }

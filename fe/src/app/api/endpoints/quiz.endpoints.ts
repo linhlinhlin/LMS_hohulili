@@ -14,20 +14,20 @@ export const QUIZ_ENDPOINTS = {
   PUBLISH_QUIZ: (id: string) => `/api/v3/quizzes/${id}/publish`,
   ARCHIVE_QUIZ: (id: string) => `/api/v3/quizzes/${id}/archive`,
 
-  // === Quiz Questions ===
-  QUIZ_QUESTIONS: (lessonId: string) => `/api/v3/quizzes/lessons/${lessonId}/questions`,
-  ADD_QUESTION: (lessonId: string) => `/api/v3/quizzes/lessons/${lessonId}/questions/add`,
-  REMOVE_QUESTION: (lessonId: string, questionId: string) =>
-    `/api/v3/quizzes/lessons/${lessonId}/questions/${questionId}`,
+  // === Quiz Questions (by quizId - matches QuizControllerV3) ===
+  QUIZ_QUESTIONS: (quizId: string) => `/api/v3/quizzes/${quizId}/questions`,
+  ADD_QUESTION: (quizId: string) => `/api/v3/quizzes/${quizId}/questions`,
+  REMOVE_QUESTION: (quizId: string, questionId: string) =>
+    `/api/v3/quizzes/${quizId}/questions/${questionId}`,
 
   // === Quiz Settings ===
   QUIZ_SETTINGS: (quizId: string) => `/api/v3/quizzes/${quizId}/settings`,
 
-  // === Quiz Attempts (Student) ===
+  // === Quiz Attempts (Student) - matches QuizControllerV3 ===
   QUIZ_ATTEMPTS: (quizId: string) => `/api/v3/quizzes/${quizId}/attempts`,
-  START_ATTEMPT: (quizId: string) => `/api/v3/quizzes/${quizId}/attempts`,
+  START_ATTEMPT: (quizId: string) => `/api/v3/quizzes/${quizId}/attempts/start`,
   SUBMIT_ATTEMPT: (attemptId: string) => `/api/v3/quizzes/attempts/${attemptId}/submit`,
-  ATTEMPT_RESULT: (attemptId: string) => `/api/v3/quizzes/attempts/${attemptId}/result`,
+  ATTEMPT_RESULT: (attemptId: string) => `/api/v3/quizzes/attempts/${attemptId}`,
 
   // === Quiz Attempts (Teacher View) ===
   LESSON_ATTEMPTS: (lessonId: string) => `/api/v3/quizzes/lessons/${lessonId}/attempts`,

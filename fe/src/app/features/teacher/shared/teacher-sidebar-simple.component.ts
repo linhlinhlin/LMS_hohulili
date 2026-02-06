@@ -1,11 +1,11 @@
 import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule, Router, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-teacher-sidebar-simple',
-  imports: [CommonModule, RouterModule],
+  imports: [RouterModule],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="w-64 bg-white shadow-lg h-full flex flex-col">

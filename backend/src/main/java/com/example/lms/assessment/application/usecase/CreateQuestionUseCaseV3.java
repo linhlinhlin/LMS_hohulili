@@ -1,8 +1,7 @@
 package com.example.lms.assessment.application.usecase;
 
-import com.example.lms.assessment.infrastructure.persistence.entity.QuestionJpaEntity;
-import com.example.lms.assessment.infrastructure.persistence.entity.QuestionOptionJpaEntity;
-import com.example.lms.assessment.infrastructure.persistence.repository.QuestionJpaRepository;
+import com.example.lms.assessment.domain.model.Question;
+import com.example.lms.assessment.domain.repository.QuestionRepository;
 import com.example.lms.shared.domain.model.ContentBlock;
 import lombok.Builder;
 import lombok.RequiredArgsConstructor;
@@ -10,60 +9,62 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * Use case for creating questions.
+ * Follows Clean Architecture - depends only on domain interfaces.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class CreateQuestionUseCaseV3 {
 
-    private final QuestionJpaRepository questionRepository;
+    private final QuestionRepository questionRepository;
     private final com.example.lms.shared.application.service.FileManagementService fileManagementService;
 
     @Transactional
     public UUID execute(Command command) {
         log.info("Creating new question for package: {}", command.packageId());
 
-        QuestionJpaEntity question = QuestionJpaEntity.builder()
+        // Build domain model options
+        List<Question.QuestionOption> domainOptions = null;
+        if (command.options() != null) {
+            domainOptions = command.options().stream()
+                    .map(opt -> Question.QuestionOption.create(
+                            opt.key(),
+                            opt.contentBlocks(),
+                            opt.orderIndex() != null ? opt.orderIndex() : 0))
+                    .collect(Collectors.toList());
+        }
+
+        // Build domain model
+        Question question = Question.builder()
+                .id(UUID.randomUUID())
                 .contentBlocks(command.contentBlocks())
                 .difficulty(command.difficulty())
                 .tags(command.tags())
-                .status(QuestionJpaEntity.Status.ACTIVE) // Default to ACTIVE
+                .status(Question.Status.ACTIVE)
                 .correctOption(command.correctOption())
                 .createdBy(command.createdBy())
-                // .courseId(command.courseId()) // Optional if linked via package
                 .packageId(command.packageId())
+                .options(domainOptions)
                 .build();
 
-        if (command.options() != null) {
-            List<QuestionOptionJpaEntity> options = command.options().stream()
-                    .map(opt -> QuestionOptionJpaEntity.builder()
-                            .question(question)
-                            .contentBlocks(opt.contentBlocks())
-                            .isCorrect(opt.isCorrect())
-                            .orderIndex(opt.orderIndex())
-                            .key(opt.key())
-                            .build())
-                    .collect(Collectors.toList());
-            question.setOptions(options);
-        }
+        // Save via repository (adapter handles JPA conversion)
+        Question savedQuestion = questionRepository.save(question);
 
-        QuestionJpaEntity savedQuestion = questionRepository.save(question);
-        
-        // SOTA 2026: Hybrid Logic - Link files to entities
-        // 1. Link Question Content
+        // Link files to entities (SOTA 2026: Hybrid Logic)
         fileManagementService.linkFilesToEntity(command.contentBlocks(), savedQuestion.getId(), "QUESTION");
-        
-        // 2. Link Options Content
+
         if (savedQuestion.getOptions() != null) {
             savedQuestion.getOptions().forEach(opt -> {
                 fileManagementService.linkFilesToEntity(opt.getContentBlocks(), opt.getId(), "QUESTION_OPTION");
             });
         }
-        
+
         log.info("Question created with ID: {}", savedQuestion.getId());
         return savedQuestion.getId();
     }
@@ -71,7 +72,7 @@ public class CreateQuestionUseCaseV3 {
     @Builder
     public record Command(
         List<ContentBlock> contentBlocks,
-        QuestionJpaEntity.Difficulty difficulty,
+        Question.Difficulty difficulty,
         String tags,
         String correctOption,
         UUID createdBy,

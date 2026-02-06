@@ -4,6 +4,7 @@ import com.example.lms.shared.domain.model.ContentBlock;
 import io.hypersistence.utils.hibernate.type.json.JsonType;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.Type;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -84,6 +85,7 @@ public class QuestionJpaEntity {
 
     @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("orderIndex ASC")
+    @BatchSize(size = 50) // SOTA: Prevent N+1 when loading multiple questions
     private List<QuestionOptionJpaEntity> options;
 
     @CreationTimestamp

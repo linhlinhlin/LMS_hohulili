@@ -289,7 +289,6 @@ export class VideoPlayerService {
           this._videoProgress.set(progress);
           this._currentTime.set(progress.watchedDuration);
         } catch (error) {
-          console.error('Error loading video progress:', error);
         }
       }
     }

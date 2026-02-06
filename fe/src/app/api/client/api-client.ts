@@ -16,39 +16,17 @@ export class ApiClient {
 
   // Generic GET request
   get<T>(endpoint: string, options?: any): Observable<T> {
-    const fullUrl = `${this.baseUrl}${endpoint}`;
-    console.log('[API CLIENT] 🌐 GET Request:', fullUrl);
-    console.log('[API CLIENT] 📦 Options:', options);
-
-    return this.http.get(fullUrl, options).pipe(
-      map(response => {
-        console.log('[API CLIENT] ✅ GET Response for', endpoint, ':', response);
-        return response as T;
-      }),
-      catchError((error) => {
-        console.error('[API CLIENT] ❌ GET Error for', endpoint, ':', error);
-        return this.handleError(error);
-      })
+    return this.http.get(`${this.baseUrl}${endpoint}`, options).pipe(
+      map(response => response as T),
+      catchError(this.handleError)
     );
   }
 
   // Generic POST request
   post<T>(endpoint: string, data: any, options?: any): Observable<T> {
-    const fullUrl = `${this.baseUrl}${endpoint}`;
-    console.log('[API CLIENT] 🌐 POST Request:', fullUrl);
-    console.log('[API CLIENT] 📦 Data:', JSON.stringify(data));
-
-    return this.http.post(fullUrl, data, options).pipe(
-      map(response => {
-        console.log('[API CLIENT] ✅ POST Response for', endpoint, ':', response);
-        return response as T;
-      }),
-      catchError((error) => {
-        console.error('[API CLIENT] ❌ POST Error for', endpoint, ':', error);
-        console.error('[API CLIENT] ❌ Error status:', error.status);
-        console.error('[API CLIENT] ❌ Error body:', error.error);
-        return this.handleError(error);
-      })
+    return this.http.post(`${this.baseUrl}${endpoint}`, data, options).pipe(
+      map(response => response as T),
+      catchError(this.handleError)
     );
   }
 
@@ -85,17 +63,9 @@ export class ApiClient {
   }
 
   postWithResponse<T>(endpoint: string, data: any, options?: any): Observable<ApiResponse<T>> {
-    const fullUrl = `${this.baseUrl}${endpoint}`;
-    console.log('[HTTP] ApiClient.postWithResponse:', fullUrl, 'with data:', data);
-    return this.http.post<ApiResponse<T>>(fullUrl, data, options).pipe(
-      map(response => {
-        console.log('[HTTP] ApiClient.postWithResponse success:', fullUrl, 'response:', response);
-        return response as unknown as ApiResponse<T>;
-      }),
-      catchError(error => {
-        console.error('[HTTP] ApiClient.postWithResponse error:', fullUrl, 'error:', error);
-        return this.handleError(error);
-      })
+    return this.http.post<ApiResponse<T>>(`${this.baseUrl}${endpoint}`, data, options).pipe(
+      map(response => response as unknown as ApiResponse<T>),
+      catchError(this.handleError)
     );
   }
 
@@ -107,17 +77,9 @@ export class ApiClient {
   }
 
   patchWithResponse<T>(endpoint: string, data: any, options?: any): Observable<ApiResponse<T>> {
-    const fullUrl = `${this.baseUrl}${endpoint}`;
-    console.log('[HTTP] ApiClient.patchWithResponse:', fullUrl, 'with data:', data);
-    return this.http.patch<ApiResponse<T>>(fullUrl, data, options).pipe(
-      map(response => {
-        console.log('[HTTP] ApiClient.patchWithResponse success:', fullUrl, 'response:', response);
-        return response as unknown as ApiResponse<T>;
-      }),
-      catchError(error => {
-        console.error('[HTTP] ApiClient.patchWithResponse error:', fullUrl, 'error:', error);
-        return this.handleError(error);
-      })
+    return this.http.patch<ApiResponse<T>>(`${this.baseUrl}${endpoint}`, data, options).pipe(
+      map(response => response as unknown as ApiResponse<T>),
+      catchError(this.handleError)
     );
   }
 
@@ -149,7 +111,6 @@ export class ApiClient {
       }
     }
 
-    console.error('API Error:', error);
     return throwError(() => new Error(errorMessage));
   }
 }

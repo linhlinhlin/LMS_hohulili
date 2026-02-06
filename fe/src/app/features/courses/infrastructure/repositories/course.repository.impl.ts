@@ -52,25 +52,20 @@ export class CourseRepositoryImpl implements CourseRepository {
     return this.api.publicCourses({ page, limit, search, teacher }).pipe(
       map((res: ApiResponse<any>) => {
         // THÊM DEBUG Ở ĐÂY
-        console.log('[REPOSITORY LOG] 1. Dữ liệu API thô:', res);
 
         // The API response structure is: { data: { content: [...], pageable: {...}, ... }, pagination: {...} }
         // So res.data is the Spring Page object, not the courses array directly
         const pageData = res?.data;
         const pagination = res?.pagination ?? {};
 
-        console.log('[REPOSITORY LOG] 2. pageData:', pageData);
-        console.log('[REPOSITORY LOG] 3. pagination:', pagination);
 
         // Check if pageData exists and has content
         if (!pageData) {
-          console.error('[REPOSITORY LOG] Lỗi ánh xạ: pageData không tồn tại');
           return { items: [], page: 1, limit: 12, total: 0, totalPages: 1, hasNext: false, hasPrev: false };
         }
 
         // If pageData is an array, it means the API returned courses directly
         if (Array.isArray(pageData)) {
-          console.log('[REPOSITORY LOG] pageData là mảng, sử dụng pagination từ res.pagination');
           const coursesArray = pageData;
           const items = coursesArray.map((s: any) => this.mapSummaryToDomain(s)).filter((item: Course | null) => item !== null) as Course[];
 
@@ -89,13 +84,11 @@ export class CourseRepositoryImpl implements CourseRepository {
             hasPrev: currentPage > 1
           } as PaginatedResult<Course>;
 
-          console.log('[REPOSITORY LOG] 4. Dữ liệu đã ánh xạ (array case):', result);
           return result;
         }
 
         // If pageData is an object with content, it's a Spring Page
         if (pageData.content) {
-          console.log('[REPOSITORY LOG] pageData là Spring Page object');
           const coursesArray = pageData.content;
           const items = coursesArray.map((s: any) => this.mapSummaryToDomain(s)).filter((item: Course | null) => item !== null) as Course[];
 
@@ -114,16 +107,13 @@ export class CourseRepositoryImpl implements CourseRepository {
             hasPrev: !pageData.first
           } as PaginatedResult<Course>;
 
-          console.log('[REPOSITORY LOG] 5. Dữ liệu đã ánh xạ (Spring Page case):', result);
           return result;
         }
 
         // Fallback
-        console.error('[REPOSITORY LOG] Lỗi ánh xạ: Cấu trúc pageData không nhận dạng được');
         return { items: [], page: 1, limit: 12, total: 0, totalPages: 1, hasNext: false, hasPrev: false };
       }),
       catchError((error) => {
-        console.error('CourseRepositoryImpl.findAll() error:', error);
         // Graceful fallback when backend is down or returns an error (e.g., 403/500)
         return of({
           items: [],
@@ -270,7 +260,6 @@ export class CourseRepositoryImpl implements CourseRepository {
         }
       );
     } catch (error) {
-      console.error('Error mapping course summary to domain:', error, s);
       return null;
     }
   }

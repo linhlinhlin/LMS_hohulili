@@ -3,8 +3,11 @@ package com.example.lms.assessment.infrastructure.persistence.entity;
 import com.example.lms.shared.domain.model.ContentBlock;
 import io.hypersistence.utils.hibernate.type.json.JsonType;
 import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.Type;
+import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -48,7 +51,15 @@ public class QuestionOptionJpaEntity {
 
     @Column(name = "display_order")
     private Integer orderIndex = 0;
-    
+
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private Instant createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private Instant updatedAt;
+
     // Getters/Setters
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
@@ -62,4 +73,6 @@ public class QuestionOptionJpaEntity {
     public void setIsCorrect(Boolean isCorrect) { this.isCorrect = isCorrect; }
     public Integer getOrderIndex() { return orderIndex; }
     public void setOrderIndex(Integer orderIndex) { this.orderIndex = orderIndex; }
+    public Instant getCreatedAt() { return createdAt; }
+    public Instant getUpdatedAt() { return updatedAt; }
 }

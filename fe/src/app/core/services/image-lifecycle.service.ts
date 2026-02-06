@@ -48,8 +48,6 @@ export class ImageLifecycleService {
                 this.imageUrlsMap.set(uuid, url);
                 ContentIdentityService.registerImageUrl(uuid, url);
 
-                console.log(`ImageLifecycleService: Registered image ${uuid} -> ${url}`);
-
                 return {
                     uuid: uuid,
                     url: url // Now using R2 CDN URL directly

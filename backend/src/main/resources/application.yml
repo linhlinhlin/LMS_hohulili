@@ -16,10 +16,10 @@ spring:
       max-file-size: 100MB
       max-request-size: 100MB
   jpa:
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
   flyway:
     enabled: true
     baseline-on-migrate: true  # Required for existing databases
@@ -55,7 +55,7 @@ springdoc:
 # JWT Configuration - Externalized for security
 app:
   jwt:
-    secret: ${APP_JWT_SECRET:development-only-secret-change-in-prod}
+    secret: ${APP_JWT_SECRET:ZGV2ZWxvcG1lbnQtb25seS1zZWNyZXQta2V5LWZvci1sbXMtYXBwbGljYXRpb24tbWluaW11bS0yNTYtYml0cw==}
     expiration: ${APP_JWT_EXPIRATION:86400000}  # 24 hours in milliseconds
     refresh-expiration: ${APP_JWT_REFRESH_EXPIRATION:604800000}  # 7 days in milliseconds
 
@@ -64,7 +64,7 @@ app:
 ai:
   service:
     url: ${AI_SERVICE_URL:https://maritime-ai-chatbot.onrender.com}
-    api-key: ${AI_SERVICE_API_KEY:maritime-lms-prod-2024}
+    api-key: ${AI_SERVICE_API_KEY:}
     timeout: ${AI_SERVICE_TIMEOUT:90}  # seconds
     retry:
       max-attempts: ${AI_SERVICE_RETRY_MAX:2}

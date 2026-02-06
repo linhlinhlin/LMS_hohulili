@@ -1,13 +1,12 @@
 // src/app/shared/components/footer/footer.component.ts
 import { Component, ChangeDetectionStrategy, ViewEncapsulation, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-footer',
-  standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [RouterModule, FormsModule],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -163,7 +162,6 @@ export class FooterComponent {
 
   subscribeNewsletter(): void {
     if (this.newsletterEmail()) {
-      console.log('Newsletter subscription:', this.newsletterEmail());
       alert('Cảm ơn bạn đã đăng ký! Chúng tôi sẽ gửi thông tin mới nhất đến email của bạn.');
       this.newsletterEmail.set('');
     }

@@ -6,9 +6,9 @@ export const STUDENT_ENDPOINTS = {
     // Base
     BASE: '/api/v3/student',
 
-    // Courses
-    MY_COURSES: '/api/v3/student/courses',
-    COURSE_PROGRESS: (courseId: string) => `/api/v3/student/courses/${courseId}/progress`,
+    // Courses (BE: StudentEnrollmentControllerV3)
+    MY_COURSES: '/api/v3/student/courses/enrolled',
+    COURSE_PROGRESS: (courseId: string) => `/api/v3/student/progress/courses/${courseId}`,
     COMPLETED_IDS: (courseId: string) => `/api/v3/student/progress/courses/${courseId}/completed-ids`,
 
     // Lessons

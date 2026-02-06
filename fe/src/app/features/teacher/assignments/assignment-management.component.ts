@@ -327,7 +327,6 @@ export class AssignmentManagementComponent implements OnInit {
         this.assignments.set(response.data || []);
       },
       error: (err: unknown) => {
-        console.error('Error loading assignments:', err);
         this.error.set('Không thể tải danh sách bài tập. Vui lòng thử lại.');
         this.assignments.set([]);
       },
@@ -407,7 +406,6 @@ export class AssignmentManagementComponent implements OnInit {
         this.loadAssignments();
       },
       error: (err: unknown) => {
-        console.error('Error publishing assignment:', err);
         this.error.set('Không thể xuất bản bài tập. Vui lòng thử lại.');
         this.loading.set(false);
       }
@@ -426,7 +424,6 @@ export class AssignmentManagementComponent implements OnInit {
         this.loadAssignments();
       },
       error: (err: unknown) => {
-        console.error('Error deleting assignment:', err);
         this.error.set('Không thể xóa bài tập. Vui lòng thử lại.');
         this.loading.set(false);
       }

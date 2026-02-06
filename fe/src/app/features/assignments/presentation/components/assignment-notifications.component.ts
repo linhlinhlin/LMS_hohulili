@@ -1,11 +1,12 @@
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, signal, computed, OnInit, ChangeDetectionStrategy } from '@angular/core';
+
 import { Router } from '@angular/router';
 import { AssignmentNotificationService, AssignmentNotification } from '../../application/services/assignment-notification.service';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-assignment-notifications',
-  imports: [CommonModule],
+  imports: [],
   template: `
     <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
       <!-- Header -->

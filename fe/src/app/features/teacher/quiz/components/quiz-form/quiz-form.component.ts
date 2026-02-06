@@ -1,4 +1,4 @@
-import { Component, input, output, OnInit, signal, inject } from '@angular/core';
+import { Component, input, output, OnInit, signal, inject, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Question } from '../../../../../api/endpoints/question.api';
@@ -19,8 +19,8 @@ import { QuestionSelectorComponent } from '../question-selector/question-selecto
  * - Contain business logic
  */
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
     selector: 'app-quiz-form',
-    standalone: true,
     imports: [CommonModule, ReactiveFormsModule, QuestionSelectorComponent],
     templateUrl: './quiz-form.component.html',
     styleUrls: ['./quiz-form.component.scss']

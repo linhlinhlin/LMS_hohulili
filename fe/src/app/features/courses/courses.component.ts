@@ -1,5 +1,5 @@
-import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation, Inject } from '@angular/core';
-import { CommonModule, DOCUMENT, isPlatformBrowser } from '@angular/common';
+import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
+import { DOCUMENT, isPlatformBrowser } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs/operators';
@@ -16,7 +16,7 @@ import { GetCoursesUseCase } from './application/use-cases/get-courses.use-case'
 
 @Component({
   selector: 'app-courses',
-  imports: [CommonModule, RouterModule, FormsModule, CourseCardComponent, PaginationComponent],
+  imports: [RouterModule, FormsModule, CourseCardComponent, PaginationComponent],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="min-h-screen bg-gray-50">
@@ -196,17 +196,16 @@ import { GetCoursesUseCase } from './application/use-cases/get-courses.use-case'
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CoursesComponent implements OnInit {
+  private title = inject(Title);
+  private meta = inject(Meta);
+  private document = inject<Document>(DOCUMENT);
+  private platformId = inject<Object>(PLATFORM_ID);
+
   protected getCoursesUseCase = inject(GetCoursesUseCase);
   protected authService = inject(AuthService);
   protected enrollmentService = inject(StudentEnrollmentService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-  constructor(
-    private title: Title,
-    private meta: Meta,
-    @Inject(DOCUMENT) private document: Document,
-    @Inject(PLATFORM_ID) private platformId: Object
-  ) { }
 
   courses = signal<ExtendedCourse[]>([]);
   isLoading = signal<boolean>(false);
@@ -319,7 +318,6 @@ export class CoursesComponent implements OnInit {
       .subscribe({
         next: (response: PaginatedResult<DomainCourse>) => {
           // Log API sample for debugging
-          console.log('[courses] api sample:', response.items[0]);
 
           // Convert domain courses to UI courses using dedicated mapper
           const uiCourses = response.items.map(domainCourse =>
@@ -328,7 +326,6 @@ export class CoursesComponent implements OnInit {
 
 
           // Log UI sample for debugging
-          console.log('[courses] ui sample:', uiCourses[0]);
 
           // Set courses data to signal with new reference for OnPush
           this.courses.set([...uiCourses]);
@@ -344,7 +341,6 @@ export class CoursesComponent implements OnInit {
           });
         },
         error: (error: any) => {
-          console.error('Error loading courses:', error);
           // Loading state is handled by finalize operator
           // TODO: Add proper error handling
         }

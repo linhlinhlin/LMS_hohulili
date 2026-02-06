@@ -26,19 +26,19 @@
               <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <div class="text-center">
                   <div class="text-3xl font-bold text-white">{{ categoryInfo().stats.courses }}</div>
-                  <div class="text-sm text-blue-200">KhĂ³a há»c</div>
+                  <div class="text-sm text-blue-200">Khóa học</div>
                 </div>
                 <div class="text-center">
                   <div class="text-3xl font-bold text-white">{{ categoryInfo().stats.students }}+</div>
-                  <div class="text-sm text-blue-200">Há»c viĂªn</div>
+                  <div class="text-sm text-blue-200">Học viên</div>
                 </div>
                 <div class="text-center">
                   <div class="text-3xl font-bold text-white">{{ categoryInfo().stats.instructors }}</div>
-                  <div class="text-sm text-blue-200">Giáº£ng viĂªn</div>
+                  <div class="text-sm text-blue-200">Giảng viên</div>
                 </div>
                 <div class="text-center">
                   <div class="text-3xl font-bold text-white">{{ categoryInfo().stats.certificates }}</div>
-                  <div class="text-sm text-blue-200">Chá»©ng chá»‰</div>
+                  <div class="text-sm text-blue-200">Chứng chỉ</div>
                 </div>
               </div>
 
@@ -46,11 +46,11 @@
               <div class="flex flex-col sm:flex-row gap-4">
                 <a routerLink="#courses" 
                    class="bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition-colors duration-200 text-center">
-                  KhĂ¡m phĂ¡ khĂ³a há»c
+                  Khám phá khóa học
                 </a>
                 <a routerLink="#career" 
                    class="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors duration-200 text-center">
-                  Xem cÆ¡ há»™i nghá» nghiá»‡p
+                  Xem cơ hội nghề nghiệp
                 </a>
               </div>
             </div>
@@ -69,7 +69,7 @@
                     <span class="text-green-600 text-sm">âœ“</span>
                   </div>
                   <div>
-                    <div class="text-sm font-semibold text-gray-900">Chá»©ng chá»‰ quá»‘c táº¿</div>
+                    <div class="text-sm font-semibold text-gray-900">Chứng chỉ quốc tế</div>
                     <div class="text-xs text-gray-500">STCW, IMO</div>
                   </div>
                 </div>
@@ -80,8 +80,8 @@
                     <span class="text-blue-600 text-sm">đŸ‘¨â€đŸ«</span>
                   </div>
                   <div>
-                    <div class="text-sm font-semibold text-gray-900">Giáº£ng viĂªn chuyĂªn mĂ´n</div>
-                    <div class="text-xs text-gray-500">Kinh nghiá»‡m thá»±c táº¿</div>
+                    <div class="text-sm font-semibold text-gray-900">Giảng viên chuyên môn</div>
+                    <div class="text-xs text-gray-500">Kinh nghiệm thực tế</div>
                   </div>
                 </div>
               </div>
@@ -94,9 +94,9 @@
       <section class="py-16 bg-white" id="learning-path">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="text-center mb-12">
-            <h2 class="text-3xl font-bold text-gray-900 mb-4">Lá»™ trĂ¬nh há»c táº­p</h2>
+            <h2 class="text-3xl font-bold text-gray-900 mb-4">Lộ trình học tập</h2>
             <p class="text-lg text-gray-600 max-w-3xl mx-auto">
-              Báº¯t Ä‘áº§u tá»« cÆ¡ báº£n vĂ  tiáº¿n lĂªn cĂ¡c cáº¥p Ä‘á»™ chuyĂªn sĂ¢u vá»›i lá»™ trĂ¬nh há»c táº­p Ä‘Æ°á»£c thiáº¿t káº¿ khoa há»c
+              Bắt đầu từ cơ bản và tiến lên các cấp độ chuyên sâu với lộ trình học tập được thiết kế khoa học
             </p>
           </div>
 
@@ -108,8 +108,8 @@
                   <span class="text-white text-xl">đŸŒ±</span>
                 </div>
                 <div>
-                  <h3 class="text-xl font-bold text-gray-900">CÆ¡ báº£n</h3>
-                  <p class="text-green-600 font-medium">Báº¯t Ä‘áº§u hĂ nh trĂ¬nh</p>
+                  <h3 class="text-xl font-bold text-gray-900">Cơ bản</h3>
+                  <p class="text-green-600 font-medium">Bắt đầu hành trình</p>
                 </div>
               </div>
               <div class="space-y-4">
@@ -118,7 +118,7 @@
                     <h4 class="font-semibold text-gray-900 mb-2">{{ course.title }}</h4>
                     <div class="flex items-center justify-between text-sm text-gray-600">
                       <span>{{ course.duration }}</span>
-                      <span>{{ course.students }}+ há»c viĂªn</span>
+                      <span>{{ course.students }}+ học viên</span>
                     </div>
                   </div>
                 }
@@ -132,8 +132,8 @@
                   <span class="text-white text-xl">đŸ€</span>
                 </div>
                 <div>
-                  <h3 class="text-xl font-bold text-gray-900">Trung cáº¥p</h3>
-                  <p class="text-blue-600 font-medium">NĂ¢ng cao ká»¹ nÄƒng</p>
+                  <h3 class="text-xl font-bold text-gray-900">Trung cấp</h3>
+                  <p class="text-blue-600 font-medium">Nâng cao kỹ năng</p>
                 </div>
               </div>
               <div class="space-y-4">
@@ -142,7 +142,7 @@
                     <h4 class="font-semibold text-gray-900 mb-2">{{ course.title }}</h4>
                     <div class="flex items-center justify-between text-sm text-gray-600">
                       <span>{{ course.duration }}</span>
-                      <span>{{ course.students }}+ há»c viĂªn</span>
+                      <span>{{ course.students }}+ học viên</span>
                     </div>
                   </div>
                 }
@@ -156,8 +156,8 @@
                   <span class="text-white text-xl">đŸ†</span>
                 </div>
                 <div>
-                  <h3 class="text-xl font-bold text-gray-900">NĂ¢ng cao</h3>
-                  <p class="text-purple-600 font-medium">Trá»Ÿ thĂ nh chuyĂªn gia</p>
+                  <h3 class="text-xl font-bold text-gray-900">Nâng cao</h3>
+                  <p class="text-purple-600 font-medium">Trở thành chuyên gia</p>
                 </div>
               </div>
               <div class="space-y-4">
@@ -166,7 +166,7 @@
                     <h4 class="font-semibold text-gray-900 mb-2">{{ course.title }}</h4>
                     <div class="flex items-center justify-between text-sm text-gray-600">
                       <span>{{ course.duration }}</span>
-                      <span>{{ course.students }}+ há»c viĂªn</span>
+                      <span>{{ course.students }}+ học viên</span>
                     </div>
                   </div>
                 }
@@ -180,9 +180,9 @@
       <section class="py-16 bg-gray-50" id="courses">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="text-center mb-12">
-            <h2 class="text-3xl font-bold text-gray-900 mb-4">KhĂ³a há»c {{ categoryInfo().name }}</h2>
+            <h2 class="text-3xl font-bold text-gray-900 mb-4">Khóa học {{ categoryInfo().name }}</h2>
             <p class="text-lg text-gray-600 max-w-3xl mx-auto">
-              KhĂ¡m phĂ¡ cĂ¡c khĂ³a há»c chuyĂªn sĂ¢u Ä‘Æ°á»£c thiáº¿t káº¿ bá»Ÿi cĂ¡c chuyĂªn gia hĂ ng Ä‘áº§u trong lÄ©nh vá»±c
+              Khám phá các khóa học chuyên sâu được thiết kế bởi các chuyên gia hàng đầu trong lĩnh vực
             </p>
           </div>
 
@@ -197,12 +197,12 @@
                        class="w-full h-48 object-cover">
                   @if (course.isPopular) {
                     <div class="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                      Phá»• biáº¿n
+                      Phổ biến
                     </div>
                   }
                   @if (course.isNew) {
                     <div class="absolute top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                      Má»›i
+                      Mới
                     </div>
                   }
                 </div>
@@ -236,7 +236,7 @@
                   <!-- Course Stats -->
                   <div class="flex items-center justify-between text-sm text-gray-600 mb-4">
                     <span>{{ course.duration }}</span>
-                    <span>{{ course.students }}+ há»c viĂªn</span>
+                    <span>{{ course.students }}+ học viên</span>
                     <span>{{ course.curriculum.modules }} modules</span>
                   </div>
 
@@ -254,7 +254,7 @@
                     </div>
                     <a [routerLink]="['/courses', course.id]" 
                        class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200">
-                      Xem chi tiáº¿t
+                      Xem chi tiết
                     </a>
                   </div>
                 </div>
@@ -268,9 +268,9 @@
       <section class="py-16 bg-white" id="career">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="text-center mb-12">
-            <h2 class="text-3xl font-bold text-gray-900 mb-4">CÆ¡ há»™i nghá» nghiá»‡p</h2>
+            <h2 class="text-3xl font-bold text-gray-900 mb-4">Cơ hội nghề nghiệp</h2>
             <p class="text-lg text-gray-600 max-w-3xl mx-auto">
-              KhĂ¡m phĂ¡ cĂ¡c vá»‹ trĂ­ cĂ´ng viá»‡c vĂ  cÆ¡ há»™i thÄƒng tiáº¿n trong lÄ©nh vá»±c {{ categoryInfo().name }}
+              Khám phá các vị trí công việc và cơ hội thăng tiến trong lĩnh vực {{ categoryInfo().name }}
             </p>
           </div>
 
@@ -281,7 +281,7 @@
                 <p class="text-gray-600 mb-4">{{ career.description }}</p>
                 <div class="text-lg font-semibold text-blue-600 mb-4">{{ career.salary }}</div>
                 <div class="space-y-2">
-                  <h4 class="font-medium text-gray-900">YĂªu cáº§u:</h4>
+                  <h4 class="font-medium text-gray-900">Yêu cầu:</h4>
                   <ul class="space-y-1">
                     @for (req of career.requirements; track req) {
                       <li class="text-sm text-gray-600 flex items-center">

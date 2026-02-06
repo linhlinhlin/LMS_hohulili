@@ -57,4 +57,9 @@ public interface LearningClassRepository {
      * Count classes for a course.
      */
     long countByCourseId(UUID courseId);
+
+    /**
+     * Search classes for a course with optional filters.
+     */
+    Page<LearningClass> searchByCourseId(UUID courseId, String search, String status, Pageable pageable);
 }

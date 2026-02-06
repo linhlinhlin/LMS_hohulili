@@ -1,4 +1,4 @@
-import { Component, input, computed } from '@angular/core';
+import { Component, input, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 export interface TrendCard {
@@ -9,8 +9,8 @@ export interface TrendCard {
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-category-trends',
-  standalone: true,
   imports: [CommonModule],
   template: `
     <section class="py-16 bg-white" role="region" [attr.aria-label]="'Xu hướng ngành: ' + title()">

@@ -1,5 +1,5 @@
 ﻿import { Component, signal, computed, inject, OnInit, OnDestroy, input, ChangeDetectionStrategy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { LessonApi } from '../../../api/client/lesson.api';
@@ -43,8 +43,8 @@ type LessonAttachment = ApiLessonAttachment;
 
 /**
  * Student Lesson Viewer Component
- * 
- * Cho phĂ©p student xem vĂ  tiáº¿n bá»™ qua cĂ¡c lessons Ä‘Æ°á»£c táº¡o bá»Ÿi teachers
+ *
+ * Cho phép student xem và tiến bộ qua các lessons được tạo bởi teachers
  * - Clean UI for lesson content consumption
  * - Progress tracking and completion
  * - Support multiple lesson types: LECTURE, ASSIGNMENT, QUIZ
@@ -52,35 +52,34 @@ type LessonAttachment = ApiLessonAttachment;
  */
 @Component({
   selector: 'app-student-lesson-viewer',
-  imports: [CommonModule, RouterModule, LoadingComponent],
-  standalone: true,
+  imports: [RouterModule, LoadingComponent],
   templateUrl: './student-lesson-viewer.component.html',
   styles: [`
     .prose {
       max-width: none;
     }
-    
+
     .prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
       color: #1f2937;
       font-weight: 700;
       line-height: 1.25;
       margin-bottom: 0.5em;
     }
-    
+
     .prose p {
       margin-bottom: 1em;
       line-height: 1.7;
     }
-    
+
     .prose ul, .prose ol {
       margin-bottom: 1em;
       padding-left: 1.5em;
     }
-    
+
     .prose li {
       margin-bottom: 0.5em;
     }
-    
+
     .prose pre {
       background-color: #1f2937;
       color: #f9fafb;
@@ -133,18 +132,10 @@ export class StudentLessonViewerComponent implements OnInit, OnDestroy {
   });
 
   constructor(
-    // cĂ¡c inject cÅ©
+    // các inject cũ
   ) {
-    console.log(
-      '%c[StudentLessonViewerComponent] CONSTRUCTOR',
-      'color: white; background: purple; padding: 2px 4px;'
-    );
   }
   ngOnInit() {
-    console.log(
-      '%c[StudentLessonViewerComponent] CONSTRUCTOR',
-      'color: white; background: purple; padding: 2px 4px;'
-    );
 
 
 
@@ -155,7 +146,7 @@ export class StudentLessonViewerComponent implements OnInit, OnDestroy {
     if (courseId && lessonId) {
       this.loadLesson(lessonId, courseId);
     } else {
-      this._error.set('KhĂ´ng tĂ¬m tháº¥y thĂ´ng tin bĂ i há»c');
+      this._error.set('Không tìm thấy thông tin bài học');
     }
   }
 
@@ -168,7 +159,7 @@ export class StudentLessonViewerComponent implements OnInit, OnDestroy {
       const lesson = await firstValueFrom(this.lessonApi.getLessonById(lessonId));
       const lessonData = lesson.data;
       if (!lessonData) {
-        throw new Error('Dá»¯ liá»‡u bĂ i há»c khĂ´ng há»£p lá»‡');
+        throw new Error('Dữ liệu bài học không hợp lệ');
       }
 
       // Load lesson attachments
@@ -176,9 +167,7 @@ export class StudentLessonViewerComponent implements OnInit, OnDestroy {
       try {
         const attachmentResponse = await firstValueFrom(this.lessonAttachmentApi.getAttachments(lessonId));
         attachments = attachmentResponse || [];
-        console.log('[SUCCESS] StudentLessonViewer: Attachments loaded', attachments.length);
       } catch (attachmentError) {
-        console.warn('[WARNING] StudentLessonViewer: Could not load attachments', attachmentError);
         attachments = [];
       }
 
@@ -200,27 +189,19 @@ export class StudentLessonViewerComponent implements OnInit, OnDestroy {
         lastModified: lessonData.updatedAt || lessonData.createdAt
       });
 
-      console.log('[SUCCESS] StudentLessonViewer: Lesson loaded successfully', this._currentLesson());
-
       // Load secure PDF URLs for sections [SOTA 2025]
       const data = lessonData as any;
       if (data && data.sections) {
-        console.log('[StudentLessonViewer] Checking sections for PDFs:', data.sections.length);
         data.sections.forEach((sec: any) => {
           if (this.isPdfFile(sec)) {
-            console.log('[StudentLessonViewer] Section is identified as PDF, requesting secure stream:', sec.id, sec.fileUrl);
             this.pdfService.getSafePdfUrl(sec.fileUrl).subscribe((safeUrl: SafeResourceUrl | null) => {
-              console.log('[StudentLessonViewer] Received safeUrl for section:', sec.id, safeUrl ? 'SUCCESS' : 'NULL');
               this.safePdfUrls[sec.id] = safeUrl;
             });
-          } else {
-            console.log('[StudentLessonViewer] Section is NOT a PDF:', sec.id, sec.type);
           }
         });
       }
     } catch (error: any) {
-      const errorMessage = error?.message || 'KhĂ´ng thá»ƒ táº£i bĂ i há»c';
-      console.error('[ERROR] StudentLessonViewer: Error loading lesson:', error);
+      const errorMessage = error?.message || 'Không thể tải bài học';
       this._error.set(errorMessage);
       this.errorService.handleApiError(error, 'lesson-viewer');
     } finally {
@@ -231,10 +212,10 @@ export class StudentLessonViewerComponent implements OnInit, OnDestroy {
   // UI Helper Methods
   getLessonTypeLabel(type: string): string {
     switch (type) {
-      case 'LECTURE': return 'BĂ i giáº£ng';
-      case 'ASSIGNMENT': return 'BĂ i táº­p';
-      case 'QUIZ': return 'Kiá»ƒm tra';
-      default: return 'BĂ i há»c';
+      case 'LECTURE': return 'Bài giảng';
+      case 'ASSIGNMENT': return 'Bài tập';
+      case 'QUIZ': return 'Kiểm tra';
+      default: return 'Bài học';
     }
   }
 
@@ -248,10 +229,10 @@ export class StudentLessonViewerComponent implements OnInit, OnDestroy {
   }
 
   formatDuration(minutes: number): string {
-    if (minutes < 60) return `${minutes} phĂºt`;
+    if (minutes < 60) return `${minutes} phút`;
     const hours = Math.floor(minutes / 60);
     const remainingMinutes = minutes % 60;
-    return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours} giá»`;
+    return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours} giờ`;
   }
 
   getSafeVideoUrl(url: string): SafeResourceUrl {
@@ -279,16 +260,16 @@ export class StudentLessonViewerComponent implements OnInit, OnDestroy {
 
   getFileTypeLabel(type: string): string {
     const types: Record<string, string> = {
-      'pdf': 'TĂ i liá»‡u PDF',
-      'doc': 'TĂ i liá»‡u Word',
-      'docx': 'TĂ i liá»‡u Word',
-      'ppt': 'Báº£n trĂ¬nh bĂ y',
-      'pptx': 'Báº£n trĂ¬nh bĂ y',
-      'xlsx': 'Báº£ng tĂ­nh Excel',
+      'pdf': 'Tài liệu PDF',
+      'doc': 'Tài liệu Word',
+      'docx': 'Tài liệu Word',
+      'ppt': 'Bản trình bày',
+      'pptx': 'Bản trình bày',
+      'xlsx': 'Bảng tính Excel',
       'mp4': 'Video MP4',
-      'mp3': 'Ă‚m thanh MP3'
+      'mp3': 'Âm thanh MP3'
     };
-    return types[type.toLowerCase()] || 'TĂ i liá»‡u';
+    return types[type.toLowerCase()] || 'Tài liệu';
   }
 
   // File type checking methods [SOTA 2025 Refined Logic]
@@ -359,7 +340,6 @@ export class StudentLessonViewerComponent implements OnInit, OnDestroy {
 
 
   getGoogleDocsPdfUrl(fileUrl: string): SafeResourceUrl {
-    // Sá»­ dá»¥ng Google Docs viewer cho PDF
     const encodedUrl = encodeURIComponent(fileUrl);
     const viewerUrl = `https://docs.google.com/viewer?url=${encodedUrl}&embedded=true`;
     return this.sanitizer.bypassSecurityTrustResourceUrl(viewerUrl);
@@ -385,87 +365,29 @@ export class StudentLessonViewerComponent implements OnInit, OnDestroy {
   }
 
   async markAsCompleted(): Promise<void> {
-    console.log('[DEBUG] markAsCompleted: ENTERED METHOD');
-
     const lesson = this._currentLesson();
-    if (!lesson) {
-      console.log('[DEBUG] markAsCompleted: No lesson found in current state');
-      return;
-    }
-
-    console.log('[DEBUG] markAsCompleted: Starting for lesson:', lesson.id);
-
-    // đŸ” DEBUG: Check token before API call
-    const token = localStorage.getItem('lms_access_token');
-    console.log('[DEBUG] markAsCompleted: Token check:', {
-      tokenExists: !!token,
-      tokenLength: token?.length,
-      tokenPrefix: token?.substring(0, 20) + '...'
-    });
-
-    // đŸ” DEBUG: Decode JWT to check payload
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        console.log('[DEBUG] markAsCompleted: JWT Payload:', {
-          sub: payload.sub,
-          roles: payload.roles || payload.authorities,
-          exp: new Date(payload.exp * 1000).toISOString(),
-          isExpired: payload.exp * 1000 < Date.now()
-        });
-      } catch (decodeError) {
-        console.error('[ERROR] markAsCompleted: Cannot decode JWT:', decodeError);
-      }
-    }
+    if (!lesson) return;
 
     try {
-      console.log('[DEBUG] markAsCompleted: BEFORE API CALL - about to call lessonApi.markLessonComplete');
-
-      // Gá»i API backend Ä‘á»ƒ lÆ°u progress
+      // Gọi API backend để lưu progress
       const apiResult = await firstValueFrom(this.lessonApi.markLessonComplete(lesson.id));
 
-      console.log('[DEBUG] markAsCompleted: API call successful, response:', apiResult);
-
-      // Cáº­p nháº­t local state sau khi API thĂ nh cĂ´ng
+      // Cập nhật local state sau khi API thành công
       const updatedLesson = { ...lesson, isCompleted: true };
       this._currentLesson.set(updatedLesson);
 
-      console.log('[SUCCESS] markAsCompleted: Lesson marked as completed in database:', lesson.id);
     } catch (error: any) {
-      console.error('[ERROR] markAsCompleted: Failed to mark lesson as completed:', error);
-      console.error('[ERROR] markAsCompleted: Error details:', {
-        status: error?.status,
-        statusText: error?.statusText,
-        message: error?.message,
-        url: error?.url,
-        error: error?.error
-      });
-
-      // đŸ” DEBUG: Check if it's a 403 error
-      if (error?.status === 403) {
-        console.error('[ERROR] markAsCompleted: 403 Forbidden - Check token and roles');
-        console.error('[ERROR] markAsCompleted: Current localStorage keys:', Object.keys(localStorage));
-        console.error('[ERROR] markAsCompleted: All localStorage values:', Object.keys(localStorage).map(key => ({
-          key,
-          value: localStorage.getItem(key)?.substring(0, 50) + '...'
-        })));
-      }
-
-      // CĂ³ thá»ƒ hiá»ƒn thá»‹ toast error cho user
-      this._error.set('KhĂ´ng thá»ƒ cáº­p nháº­t tráº¡ng thĂ¡i hoĂ n thĂ nh. Vui lĂ²ng thá»­ láº¡i.');
+      this._error.set('Không thể cập nhật trạng thái hoàn thành. Vui lòng thử lại.');
     }
   }
 
   onVideoLoad(): void {
-    console.log('Video loaded successfully');
   }
 
   onVideoError(): void {
-    console.error('Video failed to load');
   }
 
   onCompleteButtonClick(): void {
-    console.log('BUTTON CLICKED DIRECTLY - calling markAsCompleted');
     this.markAsCompleted();
   }
 
@@ -473,4 +395,3 @@ export class StudentLessonViewerComponent implements OnInit, OnDestroy {
     this.pdfService.cleanup();
   }
 }
-

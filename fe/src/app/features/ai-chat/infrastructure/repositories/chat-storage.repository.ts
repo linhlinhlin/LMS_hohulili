@@ -85,7 +85,6 @@ export class ChatStorageRepository {
       localStorage.removeItem(testKey);
       return true;
     } catch {
-      console.warn('localStorage is not available. Chat history will not be persisted.');
       return false;
     }
   }
@@ -102,7 +101,6 @@ export class ChatStorageRepository {
       localStorage.setItem(this.getStorageKey('LAST_SESSION_ID'), session.id);
       return true;
     } catch (error) {
-      console.error('Failed to save chat session:', error);
       return false;
     }
   }
@@ -120,13 +118,11 @@ export class ChatStorageRepository {
       const serialized: SerializedSession = JSON.parse(data);
       // Verify session belongs to current user
       if (serialized.userId !== this.currentUserId && this.currentUserId !== '') {
-        console.warn('Session userId mismatch, clearing invalid session');
         this.clearSession();
         return null;
       }
       return this.deserializeSession(serialized);
     } catch (error) {
-      console.error('Failed to load chat session:', error);
       return null;
     }
   }
@@ -143,7 +139,6 @@ export class ChatStorageRepository {
       localStorage.removeItem(this.getStorageKey('LAST_SESSION_ID'));
       return true;
     } catch (error) {
-      console.error('Failed to clear chat session:', error);
       return false;
     }
   }
@@ -168,10 +163,8 @@ export class ChatStorageRepository {
         }
       }
       keysToRemove.forEach(key => localStorage.removeItem(key));
-      console.log(`Cleared ${keysToRemove.length} AI chat storage keys`);
       return true;
     } catch (error) {
-      console.error('Failed to clear all chat sessions:', error);
       return false;
     }
   }
@@ -249,13 +242,11 @@ export class ChatStorageRepository {
       const lastSessionId = this.getLastSessionId();
       // Check if sessionId is NOT a valid UUID (UUIDs have dashes and are 36 chars)
       if (lastSessionId && (!lastSessionId.includes('-') || lastSessionId.length !== 36)) {
-        console.log('Clearing invalid session format:', lastSessionId);
         this.clearSession();
         return true;
       }
       return false;
     } catch (error) {
-      console.error('Failed to clear invalid sessions:', error);
       return false;
     }
   }

@@ -326,7 +326,6 @@ export function exportSubmissionsToCSV(
     const validation = validateExportData(exportData);
     
     if (!validation.isValid) {
-      console.warn('Export validation warnings:', validation.missingFields);
     }
     
     const csvContent = generateCSV(exportData);
@@ -334,8 +333,7 @@ export function exportSubmissionsToCSV(
     
     downloadFile(csvContent, filename);
     return true;
-  } catch (error) {
-    console.error('Export failed:', error);
+  } catch {
     return false;
   }
 }

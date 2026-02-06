@@ -161,7 +161,7 @@ export class ChatService {
       if (isInitialized) {
         // Only react if userId actually changed (not just signal re-read)
         if (previousUserId !== null && previousUserId !== userId) {
-          console.log(`🔄 AI Chat: User changed from ${previousUserId || 'anonymous'} to ${userId || 'anonymous'}, reloading data`);
+
           // Cancel any pending request when user changes
           this.cancelPendingRequest();
           // Clear current messages and reload for new user
@@ -176,7 +176,7 @@ export class ChatService {
           }
         } else if (previousUserId === null && userId) {
           // Initial load for logged-in user
-          console.log(`🔄 AI Chat: Initial load for user ${userId}`);
+
           this.loadSessions();
         }
 
@@ -193,7 +193,7 @@ export class ChatService {
    */
   private cancelPendingRequest(): void {
     if (this.pendingRequest) {
-      console.log('⚠️ Cancelling pending request due to context switch');
+
       this.pendingRequest = null;
       this._isLoading.set(false);
       this._isTyping.set(false);
@@ -227,7 +227,7 @@ export class ChatService {
         this._sessions.set(response.content);
       },
       error: (err) => {
-        console.error('Failed to load sessions', err);
+
       }
     });
   }
@@ -239,7 +239,7 @@ export class ChatService {
   loadSession(sessionId: string): void {
     // CRITICAL: Cancel any pending request before switching sessions
     if (this.pendingRequest) {
-      console.log('⚠️ Switching session while request pending - cancelling old request');
+
       this.cancelPendingRequest();
     }
 
@@ -265,7 +265,7 @@ export class ChatService {
         this._isLoading.set(false);
       },
       error: (err) => {
-        console.error('Failed to load session detail', err);
+
         this._error.set('Không thể tải nội dung cuộc trò chuyện');
         this._isLoading.set(false);
       }
@@ -287,7 +287,7 @@ export class ChatService {
         }
       },
       error: (err) => {
-        console.error('Failed to delete session', err);
+
         this._error.set('Không thể xóa cuộc trò chuyện');
       }
     });
@@ -338,7 +338,7 @@ export class ChatService {
       content: content
     };
 
-    console.log(`📤 Sending message to session: ${sessionId || 'new'}`);
+
 
     // Send to API (Backend Proxy)
     this.apiClient
@@ -357,8 +357,7 @@ export class ChatService {
             // 2. If sessionId changed, we should NOT add to current view
 
             if (requestSessionId !== null && requestSessionId !== currentSessionId) {
-              console.log(`⚠️ Session mismatch! Request was for ${requestSessionId}, but current is ${currentSessionId}`);
-              console.log('   Response will be saved to server but not displayed');
+
 
               // Clear pending request and loading state
               this.pendingRequest = null;
@@ -406,7 +405,7 @@ export class ChatService {
             this.pendingRequest = null;
             this.handleErrorResponse(error, content);
           } else {
-            console.log('⚠️ Error occurred but session changed - suppressing error display');
+
             this.pendingRequest = null;
             this.stopLoadingTimer();
             this._isTyping.set(false);
@@ -607,14 +606,14 @@ export class ChatService {
     // Check for status patterns
     const matchesStatus = this.STATUS_PATTERNS.some(pattern => pattern.test(trimmed));
     if (matchesStatus) {
-      console.log('📊 Detected STATUS message (will skip):', trimmed.substring(0, 50));
+
       this.isInStatusPhase = true;
       return true;
     }
 
     // If we're in status phase and content contains "..." and is short, it's continuation
     if (this.isInStatusPhase && trimmed.length < 100 && trimmed.includes('...')) {
-      console.log('📊 Detected STATUS continuation (will skip):', trimmed.substring(0, 50));
+
       return true;
     }
 
@@ -665,7 +664,7 @@ export class ChatService {
       }
 
       // If we get here, it's likely the real answer
-      console.log('📝 Looks like real answer, ending thinking phase');
+
       this.isReceivingThinking = false;
       return false;
     }
@@ -673,7 +672,7 @@ export class ChatService {
     // Check for real thinking patterns at the START of content
     const matchesThinking = this.REAL_THINKING_PATTERNS.some(pattern => pattern.test(trimmed));
     if (matchesThinking) {
-      console.log('🧠 Detected REAL THINKING content:', trimmed.substring(0, 50));
+
       this.isReceivingThinking = true;
       return true;
     }
@@ -756,31 +755,29 @@ export class ChatService {
     let streamCompleted = false; // Flag to track if we received done event
 
     try {
-      console.log('🎬 Starting streaming for message:', content.substring(0, 50));
+
 
       // Stream from API
       for await (const event of this.apiClient.streamChat(content, sessionId, context)) {
         // Check if stream was already completed (shouldn't happen but safety check)
         if (streamCompleted) {
-          console.log('⚠️ Received event after done, ignoring');
+
           continue;
         }
 
-        // DEBUG: Log all events to understand what AI Service sends
-        console.log('🔍 RAW EVENT:', JSON.stringify(event));
+
 
         // Stop typing indicator after first event
         this._isTyping.set(false);
 
         const eventType = event.type || 'answer';
 
-        // DEBUG: Log event type detection
-        console.log('🔀 SWITCH eventType:', eventType, 'event.type:', event.type);
+
 
         switch (eventType) {
           case 'thinking_start':
             // Thinking started - just log, don't add placeholder text
-            console.log('🧠 Thinking started');
+
             // Don't add "Đang bắt đầu suy luận..." - UI will show this based on isStreaming
             break;
 
@@ -791,11 +788,11 @@ export class ChatService {
 
             // Skip if it's a status message disguised as thinking event
             if (this.isStatusMessage(thinkingEventContent)) {
-              console.log('📊 Skipping status message in thinking event');
+
               break;
             }
 
-            console.log('🧠 Real thinking content:', thinkingEventContent.substring(0, 50));
+
             thinkingContent += thinkingEventContent;
             if (!thinkingEventContent.endsWith('\n')) {
               thinkingContent += '\n';
@@ -820,21 +817,14 @@ export class ChatService {
 
           case 'thinking_end':
             // Thinking completed
-            console.log('🧠 Thinking completed');
+
             break;
 
           case 'answer':
             // Answer chunk - append to full answer with throttle
             const answerContent = event.content || '';
 
-            console.log('📥 Answer event received:', {
-              content: answerContent.substring(0, 100),
-              fullAnswerLength: fullAnswer.length,
-              thinkingContentLength: thinkingContent.length,
-              isInStatusPhase: this.isInStatusPhase,
-              hasSources: !!(event as any).sources,
-              hasQuestions: !!(event as any).suggested_questions
-            });
+
 
             // WORKAROUND: Backend sends empty answer {} as implicit done signal
             // If we have content already and receive empty answer with no additional data,
@@ -845,7 +835,7 @@ export class ChatService {
             const hasExistingContent = fullAnswer.length > 0;
 
             if (hasNoContent && hasNoSources && hasNoQuestions && hasExistingContent) {
-              console.log('🏁 Empty answer event detected with existing content - treating as implicit done');
+
               streamCompleted = true;
               break;
             }
@@ -853,10 +843,9 @@ export class ChatService {
             // Check if sources are included in answer event (some AI services do this)
             const answerSources = (event as any).sources;
             if (answerSources && Array.isArray(answerSources) && answerSources.length > 0) {
-              console.log('📚 Found sources in answer event!');
-              console.log('📚 Raw sources count:', answerSources.length);
+
               sources = this.mapSourcesToFrontend(answerSources);
-              console.log('📚 Mapped sources count:', sources.length);
+
 
               // IMPORTANT: Update message metadata with sources IMMEDIATELY
               // Don't wait until stream ends - sources should be visible right away
@@ -870,7 +859,7 @@ export class ChatService {
                       sources: sources,
                     },
                   };
-                  console.log('📚 Message updated with sources at index:', messageIndex);
+
                 }
                 return updated;
               });
@@ -879,7 +868,7 @@ export class ChatService {
             // Check if suggested_questions are in answer event
             const answerQuestions = (event as any).suggested_questions || (event as any).questions;
             if (answerQuestions && Array.isArray(answerQuestions) && answerQuestions.length > 0) {
-              console.log('❓ Found suggestions in answer event!');
+
               suggestedQuestions = answerQuestions;
               // Update suggested questions immediately
               this._suggestedQuestions.set(suggestedQuestions);
@@ -895,14 +884,14 @@ export class ChatService {
 
             // Exit status phase when real content arrives
             if (this.isInStatusPhase && answerContent.length > 0) {
-              console.log('📝 Real content started, exiting status phase');
+
               this.isInStatusPhase = false;
             }
 
             // Check if this is REAL THINKING content (AI reasoning)
             // This should go to thinking panel, not main answer
             if (this.isRealThinkingContent(answerContent)) {
-              console.log('🧠 Adding to thinking content:', answerContent.substring(0, 50));
+
               thinkingContent += answerContent;
               if (!answerContent.endsWith('\n')) {
                 thinkingContent += '\n';
@@ -954,18 +943,15 @@ export class ChatService {
             // 1. event.sources (array)
             // 2. event.data.sources (nested)
             // 3. Direct array in event
-            console.log('📚📚📚 SOURCES EVENT RECEIVED! 📚📚📚');
-            console.log('📚 Raw event:', JSON.stringify(event));
-            console.log('📚 event.sources:', event.sources);
-            console.log('📚 event.data?.sources:', (event as any).data?.sources);
+
 
             const sourcesData = event.sources || (event as any).data?.sources || (Array.isArray(event) ? event : null);
-            console.log('📚 sourcesData extracted:', sourcesData);
+
 
             if (sourcesData && Array.isArray(sourcesData)) {
               sources = this.mapSourcesToFrontend(sourcesData);
-              console.log('📚 Mapped sources count:', sources.length);
-              console.log('📚 Mapped sources detail:', JSON.stringify(sources));
+
+
 
               // Update message metadata with sources immediately
               this._messages.update((msgs) => {
@@ -978,15 +964,13 @@ export class ChatService {
                       sources: sources
                     }
                   };
-                  console.log('📚 Message updated with sources at index:', messageIndex);
-                  console.log('📚 Updated message metadata:', JSON.stringify(updated[messageIndex].metadata));
+
+
                 }
                 return updated;
               });
             } else {
-              console.log('⚠️ Sources event has no valid sources array');
-              console.log('⚠️ sourcesData type:', typeof sourcesData);
-              console.log('⚠️ Is array:', Array.isArray(sourcesData));
+
             }
             break;
 
@@ -994,21 +978,21 @@ export class ChatService {
             // Suggested questions for follow-up
             if (event.questions) {
               suggestedQuestions = event.questions;
-              console.log('❓ Received suggestions:', suggestedQuestions.length);
+
             }
             break;
 
           case 'metadata':
             // Metadata event - processing info
             // Extract session_id if present
-            console.log('📊 Metadata event:', JSON.stringify(event));
+
             if ((event as any).session_id) {
               receivedSessionId = (event as any).session_id;
             }
             // Check if sources are included in metadata
             const metaSources = (event as any).sources || (event as any).data?.sources;
             if (metaSources && Array.isArray(metaSources) && metaSources.length > 0) {
-              console.log('📚 Found sources in metadata event!');
+
               sources = this.mapSourcesToFrontend(metaSources);
               this._messages.update((msgs) => {
                 const updated = [...msgs];
@@ -1028,20 +1012,20 @@ export class ChatService {
 
           case 'done':
             // Stream completed - mark as done
-            console.log('✅ Stream completed via done event:', JSON.stringify(event));
+
             streamCompleted = true;
 
             // Check if sources are included in done event
             const doneSources = (event as any).sources || (event as any).data?.sources;
             if (doneSources && Array.isArray(doneSources) && doneSources.length > 0) {
-              console.log('📚 Found sources in done event!');
+
               sources = this.mapSourcesToFrontend(doneSources);
             }
 
             // Check if suggested_questions are in done event
             const doneQuestions = (event as any).suggested_questions || (event as any).questions;
             if (doneQuestions && Array.isArray(doneQuestions) && doneQuestions.length > 0) {
-              console.log('❓ Found suggestions in done event!');
+
               suggestedQuestions = doneQuestions;
             }
 
@@ -1079,7 +1063,7 @@ export class ChatService {
 
         // CRITICAL: Break out of for-await loop when done event received
         if (streamCompleted) {
-          console.log('🛑 Breaking out of stream loop after done event');
+
           break;
         }
       }
@@ -1113,11 +1097,7 @@ export class ChatService {
       this.resetStatusPhase();
 
       // Update final message with sources and thinking (stored in metadata)
-      console.log('📝 Finalizing message with sources:', sources.length, 'sources');
-      console.log('📝 Sources array:', JSON.stringify(sources));
-      console.log('📝 fullAnswer length:', fullAnswer.length);
-      console.log('📝 thinkingContent length:', thinkingContent.length);
-      console.log('📝 suggestedQuestions:', suggestedQuestions);
+
       this._messages.update((msgs) => {
         const updated = [...msgs];
         if (updated[messageIndex]) {
@@ -1130,7 +1110,7 @@ export class ChatService {
               thinking: thinkingContent || undefined // Thinking stored in metadata
             }
           };
-          console.log('✅ Message updated with sources:', updated[messageIndex].metadata?.sources?.length);
+
         }
         return updated;
       });
@@ -1141,10 +1121,10 @@ export class ChatService {
       }
 
       this.lastFailedMessage = null;
-      console.log('🎉 Streaming completed successfully');
+
 
     } catch (error) {
-      console.error('❌ Streaming error:', error);
+
       this.pendingRequest = null;
       this.stopLoadingTimer();
       this._isStreaming.set(false);
@@ -1243,7 +1223,7 @@ export class ChatService {
   loadHistory(): void {
     const userId = this.sessionService.currentUserId();
     if (!userId) {
-      console.log('No user ID, skipping history load');
+
       return;
     }
 
@@ -1266,10 +1246,10 @@ export class ChatService {
         this.historyOffset = response.data.length;
         this.hasMoreHistory = response.data.length >= this.HISTORY_LIMIT;
 
-        console.log(`✅ Loaded ${messages.length} messages from server`);
+
       },
       error: (err) => {
-        console.error('Failed to load history from server', err);
+
         // Fallback: Don't show error to user, just start fresh
         this._messages.set([]);
       }
@@ -1303,10 +1283,10 @@ export class ChatService {
         this.hasMoreHistory = response.data.length >= this.HISTORY_LIMIT;
         this.isLoadingMoreHistory = false;
 
-        console.log(`✅ Loaded ${olderMessages.length} more messages`);
+
       },
       error: (err) => {
-        console.error('Failed to load more history', err);
+
         this.isLoadingMoreHistory = false;
       }
     });
@@ -1338,8 +1318,8 @@ export class ChatService {
     // Clear from server if user is logged in
     if (userId) {
       this.apiClient.deleteChatHistory(userId).subscribe({
-        next: () => console.log('✅ History cleared from server'),
-        error: (err) => console.error('Failed to clear server history', err)
+        next: () => {},
+        error: () => {}
       });
     }
   }

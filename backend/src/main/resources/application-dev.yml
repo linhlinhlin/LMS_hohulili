@@ -26,8 +26,9 @@ spring:
       leak-detection-threshold: 60000 # Detect connection leaks in dev
       pool-name: LMS-HikariPool
   jpa:
+    show-sql: true
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
@@ -45,8 +46,8 @@ spring:
     baseline-on-migrate: true
     baseline-version: 0
     locations: classpath:db/migration
-    validate-on-migrate: true
-    out-of-order: false
+    validate-on-migrate: false
+    out-of-order: true
     clean-disabled: false
 
 logging:
@@ -57,5 +58,10 @@ logging:
 
 server:
   port: ${SERVER_PORT:8080}  # Unified: 8080 everywhere for consistency
+
+# Disable Cloudflare R2 in dev (requires credentials)
+cloudflare:
+  r2:
+    enabled: false
 
 

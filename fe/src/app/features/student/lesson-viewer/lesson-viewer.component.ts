@@ -1,5 +1,5 @@
-import { Component, signal, inject, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, signal, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
+
 import { ActivatedRoute, Router } from '@angular/router';
 import { VideoPlayerTrackedComponent } from '../../../shared/components/video-player-tracked/video-player-tracked.component';
 import { VideoProgressApi, CanProceedResponse } from '../../../api/client/video-progress.api';
@@ -13,9 +13,9 @@ interface LessonSection {
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-lesson-viewer',
-  standalone: true,
-  imports: [CommonModule, VideoPlayerTrackedComponent],
+  imports: [VideoPlayerTrackedComponent],
   template: `
     <div class="lesson-viewer-container">
       <!-- Lesson Header -->
@@ -291,7 +291,6 @@ export class LessonViewerComponent implements OnInit {
         }
       },
       error: (error: any) => {
-        console.error('Failed to check can proceed:', error);
         // Default to locked on error
         this.canProceed.set(false);
         this.lockMessage.set('Không thể kiểm tra tiến độ. Vui lòng thử lại.');

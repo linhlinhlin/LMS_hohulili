@@ -76,7 +76,6 @@ export class GlobalState {
 
       this.updateLastActivity();
     } catch (error) {
-      console.error('Application initialization failed:', error);
     } finally {
       this._isInitializing.set(false);
     }
@@ -92,7 +91,6 @@ export class GlobalState {
 
       this.updateLastActivity();
     } catch (error) {
-      console.error('Data refresh failed:', error);
     }
   }
 

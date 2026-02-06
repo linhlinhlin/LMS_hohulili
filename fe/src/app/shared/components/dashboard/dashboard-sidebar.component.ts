@@ -1,12 +1,12 @@
-import { Component, inject, input } from "@angular/core"
-import { CommonModule } from "@angular/common"
+import { Component, inject, input, ChangeDetectionStrategy } from "@angular/core"
+
 import { RouterModule } from "@angular/router"
 import { AuthService } from "../../../core/services/auth.service"
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: "app-dashboard-sidebar",
-  standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [RouterModule],
   template: `
     <aside [class]="sidebarClasses()">
       <div class="p-6">

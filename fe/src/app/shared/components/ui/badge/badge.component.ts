@@ -1,13 +1,13 @@
-import { Component, input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, input, ChangeDetectionStrategy } from '@angular/core';
+
 
 type BadgeVariant = 'success' | 'warning' | 'error' | 'info' | 'default';
 type BadgeSize = 'sm' | 'md' | 'lg';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-badge',
-  standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
     <span [class]="badgeClasses()">
       <ng-content></ng-content>

@@ -1,5 +1,5 @@
-import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, signal, OnInit, ViewChild } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, signal, OnInit, viewChild } from '@angular/core';
+
 import { ReactiveFormsModule, FormBuilder, Validators, FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { CreateAssignmentRequest } from '../../../api/client/assignment.api';
@@ -30,8 +30,7 @@ interface EnrolledStudentData {
  */
 @Component({
   selector: 'app-assignment-creation',
-  standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterModule, FileUploadComponent, DistributionSelectorComponent],
+  imports: [ReactiveFormsModule, FormsModule, RouterModule, FileUploadComponent, DistributionSelectorComponent],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="max-w-10xl mx-auto pb-20 p-8">
@@ -280,7 +279,7 @@ export class AssignmentCreationComponent implements OnInit {
   private fb = inject(FormBuilder);
   private router = inject(Router);
 
-  @ViewChild('distributionSelector') distributionSelector?: DistributionSelectorComponent;
+  readonly distributionSelector = viewChild<DistributionSelectorComponent>('distributionSelector');
 
   // State signals
   submitting = signal(false);
@@ -355,7 +354,6 @@ export class AssignmentCreationComponent implements OnInit {
         }
       },
       error: (err: unknown) => {
-        console.error('Error loading courses:', err);
         this.error.set('Không thể tải danh sách khóa học');
       },
       complete: () => {
@@ -383,8 +381,6 @@ export class AssignmentCreationComponent implements OnInit {
         }
       },
       error: (err: unknown) => {
-        console.error('Error loading enrolled students:', err);
-        // Set empty array on error
         this.enrolledStudents.set([]);
       },
       complete: () => {
@@ -451,7 +447,7 @@ export class AssignmentCreationComponent implements OnInit {
     if (settings.distributionType === 'CLASS' && !settings.classId) {
       this.error.set('VUI LÒNG CHỌN LỚP HỌC ĐỂ GIAO BÀI TẬP');
       // Scroll to selector for visibility
-      this.distributionSelector?.validate();
+      this.distributionSelector()?.validate();
       return;
     }
 
@@ -490,7 +486,6 @@ export class AssignmentCreationComponent implements OnInit {
         }
       },
       error: (err: unknown) => {
-        console.error('Error creating assignment:', err);
         this.error.set('Tạo bài tập thất bại');
       },
       complete: () => {

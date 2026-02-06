@@ -1,5 +1,5 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, OnInit, signal, ChangeDetectionStrategy } from '@angular/core';
+
 import { AiKnowledgeService } from './services/ai-knowledge.service';
 import { KnowledgeStatsComponent } from './components/knowledge-stats.component';
 import { KnowledgeDocumentListComponent } from './components/knowledge-document-list.component';
@@ -8,15 +8,14 @@ import { DeleteConfirmModalComponent } from './components/delete-confirm-modal.c
 import { KnowledgeStats, KnowledgeDocument } from './domain/knowledge.types';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
     selector: 'app-ai-knowledge-page',
-    standalone: true,
     imports: [
-        CommonModule,
-        KnowledgeStatsComponent,
-        KnowledgeDocumentListComponent,
-        KnowledgeUploadComponent,
-        DeleteConfirmModalComponent
-    ],
+    KnowledgeStatsComponent,
+    KnowledgeDocumentListComponent,
+    KnowledgeUploadComponent,
+    DeleteConfirmModalComponent
+],
     template: `
     <div class="page-container">
       <div class="page-header">
@@ -116,28 +115,26 @@ export class AiKnowledgePageComponent implements OnInit {
     loadStats() {
         this.knowledgeService.getStats().subscribe({
             next: (data) => this.stats.set(data),
-            error: (err) => console.error('Failed to load stats', err)
+            error: () => {}
         });
     }
 
     loadDocuments() {
         this.knowledgeService.getDocuments().subscribe({
             next: (data) => this.documents.set(data),
-            error: (err) => console.error('Failed to load documents', err)
+            error: () => {}
         });
     }
 
     onUpload(event: { file: File, category: string }) {
         this.isUploading.set(true);
         this.knowledgeService.uploadDocument(event.file, event.category).subscribe({
-            next: (res) => {
-                console.log('Upload success', res);
+            next: () => {
                 this.isUploading.set(false);
                 this.loadData(); // Reload data
                 alert('Tải lên thành công! Tài liệu đang được xử lý.');
             },
-            error: (err) => {
-                console.error('Upload failed', err);
+            error: () => {
                 this.isUploading.set(false);
                 alert('Tải lên thất bại. Vui lòng thử lại.');
             }
@@ -159,8 +156,7 @@ export class AiKnowledgePageComponent implements OnInit {
                 this.documentToDelete.set(null);
                 this.loadData(); // Reload data
             },
-            error: (err) => {
-                console.error('Delete failed', err);
+            error: () => {
                 alert('Xóa thất bại. Vui lòng thử lại.');
             }
         });

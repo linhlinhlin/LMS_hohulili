@@ -30,6 +30,12 @@ export interface SubmitAttemptRequest {
   answers: Record<string, string>;
 }
 
+// BE expects List<AttemptAnswer> with { questionId, selectedOptionId }
+export interface AttemptAnswer {
+  questionId: string;
+  selectedOptionId: string;
+}
+
 export interface CreateLessonQuizRequest {
   title: string;
   description?: string;
@@ -241,40 +247,41 @@ export class QuizApi {
   }
 
   /**
-   * Update quiz questions
+   * Update quiz questions (by quizId)
    */
-  updateQuizQuestions(lessonId: string, request: UpdateQuizQuestionsRequest) {
+  updateQuizQuestions(quizId: string, request: UpdateQuizQuestionsRequest) {
     return this.apiClient.put<QuizResponse>(
-      QUIZ_ENDPOINTS.QUIZ_QUESTIONS(lessonId),
+      QUIZ_ENDPOINTS.QUIZ_QUESTIONS(quizId),
       request
     );
   }
 
   /**
-   * Get quiz questions
+   * Get quiz questions (by quizId)
    */
-  getQuizQuestions(lessonId: string) {
+  getQuizQuestions(quizId: string) {
     return this.apiClient.get<Question[]>(
-      QUIZ_ENDPOINTS.QUIZ_QUESTIONS(lessonId)
+      QUIZ_ENDPOINTS.QUIZ_QUESTIONS(quizId)
     );
   }
 
   /**
-   * Add question to existing quiz
+   * Add question to existing quiz (by quizId)
+   * BE expects: { questionId: UUID, displayOrder: number }
    */
-  addQuestionToQuiz(lessonId: string, questionId: string) {
+  addQuestionToQuiz(quizId: string, questionId: string, displayOrder: number = 0) {
     return this.apiClient.post<QuizResponse>(
-      QUIZ_ENDPOINTS.ADD_QUESTION(lessonId),
-      { questionId }
+      QUIZ_ENDPOINTS.ADD_QUESTION(quizId),
+      { questionId, displayOrder }
     );
   }
 
   /**
-   * Remove question from quiz
+   * Remove question from quiz (by quizId)
    */
-  removeQuestionFromQuiz(lessonId: string, questionId: string) {
+  removeQuestionFromQuiz(quizId: string, questionId: string) {
     return this.apiClient.delete<{ message: string }>(
-      QUIZ_ENDPOINTS.REMOVE_QUESTION(lessonId, questionId)
+      QUIZ_ENDPOINTS.REMOVE_QUESTION(quizId, questionId)
     );
   }
 
@@ -313,11 +320,19 @@ export class QuizApi {
 
   /**
    * Submit quiz attempt
+   * BE expects List<AttemptAnswer> (array), not { answers: Record }
    */
-  submitAttempt(attemptId: string, request: SubmitAttemptRequest) {
+  submitAttempt(attemptId: string, request: SubmitAttemptRequest | AttemptAnswer[]) {
+    // Convert Record<questionId, optionId> to AttemptAnswer[] if needed
+    const body = Array.isArray(request)
+      ? request
+      : Object.entries(request.answers).map(([questionId, selectedOptionId]) => ({
+          questionId,
+          selectedOptionId
+        }));
     return this.apiClient.post<QuizAttemptResponse>(
       QUIZ_ENDPOINTS.SUBMIT_ATTEMPT(attemptId),
-      request
+      body
     );
   }
 

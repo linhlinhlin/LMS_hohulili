@@ -94,10 +94,10 @@
         <div class="text-center mb-8">
           <h1 class="text-4xl font-bold mb-3"
               style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #92400e 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
-            ChĂ o má»«ng trá»Ÿ láº¡i
+            Chào mừng trở lại
           </h1>
           <p class="text-lg text-blue-600 font-medium">
-            ÄÄƒng nháº­p Ä‘á»ƒ tiáº¿n tá»›i Ä‘áº¡i háº£i trĂ¬nh
+            Đăng nhập để tiến tới đại hải trình
           </p>
         </div>
 
@@ -106,7 +106,7 @@
           <!-- Email Field -->
           <div class="input-wrapper form-element">
             <label for="email" class="input-label">
-              Email hoáº·c tĂªn Ä‘Äƒng nháº­p
+              Email hoặc tên đăng nhập
             </label>
             <input id="email"
                    name="email"
@@ -125,9 +125,9 @@
                 <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
               </svg>
               @if (loginForm.get('email')?.errors?.['required']) {
-                Email hoáº·c tĂªn Ä‘Äƒng nháº­p lĂ  báº¯t buá»™c
+                Email hoặc tên đăng nhập là bắt buộc
               } @else if (loginForm.get('email')?.errors?.['emailOrUsername']) {
-                Email hoáº·c tĂªn Ä‘Äƒng nháº­p khĂ´ng há»£p lá»‡
+                Email hoặc tên đăng nhập không hợp lệ
               }
             </p>
           }
@@ -135,14 +135,14 @@
           <!-- Password Field -->
           <div class="input-wrapper form-element">
             <label for="password" class="input-label">
-              Máº­t kháº©u
+              Mật khẩu
             </label>
             <input id="password"
                    name="password"
                    [type]="showPassword() ? 'text' : 'password'"
                    formControlName="password"
                    autocomplete="current-password"
-                   placeholder="Â·Â·Â·Â·Â·Â·"
+                   placeholder="······"
                    [attr.aria-invalid]="loginForm.get('password')?.invalid || null"
                    [attr.aria-describedby]="loginForm.get('password')?.invalid ? 'password-error' : null"
                    class="input-field block w-full px-4 py-4 border-2 border-gray-200 rounded-xl text-base pr-12 placeholder-gray-400"
@@ -170,7 +170,7 @@
                 <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
               </svg>
               @if (loginForm.get('password')?.errors?.['required']) {
-                Máº­t kháº©u lĂ  báº¯t buá»™c
+                Mật khẩu là bắt buộc
               }
             </p>
           }
@@ -184,14 +184,14 @@
                      formControlName="rememberMe"
                      class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
               <label for="remember-me" class="ml-2 block text-sm text-gray-700">
-                Ghi nhá»› Ä‘Äƒng nháº­p
+                Ghi nhớ đăng nhập
               </label>
             </div>
 
             <div class="text-sm">
               <a routerLink="/auth/forgot-password" 
                  class="font-medium text-blue-600 hover:text-blue-700 transition-colors">
-                QuĂªn máº­t kháº©u?
+                Quên mật khẩu?
               </a>
             </div>
           </div>
@@ -204,7 +204,7 @@
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
                 </svg>
                 <div>
-                  <h3 class="text-sm font-semibold text-green-900">ÄÄƒng nháº­p thĂ nh cĂ´ng!</h3>
+                  <h3 class="text-sm font-semibold text-green-900">Đăng nhập thành công!</h3>
                   <p class="text-sm text-green-700 mt-1">{{ successMessage() }}</p>
                 </div>
               </div>
@@ -219,7 +219,7 @@
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
                 </svg>
                 <div>
-                  <h3 class="text-sm font-semibold text-red-900">ÄÄƒng nháº­p tháº¥t báº¡i</h3>
+                  <h3 class="text-sm font-semibold text-red-900">Đăng nhập thất bại</h3>
                   <p class="text-sm text-red-700 mt-1">{{ errorMessage() }}</p>
                 </div>
               </div>
@@ -236,12 +236,12 @@
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                <span>Äang Ä‘Äƒng nháº­p...</span>
+                <span>Đang đăng nhập...</span>
               } @else {
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
                 </svg>
-                <span>ÄÄƒng nháº­p</span>
+                <span>Đăng nhập</span>
               }
             </button>
           </div>
@@ -254,7 +254,7 @@
               <div class="w-full border-t border-gray-200"></div>
             </div>
             <div class="relative flex justify-center text-sm">
-              <span class="px-4 bg-white text-gray-500">Hoáº·c Ä‘Äƒng nháº­p vá»›i</span>
+              <span class="px-4 bg-white text-gray-500">Hoặc đăng nhập với</span>
             </div>
           </div>
         </div>
@@ -263,7 +263,7 @@
         <div class="mt-6 form-element">
           <div class="flex justify-center gap-4">
             <button type="button"
-                    aria-label="Tiáº¿p tá»¥c báº±ng Google"
+                    aria-label="Tiếp tục bằng Google"
                     class="social-btn flex items-center justify-center w-12 h-12 border-2 border-gray-200 rounded-xl bg-white">
               <svg class="w-6 h-6" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -273,14 +273,14 @@
               </svg>
             </button>
             <button type="button"
-                    aria-label="Tiáº¿p tá»¥c báº±ng Facebook"
+                    aria-label="Tiếp tục bằng Facebook"
                     class="social-btn flex items-center justify-center w-12 h-12 border-2 border-gray-200 rounded-xl bg-white">
               <svg class="w-6 h-6" fill="#1877F2" viewBox="0 0 24 24">
                 <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
               </svg>
             </button>
             <button type="button"
-                    aria-label="Tiáº¿p tá»¥c báº±ng Apple"
+                    aria-label="Tiếp tục bằng Apple"
                     class="social-btn flex items-center justify-center w-12 h-12 border-2 border-gray-200 rounded-xl bg-white">
               <svg class="w-6 h-6" fill="#000000" viewBox="0 0 24 24">
                 <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
@@ -292,10 +292,10 @@
         <!-- Sign Up Link -->
         <div class="mt-8 text-center form-element">
           <p class="text-sm text-gray-600">
-            Báº¡n khĂ´ng cĂ³ tĂ i khoáº£n? 
+            Bạn không có tài khoản? 
             <a routerLink="/auth/register" 
                class="font-semibold text-blue-600 hover:text-blue-700 transition-colors">
-              ÄÄƒng kĂ½
+              Đăng ký
             </a>
           </p>
         </div>

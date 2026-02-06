@@ -1,5 +1,5 @@
 import { Component, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule, NgOptimizedImage } from '@angular/common';
+import { NgOptimizedImage } from '@angular/common';
 import { RouterModule } from '@angular/router';
 
 interface Course {
@@ -16,7 +16,7 @@ interface Course {
 
 @Component({
   selector: 'app-featured-courses',
-  imports: [CommonModule, RouterModule, NgOptimizedImage],
+  imports: [RouterModule, NgOptimizedImage],
   encapsulation: ViewEncapsulation.None,
   template: `
     <section class="py-16 bg-gray-50">

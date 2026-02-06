@@ -22,4 +22,10 @@ public interface CourseRepository {
     // Lookup Aggregate Root by Child ID (for clean DDD updates)
     java.util.Optional<Course> findByChapterId(UUID chapterId);
     java.util.Optional<Course> findByLessonId(UUID lessonId);
+
+    // Full aggregate loading (with chapters/lessons)
+    Optional<Course> findByIdWithContent(UUID id);
+
+    // Version numbering
+    Integer getNextVersionNumber(UUID courseId);
 }

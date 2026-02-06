@@ -1,5 +1,5 @@
-import { Component, input, signal, computed, ChangeDetectionStrategy, effect } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, input, signal, computed, ChangeDetectionStrategy, effect, inject } from '@angular/core';
+
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { ContentIdentityService } from '../../../core/services/content-identity.service';
 import katex from 'katex';
@@ -18,9 +18,8 @@ import katex from 'katex';
  */
 @Component({
   selector: 'app-question-preview',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule],
+  imports: [],
   template: `
     <div class="bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
       <!-- Header -->
@@ -145,6 +144,9 @@ import katex from 'katex';
   `]
 })
 export class QuestionPreviewComponent {
+  private sanitizer = inject(DomSanitizer);
+  private identityService = inject(ContentIdentityService);
+
   // Signal inputs - Angular v20+
   correctOption = input<string>('');
   showCorrectAnswer = input<boolean>(true);
@@ -165,11 +167,6 @@ export class QuestionPreviewComponent {
       html: this.renderContent(opt.content)
     }));
   });
-
-  constructor(
-    private sanitizer: DomSanitizer,
-    private identityService: ContentIdentityService
-  ) { }
 
   hasContent(): boolean {
     return !!this.questionContent() && this.questionContent().trim().length > 0;
@@ -210,7 +207,6 @@ export class QuestionPreviewComponent {
         });
       });
     } catch (e) {
-      console.warn('Math render error', e);
     }
 
     return this.sanitizer.bypassSecurityTrustHtml(result);

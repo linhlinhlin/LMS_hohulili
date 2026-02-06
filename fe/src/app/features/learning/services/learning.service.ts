@@ -1,6 +1,6 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { forkJoin, of, Observable } from 'rxjs';
-import { catchError, tap, map } from 'rxjs/operators';
+import { catchError, map } from 'rxjs/operators';
 import { CourseApi } from '../../../api/client/course.api';
 import { LessonApi } from '../../../api/client/lesson.api';
 import { ApiClient } from '../../../api/client/api-client';
@@ -165,11 +165,7 @@ export class LearningService {
   enrollCourse(courseId: string): Observable<any> {
     // TODO: Implement actual enrollment API when available
     // For now, return success to test the flow
-    return of({ success: true }).pipe(
-      tap(() => {
-        console.log('Enrolled in course:', courseId);
-      })
-    );
+    return of({ success: true });
   }
 
   /**
@@ -186,26 +182,22 @@ export class LearningService {
     // Load course info, content, and progress in parallel
     forkJoin({
       courseInfo: this.courseApi.getCourseById(courseId).pipe(
-        catchError(err => {
-          console.error('Error loading course info:', err);
+        catchError(() => {
           return of(null);
         })
       ),
       courseContent: this.courseApi.getCourseContent(courseId).pipe(
-        catchError(err => {
-          console.error('Error loading course content:', err);
+        catchError(() => {
           return of(null);
         })
       ),
       courseProgress: this.getCourseProgress(courseId).pipe(
-        catchError(err => {
-          console.error('Error loading course progress:', err);
+        catchError(() => {
           return of(null);
         })
       )
     }).subscribe({
       next: ({ courseInfo, courseContent, courseProgress }) => {
-        console.log('[LearningService] Course loaded successfully, progress data:', courseProgress);
         if (!courseInfo || !courseContent) {
           this.courseState.update(state => ({
             ...state,
@@ -233,9 +225,7 @@ export class LearningService {
         const sections = this.mapSections(courseContent.data || []);
 
         // Merge progress data
-        console.log('[LearningService] About to merge progress:', courseProgress);
         const mergedSections = this.mergeProgressIntoSections(sections, courseProgress);
-        console.log('[LearningService] Merged sections completed');
 
         // Update state
         this.courseState.set({
@@ -264,15 +254,7 @@ export class LearningService {
             ...state,
             progressPercentage
           }));
-
-          console.log('[LearningService] Updated progress from backend:', {
-            completedLessonIds,
-            progressPercentage,
-            totalLessons: total
-          });
         } else {
-          // ❗ Chỉ fallback localStorage nếu BE không trả gì
-          console.log('[LearningService] No progress from backend, falling back to localStorage');
           this.loadProgressFromStorage(courseId);
         }
 
@@ -354,19 +336,6 @@ export class LearningService {
             isRequired: s.isRequired ?? false
           }))
         };
-
-        console.log('[LearningService] Loaded lesson:', {
-          id: lessonDetail.id,
-          title: lessonDetail.title,
-          lessonType: lessonDetail.lessonType,
-          backendLessonType: data.lessonType,
-          sectionsCount: lessonDetail.sections?.length || 0
-        });
-
-        console.log('[LearningService] Raw API response data:', {
-          data,
-          sections: lessonDetail.sections
-        });
 
         // Cache the lesson
         this.lessonCache.set(lessonId, lessonDetail);
@@ -510,9 +479,6 @@ export class LearningService {
   private getCourseProgress(courseId: string) {
     const url = `/api/v3/student/progress/courses/${courseId}/completed-ids`;
     return this.api.get<any>(url).pipe(
-      tap(res => {
-        console.log('[LearningService] Raw course progress response:', res);
-      }),
       map(res => {
         // Extract completedLessonIds from either direct response or data wrapper
         const completedLessonIds =
@@ -520,7 +486,6 @@ export class LearningService {
           res?.completedLessonIds ??
           [];
 
-        console.log('[LearningService] Extracted completedLessonIds:', completedLessonIds);
         return { completedLessonIds };
       })
     );
@@ -531,16 +496,10 @@ export class LearningService {
 
   private mergeProgressIntoSections(sections: Section[], progress: any): Section[] {
     if (!progress?.completedLessonIds || !Array.isArray(progress.completedLessonIds)) {
-      console.log('[LearningService] No progress data to merge');
       return sections;
     }
 
     const completedSet = new Set(progress.completedLessonIds);
-
-    console.log('[LearningService] Merging progress into sections:', {
-      completedLessonIds: progress.completedLessonIds,
-      sectionsCount: sections.length
-    });
 
     return sections.map(section => ({
       ...section,
@@ -636,7 +595,6 @@ export class LearningService {
         }));
       }
     } catch (error) {
-      console.error('Error loading progress from storage:', error);
     }
   }
 
@@ -654,7 +612,6 @@ export class LearningService {
       };
       localStorage.setItem(key, JSON.stringify(data));
     } catch (error) {
-      console.error('Error saving progress to storage:', error);
     }
   }
 }

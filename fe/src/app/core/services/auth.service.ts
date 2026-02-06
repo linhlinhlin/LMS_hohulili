@@ -43,12 +43,8 @@ export class AuthService {
   public currentUser$ = this.currentUserSubject.asObservable();
 
   login(credentials: { email: string; password: string }): Observable<AuthResponse> {
-    console.log('🔐 AuthService.login called with:', credentials);
-    console.log('🔗 Login endpoint:', AUTH_ENDPOINTS.LOGIN);
-
     // Update expected type to ApiResponse<AuthResponse>
     const loginRequest = this.http.post<ApiResponse<AuthResponse>>(AUTH_ENDPOINTS.LOGIN, credentials);
-    console.log('🔗 Login HTTP request created');
 
     return loginRequest.pipe(
       // Extract data from ApiResponse
@@ -59,7 +55,6 @@ export class AuthService {
         return response.data;
       }),
       tap(data => {
-        console.log('✅ Login successful:', data);
         this.setTokens(data.accessToken, data.refreshToken);
         this.setUser(data.user);
         // Normalize role for currentUserSubject too
@@ -67,9 +62,6 @@ export class AuthService {
         this.currentUserSubject.next(normalizedUser);
       }),
       catchError(error => {
-        console.error('❌ Login failed:', error);
-        console.error('❌ Error status:', error.status);
-        console.error('❌ Error message:', error.message);
         throw error;
       })
     );
@@ -87,16 +79,9 @@ export class AuthService {
     // ✅ FIXED: Specify 'text' response type since backend returns plain text
     // Call backend logout (fire and forget)
     this.http.post(AUTH_ENDPOINTS.LOGOUT, {}, { responseType: 'text' }).subscribe({
-      next: (response) => {
-        console.log('✅ Logout successful:', response);
+      next: () => {
       },
-      error: (err) => {
-        // If it's a 200 response with text body, treat as success
-        if (err.status === 200) {
-          console.log('✅ Logout successful (status 200 with text response):', err.error);
-        } else {
-          console.warn('⚠️ Logout API call failed, but continuing with local logout:', err);
-        }
+      error: () => {
       }
     });
 

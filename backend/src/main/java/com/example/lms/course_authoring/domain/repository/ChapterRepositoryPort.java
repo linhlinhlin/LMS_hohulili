@@ -1,7 +1,5 @@
 package com.example.lms.course_authoring.domain.repository;
 
-import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -9,11 +7,7 @@ import java.util.UUID;
  */
 public interface ChapterRepositoryPort {
 
-    void save(UUID courseId, String title, String description, Integer orderIndex);
-
-    Optional<Object> findById(UUID id);
-
-    List<Object> findByCourseId(UUID courseId);
+    UUID save(UUID courseId, String title, String description, Integer orderIndex);
 
     void deleteById(UUID id);
 }

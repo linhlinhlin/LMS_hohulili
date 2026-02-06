@@ -4,10 +4,20 @@ import com.example.lms.assessment.domain.model.Assignment;
 import com.example.lms.assessment.domain.model.AssignmentId;
 import com.example.lms.assessment.domain.repository.AssignmentRepository;
 import com.example.lms.assessment.infrastructure.persistence.entity.AssignmentJpaEntity;
+import com.example.lms.assessment.infrastructure.persistence.repository.AssignmentAllocationJpaRepository;
+import com.example.lms.assessment.infrastructure.persistence.repository.AssignmentAllocationStudentJpaRepository;
+import com.example.lms.assessment.infrastructure.persistence.repository.AssignmentAttachmentJpaRepository;
 import com.example.lms.assessment.infrastructure.persistence.repository.AssignmentJpaRepository;
-import lombok.RequiredArgsConstructor;
+import com.example.lms.assessment.infrastructure.persistence.repository.AssignmentRubricJpaRepository;
+import com.example.lms.assessment.infrastructure.persistence.repository.AssignmentSubmissionJpaRepository;
+import com.example.lms.assessment.infrastructure.persistence.repository.LessonAssignmentJpaRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
 
+import com.example.lms.assessment.infrastructure.persistence.entity.AssignmentAllocationJpaEntity;
+import com.example.lms.assessment.infrastructure.persistence.entity.AssignmentAllocationStudentJpaEntity;
+
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -18,13 +28,33 @@ import java.util.stream.Collectors;
  * Bridges domain layer with JPA persistence.
  */
 @Repository
+@Slf4j
 public class AssignmentRepositoryAdapter implements AssignmentRepository {
 
-    public AssignmentRepositoryAdapter(AssignmentJpaRepository jpaRepository) {
-        this.jpaRepository = jpaRepository;
-    }
-
     private final AssignmentJpaRepository jpaRepository;
+    private final AssignmentAllocationJpaRepository allocationRepository;
+    private final AssignmentAllocationStudentJpaRepository allocationStudentRepository;
+    private final AssignmentSubmissionJpaRepository submissionRepository;
+    private final AssignmentRubricJpaRepository rubricRepository;
+    private final AssignmentAttachmentJpaRepository attachmentRepository;
+    private final LessonAssignmentJpaRepository lessonAssignmentRepository;
+
+    public AssignmentRepositoryAdapter(
+            AssignmentJpaRepository jpaRepository,
+            AssignmentAllocationJpaRepository allocationRepository,
+            AssignmentAllocationStudentJpaRepository allocationStudentRepository,
+            AssignmentSubmissionJpaRepository submissionRepository,
+            AssignmentRubricJpaRepository rubricRepository,
+            AssignmentAttachmentJpaRepository attachmentRepository,
+            LessonAssignmentJpaRepository lessonAssignmentRepository) {
+        this.jpaRepository = jpaRepository;
+        this.allocationRepository = allocationRepository;
+        this.allocationStudentRepository = allocationStudentRepository;
+        this.submissionRepository = submissionRepository;
+        this.rubricRepository = rubricRepository;
+        this.attachmentRepository = attachmentRepository;
+        this.lessonAssignmentRepository = lessonAssignmentRepository;
+    }
 
     @Override
     public Assignment save(Assignment assignment) {
@@ -52,8 +82,74 @@ public class AssignmentRepositoryAdapter implements AssignmentRepository {
     }
 
     @Override
+    public void deleteByIdWithCascade(AssignmentId id) {
+        UUID assignmentId = id.value();
+        log.info("Deleting assignment with cascade, ID: {}", assignmentId);
+
+        // 1. Delete submissions
+        submissionRepository.deleteByAssignmentId(assignmentId);
+
+        // 2. Delete rubrics
+        rubricRepository.deleteByAssignmentId(assignmentId);
+
+        // 3. Delete attachments
+        attachmentRepository.deleteByAssignmentId(assignmentId);
+
+        // 4. Delete lesson assignments (links)
+        lessonAssignmentRepository.deleteByAssignmentId(assignmentId);
+
+        // 5. Delete allocations and their student mappings
+        var allocations = allocationRepository.findByAssignmentId(assignmentId);
+        for (var allocation : allocations) {
+            allocationStudentRepository.deleteByAllocationId(allocation.getId());
+        }
+        allocationRepository.deleteAll(allocations);
+
+        // 6. Finally, delete the assignment
+        jpaRepository.deleteById(assignmentId);
+
+        log.info("Successfully deleted assignment {}", assignmentId);
+    }
+
+    @Override
     public boolean existsById(AssignmentId id) {
         return jpaRepository.existsById(id.value());
+    }
+
+    @Override
+    public List<Assignment> findByCourseId(UUID courseId) {
+        return jpaRepository.findByCourseId(courseId).stream()
+            .map(this::toDomain)
+            .collect(Collectors.toList());
+    }
+
+    @Override
+    public void allocate(UUID assignmentId, String distributionType, List<UUID> studentIds) {
+        var allocation = AssignmentAllocationJpaEntity.builder()
+            .assignmentId(assignmentId)
+            .distributionType(distributionType)
+            .isActive(true)
+            .build();
+
+        var savedAllocation = allocationRepository.save(allocation);
+
+        if ("SPECIFIC_STUDENTS".equals(distributionType) && studentIds != null && !studentIds.isEmpty()) {
+            studentIds.forEach(studentId -> {
+                var entity = AssignmentAllocationStudentJpaEntity.builder()
+                    .allocationId(savedAllocation.getId())
+                    .studentId(studentId)
+                    .assignedAt(Instant.now())
+                    .build();
+                allocationStudentRepository.save(entity);
+            });
+        }
+    }
+
+    @Override
+    public List<Assignment> findByCourseIdIn(List<UUID> courseIds) {
+        return jpaRepository.findByCourseIdIn(courseIds).stream()
+            .map(this::toDomain)
+            .collect(Collectors.toList());
     }
 
     // ============ Mapping Methods ============
@@ -62,6 +158,7 @@ public class AssignmentRepositoryAdapter implements AssignmentRepository {
         return AssignmentJpaEntity.builder()
             .id(assignment.getId().value())
             .lessonId(assignment.getLessonId())
+            .courseId(assignment.getCourseId())
             .title(assignment.getTitle())
             .description(assignment.getDescription())
             .instructions(assignment.getInstructions())
@@ -78,6 +175,7 @@ public class AssignmentRepositoryAdapter implements AssignmentRepository {
         return Assignment.reconstitute(
             AssignmentId.of(entity.getId()),
             entity.getLessonId(),
+            entity.getCourseId(),
             entity.getTitle(),
             entity.getDescription(),
             entity.getInstructions(),

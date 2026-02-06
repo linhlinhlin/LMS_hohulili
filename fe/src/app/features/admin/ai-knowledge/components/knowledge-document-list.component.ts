@@ -1,11 +1,11 @@
-import { Component, input, output, computed, signal } from '@angular/core';
+import { Component, input, output, computed, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { KnowledgeDocument } from '../domain/knowledge.types';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-knowledge-document-list',
-  standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
     <div class="document-list-container">

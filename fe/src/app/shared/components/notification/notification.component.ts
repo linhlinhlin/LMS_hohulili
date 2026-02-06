@@ -10,36 +10,38 @@ import { NotificationService, Notification } from '../../services/notification.s
   template: `
     <div class="relative">
       <!-- Toast Notification Popup -->
-      <ng-container *ngFor="let notification of notificationService.notifications()">
-        <div class="fixed top-6 right-6 z-[9999] w-96 bg-white shadow-lg rounded-lg border border-gray-200 p-4 flex items-start space-x-3 animate-fade-in" *ngIf="notificationService.isVisible()">
-          <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" [ngClass]="getNotificationIconClass(notification.type)">
-            <!-- Icon logic as before -->
-            <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-              <circle cx="10" cy="10" r="8" />
-            </svg>
-          </div>
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center justify-between">
-              <h4 class="text-sm font-medium text-gray-900 truncate">{{ notification.title }}</h4>
-              <button (click)="removeNotification(notification.id, $event)" class="ml-2 text-gray-400 hover:text-red-600" title="Đóng">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+      @for (notification of notificationService.notifications(); track notification) {
+        @if (notificationService.isVisible()) {
+          <div class="fixed top-6 right-6 z-[9999] w-96 bg-white shadow-lg rounded-lg border border-gray-200 p-4 flex items-start space-x-3 animate-fade-in">
+            <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" [ngClass]="getNotificationIconClass(notification.type)">
+              <!-- Icon logic as before -->
+              <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <circle cx="10" cy="10" r="8" />
+              </svg>
             </div>
-            <p class="text-sm text-gray-600 mt-1">{{ notification.message }}</p>
-            <span class="text-xs text-gray-500">{{ formatTime(notification.timestamp) }}</span>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between">
+                <h4 class="text-sm font-medium text-gray-900 truncate">{{ notification.title }}</h4>
+                <button (click)="removeNotification(notification.id, $event)" class="ml-2 text-gray-400 hover:text-red-600" title="Đóng">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <p class="text-sm text-gray-600 mt-1">{{ notification.message }}</p>
+              <span class="text-xs text-gray-500">{{ formatTime(notification.timestamp) }}</span>
+            </div>
           </div>
-        </div>
-      </ng-container>
+        }
+      }
       <!-- Notification Bell -->
-      <button 
+      <button
         (click)="toggleDropdown()"
         class="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zM9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
         </svg>
-        
+    
         <!-- Unread Badge -->
         @if (notificationService.unreadCount() > 0) {
           <span class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
@@ -47,7 +49,7 @@ import { NotificationService, Notification } from '../../services/notification.s
           </span>
         }
       </button>
-
+    
       <!-- Notification Dropdown -->
       @if (isDropdownOpen()) {
         <div class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-800 z-50">
@@ -57,13 +59,13 @@ import { NotificationService, Notification } from '../../services/notification.s
               <h3 class="text-lg font-semibold text-gray-900">Thông báo</h3>
               <div class="flex items-center space-x-2">
                 @if (notificationService.unreadCount() > 0) {
-                  <button 
+                  <button
                     (click)="markAllAsRead()"
                     class="text-sm text-blue-600 hover:text-blue-800">
                     Đọc tất cả
                   </button>
                 }
-                <button 
+                <button
                   (click)="openSettings()"
                   class="text-gray-400 hover:text-gray-600">
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -74,7 +76,7 @@ import { NotificationService, Notification } from '../../services/notification.s
               </div>
             </div>
           </div>
-
+    
           <!-- Notification List -->
           <div class="max-h-96 overflow-y-auto">
             @if (notificationService.notifications().length === 0) {
@@ -86,14 +88,14 @@ import { NotificationService, Notification } from '../../services/notification.s
               </div>
             } @else {
               @for (notification of notificationService.notifications(); track notification.id) {
-                <div 
+                <div
                   class="p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors"
                   [class.bg-blue-50]="!notification.read"
                   (click)="handleNotificationClick(notification)">
                   <div class="flex items-start space-x-3">
                     <!-- Icon -->
                     <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                         [class]="getNotificationIconClass(notification.type)">
+                      [class]="getNotificationIconClass(notification.type)">
                       @if (notification.type === 'success') {
                         <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                           <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
@@ -112,7 +114,7 @@ import { NotificationService, Notification } from '../../services/notification.s
                         </svg>
                       }
                     </div>
-
+    
                     <!-- Content -->
                     <div class="flex-1 min-w-0">
                       <div class="flex items-center justify-between">
@@ -125,20 +127,20 @@ import { NotificationService, Notification } from '../../services/notification.s
                         </div>
                       </div>
                       <p class="text-sm text-gray-600 mt-1 line-clamp-2">{{ notification.message }}</p>
-                      
+    
                       @if (notification.action) {
-                        <button 
+                        <button
                           (click)="handleActionClick(notification, $event)"
                           class="text-xs text-blue-600 hover:text-blue-800 mt-2">
                           {{ notification.action.label }}
                         </button>
                       }
                     </div>
-
+    
                     <!-- Actions -->
                     <div class="flex items-center space-x-1">
                       @if (!notification.read) {
-                        <button 
+                        <button
                           (click)="markAsRead(notification.id, $event)"
                           class="text-gray-400 hover:text-gray-600"
                           title="Đánh dấu đã đọc">
@@ -147,7 +149,7 @@ import { NotificationService, Notification } from '../../services/notification.s
                           </svg>
                         </button>
                       }
-                      <button 
+                      <button
                         (click)="removeNotification(notification.id, $event)"
                         class="text-gray-400 hover:text-red-600"
                         title="Xóa thông báo">
@@ -161,10 +163,10 @@ import { NotificationService, Notification } from '../../services/notification.s
               }
             }
           </div>
-
+    
           <!-- Footer -->
           <div class="p-4 border-t border-gray-800">
-            <button 
+            <button
               (click)="viewAllNotifications()"
               class="w-full text-center text-sm text-blue-600 hover:text-blue-800">
               Xem tất cả thông báo
@@ -173,7 +175,7 @@ import { NotificationService, Notification } from '../../services/notification.s
         </div>
       }
     </div>
-  `,
+    `,
   styles: [`
     .line-clamp-2 {
       display: -webkit-box;
@@ -230,12 +232,10 @@ export class NotificationComponent {
 
   openSettings(): void {
     // This would open notification settings modal
-    console.log('Open notification settings');
   }
 
   viewAllNotifications(): void {
     // This would navigate to full notifications page
-    console.log('View all notifications');
   }
 
   getNotificationIconClass(type: string): string {

@@ -1,11 +1,11 @@
-import { Component, input } from '@angular/core';
+import { Component, input, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { CategoryInfo, Course } from '../../types/course.types';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-category-base',
-  standalone: true,
   imports: [CommonModule, RouterModule],
   template: `
     <div class="min-h-screen bg-gray-50">

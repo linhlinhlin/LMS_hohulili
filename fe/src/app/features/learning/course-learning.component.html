@@ -10,7 +10,7 @@
                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"></path>
                 </svg>
-                <span>Quay láº¡i</span>
+                <span>Quay lại</span>
               </button>
               <div>
                 <h1 class="text-3xl font-bold text-gray-900">{{ course()?.title }}</h1>
@@ -21,13 +21,13 @@
             <div class="flex items-center space-x-6">
               <!-- Progress -->
               <div class="text-center">
-                <div class="text-sm text-gray-600">Tiáº¿n Ä‘á»™</div>
+                <div class="text-sm text-gray-600">Tiến độ</div>
                 <div class="text-2xl font-bold text-gray-900">{{ course()?.progress }}%</div>
               </div>
               
               <!-- Duration -->
               <div class="text-center">
-                <div class="text-sm text-gray-600">Thá»i gian</div>
+                <div class="text-sm text-gray-600">Thời gian</div>
                 <div class="text-lg font-semibold text-gray-900">{{ formatDuration(course()?.totalDuration!) }}</div>
               </div>
             </div>
@@ -52,7 +52,7 @@
                       {{ getLessonTypeText(currentLesson()?.type!) }}
                     </span>
                     <span class="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-sm font-medium">
-                      {{ currentLesson()?.duration }} phĂºt
+                      {{ currentLesson()?.duration }} phút
                     </span>
                   </div>
                 </div>
@@ -88,12 +88,12 @@
                         <svg class="w-8 h-8 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
                           <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path>
                         </svg>
-                        <h3 class="text-lg font-semibold text-blue-900">BĂ i kiá»ƒm tra</h3>
+                        <h3 class="text-lg font-semibold text-blue-900">Bài kiểm tra</h3>
                       </div>
                       <p class="text-blue-800 mb-4">{{ currentLesson()?.description }}</p>
                       <button (click)="startQuiz(currentLesson()?.id!)"
                               class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                        Báº¯t Ä‘áº§u lĂ m bĂ i
+                        Bắt đầu làm bài
                       </button>
                     </div>
                   }
@@ -105,12 +105,12 @@
                         <svg class="w-8 h-8 text-green-600" fill="currentColor" viewBox="0 0 20 20">
                           <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path>
                         </svg>
-                        <h3 class="text-lg font-semibold text-green-900">BĂ i táº­p</h3>
+                        <h3 class="text-lg font-semibold text-green-900">Bài tập</h3>
                       </div>
                       <p class="text-green-800 mb-4">{{ currentLesson()?.description }}</p>
                       <button (click)="startAssignment(currentLesson()?.id!)"
                               class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                        Báº¯t Ä‘áº§u lĂ m bĂ i
+                        Bắt đầu làm bài
                       </button>
                     </div>
                   }
@@ -119,7 +119,7 @@
                 <!-- Lesson Resources -->
                 @if (currentLesson()?.resources && currentLesson()!.resources.length > 0) {
                   <div class="border-t border-gray-200 pt-6">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-4">đŸ“ TĂ i liá»‡u tham kháº£o</h3>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">đŸ“ Tài liệu tham khảo</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                       @for (resource of currentLesson()!.resources; track resource.id) {
                         <div class="flex items-center space-x-3 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
@@ -134,7 +134,7 @@
                           </div>
                           <button (click)="downloadResource(resource.id)"
                                   class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                            Táº£i xuá»‘ng
+                            Tải xuống
                           </button>
                         </div>
                       }
@@ -150,7 +150,7 @@
                     <svg class="w-5 h-5 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"></path>
                     </svg>
-                    BĂ i trÆ°á»›c
+                    Bài trước
                   </button>
 
                   <div class="flex space-x-3">
@@ -161,12 +161,12 @@
                         <svg class="w-5 h-5 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
                           <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
                         </svg>
-                        ÄĂ£ hoĂ n thĂ nh
+                        Đã hoàn thành
                       } @else {
                         <svg class="w-5 h-5 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
                           <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
                         </svg>
-                        ÄĂ¡nh dáº¥u hoĂ n thĂ nh
+                        Đánh dấu hoàn thành
                       }
                     </button>
                   </div>
@@ -174,7 +174,7 @@
                   <button (click)="nextLesson()"
                           [disabled]="!canGoNext()"
                           class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors">
-                    BĂ i tiáº¿p
+                    Bài tiếp
                     <svg class="w-5 h-5 inline ml-2" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"></path>
                     </svg>
@@ -184,24 +184,24 @@
             } @else {
               <!-- Course Overview -->
               <div class="bg-white rounded-2xl shadow-lg p-8">
-                <h2 class="text-2xl font-bold text-gray-900 mb-4">đŸ“ Tá»•ng quan khĂ³a há»c</h2>
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">đŸ“ Tổng quan khóa học</h2>
                 <div class="prose max-w-none">
                   <p class="text-gray-700 leading-relaxed">{{ course()?.description }}</p>
                 </div>
                 
                 <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div class="p-6 bg-blue-50 rounded-xl">
-                    <h3 class="font-semibold text-blue-900 mb-2">ThĂ´ng tin khĂ³a há»c</h3>
+                    <h3 class="font-semibold text-blue-900 mb-2">Thông tin khóa học</h3>
                     <ul class="text-sm text-blue-800 space-y-1">
-                      <li>Sá»‘ module: {{ getTotalModules() }}</li>
-                      <li>Tá»•ng bĂ i há»c: {{ getTotalLessons() }}</li>
-                      <li>Thá»i gian: {{ formatDuration(course()?.totalDuration!) }}</li>
-                      <li>Tiáº¿n Ä‘á»™: {{ course()?.progress }}%</li>
+                      <li>Số module: {{ getTotalModules() }}</li>
+                      <li>Tổng bài học: {{ getTotalLessons() }}</li>
+                      <li>Thời gian: {{ formatDuration(course()?.totalDuration!) }}</li>
+                      <li>Tiến độ: {{ course()?.progress }}%</li>
                     </ul>
                   </div>
                   
                   <div class="p-6 bg-green-50 rounded-xl">
-                    <h3 class="font-semibold text-green-900 mb-2">Giáº£ng viĂªn</h3>
+                    <h3 class="font-semibold text-green-900 mb-2">Giảng viên</h3>
                     <div class="flex items-center space-x-3">
                        <img [src]="course()?.instructor?.avatar"
                             [alt]="course()?.instructor?.name"
@@ -214,11 +214,11 @@
                   </div>
                   
                   <div class="p-6 bg-purple-50 rounded-xl">
-                    <h3 class="font-semibold text-purple-900 mb-2">Báº¯t Ä‘áº§u há»c</h3>
-                    <p class="text-sm text-purple-800 mb-4">Chá»n bĂ i há»c Ä‘áº§u tiĂªn Ä‘á»ƒ báº¯t Ä‘áº§u khĂ³a há»c</p>
+                    <h3 class="font-semibold text-purple-900 mb-2">Bắt đầu học</h3>
+                    <p class="text-sm text-purple-800 mb-4">Chọn bài học đầu tiên để bắt đầu khóa học</p>
                     <button (click)="startCourse()"
                             class="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
-                      Báº¯t Ä‘áº§u há»c
+                      Bắt đầu học
                     </button>
                   </div>
                 </div>
@@ -230,11 +230,11 @@
           <div class="space-y-6">
             <!-- Course Progress -->
             <div class="bg-white rounded-2xl shadow-lg p-6">
-              <h3 class="text-lg font-bold text-gray-900 mb-4">đŸ“ Tiáº¿n Ä‘á»™ khĂ³a há»c</h3>
+              <h3 class="text-lg font-bold text-gray-900 mb-4">đŸ“ Tiến độ khóa học</h3>
               <div class="space-y-4">
                 <div>
                   <div class="flex justify-between text-sm text-gray-600 mb-2">
-                    <span>Tiáº¿n Ä‘á»™ tá»•ng thá»ƒ</span>
+                    <span>Tiến độ tổng thể</span>
                     <span>{{ course()?.progress }}%</span>
                   </div>
                   <div class="w-full bg-gray-200 rounded-full h-3">
@@ -246,11 +246,11 @@
                 <div class="grid grid-cols-2 gap-4 text-center">
                   <div>
                     <div class="text-2xl font-bold text-gray-900">{{ getCompletedLessons() }}</div>
-                    <div class="text-sm text-gray-600">ÄĂ£ hoĂ n thĂ nh</div>
+                    <div class="text-sm text-gray-600">Đã hoàn thành</div>
                   </div>
                   <div>
                     <div class="text-2xl font-bold text-gray-900">{{ getTotalLessons() - getCompletedLessons() }}</div>
-                    <div class="text-sm text-gray-600">CĂ²n láº¡i</div>
+                    <div class="text-sm text-gray-600">Còn lại</div>
                   </div>
                 </div>
               </div>
@@ -258,14 +258,14 @@
 
             <!-- Course Modules -->
             <div class="bg-white rounded-2xl shadow-lg p-6">
-              <h3 class="text-lg font-bold text-gray-900 mb-4">đŸ“ Ná»™i dung khĂ³a há»c</h3>
+              <h3 class="text-lg font-bold text-gray-900 mb-4">đŸ“ Nội dung khóa học</h3>
               <div class="space-y-3">
                 @for (module of course()?.modules; track module.id) {
                   <div class="border border-gray-200 rounded-xl overflow-hidden">
                     <div class="p-4 bg-gray-50 border-b border-gray-200">
                       <div class="flex items-center justify-between">
                         <h4 class="font-semibold text-gray-900">{{ module.title }}</h4>
-                        <span class="text-sm text-gray-600">{{ module.duration }} phĂºt</span>
+                        <span class="text-sm text-gray-600">{{ module.duration }} phút</span>
                       </div>
                       <p class="text-sm text-gray-600 mt-1">{{ module.description }}</p>
                     </div>
@@ -288,7 +288,7 @@
                               </div>
                               <div class="flex-1 text-left">
                                 <p class="font-medium">{{ lesson.title }}</p>
-                                <p class="text-sm text-gray-600">{{ lesson.duration }} phĂºt</p>
+                                <p class="text-sm text-gray-600">{{ lesson.duration }} phút</p>
                               </div>
                               <span class="px-2 py-1 rounded-full text-xs font-medium"
                                     [class]="getLessonTypeClass(lesson.type)">

@@ -46,7 +46,6 @@ export class ContentIdentityService {
         }
 
         // Fallback: placeholder (image not found)
-        console.warn(`ContentIdentityService: No URL found for UUID ${uuid}`);
         return 'assets/placeholder.png';
     }
 

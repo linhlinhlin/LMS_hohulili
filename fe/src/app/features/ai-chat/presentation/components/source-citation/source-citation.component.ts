@@ -10,14 +10,13 @@ import {
   input,
   inject,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MessageSource } from '../../../domain/types';
 import { SourcePanelService } from '../../../application/services/source-panel.service';
 
 @Component({
   selector: 'app-source-citation',
-  standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
     @if (sources().length > 0) {
       <div class="source-citations">

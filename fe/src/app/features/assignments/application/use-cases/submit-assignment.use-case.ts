@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { AssignmentId, StudentId, SubmissionId } from '../../domain/types';
 import { SubmissionDomainService } from '../../domain/services/submission-domain.service';
@@ -11,9 +11,8 @@ import { SubmissionDomainService } from '../../domain/services/submission-domain
   providedIn: 'root'
 })
 export class SubmitAssignmentUseCase {
-  constructor(
-    private submissionDomainService: SubmissionDomainService
-  ) {}
+  private submissionDomainService = inject(SubmissionDomainService);
+
 
   /**
    * Execute assignment submission

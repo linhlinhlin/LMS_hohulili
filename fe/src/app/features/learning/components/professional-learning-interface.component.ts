@@ -1,6 +1,6 @@
 import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -61,7 +61,7 @@ interface Course {
 
 @Component({
   selector: 'app-professional-learning-interface',
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [RouterModule, FormsModule],
   templateUrl: './professional-learning-interface.component.html',
   styleUrls: ['./professional-learning-interface.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -504,7 +504,6 @@ export class ProfessionalLearningInterfaceComponent implements OnInit {
         this.cdr.detectChanges();
       }
     } catch (error) {
-      console.log('Could not create blob URL, using direct URL', error);
     }
   }
 
@@ -542,31 +541,21 @@ export class ProfessionalLearningInterfaceComponent implements OnInit {
 
   // Video player event handlers
   onVideoStateChange(state: any): void {
-    console.log('Video state changed:', state);
   }
 
   onVideoTimeUpdate(time: number): void {
-    if (typeof time === 'number') {
-      console.log('Video time update:', time);
-    } else {
-      console.warn('Video time update event is not a number:', time);
-    }
   }
 
   onVideoPlay(): void {
-    console.log('Video started playing');
   }
 
   onVideoPause(): void {
-    console.log('Video paused');
   }
 
   onVideoEnded(): void {
-    console.log('Video ended');
     this.markAsComplete();
   }
 
   onVideoError(error: any): void {
-    console.error('Video error:', error);
   }
 }

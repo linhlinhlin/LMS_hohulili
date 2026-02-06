@@ -1,5 +1,5 @@
 import { Component, ChangeDetectionStrategy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterLink } from '@angular/router';
 
 /**
@@ -11,8 +11,7 @@ import { RouterLink } from '@angular/router';
  */
 @Component({
   selector: 'app-assignment-rubric',
-  standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="bg-white rounded shadow p-6">

@@ -76,7 +76,6 @@ export class DistributionService {
         return allocation;
       }),
       catchError(err => {
-        console.error('Error creating allocation:', err);
         this.error.set('Không thể lưu cài đặt phân phối');
         this.loading.set(false);
         // Fallback to local creation
@@ -320,7 +319,6 @@ export class DistributionService {
         return override;
       }),
       catchError(err => {
-        console.error('Error extending deadline:', err);
         this.error.set('Không thể gia hạn deadline');
         this.loading.set(false);
         // Still update local state for UX
@@ -516,7 +514,6 @@ export class DistributionService {
         return allocation;
       }),
       catchError(err => {
-        console.error('Error assigning individual task:', err);
         this.error.set('Không thể giao bài tập riêng');
         this.loading.set(false);
 
@@ -567,7 +564,6 @@ export class DistributionService {
         this.loading.set(false);
       }),
       catchError(err => {
-        console.error('Error removing student from allocation:', err);
         this.error.set('Không thể xóa học viên khỏi danh sách');
         this.loading.set(false);
         return of(undefined);

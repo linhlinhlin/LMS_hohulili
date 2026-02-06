@@ -1,14 +1,15 @@
 package com.example.lms.learning_delivery.infrastructure.web;
 
-import com.example.lms.learning_delivery.domain.model.Enrollment;
-import com.example.lms.learning_delivery.domain.model.LearningClass;
-import com.example.lms.learning_delivery.infrastructure.persistence.JpaEnrollmentRepository;
-import com.example.lms.learning_delivery.infrastructure.persistence.JpaLearningClassRepository;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
-import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
+import com.example.lms.learning_delivery.application.dto.DropStudentCommand;
+import com.example.lms.learning_delivery.application.dto.EnrollmentResponse;
+import com.example.lms.learning_delivery.application.dto.LearningClassResponse;
+import com.example.lms.learning_delivery.application.usecase.*;
+import com.example.lms.shared.domain.PageResponse;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.*;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
@@ -17,13 +18,13 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * V3 Controller for Learning Classes (DDD - Learning Delivery Bounded Context).
  * Includes CRUD for classes + student enrollment management.
+ *
+ * CLEAN ARCHITECTURE: Controller only injects Use Cases, not repositories.
  */
 @Tag(name = "Classes V3", description = "Learning class management endpoints")
 @RestController
@@ -31,9 +32,13 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ClassControllerV3 {
 
-    private final JpaLearningClassRepository classRepository;
-    private final JpaEnrollmentRepository enrollmentRepository;
-    private final UserJpaRepository userRepository;
+    private final CreateLearningClassUseCaseV3 createLearningClassUseCase;
+    private final UpdateLearningClassUseCase updateLearningClassUseCase;
+    private final DeleteLearningClassUseCase deleteLearningClassUseCase;
+    private final GetLearningClassByIdUseCase getLearningClassByIdUseCase;
+    private final EnrollStudentByEmailUseCase enrollStudentByEmailUseCase;
+    private final GetClassStudentsUseCase getClassStudentsUseCase;
+    private final DropStudentUseCase dropStudentUseCase;
 
     // ================================================================================================
     // Class CRUD Endpoints
@@ -42,106 +47,79 @@ public class ClassControllerV3 {
     @Operation(summary = "Create a new learning class")
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
-    public ResponseEntity<ApiResponse<ClassResponse>> createClass(
+    public ResponseEntity<ApiResponse<UUID>> createClass(
             @jakarta.validation.Valid @RequestBody CreateClassRequest request,
             @AuthenticationPrincipal UserJpaEntity user
     ) {
-        try {
-            // Auto-generate code if missing
-            String classCode = request.getCode();
-            if (classCode == null || classCode.isBlank()) {
-                classCode = "CLS-" + UUID.randomUUID().toString().substring(0, 8);
-            }
-
-            // Determine teacher (defaults to creator if not specified)
-            UUID teacherId = user.getId();
-            if (request.getTeacherId() != null && !request.getTeacherId().isBlank()) {
-                teacherId = UUID.fromString(request.getTeacherId());
-            }
-
-            // Determine schedule type
-            LearningClass.ScheduleType scheduleType = LearningClass.ScheduleType.CUSTOM;
-            if (request.getScheduleType() != null) {
-                try {
-                    scheduleType = LearningClass.ScheduleType.valueOf(request.getScheduleType());
-                } catch (IllegalArgumentException e) {
-                    // default to CUSTOM
-                }
-            }
-
-            LearningClass newClass = LearningClass.builder()
-                    .id(UUID.randomUUID())
-                    .courseId(UUID.fromString(request.getCourseId()))
-                    .teacherId(teacherId)
-                    .code(classCode)
-                    .name(request.getName())
-                    .status(LearningClass.ClassStatus.OPEN)
-                    .maxStudents(request.getMaxStudents() != null ? request.getMaxStudents() : 50)
-                    .startDate(request.getStartDate() != null ? Instant.parse(request.getStartDate()) : null)
-                    .endDate(request.getEndDate() != null ? Instant.parse(request.getEndDate()) : null)
-                    .scheduleType(scheduleType)
-                    .semester(request.getSemester())
-                    .createdAt(Instant.now())
-                    .build();
-            
-            LearningClass saved = classRepository.save(newClass);
-            ClassResponse response = toResponse(saved);
-            
-            return ResponseEntity.ok(ApiResponse.success(response, "Class created successfully"));
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw e;
+        // Auto-generate code if missing
+        String classCode = request.getCode();
+        if (classCode == null || classCode.isBlank()) {
+            classCode = "CLS-" + UUID.randomUUID().toString().substring(0, 8);
         }
+
+        // Determine teacher (defaults to creator if not specified)
+        UUID teacherId = user.getId();
+        if (request.getTeacherId() != null && !request.getTeacherId().isBlank()) {
+            teacherId = UUID.fromString(request.getTeacherId());
+        }
+
+        var command = new CreateLearningClassUseCaseV3.CreateClassCommand(
+                UUID.fromString(request.getCourseId()),
+                teacherId,
+                classCode,
+                request.getName(),
+                request.getStartDate() != null ? Instant.parse(request.getStartDate()) : null,
+                request.getEndDate() != null ? Instant.parse(request.getEndDate()) : null,
+                request.getMaxStudents(),
+                request.getScheduleType(),
+                request.getSemester()
+        );
+
+        UUID classId = createLearningClassUseCase.execute(command);
+
+        return ResponseEntity.ok(ApiResponse.success(classId, "Class created successfully"));
     }
 
     @Operation(summary = "Update an existing learning class")
     @PutMapping("/{classId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
-    public ResponseEntity<ApiResponse<ClassResponse>> updateClass(
+    public ResponseEntity<ApiResponse<LearningClassResponse>> updateClass(
             @PathVariable String classId,
-            @RequestBody UpdateClassRequest request
+            @Valid @RequestBody UpdateClassRequest request
     ) {
-        return classRepository.findById(UUID.fromString(classId))
-                .map(existing -> {
-                    if (request.getName() != null) existing.setName(request.getName());
-                    if (request.getCode() != null) existing.setCode(request.getCode());
-                    if (request.getStatus() != null) {
-                        existing.setStatus(LearningClass.ClassStatus.valueOf(request.getStatus()));
-                    }
-                    if (request.getMaxStudents() != null) existing.setMaxStudents(request.getMaxStudents());
-                    if (request.getStartDate() != null) existing.setStartDate(Instant.parse(request.getStartDate()));
-                    if (request.getEndDate() != null) existing.setEndDate(Instant.parse(request.getEndDate()));
-                    existing.setUpdatedAt(Instant.now());
-                    
-                    LearningClass saved = classRepository.save(existing);
-                    return ResponseEntity.ok(ApiResponse.success(toResponse(saved), "Class updated successfully"));
-                })
-                .orElse(ResponseEntity.notFound().build());
+        var command = new UpdateLearningClassUseCase.UpdateClassCommand(
+                UUID.fromString(classId),
+                request.getName(),
+                request.getCode(),
+                request.getStatus(),
+                request.getMaxStudents(),
+                request.getStartDate() != null ? Instant.parse(request.getStartDate()) : null,
+                request.getEndDate() != null ? Instant.parse(request.getEndDate()) : null
+        );
+
+        LearningClassResponse response = updateLearningClassUseCase.execute(command);
+
+        return ResponseEntity.ok(ApiResponse.success(response, "Class updated successfully"));
     }
 
     @Operation(summary = "Delete a learning class")
     @DeleteMapping("/{classId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
-    public ResponseEntity<ApiResponse<String>> deleteClass(
+    public ResponseEntity<ApiResponse<Void>> deleteClass(
             @PathVariable String classId
     ) {
-        UUID uuid = UUID.fromString(classId);
-        if (classRepository.existsById(uuid)) {
-            classRepository.deleteById(uuid);
-            return ResponseEntity.ok(ApiResponse.success("Deleted", "Class deleted successfully"));
-        }
-        return ResponseEntity.notFound().build();
+        deleteLearningClassUseCase.execute(UUID.fromString(classId));
+        return ResponseEntity.ok(ApiResponse.success(null, "Class deleted successfully"));
     }
 
     @Operation(summary = "Get class by ID")
     @GetMapping("/{classId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
-    public ResponseEntity<ApiResponse<ClassResponse>> getClassById(
+    public ResponseEntity<ApiResponse<LearningClassResponse>> getClassById(
             @PathVariable String classId
     ) {
-        return classRepository.findById(UUID.fromString(classId))
-                .map(lc -> ResponseEntity.ok(ApiResponse.success(toResponse(lc), "Class loaded")))
-                .orElse(ResponseEntity.notFound().build());
+        LearningClassResponse response = getLearningClassByIdUseCase.execute(UUID.fromString(classId));
+        return ResponseEntity.ok(ApiResponse.success(response, "Class loaded"));
     }
 
     // ================================================================================================
@@ -151,73 +129,35 @@ public class ClassControllerV3 {
     @Operation(summary = "Enroll student by email")
     @PostMapping("/{classId}/enrollments")
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
-    public ResponseEntity<ApiResponse<Void>> enrollStudent(
+    public ResponseEntity<ApiResponse<UUID>> enrollStudent(
             @PathVariable String classId,
-            @RequestBody EnrollStudentRequest request
+            @Valid @RequestBody EnrollStudentRequest request
     ) {
-        UUID classUuid = UUID.fromString(classId);
-        
-        // Verify class exists
-        if (!classRepository.existsById(classUuid)) {
-            return ResponseEntity.notFound().build();
+        if (request.getEmail() == null || request.getEmail().isBlank()) {
+            throw new IllegalArgumentException("Email không được để trống");
         }
-        
-        // Find student by email
-        UserJpaEntity student = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy học viên với email: " + request.getEmail()));
-        
-        // Check if already enrolled
-        if (enrollmentRepository.existsByStudentIdAndClassId(student.getId(), classUuid)) {
-            throw new RuntimeException("Học viên đã được ghi danh trong lớp này");
-        }
-        
-        // Get the class
-        LearningClass learningClass = classRepository.findById(classUuid).orElseThrow();
-        
-        // Create enrollment using builder pattern
-        Enrollment enrollment = Enrollment.builder()
-                .studentId(student.getId())
-                .learningClass(learningClass)
-                .status(Enrollment.EnrollmentStatus.ACTIVE)
-                .completionPercent(0)
-                .build();
-        enrollmentRepository.save(enrollment);
-        
-        return ResponseEntity.ok(ApiResponse.success(null, "Đã thêm học viên vào lớp"));
+
+        UUID enrollmentId = enrollStudentByEmailUseCase.enroll(
+                request.getEmail(),
+                UUID.fromString(classId)
+        );
+
+        return ResponseEntity.ok(ApiResponse.success(enrollmentId, "Đã thêm học viên vào lớp"));
     }
 
     @Operation(summary = "Get students in class")
     @GetMapping("/{classId}/students")
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
-    public ResponseEntity<ApiResponse<List<StudentInClassResponse>>> getClassStudents(
-            @PathVariable String classId
+    public ResponseEntity<ApiResponse<PageResponse<EnrollmentResponse>>> getClassStudents(
+            @PathVariable String classId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "1000") int size
     ) {
-        UUID classUuid = UUID.fromString(classId);
-        
-        // Verify class exists
-        if (!classRepository.existsById(classUuid)) {
-            return ResponseEntity.notFound().build();
-        }
-        
-        // Get enrollments for this class
-        var enrollments = enrollmentRepository.findByClassId(classUuid, PageRequest.of(0, 1000));
-        
-        List<StudentInClassResponse> students = enrollments.getContent().stream()
-                .map(e -> {
-                    // Lookup student info
-                    return userRepository.findById(e.getStudentId())
-                            .map(user -> StudentInClassResponse.builder()
-                                    .id(user.getId().toString())
-                                    .email(user.getEmail())
-                                    .fullName(user.getFullName())
-                                    .enrolledAt(e.getEnrolledAt() != null ? e.getEnrolledAt().toString() : null)
-                                    .status(e.getStatus() != null ? e.getStatus().name() : "ACTIVE")
-                                    .build())
-                            .orElse(null);
-                })
-                .filter(s -> s != null)
-                .collect(Collectors.toList());
-        
+        PageResponse<EnrollmentResponse> students = getClassStudentsUseCase.execute(
+                UUID.fromString(classId),
+                PageRequest.of(page, size)
+        );
+
         return ResponseEntity.ok(ApiResponse.success(students, "Danh sách học viên"));
     }
 
@@ -228,72 +168,20 @@ public class ClassControllerV3 {
             @PathVariable String classId,
             @PathVariable String studentId
     ) {
-        UUID classUuid = UUID.fromString(classId);
-        UUID studentUuid = UUID.fromString(studentId);
-        
-        // Find and delete enrollment
-        enrollmentRepository.findByStudentIdAndClassId(studentUuid, classUuid)
-                .ifPresent(enrollment -> enrollmentRepository.delete(enrollment));
-        
+        var command = new DropStudentCommand(
+                UUID.fromString(studentId),
+                UUID.fromString(classId),
+                null
+        );
+
+        dropStudentUseCase.execute(command);
+
         return ResponseEntity.ok(ApiResponse.success(null, "Đã xóa học viên khỏi lớp"));
     }
 
     // ================================================================================================
-    // Helper Methods & DTOs
+    // Request DTOs
     // ================================================================================================
-
-    private ClassResponse toResponse(LearningClass lc) {
-        long studentCount = enrollmentRepository.countByClassId(lc.getId());
-        return ClassResponse.builder()
-                .id(lc.getId().toString())
-                .name(lc.getName())
-                .code(lc.getCode())
-                .courseId(lc.getCourseId() != null ? lc.getCourseId().toString() : null)
-                .status(lc.getStatus() != null ? lc.getStatus().name() : "OPEN")
-                .studentCount((int) studentCount)
-                .startDate(lc.getStartDate() != null ? lc.getStartDate().toString() : null)
-                .endDate(lc.getEndDate() != null ? lc.getEndDate().toString() : null)
-                .teacherId(lc.getTeacherId() != null ? lc.getTeacherId().toString() : null)
-                .createdAt(lc.getCreatedAt() != null ? lc.getCreatedAt().toString() : null)
-                .updatedAt(lc.getUpdatedAt() != null ? lc.getUpdatedAt().toString() : null)
-                .build();
-    }
-
-    // ----- Response DTOs -----
-
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class ClassResponse {
-        private String id;
-        private String name;
-        private String code;
-        private String courseId;
-        private String courseName;
-        private String status;
-        private Integer studentCount;
-        private String startDate;
-        private String endDate;
-        private String teacherId;
-        private String teacherName;
-        private String createdAt;
-        private String updatedAt;
-    }
-
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class StudentInClassResponse {
-        private String id;
-        private String email;
-        private String fullName;
-        private String enrolledAt;
-        private String status;
-    }
-
-    // ----- Request DTOs -----
 
     @Data
     @NoArgsConstructor

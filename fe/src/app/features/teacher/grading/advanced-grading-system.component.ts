@@ -1,5 +1,5 @@
 import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, OnInit, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterLink } from '@angular/router';
 import { GradingStateService } from './services/grading-state.service';
 import { SubmissionDetail } from '../../../api/client/assignment.api';
@@ -14,8 +14,7 @@ import { SubmissionDetail } from '../../../api/client/assignment.api';
  */
 @Component({
   selector: 'app-advanced-grading-system',
-  standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [RouterLink],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `

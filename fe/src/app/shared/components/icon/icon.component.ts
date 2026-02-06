@@ -1,5 +1,5 @@
 import { Component, input, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 
 export type IconName =
   | 'search' | 'bell' | 'user' | 'grid' | 'book' | 'play' | 'star'
@@ -15,8 +15,7 @@ export type IconSize = 'xs' | 'sm' | 'md' | 'lg';
 
 @Component({
   selector: 'app-icon',
-  standalone: true,
-  imports: [CommonModule],
+  imports: [],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -24,8 +23,8 @@ export type IconSize = 'xs' | 'sm' | 'md' | 'lg';
       [class]="iconClasses"
       [attr.width]="sizeValue"
       [attr.height]="sizeValue"
-      [attr.aria-label]="ariaLabel"
-      [attr.aria-hidden]="!ariaLabel"
+      [attr.aria-label]="ariaLabel()"
+      [attr.aria-hidden]="!ariaLabel()"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"

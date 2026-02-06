@@ -1,16 +1,18 @@
-﻿import { Component, ChangeDetectionStrategy, ViewEncapsulation, signal, inject, OnInit, OnDestroy, HostListener, Inject, PLATFORM_ID } from '@angular/core';
-import { CommonModule, isPlatformBrowser } from '@angular/common';
+﻿import { Component, ChangeDetectionStrategy, ViewEncapsulation, signal, inject, OnInit, OnDestroy, HostListener, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-privacy-policy',
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [RouterModule, FormsModule],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './privacy-policy.component.html',
 })
 export class PrivacyPolicyComponent implements OnInit, OnDestroy {
+  private platformId = inject<Object>(PLATFORM_ID);
+
   private router = inject(Router);
 
   // Signals
@@ -20,12 +22,10 @@ export class PrivacyPolicyComponent implements OnInit, OnDestroy {
   
   // Sections for the privacy policy
   sections = [
-    { id: 'gioi-thieu', title: 'Giá»›i Thiá»‡u' },
-    { id: 'thong-tin-thu-thap', title: 'ThĂ´ng Tin Thu Tháº­p' },
-    { id: 'lien-he', title: 'LiĂªn Há»‡' },
+    { id: 'gioi-thieu', title: 'Giới Thiệu' },
+    { id: 'thong-tin-thu-thap', title: 'Thông Tin Thu Thập' },
+    { id: 'lien-he', title: 'Liên Hệ' },
   ];
-
-  constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
 
   ngOnInit(): void {
     if (isPlatformBrowser(this.platformId)) {

@@ -1,95 +1,185 @@
 package com.example.lms.learning_delivery.domain.model;
 
-import io.hypersistence.utils.hibernate.type.json.JsonType;
-import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.Type;
-import org.hibernate.annotations.UpdateTimestamp;
-
 import java.time.Instant;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
 /**
  * Enrollment aggregate.
- * 
+ *
  * Following DDD principles:
  * - References to User aggregate are by ID only
- * - This maintains bounded context isolation
+ * - State changes through behavior methods with invariant validation
+ * - Builder for construction and reconstitution from persistence
  */
-@Entity
-@Table(name = "enrollments", 
-       uniqueConstraints = @UniqueConstraint(columnNames = {"student_id", "class_id"}))
-@Getter @Setter @Builder @NoArgsConstructor @AllArgsConstructor
 public class Enrollment {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "class_id", nullable = false)
     private LearningClass learningClass;
-
-    /**
-     * Reference to User aggregate (student) by ID (DDD principle)
-     */
-    @Column(name = "student_id", nullable = false)
     private UUID studentId;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    @Builder.Default
     private EnrollmentStatus status = EnrollmentStatus.ACTIVE;
-
-    @Type(JsonType.class)
-    @Column(columnDefinition = "jsonb")
-    @Builder.Default
-    private Map<String, LessonProgress> progress = new HashMap<>(); 
-    // Key: LessonID (String), Value: Progress Detail
-
-    @Column(name = "completion_percent")
-    @Builder.Default
+    private Map<String, LessonProgress> progress = new HashMap<>();
     private Integer completionPercent = 0;
-
-    @Column(name = "completed_at")
     private Instant completedAt;
-
-    @CreationTimestamp
-    @Column(name = "enrolled_at", updatable = false)
     private Instant enrolledAt;
-
-    @Column(name = "joined_at")
     private Instant joinedAt;
-
-    @UpdateTimestamp
-    @Column(name = "last_accessed_at")
     private Instant lastAccessedAt;
 
-    @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+    protected Enrollment() {}
+
+    // ==================== Enums ====================
+
+    public enum EnrollmentStatus {
+        ACTIVE, COMPLETED, DROPPED, EXPIRED, SUSPENDED
+    }
+
+    // ==================== Behavior Methods ====================
+
+    public void drop() {
+        if (this.status == EnrollmentStatus.COMPLETED) {
+            throw new IllegalStateException("Cannot drop a completed enrollment");
+        }
+        this.status = EnrollmentStatus.DROPPED;
+        this.lastAccessedAt = Instant.now();
+    }
+
+    public void complete() {
+        this.status = EnrollmentStatus.COMPLETED;
+        this.completionPercent = 100;
+        this.completedAt = Instant.now();
+        this.lastAccessedAt = Instant.now();
+    }
+
+    public void suspend() {
+        if (this.status != EnrollmentStatus.ACTIVE) {
+            throw new IllegalStateException("Can only suspend an active enrollment");
+        }
+        this.status = EnrollmentStatus.SUSPENDED;
+    }
+
+    public void reactivate() {
+        if (this.status != EnrollmentStatus.SUSPENDED && this.status != EnrollmentStatus.DROPPED) {
+            throw new IllegalStateException("Can only reactivate suspended or dropped enrollments");
+        }
+        this.status = EnrollmentStatus.ACTIVE;
+    }
+
+    public void updateProgress(String lessonId, LessonProgress newProgress) {
+        this.progress.put(lessonId, newProgress);
+        this.lastAccessedAt = Instant.now();
+    }
+
+    public void updateCompletionPercent(int percent) {
+        this.completionPercent = Math.max(0, Math.min(100, percent));
+        if (this.completionPercent == 100 && this.status == EnrollmentStatus.ACTIVE) {
+            complete();
+        }
+    }
+
+    public boolean isActive() {
+        return this.status == EnrollmentStatus.ACTIVE;
+    }
+
+    public UUID getClassId() {
+        return learningClass != null ? learningClass.getId() : null;
+    }
+
+    // ==================== Getters (read-only access) ====================
+
+    public UUID getId() { return id; }
+    public LearningClass getLearningClass() { return learningClass; }
+    public UUID getStudentId() { return studentId; }
+    public EnrollmentStatus getStatus() { return status; }
+    public Map<String, LessonProgress> getProgress() { return progress; }
+    public Integer getCompletionPercent() { return completionPercent; }
+    public Instant getCompletedAt() { return completedAt; }
+    public Instant getEnrolledAt() { return enrolledAt; }
+    public Instant getJoinedAt() { return joinedAt; }
+    public Instant getLastAccessedAt() { return lastAccessedAt; }
+
+    // ==================== LessonProgress Value Object ====================
+
     public static class LessonProgress {
-        private String status; // LOCKED, UNLOCKED, COMPLETED
+        private String status;
         private Integer watchSeconds;
         private Double grade;
         private Instant lastActivity;
+
+        public LessonProgress() {}
+
+        public LessonProgress(String status, Integer watchSeconds, Double grade, Instant lastActivity) {
+            this.status = status;
+            this.watchSeconds = watchSeconds;
+            this.grade = grade;
+            this.lastActivity = lastActivity;
+        }
+
+        public static LessonProgressBuilder builder() { return new LessonProgressBuilder(); }
+
+        public static class LessonProgressBuilder {
+            private String status;
+            private Integer watchSeconds;
+            private Double grade;
+            private Instant lastActivity;
+
+            public LessonProgressBuilder status(String status) { this.status = status; return this; }
+            public LessonProgressBuilder watchSeconds(Integer watchSeconds) { this.watchSeconds = watchSeconds; return this; }
+            public LessonProgressBuilder grade(Double grade) { this.grade = grade; return this; }
+            public LessonProgressBuilder lastActivity(Instant lastActivity) { this.lastActivity = lastActivity; return this; }
+
+            public LessonProgress build() {
+                return new LessonProgress(status, watchSeconds, grade, lastActivity);
+            }
+        }
+
+        public String getStatus() { return status; }
+        public Integer getWatchSeconds() { return watchSeconds; }
+        public Double getGrade() { return grade; }
+        public Instant getLastActivity() { return lastActivity; }
     }
 
-    public enum EnrollmentStatus {
-        ACTIVE, COMPLETED, DROPPED, EXPIRED
-    }
-    
-    // Domain Logic
-    
-    public void updateProgress(String lessonId, LessonProgress newProgress) {
-        this.progress.put(lessonId, newProgress);
-    }
-    
-    /**
-     * Convenience method to get the class ID without loading the full LearningClass entity.
-     */
-    public UUID getClassId() {
-        return learningClass != null ? learningClass.getId() : null;
+    // ==================== Builder (for construction & reconstitution) ====================
+
+    public static Builder builder() { return new Builder(); }
+
+    public static class Builder {
+        private UUID id;
+        private LearningClass learningClass;
+        private UUID studentId;
+        private EnrollmentStatus status = EnrollmentStatus.ACTIVE;
+        private Map<String, LessonProgress> progress = new HashMap<>();
+        private Integer completionPercent = 0;
+        private Instant completedAt;
+        private Instant enrolledAt;
+        private Instant joinedAt;
+        private Instant lastAccessedAt;
+
+        public Builder id(UUID id) { this.id = id; return this; }
+        public Builder learningClass(LearningClass learningClass) { this.learningClass = learningClass; return this; }
+        public Builder studentId(UUID studentId) { this.studentId = studentId; return this; }
+        public Builder status(EnrollmentStatus status) { this.status = status; return this; }
+        public Builder progress(Map<String, LessonProgress> progress) { this.progress = progress; return this; }
+        public Builder completionPercent(Integer completionPercent) { this.completionPercent = completionPercent; return this; }
+        public Builder completedAt(Instant completedAt) { this.completedAt = completedAt; return this; }
+        public Builder enrolledAt(Instant enrolledAt) { this.enrolledAt = enrolledAt; return this; }
+        public Builder joinedAt(Instant joinedAt) { this.joinedAt = joinedAt; return this; }
+        public Builder lastAccessedAt(Instant lastAccessedAt) { this.lastAccessedAt = lastAccessedAt; return this; }
+
+        public Enrollment build() {
+            Enrollment e = new Enrollment();
+            e.id = this.id;
+            e.learningClass = this.learningClass;
+            e.studentId = this.studentId;
+            e.status = this.status;
+            e.progress = this.progress;
+            e.completionPercent = this.completionPercent;
+            e.completedAt = this.completedAt;
+            e.enrolledAt = this.enrolledAt;
+            e.joinedAt = this.joinedAt;
+            e.lastAccessedAt = this.lastAccessedAt;
+            return e;
+        }
     }
 }

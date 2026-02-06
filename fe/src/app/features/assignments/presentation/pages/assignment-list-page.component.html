@@ -5,8 +5,8 @@
         <div class="max-w-7xl mx-auto px-6 py-6">
           <div class="flex items-center justify-between">
             <div>
-              <h1 class="text-2xl font-bold text-gray-900">BĂ i táº­p cá»§a tĂ´i</h1>
-              <p class="text-gray-600 mt-1">Quáº£n lĂ½ vĂ  ná»™p bĂ i táº­p cá»§a báº¡n</p>
+              <h1 class="text-2xl font-bold text-gray-900">Bài tập của tôi</h1>
+              <p class="text-gray-600 mt-1">Quản lý và nộp bài tập của bạn</p>
             </div>
 
             <!-- View Toggle & Actions -->
@@ -35,15 +35,15 @@
               @if (assignmentState.selectedCount() > 0) {
                 <div class="flex items-center space-x-2">
                   <span class="text-sm text-gray-600">
-                    ÄĂ£ chá»n {{ assignmentState.selectedCount() }} bĂ i táº­p
+                    Đã chọn {{ assignmentState.selectedCount() }} bài tập
                   </span>
                   <button (click)="clearSelection()"
                           class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
-                    Bá» chá»n
+                    Bỏ chọn
                   </button>
                   <button (click)="markAsRead()"
                           class="px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100">
-                    ÄĂ¡nh dáº¥u Ä‘Ă£ Ä‘á»c
+                    Đánh dấu đã đọc
                   </button>
                 </div>
               }
@@ -69,7 +69,7 @@
                   </svg>
                 </div>
                 <div class="ml-3">
-                  <p class="text-sm font-medium text-blue-600">Tá»•ng sá»‘</p>
+                  <p class="text-sm font-medium text-blue-600">Tổng số</p>
                   <p class="text-lg font-semibold text-blue-900">{{ assignmentState.assignments().length }}</p>
                 </div>
               </div>
@@ -83,7 +83,7 @@
                   </svg>
                 </div>
                 <div class="ml-3">
-                  <p class="text-sm font-medium text-green-600">HoĂ n thĂ nh</p>
+                  <p class="text-sm font-medium text-green-600">Hoàn thành</p>
                   <p class="text-lg font-semibold text-green-900">{{ assignmentState.stats()?.completedAssignments || 0 }}</p>
                 </div>
               </div>
@@ -97,7 +97,7 @@
                   </svg>
                 </div>
                 <div class="ml-3">
-                  <p class="text-sm font-medium text-orange-600">QuĂ¡ háº¡n</p>
+                  <p class="text-sm font-medium text-orange-600">Quá hạn</p>
                   <p class="text-lg font-semibold text-orange-900">{{ assignmentState.stats()?.overdueAssignments || 0 }}</p>
                 </div>
               </div>
@@ -111,7 +111,7 @@
                   </svg>
                 </div>
                 <div class="ml-3">
-                  <p class="text-sm font-medium text-purple-600">Äiá»ƒm TB</p>
+                  <p class="text-sm font-medium text-purple-600">Điểm TB</p>
                   <p class="text-lg font-semibold text-purple-900">{{ assignmentState.stats()?.averageGrade || 'N/A' }}</p>
                 </div>
               </div>
@@ -139,13 +139,13 @@
                 </svg>
               </div>
               <div class="ml-3 flex-1">
-                <h3 class="text-sm font-medium text-red-800">Lá»—i táº£i dá»¯ liá»‡u</h3>
+                <h3 class="text-sm font-medium text-red-800">Lỗi tải dữ liệu</h3>
                 <p class="text-sm text-red-700 mt-1">{{ assignmentState.error() }}</p>
               </div>
               <div class="ml-4">
                 <button (click)="refreshAssignments()"
                         class="px-3 py-2 text-sm font-medium text-red-800 bg-red-100 border border-red-300 rounded-lg hover:bg-red-200">
-                  Thá»­ láº¡i
+                  Thử lại
                 </button>
               </div>
             </div>
@@ -168,18 +168,18 @@
             <svg class="mx-auto h-24 w-24 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
             </svg>
-            <h3 class="mt-4 text-lg font-medium text-gray-900">KhĂ´ng cĂ³ bĂ i táº­p nĂ o</h3>
+            <h3 class="mt-4 text-lg font-medium text-gray-900">Không có bài tập nào</h3>
             <p class="mt-2 text-gray-600">
               @if (hasActiveFilters()) {
-                KhĂ´ng tĂ¬m tháº¥y bĂ i táº­p nĂ o phĂ¹ há»£p vá»›i bá»™ lá»c hiá»‡n táº¡i.
+                Không tìm thấy bài tập nào phù hợp với bộ lọc hiện tại.
               } @else {
-                Báº¡n chÆ°a Ä‘Æ°á»£c giao bĂ i táº­p nĂ o. HĂ£y liĂªn há»‡ vá»›i giáº£ng viĂªn Ä‘á»ƒ Ä‘Æ°á»£c há»— trá»£.
+                Bạn chưa được giao bài tập nào. Hãy liên hệ với giảng viên để được hỗ trợ.
               }
             </p>
             @if (hasActiveFilters()) {
               <button (click)="clearAllFilters()"
                       class="mt-4 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100">
-                XĂ³a bá»™ lá»c
+                Xóa bộ lọc
               </button>
             }
           </div>
@@ -198,19 +198,19 @@
                          [indeterminate]="assignmentState.isIndeterminate()"
                          (change)="assignmentState.toggleSelectAll()"
                          class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                  <span class="ml-2 text-sm text-gray-700">Chá»n táº¥t cáº£</span>
+                  <span class="ml-2 text-sm text-gray-700">Chọn tất cả</span>
                 </label>
                 @if (assignmentState.selectedCount() > 0) {
                   <span class="text-sm text-gray-600">
-                    ({{ assignmentState.selectedCount() }} Ä‘Ă£ chá»n)
+                    ({{ assignmentState.selectedCount() }} đã chọn)
                   </span>
                 }
               </div>
 
               <div class="text-sm text-gray-600">
-                Hiá»ƒn thá»‹ {{ assignmentState.paginationInfo().startItem }} -
-                {{ assignmentState.paginationInfo().endItem }} cá»§a
-                {{ assignmentState.paginationInfo().totalItems }} bĂ i táº­p
+                Hiển thị {{ assignmentState.paginationInfo().startItem }} -
+                {{ assignmentState.paginationInfo().endItem }} của
+                {{ assignmentState.paginationInfo().totalItems }} bài tập
               </div>
             </div>
 

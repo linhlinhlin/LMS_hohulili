@@ -1,0 +1,327 @@
+    /* Maritime Theme - Blue Ocean Colors */
+    .admin-sidebar {
+      width: 256px;
+      min-width: 256px;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: linear-gradient(to bottom, #ffffff, #f8fafc);
+      border-right: 1px solid #e2e8f0;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Header - Maritime Blue Gradient */
+    .sidebar-header {
+      padding: 1.5rem;
+      background: linear-gradient(135deg, #0c4a6e 0%, #0369a1 100%);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .header-icon {
+      width: 3rem;
+      height: 3rem;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(10px);
+    }
+
+    /* User Profile */
+    .user-profile {
+      padding: 1.25rem 1.5rem;
+      background: white;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    /* Navigation - Scrollable */
+    .sidebar-nav {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 1rem;
+      background: white;
+    }
+
+    /* Custom Scrollbar */
+    .sidebar-nav::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .sidebar-nav::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .sidebar-nav::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+    }
+
+    .sidebar-nav::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    /* Nav Items */
+    .nav-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.25rem;
+      border-radius: 0.5rem;
+      color: #475569;
+      font-size: 0.875rem;
+      font-weight: 500;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .nav-item:hover {
+      background: #f1f5f9;
+      color: #0369a1;
+    }
+
+    .nav-item-active {
+      background: linear-gradient(135deg, #0c4a6e 0%, #0369a1 100%);
+      color: white;
+      box-shadow: 0 2px 4px rgba(3, 105, 161, 0.2);
+    }
+
+    .nav-item-active .nav-icon {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+
+    .nav-icon {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+
+    .nav-item:hover .nav-icon {
+      transform: scale(1.1);
+    }
+
+    .nav-label {
+      flex: 1;
+      margin-left: 0.75rem;
+    }
+
+    .nav-badge {
+      padding: 0.125rem 0.5rem;
+      background: #ef4444;
+      color: white;
+      font-size: 0.75rem;
+      font-weight: 700;
+      border-radius: 9999px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Footer */
+    .sidebar-footer {
+      padding: 1rem 1.5rem;
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+    }
+
+    .logout-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      padding: 0.75rem 1rem;
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.5rem;
+      color: #dc2626;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .logout-btn:hover {
+      background: #fef2f2;
+      border-color: #fecaca;
+    }
+
+    .logout-icon {
+      width: 2rem;
+      height: 2rem;
+      background: #fee2e2;
+      border-radius: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 0.75rem;
+      transition: all 0.2s ease;
+    }
+
+    .logout-btn:hover .logout-icon {
+      background: #fecaca;
+    }
+
+    /* Icon Colors - Maritime Theme */
+    .icon-dashboard {
+      background: #e0f2fe;
+      color: #0369a1;
+    }
+
+    .icon-users {
+      background: #dbeafe;
+      color: #2563eb;
+    }
+
+    .icon-courses {
+      background: #d1fae5;
+      color: #059669;
+    }
+
+    .icon-analytics {
+      background: #e0e7ff;
+      color: #4f46e5;
+    }
+
+    .icon-settings {
+      background: #fef3c7;
+      color: #d97706;
+    }
+
+    .icon-reports {
+      background: #e9d5ff;
+      color: #9333ea;
+    }
+
+    .icon-notifications {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+
+    .icon-logs {
+      background: #f3f4f6;
+      color: #6b7280;
+    }
+
+    .icon-default {
+      background: #f1f5f9;
+      color: #64748b;
+    }
+
+    /* Dropdown Navigation Styles */
+    .nav-group {
+      margin-bottom: 0.25rem;
+    }
+
+    .nav-parent {
+      border: none;
+      background: transparent;
+      text-align: left;
+    }
+
+    .nav-parent-active {
+      background: #f1f5f9;
+      color: #0369a1;
+    }
+
+    .nav-submenu {
+      margin-left: 1rem;
+      padding-left: 0.75rem;
+      border-left: 2px solid #e2e8f0;
+      margin-top: 0.25rem;
+      animation: slideDown 0.2s ease-out;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .nav-subitem {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.5rem 0.75rem;
+      margin-bottom: 0.125rem;
+      border-radius: 0.375rem;
+      color: #64748b;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .nav-subitem:hover {
+      background: #f1f5f9;
+      color: #0369a1;
+    }
+
+    .nav-subitem.nav-item-active {
+      background: linear-gradient(135deg, #0c4a6e 0%, #0369a1 100%);
+      color: white;
+    }
+
+    .nav-subicon {
+      width: 1.5rem;
+      height: 1.5rem;
+      border-radius: 0.375rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+
+    .nav-sublabel {
+      flex: 1;
+      margin-left: 0.5rem;
+    }
+
+    .nav-badge-small {
+      padding: 0.0625rem 0.375rem;
+      background: #ef4444;
+      color: white;
+      font-size: 0.625rem;
+      font-weight: 700;
+      border-radius: 9999px;
+    }
+
+    /* Subicon Colors */
+    .subicon-all {
+      background: #dbeafe;
+      color: #2563eb;
+    }
+
+    .subicon-admin {
+      background: #fef3c7;
+      color: #d97706;
+    }
+
+    .subicon-teacher {
+      background: #d1fae5;
+      color: #059669;
+    }
+
+    .subicon-student {
+      background: #e0e7ff;
+      color: #4f46e5;
+    }
+
+    .subicon-default {
+      background: #f1f5f9;
+      color: #64748b;
+    }
+
+    .rotate-180 {
+      transform: rotate(180deg);
+    }

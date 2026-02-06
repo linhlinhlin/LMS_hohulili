@@ -187,7 +187,6 @@ export class AssignmentListState {
       }
     } catch (error) {
       this._error.set('Không thể tải danh sách bài tập');
-      console.error('Error loading assignments:', error);
     } finally {
       this._isLoading.set(false);
     }
@@ -207,7 +206,6 @@ export class AssignmentListState {
       }
     } catch (error) {
       this._error.set('Không thể tải bài tập sắp đến hạn');
-      console.error('Error loading upcoming deadlines:', error);
     } finally {
       this._isLoading.set(false);
     }
@@ -227,7 +225,6 @@ export class AssignmentListState {
       }
     } catch (error) {
       this._error.set('Không thể tải bài tập quá hạn');
-      console.error('Error loading overdue assignments:', error);
     } finally {
       this._isLoading.set(false);
     }
@@ -351,7 +348,6 @@ export class AssignmentListState {
   async refresh(): Promise<void> {
     // This would need the current student ID - in a real implementation,
     // this would be passed or stored in the state
-    console.log('Refresh assignments - would need student ID');
   }
 
   /**
@@ -413,7 +409,6 @@ export class AssignmentListState {
           });
         }
       } catch (error) {
-        console.warn('Error loading saved preferences:', error);
       }
     }
   }

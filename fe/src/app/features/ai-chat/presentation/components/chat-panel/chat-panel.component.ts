@@ -15,7 +15,7 @@ import {
   viewChild,
   afterNextRender,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Router } from '@angular/router';
 import { ChatService } from '../../../application/services/chat.service';
 import { ChatMessageComponent } from '../chat-message/chat-message.component';
@@ -25,14 +25,12 @@ import { SuggestedQuestionsComponent } from '../suggested-questions/suggested-qu
 
 @Component({
   selector: 'app-chat-panel',
-  standalone: true,
   imports: [
-    CommonModule,
     ChatMessageComponent,
     ChatMessageInputComponent,
     TypingIndicatorComponent,
-    SuggestedQuestionsComponent,
-  ],
+    SuggestedQuestionsComponent
+],
   template: `
     <div
       class="chat-panel"

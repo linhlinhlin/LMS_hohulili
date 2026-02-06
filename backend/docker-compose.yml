@@ -42,6 +42,14 @@ services:
       db:
         condition: service_healthy
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
 
 volumes:
   pgdata:

@@ -1,5 +1,5 @@
-import { Component, input, output, signal, computed, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, input, output, signal, computed, inject, ChangeDetectionStrategy } from '@angular/core';
+
 import { R2StorageApi } from '../../../api/client/r2-storage.api';
 
 export interface VideoUploadResult {
@@ -10,9 +10,9 @@ export interface VideoUploadResult {
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-video-upload',
-  standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
     <div class="video-upload-container">
       <!-- Upload Area -->
@@ -499,7 +499,6 @@ export class VideoUploadComponent {
       error: (error) => {
         this.isUploading.set(false);
         this.errorMessage.set('Upload video thất bại. Vui lòng thử lại.');
-        console.error('Upload error:', error);
       }
     });
   }
@@ -515,8 +514,7 @@ export class VideoUploadComponent {
           this.resetVideo();
           this.videoRemoved.emit();
         },
-        error: (error) => {
-          console.error('Delete error:', error);
+        error: () => {
           // Reset anyway
           this.resetVideo();
           this.videoRemoved.emit();

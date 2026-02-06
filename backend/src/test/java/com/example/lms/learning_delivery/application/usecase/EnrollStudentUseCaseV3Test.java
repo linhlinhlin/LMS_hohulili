@@ -46,12 +46,13 @@ class EnrollStudentUseCaseV3Test {
     private User validStudent;
     private UUID studentId;
     private UUID classId;
+    private com.example.lms.learning_delivery.domain.model.LearningClass validClass;
 
     @BeforeEach
     void setUp() {
         studentId = UUID.randomUUID();
         classId = UUID.randomUUID();
-        
+
         validStudent = User.builder()
             .id(UserId.of(studentId))
             .username("student1")
@@ -60,6 +61,15 @@ class EnrollStudentUseCaseV3Test {
             .fullName("Test Student")
             .role(Role.STUDENT)
             .enabled(true)
+            .build();
+
+        validClass = com.example.lms.learning_delivery.domain.model.LearningClass.builder()
+            .id(classId)
+            .name("Test Class")
+            .code("CLASS-001")
+            .courseId(UUID.randomUUID())
+            .teacherId(UUID.randomUUID())
+            .maxStudents(30)
             .build();
     }
 
@@ -71,15 +81,27 @@ class EnrollStudentUseCaseV3Test {
         @DisplayName("Should enroll student successfully")
         void shouldEnrollStudentSuccessfully() {
             // Given
+            UUID expectedEnrollmentId = UUID.randomUUID();
+            var savedEnrollment = com.example.lms.learning_delivery.domain.model.Enrollment.builder()
+                .id(expectedEnrollmentId)
+                .learningClass(validClass)
+                .studentId(studentId)
+                .status(com.example.lms.learning_delivery.domain.model.Enrollment.EnrollmentStatus.ACTIVE)
+                .build();
+
             when(userRepository.findById(any(UserId.class))).thenReturn(Optional.of(validStudent));
+            when(learningClassRepository.findById(classId)).thenReturn(Optional.of(validClass));
             when(enrollmentRepository.existsByClassIdAndStudentId(classId, studentId)).thenReturn(false);
+            when(enrollmentRepository.save(any(com.example.lms.learning_delivery.domain.model.Enrollment.class)))
+                .thenReturn(savedEnrollment);
 
             // When
             UUID enrollmentId = useCase.enroll(studentId, classId);
 
             // Then
-            assertThat(enrollmentId).isNotNull();
+            assertThat(enrollmentId).isEqualTo(expectedEnrollmentId);
             verify(userRepository).findById(any(UserId.class));
+            verify(learningClassRepository).findById(classId);
             verify(enrollmentRepository).existsByClassIdAndStudentId(classId, studentId);
         }
 
@@ -87,8 +109,18 @@ class EnrollStudentUseCaseV3Test {
         @DisplayName("Should check for duplicate enrollment")
         void shouldCheckForDuplicateEnrollment() {
             // Given
+            var savedEnrollment = com.example.lms.learning_delivery.domain.model.Enrollment.builder()
+                .id(UUID.randomUUID())
+                .learningClass(validClass)
+                .studentId(studentId)
+                .status(com.example.lms.learning_delivery.domain.model.Enrollment.EnrollmentStatus.ACTIVE)
+                .build();
+
             when(userRepository.findById(any(UserId.class))).thenReturn(Optional.of(validStudent));
+            when(learningClassRepository.findById(classId)).thenReturn(Optional.of(validClass));
             when(enrollmentRepository.existsByClassIdAndStudentId(classId, studentId)).thenReturn(false);
+            when(enrollmentRepository.save(any(com.example.lms.learning_delivery.domain.model.Enrollment.class)))
+                .thenReturn(savedEnrollment);
 
             // When
             useCase.enroll(studentId, classId);
@@ -121,6 +153,7 @@ class EnrollStudentUseCaseV3Test {
         void shouldThrowWhenStudentAlreadyEnrolled() {
             // Given
             when(userRepository.findById(any(UserId.class))).thenReturn(Optional.of(validStudent));
+            when(learningClassRepository.findById(classId)).thenReturn(Optional.of(validClass));
             when(enrollmentRepository.existsByClassIdAndStudentId(classId, studentId)).thenReturn(true);
 
             // When/Then

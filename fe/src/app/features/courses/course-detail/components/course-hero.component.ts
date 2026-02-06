@@ -1,10 +1,11 @@
-import { Component, input, computed, inject } from '@angular/core';
+import { Component, input, computed, inject, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule, NgOptimizedImage } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { ExtendedCourse } from '../../../../shared/types/course.types';
 import { CourseDetailService } from '../services/course-detail.service';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-course-hero',
   imports: [CommonModule, RouterModule, NgOptimizedImage],
   templateUrl: './course-hero.component.html'
@@ -46,7 +47,6 @@ export class CourseHeroComponent {
       const userId = 'current-user-id';
       await this.courseDetailService.enrollInCourse(course.id, userId);
     } catch (error) {
-      console.error('Error enrolling in course:', error);
     }
   }
 
@@ -59,7 +59,6 @@ export class CourseHeroComponent {
 
   playPreview(): void {
     // Mock preview functionality
-    console.log('Playing course preview...');
     // Trong thực tế sẽ mở video player modal hoặc redirect đến preview page
   }
 }

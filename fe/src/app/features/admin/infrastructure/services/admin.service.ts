@@ -222,16 +222,16 @@ export class AdminService {
   readonly users = this._users.asReadonly();
 
   getSystemAnalytics(): Observable<SystemAnalytics> {
-    console.log('[ADMIN SERVICE] 🔍 Loading system analytics');
+
     this._isLoading.next(true);
     return this.apiClient.getWithResponse<SystemAnalytics>(ADMIN_ENDPOINTS.ANALYTICS).pipe(
       finalize(() => this._isLoading.next(false)),
       map(response => {
-        console.log('[ADMIN SERVICE] ✅ Analytics loaded successfully:', response);
+
         return response.data;
       }),
       catchError(error => {
-        console.error('[ADMIN SERVICE] ❌ Error loading analytics:', error);
+
         return throwError(() => error);
       })
     );
@@ -246,7 +246,7 @@ export class AdminService {
         pagination: response.pagination
       })),
       catchError(error => {
-        console.error('[ADMIN SERVICE] Error loading pending courses:', error);
+
         return throwError(() => error);
       })
     );
@@ -259,7 +259,7 @@ export class AdminService {
         pagination: response.pagination
       })),
       catchError(error => {
-        console.error('[ADMIN SERVICE] Error loading courses:', error);
+
         return throwError(() => error);
       })
     );
@@ -273,7 +273,7 @@ export class AdminService {
         message: response.message || 'Course approved successfully'
       })),
       catchError(error => {
-        console.error('[ADMIN SERVICE] Error approving course:', error);
+
         return throwError(() => error);
       })
     );
@@ -285,7 +285,7 @@ export class AdminService {
         message: response.message || 'Course rejected successfully'
       })),
       catchError(error => {
-        console.error('[ADMIN SERVICE] Error rejecting course:', error);
+
         return throwError(() => error);
       })
     );
@@ -297,7 +297,7 @@ export class AdminService {
         message: response.message || 'Course revoked successfully'
       })),
       catchError(error => {
-        console.error('[ADMIN SERVICE] Error revoking course:', error);
+
         return throwError(() => error);
       })
     );
@@ -309,7 +309,7 @@ export class AdminService {
         message: response.message || 'Course deleted successfully'
       })),
       catchError(error => {
-        console.error('[ADMIN SERVICE] Error deleting course:', error);
+
         return throwError(() => error);
       })
     );
@@ -320,13 +320,12 @@ export class AdminService {
   // ============================================
 
   getUsers(params: any = {}): Observable<{ data: AdminUser[]; pagination: any }> {
-    console.log('[ADMIN SERVICE] 🔍 Loading users with params:', params);
+
     this._isLoading.next(true);
 
     return this.apiClient.getWithResponse<BackendUser[]>(ADMIN_ENDPOINTS.USERS, { params }).pipe(
       finalize(() => this._isLoading.next(false)),
       map(response => {
-        console.log('[ADMIN SERVICE] ✅ Users loaded successfully:', response);
 
         // Extract the actual user array from content
         const responseData = response.data as any;
@@ -334,14 +333,6 @@ export class AdminService {
           ? response.data
           : (responseData?.content || responseData?.data || []);
 
-        // DEBUG: Log raw data to verify coursesCooped is coming from backend
-        console.log('[ADMIN SERVICE DEBUG] Raw backend users (first 2):',
-          backendUsers.slice(0, 2).map(u => ({
-            fullName: u.fullName,
-            coursesCreated: u.coursesCreated,
-            coursesCooped: u.coursesCooped
-          }))
-        );
 
         // Convert BackendUser to AdminUser
         const users: AdminUser[] = backendUsers.map((u: BackendUser) => this.mapBackendUserToAdminUser(u));
@@ -353,50 +344,48 @@ export class AdminService {
         };
       }),
       catchError(error => {
-        console.error('[ADMIN SERVICE] ❌ Error loading users:', error);
+
         return throwError(() => error);
       })
     );
   }
 
   getAllUsersNoPagination(): Observable<AdminUser[]> {
-    console.log('[ADMIN SERVICE] 🔍 Loading all users (no pagination)');
 
     return this.apiClient.get<BackendUser[]>(ADMIN_ENDPOINTS.ALL_USERS_NO_PAGINATION).pipe(
       map(users => {
-        console.log('[ADMIN SERVICE] ✅ All users loaded:', users.length);
+
         return users.map(u => this.mapBackendUserToAdminUser(u));
       }),
       catchError(error => {
-        console.error('[ADMIN SERVICE] ❌ Error loading all users:', error);
+
         return throwError(() => error);
       })
     );
   }
 
   getUserById(userId: string): Observable<AdminUser> {
-    console.log('[ADMIN SERVICE] 🔍 Loading user by ID:', userId);
 
     return this.apiClient.get<BackendUser>(ADMIN_ENDPOINTS.USER_DETAIL(userId)).pipe(
       map(user => {
-        console.log('[ADMIN SERVICE] ✅ User loaded:', user);
+
         return this.mapBackendUserToAdminUser(user);
       }),
       catchError(error => {
-        console.error('[ADMIN SERVICE] ❌ Error loading user:', error);
+
         return throwError(() => error);
       })
     );
   }
 
   createUser(request: CreateUserRequest): Observable<{ message: string; data: AdminUser }> {
-    console.log('[ADMIN SERVICE] 🔨 Creating user:', request);
+
     this._isLoading.next(true);
 
     return this.apiClient.postWithResponse<BackendUser>(ADMIN_ENDPOINTS.CREATE_USER, request).pipe(
       finalize(() => this._isLoading.next(false)),
       map(response => {
-        console.log('[ADMIN SERVICE] ✅ User created successfully:', response);
+
 
         const user = this.mapBackendUserToAdminUser(response.data);
 
@@ -408,20 +397,20 @@ export class AdminService {
         };
       }),
       catchError(error => {
-        console.error('[ADMIN SERVICE] ❌ Error creating user:', error);
+
         return throwError(() => error);
       })
     );
   }
 
   updateUser(userId: string, request: UpdateUserRequest): Observable<{ message: string; data: AdminUser }> {
-    console.log('[ADMIN SERVICE] 🔨 Updating user:', userId, request);
+
     this._isLoading.next(true);
 
     return this.apiClient.putWithResponse<BackendUser>(ADMIN_ENDPOINTS.UPDATE_USER(userId), request).pipe(
       finalize(() => this._isLoading.next(false)),
       map(response => {
-        console.log('[ADMIN SERVICE] ✅ User updated successfully:', response);
+
 
         const user = this.mapBackendUserToAdminUser(response.data);
 
@@ -433,20 +422,20 @@ export class AdminService {
         };
       }),
       catchError(error => {
-        console.error('[ADMIN SERVICE] ❌ Error updating user:', error);
+
         return throwError(() => error);
       })
     );
   }
 
   deleteUser(userId: string): Observable<{ message: string }> {
-    console.log('[ADMIN SERVICE] 🗑️ Deleting user:', userId);
+
     this._isLoading.next(true);
 
     return this.apiClient.deleteWithResponse<string>(ADMIN_ENDPOINTS.DELETE_USER(userId)).pipe(
       finalize(() => this._isLoading.next(false)),
       map(response => {
-        console.log('[ADMIN SERVICE] ✅ User deleted successfully');
+
 
         // ✅ No auto-refresh - let component handle it with correct params
 
@@ -455,20 +444,20 @@ export class AdminService {
         };
       }),
       catchError(error => {
-        console.error('[ADMIN SERVICE] ❌ Error deleting user:', error);
+
         return throwError(() => error);
       })
     );
   }
 
   toggleUserStatus(userId: string): Observable<{ message: string; data: AdminUser }> {
-    console.log('[ADMIN SERVICE] 🔄 Toggling user status:', userId);
+
     this._isLoading.next(true);
 
     return this.apiClient.patchWithResponse<BackendUser>(ADMIN_ENDPOINTS.TOGGLE_USER_STATUS(userId), {}).pipe(
       finalize(() => this._isLoading.next(false)),
       map(response => {
-        console.log('[ADMIN SERVICE] ✅ User status toggled successfully:', response);
+
 
         const user = this.mapBackendUserToAdminUser(response.data);
 
@@ -480,7 +469,7 @@ export class AdminService {
         };
       }),
       catchError(error => {
-        console.error('[ADMIN SERVICE] ❌ Error toggling user status:', error);
+
         return throwError(() => error);
       })
     );
@@ -491,7 +480,7 @@ export class AdminService {
    * NOTE: Backend endpoint may not exist yet - UI is prepared for future integration
    */
   updateUserStatus(userId: string, request: UpdateUserStatusRequest): Observable<{ message: string; data: AdminUser }> {
-    console.log('[ADMIN SERVICE] 🔄 Updating user status:', userId, request);
+
     this._isLoading.next(true);
 
     // TODO: Update endpoint when Backend implements it
@@ -499,7 +488,7 @@ export class AdminService {
     return this.apiClient.patchWithResponse<BackendUser>(`/api/v3/admin/users/${userId}/status`, request).pipe(
       finalize(() => this._isLoading.next(false)),
       map(response => {
-        console.log('[ADMIN SERVICE] ✅ User status updated successfully:', response);
+
         const user = this.mapBackendUserToAdminUser(response.data);
         // Override with requested status since backend may not return it
         user.accountStatus = request.status;
@@ -511,7 +500,7 @@ export class AdminService {
         };
       }),
       catchError(error => {
-        console.error('[ADMIN SERVICE] ❌ Error updating user status:', error);
+
         // Fallback message for user
         return throwError(() => error);
       })
@@ -519,19 +508,19 @@ export class AdminService {
   }
 
   bulkImportUsers(file: File, defaultRole: 'ADMIN' | 'TEACHER' | 'STUDENT' = 'STUDENT'): Observable<any> {
-    console.log('[ADMIN SERVICE] 📤 Bulk importing users');
+
     const formData = new FormData();
     formData.append('file', file);
     formData.append('defaultRole', defaultRole);
 
     return this.apiClient.postWithResponse(ADMIN_ENDPOINTS.BULK_IMPORT_USERS, formData).pipe(
       map(response => {
-        console.log('[ADMIN SERVICE] ✅ Bulk import completed:', response);
+
         // ✅ No auto-refresh - let component handle it with correct params
         return response;
       }),
       catchError(error => {
-        console.error('[ADMIN SERVICE] ❌ Error bulk importing users:', error);
+
         return throwError(() => error);
       })
     );
@@ -545,14 +534,14 @@ export class AdminService {
    * Get enrolled courses for a student (Admin view)
    */
   getUserEnrolledCourses(userId: string): Observable<AdminCourseSummary[]> {
-    console.log('[ADMIN SERVICE] 📚 Getting enrolled courses for user:', userId);
+
     return this.apiClient.getWithResponse<AdminCourseSummary[]>(ADMIN_ENDPOINTS.USER_ENROLLED_COURSES(userId)).pipe(
       map(response => {
-        console.log('[ADMIN SERVICE] ✅ Enrolled courses loaded:', response.data);
+
         return response.data || [];
       }),
       catchError(error => {
-        console.error('[ADMIN SERVICE] ❌ Error loading enrolled courses:', error);
+
         return throwError(() => error);
       })
     );
@@ -562,14 +551,14 @@ export class AdminService {
    * Get managed courses for a teacher (Admin view)
    */
   getUserManagedCourses(userId: string): Observable<AdminCourseSummary[]> {
-    console.log('[ADMIN SERVICE] 📚 Getting managed courses for user:', userId);
+
     return this.apiClient.getWithResponse<AdminCourseSummary[]>(ADMIN_ENDPOINTS.USER_MANAGED_COURSES(userId)).pipe(
       map(response => {
-        console.log('[ADMIN SERVICE] ✅ Managed courses loaded:', response.data);
+
         return response.data || [];
       }),
       catchError(error => {
-        console.error('[ADMIN SERVICE] ❌ Error loading managed courses:', error);
+
         return throwError(() => error);
       })
     );
@@ -579,14 +568,14 @@ export class AdminService {
    * Get co-op courses for a teacher (courses where they are invited as teaching staff)
    */
   getUserCoopCourses(userId: string): Observable<AdminCourseSummary[]> {
-    console.log('[ADMIN SERVICE] 📚 Getting co-op courses for user:', userId);
+
     return this.apiClient.getWithResponse<AdminCourseSummary[]>(ADMIN_ENDPOINTS.USER_COOP_COURSES(userId)).pipe(
       map(response => {
-        console.log('[ADMIN SERVICE] ✅ Co-op courses loaded:', response.data);
+
         return response.data || [];
       }),
       catchError(error => {
-        console.error('[ADMIN SERVICE] ❌ Error loading co-op courses:', error);
+
         return throwError(() => error);
       })
     );

@@ -19,7 +19,6 @@ addEventListener('message', ({ data }) => {
                     try {
                         block.data.html = DOMPurify.sanitize(block.data.html);
                     } catch (e) {
-                        console.warn('DOMPurify worker error, skipping sanitization:', e);
                     }
                 }
                 return block;

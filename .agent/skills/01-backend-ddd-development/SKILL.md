@@ -1,536 +1,928 @@
 ---
-name: 01-backend-microservice-development
-description: Backend microservice development standards combining Domain-Driven Design (DDD) and Event-Driven Architecture with Spring Boot 3. Covers layered architecture, bounded contexts, domain events, and best practices for maritime LMS systems at scale. Use when designing new services, refactoring existing systems, or implementing domain logic.
+name: 01-backend-ddd-development
+description: Backend development standards for Spring Boot 3.2+ with Java 21, Clean Architecture / DDD, and modern patterns (2026). Covers layered architecture, domain modeling, JPA repository patterns, security hardening, and testing. Use when implementing features, fixing bugs, or refactoring the maritime LMS backend.
 ---
 
-# DDD + Event-Driven Microservice Development Standard
+# Spring Boot 3.2+ Clean Architecture Standard (2026)
 
-## Overview
+> **Stack**: Java 21 + Spring Boot 3.2.6 + PostgreSQL 16 + Hibernate 6.4
+> **Architecture**: Modular Monolith with Clean Architecture / DDD
+> **Last Updated**: February 2026
 
-This standard defines the architectural approach for building maritime Learning Management System (LMS) microservices using **Domain-Driven Design (DDD)** combined with **Event-Driven Architecture** on Spring Boot 3 with Kotlin/Java.
+---
 
-DDD is a strategic approach focused on building complex software by connecting technical details to an evolving domain model.  When combined with event-driven patterns, it creates highly scalable, loosely coupled systems ideal for maritime education platforms serving 10,000+ students.
+## Architecture Overview
 
-## Core Architecture Principles
-
-### 1. Hexagonal Architecture with DDD Layers
-
-Each microservice follows a strict layered structure aligned with DDD principles:
+### Layer Dependency Rule
 
 ```
-maritime-lms/
-├── domain-{service}/       # Domain layer - pure business logic, no frameworks
-├── application-{service}/  # Application layer - use cases, domain services, event handlers
-├── infrastructure-{service}/ # Infrastructure layer - persistence, messaging, external integrations
-└── interfaces-{service}/   # Interfaces layer - REST APIs, messaging endpoints, UI adapters
+Domain ← Application ← Infrastructure
+(inner)   (middle)      (outer)
+
+Domain:        Pure Java. Zero framework imports.
+Application:   Domain ports only. No @Entity, no Spring Data, no HTTP.
+Infrastructure: Implements ports. Contains Spring, JPA, REST controllers.
 ```
 
-**Domain Layer (Core):**
-- Contains entities, value objects, domain events, repositories (interfaces only), domain services
-- **100% framework-free** - no Spring, no database dependencies
-- Pure business logic focused on maritime domain concepts (certifications, vessel operations, safety protocols)
+### Module Structure
 
-**Application Layer:**
-- Orchestrates domain objects to fulfill use cases
-- Implements domain services and domain event handlers
-- Manages transactions and coordinates workflows
-- Contains application services, DTOs, and use case implementations
-
-**Infrastructure Layer:**
-- Implements repository interfaces with JPA/JOOQ
-- Configures databases, messaging (Kafka/RabbitMQ), external APIs
-- Handles persistence, caching, and infrastructure concerns
-- Contains Spring configuration classes
-
-**Interfaces Layer:**
-- REST controllers, message consumers, scheduled tasks
-- API documentation with OpenAPI/Swagger
-- Request/response mapping to/from application layer DTOs
-
-### 2. Bounded Contexts for Maritime LMS
-
-Identify and isolate bounded contexts based on maritime domain expertise:
-
-| Context | Responsibility | Key Entities | Event Topics |
-|---------|----------------|--------------|--------------|
-| student-enrollment | Student registration, course enrollment | Student, Course, Enrollment | student.registered, course.enrolled |
-| certification-management | Maritime certifications, compliance tracking | Certificate, Competency, Assessment | certification.issued, competency.updated |
-| course-delivery | Course content delivery, progress tracking | Module, Lesson, AssessmentResult | lesson.completed, assessment.submitted |
-| vessel-operations | Simulator training, vessel operation logs | Vessel, OperationLog, TrainingSession | simulation.started, operation.logged |
-| notification-system | Alerts, reminders, maritime emergency notifications | Alert, NotificationChannel, Schedule | alert.triggered, notification.sent |
-
-DDD helps ensure that services are truly autonomous and loosely coupled by defining clear, domain-driven boundaries between contexts. 
-
-### 3. Event-Driven Integration Patterns
-
-#### Domain Events
-
-Domain events represent significant state changes within a bounded context:
-
-```kotlin
-// Domain layer
-data class StudentEnrolledDomainEvent(
-    val studentId: UUID,
-    val courseId: UUID,
-    val enrollmentDate: LocalDateTime,
-    val occurredOn: LocalDateTime = LocalDateTime.now()
-) : DomainEvent
+```
+{module}/
+├── domain/
+│   ├── model/            # Aggregate roots, entities, enums
+│   ├── repository/       # Port interfaces (e.g., CourseRepository)
+│   ├── valueobject/      # Value objects (CourseCode, Email)
+│   └── event/            # Domain events
+├── application/
+│   ├── usecase/          # Single-responsibility use cases
+│   ├── dto/              # Command records, response records
+│   └── port/             # Application-level ports (TokenService)
+└── infrastructure/
+    ├── persistence/
+    │   ├── entity/       # @Entity classes (*JpaEntity suffix)
+    │   ├── mapper/       # JpaEntity <-> Domain mappers
+    │   └── *Adapter.java # Port implementations
+    └── web/              # @RestController classes
 ```
 
-#### Event Publishing (Infrastructure Layer)
+---
 
-```kotlin
-// Infrastructure implementation
-@Component
-class DomainEventPublisher(
-    private val applicationEventPublisher: ApplicationEventPublisher
-) : EventPublisher {
-    
-    override fun publish(event: DomainEvent) {
-        applicationEventPublisher.publishEvent(event)
-        // Also publish to Kafka/RabbitMQ for cross-service communication
-        kafkaTemplate.send("domain-events", event)
-    }
+## Java 21 Modern Patterns
+
+### Records for DTOs (Immutable by Design)
+
+```java
+// Command (input)
+public record CreateCourseCommand(
+    @NotBlank String code,
+    @NotBlank @Size(max = 255) String title,
+    @Size(max = 5000) String description,
+    @NotNull UUID teacherId
+) {}
+
+// Response (output)
+public record CourseResponse(
+    UUID id,
+    String code,
+    String title,
+    String description,
+    String status,
+    UUID teacherId,
+    boolean editable,
+    Instant createdAt
+) {}
+```
+
+### Sealed Interfaces for Type-Safe Domain Events
+
+```java
+public sealed interface DomainEvent permits
+    CourseCreatedEvent,
+    CourseApprovedEvent,
+    CourseRejectedEvent,
+    UserRegisteredEvent {
+
+    Instant occurredAt();
+    String aggregateId();
+}
+
+public record CourseCreatedEvent(
+    UUID courseId,
+    String title,
+    UUID teacherId,
+    Instant occurredAt
+) implements DomainEvent {
+    public String aggregateId() { return courseId.toString(); }
 }
 ```
 
-#### Event Handling
+### Pattern Matching (Java 21)
 
-```kotlin
-// Application layer event handler
-@Service
-@Transactional
-class CertificationEventHandler(
-    private val certificationService: CertificationService
-) {
-    
-    @EventHandler
-    fun handleStudentEnrolled(event: StudentEnrolledDomainEvent) {
-        certificationService.createInitialCertificationTrack(
-            event.studentId,
-            event.courseId
-        )
-    }
+```java
+// switch expressions with pattern matching
+public String getStatusLabel(CourseStatus status) {
+    return switch (status) {
+        case DRAFT -> "Draft";
+        case PENDING -> "Pending Review";
+        case APPROVED -> "Approved";
+        case REJECTED -> "Rejected";
+        case PUBLISHED -> "Published";
+        case ARCHIVED -> "Archived";
+    };
+}
+
+// instanceof pattern matching
+if (exception instanceof EntityNotFoundException e) {
+    return ResponseEntity.notFound().build();
+} else if (exception instanceof BusinessRuleException e) {
+    return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
 }
 ```
 
-**Event Sourcing & CQRS Considerations:**
-- For high-write scenarios (student progress tracking), consider event sourcing patterns
-- Use CQRS for separating read/write models in complex reporting scenarios
-- Implement eventual consistency with saga patterns for distributed transactions
+### Text Blocks for SQL/Messages
 
-### 4. Database per Service Pattern
-
-Each microservice manages its own database to prevent bottlenecks and ensure autonomy. 
-
-**Database Strategy:**
-- **Domain Layer:** Repository interfaces only (no implementation)
-- **Infrastructure Layer:** Repository implementations with JPA/JOOQ
-- **Database Types:** PostgreSQL for relational data, Redis for caching/event sourcing
-
-```kotlin
-// Domain layer interface
-interface StudentRepository {
-    fun findById(id: UUID): Student?
-    fun save(student: Student): Student
-}
-
-// Infrastructure implementation
-@Repository
-class JpaStudentRepository(
-    private val studentJpaRepository: StudentJpaRepository
-) : StudentRepository {
-    
-    override fun findById(id: UUID): Student? {
-        return studentJpaRepository.findById(id)?.toDomain()
-    }
-    
-    override fun save(student: Student): Student {
-        return studentJpaRepository.save(student.toEntity()).toDomain()
-    }
-}
+```java
+@Query("""
+    SELECT e FROM EnrollmentJpaEntity e
+    WHERE e.classId = :classId
+    AND e.status = 'ACTIVE'
+    ORDER BY e.enrolledAt DESC
+    """)
+List<EnrollmentJpaEntity> findActiveByClassId(@Param("classId") UUID classId);
 ```
 
-## Spring Boot 3 Implementation Standards
-
-### 1. Dependency Management
-
-**Gradle Kotlin DSL Structure:**
-```gradle
-dependencies {
-    // Domain layer - NO SPRING DEPENDENCIES
-    implementation(project(":domain-certification"))
-    
-    // Application layer
-    implementation(project(":application-certification"))
-    implementation("org.springframework.boot:spring-boot-starter")
-    
-    // Infrastructure layer
-    implementation(project(":infrastructure-certification"))
-    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
-    implementation("org.springframework.kafka:spring-kafka")
-    
-    // Interfaces layer
-    implementation(project(":interfaces-certification"))
-    implementation("org.springframework.boot:spring-boot-starter-web")
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.1.0")
-}
-```
-
-### 2. Configuration Management
-
-**12-Factor App compliant configuration:**
-- Externalize all configuration from code
-- Use Spring Cloud Config for centralized configuration
-- Environment-specific profiles (dev, staging, prod)
-- Secrets management via HashiCorp Vault or AWS Secrets Manager
+### Virtual Threads (Java 21)
 
 ```yaml
-# application.yml
+# application.yml - Enable virtual threads
 spring:
-  config:
-    import: optional:configserver:http://config-server:8888
-  datasource:
-    url: ${DATABASE_URL}
-    username: ${DATABASE_USERNAME}
-    password: ${DATABASE_PASSWORD}
-  kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+  threads:
+    virtual:
+      enabled: true  # All @Async and web threads use virtual threads
 ```
 
-### 3. API Design Standards
+---
 
-**REST API Best Practices:**
-- Follow REST maturity level 3 (HATEOAS)
-- Version APIs from day one: `/api/v1/students`
-- Use proper HTTP status codes
-- Implement pagination, filtering, sorting consistently
-- Document all APIs with OpenAPI 3.0
+## Domain Layer Patterns
 
-```kotlin
+### Rich Domain Model (NOT Anemic)
+
+```java
+// CORRECT: Domain model with business logic
+public class Course extends BaseEntity<UUID> {
+    private CourseCode code;
+    private String title;
+    private CourseStatus status;
+    private List<Chapter> chapters = new ArrayList<>();
+
+    // Factory method with validation
+    public static Course create(CourseCode code, String title, String desc, UUID teacherId) {
+        Objects.requireNonNull(code, "Course code is required");
+        if (title == null || title.isBlank()) {
+            throw new ValidationException("Title cannot be blank");
+        }
+        return new Course(UUID.randomUUID(), code, title, desc, teacherId, CourseStatus.DRAFT);
+    }
+
+    // Business method (NOT a setter)
+    public void submitForApproval() {
+        ensureEditable();
+        if (chapters.isEmpty()) {
+            throw new BusinessRuleException("Course must have at least one chapter");
+        }
+        this.status = CourseStatus.PENDING;
+    }
+
+    public void approve(UUID reviewerId, String comment) {
+        if (status != CourseStatus.PENDING) {
+            throw new BusinessRuleException("Only pending courses can be approved");
+        }
+        this.status = CourseStatus.APPROVED;
+        this.reviewedById = reviewerId;
+        this.reviewComment = comment;
+        this.reviewedAt = Instant.now();
+    }
+
+    public boolean isEditable() {
+        return status == CourseStatus.DRAFT || status == CourseStatus.REJECTED;
+    }
+
+    private void ensureEditable() {
+        if (!isEditable()) {
+            throw new BusinessRuleException("Course is not editable in status: " + status);
+        }
+    }
+}
+
+// WRONG: Anemic model with public setters
+public class BadCourse {
+    private String title;
+    public void setTitle(String title) { this.title = title; }  // NO!
+    public void setStatus(CourseStatus s) { this.status = s; }  // NO!
+}
+```
+
+### Value Objects
+
+```java
+// Self-validating, immutable
+public record Email(String value) {
+    public Email {
+        Objects.requireNonNull(value, "Email cannot be null");
+        value = value.trim().toLowerCase();
+        if (!value.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")) {
+            throw new ValidationException("Invalid email format: " + value);
+        }
+    }
+
+    public static Email of(String value) {
+        return new Email(value);
+    }
+
+    public String getDomain() {
+        return value.substring(value.indexOf('@') + 1);
+    }
+}
+
+public record CourseCode(String value) {
+    public CourseCode {
+        Objects.requireNonNull(value, "Course code cannot be null");
+        if (value.isBlank()) throw new ValidationException("Course code cannot be blank");
+    }
+
+    public static CourseCode of(String value) {
+        return new CourseCode(value);
+    }
+}
+```
+
+### Domain Repository Port (Interface)
+
+```java
+// Domain port - NO framework annotations, NO JPA types
+public interface CourseRepository {
+    Course findById(UUID id);
+    Course save(Course course);
+    boolean existsByCode(CourseCode code);
+    List<Course> findByTeacherId(UUID teacherId);
+    void deleteById(UUID id);
+}
+```
+
+### Domain Events
+
+```java
+// Interface in shared/domain/event/ (NOT infrastructure!)
+public interface DomainEventPublisher {
+    void publish(DomainEvent event);
+    default void publishAll(Iterable<? extends DomainEvent> events) {
+        events.forEach(this::publish);
+    }
+}
+
+// Usage in use case
+public CourseResponse execute(CreateCourseCommand cmd) {
+    var course = Course.create(...);
+    course = courseRepository.save(course);
+    eventPublisher.publish(new CourseCreatedEvent(course.getId(), course.getTitle()));
+    return toResponse(course);
+}
+```
+
+---
+
+## Application Layer Patterns
+
+### Use Case (Single Responsibility)
+
+```java
+@Component
+@RequiredArgsConstructor
+public class CreateAssignmentUseCaseV3 {
+    // ONLY domain ports - never JPA repos or Spring services
+    private final AssignmentRepository assignmentRepository;
+
+    public UUID execute(CreateAssignmentCommand cmd) {
+        var assignment = Assignment.create(
+            cmd.title(),
+            cmd.description(),
+            cmd.courseId(),
+            cmd.teacherId(),
+            cmd.type()
+        );
+
+        if (cmd.dueDate() != null) {
+            assignment.setDueDate(cmd.dueDate());
+        }
+
+        assignment = assignmentRepository.save(assignment);
+        return assignment.getId();
+    }
+}
+```
+
+### Application Port (For Infrastructure Services)
+
+```java
+// Port in application layer
+public interface TokenService {
+    String generateAccessToken(UUID userId, String email, String role);
+    String generateRefreshToken(UUID userId, String email, String role);
+    String extractEmail(String token);
+    boolean isTokenValid(String token);
+}
+
+// Adapter in infrastructure layer
+@Component
+public class TokenServiceAdapter implements TokenService {
+    private final JwtTokenAdapter jwtAdapter;  // Infrastructure dependency OK here
+
+    @Override
+    public String generateAccessToken(UUID userId, String email, String role) {
+        return jwtAdapter.generateAccessToken(userId, email, role);
+    }
+}
+```
+
+---
+
+## Infrastructure Layer Patterns
+
+### JPA Entity (CRITICAL RULE)
+
+```java
+// JPA entity - ALWAYS suffix with JpaEntity
+// ALWAYS in infrastructure/persistence/entity/
+@Entity
+@Table(name = "courses")
+@Getter @Setter
+@NoArgsConstructor
+public class CourseJpaEntity {
+    @Id
+    private UUID id;
+
+    @Column(nullable = false, unique = true)
+    private String code;
+
+    @Column(nullable = false)
+    private String title;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    @Enumerated(EnumType.STRING)
+    private CourseStatus status;
+
+    @Column(name = "teacher_id", nullable = false)
+    private UUID teacherId;
+
+    @Column(name = "created_at")
+    private Instant createdAt;
+
+    @Column(name = "updated_at")
+    private Instant updatedAt;
+
+    // Audit fields
+    @PrePersist
+    protected void onCreate() {
+        createdAt = Instant.now();
+        updatedAt = Instant.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = Instant.now();
+    }
+}
+```
+
+### JPA Repository
+
+```java
+// CORRECT: Uses *JpaEntity class
+@Repository
+public interface CourseJpaRepository extends JpaRepository<CourseJpaEntity, UUID> {
+
+    @Query("""
+        SELECT c FROM CourseJpaEntity c
+        WHERE c.status = :status
+        ORDER BY c.createdAt DESC
+        """)
+    Page<CourseJpaEntity> findByStatus(@Param("status") CourseStatus status, Pageable pageable);
+
+    boolean existsByCode(String code);
+
+    List<CourseJpaEntity> findByTeacherId(UUID teacherId);
+}
+
+// WRONG: Uses domain model → causes "Not a managed type" error at startup
+public interface BadRepository extends JpaRepository<Course, UUID> {} // NEVER!
+```
+
+### Repository Adapter
+
+```java
+@Component
+@RequiredArgsConstructor
+public class CourseRepositoryAdapter implements CourseRepository {
+    private final CourseJpaRepository jpaRepo;
+    private final CourseEntityMapper mapper;
+
+    @Override
+    public Course findById(UUID id) {
+        return jpaRepo.findById(id)
+            .map(mapper::toDomain)
+            .orElse(null);
+    }
+
+    @Override
+    public Course save(Course course) {
+        var entity = mapper.toEntity(course);
+        var saved = jpaRepo.save(entity);
+        return mapper.toDomain(saved);
+    }
+
+    @Override
+    public boolean existsByCode(CourseCode code) {
+        return jpaRepo.existsByCode(code.value());
+    }
+}
+```
+
+### Entity Mapper
+
+```java
+@Component
+public class CourseEntityMapper {
+
+    public Course toDomain(CourseJpaEntity entity) {
+        return Course.builder()
+            .id(entity.getId())
+            .code(CourseCode.of(entity.getCode()))
+            .title(entity.getTitle())
+            .description(entity.getDescription())
+            .status(entity.getStatus())
+            .teacherId(entity.getTeacherId())
+            .build();
+    }
+
+    public CourseJpaEntity toEntity(Course domain) {
+        var entity = new CourseJpaEntity();
+        entity.setId(domain.getId());
+        entity.setCode(domain.getCode().value());
+        entity.setTitle(domain.getTitle());
+        entity.setDescription(domain.getDescription());
+        entity.setStatus(domain.getStatus());
+        entity.setTeacherId(domain.getTeacherId());
+        return entity;
+    }
+}
+```
+
+### REST Controller
+
+```java
 @RestController
-@RequestMapping("/api/v1/students")
-@Tag(name = "STUDENT_ENROLLMENT", description = "Student enrollment management")
-class StudentEnrollmentController(
-    private val enrollmentService: EnrollmentService
-) {
-    
+@RequestMapping("/api/v3/assignments")
+@RequiredArgsConstructor
+public class AssignmentControllerV3 {
+    private final CreateAssignmentUseCaseV3 createAssignment;
+    private final UpdateAssignmentUseCaseV3 updateAssignment;
+
     @PostMapping
-    @Operation(summary = "Enroll student in course")
-    @ResponseStatus(HttpStatus.CREATED)
-    fun enrollStudent(
-        @RequestBody @Valid enrollmentRequest: EnrollmentRequest
-    ): ResponseEntity<StudentEnrollmentResponse> {
-        val result = enrollmentService.enrollStudent(enrollmentRequest)
-        return ResponseEntity.created(URI.create("/api/v1/students/${result.studentId}/enrollments/${result.id}"))
-            .body(result)
+    @PreAuthorize("hasAnyRole('TEACHER', 'INSTRUCTOR', 'ADMIN')")
+    public ResponseEntity<?> create(@Valid @RequestBody CreateAssignmentCommand cmd) {
+        UUID id = createAssignment.execute(cmd);
+        return ResponseEntity.ok(ApiResponse.success("Assignment created", id));
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'INSTRUCTOR', 'ADMIN')")
+    public ResponseEntity<?> update(
+        @PathVariable UUID id,
+        @Valid @RequestBody UpdateAssignmentCommand cmd
+    ) {
+        updateAssignment.execute(id, cmd);
+        return ResponseEntity.ok(ApiResponse.success("Assignment updated"));
     }
 }
 ```
 
-## Maritime LMS Specific Patterns
+---
 
-### 1. Scale Considerations for 10,000 Students
+## Security Patterns (Spring Security 6.x)
 
-**Performance Optimization Strategies:**
-- **Read Models:** Materialized views for dashboards and reports
-- **Caching:** Redis for frequently accessed data (course catalogs, student profiles)
-- **Asynchronous Processing:** Kafka for background tasks (certificate generation, notifications)
-- **Database Sharding:** Student data partitioned by maritime region or academy
+### SecurityFilterChain (Modern Style)
 
-**Load Testing Benchmarks:**
-- Target: 1000 concurrent users during peak hours (exams, enrollments)
-- Response time: < 2 seconds for critical operations
-- Throughput: 50 requests/second per microservice instance
+```java
+@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity
+public class SecurityConfig {
 
-### 2. Domain Modeling for Maritime Education
-
-**Core Maritime Domain Concepts:**
-- **Certification Hierarchy:** STCW certifications, national endorsements, vessel-specific credentials
-- **Competency Tracking:** Practical skills assessment, simulator performance logging
-- **Regulatory Compliance:** Automatic checks against maritime authority requirements
-- **Emergency Procedures:** Specialized training workflows for safety scenarios
-
-```kotlin
-// Domain model example
-class MaritimeCertificate(
-    id: CertificateId,
-    studentId: StudentId,
-    certificateType: CertificateType, // STCW, MEDICAL, RADIO, etc.
-    issuedDate: LocalDateTime,
-    expiryDate: LocalDateTime,
-    status: CertificateStatus,
-    competencyRecords: List<CompetencyRecord>
-) : AggregateRoot<CertificateId>(id) {
-    
-    fun renew(renewalRequest: CertificateRenewalRequest): DomainEvent {
-        validateRenewalEligibility()
-        return CertificateRenewedDomainEvent(
-            certificateId = id,
-            studentId = studentId,
-            newExpiryDate = renewalRequest.newExpiryDate
-        )
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        return http
+            .csrf(AbstractHttpConfigurer::disable)
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .sessionManagement(session ->
+                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .headers(headers -> headers
+                .frameOptions(HeadersConfigurer.FrameOptionsConfig::deny)
+                .httpStrictTransportSecurity(hsts -> hsts.maxAgeInSeconds(31536000))
+                .contentTypeOptions(Customizer.withDefaults()))
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/api/v3/auth/login", "/api/v3/auth/register").permitAll()
+                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v3/courses", "/api/v3/courses/**").permitAll()
+                .requestMatchers("/api/v3/admin/**").hasRole("ADMIN")
+                .anyRequest().authenticated())
+            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+            .build();
     }
 }
 ```
 
-## Quality Assurance Standards
+### Rate Limiting
 
-### 1. Testing Strategy
+```java
+@Component
+public class RateLimitingFilter extends OncePerRequestFilter {
+    private final Map<String, Deque<Instant>> requestCounts = new ConcurrentHashMap<>();
+    private static final int MAX_REQUESTS = 10;
+    private static final Duration WINDOW = Duration.ofMinutes(1);
 
-**Test Pyramid Implementation:**
-- **Unit Tests (70%):** Domain objects, pure business logic (JUnit 5, TestContainers)
-- **Integration Tests (20%):** Repository implementations, API endpoints
-- **End-to-End Tests (10%):** Critical user journeys across services
-
-```kotlin
-@DomainTest
-class MaritimeCertificateTest {
-    
-    @Test
-    fun `certificate cannot be renewed if expired more than 5 years`() {
-        val expiredCertificate = createExpiredCertificate(expiryDate = LocalDate.now().minusYears(6))
-        
-        assertThrows<CertificateRenewalException> {
-            expiredCertificate.renew(validRenewalRequest())
+    @Override
+    protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain chain)
+        throws ServletException, IOException {
+        if (isAuthEndpoint(req.getRequestURI())) {
+            String key = getClientIP(req);
+            if (isRateLimited(key)) {
+                res.setStatus(429);
+                return;
+            }
         }
+        chain.doFilter(req, res);
+    }
+}
+```
+
+### CORS Configuration
+
+```java
+@Bean
+public CorsConfigurationSource corsConfigurationSource() {
+    var config = new CorsConfiguration();
+    config.setAllowedOrigins(List.of(
+        env.getProperty("CORS_ALLOWED_ORIGINS", "http://localhost:4200").split(",")
+    ));
+    config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+    config.setAllowedHeaders(List.of("*"));
+    config.setAllowCredentials(true);
+    var source = new UrlBasedCorsConfigurationSource();
+    source.registerCorsConfiguration("/**", config);
+    return source;
+}
+```
+
+---
+
+## Database Patterns
+
+### Flyway Migrations
+
+```sql
+-- V31__add_new_feature.sql
+-- Always use IF NOT EXISTS for idempotency
+CREATE TABLE IF NOT EXISTS new_feature (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_new_feature_name ON new_feature(name);
+
+-- Constraints
+ALTER TABLE new_feature
+    ADD CONSTRAINT IF NOT EXISTS fk_new_feature_course
+    FOREIGN KEY (course_id) REFERENCES courses(id);
+```
+
+### Spring Data Pageable (DB-Level Pagination)
+
+```java
+// CORRECT: DB-level pagination
+@Query("SELECT e FROM CourseJpaEntity e WHERE e.status = :status")
+Page<CourseJpaEntity> findByStatus(@Param("status") String status, Pageable pageable);
+
+// Controller
+@GetMapping
+public ResponseEntity<?> list(
+    @RequestParam(defaultValue = "0") int page,
+    @RequestParam(defaultValue = "20") int size
+) {
+    var pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+    var result = repository.findAll(pageable);
+    return ResponseEntity.ok(ApiResponse.success(result));
+}
+
+// WRONG: Manual subList pagination (loads ALL rows)
+List<Course> all = repo.findAll();
+List<Course> page = all.subList(offset, Math.min(offset + size, all.size())); // NO!
+```
+
+### JSONB Columns (Hypersistence Utils)
+
+```java
+@Entity
+@Table(name = "lessons")
+public class LessonJpaEntity {
+
+    @Type(JsonType.class)
+    @Column(name = "content_blocks", columnDefinition = "jsonb")
+    private List<ContentBlock> contentBlocks;
+}
+```
+
+---
+
+## Exception Handling
+
+### Domain Exception Hierarchy
+
+```java
+// Base exceptions (shared/exception/)
+public class EntityNotFoundException extends RuntimeException {
+    public EntityNotFoundException(String entity, Object id) {
+        super(entity + " not found with id: " + id);
     }
 }
 
-@SpringBootTest
-@IntegrationTest
-class CertificateRenewalApiTest {
-    
+public class BusinessRuleException extends RuntimeException {
+    public BusinessRuleException(String message) {
+        super(message);
+    }
+}
+
+public class ValidationException extends RuntimeException { ... }
+public class UnauthorizedException extends RuntimeException { ... }
+```
+
+### Global Exception Handler
+
+```java
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    @ExceptionHandler(EntityNotFoundException.class)
+    public ResponseEntity<?> handleNotFound(EntityNotFoundException e) {
+        return ResponseEntity.status(404)
+            .body(ApiResponse.error(e.getMessage()));
+    }
+
+    @ExceptionHandler(BusinessRuleException.class)
+    public ResponseEntity<?> handleBusinessRule(BusinessRuleException e) {
+        return ResponseEntity.badRequest()
+            .body(ApiResponse.error(e.getMessage()));
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<?> handleValidation(MethodArgumentNotValidException e) {
+        var errors = e.getBindingResult().getFieldErrors().stream()
+            .map(f -> f.getField() + ": " + f.getDefaultMessage())
+            .toList();
+        return ResponseEntity.badRequest()
+            .body(ApiResponse.error("Validation failed", errors));
+    }
+}
+```
+
+---
+
+## Testing Patterns
+
+### Domain Model Tests (Pure Logic, Zero Mocks)
+
+```java
+@DisplayName("Course Domain Model Tests")
+class CourseTest {
+
     @Test
-    fun `renew certificate successfully`() {
-        // Setup test data
-        val certificateId = createTestCertificate()
-        
+    @DisplayName("Should create course in DRAFT status")
+    void shouldCreateInDraftStatus() {
+        var course = Course.create(
+            CourseCode.of("CS101"), "Intro", "Desc", UUID.randomUUID());
+        assertThat(course.getStatus()).isEqualTo(CourseStatus.DRAFT);
+        assertThat(course.isEditable()).isTrue();
+    }
+
+    @Test
+    @DisplayName("Should throw when submitting without chapters")
+    void shouldThrowWhenNoChapters() {
+        var course = Course.create(
+            CourseCode.of("CS101"), "Intro", "Desc", UUID.randomUUID());
+        assertThatThrownBy(() -> course.submitForApproval())
+            .isInstanceOf(BusinessRuleException.class);
+    }
+}
+```
+
+### Use Case Tests (Mock Ports)
+
+```java
+@ExtendWith(MockitoExtension.class)
+@DisplayName("CreateCourseUseCase Tests")
+class CreateCourseUseCaseTest {
+
+    @Mock private CourseRepository courseRepository;
+    @Mock private DomainEventPublisher eventPublisher;
+    @InjectMocks private CreateCourseUseCase useCase;
+
+    @Test
+    @DisplayName("Should create course successfully")
+    void shouldCreateCourse() {
+        // Given
+        when(courseRepository.existsByCode(any())).thenReturn(false);
+        when(courseRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        var cmd = new CreateCourseCommand("CS101", "Title", "Desc", UUID.randomUUID());
+
         // When
-        val response = mockMvc.post("/api/v1/certificates/${certificateId}/renew") {
-            contentType = MediaType.APPLICATION_JSON
-            content = """
-                {
-                    "newExpiryDate": "${LocalDate.now().plusYears(5)}"
-                }
-            """
-        }
-        
+        var response = useCase.execute(cmd);
+
         // Then
-        response.andExpect(status().isOk)
-               .andExpect(jsonPath("$.status").value("RENEWED"))
+        assertThat(response.code()).isEqualTo("CS101");
+        assertThat(response.status()).isEqualTo("DRAFT");
+        verify(courseRepository).save(any(Course.class));
     }
 }
 ```
 
-### 2. Monitoring and Observability
+### Integration Tests (Spring Boot)
 
-**Essential Metrics:**
-- Domain event processing latency
-- Certificate issuance success/failure rates
-- Student enrollment completion rates
-- Database query performance by bounded context
+```java
+@SpringBootTest
+@AutoConfigureMockMvc
+@Transactional
+class CourseApiIntegrationTest {
 
-**Tools Stack:**
-- Prometheus/Grafana for metrics
-- ELK Stack for log aggregation
-- Jaeger/Zipkin for distributed tracing
-- Health checks with Spring Boot Actuator
+    @Autowired private MockMvc mockMvc;
+    @Autowired private ObjectMapper objectMapper;
 
-## Deployment and Operations
+    @Test
+    void shouldCreateCourseViaApi() throws Exception {
+        var cmd = Map.of(
+            "code", "TEST001",
+            "title", "Test Course",
+            "description", "Description",
+            "teacherId", UUID.randomUUID().toString()
+        );
 
-### 1. CI/CD Pipeline Requirements
+        mockMvc.perform(post("/api/v3/authoring/courses")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(cmd))
+            .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_TEACHER"))))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true));
+    }
+}
+```
 
-**Pipeline Stages:**
-1. **Build:** Compile, run unit tests, static analysis (Detekt, SonarQube)
-2. **Test:** Integration tests, contract tests, security scanning
-3. **Package:** Docker image creation with multi-stage builds
-4. **Deploy:** Blue/green deployment to Kubernetes cluster
-5. **Verify:** Smoke tests, performance tests, user acceptance testing
+---
+
+## Caching (Caffeine)
+
+```java
+@Configuration
+@EnableCaching
+public class CacheConfig {
+
+    @Bean
+    public CacheManager cacheManager() {
+        var caffeineCacheManager = new CaffeineCacheManager();
+        caffeineCacheManager.setCaffeine(Caffeine.newBuilder()
+            .maximumSize(1000)
+            .expireAfterWrite(Duration.ofMinutes(10))
+            .recordStats());
+        return caffeineCacheManager;
+    }
+}
+
+// Usage
+@Cacheable(value = "courses", key = "#id")
+public Course findById(UUID id) { ... }
+
+@CacheEvict(value = "courses", key = "#course.id")
+public Course save(Course course) { ... }
+```
+
+---
+
+## File Storage (Cloudflare R2 / S3-Compatible)
+
+```java
+@Service
+public class R2StorageService {
+    private final S3Client s3Client;
+    private final String bucketName;
+
+    public String upload(MultipartFile file, String folder) {
+        // Validate MIME type
+        String contentType = file.getContentType();
+        if (!ALLOWED_MIME_TYPES.contains(contentType)) {
+            throw new ValidationException("File type not allowed: " + contentType);
+        }
+
+        // Sanitize filename
+        String safeFilename = sanitizeFilename(file.getOriginalFilename());
+        String key = folder + "/" + UUID.randomUUID() + "_" + safeFilename;
+
+        s3Client.putObject(
+            PutObjectRequest.builder()
+                .bucket(bucketName)
+                .key(key)
+                .contentType(contentType)
+                .build(),
+            RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
+
+        return key;
+    }
+}
+```
+
+---
+
+## Configuration Best Practices
+
+### Profile-Specific Configuration
 
 ```yaml
-# GitHub Actions example
-name: Maritime LMS CI/CD
+# application.yml (shared)
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate  # NEVER use create/update in production
+    properties:
+      hibernate:
+        format_sql: false
+    open-in-view: false    # Prevent lazy loading in controllers
 
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+# application-dev.yml
+spring:
+  jpa:
+    properties:
+      hibernate:
+        show_sql: true
+        format_sql: true
+  flyway:
+    enabled: true
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up JDK 21
-        uses: actions/setup-java@v3
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-      - name: Build with Gradle
-        run: ./gradlew build --no-daemon
-      - name: Run tests
-        run: ./gradlew test --no-daemon
-      - name: Build Docker image
-        run: docker build -t maritime-lms/student-service:${{ github.sha }} .
+# application-prod.yml
+spring:
+  jpa:
+    properties:
+      hibernate:
+        show_sql: false
+  flyway:
+    enabled: true
 ```
 
-### 2. Disaster Recovery and High Availability
+### Bean Naming (Avoid Collisions)
 
-**Resilience Patterns:**
-- Circuit breakers for external service calls (Resilience4j)
-- Bulkheads to isolate failures
-- Retry mechanisms with exponential backoff
-- Database replication and automatic failover
+```java
+// When two modules have same-named beans
+@Component("assessment_CourseRepository")
+public class CourseRepositoryAdapter implements CourseRepository { ... }
 
-**Recovery Objectives:**
-- RTO (Recovery Time Objective): < 15 minutes
-- RPO (Recovery Point Objective): < 5 minutes data loss
-- Multi-region deployment for maritime emergency scenarios
-
-## Anti-Corruption Layers
-
-### Cross-Bounded Context Integration
-
-When integrating with legacy systems or external maritime authorities:
-
-```kotlin
-// Anti-corruption layer example
-@Service
-class MaritimeAuthorityAdapter(
-    private val externalAuthorityClient: ExternalAuthorityClient,
-    private val certificateFactory: CertificateFactory
-) {
-    
-    fun convertExternalCertificate(externalCert: ExternalCertificateDto): MaritimeCertificate {
-        return certificateFactory.createFromExternal(
-            externalCert.id,
-            externalCert.studentId,
-            CertificateType.fromExternalCode(externalCert.typeCode),
-            externalCert.issueDate.atStartOfDay(),
-            externalCert.expiryDate.atStartOfDay(),
-            CertificateStatus.ACTIVE
-        )
-    }
-}
+@Component("courseAuthoring_CourseRepository")
+public class CourseRepositoryImpl implements CourseRepository { ... }
 ```
 
-**Integration Patterns:**
-- **REST APIs:** For synchronous operations with external systems
-- **Message Queues:** For asynchronous integration (STCW record updates)
-- **File Transfer:** For bulk data exchange with maritime authorities
-- **Webhooks:** For real-time notifications of certificate status changes
+---
 
-## Evolutionary Architecture Guidelines
+## Anti-Patterns to Avoid
 
-### 1. Refactoring Strategy
+| Anti-Pattern | Correct Alternative |
+|-------------|-------------------|
+| `System.out.println()` | Use SLF4J logger: `log.info(...)` |
+| `RuntimeException("msg")` | `EntityNotFoundException`, `BusinessRuleException` |
+| JPA repo with domain model | JPA repo with `*JpaEntity` class |
+| Use case importing JPA entity | Use case importing domain port only |
+| Public setters on domain model | Business methods (approve, publish, etc.) |
+| Manual subList pagination | Spring Data `Pageable` |
+| CORS wildcard `*` | Specific origins from env var |
+| Empty catch blocks | Log the error or throw specific exception |
+| Hardcoded secrets | Environment variables |
+| `@Autowired` field injection | Constructor injection via `@RequiredArgsConstructor` |
 
-**When to Refactor:**
-- When domain model doesn't match business reality
-- When bounded contexts have high coupling
-- When performance bottlenecks appear in domain logic
-- When new maritime regulations require system changes
+---
 
-**Refactoring Techniques:**
-- Strangler Fig pattern for legacy replacement
-- Branch by Abstraction for large-scale changes
-- Parallel change for zero-downtime deployments
-- Dark launching for new features
+## Checklist for New Features
 
-### 2. Technology Evolution
+```
+[ ] Domain model in {module}/domain/model/ (no @Entity)
+[ ] Repository port in {module}/domain/repository/
+[ ] Use case in {module}/application/usecase/ (no infra imports)
+[ ] Command/Response DTOs with Jakarta validation
+[ ] JPA entity with *JpaEntity suffix
+[ ] JPA repository uses JpaEntity (NOT domain model)
+[ ] Mapper: JpaEntity <-> Domain
+[ ] Adapter implements domain port
+[ ] Controller with @Valid + @PreAuthorize
+[ ] Flyway migration for schema changes
+[ ] Domain model tests (pure logic)
+[ ] Use case tests (mock repos)
+[ ] All 202+ existing tests still pass
+```
 
-**Stack Evolution Path:**
-- **Current:** Spring Boot 3, Kotlin, PostgreSQL, Kafka
-- **Future Considerations:** 
-  - Quarkus/Micronaut for improved startup time
-  - GraphQL for flexible API queries
-  - Service mesh (Istio/Linkerd) for advanced traffic management
-  - Vector databases for competency recommendation systems
+---
 
-## Compliance and Security
+## References
 
-### Maritime Regulatory Requirements
-
-**Data Requirements:**
-- GDPR compliance for European maritime students
-- STCW record retention (minimum 5 years)
-- Audit trails for all certification changes
-- Role-based access control for maritime authorities
-
-**Security Patterns:**
-- OAuth2/OIDC for authentication
-- Attribute-based access control (ABAC) for sensitive operations
-- End-to-end encryption for student records in transit
-- Regular security audits and penetration testing
-
-## Getting Started Guide
-
-### New Service Creation Checklist
-
-When creating a new microservice:
-
-1. **Define Bounded Context:**
-   - [ ] Identify domain boundaries with maritime domain experts
-   - [ ] Define ubiquitous language terms
-   - [ ] Document context map relationships
-
-2. **Set Up Project Structure:**
-   - [ ] Create domain, application, infrastructure, interfaces modules
-   - [ ] Configure Gradle multi-project build
-   - [ ] Set up Git repository with proper branching strategy
-
-3. **Implement Core Domain:**
-   - [ ] Define aggregate roots, entities, value objects
-   - [ ] Implement domain services and domain events
-   - [ ] Create repository interfaces
-
-4. **Build Infrastructure:**
-   - [ ] Configure database schema migrations (Flyway/Liquibase)
-   - [ ] Set up event messaging infrastructure
-   - [ ] Implement repository concrete classes
-
-5. **Create Interfaces:**
-   - [ ] Build REST controllers with OpenAPI documentation
-   - [ ] Implement message consumers for events
-   - [ ] Configure monitoring and observability
-
-6. **Quality Assurance:**
-   - [ ] Write unit tests for domain logic (100% coverage)
-   - [ ] Create integration tests for critical paths
-   - [ ] Set up CI/CD pipeline with quality gates
-
-## Troubleshooting Guide
-
-### Common Issues and Solutions
-
-**Issue: Domain events not being processed**
-- **Root Cause:** Event handler not registered or transaction boundaries incorrect
-- **Solution:** Check Spring component scanning, verify transactional boundaries, add logging to event flow
-
-**Issue: Performance degradation during student enrollment peaks**
-- **Root Cause:** Database contention on student records
-- **Solution:** Implement read replicas, add caching layer, optimize database indexes, use asynchronous processing
-
-**Issue: Inconsistent data between services**
-- **Root Cause:** Eventual consistency not properly handled
-- **Solution:** Implement saga pattern for distributed transactions, add compensation handlers, improve event idempotency
-
-**Issue: Complex domain logic becoming unmanageable**
-- **Root Cause:** Bounded context boundaries unclear or too large
-- **Solution:** Refactor into smaller contexts, apply strategic DDD patterns, extract domain services
-
-## References and Further Reading
-
-### Essential Resources
-- **Domain-Driven Design: Tackling Complexity in the Heart of Software** (Eric Evans)
-- **Implementing Domain-Driven Design** (Vaughn Vernon)
-- **Spring Boot Reference Documentation**
-- **Event Storming Workshop Guide** (Alberto Brandolini)
-- **Maritime Training Standards** (IMO STCW Convention)
-
-### Code Examples
-- [ttulka/ddd-example-ecommerce-microservices](https://github.com/ttulka/ddd-example-ecommerce-microservices) - DDD microservices example
-- [spring-petclinic/spring-petclinic-microservices](https://github.com/spring-petclinic/spring-petclinic-microservices) - Spring Boot microservices reference
-- [eventuate-tram/eventuate-tram-examples](https://github.com/eventuate-tram/eventuate-tram-examples) - Event-driven microservices patterns
-
+- [Spring Boot 3.2 Reference](https://docs.spring.io/spring-boot/docs/3.2.x/reference/html/)
+- [Spring Security 6.x](https://docs.spring.io/spring-security/reference/)
+- [Hibernate 6.4 User Guide](https://docs.jboss.org/hibernate/orm/6.4/userguide/html_single/Hibernate_User_Guide.html)
+- [Clean Architecture (Robert C. Martin)](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
+- [Domain-Driven Design (Eric Evans)](https://www.domainlanguage.com/ddd/)

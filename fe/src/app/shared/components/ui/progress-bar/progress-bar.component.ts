@@ -1,10 +1,10 @@
-import { Component, input, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, input, computed, ChangeDetectionStrategy } from '@angular/core';
+
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-progress-bar',
-  standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
     <div class="progress-container">
       @if (showLabel()) {

@@ -1,4 +1,4 @@
-import { Component, signal, inject, OnInit, computed } from '@angular/core';
+import { Component, signal, inject, OnInit, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { AdminService, SystemAnalytics, AdminCourseSummary } from '../../infrastructure/services/admin.service';
@@ -13,6 +13,7 @@ interface PendingApproval {
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin',
   imports: [CommonModule, RouterModule, LoadingComponent, RevenueChartComponent],
   templateUrl: './dashboard/admin-dashboard.component.html',
@@ -115,26 +116,22 @@ export class AdminComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    console.log('[ADMIN DASHBOARD] Component initialized, loading analytics...');
     this.loadAnalytics();
     this.loadPendingApprovals();
   }
 
   private loadAnalytics(): void {
-    console.log('[ADMIN DASHBOARD] Starting to load analytics...');
     this.isLoading.set(true);
     
     this.adminService.getSystemAnalytics().subscribe({
       next: (data) => {
-        console.log('[ADMIN DASHBOARD] ✅ Analytics data received:', data);
         this.analytics.set(data);
         this.lastUpdate.set(new Date());
         this.isLoading.set(false);
         // Add loaded class to body to show dashboard (fix for critical.scss opacity: 0 rule)
         document.body.classList.add('loaded');
       },
-      error: (error) => {
-        console.error('[ADMIN DASHBOARD] ❌ Error loading analytics:', error);
+      error: () => {
         // Use mock data as fallback - create new object to ensure signal updates
         const mockData: SystemAnalytics = {
           totalUsers: 1234,
@@ -187,7 +184,6 @@ export class AdminComponent implements OnInit {
           pendingAssignments: 25,
           unreadMessages: 8
         };
-        console.log('[ADMIN DASHBOARD] Using mock data:', mockData);
         this.analytics.set(mockData);
         this.lastUpdate.set(new Date());
         this.isLoading.set(false);
@@ -232,8 +228,7 @@ export class AdminComponent implements OnInit {
         this.pendingApprovals.set(pendingList);
         this.isLoadingPending.set(false);
       },
-      error: (error) => {
-        console.error('[ADMIN DASHBOARD] Error loading pending approvals:', error);
+      error: () => {
         this.isLoadingPending.set(false);
         // Fallback to empty array on error
         this.pendingApprovals.set([]);
@@ -244,15 +239,13 @@ export class AdminComponent implements OnInit {
   approveCourse(courseId: string): void {
     this.adminService.approveCourse(courseId).subscribe({
       next: () => {
-        console.log('[ADMIN DASHBOARD] Course approved successfully');
         // Remove from pending list
         const currentList = this.pendingApprovals();
         this.pendingApprovals.set(currentList.filter(item => item.id !== courseId));
         // Reload analytics to update pending count
         this.loadAnalytics();
       },
-      error: (error) => {
-        console.error('[ADMIN DASHBOARD] Error approving course:', error);
+      error: () => {
         alert('Có lỗi xảy ra khi duyệt khóa học. Vui lòng thử lại.');
       }
     });
@@ -264,15 +257,13 @@ export class AdminComponent implements OnInit {
     const reason = 'Từ chối từ dashboard admin';
     this.adminService.rejectCourse(courseId, reason).subscribe({
       next: () => {
-        console.log('[ADMIN DASHBOARD] Course rejected successfully');
         // Remove from pending list
         const currentList = this.pendingApprovals();
         this.pendingApprovals.set(currentList.filter(item => item.id !== courseId));
         // Reload analytics to update pending count
         this.loadAnalytics();
       },
-      error: (error) => {
-        console.error('[ADMIN DASHBOARD] Error rejecting course:', error);
+      error: () => {
         alert('Có lỗi xảy ra khi từ chối khóa học. Vui lòng thử lại.');
       }
     });

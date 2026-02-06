@@ -1,5 +1,5 @@
 import { Component, input, ViewEncapsulation, ChangeDetectionStrategy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { ContentBlock } from '../block-types';
 import { TextBlockComponent } from '../text-block/text-block.component';
 import { FormulaBlockComponent } from '../formula-block/formula-block.component';
@@ -7,13 +7,11 @@ import { ImageBlockComponent } from '../image-block/image-block.component';
 
 @Component({
   selector: 'app-block-renderer',
-  standalone: true,
   imports: [
-    CommonModule,
     TextBlockComponent,
     FormulaBlockComponent,
     ImageBlockComponent
-  ],
+],
   template: `
     <div class="block-container space-y-4">
       @for (block of blocks(); track block) {

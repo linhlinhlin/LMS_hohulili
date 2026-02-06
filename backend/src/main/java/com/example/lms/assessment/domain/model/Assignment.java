@@ -12,6 +12,7 @@ public class Assignment {
 
     private AssignmentId id;
     private UUID lessonId;
+    private UUID courseId;
     private String title;
     private String description;
     private String instructions;
@@ -23,11 +24,12 @@ public class Assignment {
     private Instant updatedAt;
 
     // Private constructor for Builder
-    private Assignment(AssignmentId id, UUID lessonId, String title, String description, 
-                      String instructions, AssignmentType type, AssignmentStatus status, 
+    private Assignment(AssignmentId id, UUID lessonId, UUID courseId, String title, String description,
+                      String instructions, AssignmentType type, AssignmentStatus status,
                       Instant dueDate, Integer maxScore, Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.lessonId = lessonId;
+        this.courseId = courseId;
         this.title = title;
         this.description = description;
         this.instructions = instructions;
@@ -46,6 +48,7 @@ public class Assignment {
     public static class Builder {
         private AssignmentId id;
         private UUID lessonId;
+        private UUID courseId;
         private String title;
         private String description;
         private String instructions;
@@ -58,6 +61,7 @@ public class Assignment {
 
         public Builder id(AssignmentId id) { this.id = id; return this; }
         public Builder lessonId(UUID lessonId) { this.lessonId = lessonId; return this; }
+        public Builder courseId(UUID courseId) { this.courseId = courseId; return this; }
         public Builder title(String title) { this.title = title; return this; }
         public Builder description(String description) { this.description = description; return this; }
         public Builder instructions(String instructions) { this.instructions = instructions; return this; }
@@ -69,7 +73,7 @@ public class Assignment {
         public Builder updatedAt(Instant updatedAt) { this.updatedAt = updatedAt; return this; }
 
         public Assignment build() {
-            return new Assignment(id, lessonId, title, description, instructions, type, status, dueDate, maxScore, createdAt, updatedAt);
+            return new Assignment(id, lessonId, courseId, title, description, instructions, type, status, dueDate, maxScore, createdAt, updatedAt);
         }
     }
 
@@ -117,6 +121,7 @@ public class Assignment {
     public static Assignment reconstitute(
             AssignmentId id,
             UUID lessonId,
+            UUID courseId,
             String title,
             String description,
             String instructions,
@@ -130,6 +135,7 @@ public class Assignment {
         return Assignment.builder()
             .id(id)
             .lessonId(lessonId)
+            .courseId(courseId)
             .title(title)
             .description(description)
             .instructions(instructions)
@@ -190,6 +196,7 @@ public class Assignment {
     // Getters
     public AssignmentId getId() { return id; }
     public UUID getLessonId() { return lessonId; }
+    public UUID getCourseId() { return courseId; }
     public String getTitle() { return title; }
     public String getDescription() { return description; }
     public String getInstructions() { return instructions; }

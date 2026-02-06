@@ -15,7 +15,7 @@
               <div class="lg:w-2/3">
                 <!-- Breadcrumb -->
                 <nav class="text-sm text-slate-400 mb-4">
-                  <a routerLink="/courses" class="hover:text-white transition-colors">KhĂ³a há»c</a>
+                  <a routerLink="/courses" class="hover:text-white transition-colors">Khóa học</a>
                   <span class="mx-2">â€º</span>
                   <span class="text-blue-400">{{ getCategoryName(course()?.category!) }}</span>
                 </nav>
@@ -42,10 +42,10 @@
                         </svg>
                       }
                     </div>
-                    <span class="text-slate-400">({{ course()?.reviews || 0 }} Ä‘Ă¡nh giĂ¡)</span>
+                    <span class="text-slate-400">({{ course()?.reviews || 0 }} đánh giá)</span>
                   </div>
                   
-                  <span class="text-slate-400">{{ course()?.studentsCount || 0 }} há»c viĂªn</span>
+                  <span class="text-slate-400">{{ course()?.studentsCount || 0 }} học viên</span>
                 </div>
                 
                 <!-- Instructor -->
@@ -54,8 +54,8 @@
                     {{ (course()?.instructor?.name || 'G')[0] }}
                   </div>
                   <div>
-                    <p class="text-sm text-slate-400">Giáº£ng viĂªn</p>
-                    <p class="font-medium">{{ course()?.instructor?.name || 'Giáº£ng viĂªn' }}</p>
+                    <p class="text-sm text-slate-400">Giảng viên</p>
+                    <p class="font-medium">{{ course()?.instructor?.name || 'Giảng viên' }}</p>
                   </div>
                 </div>
               </div>
@@ -78,44 +78,44 @@
                   <svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                   </svg>
-                  Báº¡n sáº½ há»c Ä‘Æ°á»£c gĂ¬
+                  Bạn sẽ học được gì
                 </h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div class="flex items-start gap-2">
                     <svg class="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
                     </svg>
-                    <span class="text-gray-700">Kiáº¿n thá»©c chuyĂªn sĂ¢u vá» {{ getCategoryName(course()?.category!) }}</span>
+                    <span class="text-gray-700">Kiến thức chuyên sâu về {{ getCategoryName(course()?.category!) }}</span>
                   </div>
                   <div class="flex items-start gap-2">
                     <svg class="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
                     </svg>
-                    <span class="text-gray-700">Ká»¹ nÄƒng thá»±c hĂ nh tá»« chuyĂªn gia</span>
+                    <span class="text-gray-700">Kỹ năng thực hành từ chuyên gia</span>
                   </div>
                   <div class="flex items-start gap-2">
                     <svg class="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
                     </svg>
-                    <span class="text-gray-700">Chá»©ng chá»‰ hoĂ n thĂ nh khĂ³a há»c</span>
+                    <span class="text-gray-700">Chứng chỉ hoàn thành khóa học</span>
                   </div>
                   <div class="flex items-start gap-2">
                     <svg class="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
                     </svg>
-                    <span class="text-gray-700">Truy cáº­p tĂ i liá»‡u há»c táº­p trá»n Ä‘á»i</span>
+                    <span class="text-gray-700">Truy cập tài liệu học tập trọn đời</span>
                   </div>
                 </div>
               </div>
               
               <!-- Course Description -->
               <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h2 class="text-xl font-bold text-gray-900 mb-4">Giá»›i thiá»‡u khĂ³a há»c</h2>
+                <h2 class="text-xl font-bold text-gray-900 mb-4">Giới thiệu khóa học</h2>
                 <div class="prose max-w-none text-gray-600">
                   <p>{{ course()?.description }}</p>
                   <p class="mt-4">
-                    KhĂ³a há»c nĂ y Ä‘Æ°á»£c thiáº¿t káº¿ cho sinh viĂªn vĂ  chuyĂªn gia trong lÄ©nh vá»±c hĂ ng háº£i. 
-                    Báº¡n sáº½ Ä‘Æ°á»£c há»c tá»« kiáº¿n thá»©c cÆ¡ báº£n Ä‘áº¿n nĂ¢ng cao vá»›i hÆ°á»›ng dáº«n tá»« cĂ¡c chuyĂªn gia cĂ³ kinh nghiá»‡m thá»±c táº¿.
+                    Khóa học này được thiết kế cho sinh viên và chuyên gia trong lĩnh vực hàng hải. 
+                    Bạn sẽ được học từ kiến thức cơ bản đến nâng cao với hướng dẫn từ các chuyên gia có kinh nghiệm thực tế.
                   </p>
                 </div>
               </div>
@@ -123,8 +123,8 @@
               <!-- Curriculum -->
               <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 <div class="flex items-center justify-between mb-4">
-                  <h2 class="text-xl font-bold text-gray-900">Ná»™i dung khĂ³a há»c</h2>
-                  <span class="text-sm text-gray-500">{{ course()?.lessonsCount || 0 }} bĂ i há»c</span>
+                  <h2 class="text-xl font-bold text-gray-900">Nội dung khóa học</h2>
+                  <span class="text-sm text-gray-500">{{ course()?.lessonsCount || 0 }} bài học</span>
                 </div>
                 
                 <div class="space-y-3">
@@ -138,9 +138,9 @@
                                [class.rotate-90]="expandedChapters().has(i)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                           </svg>
-                          <span class="font-medium text-gray-900">ChÆ°Æ¡ng {{ i }}: {{ getChapterTitle(i) }}</span>
+                          <span class="font-medium text-gray-900">Chương {{ i }}: {{ getChapterTitle(i) }}</span>
                         </div>
-                        <span class="text-sm text-gray-500">{{ 2 + i }} bĂ i há»c</span>
+                        <span class="text-sm text-gray-500">{{ 2 + i }} bài học</span>
                       </button>
                       
                       @if (expandedChapters().has(i)) {
@@ -158,9 +158,9 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                                   </svg>
                                 }
-                                <span class="text-gray-700">BĂ i {{ j }}: {{ getLessonTitle(i, j) }}</span>
+                                <span class="text-gray-700">Bài {{ j }}: {{ getLessonTitle(i, j) }}</span>
                               </div>
-                              <span class="text-sm text-gray-500">{{ 5 + j * 3 }} phĂºt</span>
+                              <span class="text-sm text-gray-500">{{ 5 + j * 3 }} phút</span>
                             </div>
                           }
                         </div>
@@ -175,7 +175,7 @@
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                     </svg>
                     <p class="text-sm text-amber-800">
-                      <strong>Xem trÆ°á»›c miá»…n phĂ­:</strong> 2 bĂ i há»c Ä‘áº§u tiĂªn. Thanh toĂ¡n Ä‘á»ƒ má»Ÿ khĂ³a toĂ n bá»™ ná»™i dung.
+                      <strong>Xem trước miễn phí:</strong> 2 bài học đầu tiên. Thanh toán để mở khóa toàn bộ nội dung.
                     </p>
                   </div>
                 }
@@ -183,18 +183,18 @@
               
               <!-- Instructor Section -->
               <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h2 class="text-xl font-bold text-gray-900 mb-4">Giáº£ng viĂªn</h2>
+                <h2 class="text-xl font-bold text-gray-900 mb-4">Giảng viên</h2>
                 <div class="flex items-start gap-4">
                   <div class="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-2xl font-bold flex-shrink-0">
                     {{ (course()?.instructor?.name || 'G')[0] }}
                   </div>
                   <div>
-                    <h3 class="text-lg font-semibold text-gray-900">{{ course()?.instructor?.name || 'Giáº£ng viĂªn' }}</h3>
-                    <p class="text-gray-600 mb-2">{{ course()?.instructor?.title || 'ChuyĂªn gia HĂ ng háº£i' }}</p>
+                    <h3 class="text-lg font-semibold text-gray-900">{{ course()?.instructor?.name || 'Giảng viên' }}</h3>
+                    <p class="text-gray-600 mb-2">{{ course()?.instructor?.title || 'Chuyên gia Hàng hải' }}</p>
                     <div class="flex items-center gap-4 text-sm text-gray-500">
-                      <span>â­ {{ course()?.instructor?.rating || 4.8 }} Ä‘Ă¡nh giĂ¡</span>
-                      <span>đŸ‘¥ {{ course()?.instructor?.studentsCount || 0 }} há»c viĂªn</span>
-                      <span>đŸ“ {{ course()?.instructor?.experience || 5 }}+ nÄƒm kinh nghiá»‡m</span>
+                      <span>â­ {{ course()?.instructor?.rating || 4.8 }} đánh giá</span>
+                      <span>đŸ‘¥ {{ course()?.instructor?.studentsCount || 0 }} học viên</span>
+                      <span>đŸ“ {{ course()?.instructor?.experience || 5 }}+ năm kinh nghiệm</span>
                     </div>
                   </div>
                 </div>
@@ -240,7 +240,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                       </svg>
-                      <span>Tiáº¿p tá»¥c há»c</span>
+                      <span>Tiếp tục học</span>
                     </button>
                   } @else if (isEnrolled() && !isPaid() && course()?.price && course()!.price > 0) {
                     <!-- Enrolled + NOT Paid + Paid course = Show Payment Button -->
@@ -249,10 +249,10 @@
                       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
                       </svg>
-                      <span>Má»Ÿ khĂ³a khĂ³a há»c ({{ course()!.price | number:'1.0-0' }}â‚«)</span>
+                      <span>Mở khóa khóa học ({{ course()!.price | number:'1.0-0' }}â‚«)</span>
                     </button>
                     <p class="text-center text-sm text-amber-600 mb-3">
-                      â ï¸ Báº¡n chá»‰ xem Ä‘Æ°á»£c 2 bĂ i há»c Ä‘áº§u tiĂªn. Thanh toĂ¡n Ä‘á»ƒ truy cáº­p Ä‘áº§y Ä‘á»§.
+                      â ï¸ Bạn chỉ xem được 2 bài học đầu tiên. Thanh toán để truy cập đầy đủ.
                     </p>
                   } @else {
                     <!-- Not Enrolled = Register Button -->
@@ -264,12 +264,12 @@
                           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
-                        <span>Äang xá»­ lĂ½...</span>
+                        <span>Đang xử lý...</span>
                       } @else {
                         @if (course()?.price && course()!.price > 0) {
-                          <span>ÄÄƒng kĂ½ & Thanh toĂ¡n</span>
+                          <span>Đăng ký & Thanh toán</span>
                         } @else {
-                          <span>ÄÄƒng kĂ½ miá»…n phĂ­</span>
+                          <span>Đăng ký miễn phí</span>
                         }
                       }
                     </button>
@@ -277,40 +277,40 @@
                   
                   @if (!isEnrolled() && course()?.price && course()!.price > 0) {
                     <button (click)="handleEnrollClick()" class="w-full border-2 border-gray-300 text-gray-700 py-3 px-6 rounded-lg font-semibold hover:bg-gray-50 transition-colors mb-4">
-                      DĂ¹ng thá»­ miá»…n phĂ­ (2 bĂ i Ä‘áº§u)
+                      Dùng thử miễn phí (2 bài đầu)
                     </button>
                   }
                   
-                  <p class="text-center text-sm text-gray-500 mb-6">Äáº£m báº£o hoĂ n tiá»n trong 30 ngĂ y</p>
+                  <p class="text-center text-sm text-gray-500 mb-6">Đảm bảo hoàn tiền trong 30 ngày</p>
                   
                   <!-- Course Includes -->
                   <div class="border-t border-gray-200 pt-4">
-                    <h4 class="font-semibold text-gray-900 mb-3">KhĂ³a há»c bao gá»“m:</h4>
+                    <h4 class="font-semibold text-gray-900 mb-3">Khóa học bao gồm:</h4>
                     <div class="space-y-2 text-sm">
                       <div class="flex items-center gap-2 text-gray-600">
                         <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
-                        <span>{{ getDurationInHours(course()?.duration!) }} giá» video</span>
+                        <span>{{ getDurationInHours(course()?.duration!) }} giờ video</span>
                       </div>
                       <div class="flex items-center gap-2 text-gray-600">
                         <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                         </svg>
-                        <span>{{ course()?.lessonsCount }} bĂ i há»c</span>
+                        <span>{{ course()?.lessonsCount }} bài học</span>
                       </div>
                       <div class="flex items-center gap-2 text-gray-600">
                         <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
-                        <span>Truy cáº­p trá»n Ä‘á»i</span>
+                        <span>Truy cập trọn đời</span>
                       </div>
                       <div class="flex items-center gap-2 text-gray-600">
                         <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
                         </svg>
-                        <span>Chá»©ng chá»‰ hoĂ n thĂ nh</span>
+                        <span>Chứng chỉ hoàn thành</span>
                       </div>
                     </div>
                   </div>
@@ -326,8 +326,8 @@
         <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[80vh] overflow-hidden">
             <div class="p-6 border-b border-gray-200">
-              <h3 class="text-xl font-bold text-gray-900">Chá»n lá»›p há»c</h3>
-              <p class="text-sm text-gray-500 mt-1">Vui lĂ²ng chá»n lá»›p phĂ¹ há»£p vá»›i lá»‹ch há»c cá»§a báº¡n</p>
+              <h3 class="text-xl font-bold text-gray-900">Chọn lớp học</h3>
+              <p class="text-sm text-gray-500 mt-1">Vui lòng chọn lớp phù hợp với lịch học của bạn</p>
             </div>
             
             <div class="p-6 space-y-3 max-h-60 overflow-y-auto">
@@ -341,8 +341,8 @@
                   <div class="flex justify-between items-start">
                     <div>
                       <div class="font-semibold text-gray-900">{{ cls.name }}</div>
-                      <div class="text-sm text-gray-500">MĂ£ lá»›p: {{ cls.code }}</div>
-                      <div class="text-sm text-gray-500">Giáº£ng viĂªn: {{ cls.teacherName }}</div>
+                      <div class="text-sm text-gray-500">Mã lớp: {{ cls.code }}</div>
+                      <div class="text-sm text-gray-500">Giảng viên: {{ cls.teacherName }}</div>
                     </div>
                     <div class="text-right">
                       <div class="text-sm font-medium text-gray-700">{{ cls.maxStudents }} slots</div>
@@ -360,12 +360,12 @@
             <div class="p-6 border-t border-gray-200 flex justify-end gap-3">
               <button (click)="showClassModal.set(false)" 
                       class="px-6 py-2.5 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition-colors">
-                Há»§y
+                Hủy
               </button>
               <button (click)="confirmEnrollment()" 
                       [disabled]="!selectedClass() || isEnrolling()"
                       class="px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors">
-                {{ isEnrolling() ? 'Äang xá»­ lĂ½...' : 'XĂ¡c nháº­n Ä‘Äƒng kĂ½' }}
+                {{ isEnrolling() ? 'Đang xử lý...' : 'Xác nhận đăng ký' }}
               </button>
             </div>
           </div>

@@ -1,47 +1,25 @@
 package com.example.lms.course_authoring.domain.model;
 
 import com.example.lms.shared.domain.model.BaseEntity;
-import jakarta.persistence.*;
 import java.util.Objects;
 
 /**
  * Section entity representing a content block within a lesson.
  * Sections can be of different types: TEXT, VIDEO, QUIZ, FILE.
  */
-@Entity
-@Table(name = "sections")
 public class Section extends BaseEntity {
 
-    @Column(nullable = false, length = 255)
     private String title;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
     private SectionType type = SectionType.TEXT;
-
-    @Column(columnDefinition = "TEXT")
     private String content;
-
-    @Column(name = "video_url")
     private String videoUrl;
-
-    @Column(name = "file_url")
     private String fileUrl;
-
-    @Column(name = "order_index", nullable = false)
     private Integer orderIndex = 0;
-
-    @Column(name = "duration_seconds")
     private Integer duration;
-
-    @Column(name = "is_required")
     private Boolean isRequired = true;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "lesson_id", nullable = false)
     private Lesson lesson;
 
-    // JPA requires default constructor
+    // Default constructor
     protected Section() {}
 
     // ==================== Factory Methods ====================

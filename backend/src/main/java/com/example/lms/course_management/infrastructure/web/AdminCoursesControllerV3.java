@@ -1,10 +1,12 @@
 package com.example.lms.course_management.infrastructure.web;
 
-import com.example.lms.course_authoring.infrastructure.persistence.JpaCourseRepository;
 import com.example.lms.course_authoring.domain.model.Course;
+import com.example.lms.course_authoring.domain.repository.CourseRepository;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -13,6 +15,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
 import java.util.*;
 
 /**
@@ -27,7 +30,7 @@ import java.util.*;
 @Tag(name = "Admin - Courses", description = "Admin course management endpoints")
 public class AdminCoursesControllerV3 {
 
-    private final JpaCourseRepository courseRepository;
+    private final CourseRepository courseRepository;
 
     @Operation(summary = "Get all courses with pagination and filtering")
     @GetMapping("/all")
@@ -91,11 +94,11 @@ public class AdminCoursesControllerV3 {
     }
 
     @Operation(summary = "Approve a course")
-    @PostMapping("/{courseId}/approve")
+    @PatchMapping("/{courseId}/approve")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<CourseAdminResponse>> approveCourse(
             @PathVariable UUID courseId,
-            @RequestBody(required = false) ApprovalRequest request
+            @Valid @RequestBody(required = false) ApprovalRequest request
     ) {
         // Get admin user ID from security context (stub for now)
         UUID adminId = UUID.randomUUID(); // TODO: Get from SecurityContext
@@ -111,11 +114,11 @@ public class AdminCoursesControllerV3 {
     }
 
     @Operation(summary = "Reject a course")
-    @PostMapping("/{courseId}/reject")
+    @PatchMapping("/{courseId}/reject")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<CourseAdminResponse>> rejectCourse(
             @PathVariable UUID courseId,
-            @RequestBody RejectRequest request
+            @Valid @RequestBody RejectRequest request
     ) {
         // Get admin user ID from security context (stub for now)
         UUID adminId = UUID.randomUUID(); // TODO: Get from SecurityContext
@@ -130,7 +133,7 @@ public class AdminCoursesControllerV3 {
     }
 
     @Operation(summary = "Revoke course approval - move back to pending")
-    @PostMapping("/{courseId}/revoke")
+    @PatchMapping("/{courseId}/revoke")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<CourseAdminResponse>> revokeCourse(
             @PathVariable UUID courseId
@@ -207,11 +210,13 @@ public class AdminCoursesControllerV3 {
 
     @Data @NoArgsConstructor @AllArgsConstructor
     public static class ApprovalRequest {
+        @Size(max = 1000, message = "Comment must not exceed 1000 characters")
         private String comment;
     }
 
     @Data @NoArgsConstructor @AllArgsConstructor
     public static class RejectRequest {
+        @NotBlank(message = "Reason is required")
         private String reason;
     }
 }

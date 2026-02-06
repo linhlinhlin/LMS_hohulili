@@ -91,7 +91,6 @@ export class StudentAssignmentService {
         return this.fetchAssignmentDetails(assignmentIds, studentId);
       }),
       catchError(error => {
-        console.error('Error fetching student assignments:', error);
         return of([]);
       })
     );
@@ -122,7 +121,6 @@ export class StudentAssignmentService {
         );
       }),
       catchError(error => {
-        console.error('Error fetching enrolled courses:', error);
         return of([]);
       })
     );

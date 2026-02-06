@@ -48,6 +48,48 @@ public class Question {
     private Instant createdAt;
     private Instant updatedAt;
 
+    // ============ Domain Behavior ============
+
+    public void updateContentBlocks(List<ContentBlock> blocks) {
+        if (blocks != null) {
+            this.contentBlocks = blocks;
+            this.updatedAt = Instant.now();
+        }
+    }
+
+    public void updateDifficulty(Difficulty difficulty) {
+        if (difficulty != null) {
+            this.difficulty = difficulty;
+            this.updatedAt = Instant.now();
+        }
+    }
+
+    public void updateTags(String tags) {
+        if (tags != null) {
+            this.tags = tags;
+            this.updatedAt = Instant.now();
+        }
+    }
+
+    public void updateStatus(Status status) {
+        if (status != null) {
+            this.status = status;
+            this.updatedAt = Instant.now();
+        }
+    }
+
+    public void updateCorrectOption(String correctOption) {
+        if (correctOption != null) {
+            this.correctOption = correctOption;
+            this.updatedAt = Instant.now();
+        }
+    }
+
+    public void replaceOptions(List<QuestionOption> options) {
+        this.options = options;
+        this.updatedAt = Instant.now();
+    }
+
     // Getters
     public UUID getId() { return id; }
     public List<ContentBlock> getContentBlocks() { return contentBlocks; }

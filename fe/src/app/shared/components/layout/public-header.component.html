@@ -14,31 +14,31 @@
           <div class="flex items-center justify-between h-9">
             <!-- User Type Selector -->
             <div class="flex items-center space-x-6">
-              <span class="text-xs font-medium text-slate-300">Äá»‘i tÆ°á»£ng sá»­ dá»¥ng:</span>
+              <span class="text-xs font-medium text-slate-300">Đối tượng sử dụng:</span>
               <div class="user-type-selector flex items-center space-x-4">
                 <button 
                   (click)="setUserType('personal')"
                   [class]="getUserTypeClass('personal')"
                   class="text-xs font-medium px-3 py-1 rounded-full transition-all duration-200 hover:bg-white/10">
-                  CĂ¡ nhĂ¢n
+                  Cá nhân
                 </button>
                 <button 
                   (click)="setUserType('business')"
                   [class]="getUserTypeClass('business')"
                   class="text-xs font-medium px-3 py-1 rounded-full transition-all duration-200 hover:bg-white/10">
-                  Doanh nghiá»‡p
+                  Doanh nghiệp
                 </button>
                 <button 
                   (click)="setUserType('school')"
                   [class]="getUserTypeClass('school')"
                   class="text-xs font-medium px-3 py-1 rounded-full transition-all duration-200 hover:bg-white/10">
-                  TrÆ°á»ng há»c
+                  Trường học
                 </button>
                 <button 
                   (click)="setUserType('government')"
                   [class]="getUserTypeClass('government')"
                   class="text-xs font-medium px-3 py-1 rounded-full transition-all duration-200 hover:bg-white/10">
-                  ChĂ­nh phá»§
+                  Chính phủ
                 </button>
               </div>
             </div>
@@ -55,7 +55,7 @@
 
               <!-- Support -->
               <a href="/support" class="text-xs text-slate-300 hover:text-white transition-colors duration-200">
-                Há»— trá»£
+                Hỗ trợ
               </a>
             </div>
           </div>
@@ -111,7 +111,7 @@
                 <!-- Search Input -->
                 <input
                   type="text"
-                  placeholder="Báº¡n muá»‘n há»c gĂ¬ hĂ´m nay?"
+                  placeholder="Bạn muốn học gì hôm nay?"
                   [(ngModel)]="searchQuery"
                   (input)="onSearch($event)"
                   (focus)="onSearchFocus()"
@@ -131,9 +131,9 @@
                 <!-- Maritime Search Suggestions -->
                 @if (isSearchFocused() && searchSuggestions().length > 0) {
                   <div class="search-suggestions-container absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden z-50">
-                    <!-- ChuyĂªn ngĂ nh ná»•i báº­t -->
+                    <!-- Chuyên ngành nổi bật -->
                     <div class="px-6 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-100">
-                      <h4 class="text-sm font-semibold text-blue-800 mb-2">ChuyĂªn ngĂ nh ná»•i báº­t</h4>
+                      <h4 class="text-sm font-semibold text-blue-800 mb-2">Chuyên ngành nổi bật</h4>
                       @for (suggestion of searchSuggestions().slice(0, 4); track suggestion) {
                         <button 
                           (click)="selectSuggestion(suggestion)"
@@ -148,9 +148,9 @@
                       }
                     </div>
                     
-                    <!-- Äang phá»• biáº¿n hiá»‡n nay -->
+                    <!-- Đang phổ biến hiện nay -->
                     <div class="px-6 py-3 bg-gradient-to-r from-yellow-50 to-orange-50 border-b border-gray-100">
-                      <h4 class="text-sm font-semibold text-orange-800 mb-2">Äang phá»• biáº¿n hiá»‡n nay</h4>
+                      <h4 class="text-sm font-semibold text-orange-800 mb-2">Đang phổ biến hiện nay</h4>
                       @for (suggestion of searchSuggestions().slice(4, 9); track suggestion) {
                         <button 
                           (click)="selectSuggestion(suggestion)"
@@ -165,9 +165,9 @@
                       }
                     </div>
                     
-                    <!-- CTA Ä‘á»‹nh hÆ°á»›ng -->
+                    <!-- CTA định hướng -->
                     <div class="px-6 py-3 bg-gradient-to-r from-green-50 to-emerald-50">
-                      <h4 class="text-sm font-semibold text-green-800 mb-2">Cáº§n há»— trá»£?</h4>
+                      <h4 class="text-sm font-semibold text-green-800 mb-2">Cần hỗ trợ?</h4>
                       <button 
                         (click)="goToAssessment()"
                         class="w-full text-left hover:bg-white/50 transition-colors duration-200 rounded-lg p-2">
@@ -222,7 +222,7 @@
                           <svg class="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                           </svg>
-                          KhĂ³a há»c cá»§a tĂ´i
+                          Khóa học của tôi
                         </a>
                         <a [routerLink]="getDashboardRoute()" 
                            (click)="closeUserMenu()"
@@ -230,7 +230,7 @@
                           <svg class="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
                           </svg>
-                          Báº£ng Ä‘iá»u khiá»ƒn
+                          Bảng điều khiển
                         </a>
                       </div>
                       
@@ -241,7 +241,7 @@
                           <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
                           </svg>
-                          ÄÄƒng xuáº¥t
+                          Đăng xuất
                         </button>
                       </div>
                     </div>
@@ -251,11 +251,11 @@
                 <!-- Guest: Login/Register Buttons -->
                 <a routerLink="/auth/login"
                    class="text-gray-700 hover:text-blue-600 px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200">
-                  ÄÄƒng nháº­p
+                  Đăng nhập
                 </a>
                 <a routerLink="/auth/register"
                    class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md text-sm font-semibold transition-all duration-200 hover:shadow-md">
-                  Tham gia miá»…n phĂ­
+                  Tham gia miễn phí
                 </a>
               }
             </div>
@@ -295,7 +295,7 @@
                 <!-- Search Input -->
                 <input
                   type="text"
-                  placeholder="Báº¡n muá»‘n há»c gĂ¬ hĂ´m nay?"
+                  placeholder="Bạn muốn học gì hôm nay?"
                   [(ngModel)]="searchQuery"
                   (input)="onSearch($event)"
                   class="w-full h-12 pl-4 pr-12 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent bg-gray-50 focus:bg-white transition-all duration-200">
@@ -337,36 +337,36 @@
                      (click)="closeMobileMenu()"
                      routerLinkActive="bg-blue-50 text-blue-600"
                      class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors duration-200">
-                    Trang chá»§
+                    Trang chủ
                   </a>
                   
                   <!-- Mobile Courses Section -->
                   <div class="py-2">
                     <div class="px-3 py-2 text-sm font-semibold text-gray-500 uppercase tracking-wider">
-                      KhĂ¡m phĂ¡
+                      Khám phá
                     </div>
                     <a routerLink="/courses" 
                        (click)="closeMobileMenu()"
                        class="block px-6 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors duration-200">
-                      Táº¥t cáº£ khĂ³a há»c
+                      Tất cả khóa học
                     </a>
                     <a routerLink="/courses" 
                        (click)="closeMobileMenu()"
                        [queryParams]="{ category: 'safety' }"
                        class="block px-6 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors duration-200">
-                      An toĂ n HĂ ng háº£i
+                      An toàn Hàng hải
                     </a>
                     <a routerLink="/courses" 
                        (click)="closeMobileMenu()"
                        [queryParams]="{ category: 'navigation' }"
                        class="block px-6 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors duration-200">
-                      Äiá»u khiá»ƒn TĂ u
+                      Điều khiển Tàu
                     </a>
                     <a routerLink="/courses" 
                        (click)="closeMobileMenu()"
                        [queryParams]="{ category: 'engineering' }"
                        class="block px-6 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors duration-200">
-                      Ká»¹ thuáº­t MĂ¡y tĂ u
+                      Kỹ thuật Máy tàu
                     </a>
                   </div>
 
@@ -374,13 +374,13 @@
                      (click)="closeMobileMenu()"
                      routerLinkActive="bg-blue-50 text-blue-600"
                      class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors duration-200">
-                    Giá»›i thiá»‡u
+                    Giới thiệu
                   </a>
                   <a routerLink="/contact" 
                      (click)="closeMobileMenu()"
                      routerLinkActive="bg-blue-50 text-blue-600"
                      class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors duration-200">
-                    LiĂªn há»‡
+                    Liên hệ
                   </a>
                 </nav>
               </div>
@@ -403,16 +403,16 @@
                     <a [routerLink]="getMyCoursesRoute()" 
                        (click)="closeMobileMenu()"
                        class="block w-full text-left px-4 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50">
-                      đŸ“ KhĂ³a há»c cá»§a tĂ´i
+                      đŸ“ Khóa học của tôi
                     </a>
                     <a [routerLink]="getDashboardRoute()" 
                        (click)="closeMobileMenu()"
                        class="block w-full text-left px-4 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50">
-                      đŸ  Báº£ng Ä‘iá»u khiá»ƒn
+                      đŸ  Bảng điều khiển
                     </a>
                     <button (click)="logout(); closeMobileMenu()"
                             class="block w-full text-left px-4 py-2 rounded-md text-base font-medium text-red-600 hover:bg-red-50">
-                      đŸª ÄÄƒng xuáº¥t
+                      đŸª Đăng xuất
                     </button>
                   </div>
                 } @else {
@@ -421,12 +421,12 @@
                     <a routerLink="/auth/login" 
                        (click)="closeMobileMenu()"
                        class="block w-full text-center px-4 py-2 border border-gray-300 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50 transition-colors duration-200">
-                      ÄÄƒng nháº­p
+                      Đăng nhập
                     </a>
                     <a routerLink="/auth/register" 
                        (click)="closeMobileMenu()"
                        class="block w-full text-center px-4 py-2 bg-blue-600 text-white rounded-md text-base font-medium hover:bg-blue-700 transition-colors duration-200">
-                      Tham gia miá»…n phĂ­
+                      Tham gia miễn phí
                     </a>
                   </div>
                 }

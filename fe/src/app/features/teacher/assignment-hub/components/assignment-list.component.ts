@@ -23,7 +23,6 @@ type FilterType = 'ALL' | 'NEEDS_GRADING' | 'GRADED' | 'DRAFT';
 
 @Component({
   selector: 'app-assignment-list',
-  standalone: true,
   imports: [CommonModule, RouterLink, FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -339,7 +338,6 @@ export class AssignmentListComponent implements OnInit {
           this.assignments.update(current => current.filter(a => a.id !== id));
         },
         error: (err) => {
-          console.error('Error deleting assignment:', err);
           this.error.set('Không thể xóa bài tập. ' + (err.error?.message || 'Vui lòng thử lại.'));
         }
       });
@@ -368,8 +366,7 @@ export class AssignmentListComponent implements OnInit {
         }));
         this.assignments.set(withStats);
       },
-      error: (err) => {
-        console.error('Error loading assignments:', err);
+      error: () => {
         this.error.set('Không thể tải danh sách bài tập. Vui lòng thử lại.');
         this.assignments.set([]);
       },

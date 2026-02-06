@@ -14,13 +14,12 @@ import {
   afterNextRender,
   computed,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-chat-message-input',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   template: `
     <div class="input-wrapper">
       <div class="chat-input-container" [class.focused]="isFocused()">

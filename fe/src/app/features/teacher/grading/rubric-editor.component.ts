@@ -1,5 +1,5 @@
 import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, signal, OnInit, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators, FormArray } from '@angular/forms';
 import { 
@@ -18,8 +18,7 @@ import {
  */
 @Component({
   selector: 'app-rubric-editor',
-  standalone: true,
-  imports: [CommonModule, RouterLink, ReactiveFormsModule],
+  imports: [RouterLink, ReactiveFormsModule],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -328,8 +327,6 @@ export class RubricEditorComponent implements OnInit {
       ...this.rubricForm.value,
       updatedAt: new Date().toISOString()
     };
-    
-    console.log('Updating rubric:', rubricData);
     
     setTimeout(() => {
       this.saving.set(false);

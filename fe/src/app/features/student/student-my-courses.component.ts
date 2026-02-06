@@ -1,5 +1,5 @@
-import { Component, inject, OnInit, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, OnInit, signal, computed, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
@@ -40,16 +40,15 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
  * - Responsive grid layout
  */
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-student-my-courses',
-  standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     RouterModule,
     IconComponent,
     ButtonComponent,
     IconComponent
-  ],
+],
   template: `
     <div class="my-courses-container">
       <!-- Main Content Area (70%) -->
@@ -895,7 +894,6 @@ export class StudentMyCoursesComponent implements OnInit {
 
       this.enrolledCourses.set(enhancedCourses);
     } catch (error) {
-      console.error('Error loading courses:', error);
     }
   }
 
@@ -925,7 +923,6 @@ export class StudentMyCoursesComponent implements OnInit {
         )
       );
     } catch (error) {
-      console.error(`Error loading content for course ${courseId}:`, error);
     }
   }
 
@@ -979,7 +976,6 @@ export class StudentMyCoursesComponent implements OnInit {
   }
 
   toggleMenu(courseId: string): void {
-    console.log('Menu clicked for course:', courseId);
   }
 
   async resumeCourse(courseId: string): Promise<void> {
@@ -996,7 +992,6 @@ export class StudentMyCoursesComponent implements OnInit {
         this.router.navigate(['/student/learn/course', courseId]);
       }
     } catch (error) {
-      console.error('Error getting next lesson:', error);
       // Fallback to course overview
       this.router.navigate(['/student/learn/course', courseId]);
     }
@@ -1005,7 +1000,6 @@ export class StudentMyCoursesComponent implements OnInit {
   onSortChange(event: Event): void {
     const value = (event.target as HTMLSelectElement).value;
     this.sortBy.set(value);
-    console.log('Sort by:', value);
   }
 
   toggleFilterNotStarted(): void {
@@ -1025,6 +1019,5 @@ export class StudentMyCoursesComponent implements OnInit {
 
   applyFilters(): void {
     // Implement filter logic
-    console.log('Filters applied');
   }
 }

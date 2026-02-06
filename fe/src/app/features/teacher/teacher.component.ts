@@ -1,10 +1,10 @@
 import { Component, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule } from '@angular/router';
 
 @Component({
   selector: 'app-teacher',
-  imports: [CommonModule, RouterModule],
+  imports: [RouterModule],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
@@ -94,6 +94,5 @@ import { RouterModule } from '@angular/router';
 })
 export class TeacherComponent {
   constructor() {
-    console.log('🎓 TeacherComponent initialized');
   }
 }

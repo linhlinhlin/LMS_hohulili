@@ -15,13 +15,12 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { SourcePanelService } from '../../../application/services/source-panel.service';
 
 @Component({
   selector: 'app-source-panel',
-  standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
     <!-- Panel - Inline (not fixed overlay) -->
     <aside class="source-panel" [class.open]="panelService.isOpen()">

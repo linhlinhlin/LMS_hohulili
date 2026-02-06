@@ -1,5 +1,5 @@
 import { Component, ChangeDetectionStrategy, input, signal, inject, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { IconComponent } from '../../../../shared/components/ui/icon/icon.component';
@@ -46,15 +46,13 @@ interface PageableResponse {
  */
 @Component({
   selector: 'app-course-students-list',
-  standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     IconComponent,
     ButtonComponent,
     BadgeComponent,
     ProgressBarComponent
-  ],
+],
   templateUrl: './course-students-list.component.html',
   styleUrl: './course-students-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush

@@ -1,6 +1,6 @@
 package com.example.lms.learning_delivery.infrastructure.persistence;
 
-import com.example.lms.learning_delivery.domain.model.LearningClass;
+import com.example.lms.learning_delivery.infrastructure.persistence.entity.LearningClassJpaEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,23 +14,34 @@ import java.util.UUID;
 
 /**
  * Spring Data JPA repository for LearningClass entity.
+ * Uses JPA Entity (infrastructure layer), NOT domain model.
  */
 @Repository
-public interface JpaLearningClassRepository extends JpaRepository<LearningClass, UUID> {
+public interface JpaLearningClassRepository extends JpaRepository<LearningClassJpaEntity, UUID> {
 
-    Optional<LearningClass> findByCode(String code);
+    Optional<LearningClassJpaEntity> findByCode(String code);
 
     boolean existsByCode(String code);
 
-    @Query("SELECT lc FROM LearningClass lc WHERE lc.courseId = :courseId")
-    List<LearningClass> findByCourseId(@Param("courseId") UUID courseId);
+    @Query("SELECT lc FROM LearningClassJpaEntity lc WHERE lc.courseId = :courseId")
+    List<LearningClassJpaEntity> findByCourseId(@Param("courseId") UUID courseId);
 
-    @Query("SELECT lc FROM LearningClass lc WHERE lc.courseId = :courseId AND lc.status = 'OPEN'")
-    List<LearningClass> findOpenByCourseId(@Param("courseId") UUID courseId);
+    @Query("SELECT lc FROM LearningClassJpaEntity lc WHERE lc.courseId = :courseId AND lc.status = 'OPEN'")
+    List<LearningClassJpaEntity> findOpenByCourseId(@Param("courseId") UUID courseId);
 
-    @Query("SELECT lc FROM LearningClass lc WHERE lc.teacherId = :teacherId")
-    Page<LearningClass> findByTeacherId(@Param("teacherId") UUID teacherId, Pageable pageable);
+    @Query("SELECT lc FROM LearningClassJpaEntity lc WHERE lc.teacherId = :teacherId")
+    Page<LearningClassJpaEntity> findByTeacherId(@Param("teacherId") UUID teacherId, Pageable pageable);
 
-    @Query("SELECT COUNT(lc) FROM LearningClass lc WHERE lc.courseId = :courseId")
+    @Query("SELECT COUNT(lc) FROM LearningClassJpaEntity lc WHERE lc.courseId = :courseId")
     long countByCourseId(@Param("courseId") UUID courseId);
+
+    @Query("SELECT lc FROM LearningClassJpaEntity lc WHERE lc.courseId = :courseId " +
+           "AND (:search IS NULL OR LOWER(lc.name) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "OR LOWER(lc.code) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+           "AND (:status IS NULL OR lc.status = :status)")
+    Page<LearningClassJpaEntity> searchByCourseId(
+            @Param("courseId") UUID courseId,
+            @Param("search") String search,
+            @Param("status") LearningClassJpaEntity.ClassStatus status,
+            Pageable pageable);
 }

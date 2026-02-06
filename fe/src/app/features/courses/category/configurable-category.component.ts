@@ -1,5 +1,5 @@
-import { Component, signal, computed, OnInit, Inject, inject } from '@angular/core';
-import { CommonModule, DOCUMENT, isPlatformBrowser } from '@angular/common';
+import { Component, signal, computed, OnInit, inject, ChangeDetectionStrategy } from '@angular/core';
+import { DOCUMENT, isPlatformBrowser } from '@angular/common';
 import { RouterModule, ActivatedRoute } from '@angular/router';
 import { CategoryHeroComponent } from './shared/category-hero.component';
 import { CategoryCourseGridComponent, CategoryCourseItem } from './shared/category-course-grid.component';
@@ -79,16 +79,15 @@ export interface TrendCard {
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-configurable-category',
-  standalone: true,
   imports: [
-    CommonModule,
     RouterModule,
     CategoryHeroComponent,
     CategoryCourseGridComponent,
     CategoryCareerComponent,
     CategoryTrendsComponent
-  ],
+],
   template: `
     @if (config(); as categoryConfig) {
       <div class="min-h-screen bg-gray-50">
@@ -132,15 +131,13 @@ export interface TrendCard {
   `
 })
 export class ConfigurableCategoryComponent implements OnInit {
+  private title = inject(Title);
+  private meta = inject(Meta);
+  private document = inject<Document>(DOCUMENT);
+  private platformId = inject<Object>(PLATFORM_ID);
+
   private route = inject(ActivatedRoute);
   config = signal<CategoryConfig | null>(null);
-
-  constructor(
-    private title: Title,
-    private meta: Meta,
-    @Inject(DOCUMENT) private document: Document,
-    @Inject(PLATFORM_ID) private platformId: Object
-  ) {}
 
   ngOnInit(): void {
     const category = this.route.snapshot.data['category'] || this.route.snapshot.params['category'];

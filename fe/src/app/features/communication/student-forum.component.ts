@@ -1,5 +1,5 @@
 ﻿import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
@@ -51,9 +51,8 @@ interface ForumCategory {
 
 @Component({
   selector: 'app-student-forum',
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [FormsModule, RouterModule],
   encapsulation: ViewEncapsulation.None,
-  standalone: true,
   templateUrl: './student-forum.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -71,8 +70,8 @@ export class StudentForumComponent implements OnInit {
   categories = signal<ForumCategory[]>([
     {
       id: 'general',
-      name: 'Tháº£o luáº­n chung',
-      description: 'Tháº£o luáº­n vá» cĂ¡c chá»§ Ä‘á» chung trong há»c táº­p',
+      name: 'Thảo luận chung',
+      description: 'Thảo luận về các chủ đề chung trong học tập',
       icon: 'đŸ’¬',
       color: '#3B82F6',
       postCount: 45,
@@ -80,8 +79,8 @@ export class StudentForumComponent implements OnInit {
     },
     {
       id: 'course',
-      name: 'KhĂ³a há»c',
-      description: 'Tháº£o luáº­n vá» ná»™i dung khĂ³a há»c',
+      name: 'Khóa học',
+      description: 'Thảo luận về nội dung khóa học',
       icon: 'đŸ“',
       color: '#10B981',
       postCount: 32,
@@ -89,8 +88,8 @@ export class StudentForumComponent implements OnInit {
     },
     {
       id: 'assignment',
-      name: 'BĂ i táº­p',
-      description: 'Há»— trá»£ vĂ  tháº£o luáº­n vá» bĂ i táº­p',
+      name: 'Bài tập',
+      description: 'Hỗ trợ và thảo luận về bài tập',
       icon: 'đŸ“',
       color: '#F59E0B',
       postCount: 28,
@@ -98,8 +97,8 @@ export class StudentForumComponent implements OnInit {
     },
     {
       id: 'exam',
-      name: 'Thi cá»­',
-      description: 'Chia sáº» kinh nghiá»‡m thi cá»­',
+      name: 'Thi cử',
+      description: 'Chia sẻ kinh nghiệm thi cử',
       icon: 'đŸ“‹',
       color: '#EF4444',
       postCount: 15,
@@ -107,8 +106,8 @@ export class StudentForumComponent implements OnInit {
     },
     {
       id: 'help',
-      name: 'Há»— trá»£',
-      description: 'YĂªu cáº§u há»— trá»£ vĂ  giĂºp Ä‘á»¡',
+      name: 'Hỗ trợ',
+      description: 'Yêu cầu hỗ trợ và giúp đỡ',
       icon: 'đŸ†˜',
       color: '#8B5CF6',
       postCount: 12,
@@ -119,15 +118,15 @@ export class StudentForumComponent implements OnInit {
   posts = signal<ForumPost[]>([
     {
       id: 'post-1',
-      title: 'CĂ¡ch há»c hiá»‡u quáº£ mĂ´n An toĂ n hĂ ng háº£i',
-      content: 'Chia sáº» kinh nghiá»‡m há»c táº­p mĂ´n An toĂ n hĂ ng háº£i. TĂ´i Ä‘Ă£ tĂ¬m ra má»™t sá»‘ phÆ°Æ¡ng phĂ¡p há»c hiá»‡u quáº£...',
+      title: 'Cách học hiệu quả môn An toàn hàng hải',
+      content: 'Chia sẻ kinh nghiệm học tập môn An toàn hàng hải. Tôi đã tìm ra một số phương pháp học hiệu quả...',
       authorId: 'user-1',
-      authorName: 'Nguyá»…n VÄƒn A',
+      authorName: 'Nguyễn Văn A',
       authorAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
       courseId: 'course-1',
-      courseName: 'An toĂ n hĂ ng háº£i',
+      courseName: 'An toàn hàng hải',
       category: 'course',
-      tags: ['há»c táº­p', 'kinh nghiá»‡m', 'an toĂ n'],
+      tags: ['học tập', 'kinh nghiệm', 'an toàn'],
       likes: 15,
       replies: 8,
       views: 120,
@@ -136,19 +135,19 @@ export class StudentForumComponent implements OnInit {
       createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
       updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
       lastReplyAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
-      lastReplyBy: 'Tráº§n Thá»‹ B'
+      lastReplyBy: 'Trần Thị B'
     },
     {
       id: 'post-2',
-      title: 'CĂ¢u há»i vá» quy táº¯c COLREG',
-      content: 'TĂ´i cĂ³ má»™t sá»‘ tháº¯c máº¯c vá» quy táº¯c COLREG, Ä‘áº·c biá»‡t lĂ  vá» quyá»n Æ°u tiĂªn cá»§a cĂ¡c tĂ u...',
+      title: 'Câu hỏi về quy tắc COLREG',
+      content: 'Tôi có một số thắc mắc về quy tắc COLREG, đặc biệt là về quyền ưu tiên của các tàu...',
       authorId: 'user-2',
-      authorName: 'LĂª VÄƒn C',
+      authorName: 'Lê Văn C',
       authorAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
       courseId: 'course-1',
-      courseName: 'An toĂ n hĂ ng háº£i',
+      courseName: 'An toàn hàng hải',
       category: 'assignment',
-      tags: ['colreg', 'quy táº¯c', 'há»i Ä‘Ă¡p'],
+      tags: ['colreg', 'quy tắc', 'hỏi đáp'],
       likes: 8,
       replies: 12,
       views: 85,
@@ -157,17 +156,17 @@ export class StudentForumComponent implements OnInit {
       createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
       updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
       lastReplyAt: new Date(Date.now() - 1 * 60 * 60 * 1000),
-      lastReplyBy: 'Pháº¡m VÄƒn D'
+      lastReplyBy: 'Phạm Văn D'
     },
     {
       id: 'post-3',
-      title: 'Chia sáº» tĂ i liá»‡u há»c táº­p',
-      content: 'TĂ´i cĂ³ má»™t sá»‘ tĂ i liá»‡u hay vá» Ä‘iá»u hÆ°á»›ng GPS, muá»‘n chia sáº» vá»›i má»i ngÆ°á»i...',
+      title: 'Chia sẻ tài liệu học tập',
+      content: 'Tôi có một số tài liệu hay về điều hướng GPS, muốn chia sẻ với mọi người...',
       authorId: 'user-3',
-      authorName: 'HoĂ ng Thá»‹ E',
+      authorName: 'Hoàng Thị E',
       authorAvatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face',
       category: 'general',
-      tags: ['tĂ i liá»‡u', 'gps', 'Ä‘iá»u hÆ°á»›ng'],
+      tags: ['tài liệu', 'gps', 'điều hướng'],
       likes: 22,
       replies: 5,
       views: 150,
@@ -176,7 +175,7 @@ export class StudentForumComponent implements OnInit {
       createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
       updatedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
       lastReplyAt: new Date(Date.now() - 5 * 60 * 60 * 1000),
-      lastReplyBy: 'VÅ© VÄƒn F'
+      lastReplyBy: 'Vũ Văn F'
     }
   ]);
 
@@ -245,41 +244,32 @@ export class StudentForumComponent implements OnInit {
 
   ngOnInit(): void {
     // Initialize component
-    console.log('đŸ”§ Student Forum - Component initialized');
-    console.log('đŸ”§ Student Forum - Posts count:', this.posts().length);
-    console.log('đŸ”§ Student Forum - Categories count:', this.categories().length);
   }
 
   createNewPost(): void {
-    console.log('đŸ”§ Student Forum - Create new post');
     // For now, just show a message since we don't have create post interface yet
-    alert('TĂ­nh nÄƒng táº¡o bĂ i viáº¿t má»›i sáº½ Ä‘Æ°á»£c phĂ¡t triá»ƒn trong phiĂªn báº£n tiáº¿p theo');
+    alert('Tính năng tạo bài viết mới sẽ được phát triển trong phiên bản tiếp theo');
   }
 
   filterByCategory(categoryId: string): void {
-    console.log('đŸ”§ Student Forum - Filter by category:', categoryId);
     this.selectedCategory.set(categoryId);
   }
 
   filterPosts(): void {
     // Filtering is handled by computed property
-    console.log('đŸ”§ Student Forum - Filter posts');
   }
 
   sortPosts(): void {
     // Sorting is handled by computed property
-    console.log('đŸ”§ Student Forum - Sort posts');
   }
 
   searchPosts(): void {
     // Searching is handled by computed property
-    console.log('đŸ”§ Student Forum - Search posts');
   }
 
   viewPost(postId: string): void {
-    console.log('đŸ”§ Student Forum - View post:', postId);
     // For now, just show a message since we don't have post detail interface yet
-    alert(`Xem bĂ i viáº¿t: ${postId}`);
+    alert(`Xem bài viết: ${postId}`);
   }
 
   getCategoryClass(category: string): string {
@@ -295,12 +285,12 @@ export class StudentForumComponent implements OnInit {
 
   getCategoryText(category: string): string {
     switch (category) {
-      case 'general': return 'Tháº£o luáº­n chung';
-      case 'course': return 'KhĂ³a há»c';
-      case 'assignment': return 'BĂ i táº­p';
-      case 'exam': return 'Thi cá»­';
-      case 'help': return 'Há»— trá»£';
-      default: return 'KhĂ´ng xĂ¡c Ä‘á»‹nh';
+      case 'general': return 'Thảo luận chung';
+      case 'course': return 'Khóa học';
+      case 'assignment': return 'Bài tập';
+      case 'exam': return 'Thi cử';
+      case 'help': return 'Hỗ trợ';
+      default: return 'Không xác định';
     }
   }
 
