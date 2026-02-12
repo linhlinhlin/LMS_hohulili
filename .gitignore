@@ -75,7 +75,6 @@ backend-lms-postgres/uploads/**
 
 
 !backend/src/main/resources/db/migration/*.sql
-!backend/src/main/resources/db/V1__lms_complete_schema.sql
 
 # === DB dumps (gửi riêng, không commit) ===
 db_dump_*.sql

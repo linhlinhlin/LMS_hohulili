@@ -254,8 +254,8 @@ export class ExampleComponent {
 | Security Config | `config/SecurityConfig.java` |
 | Rate Limiting | `config/RateLimitingFilter.java` |
 | JWT Filter | `config/JwtAuthenticationFilter.java` |
-| Flyway Migrations | `src/main/resources/db/migration/V26-V44` |
-| **Schema Reference** | **`src/main/resources/db/V1__lms_complete_schema.sql`** (1,241 lines) |
+| Flyway Migrations | `src/main/resources/db/migration/V1, V26-V44` |
+| **Schema Reference** | **`src/main/resources/db/migration/V1__lms_complete_schema.sql`** (1,249 lines) |
 
 ### Frontend
 | Purpose | File |
