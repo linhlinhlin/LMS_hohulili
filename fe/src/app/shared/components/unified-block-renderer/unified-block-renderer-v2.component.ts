@@ -50,7 +50,7 @@ import katex from 'katex';
 
       @if (isLoading()) {
         <div class="flex justify-center py-4">
-          <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+          <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-[#0056D2]"></div>
         </div>
       }
     </div>

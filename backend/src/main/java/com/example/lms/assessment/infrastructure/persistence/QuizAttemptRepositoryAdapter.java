@@ -24,7 +24,19 @@ public class QuizAttemptRepositoryAdapter implements QuizAttemptRepository {
 
     @Override
     public QuizAttempt save(QuizAttempt attempt) {
-        QuizAttemptJpaEntity entity = toEntity(attempt);
+        QuizAttemptJpaEntity entity;
+        // Merge onto existing entity for updates — preserves @Version for optimistic locking
+        if (attempt.getId() != null) {
+            Optional<QuizAttemptJpaEntity> existing = jpaRepository.findById(attempt.getId());
+            if (existing.isPresent()) {
+                entity = existing.get();
+                mergeToEntity(entity, attempt);
+            } else {
+                entity = toEntity(attempt);
+            }
+        } else {
+            entity = toEntity(attempt);
+        }
         QuizAttemptJpaEntity saved = jpaRepository.save(entity);
         return toDomain(saved);
     }
@@ -49,6 +61,24 @@ public class QuizAttemptRepositoryAdapter implements QuizAttemptRepository {
     }
 
     // ============ Mapping Methods ============
+
+    /**
+     * Merge domain model fields onto an existing JPA entity.
+     * Preserves the entity's @Version field for optimistic locking.
+     */
+    private void mergeToEntity(QuizAttemptJpaEntity entity, QuizAttempt domain) {
+        Map<String, Object> answersMap = new HashMap<>();
+        if (domain.getItems() != null) {
+            for (QuizAttempt.AttemptItem item : domain.getItems()) {
+                answersMap.put(item.getQuestionId().toString(), item);
+            }
+        }
+        entity.setStatus(QuizAttemptJpaEntity.AttemptStatus.valueOf(domain.getStatus().name()));
+        entity.setScore(domain.getScore());
+        entity.setStartedAt(domain.getStartTime());
+        entity.setSubmittedAt(domain.getEndTime());
+        entity.setAnswers(answersMap);
+    }
 
     private QuizAttemptJpaEntity toEntity(QuizAttempt domain) {
         // Map List<AttemptItem> to Map<String, Object> for JSONB storage

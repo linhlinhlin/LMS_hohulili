@@ -18,10 +18,14 @@ export interface UserSummary {
   enabled: boolean;
 }
 
+export type QuestionTypeEnum = 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'FILL_IN_BLANK' | 'SHORT_ANSWER' | 'ESSAY';
+
 export interface Question {
   id: string;
   content: string;
-  correctOption: string;
+  questionType: QuestionTypeEnum;
+  correctOption: string | null;
+  answerKey: Record<string, unknown> | null;
   difficulty: 'EASY' | 'MEDIUM' | 'HARD';
   tags: string;
   status: 'DRAFT' | 'ACTIVE' | 'INACTIVE';
@@ -39,24 +43,29 @@ export interface GetQuestionsByIdsRequest {
 
 export interface CreateQuestionRequest {
   content: string;
-  correctOption: string;
+  questionType?: QuestionTypeEnum;
+  correctOption?: string;
+  answerKey?: Record<string, unknown>;
   options: string[];
   difficulty: 'EASY' | 'MEDIUM' | 'HARD';
   tags: string;
-  courseId?: string;  // Optional courseId
-  packageId?: string;  // Optional packageId
-  blocks?: any[];      // Renamed from contentBlocks to match Backend DTO
+  courseId?: string;
+  packageId?: string;
+  categoryId?: string;
+  blocks?: any[];
   optionBlocks?: any[];
 }
 
 export interface UpdateQuestionRequest {
   content: string;
-  correctOption: string;
+  questionType?: QuestionTypeEnum;
+  correctOption?: string;
+  answerKey?: Record<string, unknown>;
   options: string[];
   difficulty: 'EASY' | 'MEDIUM' | 'HARD';
   tags: string;
   status: 'DRAFT' | 'ACTIVE' | 'INACTIVE';
-  blocks?: any[];      // Added to match Backend DTO
+  blocks?: any[];
   optionBlocks?: any[];
 }
 
@@ -120,13 +129,6 @@ export class QuestionApi {
     const params: any = {};
     if (status) params.status = status;
     return this.apiClient.get<{ success: boolean; data: Question[]; message?: string }>(`/api/v3/questions/course/${courseId}`, { params });
-  }
-
-  // NEW: Get my questions in a specific course
-  getMyQuestionsInCourse(courseId: string, status?: string) {
-    const params: any = {};
-    if (status) params.status = status;
-    return this.apiClient.get<Question[]>(`/api/v3/questions/course/${courseId}/user`, { params });
   }
 
   // Import questions from Excel file

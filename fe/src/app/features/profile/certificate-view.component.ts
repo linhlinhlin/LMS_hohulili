@@ -1,7 +1,10 @@
-import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-
+import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
+import { CertificateApi } from '../../api/endpoints/certificate.api';
+import { firstValueFrom } from 'rxjs';
+import { ToastService } from '../../core/services/toast.service';
+import { IconComponent } from '../../shared/components/icon/icon.component';
 
 interface Certificate {
   id: string;
@@ -34,8 +37,7 @@ interface CertificateVerification {
 
 @Component({
   selector: 'app-certificate-view',
-  imports: [RouterModule],
-  encapsulation: ViewEncapsulation.None,
+  imports: [RouterModule, IconComponent],
   template: `
     <div class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 min-h-screen">
       <!-- Header -->
@@ -58,7 +60,7 @@ interface CertificateVerification {
             
             <div class="flex items-center space-x-4">
               <button (click)="downloadCertificate()"
-                      class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                      class="px-6 py-3 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors">
                 <svg class="w-5 h-5 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"></path>
                 </svg>
@@ -82,7 +84,7 @@ interface CertificateVerification {
           <div class="lg:col-span-2">
             <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
               <!-- Certificate Header -->
-              <div class="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-800 text-white p-8 text-center">
+              <div class="bg-[#0056D2] text-white p-8 text-center">
                 <div class="w-20 h-20 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
                   <svg class="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
@@ -173,7 +175,7 @@ interface CertificateVerification {
           <div class="space-y-6">
             <!-- Certificate Status -->
             <div class="bg-white rounded-2xl shadow-lg p-6">
-              <h3 class="text-lg font-bold text-gray-900 mb-4">📊 Trạng thái chứng chỉ</h3>
+              <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2"><app-icon name="bar-chart" size="md"/> Trạng thái chứng chỉ</h3>
               <div class="space-y-4">
                 <div class="flex items-center justify-between">
                   <span class="text-gray-600">Trạng thái</span>
@@ -199,7 +201,7 @@ interface CertificateVerification {
 
             <!-- Verification -->
             <div class="bg-white rounded-2xl shadow-lg p-6">
-              <h3 class="text-lg font-bold text-gray-900 mb-4">🔍 Xác thực chứng chỉ</h3>
+              <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2"><app-icon name="search" size="md"/> Xác thực chứng chỉ</h3>
               <div class="space-y-4">
                 <div class="text-center p-4 bg-green-50 rounded-xl">
                   <svg class="w-8 h-8 text-green-600 mx-auto mb-2" fill="currentColor" viewBox="0 0 20 20">
@@ -211,7 +213,7 @@ interface CertificateVerification {
                 
                 <div class="text-center">
                   <button (click)="verifyCertificate()"
-                          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                          class="px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors text-sm">
                     Xác thực lại
                   </button>
                 </div>
@@ -220,7 +222,7 @@ interface CertificateVerification {
 
             <!-- Course Information -->
             <div class="bg-white rounded-2xl shadow-lg p-6">
-              <h3 class="text-lg font-bold text-gray-900 mb-4">📚 Thông tin khóa học</h3>
+              <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2"><app-icon name="courses" size="md"/> Thông tin khóa học</h3>
               <div class="space-y-3">
                 <div>
                   <p class="text-sm text-gray-600">Tên khóa học</p>
@@ -246,11 +248,11 @@ interface CertificateVerification {
 
             <!-- Actions -->
             <div class="bg-white rounded-2xl shadow-lg p-6">
-              <h3 class="text-lg font-bold text-gray-900 mb-4">⚡ Thao tác</h3>
+              <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2"><app-icon name="zap" size="md"/> Thao tác</h3>
               <div class="space-y-3">
                 <button (click)="downloadCertificate()"
                         class="w-full flex items-center space-x-3 p-3 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors">
-                  <svg class="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                  <svg class="w-5 h-5 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"></path>
                   </svg>
                   <span class="font-medium text-gray-900">Tải xuống PDF</span>
@@ -293,6 +295,8 @@ export class CertificateViewComponent implements OnInit {
   protected authService = inject(AuthService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  private certificateApi = inject(CertificateApi);
+  private toast = inject(ToastService);
 
   // Component state
   certificate = signal<Certificate | null>(null);
@@ -302,36 +306,61 @@ export class CertificateViewComponent implements OnInit {
     this.loadCertificate();
   }
 
-  private loadCertificate(): void {
-    // Mock certificate data
-    const mockCertificate: Certificate = {
+  private async loadCertificate(): Promise<void> {
+    const token = this.route.snapshot.paramMap.get('token');
+
+    if (token) {
+      // Public verification by token
+      try {
+        const res: any = await firstValueFrom(this.certificateApi.verifyCertificate(token));
+        if (res?.data?.valid) {
+          const d = res.data;
+          this.certificate.set({
+            id: token,
+            courseId: d.courseId || '',
+            courseName: d.courseName || '',
+            studentName: d.studentName || '',
+            studentId: d.studentId || '',
+            instructorName: '',
+            issuedAt: new Date(d.issuedAt),
+            certificateNumber: token.substring(0, 13).toUpperCase(),
+            certificateUrl: '',
+            isValid: true,
+            grade: 0,
+            maxGrade: 100,
+            completionDate: new Date(d.issuedAt),
+            duration: '',
+            description: '',
+            skills: [],
+            verificationCode: token,
+            qrCode: ''
+          });
+          return;
+        }
+      } catch { /* fallback to mock */ }
+    }
+
+    // Fallback: mock data for development
+    this.certificate.set({
       id: 'cert-1',
       courseId: 'course-1',
       courseName: 'Kỹ thuật Tàu biển Cơ bản',
-      studentName: 'Nguyễn Văn Hải',
-      studentId: 'SV2024001',
+      studentName: this.authService.currentUser()?.fullName || 'Học viên',
+      studentId: this.authService.currentUser()?.id || 'SV2024001',
       instructorName: 'ThS. Nguyễn Văn Hải',
-      issuedAt: new Date('2024-09-15'),
+      issuedAt: new Date(),
       certificateNumber: 'CERT-2024-001',
-      certificateUrl: '/certificates/cert-1.pdf',
+      certificateUrl: '',
       isValid: true,
-      expiryDate: new Date('2027-09-15'),
       grade: 85,
       maxGrade: 100,
-      completionDate: new Date('2024-09-10'),
+      completionDate: new Date(),
       duration: '30 giờ',
-      description: 'Khóa học cung cấp kiến thức cơ bản về kỹ thuật tàu biển, bao gồm cấu trúc tàu, hệ thống động lực, và quy trình vận hành.',
-      skills: [
-        'Kỹ thuật tàu biển',
-        'Hệ thống động lực',
-        'An toàn hàng hải',
-        'Quy trình vận hành'
-      ],
+      description: 'Khóa học cung cấp kiến thức cơ bản về kỹ thuật tàu biển.',
+      skills: ['Kỹ thuật tàu biển', 'An toàn hàng hải'],
       verificationCode: 'VER-2024-001',
-      qrCode: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
-    };
-
-    this.certificate.set(mockCertificate);
+      qrCode: ''
+    });
   }
 
   formatDate(date: Date): string {
@@ -340,7 +369,7 @@ export class CertificateViewComponent implements OnInit {
 
   downloadCertificate(): void {
     // Mock download functionality
-    alert('Tải xuống chứng chỉ PDF thành công!');
+    this.toast.success('Tải xuống chứng chỉ PDF thành công!');
   }
 
   shareCertificate(): void {
@@ -354,7 +383,7 @@ export class CertificateViewComponent implements OnInit {
     } else {
       // Fallback: copy to clipboard
       navigator.clipboard.writeText(window.location.href);
-      alert('Đã sao chép liên kết vào clipboard!');
+      this.toast.success('Đã sao chép liên kết vào clipboard!');
     }
   }
 
@@ -365,7 +394,7 @@ export class CertificateViewComponent implements OnInit {
 
   verifyCertificate(): void {
     // Mock verification
-    alert('Chứng chỉ đã được xác thực thành công!');
+    this.toast.success('Chứng chỉ đã được xác thực thành công!');
   }
 
   viewCourse(): void {

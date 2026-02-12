@@ -1,18 +1,18 @@
 // src/app/shared/components/footer/footer.component.ts
-import { Component, ChangeDetectionStrategy, ViewEncapsulation, signal } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, inject } from '@angular/core';
 
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { ToastService } from '../../../../core/services/toast.service';
 
 @Component({
   selector: 'app-footer',
   imports: [RouterModule, FormsModule],
-  encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <footer class="bg-gray-900 text-white">
       <!-- Newsletter Section -->
-      <div class="bg-blue-600 py-12">
+      <div class="bg-[#0056D2] py-12">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="text-center">
             <h2 class="text-3xl font-bold mb-4">Đăng ký nhận thông tin mới nhất</h2>
@@ -48,7 +48,7 @@ import { FormsModule } from '@angular/forms';
             <!-- Company Info -->
             <div class="lg:col-span-1">
               <div class="flex items-center space-x-2 mb-6">
-                <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                <div class="w-10 h-10 bg-[#0056D2] rounded-lg flex items-center justify-center">
                   <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                   </svg>
@@ -126,7 +126,7 @@ import { FormsModule } from '@angular/forms';
                 <select
                   [ngModel]="selectedLanguage()"
                   (ngModelChange)="selectedLanguage.set($event)"
-                  class="bg-gray-800 text-white border border-gray-800 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  class="bg-gray-800 text-white border border-gray-800 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-[#0056D2] focus:outline-none"
                 >
                   <option value="vi">🇻🇳 Tiếng Việt</option>
                   <option value="en">🇺🇸 English</option>
@@ -157,12 +157,13 @@ import { FormsModule } from '@angular/forms';
   `,
 })
 export class FooterComponent {
+  private toast = inject(ToastService);
   newsletterEmail = signal('');
   selectedLanguage = signal<'vi' | 'en' | 'ko'>('vi');
 
   subscribeNewsletter(): void {
     if (this.newsletterEmail()) {
-      alert('Cảm ơn bạn đã đăng ký! Chúng tôi sẽ gửi thông tin mới nhất đến email của bạn.');
+      this.toast.success('Cảm ơn bạn đã đăng ký! Chúng tôi sẽ gửi thông tin mới nhất đến email của bạn.');
       this.newsletterEmail.set('');
     }
   }

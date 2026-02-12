@@ -13,6 +13,7 @@ import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -75,7 +76,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
             }
-        } catch (Exception e) {
+        } catch (io.jsonwebtoken.JwtException | UsernameNotFoundException e) {
             log.warn("Cannot set user authentication for request {}: {}", path, e.getMessage());
         }
 
@@ -91,7 +92,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                path.startsWith("/swagger-resources") ||
                path.startsWith("/webjars") ||
                path.startsWith("/actuator") ||
-               path.startsWith("/api/v3/auth") ||
                path.equals("/api/v3/ai/health") ||
                path.equals("/api/v3/ai/ping") ||
                path.equals("/api/v3/courses");      // Public courses listing

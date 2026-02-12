@@ -3,6 +3,7 @@ import { Component, inject, OnInit, signal, computed, ChangeDetectionStrategy } 
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../../../core/services/auth.service';
+import { ToastService } from '../../../../core/services/toast.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -34,7 +35,7 @@ import { AuthService } from '../../../../core/services/auth.service';
               </button>
               <button (click)="submitAssignment()"
                       [disabled]="!canSubmit() || isSubmitting()"
-                      class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                      class="px-4 py-2 text-sm font-medium text-white bg-[#0056D2] border border-transparent rounded-lg hover:bg-[#004BB5] disabled:opacity-50">
                 @if (isSubmitting()) {
                   <span>Đang nộp...</span>
                 } @else {
@@ -83,7 +84,7 @@ import { AuthService } from '../../../../core/services/auth.service';
                 <textarea formControlName="content"
                           rows="12"
                           placeholder="Nhập nội dung bài làm của bạn..."
-                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 resize-vertical"></textarea>
+                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-[#0056D2] focus:border-[#0056D2] resize-vertical"></textarea>
               </div>
 
               <!-- File Upload Section -->
@@ -92,7 +93,7 @@ import { AuthService } from '../../../../core/services/auth.service';
                 <input type="file"
                        multiple
                        (change)="onFileSelected($event)"
-                       class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                       class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-[#004BB5] hover:file:bg-blue-100">
 
                 @if (attachedFiles().length > 0) {
                   <div class="mt-3 space-y-2">
@@ -115,7 +116,7 @@ import { AuthService } from '../../../../core/services/auth.service';
                 <button type="button"
                         (click)="submitAssignment()"
                         [disabled]="!canSubmit() || isSubmitting()"
-                        class="px-6 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                        class="px-6 py-2 text-sm font-medium text-white bg-[#0056D2] border border-transparent rounded-lg hover:bg-[#004BB5] disabled:opacity-50 disabled:cursor-not-allowed">
                   @if (isSubmitting()) {
                     <span>Đang nộp bài...</span>
                   } @else {
@@ -156,7 +157,7 @@ import { AuthService } from '../../../../core/services/auth.service';
                 </button>
                 <button (click)="submitAssignment()"
                         [disabled]="!canSubmit()"
-                        class="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                        class="w-full px-4 py-2 text-sm font-medium text-white bg-[#0056D2] border border-transparent rounded-lg hover:bg-[#004BB5] disabled:opacity-50">
                   Nộp bài
                 </button>
               </div>
@@ -172,6 +173,7 @@ export class AssignmentWorkPageComponent implements OnInit {
   private router = inject(Router);
   private authService = inject(AuthService);
   private fb = inject(FormBuilder);
+  private toast = inject(ToastService);
 
   // Component state
   assignment = signal<any>(null);
@@ -197,7 +199,7 @@ export class AssignmentWorkPageComponent implements OnInit {
 
   private loadAssignment(): void {
     const assignmentId = this.route.snapshot.params['id'];
-    // Mock assignment data
+    // Stub: backend assignment detail API not implemented yet — show placeholder
     this.assignment.set({
       id: assignmentId,
       title: 'Bài tập mẫu về kỹ thuật tàu biển',
@@ -212,34 +214,15 @@ export class AssignmentWorkPageComponent implements OnInit {
     this.router.navigate(['/student/assignments']);
   }
 
-  async saveDraft(): Promise<void> {
-    if (this.isSubmitting()) return;
-
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      alert('Đã lưu nháp thành công!');
-    } catch (error) {
-      alert('Có lỗi xảy ra khi lưu nháp');
-    }
+  saveDraft(): void {
+    // Stub: backend draft/submit API not implemented yet
+    this.toast.info('Tính năng lưu nháp sẽ được phát triển khi backend submission API hoàn thiện.');
   }
 
-  async submitAssignment(): Promise<void> {
+  submitAssignment(): void {
     if (!this.canSubmit() || this.isSubmitting()) return;
-
-    this.isSubmitting.set(true);
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      this.submissionStatus.set('submitted');
-      alert('Bài tập đã được nộp thành công!');
-      this.router.navigate(['/student/assignments']);
-    } catch (error) {
-      alert('Có lỗi xảy ra khi nộp bài');
-    } finally {
-      this.isSubmitting.set(false);
-    }
+    // Stub: backend draft/submit API not implemented yet
+    this.toast.info('Tính năng nộp bài sẽ được phát triển khi backend submission API hoàn thiện.');
   }
 
   onFileSelected(event: Event): void {
@@ -253,7 +236,7 @@ export class AssignmentWorkPageComponent implements OnInit {
       // Check file size (10MB limit)
       const validFiles = newFiles.filter(file => {
         if (file.size > 10 * 1024 * 1024) {
-          alert(`Tệp ${file.name} quá lớn. Kích thước tối đa là 10MB.`);
+          this.toast.warning(`Tệp ${file.name} quá lớn. Kích thước tối đa là 10MB.`);
           return false;
         }
         return true;

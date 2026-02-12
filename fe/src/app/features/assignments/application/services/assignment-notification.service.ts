@@ -55,7 +55,6 @@ export class AssignmentNotificationService {
 
   constructor() {
     this.initializeNotifications();
-    this.setupDeadlineMonitoring();
   }
 
   // ========================================
@@ -89,7 +88,7 @@ export class AssignmentNotificationService {
 
     // Also show in global notification system
     this.notificationService.warning(
-      `⚠️ Hạn nộp bài tập sắp đến`,
+      `Hạn nộp bài tập sắp đến`,
       message,
       {
         action: {
@@ -119,7 +118,7 @@ export class AssignmentNotificationService {
     this.addNotification(notification);
 
     this.notificationService.error(
-      `⏰ Bài tập đã quá hạn`,
+      `Bài tập đã quá hạn`,
       `Bài tập "${assignmentTitle}" đã quá thời hạn nộp.`,
       {
         action: {
@@ -153,7 +152,7 @@ export class AssignmentNotificationService {
     this.addNotification(notification);
 
     this.notificationService.success(
-      `🎉 Bài tập đã được chấm điểm`,
+      `Bài tập đã được chấm điểm`,
       message,
       {
         action: {
@@ -186,7 +185,7 @@ export class AssignmentNotificationService {
     this.addNotification(notification);
 
     this.notificationService.info(
-      `💬 Nhận xét từ giảng viên`,
+      `Nhận xét từ giảng viên`,
       message,
       {
         action: {
@@ -219,7 +218,7 @@ export class AssignmentNotificationService {
     this.addNotification(notification);
 
     this.notificationService.info(
-      `📝 Bài tập mới`,
+      `Bài tập mới`,
       message,
       {
         action: {
@@ -253,7 +252,7 @@ export class AssignmentNotificationService {
     this.addNotification(notification);
 
     this.notificationService.info(
-      `🔄 Bài tập được cập nhật`,
+      `Bài tập được cập nhật`,
       message,
       {
         action: {
@@ -289,7 +288,7 @@ export class AssignmentNotificationService {
     this.addNotification(notification);
 
     this.notificationService.warning(
-      `⏰ Nhắc nhở nộp bài`,
+      `Nhắc nhở nộp bài`,
       message,
       {
         action: {
@@ -364,6 +363,7 @@ export class AssignmentNotificationService {
       try {
         this._notificationSettings.set(JSON.parse(savedSettings));
       } catch (error) {
+        // localStorage parse — silent, use defaults
       }
     }
 
@@ -378,6 +378,7 @@ export class AssignmentNotificationService {
         }));
         this._assignmentNotifications.set(notifications);
       } catch (error) {
+        // localStorage parse — silent, use defaults
       }
     }
 
@@ -385,50 +386,6 @@ export class AssignmentNotificationService {
     effect(() => {
       const notifications = this._assignmentNotifications();
       localStorage.setItem('assignment_notifications', JSON.stringify(notifications));
-    });
-  }
-
-  private setupDeadlineMonitoring(): void {
-    // In a real app, this would connect to a WebSocket or Server-Sent Events
-    // For demo purposes, we'll simulate deadline monitoring
-    setInterval(() => {
-      this.checkUpcomingDeadlines();
-    }, 60000); // Check every minute
-  }
-
-  private checkUpcomingDeadlines(): void {
-    // Mock deadline checking - in real app, this would come from backend
-    const mockAssignments = [
-      {
-        id: 'assignment-1',
-        title: 'Bài tập Kỹ thuật Tàu biển',
-        courseName: 'Kỹ thuật Tàu biển Cơ bản',
-        dueDate: new Date(Date.now() + 2 * 60 * 60 * 1000) // 2 hours from now
-      },
-      {
-        id: 'assignment-2',
-        title: 'Bài tập An toàn Hàng hải',
-        courseName: 'An toàn Hàng hải',
-        dueDate: new Date(Date.now() + 25 * 60 * 60 * 1000) // 25 hours from now
-      }
-    ];
-
-    const now = new Date();
-    mockAssignments.forEach(assignment => {
-      const hoursLeft = Math.floor((assignment.dueDate.getTime() - now.getTime()) / (1000 * 60 * 60));
-
-      if (hoursLeft > 0 && this._notificationSettings().reminderHours.includes(hoursLeft)) {
-        // Check if we already notified for this assignment and timeframe
-        const existingNotification = this._assignmentNotifications().find(n =>
-          n.assignmentId === assignment.id &&
-          n.type === 'deadline_approaching' &&
-          Math.abs(n.timestamp.getTime() - now.getTime()) < 60 * 60 * 1000 // Within last hour
-        );
-
-        if (!existingNotification) {
-          this.notifyDeadlineApproaching(assignment.id, assignment.title, assignment.courseName, hoursLeft);
-        }
-      }
     });
   }
 

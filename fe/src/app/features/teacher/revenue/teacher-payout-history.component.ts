@@ -3,6 +3,7 @@ import { Component, inject, OnInit, signal, ChangeDetectionStrategy } from '@ang
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { TeacherRevenueService, PayoutHistoryItem } from '../infrastructure/services/teacher-revenue.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -13,7 +14,7 @@ import { TeacherRevenueService, PayoutHistoryItem } from '../infrastructure/serv
       <div class="max-w-6xl mx-auto">
         <!-- Header -->
         <div class="mb-6">
-          <a routerLink="/teacher/revenue" class="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1 mb-4">
+          <a routerLink="/teacher/revenue" class="text-sm text-[#0056D2] hover:text-blue-800 flex items-center gap-1 mb-4">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
             </svg>
@@ -29,7 +30,7 @@ import { TeacherRevenueService, PayoutHistoryItem } from '../infrastructure/serv
             <label class="text-sm font-medium text-gray-700">Trạng thái:</label>
             <select [(ngModel)]="statusFilter" 
                     (change)="onFilterChange()"
-                    class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]">
               <option value="">Tất cả</option>
               <option value="pending">Chờ xử lý</option>
               <option value="processing">Đang xử lý</option>
@@ -44,7 +45,7 @@ import { TeacherRevenueService, PayoutHistoryItem } from '../infrastructure/serv
           @if (isLoading()) {
             <div class="p-12 text-center">
               <div class="inline-block">
-                <div class="w-10 h-10 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin"></div>
+                <div class="w-10 h-10 border-4 border-gray-200 border-t-[#0056D2] rounded-full animate-spin"></div>
               </div>
               <p class="mt-4 text-sm text-gray-600">Đang tải dữ liệu...</p>
             </div>
@@ -101,7 +102,7 @@ import { TeacherRevenueService, PayoutHistoryItem } from '../infrastructure/serv
               <h3 class="text-base font-medium text-gray-900 mb-2">Chưa có yêu cầu rút tiền</h3>
               <p class="text-sm text-gray-600 mb-4">Khi bạn yêu cầu rút tiền, lịch sử sẽ hiển thị ở đây</p>
               <a routerLink="/teacher/revenue" 
-                 class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                 class="inline-flex items-center px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors">
                 Quay lại Doanh thu
               </a>
             </div>
@@ -121,7 +122,7 @@ import { TeacherRevenueService, PayoutHistoryItem } from '../infrastructure/serv
             </div>
             <div class="bg-white rounded-lg shadow p-4">
               <p class="text-sm text-gray-600">Số lần rút</p>
-              <p class="text-xl font-bold text-blue-600 mt-1">{{ completedCount() }} lần</p>
+              <p class="text-xl font-bold text-[#0056D2] mt-1">{{ completedCount() }} lần</p>
             </div>
           </div>
         }
@@ -131,6 +132,7 @@ import { TeacherRevenueService, PayoutHistoryItem } from '../infrastructure/serv
 })
 export class TeacherPayoutHistoryComponent implements OnInit {
     private revenueService = inject(TeacherRevenueService);
+    private toast = inject(ToastService);
 
     // Signals from service
     payoutHistory = this.revenueService.payoutHistory;
@@ -149,7 +151,7 @@ export class TeacherPayoutHistoryComponent implements OnInit {
     private loadData(): void {
         this.revenueService.getPayoutHistory().subscribe({
             next: () => this.applyFilter(),
-            error: () => {}
+            error: () => { this.toast.error('Không thể tải lịch sử thanh toán. Vui lòng thử lại.'); }
         });
     }
 

@@ -5,11 +5,11 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
     id: 'safety',
     title: 'An toàn Hàng hải',
     subtitle: 'Chứng chỉ STCW, an toàn lao động và quản lý rủi ro trên biển.',
-    iconEmoji: '🛡️',
+    iconEmoji: 'shield',
     brandColor: 'blue',
-    gradientFrom: 'from-blue-600',
-    gradientVia: 'via-blue-700',
-    gradientTo: 'to-blue-800',
+    gradientFrom: 'from-[#0056D2]',
+    gradientVia: 'via-[#004BB5]',
+    gradientTo: 'to-[#004BB5]',
     primaryCta: { text: 'Xem tất cả khóa học', link: '/courses' },
     secondaryCta: { text: 'Khóa học theo chủ đề', link: '/courses', queryParams: { category: 'safety' } },
     seoTitle: 'An toàn Hàng hải - Khóa học STCW, ISM, IMO | LMS Maritime',
@@ -217,8 +217,8 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
       { title: 'Safety Manager', description: 'Quản lý hệ thống an toàn cho công ty vận tải biển', salary: '30-50 triệu VNĐ/tháng', requirements: ['Chứng chỉ ISM', 'Kinh nghiệm 8+ năm', 'Kỹ năng lãnh đạo', 'Bằng thạc sĩ ưu tiên'] }
     ],
     trendCards: [
-      { icon: '📈', title: 'Tăng cường quy định an toàn', highlight: '+15% mỗi năm', description: 'IMO liên tục cập nhật các quy định an toàn mới, yêu cầu nhân sự có chứng chỉ cập nhật.' },
-      { icon: '🤖', title: 'Công nghệ an toàn mới', highlight: '+25% mỗi năm', description: 'Ứng dụng AI và IoT trong quản lý an toàn, tạo cơ hội cho chuyên gia công nghệ.' }
+      { icon: 'bar-chart', title: 'Tăng cường quy định an toàn', highlight: '+15% mỗi năm', description: 'IMO liên tục cập nhật các quy định an toàn mới, yêu cầu nhân sự có chứng chỉ cập nhật.' },
+      { icon: 'globe', title: 'Công nghệ an toàn mới', highlight: '+25% mỗi năm', description: 'Ứng dụng AI và IoT trong quản lý an toàn, tạo cơ hội cho chuyên gia công nghệ.' }
     ]
   },
 
@@ -226,7 +226,7 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
     id: 'navigation',
     title: 'Điều khiển Tàu',
     subtitle: 'Navigation, radar, GPS, ECDIS',
-    iconEmoji: '🧭',
+    iconEmoji: 'globe',
     brandColor: 'green',
     gradientFrom: 'from-green-600',
     gradientVia: 'via-green-700',
@@ -341,8 +341,8 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
       { title: 'Master Mariner', description: 'Thuyền trưởng, chỉ huy tàu và toàn bộ hoạt động', salary: '35-60 triệu VNĐ/tháng', requirements: ['Chứng chỉ Master', 'Kinh nghiệm 8+ năm', 'Bằng đại học hàng hải'] }
     ],
     trendCards: [
-      { icon: '🧭', title: 'Điều hướng số', highlight: '+20% áp dụng', description: 'Tăng cường sử dụng ECDIS, hệ thống số và cảm biến hiện đại trong điều hướng.' },
-      { icon: '🛰️', title: 'Tích hợp GNSS', highlight: '+30% độ chính xác', description: 'Kết hợp nhiều hệ thống vệ tinh (GPS, GLONASS, Galileo) để tăng độ tin cậy.' }
+      { icon: 'globe', title: 'Điều hướng số', highlight: '+20% áp dụng', description: 'Tăng cường sử dụng ECDIS, hệ thống số và cảm biến hiện đại trong điều hướng.' },
+      { icon: 'globe', title: 'Tích hợp GNSS', highlight: '+30% độ chính xác', description: 'Kết hợp nhiều hệ thống vệ tinh (GPS, GLONASS, Galileo) để tăng độ tin cậy.' }
     ]
   }
 };

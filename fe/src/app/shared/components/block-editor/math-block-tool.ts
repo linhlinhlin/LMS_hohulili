@@ -229,7 +229,7 @@ export default class MathBlockTool {
                     <div style="font-style: italic;">Xem trước công thức sẽ hiển thị ở đây</div>
                     <div style="font-size: 12px; margin-top: 4px;">Nhấn vào các nút phía trên để chèn ký hiệu</div>
                     <div style="font-size: 11px; margin-top: 4px; color: #6b7280;">
-                        💡 <kbd style="background:#e5e7eb;padding:1px 4px;border-radius:3px;font-size:10px;">Tab</kbd> để nhảy qua placeholder · 
+                        <kbd style="background:#e5e7eb;padding:1px 4px;border-radius:3px;font-size:10px;">Tab</kbd> để nhảy qua placeholder ·
                         <kbd style="background:#e5e7eb;padding:1px 4px;border-radius:3px;font-size:10px;">Space</kbd> tại } để thoát
                     </div>
                 </div>

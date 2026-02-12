@@ -2,13 +2,14 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { KnowledgeStats, KnowledgeDocument, UploadResponse, JobStatus } from '../domain/knowledge.types';
+import { environment } from '../../../../../environments/environment';
 
 @Injectable({
     providedIn: 'root'
 })
 export class AiKnowledgeService {
     private http = inject(HttpClient);
-    private readonly apiUrl = '/api/v3/ai/admin/knowledge';
+    private readonly apiUrl = `${environment.apiUrl}/api/v3/ai/admin/knowledge`;
 
     getStats(): Observable<KnowledgeStats> {
         return this.http.get<KnowledgeStats>(`${this.apiUrl}/stats`);

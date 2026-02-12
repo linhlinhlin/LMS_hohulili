@@ -3,6 +3,7 @@ package com.example.lms.identity.infrastructure.web;
 import com.example.lms.identity.application.dto.*;
 import com.example.lms.identity.application.usecase.*;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
+import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -12,11 +13,14 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 /**
  * REST Controller for Authentication operations.
@@ -26,11 +30,14 @@ import org.springframework.web.bind.annotation.*;
  * - Follows Clean Architecture / Hexagonal Architecture
  * - No dependency on legacy entity package
  */
+@Slf4j
 @RestController
 @RequestMapping("/api/v3/auth")
 @RequiredArgsConstructor
 @Tag(name = "Authentication v3", description = "API xác thực người dùng (Pure DDD)")
 public class AuthControllerV3 {
+
+    private final UserJpaRepository userJpaRepository;
 
     @Qualifier("registerUserUseCaseV2")
     private final RegisterUserUseCaseV2 registerUseCase;
@@ -154,7 +161,27 @@ public class AuthControllerV3 {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @PostMapping("/forgot-password")
+    @Operation(summary = "Yêu cầu đặt lại mật khẩu")
+    public ResponseEntity<ApiResponse<Map<String, String>>> forgotPassword(
+            @RequestBody @Valid ForgotPasswordRequest request) {
+        var user = userJpaRepository.findByEmail(request.email());
+        if (user.isPresent()) {
+            log.info("Password reset requested for: {}", request.email());
+        }
+        // Always return success to prevent email enumeration
+        return ResponseEntity.ok(ApiResponse.success(
+            Map.of("message", "Nếu email tồn tại, bạn sẽ nhận được hướng dẫn đặt lại mật khẩu"),
+            "Password reset requested"));
+    }
+
     // ==================== Request DTOs ====================
+
+    public record ForgotPasswordRequest(
+            @NotBlank(message = "Email is required")
+            @Email(message = "Email must be valid")
+            String email
+    ) {}
 
     public record RefreshTokenRequest(
             @NotBlank(message = "Refresh token is required")

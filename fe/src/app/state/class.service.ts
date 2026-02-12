@@ -15,7 +15,7 @@ export class ClassService {
     private readonly API_URL = `${environment.apiUrl}/api/v3`;
 
     getClassesByCourse(courseId: string): Observable<ClassSummary[]> {
-        return this.http.get<ApiResponse<ClassSummary[]>>(`${this.API_URL}/courses/${courseId}/classes`)
+        return this.http.get<ApiResponse<ClassSummary[]>>(`${this.API_URL}/classes/by-course/${courseId}`)
             .pipe(map(response => response.data));
     }
 
@@ -26,7 +26,7 @@ export class ClassService {
         if (semester) params += `&semester=${encodeURIComponent(semester)}`;
 
         return this.http.get<ApiResponse<import('../api/types/common.types').Page<ClassSummary>>>(
-            `${this.API_URL}/courses/${courseId}/classes/search${params}`
+            `${this.API_URL}/classes/by-course/${courseId}/search${params}`
         ).pipe(map(response => response.data));
     }
 

@@ -21,6 +21,8 @@ public record UpdateCourseCommand(
 
     String description,
 
+    String thumbnailUrl,
+
     // Optional fields
     UUID categoryId,
     Set<String> tags,
@@ -34,5 +36,6 @@ public record UpdateCourseCommand(
     BigDecimal price,
 
     BigDecimal salePrice,
+    String deliveryMode,
     boolean isAdmin
 ) {}

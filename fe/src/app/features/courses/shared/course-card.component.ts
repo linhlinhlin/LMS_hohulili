@@ -4,10 +4,12 @@ import { RouterModule, Router } from '@angular/router';
 import { LEVEL_LABELS, CourseLevel, ExtendedCourse } from '../../../shared/types/course.types';
 import { AuthService } from '../../../core/services/auth.service';
 import { StudentEnrollmentService } from '../../../features/student/services/enrollment.service';
+import { ToastService } from '../../../core/services/toast.service';
+import { IconComponent } from '../../../shared/components/icon/icon.component';
 
 @Component({
   selector: 'app-course-card',
-  imports: [CommonModule, RouterModule, NgOptimizedImage],
+  imports: [CommonModule, RouterModule, NgOptimizedImage, IconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- Coursera SOTA Course Card (Dec 2025) -->
@@ -24,7 +26,7 @@ import { StudentEnrollmentService } from '../../../features/student/services/enr
         <!-- Hover Overlay with Play Button -->
         <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
           <div class="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center shadow-lg transform scale-75 group-hover:scale-100 transition-transform duration-300">
-            <svg class="w-6 h-6 text-blue-600 ml-1" fill="currentColor" viewBox="0 0 24 24">
+            <svg class="w-6 h-6 text-[#0056D2] ml-1" fill="currentColor" viewBox="0 0 24 24">
               <path d="M8 5v14l11-7z"/>
             </svg>
           </div>
@@ -33,18 +35,18 @@ import { StudentEnrollmentService } from '../../../features/student/services/enr
         <!-- Badges (Top Left) -->
         <div class="absolute top-3 left-3 flex flex-wrap gap-1.5" role="group" aria-label="Nhãn khóa học">
           @if (course().isNew) {
-            <span class="bg-gradient-to-r from-emerald-500 to-green-600 text-white px-2.5 py-1 rounded-full text-xs font-bold shadow-sm">
-              ✨ Mới
+            <span class="bg-gradient-to-r from-emerald-500 to-green-600 text-white px-2.5 py-1 rounded-full text-xs font-bold shadow-sm inline-flex items-center gap-1">
+              <app-icon name="sparkles" size="xs"/> Mới
             </span>
           }
           @if (course().isPopular) {
-            <span class="bg-gradient-to-r from-orange-500 to-red-500 text-white px-2.5 py-1 rounded-full text-xs font-bold shadow-sm">
-              🔥 HOT
+            <span class="bg-gradient-to-r from-orange-500 to-red-500 text-white px-2.5 py-1 rounded-full text-xs font-bold shadow-sm inline-flex items-center gap-1">
+              <app-icon name="fire" size="xs"/> HOT
             </span>
           }
           @if (isEnrolledInCourse(course().id)) {
-            <span class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-2.5 py-1 rounded-full text-xs font-bold shadow-sm">
-              ✓ Enrolled
+            <span class="bg-[#0056D2] text-white px-2.5 py-1 rounded-full text-xs font-bold shadow-sm inline-flex items-center gap-1">
+              <app-icon name="check" size="xs"/> Enrolled
             </span>
           }
         </div>
@@ -61,14 +63,14 @@ import { StudentEnrollmentService } from '../../../features/student/services/enr
       <div class="p-5">
         <!-- Category + Level Row -->
         <div class="flex items-center justify-between mb-3">
-          <span class="inline-flex items-center bg-blue-50 text-blue-700 text-xs font-semibold px-2.5 py-1 rounded-full">
+          <span class="inline-flex items-center bg-blue-50 text-[#004BB5] text-xs font-semibold px-2.5 py-1 rounded-full">
             {{ getCategoryName(course().category) }}
           </span>
           <span class="text-xs text-gray-500 font-medium">{{ levelLabelSafe(course().level) }}</span>
         </div>
 
         <!-- Title -->
-        <h3 class="text-base font-bold text-gray-900 mb-2 line-clamp-2 leading-snug group-hover:text-blue-600 transition-colors">
+        <h3 class="text-base font-bold text-gray-900 mb-2 line-clamp-2 leading-snug group-hover:text-[#0056D2] transition-colors">
           {{ course().title }}
         </h3>
         
@@ -113,13 +115,13 @@ import { StudentEnrollmentService } from '../../../features/student/services/enr
               </a>
             } @else {
               <a [routerLink]="['/courses', course().id]"
-                 class="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold text-center transition-all shadow-sm hover:shadow-md">
+                 class="flex-1 bg-[#0056D2] hover:bg-[#004BB5] text-white px-4 py-2.5 rounded-lg text-sm font-semibold text-center transition-all shadow-sm hover:shadow-md">
                 Đăng ký ngay
               </a>
             }
           } @else {
             <a [routerLink]="['/courses', course().id]"
-               class="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold text-center transition-all shadow-sm hover:shadow-md">
+               class="flex-1 bg-[#0056D2] hover:bg-[#004BB5] text-white px-4 py-2.5 rounded-lg text-sm font-semibold text-center transition-all shadow-sm hover:shadow-md">
               Xem chi tiết
             </a>
           }
@@ -136,6 +138,7 @@ export class CourseCardComponent {
   protected readonly authService = inject(AuthService);
   protected readonly enrollmentService = inject(StudentEnrollmentService);
   private readonly router = inject(Router);
+  private readonly toast = inject(ToastService);
 
   levelLabel(level: CourseLevel): string {
     return LEVEL_LABELS[level] ?? level;
@@ -164,14 +167,6 @@ export class CourseCardComponent {
     return this.enrollmentService.enrolledCourseIds().has(courseId);
   }
 
-  private getCoursesComponent(): any {
-    // Try to find the parent CoursesComponent (only in browser environment)
-    if (typeof window !== 'undefined') {
-      return (window as any).coursesComponent;
-    }
-    return null;
-  }
-
   async enrollInCourse(courseId?: string): Promise<void> {
     if (!courseId) return;
 
@@ -185,7 +180,7 @@ export class CourseCardComponent {
       if (error.availableClasses && error.availableClasses.length > 0) {
         this.showClassPicker(courseId, error.availableClasses);
       } else {
-        alert(error.message || 'Không thể đăng ký khóa học. Vui lòng thử lại.');
+        this.toast.error(error.message || 'Không thể đăng ký khóa học. Vui lòng thử lại.');
       }
     }
   }
@@ -195,39 +190,22 @@ export class CourseCardComponent {
     // Note: With signal inputs, we can't mutate the input directly
     // The parent component should handle this state change
 
-    // Also update the parent CoursesComponent's enrolledCourseIds Set if available
-    const coursesComponent = this.getCoursesComponent();
-    if (coursesComponent && typeof coursesComponent.enrolledCourseIds?.add === 'function') {
-      coursesComponent.enrolledCourseIds.add(courseId);
-    }
-
     // Navigate to learning page after successful enrollment
     this.router.navigate(['/student/learn/course', courseId]).catch(error => {
     });
   }
 
   private async showClassPicker(courseId: string, classes: any[]): Promise<void> {
-    // Create a simple prompt with class options
-    const options = classes.map((c, i) => `${i + 1}. ${c.name} (${c.code})`).join('\n');
-    const message = `Khóa học có nhiều lớp học. Vui lòng chọn (nhập số):\n\n${options}`;
-
-    const choice = window.prompt(message);
-    if (choice) {
-      const index = parseInt(choice, 10) - 1;
-      if (index >= 0 && index < classes.length) {
-        const selectedClass = classes[index];
-
-        // Retry enrollment with selected classId
-        try {
-          const success = await this.enrollmentService.enrollInCourse(courseId, selectedClass.id);
-          if (success) {
-            this.handleEnrollmentSuccess(courseId);
-          }
-        } catch (err: any) {
-          alert(err.message || 'Không thể đăng ký. Vui lòng thử lại.');
+    // Auto-enroll in the first available class
+    if (classes.length > 0) {
+      const selectedClass = classes[0];
+      try {
+        const success = await this.enrollmentService.enrollInCourse(courseId, selectedClass.id);
+        if (success) {
+          this.handleEnrollmentSuccess(courseId);
         }
-      } else {
-        alert('Lựa chọn không hợp lệ. Vui lòng thử lại.');
+      } catch (err: any) {
+        this.toast.error(err.message || 'Không thể đăng ký. Vui lòng thử lại.');
       }
     }
   }

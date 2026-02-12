@@ -1,4 +1,4 @@
-﻿
+
     <style>
       @keyframes fadeIn {
         from { opacity: 0; transform: translateY(10px); }
@@ -91,7 +91,7 @@
     <div class="min-h-screen bg-slate-50">
       <div class="flex min-h-screen">
         <!-- Left Side - Compact Hero (35%) -->
-        <div class="hidden lg:flex lg:w-[35%] bg-gradient-to-br from-slate-800 to-blue-900 relative overflow-hidden">
+        <div class="hidden lg:flex lg:w-[35%] bg-[#0056D2] relative overflow-hidden">
           <!-- Subtle Pattern Overlay -->
           <div class="absolute inset-0 opacity-[0.03]">
             <svg class="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -111,7 +111,7 @@
           <div class="relative z-10 flex flex-col justify-center items-center text-white p-12 w-full">
             <div class="text-center max-w-sm">
               <!-- Logo -->
-              <div class="w-20 h-20 bg-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl">
+              <div class="w-20 h-20 bg-[#0056D2] rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl">
                 <svg class="w-11 h-11 text-white" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                 </svg>
@@ -124,7 +124,7 @@
               
               <!-- Tagline -->
               <p class="text-blue-200 text-sm leading-relaxed">
-                Nền tảng học tập hàng hải chuyên nghiệp
+                N?n t?ng h?c t?p h�ng h?i chuy�n nghi?p
               </p>
             </div>
           </div>
@@ -135,7 +135,7 @@
           <div class="w-full max-w-md mx-auto">
             <!-- Mobile Logo -->
             <div class="lg:hidden flex justify-center mb-8">
-              <div class="w-16 h-16 bg-blue-500 rounded-2xl flex items-center justify-center shadow-lg">
+              <div class="w-16 h-16 bg-[#0056D2] rounded-2xl flex items-center justify-center shadow-lg">
                 <svg class="w-9 h-9 text-white" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                 </svg>
@@ -146,10 +146,10 @@
             <div class="text-center mb-10">
               <h1 class="text-4xl lg:text-5xl font-bold mb-4 leading-tight"
                   style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #92400e 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
-                Bắt đầu hành trình
+                B?t d?u h�nh tr�nh
               </h1>
-              <p class="text-lg lg:text-xl text-blue-700 font-medium leading-relaxed">
-                Tạo tài khoản để khám phá thế giới hàng hải
+              <p class="text-lg lg:text-xl text-[#004BB5] font-medium leading-relaxed">
+                T?o t�i kho?n d? kh�m ph� th? gi?i h�ng h?i
               </p>
             </div>
 
@@ -162,13 +162,13 @@
                        type="text"
                        formControlName="name"
                        autocomplete="name"
-                       placeholder="Tên đầy đủ"
+                       placeholder="T�n d?y d?"
                        [attr.aria-invalid]="registerForm.get('name')?.invalid || null"
                        [attr.aria-describedby]="registerForm.get('name')?.invalid ? 'name-error' : null"
                        class="input-field block w-full px-4 py-4 border-2 border-gray-300 rounded-xl text-base placeholder-gray-500 focus:placeholder-gray-400"
                        [class.border-red-400]="registerForm.get('name')?.invalid && registerForm.get('name')?.touched">
                 <label for="name" class="input-label">
-                  Tên đầy đủ
+                  T�n d?y d?
                 </label>
               </div>
               @if (registerForm.get('name')?.invalid && registerForm.get('name')?.touched) {
@@ -177,7 +177,7 @@
                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
                   </svg>
                   @if (registerForm.get('name')?.errors?.['required']) {
-                    Tên đầy đủ là bắt buộc
+                    T�n d?y d? l� b?t bu?c
                   }
                 </p>
               }
@@ -204,9 +204,9 @@
                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
                   </svg>
                   @if (registerForm.get('email')?.errors?.['required']) {
-                    Email là bắt buộc
+                    Email l� b?t bu?c
                   } @else if (registerForm.get('email')?.errors?.['email']) {
-                    Email không hợp lệ
+                    Email kh�ng h?p l?
                   }
                 </p>
               }
@@ -218,13 +218,13 @@
                        type="password"
                        formControlName="password"
                        autocomplete="new-password"
-                       placeholder="Mật khẩu"
+                       placeholder="M?t kh?u"
                        [attr.aria-invalid]="registerForm.get('password')?.invalid || null"
                        [attr.aria-describedby]="registerForm.get('password')?.invalid ? 'password-error' : null"
                        class="input-field block w-full px-4 py-4 border-2 border-gray-300 rounded-xl text-base placeholder-gray-500 focus:placeholder-gray-400"
                        [class.border-red-400]="registerForm.get('password')?.invalid && registerForm.get('password')?.touched">
                 <label for="password" class="input-label">
-                  Mật khẩu
+                  M?t kh?u
                 </label>
               </div>
               @if (registerForm.get('password')?.invalid && registerForm.get('password')?.touched) {
@@ -233,9 +233,9 @@
                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
                   </svg>
                   @if (registerForm.get('password')?.errors?.['required']) {
-                    Mật khẩu là bắt buộc
+                    M?t kh?u l� b?t bu?c
                   } @else if (registerForm.get('password')?.errors?.['minlength']) {
-                    Mật khẩu phải có ít nhất 6 ký tự
+                    M?t kh?u ph?i c� �t nh?t 6 k� t?
                   }
                 </p>
               }
@@ -247,13 +247,13 @@
                        type="password"
                        formControlName="confirmPassword"
                        autocomplete="new-password"
-                       placeholder="Xác nhận mật khẩu"
+                       placeholder="X�c nh?n m?t kh?u"
                        [attr.aria-invalid]="registerForm.get('confirmPassword')?.invalid || null"
                        [attr.aria-describedby]="registerForm.get('confirmPassword')?.invalid ? 'confirm-password-error' : null"
                        class="input-field block w-full px-4 py-4 border-2 border-gray-300 rounded-xl text-base placeholder-gray-500 focus:placeholder-gray-400"
                        [class.border-red-400]="registerForm.get('confirmPassword')?.invalid && registerForm.get('confirmPassword')?.touched">
                 <label for="confirmPassword" class="input-label">
-                  Xác nhận mật khẩu
+                  X�c nh?n m?t kh?u
                 </label>
               </div>
               @if (registerForm.get('confirmPassword')?.invalid && registerForm.get('confirmPassword')?.touched) {
@@ -262,9 +262,9 @@
                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
                   </svg>
                   @if (registerForm.errors?.['passwordMismatch']) {
-                    Mật khẩu xác nhận không khớp
+                    M?t kh?u x�c nh?n kh�ng kh?p
                   } @else if (registerForm.get('confirmPassword')?.errors?.['required']) {
-                    Vui lòng xác nhận mật khẩu
+                    Vui l�ng x�c nh?n m?t kh?u
                   }
                 </p>
               }
@@ -276,11 +276,11 @@
                          name="newsletter"
                          type="checkbox"
                          formControlName="newsletter"
-                         class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                         class="h-4 w-4 text-[#0056D2] focus:ring-[#0056D2] border-gray-300 rounded">
                 </div>
                 <div class="ml-3 text-sm">
                   <label for="newsletter" class="text-gray-700">
-                    Gửi cho tôi các ưu đãi đặc biệt, đề xuất cá nhân hóa và bí quyết học tập.
+                    G?i cho t�i c�c uu d�i d?c bi?t, d? xu?t c� nh�n h�a v� b� quy?t h?c t?p.
                   </label>
                 </div>
               </div>
@@ -293,7 +293,7 @@
                       <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
                     </svg>
                     <div>
-                      <h3 class="text-sm font-semibold text-red-900">Đăng ký thất bại</h3>
+                      <h3 class="text-sm font-semibold text-red-900">�ang k� th?t b?i</h3>
                       <p class="text-sm text-red-700 mt-1">{{ errorMessage() }}</p>
                     </div>
                   </div>
@@ -304,18 +304,18 @@
               <div class="form-element">
                 <button type="submit"
                         [disabled]="registerForm.invalid || isLoading()"
-                        class="btn-register w-full flex justify-center items-center py-4 px-6 border-none rounded-xl text-base font-semibold text-white bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg">
+                        class="btn-register w-full flex justify-center items-center py-4 px-6 border-none rounded-xl text-base font-semibold text-white bg-[#0056D2] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg">
                   @if (isLoading()) {
                     <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
                       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    <span>Đang xử lý...</span>
+                    <span>�ang x? l�...</span>
                   } @else {
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
                     </svg>
-                    <span>Đăng ký</span>
+                    <span>�ang k�</span>
                   }
                 </button>
               </div>
@@ -328,7 +328,7 @@
                   <div class="w-full border-t border-gray-300"></div>
                 </div>
                 <div class="relative flex justify-center text-sm">
-                  <span class="px-4 bg-white text-gray-500">Hoặc đăng ký với</span>
+                  <span class="px-4 bg-white text-gray-500">Ho?c dang k� v?i</span>
                 </div>
               </div>
             </div>
@@ -337,7 +337,7 @@
             <div class="mt-6 form-element">
               <div class="flex justify-center gap-4">
                 <button type="button"
-                        aria-label="Đăng ký bằng Google"
+                        aria-label="�ang k� b?ng Google"
                         class="social-btn flex items-center justify-center w-12 h-12 border-2 border-gray-300 rounded-xl bg-white">
                   <svg class="w-6 h-6" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -347,14 +347,14 @@
                   </svg>
                 </button>
                 <button type="button"
-                        aria-label="Đăng ký bằng Facebook"
+                        aria-label="�ang k� b?ng Facebook"
                         class="social-btn flex items-center justify-center w-12 h-12 border-2 border-gray-300 rounded-xl bg-white">
                   <svg class="w-6 h-6" fill="#1877F2" viewBox="0 0 24 24">
                     <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                   </svg>
                 </button>
                 <button type="button"
-                        aria-label="Đăng ký bằng Apple"
+                        aria-label="�ang k� b?ng Apple"
                         class="social-btn flex items-center justify-center w-12 h-12 border-2 border-gray-300 rounded-xl bg-white">
                   <svg class="w-6 h-6" fill="#000000" viewBox="0 0 24 24">
                     <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
@@ -366,20 +366,20 @@
             <!-- Terms and Privacy -->
             <div class="mt-8 text-center form-element">
               <p class="text-xs text-gray-500">
-                Bằng việc đăng ký, bạn đồng ý với
-                <a routerLink="/terms" class="text-blue-600 hover:text-blue-700 underline">Điều khoản sử dụng</a>
-                và
-                <a routerLink="/privacy" class="text-blue-600 hover:text-blue-700 underline">Chính sách về quyền riêng tư</a>.
+                B?ng vi?c dang k�, b?n d?ng � v?i
+                <a routerLink="/terms" class="text-[#0056D2] hover:text-[#004BB5] underline">�i?u kho?n s? d?ng</a>
+                v�
+                <a routerLink="/privacy" class="text-[#0056D2] hover:text-[#004BB5] underline">Ch�nh s�ch v? quy?n ri�ng tu</a>.
               </p>
             </div>
 
             <!-- Login Link -->
             <div class="mt-6 text-center form-element">
               <p class="text-sm text-gray-600">
-                Bạn đã có tài khoản?
+                B?n d� c� t�i kho?n?
                 <a routerLink="/auth/login" 
-                   class="font-semibold text-blue-600 hover:text-blue-700 transition-colors ml-1">
-                  Đăng nhập
+                   class="font-semibold text-[#0056D2] hover:text-[#004BB5] transition-colors ml-1">
+                  �ang nh?p
                 </a>
               </p>
             </div>
@@ -390,7 +390,7 @@
                 <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
                 </svg>
-                <span>SSL Encrypted â€¢ Maritime Security Standards</span>
+                <span>SSL Encrypted • Maritime Security Standards</span>
               </div>
             </div>
           </div>

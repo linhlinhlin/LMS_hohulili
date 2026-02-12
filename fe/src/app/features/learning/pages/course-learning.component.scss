@@ -107,6 +107,38 @@
             line-height: 1.4;
           }
 
+          // Coursera-style progress bar
+          .progress-bar-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.25rem;
+
+            .progress-bar-track {
+              flex: 1;
+              height: 4px;
+              background: #e5e7eb;
+              border-radius: 2px;
+              overflow: hidden;
+
+              .progress-bar-fill {
+                height: 100%;
+                background: linear-gradient(90deg, #3b82f6, #2563eb);
+                border-radius: 2px;
+                transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+                min-width: 0;
+              }
+            }
+
+            .progress-label {
+              font-size: 0.7rem;
+              color: #6b7280;
+              font-weight: 600;
+              white-space: nowrap;
+              min-width: fit-content;
+            }
+          }
+
           .progress-text {
             font-size: 0.75rem;
             color: #6b7280;
@@ -312,9 +344,25 @@
             }
 
             .section-count {
-              font-size: 0.75rem;
+              font-size: 0.725rem;
               color: #6b7280;
               font-weight: 500;
+            }
+
+            // Mini progress bar per chapter (Coursera pattern)
+            .chapter-progress {
+              height: 3px;
+              background: #e5e7eb;
+              border-radius: 2px;
+              margin-top: 0.375rem;
+              overflow: hidden;
+
+              .chapter-progress-fill {
+                height: 100%;
+                background: #10b981;
+                border-radius: 2px;
+                transition: width 0.4s ease;
+              }
             }
           }
 
@@ -465,19 +513,15 @@
 
             .section-item {
               width: 100% !important;
-              // Match exact left padding of lesson-item (0.5rem)
-              padding: 0.35rem 0.5rem 0.35rem 0.5rem !important;
+              padding: 0.35rem 0.5rem 0.35rem 1.5rem !important;
               border: none;
-                margin-top: 3.5rem; // Đảm bảo luôn cách xa đáy trang, không đè lên nội dung cuối
+              background: transparent;
               text-align: left;
               cursor: pointer;
               display: flex;
               align-items: center;
-              transition: all 0.1s;
+              transition: all 0.15s ease;
               font-size: 0.8rem;
-                position: static !important; /* Không sticky/absolute */
-                z-index: auto;
-                clear: both; /* Bảo đảm xuống dưới tất cả nội dung nổi */
               margin: 0 !important;
 
               // Ensure box model doesn't add unexpected space
@@ -498,15 +542,13 @@
               // Completed section styling
               &.completed {
                 background: #f0fdf4;
-                color: #16a34a;
-                
+
                 .section-status-icon.completed {
                   color: #16a34a;
                 }
-                
+
                 .section-title {
-                  text-decoration: line-through;
-                  opacity: 0.8;
+                  color: #6b7280;
                 }
               }
 

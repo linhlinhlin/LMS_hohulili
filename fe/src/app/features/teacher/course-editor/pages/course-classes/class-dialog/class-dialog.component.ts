@@ -11,6 +11,7 @@ import { debounceTime, switchMap, startWith, map, catchError } from 'rxjs/operat
 import { ClassService } from '../../../../../../state/class.service';
 import { UserService, UserSummary } from '../../../../../../core/services/user.service';
 import { ClassSummary } from '../../../../../../shared/types/course.types';
+import { ToastService } from '../../../../../../core/services/toast.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -30,6 +31,7 @@ export class ClassDialogComponent implements OnInit {
     private dialogRef = inject(MatDialogRef<ClassDialogComponent>);
     public classService = inject(ClassService);
     private userService = inject(UserService);
+    private toast = inject(ToastService);
 
     // Data: { mode: 'create' | 'edit', classData?: ClassSummary, courseId: string }
     data = inject(MAT_DIALOG_DATA) as { mode: 'create' | 'edit', classData?: ClassSummary, courseId: string };
@@ -225,12 +227,12 @@ export class ClassDialogComponent implements OnInit {
         if (this.data.mode === 'create') {
             this.classService.createClass(payload).subscribe({
                 next: () => this.dialogRef.close(true),
-                error: () => {}
+                error: () => { this.toast.error('Không thể tạo lớp học. Vui lòng thử lại.'); }
             });
         } else if (this.data.mode === 'edit' && this.data.classData) {
             this.classService.updateClass(this.data.classData.id, payload).subscribe({
                 next: () => this.dialogRef.close(true),
-                error: () => {}
+                error: () => { this.toast.error('Không thể cập nhật lớp học. Vui lòng thử lại.'); }
             });
         }
     }

@@ -1,4 +1,4 @@
-import { Component, signal, computed, inject, input, output, OnInit, OnDestroy, ChangeDetectionStrategy, ViewEncapsulation, ElementRef, viewChild } from '@angular/core';
+import { Component, signal, computed, inject, input, output, OnInit, OnDestroy, ChangeDetectionStrategy, ElementRef, viewChild } from '@angular/core';
 
 
 export interface VideoPlayerConfig {
@@ -30,7 +30,6 @@ export interface VideoPlayerState {
 @Component({
   selector: 'app-real-video-player',
   imports: [],
-  encapsulation: ViewEncapsulation.None,
   template: `
     <div class="relative bg-black rounded-xl overflow-hidden">
       <!-- Video Element -->
@@ -77,7 +76,7 @@ export interface VideoPlayerState {
             <h3 class="text-xl font-semibold mb-2">Lỗi phát video</h3>
             <p class="text-gray-300 mb-4">{{ state().errorMessage || 'Không thể tải video' }}</p>
             <button (click)="retryLoad()"
-                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    class="px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors">
               Thử lại
             </button>
           </div>
@@ -124,13 +123,13 @@ export interface VideoPlayerState {
               <div class="relative">
                 <div class="w-full h-1 bg-gray-600 rounded-full cursor-pointer"
                      (click)="seekTo($event)">
-                  <div class="h-1 bg-blue-500 rounded-full transition-all duration-200"
+                  <div class="h-1 bg-[#0056D2] rounded-full transition-all duration-200"
                        [style.width.%]="progressPercentage()"></div>
                 </div>
                 <div class="absolute top-0 h-1 bg-transparent cursor-pointer"
                      [style.left.%]="progressPercentage()"
                      (click)="seekTo($event)">
-                  <div class="w-3 h-3 bg-blue-500 rounded-full transform -translate-y-1"></div>
+                  <div class="w-3 h-3 bg-[#0056D2] rounded-full transform -translate-y-1"></div>
                 </div>
               </div>
             </div>
@@ -185,7 +184,7 @@ export interface VideoPlayerState {
                   
                   <div class="w-20 h-1 bg-gray-600 rounded-full cursor-pointer"
                        (click)="setVolume($event)">
-                    <div class="h-1 bg-blue-500 rounded-full transition-all duration-200"
+                    <div class="h-1 bg-[#0056D2] rounded-full transition-all duration-200"
                          [style.width.%]="state().volume * 100"></div>
                   </div>
                 </div>

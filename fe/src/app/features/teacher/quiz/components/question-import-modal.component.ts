@@ -3,11 +3,12 @@ import { Component, input, output, signal, inject, ChangeDetectionStrategy } fro
 import { FormsModule } from '@angular/forms';
 import { QuestionApi, QuestionImportResult } from '../../../../api/endpoints/question.api';
 import { firstValueFrom } from 'rxjs';
+import { IconComponent } from '../../../../shared/components/icon/icon.component';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-question-import-modal',
-  imports: [FormsModule],
+  imports: [FormsModule, IconComponent],
   template: `
     @if (isOpen()) {
       <div class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
@@ -18,7 +19,7 @@ import { firstValueFrom } from 'rxjs';
           <!-- Modal Content -->
           <div class="relative z-10 bg-white rounded-xl text-left overflow-hidden shadow-xl transform transition-all w-full max-w-2xl">
             <!-- Header -->
-            <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
+            <div class="bg-[#0056D2] px-6 py-4">
               <div class="flex items-center justify-between">
                 <h3 class="text-lg font-semibold text-white flex items-center gap-2">
                   <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
@@ -41,7 +42,7 @@ import { firstValueFrom } from 'rxjs';
                 <div class="flex gap-4">
                   <label class="flex items-center gap-2 cursor-pointer">
                     <input type="radio" name="fileType" value="excel" [(ngModel)]="fileType"
-                      class="w-4 h-4 text-blue-600">
+                      class="w-4 h-4 text-[#0056D2]">
                       <span class="flex items-center gap-2">
                         <svg class="w-5 h-5 text-green-600" viewBox="0 0 24 24" fill="currentColor">
                           <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M12.9,14.5L15.8,19H14L12,15.6L10,19H8.2L11.1,14.5L8.2,10H10L12,13.4L14,10H15.8L12.9,14.5Z"/>
@@ -51,9 +52,9 @@ import { firstValueFrom } from 'rxjs';
                     </label>
                     <label class="flex items-center gap-2 cursor-pointer opacity-50">
                       <input type="radio" name="fileType" value="word" [(ngModel)]="fileType" disabled
-                        class="w-4 h-4 text-blue-600">
+                        class="w-4 h-4 text-[#0056D2]">
                         <span class="flex items-center gap-2">
-                          <svg class="w-5 h-5 text-blue-600" viewBox="0 0 24 24" fill="currentColor">
+                          <svg class="w-5 h-5 text-[#0056D2]" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M9.5,11.5L11,17H12L13.5,11.5H15L12.75,19H11.25L9,11.5H9.5Z"/>
                           </svg>
                           Word (.docx) - Sắp có
@@ -65,7 +66,7 @@ import { firstValueFrom } from 'rxjs';
                   <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Độ khó mặc định</label>
                     <select [(ngModel)]="difficulty"
-                      class="w-full border-2 border-gray-300 rounded-lg px-4 py-2.5 focus:border-blue-500 focus:outline-none">
+                      class="w-full border-2 border-gray-300 rounded-lg px-4 py-2.5 focus:border-[#0056D2] focus:outline-none">
                       <option value="EASY">Dễ</option>
                       <option value="MEDIUM">Trung bình</option>
                       <option value="HARD">Khó</option>
@@ -111,16 +112,16 @@ import { firstValueFrom } from 'rxjs';
                     <!-- Template Download -->
                     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
                       <div class="flex items-start gap-3">
-                        <svg class="w-5 h-5 text-blue-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <svg class="w-5 h-5 text-[#0056D2] mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                           <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
                         </svg>
                         <div class="flex-1">
                           <h4 class="font-medium text-blue-900 mb-1">Định dạng file Excel</h4>
-                          <p class="text-sm text-blue-700 mb-2">File cần có các cột theo thứ tự:</p>
+                          <p class="text-sm text-[#004BB5] mb-2">File cần có các cột theo thứ tự:</p>
                           <div class="bg-white rounded p-2 text-xs font-mono text-gray-700 overflow-x-auto">
                             Câu hỏi | Đáp án A | Đáp án B | Đáp án C | Đáp án D | Đáp án đúng
                           </div>
-                          <p class="text-xs text-blue-600 mt-2">* Đáp án đúng: A, B, C hoặc D</p>
+                          <p class="text-xs text-[#0056D2] mt-2">* Đáp án đúng: A, B, C hoặc D</p>
                         </div>
                       </div>
                     </div>
@@ -150,9 +151,9 @@ import { firstValueFrom } from 'rxjs';
                               {{ importResult()!.message }}
                             </h4>
                             <div class="mt-2 flex gap-4 text-sm">
-                              <span class="text-green-700">✅ {{ importResult()!.successCount }} thành công</span>
+                              <span class="text-green-700"><app-icon name="circle-check" size="xs" class="text-green-600"/> {{ importResult()!.successCount }} thành công</span>
                               @if (importResult()!.failedCount > 0) {
-                                <span class="text-red-700">❌ {{ importResult()!.failedCount }} thất bại</span>
+                                <span class="text-red-700"><app-icon name="circle-x" size="xs" class="text-red-600"/> {{ importResult()!.failedCount }} thất bại</span>
                               }
                             </div>
                             @if (importResult()!.errors.length > 0) {
@@ -190,7 +191,7 @@ import { firstValueFrom } from 'rxjs';
                     @if (!importResult()) {
                       <button (click)="import()" type="button"
                         [disabled]="isImporting() || !selectedFile"
-                        class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2">
+                        class="px-6 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2">
                         @if (isImporting()) {
                           <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>

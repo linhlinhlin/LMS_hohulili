@@ -1,7 +1,10 @@
+export type DeliveryMode = 'SELF_PACED' | 'INSTRUCTOR_LED';
+
 export interface CreateCourseRequest {
-  code: string;
+  categoryId: string;
   title: string;
   description?: string;
+  deliveryMode?: DeliveryMode;
 }
 
 export interface CourseSummary {
@@ -13,12 +16,26 @@ export interface CourseSummary {
   teacherName: string;
   enrolledCount: number;
   createdAt: string;
+  updatedAt?: string;
   enrolled?: boolean;
   isEnrolled?: boolean;
   // Price fields (Dec 2025)
   priceType?: 'FREE' | 'PAID' | 'SUBSCRIPTION';
   price?: number;
   salePrice?: number;
+  // Delivery mode + content stats
+  deliveryMode?: DeliveryMode;
+  sectionCount?: number;
+  lessonCount?: number;
+  maxStudents?: number;
+  // Enrollment fields (from StudentEnrollmentControllerV3)
+  thumbnailUrl?: string;
+  progress?: number;
+  totalLessons?: number;
+  completedLessons?: number;
+  enrolledAt?: string;
+  categoryName?: string;
+  categoryId?: string;
 }
 
 export interface CourseDetail {
@@ -44,6 +61,9 @@ export interface CourseDetail {
   introVideoUrl?: string;
   credits?: number;
   visibility?: 'PUBLIC' | 'PRIVATE' | 'UNLISTED';
+
+  // Delivery mode
+  deliveryMode?: DeliveryMode;
 
   // Price fields - CRITICAL for payment flow
   priceType?: 'FREE' | 'PAID' | 'SUBSCRIPTION';

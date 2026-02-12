@@ -5,6 +5,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AssignmentDetailStore } from '../stores/assignment-detail.store';
 import { SubmissionsStore } from '../stores/submissions.store';
 import { SubmissionDetail, SubmissionGrade } from '../../../../api/client/assignment.api';
+import { ToastService } from '../../../../core/services/toast.service';
 
 /**
  * SpeedGrader Component
@@ -72,7 +73,7 @@ import { SubmissionDetail, SubmissionGrade } from '../../../../api/client/assign
                 <div class="space-y-2">
                   @for (file of sub.attachments; track file.id) {
                     <a [href]="file.fileUrl" target="_blank" 
-                       class="flex items-center gap-3 px-4 py-3 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">
+                       class="flex items-center gap-3 px-4 py-3 bg-blue-50 text-[#0056D2] rounded-lg hover:bg-blue-100 transition-colors">
                       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                       </svg>
@@ -90,7 +91,7 @@ import { SubmissionDetail, SubmissionGrade } from '../../../../api/client/assign
             <div class="p-4 border-b">
               <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                  <span class="text-blue-600 font-medium">{{ getInitials(sub.studentName || '') }}</span>
+                  <span class="text-[#0056D2] font-medium">{{ getInitials(sub.studentName || '') }}</span>
                 </div>
                 <div>
                   <p class="font-medium">{{ sub.studentName }}</p>
@@ -140,7 +141,7 @@ import { SubmissionDetail, SubmissionGrade } from '../../../../api/client/assign
                   Lưu nháp
                 </button>
                 <button (click)="submitGrade()" [disabled]="saving() || gradingForm.invalid"
-                        class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        class="flex-1 px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors">
                   {{ saving() ? 'Đang lưu...' : 'Chấm điểm' }}
                 </button>
               </div>
@@ -150,7 +151,7 @@ import { SubmissionDetail, SubmissionGrade } from '../../../../api/client/assign
       } @else {
         <div class="flex-1 flex items-center justify-center bg-white">
           <div class="text-center">
-             <div class="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+             <div class="w-16 h-16 border-4 border-[#0056D2] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
              <p class="text-gray-500 font-medium">Đang tải dữ liệu bài nộp...</p>
           </div>
         </div>
@@ -162,6 +163,7 @@ export class SpeedGraderComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private fb = inject(FormBuilder);
+  private toast = inject(ToastService);
 
   assignmentStore = inject(AssignmentDetailStore);
   submissionsStore = inject(SubmissionsStore);
@@ -193,8 +195,10 @@ export class SpeedGraderComponent implements OnInit {
     const submissionId = this.route.snapshot.paramMap.get('submissionId');
 
     if (assignmentId) {
-      this.assignmentStore.loadAssignment(assignmentId).subscribe();
-      this.submissionsStore.loadSubmissions(assignmentId).subscribe(() => {
+      this.assignmentStore.loadAssignment(assignmentId).subscribe({
+        error: () => this.toast.error('Không thể tải bài tập')
+      });
+      this.submissionsStore.loadSubmissions(assignmentId).subscribe({ next: () => {
         if (submissionId) {
           const idx = this.submissionsStore.submissions().findIndex(s => s.id === submissionId);
           if (idx >= 0) this.currentIndex.set(idx);
@@ -202,7 +206,7 @@ export class SpeedGraderComponent implements OnInit {
           this.loadCurrentSubmissionDetail();
         }
         this.loadCurrentGrade();
-      });
+      }, error: () => this.toast.error('Không thể tải danh sách bài nộp') });
     }
   }
 
@@ -210,7 +214,9 @@ export class SpeedGraderComponent implements OnInit {
     const sub = this.currentSubmission();
     if (sub && !sub.content) {
       // Load full detail if content is not available
-      this.submissionsStore.loadSubmissionDetail(sub.id).subscribe();
+      this.submissionsStore.loadSubmissionDetail(sub.id).subscribe({
+        error: () => this.toast.error('Không thể tải chi tiết bài nộp')
+      });
     }
   }
 
@@ -274,18 +280,18 @@ export class SpeedGraderComponent implements OnInit {
         // Check if there was an error in the store
         const error = this.submissionsStore.error();
         if (error) {
-          alert('Lỗi: ' + error);
+          this.toast.error('Lỗi: ' + error);
           return;
         }
         localStorage.removeItem(`grade_draft_${sub.id}`);
-        alert('Chấm điểm thành công!');
+        this.toast.success('Chấm điểm thành công!');
         if (this.hasNext()) {
           setTimeout(() => this.nextSubmission(), 500);
         }
       },
       error: () => {
         this.saving.set(false);
-        alert('Không thể chấm điểm. Vui lòng thử lại.');
+        this.toast.error('Không thể chấm điểm. Vui lòng thử lại.');
       }
     });
   }

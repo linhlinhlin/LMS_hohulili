@@ -1,10 +1,9 @@
-import { Component, input, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
+import { Component, input, ChangeDetectionStrategy } from '@angular/core';
 
 
 @Component({
   selector: 'app-maritime-icon',
   imports: [],
-  encapsulation: ViewEncapsulation.None,
   template: `
     @switch (iconName()) {
       @case ('anchor') {

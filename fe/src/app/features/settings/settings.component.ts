@@ -3,6 +3,8 @@
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
+import { ConfirmDialogService } from '../../core/services/confirm-dialog.service';
+import { ToastService } from '../../core/services/toast.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -13,6 +15,8 @@ import { AuthService } from '../../core/services/auth.service';
 export class SettingsComponent {
   private router = inject(Router);
   private authService = inject(AuthService);
+  private confirmDialog = inject(ConfirmDialogService);
+  private toast = inject(ToastService);
 
   activeTab = signal('general');
   isSaving = signal(false);
@@ -42,29 +46,47 @@ export class SettingsComponent {
     }
   };
 
-  saveSettings(): void {
-    this.isSaving.set(true);
-
-    // Simulate save operation
-    setTimeout(() => {
-      this.isSaving.set(false);
-      // Show success message
-    }, 1000);
+  constructor() {
+    const saved = localStorage.getItem('user_settings');
+    if (saved) {
+      try {
+        this.settings = JSON.parse(saved);
+      } catch { /* ignore corrupt data */ }
+    }
   }
 
-  deleteAccount(): void {
-    if (confirm('Bạn có chắc chắn muốn xóa tài khoản? Hành động này không thể hoàn tác.')) {
-      // Simulate account deletion
+  saveSettings(): void {
+    localStorage.setItem('user_settings', JSON.stringify(this.settings));
+    this.toast.success('Đã lưu cài đặt');
+  }
+
+  async deleteAccount(): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Xóa tài khoản',
+      message: 'Bạn có chắc chắn muốn xóa tài khoản? Hành động này không thể hoàn tác.',
+      confirmText: 'Xóa tài khoản',
+      cancelText: 'Hủy',
+      variant: 'danger'
+    });
+    if (confirmed) {
+      this.toast.info('Tính năng đang được phát triển');
     }
   }
 
   exportData(): void {
-    // Simulate data export
+    this.toast.info('Tính năng đang được phát triển');
   }
 
-  logoutAllDevices(): void {
-    if (confirm('Bạn có chắc chắn muốn đăng xuất khỏi tất cả thiết bị?')) {
-      // Simulate logout all devices
+  async logoutAllDevices(): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Đăng xuất tất cả thiết bị',
+      message: 'Bạn có chắc chắn muốn đăng xuất khỏi tất cả thiết bị?',
+      confirmText: 'Đăng xuất',
+      cancelText: 'Hủy',
+      variant: 'warning'
+    });
+    if (confirmed) {
+      this.toast.info('Tính năng đang được phát triển');
     }
   }
 }

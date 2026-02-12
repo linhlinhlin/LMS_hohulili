@@ -52,8 +52,8 @@ import { PLATFORM_ID } from '@angular/core';
         [title]="'Xu hướng ngành'"
         [subtitle]="'Các xu hướng nổi bật trong lĩnh vực Điều khiển Tàu'"
         [cards]="[
-          { icon: '🧭', title: 'Điều hướng số', highlight: '+20% áp dụng', description: 'Tăng cường sử dụng ECDIS, hệ thống số và cảm biến hiện đại trong điều hướng.' },
-          { icon: '🛰️', title: 'Tích hợp GNSS', highlight: '+30% độ chính xác', description: 'Kết hợp nhiều hệ thống vệ tinh (GPS, GLONASS, Galileo) để tăng độ tin cậy.' }
+          { icon: 'globe', title: 'Điều hướng số', highlight: '+20% áp dụng', description: 'Tăng cường sử dụng ECDIS, hệ thống số và cảm biến hiện đại trong điều hướng.' },
+          { icon: 'globe', title: 'Tích hợp GNSS', highlight: '+30% độ chính xác', description: 'Kết hợp nhiều hệ thống vệ tinh (GPS, GLONASS, Galileo) để tăng độ tin cậy.' }
         ]"
       ></app-category-trends>
     </div>

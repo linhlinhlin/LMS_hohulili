@@ -77,7 +77,10 @@ export interface CategoryDTO {
     id: string;
     code: string;
     name: string;
+    prefix: string;
 }
+
+export type DeliveryMode = 'SELF_PACED' | 'INSTRUCTOR_LED';
 
 export interface CourseDraftDTO {
     id: string;
@@ -99,6 +102,7 @@ export interface CourseDraftDTO {
     priceType?: 'FREE' | 'PAID';
     price?: number;
     salePrice?: number;
+    deliveryMode?: DeliveryMode;
 
     unlockMode?: string;
     settings?: CourseSettings;
@@ -119,6 +123,21 @@ interface CourseDetailResponse {
     status: string;
     teacherId: string;
     teacherName: string;
+    thumbnailUrl?: string;
+    instructorId?: string;
+    categoryId?: string;
+    categoryName?: string;
+    tags?: string[];
+    welcomeMessage?: string;
+    courseInformation?: string;
+    benefits?: string;
+    introVideoUrl?: string;
+    credits?: number;
+    visibility?: string;
+    priceType?: string;
+    price?: number;
+    salePrice?: number;
+    deliveryMode?: string;
     settings?: CourseSettings;
 }
 
@@ -221,7 +240,7 @@ export class CourseAuthoringService {
                     lessons: (ch.lessons || []).map(lesson => ({
                         id: lesson.id,
                         title: lesson.title,
-                        type: (lesson as any).lessonType || 'LECTURE',
+                        type: lesson.lessonType || 'LECTURE',
                         orderIndex: lesson.orderIndex,
                         isRequired: true,
                         content: lesson.content || '',
@@ -237,7 +256,7 @@ export class CourseAuthoringService {
                         assignmentMaxScore: lesson.assignment?.maxScore,
 
                         // Map Sections (Level 3)
-                        sections: ((lesson as any).sections || (lesson as any).topics || []).map((t: any) => ({
+                        sections: (lesson.sections || lesson.topics || []).map((t: any) => ({
                             id: t.id,
                             title: t.title,
                             type: t.type,
@@ -267,25 +286,24 @@ export class CourseAuthoringService {
                     code: courseData.code,
                     title: courseData.title,
                     description: courseData.description,
-                    thumbnailUrl: (courseData as any).thumbnailUrl,
-                    // Map new fields
-                    instructorId: (courseData as any).instructorId,
-                    categoryId: (courseData as any).categoryId,
-                    categoryName: (courseData as any).categoryName,
-                    tags: (courseData as any).tags,
-                    welcomeMessage: (courseData as any).welcomeMessage,
-                    courseInformation: (courseData as any).courseInformation,
-                    benefits: (courseData as any).benefits,
-                    introVideoUrl: (courseData as any).introVideoUrl,
-                    credits: (courseData as any).credits,
-                    visibility: (courseData as any).visibility,
-                    priceType: (courseData as any).priceType,
-                    price: (courseData as any).price,
-                    salePrice: (courseData as any).salePrice,
-
+                    thumbnailUrl: courseData.thumbnailUrl,
+                    instructorId: courseData.instructorId,
+                    categoryId: courseData.categoryId,
+                    categoryName: courseData.categoryName,
+                    tags: courseData.tags,
+                    welcomeMessage: courseData.welcomeMessage,
+                    courseInformation: courseData.courseInformation,
+                    benefits: courseData.benefits,
+                    introVideoUrl: courseData.introVideoUrl,
+                    credits: courseData.credits,
+                    visibility: courseData.visibility as CourseDraftDTO['visibility'],
+                    priceType: courseData.priceType as CourseDraftDTO['priceType'],
+                    price: courseData.price,
+                    salePrice: courseData.salePrice,
+                    deliveryMode: (courseData.deliveryMode as DeliveryMode) || 'SELF_PACED',
                     settings: courseData.settings,
                     chapters
-                } as CourseDraftDTO;
+                } satisfies CourseDraftDTO;
             })
         );
     }
@@ -296,34 +314,25 @@ export class CourseAuthoringService {
     }
 
     // --- Reordering ---
+    // BE: CourseAuthoringControllerV3 PATCH /api/v3/courses/chapters/reorder
 
     reorderChapters(courseId: string, orderedIds: string[]): Observable<void> {
-        // Updated to chapters endpoint if available, but for now stick to what code might expect if backend controller supports it.
-        // I haven't implemented reorder in backend ChapterController yet, so this might 404. 
-        // Usage of reorder usually implies a patch.
-        // Assuming /api/v3/chapters/reorder or similar.
-        // For safety I should probably NOT break this if it was working.
-        // Old was /sections/reorder.
-        // I will point to /chapters/reorder and need to ensure backend supports it or leave it as TODO.
-        // Since I can't easily add reorder in backend in this step (many small edits), I'll update path to reflect intent.
-        return this.http.patch<void>(`${this.baseUrl}/chapters/reorder`, {
+        return this.http.patch<void>(`${this.baseUrl}/courses/chapters/reorder`, {
             courseId,
             orderedIds
         });
     }
 
-    reorderLessons(chapterId: string, orderedIds: string[]): Observable<void> {
-        // Backend LessonController uses /lessons/reorder usually.
-        // Assuming LessonController unchanged regarding reorder path, but might need check.
-        return this.http.patch<void>(`${this.baseUrl}/lessons/reorder`, {
-            chapterId: chapterId, // Changed from sectionId
+    reorderLessons(chapterId: string, orderedIds: string[], courseId: string): Observable<void> {
+        return this.http.patch<void>(`${this.baseUrl}/courses/lessons/reorder`, {
+            courseId,
+            chapterId,
             orderedIds
         });
     }
 
     reorderSections(lessonId: string, orderedIds: string[]): Observable<void> {
-        // Assuming SectionController supports a reorder endpoint
-        return this.http.patch<void>(`${this.baseUrl}/sections/reorder`, {
+        return this.http.patch<void>(`${this.baseUrl}/courses/sections/reorder`, {
             lessonId,
             orderedIds
         });
@@ -331,7 +340,23 @@ export class CourseAuthoringService {
 
     // --- Updates ---
 
-    updateCourseInfo(courseId: string, data: { title?: string; description?: string; thumbnailUrl?: string | null }): Observable<void> {
+    updateCourseInfo(courseId: string, data: Partial<{
+        title: string;
+        description: string;
+        thumbnailUrl: string | null;
+        categoryId: string | null;
+        tags: string[];
+        welcomeMessage: string;
+        courseInformation: string;
+        benefits: string;
+        introVideoUrl: string;
+        credits: number;
+        visibility: string;
+        priceType: string;
+        price: number;
+        salePrice: number;
+        deliveryMode: string;
+    }>): Observable<void> {
         return this.http.put<void>(`${this.baseUrl}/courses/${courseId}`, data);
     }
 
@@ -345,9 +370,9 @@ export class CourseAuthoringService {
     uploadFile(file: File): Observable<{ fileUrl: string }> {
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('type', 'course');
-        return this.http.post<ApiResponse<any>>(`${this.baseUrl}/uploads/file`, formData).pipe(
-            map((res) => ({ fileUrl: res.data.fileUrl }))
+        formData.append('folder', 'course');
+        return this.http.post<any>(`${this.baseUrl}/files/upload/editor`, formData).pipe(
+            map((res: any) => ({ fileUrl: res.file?.url || '' }))
         );
     }
 

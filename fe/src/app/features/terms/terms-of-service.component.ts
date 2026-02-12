@@ -1,4 +1,4 @@
-﻿import { Component, ChangeDetectionStrategy, ViewEncapsulation, signal, inject, OnInit, OnDestroy, HostListener, PLATFORM_ID } from '@angular/core';
+﻿import { Component, ChangeDetectionStrategy, signal, inject, OnInit, OnDestroy, HostListener, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -6,7 +6,6 @@ import { FormsModule } from '@angular/forms';
 @Component({
   selector: 'app-terms-of-service',
   imports: [RouterModule, FormsModule],
-  encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './terms-of-service.component.html',
 })
@@ -76,13 +75,13 @@ export class TermsOfServiceComponent implements OnInit, OnDestroy {
 
   getSectionClass(sectionId: string): string {
     return this.activeSection() === sectionId
-      ? 'bg-blue-50 text-blue-600'
+      ? 'bg-blue-50 text-[#0056D2]'
       : 'hover:bg-gray-100 text-gray-700';
   }
 
   getDotClass(sectionId: string): string {
     return this.activeSection() === sectionId
-      ? 'bg-blue-600'
+      ? 'bg-[#0056D2]'
       : 'bg-gray-300';
   }
 

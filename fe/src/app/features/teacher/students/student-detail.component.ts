@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, signal, viewChild } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, signal, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { StudentApi, StudentDetail, StudentCourseProgress, StudentAssignmentSummary } from '../../../api/client/student.api';
@@ -6,11 +6,11 @@ import { StudentAssignmentsComponent, StudentAssignment } from './student-assign
 import { AssignTaskModalComponent, AssignTaskRequest } from './assign-task-modal.component';
 import { MessagesTabComponent } from './messages-tab.component';
 import { DistributionService } from '../../../core/services/distribution.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   selector: 'app-student-detail',
   imports: [CommonModule, RouterModule, StudentAssignmentsComponent, AssignTaskModalComponent, MessagesTabComponent],
-  encapsulation: ViewEncapsulation.None,
   template: `
     <div class="p-6 space-y-6">
       <!-- Header -->
@@ -25,7 +25,7 @@ import { DistributionService } from '../../../core/services/distribution.service
       @if (error()) {
         <div class="bg-red-50 border border-red-200 rounded-lg p-4">
           <p class="text-red-600">{{ error() }}</p>
-          <button (click)="onReload()" class="mt-2 text-blue-600 underline text-sm">Tải lại</button>
+          <button (click)="onReload()" class="mt-2 text-[#0056D2] underline text-sm">Tải lại</button>
         </div>
       }
     
@@ -34,7 +34,7 @@ import { DistributionService } from '../../../core/services/distribution.service
         <div class="bg-white rounded-lg shadow p-6">
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div class="col-span-1 flex items-center gap-4">
-              <div class="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center text-xl font-bold">
+              <div class="w-20 h-20 rounded-full bg-[#0056D2] text-white flex items-center justify-center text-xl font-bold">
                 {{ getInitials(student()!.name) }}
               </div>
               <div>
@@ -47,7 +47,7 @@ import { DistributionService } from '../../../core/services/distribution.service
             <div class="col-span-2">
               <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div class="text-center">
-                  <div class="text-2xl font-bold text-blue-600">{{ student()!.progress }}%</div>
+                  <div class="text-2xl font-bold text-[#0056D2]">{{ student()!.progress }}%</div>
                   <div class="text-sm text-gray-500">Tiến độ tổng</div>
                 </div>
                 <div class="text-center">
@@ -74,7 +74,7 @@ import { DistributionService } from '../../../core/services/distribution.service
                   {{ getStatusText(student()!.status) }}
                 </span>
                 <div class="flex gap-2">
-                  <button (click)="sendMessage()" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
+                  <button (click)="sendMessage()" class="px-4 py-2 bg-[#0056D2] text-white rounded-lg text-sm hover:bg-[#004BB5]">
                     Nhắn tin
                   </button>
                   <button (click)="exportReport()" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50">
@@ -110,7 +110,7 @@ import { DistributionService } from '../../../core/services/distribution.service
                   <div class="flex items-center gap-4 text-sm text-gray-600">
                     <div class="flex items-center">
                       <div class="w-24 bg-gray-200 rounded-full h-2 mr-2">
-                        <div class="bg-blue-600 h-2 rounded-full" [style.width.%]="course.progress"></div>
+                        <div class="bg-[#0056D2] h-2 rounded-full" [style.width.%]="course.progress"></div>
                       </div>
                       <span>{{ course.progress }}%</span>
                     </div>
@@ -138,8 +138,8 @@ import { DistributionService } from '../../../core/services/distribution.service
               <button
                 (click)="activeTab.set('assignments')"
                 class="px-6 py-4 text-sm font-medium border-b-2 transition-colors"
-                [class.border-blue-600]="activeTab() === 'assignments'"
-                [class.text-blue-600]="activeTab() === 'assignments'"
+                [class.border-[#0056D2]]="activeTab() === 'assignments'"
+                [class.text-[#0056D2]]="activeTab() === 'assignments'"
                 [class.border-transparent]="activeTab() !== 'assignments'"
                 [class.text-gray-500]="activeTab() !== 'assignments'"
                 [class.hover:text-gray-700]="activeTab() !== 'assignments'"
@@ -154,8 +154,8 @@ import { DistributionService } from '../../../core/services/distribution.service
               <button
                 (click)="activeTab.set('messages')"
                 class="px-6 py-4 text-sm font-medium border-b-2 transition-colors"
-                [class.border-blue-600]="activeTab() === 'messages'"
-                [class.text-blue-600]="activeTab() === 'messages'"
+                [class.border-[#0056D2]]="activeTab() === 'messages'"
+                [class.text-[#0056D2]]="activeTab() === 'messages'"
                 [class.border-transparent]="activeTab() !== 'messages'"
                 [class.text-gray-500]="activeTab() !== 'messages'"
                 [class.hover:text-gray-700]="activeTab() !== 'messages'"
@@ -208,6 +208,7 @@ export class StudentDetailComponent {
   private route = inject(ActivatedRoute);
   private studentApi = inject(StudentApi);
   private distributionService = inject(DistributionService);
+  private toast = inject(ToastService);
 
   readonly studentAssignmentsRef = viewChild.required<StudentAssignmentsComponent>('studentAssignments');
 
@@ -245,71 +246,7 @@ export class StudentDetailComponent {
           this.courseProgress.set(response.data.courseProgress || []);
           this.assignments.set(response.data.assignmentSubmissions || []);
         } else {
-          // Mock data for development
-          const mockStudent: StudentDetail = {
-            id: this.studentId,
-            name: 'Nguyễn Văn An',
-            email: 'nguyenvanan@email.com',
-            enrolledAt: '2025-09-01T00:00:00Z',
-            lastAccessed: '2025-10-13T10:30:00Z',
-            progress: 75,
-            averageGrade: 8.5,
-            status: 'active',
-            completedCourses: 2,
-            totalCourses: 3,
-            courseProgress: [
-              {
-                courseId: '1',
-                courseTitle: 'An toàn Hàng hải Cơ bản',
-                enrolledAt: '2025-09-01T00:00:00Z',
-                progress: 80,
-                completedLessons: 8,
-                totalLessons: 10,
-                lastAccessed: '2025-10-13T09:00:00Z',
-                grade: 8.5,
-                status: 'in-progress'
-              },
-              {
-                courseId: '2',
-                courseTitle: 'Điều hướng Maritime',
-                enrolledAt: '2025-09-15T00:00:00Z',
-                progress: 100,
-                completedLessons: 6,
-                totalLessons: 6,
-                lastAccessed: '2025-10-10T16:00:00Z',
-                grade: 9.2,
-                status: 'completed'
-              }
-            ],
-            assignmentSubmissions: [
-              {
-                assignmentId: '1',
-                assignmentTitle: 'Bài tập về An toàn Hàng hải',
-                courseTitle: 'An toàn Hàng hải Cơ bản',
-                dueDate: '2025-10-20T23:59:59Z',
-                submittedAt: '2025-10-18T14:30:00Z',
-                status: 'graded',
-                score: 85,
-                maxScore: 100,
-                feedback: 'Bài làm tốt, cần chú ý thêm về phần SOLAS'
-              }
-            ],
-            analytics: {
-              totalStudyTime: 1200,
-              averageSessionTime: 45,
-              streakDays: 7,
-              assignmentsCompleted: 5,
-              assignmentsOverdue: 0,
-              averageScore: 8.5,
-              strongSubjects: ['An toàn hàng hải'],
-              improvementAreas: ['Điều hướng'],
-              learningActivity: []
-            }
-          };
-          
-          this.student.set(mockStudent);
-          this.courseProgress.set(mockStudent.courseProgress);
-          this.assignments.set(mockStudent.assignmentSubmissions);
+          this.toast.error('Không tìm thấy thông tin sinh viên');
         }
       },
       error: () => {
@@ -363,7 +300,6 @@ export class StudentDetailComponent {
   }
 
   exportReport() {
-    // TODO: Implement export functionality
     this.studentApi.exportStudentReport(this.studentId, 'pdf').subscribe({
       next: (blob) => {
         // Handle file download
@@ -375,6 +311,7 @@ export class StudentDetailComponent {
         window.URL.revokeObjectURL(url);
       },
       error: () => {
+        this.toast.error('Không thể xuất báo cáo. Vui lòng thử lại.');
       }
     });
   }
@@ -401,7 +338,7 @@ export class StudentDetailComponent {
     ).subscribe({
       next: () => {
         this.closeAssignTaskModal();
-        // Refresh the assignments list
+        this.toast.success('Đã giao bài tập thành công.');
         const studentAssignmentsRef = this.studentAssignmentsRef();
         if (studentAssignmentsRef) {
           studentAssignmentsRef.refresh();
@@ -409,6 +346,7 @@ export class StudentDetailComponent {
       },
       error: () => {
         this.closeAssignTaskModal();
+        this.toast.error('Giao bài tập thất bại. Vui lòng thử lại.');
         const studentAssignmentsRef = this.studentAssignmentsRef();
         if (studentAssignmentsRef) {
           studentAssignmentsRef.refresh();
@@ -423,8 +361,14 @@ export class StudentDetailComponent {
       this.studentId
     ).subscribe({
       next: () => {
+        this.toast.success('Đã xóa bài tập khỏi học viên.');
+        const studentAssignmentsRef = this.studentAssignmentsRef();
+        if (studentAssignmentsRef) {
+          studentAssignmentsRef.refresh();
+        }
       },
       error: () => {
+        this.toast.error('Xóa bài tập thất bại. Vui lòng thử lại.');
       }
     });
   }

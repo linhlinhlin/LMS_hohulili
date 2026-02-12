@@ -3,6 +3,8 @@
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AdminService, AdminUser, UserAccountStatus, UpdateUserStatusRequest } from '../../infrastructure/services/admin.service';
+import { ToastService } from '../../../../core/services/toast.service';
+import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 
 /**
  * Student Management Component
@@ -25,6 +27,8 @@ import { AdminService, AdminUser, UserAccountStatus, UpdateUserStatusRequest } f
 })
 export class StudentManagementComponent implements OnInit {
   private adminService = inject(AdminService);
+  private toast = inject(ToastService);
+  private confirmDialog = inject(ConfirmDialogService);
 
   // State
   allUsers = signal<AdminUser[]>([]);
@@ -124,14 +128,21 @@ export class StudentManagementComponent implements OnInit {
   }
 
   // Role change handler
-  onRoleChange(userId: string, newRole: string) {
-    if (!confirm(`Bạn có chắc muốn thay đổi vai trò người dùng này thành ${this.getRoleLabel(newRole)}?`)) {
-      this.loadUsers(); // Reload to reset dropdown
+  async onRoleChange(userId: string, newRole: string) {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Thay đổi vai trò',
+      message: `Bạn có chắc muốn thay đổi vai trò người dùng này thành ${this.getRoleLabel(newRole)}?`,
+      confirmText: 'Thay đổi',
+      variant: 'warning'
+    });
+    if (!confirmed) {
+      this.loadUsers();
       return;
     }
 
     this.adminService.updateUser(userId, { role: newRole as 'ADMIN' | 'TEACHER' | 'STUDENT' }).subscribe({
-      next: () => this.loadUsers()
+      next: () => this.loadUsers(),
+      error: (err) => this.toast.error('Không thể thay đổi vai trò: ' + (err.error?.message || 'Vui lòng thử lại'))
     });
   }
 
@@ -139,28 +150,32 @@ export class StudentManagementComponent implements OnInit {
   onStatusActionChange(user: AdminUser, newStatus: string) {
     if (!newStatus) return;
 
-    const statusLabel = this.getStatusLabel(newStatus);
-    const reason = prompt(`Nhập lý do ${statusLabel.toLowerCase()} tài khoản (tùy chọn):`);
-
     this.adminService.updateUserStatus(user.id, {
       status: newStatus as UserAccountStatus,
-      reason: reason || ''
+      reason: ''
     }).subscribe({
       next: () => this.loadUsers(),
       error: () => {
-        // Fallback to toggle if updateUserStatus not implemented
         this.adminService.toggleUserStatus(user.id).subscribe({
-          next: () => this.loadUsers()
+          next: () => this.loadUsers(),
+          error: (err) => this.toast.error('Không thể thay đổi trạng thái: ' + (err.error?.message || 'Vui lòng thử lại'))
         });
       }
     });
   }
 
-  deleteUser(userId: string) {
-    if (!confirm('Bạn có chắc muốn vô hiệu hóa tài khoản này?')) return;
+  async deleteUser(userId: string) {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Vô hiệu hóa tài khoản',
+      message: 'Bạn có chắc muốn vô hiệu hóa tài khoản này?',
+      confirmText: 'Vô hiệu hóa',
+      variant: 'danger'
+    });
+    if (!confirmed) return;
 
     this.adminService.deleteUser(userId).subscribe({
-      next: () => this.loadUsers()
+      next: () => this.loadUsers(),
+      error: (err) => this.toast.error('Không thể vô hiệu hóa: ' + (err.error?.message || 'Vui lòng thử lại'))
     });
   }
 
@@ -175,12 +190,13 @@ export class StudentManagementComponent implements OnInit {
     this.adminService.getUserEnrolledCourses(student.id).subscribe({
       next: (courses) => {
         // Map to simpler format for display
-        const mappedCourses = courses.map(c => ({
+        const mappedCourses = courses.map((c: any) => ({
           id: c.id,
           title: c.title,
-          progress: 0, // Progress not available from this endpoint
-          enrolledAt: c.createdAt ? new Date(c.createdAt) : new Date(),
-          status: c.status
+          progress: c.completionPercent ?? 0,
+          enrolledAt: c.enrolledAt ? new Date(c.enrolledAt) : (c.createdAt ? new Date(c.createdAt) : new Date()),
+          status: c.status,
+          enrollmentStatus: c.enrollmentStatus
         }));
         this.studentCourses.set(mappedCourses);
         this.isLoadingCourses.set(false);

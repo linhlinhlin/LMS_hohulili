@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, signal, OnInit, viewChild } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, signal, OnInit, viewChild } from '@angular/core';
 
 import { ReactiveFormsModule, FormBuilder, Validators, FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -31,7 +31,6 @@ interface EnrolledStudentData {
 @Component({
   selector: 'app-assignment-creation',
   imports: [ReactiveFormsModule, FormsModule, RouterModule, FileUploadComponent, DistributionSelectorComponent],
-  encapsulation: ViewEncapsulation.None,
   template: `
     <div class="max-w-10xl mx-auto pb-20 p-8">
       
@@ -39,7 +38,7 @@ interface EnrolledStudentData {
       <div class="flex items-center justify-between mb-8">
         <div>
           <nav class="flex items-center gap-2 text-xs text-gray-500 mb-2">
-            <a routerLink="/teacher/assignments" class="hover:text-blue-600 transition-colors">Bài tập</a>
+            <a routerLink="/teacher/assignments" class="hover:text-[#0056D2] transition-colors">Bài tập</a>
             <span>/</span>
             <span class="text-gray-900 font-medium">Tạo mới</span>
           </nav>
@@ -69,7 +68,7 @@ interface EnrolledStudentData {
                     <input 
                       formControlName="title" 
                       type="text" 
-                      class="w-full h-11 px-4 rounded-lg border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-gray-400 text-sm" 
+                      class="w-full h-11 px-4 rounded-lg border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2] outline-none transition-all placeholder:text-gray-400 text-sm" 
                       placeholder="VD: Phân tích An toàn Hàng hải - Chương III" />
                     @if (form.controls.title.invalid && form.controls.title.touched) {
                       <p class="text-xs text-red-500 mt-1 italic">Vui lòng nhập tiêu đề bài tập</p>
@@ -81,7 +80,7 @@ interface EnrolledStudentData {
                     <label class="block text-sm font-semibold text-gray-700">Khóa học <span class="text-red-500">*</span></label>
                     <select 
                       formControlName="courseId" 
-                      class="w-full h-11 px-4 rounded-lg border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all cursor-pointer text-sm">
+                      class="w-full h-11 px-4 rounded-lg border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2] outline-none transition-all cursor-pointer text-sm">
                       <option value="" disabled>-- Chọn khóa học --</option>
                       @for (course of courses(); track course.id) {
                         <option [value]="course.id">{{ course.title }}</option>
@@ -99,7 +98,7 @@ interface EnrolledStudentData {
                       <input 
                         formControlName="maxScore" 
                         type="number" 
-                        class="w-full h-11 px-4 pr-12 rounded-lg border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm" />
+                        class="w-full h-11 px-4 pr-12 rounded-lg border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2] outline-none transition-all text-sm" />
                       <span class="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400 uppercase">Điểm</span>
                     </div>
                 </div>
@@ -118,7 +117,7 @@ interface EnrolledStudentData {
                     <textarea 
                       formControlName="description" 
                       rows="2" 
-                      class="w-full p-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-gray-400 resize-none text-sm" 
+                      class="w-full p-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2] outline-none transition-all placeholder:text-gray-400 resize-none text-sm" 
                       placeholder="Giới thiệu nội dung bài tập..."></textarea>
                 </div>
 
@@ -128,7 +127,7 @@ interface EnrolledStudentData {
                     <textarea 
                       formControlName="instructions" 
                       rows="8" 
-                      class="w-full p-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-gray-400 text-sm" 
+                      class="w-full p-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2] outline-none transition-all placeholder:text-gray-400 text-sm" 
                       placeholder="Quy trình thực hiện, yêu cầu kỹ thuật và cách thức nộp bài..."></textarea>
                 </div>
 
@@ -160,7 +159,7 @@ interface EnrolledStudentData {
               @if (form.controls.courseId.value) {
                 @if (loadingStudents()) {
                   <div class="p-10 bg-gray-50 border border-gray-200 rounded-lg flex flex-col items-center justify-center gap-3">
-                    <div class="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    <div class="w-6 h-6 border-2 border-[#0056D2] border-t-transparent rounded-full animate-spin"></div>
                     <span class="text-xs font-medium text-gray-500">Đang tải danh sách học viên...</span>
                   </div>
                 } @else {
@@ -204,7 +203,7 @@ interface EnrolledStudentData {
                     <input 
                       formControlName="dueDate" 
                       type="datetime-local" 
-                      class="w-full h-11 px-4 rounded-lg border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm" />
+                      class="w-full h-11 px-4 rounded-lg border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2] outline-none transition-all text-sm" />
                     @if (form.controls.dueDate.invalid && form.controls.dueDate.touched) {
                       <p class="text-[10px] font-bold text-red-500 mt-1 uppercase">Vui lòng chọn hạn nộp</p>
                     }
@@ -214,15 +213,15 @@ interface EnrolledStudentData {
                  <div class="space-y-4 pt-2">
                     <label class="flex items-center gap-3 cursor-pointer group">
                       <input type="checkbox" formControlName="allowLateSubmission" 
-                             class="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                      <span class="text-sm text-gray-700 font-medium group-hover:text-blue-600 transition-colors">Cho phép nộp muộn</span>
+                             class="w-5 h-5 rounded border-gray-300 text-[#0056D2] focus:ring-[#0056D2]">
+                      <span class="text-sm text-gray-700 font-medium group-hover:text-[#0056D2] transition-colors">Cho phép nộp muộn</span>
                     </label>
                     
                     <label class="flex items-center gap-3 cursor-pointer group">
                       <input type="checkbox" formControlName="isDraft" 
-                             class="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                             class="w-5 h-5 rounded border-gray-300 text-[#0056D2] focus:ring-[#0056D2]">
                       <div class="flex flex-col">
-                        <span class="text-sm text-gray-700 font-medium group-hover:text-blue-600 transition-colors">Lưu dưới dạng nháp</span>
+                        <span class="text-sm text-gray-700 font-medium group-hover:text-[#0056D2] transition-colors">Lưu dưới dạng nháp</span>
                         <span class="text-[10px] text-gray-400 font-bold tracking-tight uppercase">Ẩn bài tập với học viên</span>
                       </div>
                     </label>
@@ -250,7 +249,7 @@ interface EnrolledStudentData {
               <button 
                 type="submit" 
                 [disabled]="form.invalid || submitting()"
-                class="w-full h-12 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed uppercase text-xs tracking-wider">
+                class="w-full h-12 rounded-lg bg-[#0056D2] text-white font-semibold hover:bg-[#004BB5] transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed uppercase text-xs tracking-wider">
                 @if (submitting()) {
                   <div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                   <span>Đang xử lý...</span>

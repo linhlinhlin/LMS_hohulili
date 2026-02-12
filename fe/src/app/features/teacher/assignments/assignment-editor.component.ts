@@ -1,4 +1,4 @@
-﻿import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, signal, OnInit, computed } from '@angular/core';
+﻿import { Component, ChangeDetectionStrategy, inject, signal, OnInit, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -28,7 +28,6 @@ interface EnrolledStudentData {
 @Component({
   selector: 'app-assignment-editor',
   imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterModule, DistributionSelectorComponent],
-  encapsulation: ViewEncapsulation.None,
   templateUrl: './assignment-editor.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })

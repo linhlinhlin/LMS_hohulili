@@ -13,6 +13,7 @@ import {
   Section,
   LessonSummary,
   LessonDetail,
+  SectionContent,
   ErrorType
 } from '../models/learning.models';
 import { getLessonTypeFromTitle } from '../models/lesson-types.enum';
@@ -56,6 +57,9 @@ export class LearningService {
 
   // Lesson cache for performance
   private lessonCache = new Map<string, LessonDetail>();
+
+  // Cache of lesson sections from /content endpoint (lessonId -> SectionContent[])
+  private lessonSectionsCache = new Map<string, SectionContent[]>();
 
   // Public computed signals for components to consume
 
@@ -163,9 +167,7 @@ export class LearningService {
    * Enroll in a course
    */
   enrollCourse(courseId: string): Observable<any> {
-    // TODO: Implement actual enrollment API when available
-    // For now, return success to test the flow
-    return of({ success: true });
+    return this.courseApi.enrollCourse(courseId);
   }
 
   /**
@@ -178,6 +180,9 @@ export class LearningService {
       loading: true,
       error: null
     }));
+
+    // Clear lesson cache when switching courses
+    this.lessonCache.clear();
 
     // Load course info, content, and progress in parallel
     forkJoin({
@@ -307,6 +312,27 @@ export class LearningService {
           return;
         }
 
+        // Map sections from API response
+        let mappedSections: SectionContent[] = (data.sections || []).map((s: any) => ({
+          id: s.id,
+          title: s.title,
+          type: s.type as 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT',
+          content: s.content,
+          videoUrl: s.videoUrl,
+          fileUrl: s.fileUrl,
+          duration: s.duration,
+          orderIndex: s.orderIndex ?? 0,
+          isRequired: s.isRequired ?? false
+        }));
+
+        // If API returned no sections, try to find them from course content cache
+        if (mappedSections.length === 0) {
+          const fromCourseContent = this.findSectionsFromCourseContent(data.id);
+          if (fromCourseContent && fromCourseContent.length > 0) {
+            mappedSections = fromCourseContent;
+          }
+        }
+
         const lessonDetail: LessonDetail = {
           id: data.id,
           title: data.title,
@@ -323,18 +349,7 @@ export class LearningService {
           courseId: data.courseId,
           courseTitle: data.courseTitle || '',
           durationMinutes: data.durationMinutes,
-          // Map sections from API response
-          sections: (data.sections || []).map((s: any) => ({
-            id: s.id,
-            title: s.title,
-            type: s.type as 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT',
-            content: s.content,
-            videoUrl: s.videoUrl,
-            fileUrl: s.fileUrl,
-            duration: s.duration,
-            orderIndex: s.orderIndex ?? 0,
-            isRequired: s.isRequired ?? false
-          }))
+          sections: mappedSections
         };
 
         // Cache the lesson
@@ -512,6 +527,9 @@ export class LearningService {
 
 
   private mapSections(data: CourseContentChapter[]): Section[] {
+    // Clear the sections cache for new course
+    this.lessonSectionsCache.clear();
+
     return data
       .sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
       .map(section => ({
@@ -521,14 +539,41 @@ export class LearningService {
         orderIndex: section.orderIndex || 0,
         lessons: (section.lessons || [])
           .sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
-          .map((lesson: ApiLessonSummary, idx) => ({
-            id: lesson.id,
-            title: lesson.title,
-            description: lesson.description || '',
-            lessonType: (lesson as any).lessonType || getLessonTypeFromTitle(lesson.title),
-            duration: 0, // Will be loaded when lesson is selected
-            orderIndex: lesson.orderIndex || idx
-          }))
+          .map((lesson: ApiLessonSummary, idx) => {
+            // Cache sections from /content for later use in loadLesson()
+            if (lesson.sections && lesson.sections.length > 0) {
+              this.lessonSectionsCache.set(lesson.id, lesson.sections.map(s => ({
+                id: s.id,
+                title: s.title,
+                type: s.type as 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT',
+                content: s.content,
+                videoUrl: s.videoUrl,
+                fileUrl: s.fileUrl,
+                duration: s.duration,
+                orderIndex: s.orderIndex ?? 0,
+                isRequired: s.isRequired ?? false
+              })));
+            }
+            return {
+              id: lesson.id,
+              title: lesson.title,
+              description: lesson.description || '',
+              lessonType: (lesson as any).lessonType || getLessonTypeFromTitle(lesson.title),
+              duration: 0, // Will be loaded when lesson is selected
+              orderIndex: lesson.orderIndex || idx,
+              sections: (lesson.sections || []).map(s => ({
+                id: s.id,
+                title: s.title,
+                type: s.type as 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT',
+                content: s.content,
+                videoUrl: s.videoUrl,
+                fileUrl: s.fileUrl,
+                duration: s.duration,
+                orderIndex: s.orderIndex ?? 0,
+                isRequired: s.isRequired ?? false
+              }))
+            };
+          })
       }));
   }
 
@@ -556,6 +601,10 @@ export class LearningService {
       return err.message;
     }
     return 'An error occurred while loading data.';
+  }
+
+  private findSectionsFromCourseContent(lessonId: string): SectionContent[] | null {
+    return this.lessonSectionsCache.get(lessonId) ?? null;
   }
 
   private updateLastAccessedLesson(lessonId: string): void {
@@ -595,6 +644,7 @@ export class LearningService {
         }));
       }
     } catch (error) {
+      // Progress calculation — non-critical, UI shows stale data
     }
   }
 
@@ -612,6 +662,7 @@ export class LearningService {
       };
       localStorage.setItem(key, JSON.stringify(data));
     } catch (error) {
+      // localStorage write — silent, progress saved to API separately
     }
   }
 }

@@ -24,7 +24,10 @@ public class AssignmentRubricJpaEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "assignment_id", nullable = false)
+    @Column(name = "teacher_id")
+    private UUID teacherId;
+
+    @Column(name = "assignment_id")
     private UUID assignmentId;
 
     @Column(name = "title", nullable = false)

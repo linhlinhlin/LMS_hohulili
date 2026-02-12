@@ -21,7 +21,7 @@ import { RouterLink } from '@angular/router';
           <a routerLink="/teacher/assignments/rubrics" class="px-4 py-2 border rounded-lg hover:bg-gray-50 text-sm transition-colors">
             Chọn từ thư viện
           </a>
-          <button class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm transition-colors">
+          <button class="px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] text-sm transition-colors">
             Tạo rubric mới
           </button>
         </div>

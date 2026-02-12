@@ -1,7 +1,8 @@
-import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
+import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
+import { ConfirmDialogService } from '../../../core/services/confirm-dialog.service';
 
 interface Note {
   id: string;
@@ -30,7 +31,6 @@ interface NoteFilter {
 @Component({
   selector: 'app-note-taking',
   imports: [FormsModule],
-  encapsulation: ViewEncapsulation.None,
   template: `
     <div class="min-h-screen bg-gray-50">
       <!-- Header -->
@@ -42,7 +42,7 @@ interface NoteFilter {
               <p class="text-gray-600 mt-1">Quản lý và tổ chức ghi chú của bạn</p>
             </div>
             <button (click)="createNewNote()"
-                    class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                    class="px-6 py-3 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors font-medium">
               <svg class="w-5 h-5 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"></path>
               </svg>
@@ -63,7 +63,7 @@ interface NoteFilter {
                      [(ngModel)]="filters.search"
                      (ngModelChange)="applyFilters()"
                      placeholder="Tìm kiếm ghi chú..."
-                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]">
             </div>
 
             <!-- Course Filter -->
@@ -76,7 +76,7 @@ interface NoteFilter {
                            [value]="course.id"
                            [checked]="filters.course.includes(course.id)"
                            (change)="toggleCourseFilter(course.id)"
-                           class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                           class="w-4 h-4 text-[#0056D2] border-gray-300 rounded focus:ring-[#0056D2]">
                     <span class="ml-2 text-sm text-gray-700">{{ course.name }}</span>
                   </label>
                 }
@@ -93,7 +93,7 @@ interface NoteFilter {
                            [value]="tag"
                            [checked]="filters.tags.includes(tag)"
                            (change)="toggleTagFilter(tag)"
-                           class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                           class="w-4 h-4 text-[#0056D2] border-gray-300 rounded focus:ring-[#0056D2]">
                     <span class="ml-2 text-sm text-gray-700">{{ tag }}</span>
                   </label>
                 }
@@ -110,7 +110,7 @@ interface NoteFilter {
                          value="updatedAt"
                          [checked]="filters.sortBy === 'updatedAt'"
                          (change)="updateSortBy('updatedAt')"
-                         class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                         class="w-4 h-4 text-[#0056D2] border-gray-300 focus:ring-[#0056D2]">
                   <span class="ml-2 text-sm text-gray-700">Cập nhật gần nhất</span>
                 </label>
                 <label class="flex items-center">
@@ -119,7 +119,7 @@ interface NoteFilter {
                          value="createdAt"
                          [checked]="filters.sortBy === 'createdAt'"
                          (change)="updateSortBy('createdAt')"
-                         class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                         class="w-4 h-4 text-[#0056D2] border-gray-300 focus:ring-[#0056D2]">
                   <span class="ml-2 text-sm text-gray-700">Tạo gần nhất</span>
                 </label>
                 <label class="flex items-center">
@@ -128,7 +128,7 @@ interface NoteFilter {
                          value="title"
                          [checked]="filters.sortBy === 'title'"
                          (change)="updateSortBy('title')"
-                         class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                         class="w-4 h-4 text-[#0056D2] border-gray-300 focus:ring-[#0056D2]">
                   <span class="ml-2 text-sm text-gray-700">Tên A-Z</span>
                 </label>
               </div>
@@ -146,7 +146,7 @@ interface NoteFilter {
                     <p class="text-3xl font-bold text-gray-900">{{ notes().length }}</p>
                   </div>
                   <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                    <svg class="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                    <svg class="w-6 h-6 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path>
                     </svg>
                   </div>
@@ -252,7 +252,7 @@ interface NoteFilter {
                 <p class="mt-1 text-sm text-gray-500">Bạn chưa tạo ghi chú nào hoặc không có ghi chú phù hợp với bộ lọc.</p>
                 <div class="mt-6">
                   <button (click)="createNewNote()"
-                          class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                          class="px-6 py-3 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors font-medium">
                     Tạo ghi chú đầu tiên
                   </button>
                 </div>
@@ -267,55 +267,10 @@ interface NoteFilter {
 })
 export class NoteTakingComponent implements OnInit {
   protected authService = inject(AuthService);
+  private confirmDialog = inject(ConfirmDialogService);
 
-  // Mock notes data
-  notes = signal<Note[]>([
-    {
-      id: 'note-1',
-      title: 'Cấu trúc tàu container',
-      content: 'Tàu container có cấu trúc đặc biệt với các cell guides để chứa container. Các thành phần chính bao gồm: hull, deck, bulkheads, và container stowage system. Cell guides được thiết kế để đảm bảo container được xếp chồng lên nhau một cách an toàn.',
-      courseId: 'course-1',
-      courseName: 'Kỹ thuật Tàu biển Cơ bản',
-      lessonId: 'lesson-1',
-      lessonTitle: 'Cấu trúc tàu biển',
-      tags: ['cấu trúc', 'container', 'an toàn'],
-      isPublic: false,
-      createdAt: new Date('2024-09-10'),
-      updatedAt: new Date('2024-09-15'),
-      wordCount: 45,
-      characterCount: 280
-    },
-    {
-      id: 'note-2',
-      title: 'Quy định STCW',
-      content: 'STCW (Standards of Training, Certification and Watchkeeping) là bộ quy định quốc tế về đào tạo, cấp chứng chỉ và trực ca cho thuyền viên. Bao gồm các chương về: cấp chứng chỉ, đào tạo, trực ca, và các yêu cầu về sức khỏe.',
-      courseId: 'course-2',
-      courseName: 'An toàn Hàng hải',
-      lessonId: 'lesson-2',
-      lessonTitle: 'Quy định quốc tế',
-      tags: ['STCW', 'quy định', 'chứng chỉ'],
-      isPublic: true,
-      createdAt: new Date('2024-09-08'),
-      updatedAt: new Date('2024-09-12'),
-      wordCount: 38,
-      characterCount: 240
-    },
-    {
-      id: 'note-3',
-      title: 'Quản lý cảng hiện đại',
-      content: 'Cảng hiện đại sử dụng công nghệ IoT, AI và blockchain để tối ưu hóa hoạt động. Các hệ thống tự động hóa bao gồm: container handling, yard management, và port community system.',
-      courseId: 'course-3',
-      courseName: 'Quản lý Cảng biển',
-      lessonId: 'lesson-3',
-      lessonTitle: 'Công nghệ cảng',
-      tags: ['công nghệ', 'IoT', 'AI', 'blockchain'],
-      isPublic: false,
-      createdAt: new Date('2024-09-05'),
-      updatedAt: new Date('2024-09-10'),
-      wordCount: 32,
-      characterCount: 200
-    }
-  ]);
+  // Notes — loaded from API when backend support is available
+  notes = signal<Note[]>([]);
 
   filters: NoteFilter = {
     course: [],
@@ -454,8 +409,14 @@ export class NoteTakingComponent implements OnInit {
     // Navigate to note editor
   }
 
-  deleteNote(noteId: string): void {
-    if (confirm('Bạn có chắc chắn muốn xóa ghi chú này?')) {
+  async deleteNote(noteId: string): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Xóa ghi chú',
+      message: 'Bạn có chắc chắn muốn xóa ghi chú này?',
+      confirmText: 'Xóa',
+      variant: 'danger'
+    });
+    if (confirmed) {
       this.notes.update(notes => notes.filter(note => note.id !== noteId));
     }
   }

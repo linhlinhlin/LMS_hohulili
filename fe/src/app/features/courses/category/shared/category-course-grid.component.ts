@@ -73,13 +73,13 @@ export class CategoryCourseGridComponent {
         id: '1',
         name: 'Giảng viên',
         title: 'Chuyên gia',
-        avatar: 'https://via.placeholder.com/150',
+        avatar: null as any,
         credentials: ['Chuyên gia'],
         experience: 10,
         rating: 4.5,
         studentsCount: 100
       },
-      thumbnail: item.thumbnailUrl || 'https://via.placeholder.com/400x300',
+      thumbnail: item.thumbnailUrl || null as any,
       category: 'engineering',
       tags: ['Chuyên nghiệp'],
       skills: ['Kỹ năng'],
@@ -106,7 +106,7 @@ export class CategoryCourseGridComponent {
       case 'indigo': return 'text-indigo-700 hover:text-indigo-800';
       case 'rose': return 'text-rose-700 hover:text-rose-800';
       case 'cyan': return 'text-cyan-700 hover:text-cyan-800';
-      default: return 'text-blue-700 hover:text-blue-800';
+      default: return 'text-[#004BB5] hover:text-blue-800';
     }
   });
 }

@@ -62,7 +62,7 @@ export class CategoryCareerComponent {
       case 'indigo': return 'text-indigo-700';
       case 'rose': return 'text-rose-700';
       case 'cyan': return 'text-cyan-700';
-      default: return 'text-blue-600';
+      default: return 'text-[#0056D2]';
     }
   });
 
@@ -73,7 +73,7 @@ export class CategoryCareerComponent {
       case 'indigo': return 'bg-indigo-500';
       case 'rose': return 'bg-rose-500';
       case 'cyan': return 'bg-cyan-500';
-      default: return 'bg-blue-500';
+      default: return 'bg-[#0056D2]';
     }
   });
 

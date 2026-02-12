@@ -41,7 +41,7 @@ public class ChatSessionUseCaseV3 {
         if (command.contextType() != null) {
             try {
                 contextType = ChatSession.ContextType.valueOf(command.contextType());
-            } catch (Exception ignored) {}
+            } catch (IllegalArgumentException ignored) {}
         }
 
         // Create domain model using factory method

@@ -3,6 +3,7 @@ package com.example.lms.learning_delivery.application.usecase;
 import com.example.lms.learning_delivery.application.dto.EnrollmentResponse;
 import com.example.lms.learning_delivery.application.dto.UpdateLessonProgressCommand;
 import com.example.lms.learning_delivery.domain.model.Enrollment;
+import com.example.lms.learning_delivery.domain.repository.CertificateRepository;
 import com.example.lms.learning_delivery.domain.repository.EnrollmentRepository;
 import com.example.lms.shared.exception.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,7 @@ import java.time.Instant;
 public class UpdateLessonProgressUseCase {
 
     private final EnrollmentRepository enrollmentRepository;
+    private final CertificateUseCase certificateUseCase;
 
     @Transactional
     public EnrollmentResponse execute(UpdateLessonProgressCommand command) {
@@ -45,6 +47,20 @@ public class UpdateLessonProgressUseCase {
         recalculateCompletion(enrollment);
 
         enrollment = enrollmentRepository.save(enrollment);
+
+        // Auto-issue certificate when course reaches 100% completion
+        if (enrollment.getCompletionPercent() != null && enrollment.getCompletionPercent() == 100
+                && enrollment.getLearningClass() != null) {
+            try {
+                certificateUseCase.issueIfNotExists(
+                        enrollment.getId(),
+                        enrollment.getStudentId(),
+                        enrollment.getLearningClass().getCourseId());
+            } catch (Exception e) {
+                log.warn("Failed to auto-issue certificate for enrollment {}: {}",
+                        command.enrollmentId(), e.getMessage());
+            }
+        }
 
         log.info("Lesson progress updated for enrollment {}", command.enrollmentId());
         return EnrollmentResponse.from(enrollment);

@@ -51,8 +51,8 @@ import { PLATFORM_ID } from '@angular/core';
         [title]="'Xu hướng ngành'"
         [subtitle]="'Chuẩn hóa quốc tế và tái chứng nhận định kỳ'"
         [cards]="[
-          { icon: '🏆', title: 'Tăng nhu cầu chứng chỉ', highlight: '+18%/năm', description: 'Các hãng yêu cầu tái chứng nhận và cập nhật kỹ năng thường xuyên.' },
-          { icon: '🧪', title: 'Đào tạo thực hành', highlight: '+25% thời lượng', description: 'Tăng cường mô phỏng và thực hành cho các tình huống khẩn cấp.' }
+          { icon: 'trophy', title: 'Tăng nhu cầu chứng chỉ', highlight: '+18%/năm', description: 'Các hãng yêu cầu tái chứng nhận và cập nhật kỹ năng thường xuyên.' },
+          { icon: 'lightbulb', title: 'Đào tạo thực hành', highlight: '+25% thời lượng', description: 'Tăng cường mô phỏng và thực hành cho các tình huống khẩn cấp.' }
         ]"
       ></app-category-trends>
     </div>

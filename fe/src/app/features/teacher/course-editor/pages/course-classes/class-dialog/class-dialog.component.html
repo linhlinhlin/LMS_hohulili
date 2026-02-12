@@ -10,7 +10,7 @@
             <label class="block text-sm font-medium text-gray-700">Tên lớp học <span
                     class="text-red-500">*</span></label>
             <input type="text" formControlName="name"
-                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border"
+                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#0056D2] focus:ring-[#0056D2] p-2 border"
                 placeholder="VD: Lớp 2024A - Kỹ thuật máy">
         </div>
 
@@ -18,7 +18,7 @@
         <div>
             <label class="block text-sm font-medium text-gray-700">Giáo viên phụ trách</label>
             <input type="text" [formControl]="teacherSearchControl" [matAutocomplete]="auto"
-                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border"
+                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#0056D2] focus:ring-[#0056D2] p-2 border"
                 placeholder="Tìm kiếm giáo viên (Tên/Email)...">
             <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayTeacherFn"
                 (optionSelected)="onTeacherSelected($event)">
@@ -37,12 +37,12 @@
             <div class="flex space-x-6">
                 <label class="inline-flex items-center cursor-pointer">
                     <input type="radio" formControlName="scheduleType" value="SEMESTER"
-                        class="text-blue-600 focus:ring-blue-500">
+                        class="text-[#0056D2] focus:ring-[#0056D2]">
                     <span class="ml-2 text-gray-700">Theo Học kỳ</span>
                 </label>
                 <label class="inline-flex items-center cursor-pointer">
                     <input type="radio" formControlName="scheduleType" value="CUSTOM"
-                        class="text-blue-600 focus:ring-blue-500">
+                        class="text-[#0056D2] focus:ring-[#0056D2]">
                     <span class="ml-2 text-gray-700">Tùy chỉnh</span>
                 </label>
             </div>
@@ -55,7 +55,7 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Học kỳ</label>
                     <select formControlName="semesterIndex"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border bg-white focus:border-blue-500 focus:ring-blue-500">
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border bg-white focus:border-[#0056D2] focus:ring-[#0056D2]">
                         <option value="1">Học kỳ 1</option>
                         <option value="2">Học kỳ 2</option>
                         <option value="3">Học kỳ 3</option>
@@ -65,11 +65,11 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Năm học</label>
                     <input type="number" formControlName="year"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:border-blue-500 focus:ring-blue-500"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:border-[#0056D2] focus:ring-[#0056D2]"
                         placeholder="YYYY">
                 </div>
             </div>
-            <p class="text-xs text-blue-600 italic">Mã học kỳ sẽ là:
+            <p class="text-xs text-[#0056D2] italic">Mã học kỳ sẽ là:
                 HK{{form.get('semesterIndex')?.value}}-{{form.get('year')?.value}}</p>
         </div>
         }
@@ -104,7 +104,7 @@
 <mat-dialog-actions align="end" class="pt-4 border-t mt-4 gap-2">
     <button mat-button (click)="close()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Hủy bỏ</button>
     <button mat-raised-button color="primary" [disabled]="form.invalid" (click)="save()"
-        class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50">
+        class="px-4 py-2 bg-[#0056D2] text-white rounded hover:bg-[#004BB5] disabled:opacity-50">
         {{ data.mode === 'create' ? 'Tạo mới' : 'Lưu thay đổi' }}
     </button>
 </mat-dialog-actions>

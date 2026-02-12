@@ -64,7 +64,7 @@ class UpdateQuestionUseCaseV3Test {
 
             List<ContentBlock> newBlocks = List.of(ContentBlock.create("text", Map.of("text", "New question")));
             UpdateQuestionUseCaseV3.Command command = new UpdateQuestionUseCaseV3.Command(
-                newBlocks, "B", List.of("Option A", "Option B"), Question.Difficulty.HARD, "science", Question.Status.ACTIVE
+                newBlocks, "B", Map.of("correctOption", "B"), null, List.of("Option A", "Option B"), Question.Difficulty.HARD, "science", Question.Status.ACTIVE
             );
 
             // When
@@ -85,7 +85,7 @@ class UpdateQuestionUseCaseV3Test {
             when(questionRepository.findById(questionId)).thenReturn(Optional.of(existingQuestion));
 
             UpdateQuestionUseCaseV3.Command command = new UpdateQuestionUseCaseV3.Command(
-                null, null, List.of("Opt A", "Opt B", "Opt C"), null, null, null
+                null, null, null, null, List.of("Opt A", "Opt B", "Opt C"), null, null, null
             );
 
             // When
@@ -110,7 +110,7 @@ class UpdateQuestionUseCaseV3Test {
             when(questionRepository.findById(questionId)).thenReturn(Optional.empty());
 
             UpdateQuestionUseCaseV3.Command command = new UpdateQuestionUseCaseV3.Command(
-                null, null, null, null, null, null
+                null, null, null, null, null, null, null, null
             );
 
             // When/Then
@@ -125,7 +125,7 @@ class UpdateQuestionUseCaseV3Test {
             when(questionRepository.findById(questionId)).thenReturn(Optional.of(existingQuestion));
 
             UpdateQuestionUseCaseV3.Command command = new UpdateQuestionUseCaseV3.Command(
-                null, null, null, null, null, null
+                null, null, null, null, null, null, null, null
             );
 
             // When

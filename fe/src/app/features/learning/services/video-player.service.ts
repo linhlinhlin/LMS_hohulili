@@ -269,7 +269,7 @@ export class VideoPlayerService {
       watchedDuration,
       totalDuration,
       progressPercentage: (watchedDuration / totalDuration) * 100,
-      isCompleted: watchedDuration >= totalDuration * 0.9, // 90% considered completed
+      isCompleted: watchedDuration >= totalDuration * 0.5, // 50% default threshold
       lastWatchedAt: new Date()
     };
 
@@ -289,6 +289,7 @@ export class VideoPlayerService {
           this._videoProgress.set(progress);
           this._currentTime.set(progress.watchedDuration);
         } catch (error) {
+          // localStorage parse — silent, start video from beginning
         }
       }
     }
@@ -351,26 +352,4 @@ export class VideoPlayerService {
     this._bookmarks.set([]);
   }
 
-  /**
-   * Get video statistics
-   */
-  getVideoStats(): {
-    totalWatched: number;
-    totalDuration: number;
-    completionRate: number;
-    bookmarksCount: number;
-    hasNotes: boolean;
-  } {
-    const progress = this._videoProgress();
-    const bookmarks = this._bookmarks();
-    const notes = this._notes();
-
-    return {
-      totalWatched: progress?.watchedDuration || 0,
-      totalDuration: progress?.totalDuration || 0,
-      completionRate: progress?.progressPercentage || 0,
-      bookmarksCount: bookmarks.length,
-      hasNotes: notes.length > 0
-    };
-  }
 }

@@ -1,4 +1,4 @@
-import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, HostListener } from '@angular/core';
+import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, HostListener, effect, untracked } from '@angular/core';
 
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { LearningService } from '../services/learning.service';
@@ -7,6 +7,8 @@ import { firstValueFrom, catchError, of } from 'rxjs';
 import { LessonApi } from '../../../api/client/lesson.api';
 import { QuizApi } from '../../../api/endpoints/quiz.api';
 import { VideoProgressApi } from '../../../api/client/video-progress.api';
+import { ApiClient } from '../../../api/client/api-client';
+import { ToastService } from '../../../core/services/toast.service';
 
 /**
  * Course Learning Component
@@ -28,12 +30,15 @@ export class CourseLearningComponent implements OnInit {
   private lessonApi = inject(LessonApi);
   private quizApi = inject(QuizApi);
   private videoProgressApi = inject(VideoProgressApi);
+  private apiClient = inject(ApiClient);
+  private toast = inject(ToastService);
 
   // Local UI state
   sidebarCollapsed = signal(false);
   searchQuery = signal('');
   isMobileView = signal(false);
   showMobileSidebar = signal(false);
+  error = signal<string | null>(null);
 
   // Video progress tracking for 75% rule
   canCompleteCurrentLesson = signal<boolean>(true); // Default true for non-video lessons
@@ -48,11 +53,37 @@ export class CourseLearningComponent implements OnInit {
   // Lesson collapse state - track which lessons are expanded (to show sections)
   expandedLessons = signal<Set<string>>(new Set<string>());
 
-  // Current section index for sidebar sync
-  currentSectionIndex = 0;
+  // Current section index for sidebar sync (signal for OnPush reactivity)
+  currentSectionIndex = signal(0);
 
   // Quiz availability - track which lessons have quizzes
   lessonsWithQuiz = signal<Set<string>>(new Set<string>());
+
+  // Pending lesson ID for auto-expand (set from route, resolved reactively when sections load)
+  private pendingExpandLessonId = signal<string | null>(null);
+
+  private autoExpandEffect = effect(() => {
+    const sections = this.sections();
+    const lessonId = this.pendingExpandLessonId();
+    if (sections.length > 0 && lessonId) {
+      untracked(() => {
+        this.autoExpandChapterForLesson(lessonId);
+        this.pendingExpandLessonId.set(null);
+      });
+    } else if (sections.length > 0 && !lessonId) {
+      // No specific lesson — expand first section
+      untracked(() => {
+        const firstSection = sections[0];
+        if (firstSection && this.expandedSections().size === 0) {
+          this.expandedSections.update(expanded => {
+            const newExpanded = new Set(expanded);
+            newExpanded.add(firstSection.id);
+            return newExpanded;
+          });
+        }
+      });
+    }
+  }, { allowSignalWrites: true });
 
   // Computed from service
   course = this.learningService.course;
@@ -85,19 +116,24 @@ export class CourseLearningComponent implements OnInit {
   ngOnInit(): void {
     this.checkMobileView();
     this.loadCourseFromRoute();
+    this.loadCompletedSections();
 
-    // Expand first section by default
-    const firstSection = this.sections()[0];
-    if (firstSection) {
-      this.expandedSections.update(expanded => {
-        const newExpanded = new Set(expanded);
-        newExpanded.add(firstSection.id);
-        return newExpanded;
-      });
+    // Set pending lesson ID — the autoExpandEffect will handle expansion reactively when sections load
+    const lessonId = this.route.snapshot.paramMap.get('lessonId');
+    if (lessonId) {
+      this.pendingExpandLessonId.set(lessonId);
     }
 
     // Check for quizzes for all lessons
     this.checkAllLessonsForQuizzes();
+
+    // Listen for quiz completion via query params
+    // Security: Validate quiz completion server-side before marking lesson complete
+    this.route.queryParams.subscribe(params => {
+      if (params['quizCompleted'] === 'true' && params['attemptId']) {
+        this.validateAndCompleteQuizLesson(params['attemptId']);
+      }
+    });
   }
 
   @HostListener('window:resize')
@@ -120,15 +156,19 @@ export class CourseLearningComponent implements OnInit {
       return;
     }
 
-    // Load course
-    this.learningService.loadCourse(courseId);
+    try {
+      // Load course
+      this.learningService.loadCourse(courseId);
 
-    // Load specific lesson if provided, or auto-select next uncompleted lesson
-    if (lessonId) {
-      this.learningService.loadLesson(lessonId);
-    } else {
-      // Auto-select next uncompleted lesson after course loads
-      this.selectNextUncompletedLesson();
+      // Load specific lesson if provided, or auto-select next uncompleted lesson
+      if (lessonId) {
+        this.learningService.loadLesson(lessonId);
+      } else {
+        // Auto-select next uncompleted lesson after course loads
+        this.selectNextUncompletedLesson();
+      }
+    } catch (err: any) {
+      this.error.set(err?.message || 'Không thể tải khóa học. Vui lòng thử lại.');
     }
   }
 
@@ -182,7 +222,21 @@ export class CourseLearningComponent implements OnInit {
     const lesson = this.learningService.allLessons().find(l => l.id === lessonId);
     if (lesson) {
       this.learningService.selectLesson(lesson);
+      this.currentSectionIndex.set(0); // Reset section index on lesson change
       this.closeMobileSidebar();
+
+      // Auto-expand parent chapter in sidebar (Coursera pattern: always show context)
+      this.autoExpandChapterForLesson(lessonId);
+
+      // Auto-expand lesson if it has sections (keep others expanded)
+      const lessonSections = (lesson as any).sections;
+      if (lessonSections && lessonSections.length > 0) {
+        this.expandedLessons.update(expanded => {
+          const newExpanded = new Set(expanded);
+          newExpanded.add(lessonId);
+          return newExpanded;
+        });
+      }
 
       // Update URL
       const courseId = this.course()?.id;
@@ -195,19 +249,36 @@ export class CourseLearningComponent implements OnInit {
     }
   }
 
-  // Navigation
+  /** Auto-expand the chapter that contains the given lesson */
+  private autoExpandChapterForLesson(lessonId: string): void {
+    const sections = this.sections();
+    for (const section of sections) {
+      if (section.lessons.some((l: any) => l.id === lessonId)) {
+        this.expandedSections.update(expanded => {
+          const newExpanded = new Set(expanded);
+          if (!newExpanded.has(section.id)) {
+            newExpanded.clear(); // Accordion: collapse others
+            newExpanded.add(section.id);
+          }
+          return newExpanded;
+        });
+        break;
+      }
+    }
+  }
+
   // Navigation
   previousLesson(): void {
     const currentLesson = this.currentLesson();
     if (currentLesson?.sections && currentLesson.sections.length > 0) {
-      if (this.currentSectionIndex > 0) {
-        this.currentSectionIndex--;
+      if (this.currentSectionIndex() > 0) {
+        this.currentSectionIndex.update(v => v - 1);
         return;
       }
     }
     this.learningService.goToPreviousLesson();
     // Reset section index for new lesson (handled in onLessonSelect/loadLesson but good to be explicit if needed)
-    this.currentSectionIndex = 0;
+    this.currentSectionIndex.set(0);
     this.updateUrlForCurrentLesson();
   }
 
@@ -216,43 +287,35 @@ export class CourseLearningComponent implements OnInit {
     
     // Check if we're navigating within sections of current lesson
     if (currentLesson?.sections && currentLesson.sections.length > 0) {
-      if (this.currentSectionIndex < currentLesson.sections.length - 1) {
+      if (this.currentSectionIndex() < currentLesson.sections.length - 1) {
         // 🔒 CHECK 75% RULE before going to next section
-        const currentSection = currentLesson.sections[this.currentSectionIndex];
+        const currentSection = currentLesson.sections[this.currentSectionIndex()];
         
         if (currentSection.type === 'VIDEO' && currentSection.videoUrl) {
           try {
-            const progressCheck = await firstValueFrom(
+            const progressCheck: any = await firstValueFrom(
               this.videoProgressApi.canProceedToNext(currentSection.id)
             );
 
-            if (progressCheck.success && progressCheck.data) {
-              if (!progressCheck.data.canProceed) {
-                // Chưa đủ 75%
-                const currentProgress = progressCheck.data.currentProgress || 0;
-                const remaining = 75 - currentProgress;
-                alert(
-                  `🔒 Bạn cần xem thêm ${remaining.toFixed(0)}% video để chuyển sang phần tiếp theo.\n` +
-                  `Tiến độ hiện tại: ${currentProgress.toFixed(0)}%`
-                );
-                return; // Block navigation
-              }
+            if (progressCheck.success && progressCheck.data && !progressCheck.data.canProceed) {
+              this.toast.warning('Bạn cần xem ít nhất 50% video để chuyển sang phần tiếp theo.');
+              return;
             }
           } catch (error) {
-            alert('Không thể kiểm tra tiến độ video. Vui lòng thử lại.');
-            return; // Block navigation on error
+            this.toast.error('Không thể kiểm tra tiến độ video. Vui lòng thử lại.');
+            return;
           }
         }
-        
+
         // All checks passed, proceed to next section
-        this.currentSectionIndex++;
+        this.currentSectionIndex.update(v => v + 1);
         return;
       }
     }
     
     // No more sections, go to next lesson
     this.learningService.goToNextLesson();
-    this.currentSectionIndex = 0;
+    this.currentSectionIndex.set(0);
     this.updateUrlForCurrentLesson();
   }
 
@@ -277,47 +340,54 @@ export class CourseLearningComponent implements OnInit {
 
     // Nếu lesson có sections, đánh dấu hoàn thành section hiện tại
     if (lesson.sections && lesson.sections.length > 0) {
-      const currentSection = lesson.sections[this.currentSectionIndex];
+      const currentSection = lesson.sections[this.currentSectionIndex()];
       if (!currentSection) {
         return;
       }
 
-      // 🔒 CHECK 75% RULE for VIDEO sections
+      // 🔒 CHECK 50% RULE for VIDEO sections
       if (currentSection.type === 'VIDEO' && currentSection.videoUrl) {
         try {
-          const progressCheck = await firstValueFrom(
+          const progressCheck: any = await firstValueFrom(
             this.videoProgressApi.canProceedToNext(currentSection.id)
           );
 
-          if (progressCheck.success && progressCheck.data) {
-            if (!progressCheck.data.canProceed) {
-              // Chưa đủ 75%
-              const currentProgress = progressCheck.data.currentProgress || 0;
-              const remaining = 75 - currentProgress;
-              alert(
-                `🔒 Bạn cần xem thêm ${remaining.toFixed(0)}% video để hoàn thành phần này.\n` +
-                `Tiến độ hiện tại: ${currentProgress.toFixed(0)}%`
-              );
-              return;
-            }
+          if (progressCheck.success && progressCheck.data && !progressCheck.data.canProceed) {
+            this.toast.warning('Bạn cần xem ít nhất 50% video để hoàn thành phần này.');
+            return;
           }
         } catch (error) {
-          alert('Không thể kiểm tra tiến độ video. Vui lòng thử lại.');
+          this.toast.error('Không thể kiểm tra tiến độ video. Vui lòng thử lại.');
           return;
         }
       }
 
       // Mark section as completed
       this.markSectionAsCompleted(currentSection.id);
-      
-      // Show success message
-      alert(`✅ Đã hoàn thành phần: ${currentSection.title}`);
-      
-      // Auto advance to next section if available
-      if (this.currentSectionIndex < lesson.sections.length - 1) {
-        this.currentSectionIndex++;
+
+      // Check if ALL sections are now completed
+      const allSectionsCompleted = lesson.sections.every(s =>
+        this.isSectionCompleted(s.id) || s.id === currentSection.id
+      );
+
+      if (allSectionsCompleted) {
+        // All sections done → mark lesson as complete on backend
+        try {
+          await firstValueFrom(this.lessonApi.markLessonComplete(lesson.id));
+          this.learningService.markCurrentLessonComplete();
+          this.toast.success(`Đã hoàn thành bài: ${lesson.title}`);
+        } catch {
+          this.toast.success(`Đã hoàn thành phần: ${currentSection.title}`);
+        }
+      } else {
+        this.toast.success(`Đã hoàn thành phần: ${currentSection.title}`);
       }
-      
+
+      // Auto advance to next section if available
+      if (this.currentSectionIndex() < lesson.sections.length - 1) {
+        this.currentSectionIndex.update(v => v + 1);
+      }
+
       return;
     }
 
@@ -339,30 +409,21 @@ export class CourseLearningComponent implements OnInit {
       // Get section ID from lesson's first video section
       const videoSection = this.getFirstVideoSection(lesson);
       if (!videoSection) {
-        alert('Không tìm thấy video trong bài học này.');
+        this.toast.error('Không tìm thấy video trong bài học này.');
         return;
       }
 
       try {
-        const progressCheck = await firstValueFrom(
+        const progressCheck: any = await firstValueFrom(
           this.videoProgressApi.canProceedToNext(videoSection.id)
         );
 
-        if (progressCheck.success && progressCheck.data) {
-          if (!progressCheck.data.canProceed) {
-            // Chưa đủ 75%
-            const currentProgress = progressCheck.data.currentProgress || 0;
-            const remaining = 75 - currentProgress;
-            alert(
-              `🔒 Bạn cần xem thêm ${remaining.toFixed(0)}% video để hoàn thành bài học.\n` +
-              `Tiến độ hiện tại: ${currentProgress.toFixed(0)}%`
-            );
-            return;
-          }
-          // Đã đủ 75%, cho phép tiếp tục
+        if (progressCheck.success && progressCheck.data && !progressCheck.data.canProceed) {
+          this.toast.warning('Bạn cần xem ít nhất 50% video để hoàn thành bài học.');
+          return;
         }
       } catch (error) {
-        alert('Không thể kiểm tra tiến độ video. Vui lòng thử lại.');
+        this.toast.error('Không thể kiểm tra tiến độ video. Vui lòng thử lại.');
         return;
       }
     }
@@ -379,7 +440,7 @@ export class CourseLearningComponent implements OnInit {
       this.expandCurrentLessonSection();
 
     } catch (error: any) {
-      alert('Không thể cập nhật trạng thái hoàn thành. Vui lòng thử lại.');
+      this.toast.error('Không thể cập nhật trạng thái hoàn thành. Vui lòng thử lại.');
     }
   }
 
@@ -413,10 +474,17 @@ export class CourseLearningComponent implements OnInit {
     this.completedSections.update(completed => {
       const newSet = new Set(completed);
       newSet.add(sectionId);
-      // Save to localStorage
+      // Save to localStorage as fallback
       localStorage.setItem('completed_sections', JSON.stringify(Array.from(newSet)));
       return newSet;
     });
+
+    // Persist to backend
+    const lessonId = this.currentLesson()?.id;
+    if (lessonId) {
+      this.apiClient.post<any>(`/api/v3/student/progress/lessons/${lessonId}/sections/${sectionId}/complete`, {})
+        .subscribe({ error: () => {} }); // Non-blocking
+    }
   }
 
   private loadCompletedSections(): void {
@@ -427,6 +495,7 @@ export class CourseLearningComponent implements OnInit {
         this.completedSections.set(new Set(sections));
       }
     } catch (error) {
+      // localStorage parse — silent, start from scratch
     }
   }
 
@@ -443,6 +512,14 @@ export class CourseLearningComponent implements OnInit {
         this.nextLesson();
       }, 1000);
     }
+  }
+
+  /**
+   * Called when a TEXT section has been read (80%+ scrolled).
+   * Auto-marks the section as complete.
+   */
+  onSectionReadComplete(sectionId: string): void {
+    this.markSectionAsCompleted(sectionId);
   }
 
   // Section accordion
@@ -476,6 +553,17 @@ export class CourseLearningComponent implements OnInit {
     }
   }
 
+  // Count completed lessons in a section (for sidebar "2/5 bài học")
+  getCompletedLessonCount(section: any): number {
+    return section.lessons.filter((l: any) => this.learningService.isLessonCompleted(l.id)()).length;
+  }
+
+  // Chapter progress percentage (for mini progress bar in sidebar)
+  getChapterProgress(section: any): number {
+    if (!section.lessons || section.lessons.length === 0) return 0;
+    return Math.round((this.getCompletedLessonCount(section) / section.lessons.length) * 100);
+  }
+
   // Lesson type label
   getLessonTypeLabel(lessonType: any): string {
     const labels: Record<string, string> = {
@@ -506,31 +594,24 @@ export class CourseLearningComponent implements OnInit {
   }
 
   toggleLesson(lesson: any): void {
-    // Always select the lesson first
-    this.onLessonSelect(lesson.id);
-
-    // Toggle expansion if lesson has sections
-    this.expandedLessons.update(expanded => {
-      const newExpanded = new Set(expanded);
-      if (newExpanded.has(lesson.id)) {
-        newExpanded.delete(lesson.id);
-      } else {
-        // Collapse other lessons, expand this one
-        newExpanded.clear();
-        newExpanded.add(lesson.id);
-      }
-      return newExpanded;
-    });
+    const isExpanded = this.expandedLessons().has(lesson.id);
+    if (isExpanded) {
+      // Just collapse, don't navigate
+      this.expandedLessons.update(set => { const n = new Set(set); n.delete(lesson.id); return n; });
+    } else {
+      // Expand + navigate
+      this.onLessonSelect(lesson.id);
+    }
   }
 
   selectSectionInSidebar(sectionIndex: number, event: Event): void {
     event.stopPropagation();
-    this.currentSectionIndex = sectionIndex;
+    this.currentSectionIndex.set(sectionIndex);
   }
 
   // Handle section index change from lesson-content component
   onSectionIndexChange(index: number): void {
-    this.currentSectionIndex = index;
+    this.currentSectionIndex.set(index);
   }
 
   // Navigation
@@ -570,6 +651,27 @@ export class CourseLearningComponent implements OnInit {
           this.closeMobileSidebar();
         }
         break;
+    }
+  }
+
+  /**
+   * Validate quiz attempt server-side before marking lesson as complete.
+   * SOTA (Canvas/Moodle): Never trust client-side quiz completion signals.
+   */
+  private async validateAndCompleteQuizLesson(attemptId: string): Promise<void> {
+    try {
+      const result = await firstValueFrom(
+        this.quizApi.getQuizResult(attemptId).pipe(catchError(() => of(null)))
+      );
+      if (result && (result as any)?.data?.isPassed !== false) {
+        const lessonId = this.currentLesson()?.id;
+        if (lessonId) {
+          await firstValueFrom(this.lessonApi.markLessonComplete(lessonId));
+          this.learningService.markCurrentLessonComplete();
+        }
+      }
+    } catch {
+      // Failed to validate - don't mark as complete
     }
   }
 

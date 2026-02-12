@@ -15,7 +15,7 @@ import { QuizViewerComponent } from '../quiz-viewer/quiz-viewer.component';
         <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-5 h-5 text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
               </svg>
@@ -60,7 +60,7 @@ import { QuizViewerComponent } from '../quiz-viewer/quiz-viewer.component';
                 <h4 class="font-semibold text-gray-900">Nội dung bài học (Sections)</h4>
                 <div class="flex gap-2">
                   <button type="button" (click)="openSmartEditor.emit(lesson.id)"
-                          class="px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors flex items-center gap-1">
+                          class="px-3 py-1.5 text-xs font-medium text-[#004BB5] bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors flex items-center gap-1">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                     Thêm nội dung
                   </button>
@@ -74,9 +74,9 @@ import { QuizViewerComponent } from '../quiz-viewer/quiz-viewer.component';
                     <div class="flex items-center gap-3">
                       <div class="w-8 h-8 rounded-full flex items-center justify-center"
                            [class.bg-blue-100]="sec.type === 'TEXT'"
-                           [class.text-blue-600]="sec.type === 'TEXT'"
-                           [class.bg-red-100]="sec.type === 'VIDEO'"
-                           [class.text-red-600]="sec.type === 'VIDEO'">
+                           [class.text-[#0056D2]]="sec.type === 'TEXT'"
+                           [class.bg-indigo-100]="sec.type === 'VIDEO'"
+                           [class.text-indigo-600]="sec.type === 'VIDEO'">
                         @if (sec.type === 'TEXT') {
                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                         } @else if (sec.type === 'VIDEO') {
@@ -138,7 +138,7 @@ import { QuizViewerComponent } from '../quiz-viewer/quiz-viewer.component';
 
                   <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div class="bg-white rounded p-3 text-center border border-blue-300">
-                      <div class="text-lg font-bold text-blue-600">{{ getAssignmentStatus(lesson) }}</div>
+                      <div class="text-lg font-bold text-[#0056D2]">{{ getAssignmentStatus(lesson) }}</div>
                       <div class="text-xs text-blue-500">Trạng thái</div>
                     </div>
 
@@ -163,7 +163,7 @@ import { QuizViewerComponent } from '../quiz-viewer/quiz-viewer.component';
                   </div>
 
                   <div class="flex gap-2 pt-2 border-t border-blue-300">
-                    <button class="px-3 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 flex items-center gap-2">
+                    <button class="px-3 py-2 bg-[#0056D2] text-white text-sm rounded hover:bg-[#004BB5] flex items-center gap-2">
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                       </svg>

@@ -1,9 +1,10 @@
-﻿import { Component, signal, computed, inject, OnInit, OnDestroy, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
+﻿import { Component, signal, computed, inject, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
 import { LoadingComponent } from '../../shared/components/loading/loading.component';
+import { ConfirmDialogService } from '../../core/services/confirm-dialog.service';
 
 interface Notification {
   id: string;
@@ -65,13 +66,13 @@ interface NotificationTemplate {
 @Component({
   selector: 'app-advanced-notification-system',
   imports: [RouterModule, FormsModule, LoadingComponent],
-  encapsulation: ViewEncapsulation.None,
   templateUrl: './advanced-notification-system.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AdvancedNotificationSystemComponent implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private router = inject(Router);
+  private confirmDialog = inject(ConfirmDialogService);
 
   // Signals
   isLoading = signal(false);
@@ -146,69 +147,9 @@ export class AdvancedNotificationSystemComponent implements OnInit, OnDestroy {
   }
 
   private loadNotifications(): void {
-    this.isLoading.set(true);
-    
-    // Load mock data
-    setTimeout(() => {
-      this.notifications.set(this.generateMockNotifications());
-      this.isLoading.set(false);
-    }, 1000);
-  }
-
-  private generateMockNotifications(): Notification[] {
-    return [
-      {
-        id: '1',
-        title: 'Bài tập mới: Navigation Safety Quiz',
-        message: 'Bạn có bài tập mới cần hoàn thành trong khóa học Navigation Safety. Hạn nộp: 25/12/2024',
-        type: 'assignment',
-        priority: 'high',
-        category: 'assignment',
-        isRead: false,
-        isArchived: false,
-        createdAt: new Date(),
-        actionUrl: '/student/assignments/1',
-        actionText: 'Xem bài tập',
-        metadata: {
-          assignmentId: '1',
-          courseId: 'nav-safety'
-        },
-        sender: {
-          id: 't1',
-          name: 'Thầy Nguyễn Văn A',
-          avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
-          role: 'teacher'
-        }
-      },
-      {
-        id: '2',
-        title: 'Khóa học mới: Marine Engineering',
-        message: 'Khóa học Marine Engineering đã được mở đăng ký. Hãy đăng ký ngay để không bỏ lỡ cơ hội học tập.',
-        type: 'course',
-        priority: 'medium',
-        category: 'course',
-        isRead: true,
-        isArchived: false,
-        createdAt: new Date(Date.now() - 86400000), // 1 day ago
-        actionUrl: '/courses/marine-engineering',
-        actionText: 'Đăng ký ngay',
-        metadata: {
-          courseId: 'marine-eng'
-        }
-      },
-      {
-        id: '3',
-        title: 'Thông báo hệ thống: Bảo trì định kỳ',
-        message: 'Hệ thống sẽ được bảo trì từ 2:00 - 4:00 ngày 20/12/2024. Vui lòng lưu công việc trước thời gian này.',
-        type: 'system',
-        priority: 'urgent',
-        category: 'system',
-        isRead: false,
-        isArchived: false,
-        createdAt: new Date(Date.now() - 3600000), // 1 hour ago
-        expiresAt: new Date(Date.now() + 86400000) // expires in 1 day
-      }
-    ];
+    // No notification API exists yet — show empty state
+    this.notifications.set([]);
+    this.isLoading.set(false);
   }
 
   markAllAsRead(): void {
@@ -237,9 +178,16 @@ export class AdvancedNotificationSystemComponent implements OnInit, OnDestroy {
     );
   }
 
-  deleteNotification(notification: Notification): void {
-    if (confirm(`Bạn có chắc chắn muốn xóa thông báo "${notification.title}"?`)) {
-      this.notifications.update(notifications => 
+  async deleteNotification(notification: Notification): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Xóa thông báo',
+      message: `Bạn có chắc chắn muốn xóa thông báo "${notification.title}"?`,
+      confirmText: 'Xóa',
+      cancelText: 'Hủy',
+      variant: 'danger'
+    });
+    if (confirmed) {
+      this.notifications.update(notifications =>
         notifications.filter(n => n.id !== notification.id)
       );
     }
@@ -258,7 +206,7 @@ export class AdvancedNotificationSystemComponent implements OnInit, OnDestroy {
   getNotificationIconClass(type: string): string {
     switch (type) {
       case 'assignment': return 'bg-orange-100 text-orange-600';
-      case 'course': return 'bg-blue-100 text-blue-600';
+      case 'course': return 'bg-blue-100 text-[#0056D2]';
       case 'system': return 'bg-gray-100 text-gray-600';
       case 'social': return 'bg-green-100 text-green-600';
       case 'announcement': return 'bg-purple-100 text-purple-600';

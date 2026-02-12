@@ -319,7 +319,7 @@ export class QuizStateService {
       case QuestionType.TRUE_FALSE:
         return userAnswer === question.correctAnswer;
       
-      case QuestionType.FILL_BLANK:
+      case QuestionType.FILL_IN_BLANK:
         if (typeof userAnswer === 'string' && typeof question.correctAnswer === 'string') {
           return question.correctAnswer.toLowerCase().trim() === userAnswer.toLowerCase().trim();
         }

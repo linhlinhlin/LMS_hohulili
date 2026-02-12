@@ -34,6 +34,11 @@ public class UpdateCourseUseCase {
         // Update basic info
         course.updateInfo(command.title(), command.description());
 
+        // Update thumbnail
+        if (command.thumbnailUrl() != null) {
+            course.updateThumbnail(command.thumbnailUrl());
+        }
+
         // Update category
         if (command.categoryId() != null) {
             course.updateCategory(command.categoryId());
@@ -65,6 +70,12 @@ public class UpdateCourseUseCase {
             course.updateVisibility(visibility);
         }
 
+        // Update delivery mode
+        Course.DeliveryMode deliveryMode = parseDeliveryMode(command.deliveryMode());
+        if (deliveryMode != null) {
+            course.updateDeliveryMode(deliveryMode);
+        }
+
         // Save course
         course = courseRepository.save(course);
 
@@ -88,6 +99,17 @@ public class UpdateCourseUseCase {
         }
         try {
             return Course.Visibility.valueOf(visibility.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    private Course.DeliveryMode parseDeliveryMode(String deliveryMode) {
+        if (deliveryMode == null || deliveryMode.isBlank()) {
+            return null;
+        }
+        try {
+            return Course.DeliveryMode.valueOf(deliveryMode.toUpperCase());
         } catch (IllegalArgumentException e) {
             return null;
         }

@@ -4,6 +4,8 @@ import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { AdminService, AdminUser, UserAccountStatus, UpdateUserStatusRequest } from '../../infrastructure/services/admin.service';
+import { ToastService } from '../../../../core/services/toast.service';
+import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 
 /**
  * Teacher Management Component
@@ -26,6 +28,8 @@ import { AdminService, AdminUser, UserAccountStatus, UpdateUserStatusRequest } f
 })
 export class TeacherManagementComponent implements OnInit {
   private adminService = inject(AdminService);
+  private toast = inject(ToastService);
+  private confirmDialog = inject(ConfirmDialogService);
 
   // State
   allUsers = signal<AdminUser[]>([]);
@@ -126,9 +130,15 @@ export class TeacherManagementComponent implements OnInit {
   }
 
   // Role change handler
-  onRoleChange(userId: string, newRole: string) {
-    if (!confirm(`Bạn có chắc muốn thay đổi vai trò người dùng này thành ${this.getRoleLabel(newRole)}?`)) {
-      this.loadUsers(); // Reload to reset dropdown
+  async onRoleChange(userId: string, newRole: string) {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Thay đổi vai trò',
+      message: `Bạn có chắc muốn thay đổi vai trò người dùng này thành ${this.getRoleLabel(newRole)}?`,
+      confirmText: 'Thay đổi',
+      variant: 'warning'
+    });
+    if (!confirmed) {
+      this.loadUsers();
       return;
     }
 
@@ -141,28 +151,36 @@ export class TeacherManagementComponent implements OnInit {
   onStatusActionChange(user: AdminUser, newStatus: string) {
     if (!newStatus) return;
 
-    const statusLabel = this.getStatusLabel(newStatus);
-    const reason = prompt(`Nhập lý do ${statusLabel.toLowerCase()} tài khoản (tùy chọn):`);
-
     this.adminService.updateUserStatus(user.id, {
       status: newStatus as UserAccountStatus,
-      reason: reason || ''
+      reason: ''
     }).subscribe({
-      next: () => this.loadUsers(),
+      next: () => {
+        this.loadUsers();
+        this.toast.success('Đã cập nhật trạng thái tài khoản.');
+      },
       error: () => {
         // Fallback to toggle if updateUserStatus not implemented
         this.adminService.toggleUserStatus(user.id).subscribe({
-          next: () => this.loadUsers()
+          next: () => this.loadUsers(),
+          error: () => this.toast.error('Không thể cập nhật trạng thái tài khoản.')
         });
       }
     });
   }
 
-  deleteUser(userId: string) {
-    if (!confirm('Bạn có chắc muốn vô hiệu hóa tài khoản này?')) return;
+  async deleteUser(userId: string) {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Vô hiệu hóa tài khoản',
+      message: 'Bạn có chắc muốn vô hiệu hóa tài khoản này?',
+      confirmText: 'Vô hiệu hóa',
+      variant: 'danger'
+    });
+    if (!confirmed) return;
 
     this.adminService.deleteUser(userId).subscribe({
-      next: () => this.loadUsers()
+      next: () => this.loadUsers(),
+      error: (err) => this.toast.error('Không thể vô hiệu hóa: ' + (err.error?.message || 'Vui lòng thử lại'))
     });
   }
 
@@ -231,45 +249,69 @@ export class TeacherManagementComponent implements OnInit {
   /**
    * Approve a pending course
    */
-  approveCourse(courseId: string): void {
-    if (!confirm('Bạn có chắc muốn phê duyệt khóa học này?')) return;
+  async approveCourse(courseId: string): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Phê duyệt khóa học',
+      message: 'Bạn có chắc muốn phê duyệt khóa học này?',
+      confirmText: 'Phê duyệt',
+      variant: 'warning'
+    });
+    if (!confirmed) return;
 
     this.adminService.approveCourse(courseId).subscribe({
       next: () => {
-        // Update local state
         const courses = this.teacherCourses();
         const updatedCourses = courses.map(c =>
           c.id === courseId ? { ...c, status: 'PUBLISHED' } : c
         );
         this.teacherCourses.set(updatedCourses);
+        this.toast.success('Đã phê duyệt khóa học thành công');
       },
       error: (err) => {
-        alert('Lỗi khi phê duyệt: ' + (err.message || 'Vui lòng thử lại'));
+        this.toast.error('Lỗi khi phê duyệt: ' + (err.error?.message || 'Vui lòng thử lại'));
       }
     });
   }
 
   /**
-   * Reject a pending course
+   * Reject a pending course - uses reject reason signal + modal pattern
    */
-  rejectCourse(courseId: string): void {
-    const reason = prompt('Nhập lý do từ chối (bắt buộc):');
-    if (!reason) {
-      alert('Vui lòng nhập lý do từ chối');
+  rejectReasonInput = signal('');
+  showRejectCourseModal = signal(false);
+  rejectingCourseId = signal('');
+
+  openRejectCourseModal(courseId: string): void {
+    this.rejectingCourseId.set(courseId);
+    this.rejectReasonInput.set('');
+    this.showRejectCourseModal.set(true);
+  }
+
+  closeRejectCourseModal(): void {
+    this.showRejectCourseModal.set(false);
+    this.rejectingCourseId.set('');
+    this.rejectReasonInput.set('');
+  }
+
+  confirmRejectCourse(): void {
+    const reason = this.rejectReasonInput();
+    const courseId = this.rejectingCourseId();
+    if (!reason.trim()) {
+      this.toast.warning('Vui lòng nhập lý do từ chối');
       return;
     }
 
     this.adminService.rejectCourse(courseId, reason).subscribe({
       next: () => {
-        // Remove from list or update status
         const courses = this.teacherCourses();
         const updatedCourses = courses.map(c =>
           c.id === courseId ? { ...c, status: 'REJECTED' } : c
         );
         this.teacherCourses.set(updatedCourses);
+        this.closeRejectCourseModal();
+        this.toast.success('Đã từ chối khóa học');
       },
       error: (err) => {
-        alert('Lỗi khi từ chối: ' + (err.message || 'Vui lòng thử lại'));
+        this.toast.error('Lỗi khi từ chối: ' + (err.error?.message || 'Vui lòng thử lại'));
       }
     });
   }

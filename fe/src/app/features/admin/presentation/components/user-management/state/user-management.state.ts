@@ -2,6 +2,8 @@ import { Injectable, signal, computed, inject, DestroyRef } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AdminService, AdminUser, CreateUserRequest, UpdateUserRequest } from '../../../../infrastructure/services/admin.service';
 import { ToastService } from '../../../../../../core/services/toast.service';
+import { ConfirmDialogService } from '../../../../../../core/services/confirm-dialog.service';
+import { AuthService } from '../../../../../../core/services/auth.service';
 
 export interface PaginationInfo {
   page: number;
@@ -33,13 +35,25 @@ export class UserManagementState {
   private adminService = inject(AdminService);
   private destroyRef = inject(DestroyRef);
   private toastService = inject(ToastService);
+  private confirmDialog = inject(ConfirmDialogService);
+  private authService = inject(AuthService);
 
-  // Role options - Single source of truth
-  readonly ROLE_OPTIONS = [
-    { value: 'ADMIN', label: 'Quản trị viên' },
+  // All role options
+  private readonly ALL_ROLE_OPTIONS = [
+    { value: 'ADMIN', label: 'Quản trị hệ thống' },
+    { value: 'ORG_ADMIN', label: 'Chuyên viên quản lý' },
     { value: 'TEACHER', label: 'Giảng viên' },
     { value: 'STUDENT', label: 'Học viên' }
   ] as const;
+
+  // Role options filtered by current user's role
+  // ORG_ADMIN can only create/assign TEACHER and STUDENT
+  get ROLE_OPTIONS() {
+    if (this.authService.userRole() === 'org_admin') {
+      return this.ALL_ROLE_OPTIONS.filter(r => r.value === 'TEACHER' || r.value === 'STUDENT');
+    }
+    return this.ALL_ROLE_OPTIONS;
+  }
 
   // Filter states
   searchQuery = signal('');
@@ -87,7 +101,7 @@ export class UserManagementState {
   totalUsers = computed(() => this._localUsers().length);
   totalTeachers = computed(() => this._localUsers().filter(u => u.role === 'TEACHER').length);
   totalStudents = computed(() => this._localUsers().filter(u => u.role === 'STUDENT').length);
-  totalAdmins = computed(() => this._localUsers().filter(u => u.role === 'ADMIN').length);
+  totalAdmins = computed(() => this._localUsers().filter(u => u.role === 'ADMIN' || u.role === 'ORG_ADMIN').length);
   activeUsers = computed(() => this._localUsers().filter(u => u.accountStatus === 'ACTIVE').length);
 
   // Computed - Filtered users
@@ -226,7 +240,7 @@ export class UserManagementState {
       email: this.newUserEmail(),
       password: 'Password123!',
       fullName: this.newUserName(),
-      role: this.newUserRole() as 'ADMIN' | 'TEACHER' | 'STUDENT'
+      role: this.newUserRole() as 'ADMIN' | 'ORG_ADMIN' | 'TEACHER' | 'STUDENT'
     };
 
     this.adminService.createUser(request)
@@ -263,7 +277,7 @@ export class UserManagementState {
     const request: UpdateUserRequest = {
       email: this.editingUserEmail(),
       fullName: this.editingUserName(),
-      role: this.editingUserRole() as 'ADMIN' | 'TEACHER' | 'STUDENT'
+      role: this.editingUserRole() as 'ADMIN' | 'ORG_ADMIN' | 'TEACHER' | 'STUDENT'
     };
 
     this.adminService.updateUser(userId, request)
@@ -281,10 +295,14 @@ export class UserManagementState {
   }
 
   // Delete User
-  deleteUser(userId: string): void {
-    if (!confirm('Bạn có chắc chắn muốn vô hiệu hóa người dùng này?')) {
-      return;
-    }
+  async deleteUser(userId: string): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Vô hiệu hóa người dùng',
+      message: 'Bạn có chắc chắn muốn vô hiệu hóa người dùng này?',
+      confirmText: 'Vô hiệu hóa',
+      variant: 'danger'
+    });
+    if (!confirmed) return;
 
     this.isDeletingUser.set(true);
 
@@ -312,15 +330,21 @@ export class UserManagementState {
   }
 
   // Role Change
-  onRoleChange(userId: string, oldRole: string, newRole: string): void {
+  async onRoleChange(userId: string, oldRole: string, newRole: string): Promise<void> {
     if (oldRole === newRole) return;
 
-    if (!confirm(`Bạn có chắc chắn muốn thay đổi vai trò người dùng thành ${this.getRoleText(newRole)}?`)) {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Thay đổi vai trò',
+      message: `Bạn có chắc chắn muốn thay đổi vai trò người dùng thành ${this.getRoleText(newRole)}?`,
+      confirmText: 'Thay đổi',
+      variant: 'warning'
+    });
+    if (!confirmed) {
       this.revertUserRole(userId, oldRole);
       return;
     }
 
-    this.adminService.updateUser(userId, { role: newRole as 'ADMIN' | 'TEACHER' | 'STUDENT' })
+    this.adminService.updateUser(userId, { role: newRole as 'ADMIN' | 'ORG_ADMIN' | 'TEACHER' | 'STUDENT' })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
@@ -409,8 +433,9 @@ export class UserManagementState {
   getRoleClass(role: string): string {
     switch (role) {
       case 'ADMIN': return 'bg-orange-50 text-orange-700 border-orange-200';
+      case 'ORG_ADMIN': return 'bg-teal-50 text-teal-700 border-teal-200';
       case 'TEACHER': return 'bg-purple-50 text-purple-700 border-purple-200';
-      case 'STUDENT': return 'bg-blue-50 text-blue-700 border-blue-200';
+      case 'STUDENT': return 'bg-blue-50 text-[#004BB5] border-blue-200';
       default: return 'bg-gray-50 text-gray-700 border-gray-200';
     }
   }

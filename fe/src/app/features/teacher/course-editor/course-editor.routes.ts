@@ -15,25 +15,25 @@ export const courseEditorRoutes: Routes = [
                 path: 'info',
                 loadComponent: () => import('./pages/course-info/course-info.component')
                     .then(m => m.CourseInfoComponent),
-                title: 'Edit Course Info'
+                title: 'Sửa thông tin khóa học'
             },
             {
                 path: 'curriculum',
                 loadComponent: () => import('./pages/course-curriculum')
                     .then(m => m.CourseCurriculumComponent),
-                title: 'Edit Curriculum'
+                title: 'Sửa chương trình học'
             },
             {
                 path: 'settings',
                 loadComponent: () => import('./pages/course-settings/course-settings.component')
                     .then(m => m.CourseSettingsComponent),
-                title: 'Course Settings'
+                title: 'Cài đặt khóa học'
             },
             {
                 path: 'classes',
                 loadComponent: () => import('./pages/course-classes/course-classes.component')
                     .then(m => m.CourseClassesComponent),
-                title: 'Manage Classes'
+                title: 'Quản lý lớp học'
             }
         ]
     }

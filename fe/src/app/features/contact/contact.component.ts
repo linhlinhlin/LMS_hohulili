@@ -1,6 +1,7 @@
-import { Component, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, signal, inject, ChangeDetectionStrategy } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
+import { ToastService } from '../../core/services/toast.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -9,7 +10,7 @@ import { FormsModule } from '@angular/forms';
   template: `
     <div class="min-h-screen bg-gray-50">
       <!-- Hero Section -->
-      <div class="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-20">
+      <div class="bg-[#0056D2] text-white py-20">
         <div class="container mx-auto px-4 text-center">
           <h1 class="text-4xl md:text-6xl font-bold mb-6">Liên hệ với chúng tôi</h1>
           <p class="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
@@ -34,7 +35,7 @@ import { FormsModule } from '@angular/forms';
                     name="name"
                     [(ngModel)]="formData.name"
                     required
-                    class="w-full px-4 py-3 border border-gray-800 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    class="w-full px-4 py-3 border border-gray-800 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-transparent"
                     placeholder="Nhập họ và tên của bạn">
                 </div>
 
@@ -47,7 +48,7 @@ import { FormsModule } from '@angular/forms';
                     [(ngModel)]="formData.email"
                     required
                     email
-                    class="w-full px-4 py-3 border border-gray-800 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    class="w-full px-4 py-3 border border-gray-800 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-transparent"
                     placeholder="Nhập email của bạn">
                 </div>
 
@@ -58,7 +59,7 @@ import { FormsModule } from '@angular/forms';
                     id="phone" 
                     name="phone"
                     [(ngModel)]="formData.phone"
-                    class="w-full px-4 py-3 border border-gray-800 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    class="w-full px-4 py-3 border border-gray-800 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-transparent"
                     placeholder="Nhập số điện thoại của bạn">
                 </div>
 
@@ -69,7 +70,7 @@ import { FormsModule } from '@angular/forms';
                     name="subject"
                     [(ngModel)]="formData.subject"
                     required
-                    class="w-full px-4 py-3 border border-gray-800 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    class="w-full px-4 py-3 border border-gray-800 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-transparent">
                     <option value="">Chọn chủ đề</option>
                     <option value="general">Thông tin chung</option>
                     <option value="technical">Hỗ trợ kỹ thuật</option>
@@ -87,7 +88,7 @@ import { FormsModule } from '@angular/forms';
                     [(ngModel)]="formData.message"
                     required
                     rows="5"
-                    class="w-full px-4 py-3 border border-gray-800 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    class="w-full px-4 py-3 border border-gray-800 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-transparent"
                     placeholder="Nhập nội dung tin nhắn của bạn"></textarea>
                 </div>
 
@@ -98,23 +99,23 @@ import { FormsModule } from '@angular/forms';
                     name="agree"
                     [(ngModel)]="formData.agree"
                     required
-                    class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-800 rounded">
+                    class="h-4 w-4 text-[#0056D2] focus:ring-[#0056D2] border-gray-800 rounded">
                   <label for="agree" class="ml-2 block text-sm text-gray-700">
-                    Tôi đồng ý với <a href="#" class="text-blue-600 hover:underline">chính sách bảo mật</a> và 
-                    <a href="#" class="text-blue-600 hover:underline">điều khoản sử dụng</a>
+                    Tôi đồng ý với <a href="#" class="text-[#0056D2] hover:underline">chính sách bảo mật</a> và 
+                    <a href="#" class="text-[#0056D2] hover:underline">điều khoản sử dụng</a>
                   </label>
                 </div>
 
                 @if (isSubmitting()) {
                   <div class="flex items-center justify-center py-4">
-                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0056D2]"></div>
                     <span class="ml-2 text-gray-600">Đang gửi tin nhắn...</span>
                   </div>
                 } @else {
                   <button 
                     type="submit"
                     [disabled]="!contactForm.form.valid || !formData.agree"
-                    class="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">
+                    class="w-full bg-[#0056D2] text-white py-3 px-6 rounded-lg font-semibold hover:bg-[#004BB5] disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">
                     Gửi tin nhắn
                   </button>
                 }
@@ -135,7 +136,7 @@ import { FormsModule } from '@angular/forms';
                 <div class="space-y-6">
                   <div class="flex items-start">
                     <div class="bg-blue-100 p-3 rounded-lg mr-4">
-                      <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg class="w-6 h-6 text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
                       </svg>
@@ -188,7 +189,7 @@ import { FormsModule } from '@angular/forms';
               <div class="bg-white rounded-lg shadow-lg p-8">
                 <h2 class="text-2xl font-bold text-gray-900 mb-6">Theo dõi chúng tôi</h2>
                 <div class="flex space-x-4">
-                  <a href="#" class="bg-blue-600 text-white p-3 rounded-lg hover:bg-blue-700 transition-colors">
+                  <a href="#" class="bg-[#0056D2] text-white p-3 rounded-lg hover:bg-[#004BB5] transition-colors">
                     <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/>
                     </svg>
@@ -213,6 +214,8 @@ import { FormsModule } from '@angular/forms';
   `
 })
 export class ContactComponent {
+  private toast = inject(ToastService);
+
   isSubmitting = signal(false);
   submitMessage = signal('');
   isSuccess = signal(false);
@@ -227,28 +230,16 @@ export class ContactComponent {
   };
 
   onSubmit(): void {
-    if (this.formData.agree) {
-      this.isSubmitting.set(true);
-      
-      // Simulate form submission
-      setTimeout(() => {
-        this.isSubmitting.set(false);
-        this.isSuccess.set(true);
-        this.submitMessage.set('Cảm ơn bạn đã liên hệ! Chúng tôi sẽ phản hồi trong vòng 24 giờ.');
-        
-        // Reset form
-        this.formData = {
-          name: '',
-          email: '',
-          phone: '',
-          subject: '',
-          message: '',
-          agree: false
-        };
-      }, 2000);
-    } else {
-      this.isSuccess.set(false);
-      this.submitMessage.set('Vui lòng đồng ý với chính sách bảo mật và điều khoản sử dụng.');
+    if (!this.formData.agree) {
+      this.toast.error('Vui lòng đồng ý với chính sách bảo mật và điều khoản sử dụng');
+      return;
     }
+
+    const subject = encodeURIComponent(this.formData.subject);
+    const body = encodeURIComponent(
+      `Tên: ${this.formData.name}\nEmail: ${this.formData.email}\nSĐT: ${this.formData.phone}\n\n${this.formData.message}`
+    );
+    window.open(`mailto:support@maritime.edu?subject=${subject}&body=${body}`, '_self');
+    this.toast.success('Đã mở ứng dụng email. Vui lòng gửi email để liên hệ.');
   }
 }

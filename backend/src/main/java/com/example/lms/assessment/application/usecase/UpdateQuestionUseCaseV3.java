@@ -37,7 +37,9 @@ public class UpdateQuestionUseCaseV3 {
         question.updateContentBlocks(command.blocks());
         question.updateDifficulty(command.difficulty());
         question.updateTags(command.tags());
+        question.updateQuestionType(command.questionType());
         question.updateCorrectOption(command.correctOption());
+        question.updateAnswerKey(command.answerKey());
         question.updateStatus(command.status());
 
         // Update options if provided
@@ -68,6 +70,8 @@ public class UpdateQuestionUseCaseV3 {
     public record Command(
             List<ContentBlock> blocks,
             String correctOption,
+            Map<String, Object> answerKey,
+            Question.QuestionType questionType,
             List<String> options,
             Question.Difficulty difficulty,
             String tags,

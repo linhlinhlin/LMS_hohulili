@@ -795,7 +795,7 @@
 // Payment Notice Card
 // ============================================
 .payment-notice-card {
-  background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+  background: #FEF3C7;
   border: 1px solid #F59E0B;
   border-radius: 12px;
   padding: 20px;
@@ -858,7 +858,7 @@
   justify-content: center;
   gap: 8px;
   padding: 14px 24px;
-  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+  background: #F59E0B;
   color: white;
   border: none;
   border-radius: 8px;
@@ -869,7 +869,7 @@
   box-shadow: 0 4px 6px rgba(217, 119, 6, 0.25);
 
   &:hover {
-    background: linear-gradient(135deg, #D97706 0%, #B45309 100%);
+    background: #D97706;
     transform: translateY(-2px);
     box-shadow: 0 6px 10px rgba(217, 119, 6, 0.35);
   }
@@ -960,4 +960,253 @@
   width: 24px;
   height: 24px;
   color: #9CA3AF;
+}
+
+// ============================================
+// Reviews Section
+// ============================================
+.reviews-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 24px;
+}
+
+.reviews-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.review-summary-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.avg-rating {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #F59E0B;
+}
+
+.star-display {
+  display: flex;
+  gap: 2px;
+  font-size: 1rem;
+  color: #D1D5DB;
+
+  .filled {
+    color: #F59E0B;
+  }
+}
+
+.review-count {
+  font-size: 0.875rem;
+  color: #6B7280;
+}
+
+// My review card
+.my-review-card {
+  background: #F0F9FF;
+  border: 1px solid #BAE6FD;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.my-review-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.my-review-label {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #0369A1;
+}
+
+.my-review-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.my-review-stars {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+
+.my-review-comment {
+  font-size: 0.9375rem;
+  color: #374151;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.star, .star-sm {
+  color: #D1D5DB;
+  font-size: 1.125rem;
+
+  &.filled {
+    color: #F59E0B;
+  }
+}
+
+.star-sm {
+  font-size: 0.875rem;
+}
+
+// Review form
+.review-form {
+  background: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.review-form-stars {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.star-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.5rem;
+  color: #D1D5DB;
+  padding: 0;
+  transition: color 0.15s;
+
+  &.filled {
+    color: #F59E0B;
+  }
+
+  &:hover {
+    color: #FBBF24;
+  }
+}
+
+.review-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #D1D5DB;
+  border-radius: 6px;
+  font-size: 0.9375rem;
+  resize: vertical;
+  font-family: inherit;
+  margin-bottom: 12px;
+
+  &:focus {
+    outline: none;
+    border-color: #3B82F6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+}
+
+.review-form-actions {
+  display: flex;
+  gap: 8px;
+}
+
+// Reviews list
+.reviews-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.review-item {
+  padding: 12px 0;
+  border-bottom: 1px solid #F3F4F6;
+
+  &:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+}
+
+.review-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.reviewer-name {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #1F2937;
+}
+
+.review-date {
+  font-size: 0.75rem;
+  color: #9CA3AF;
+}
+
+.review-item-stars {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 6px;
+}
+
+.review-item-comment {
+  font-size: 0.875rem;
+  color: #4B5563;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.no-reviews {
+  text-align: center;
+  color: #9CA3AF;
+  font-size: 0.875rem;
+  padding: 16px 0;
+}
+
+// Small buttons
+.btn-sm {
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+
+.btn-edit {
+  background: #EFF6FF;
+  color: #2563EB;
+
+  &:hover {
+    background: #DBEAFE;
+  }
+}
+
+.btn-delete {
+  background: #FEF2F2;
+  color: #DC2626;
+
+  &:hover {
+    background: #FEE2E2;
+  }
+}
+
+.btn-cancel {
+  background: #F3F4F6;
+  color: #6B7280;
+
+  &:hover {
+    background: #E5E7EB;
+  }
 }

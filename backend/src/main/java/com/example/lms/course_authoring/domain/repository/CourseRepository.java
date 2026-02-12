@@ -118,4 +118,15 @@ public interface CourseRepository {
      * Find courses by status and title containing search text.
      */
     Page<Course> findByStatusAndTitleContaining(Course.CourseStatus status, String search, Pageable pageable);
+
+    /**
+     * Find all courses by title containing search text (any status).
+     */
+    Page<Course> findByTitleContaining(String search, Pageable pageable);
+
+    /**
+     * Find the maximum sequence number for auto-generated course codes with the given prefix.
+     * Only matches codes in the format PREFIX-NNN (e.g., NAV-001).
+     */
+    int findMaxSequenceNumberByPrefix(String prefix);
 }

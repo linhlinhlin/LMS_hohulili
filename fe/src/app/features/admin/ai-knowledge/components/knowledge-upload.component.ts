@@ -1,6 +1,7 @@
-import { Component, input, output, ChangeDetectionStrategy } from '@angular/core';
+import { Component, input, output, inject, ChangeDetectionStrategy } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
+import { ToastService } from '../../../../core/services/toast.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -287,6 +288,7 @@ import { FormsModule } from '@angular/forms';
   `]
 })
 export class KnowledgeUploadComponent {
+  private toast = inject(ToastService);
   isUploading = input(false);
   upload = output<{ file: File, category: string }>();
 
@@ -326,11 +328,11 @@ export class KnowledgeUploadComponent {
 
   handleFile(file: File) {
     if (file.type !== 'application/pdf') {
-      alert('Chỉ hỗ trợ file PDF');
+      this.toast.warning('Chỉ hỗ trợ file PDF');
       return;
     }
     if (file.size > 50 * 1024 * 1024) { // 50MB
-      alert('File quá lớn (Tối đa 50MB)');
+      this.toast.warning('File quá lớn (Tối đa 50MB)');
       return;
     }
     this.selectedFile = file;

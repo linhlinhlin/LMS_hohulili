@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { AssignmentDetailStore } from '../stores/assignment-detail.store';
 import { SubmissionsStore, SubmissionFilter } from '../stores/submissions.store';
 import { SubmissionGrade } from '../../../../api/client/assignment.api';
+import { ToastService } from '../../../../core/services/toast.service';
 
 /**
  * Submission List Component
@@ -23,7 +24,7 @@ import { SubmissionGrade } from '../../../../api/client/assignment.api';
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
           <button (click)="setFilter('ALL')" 
-                  [class]="filter() === 'ALL' ? 'bg-blue-100 text-blue-700' : 'bg-white'"
+                  [class]="filter() === 'ALL' ? 'bg-blue-100 text-[#004BB5]' : 'bg-white'"
                   class="px-3 py-1.5 border rounded-lg text-sm transition-colors">Tất cả</button>
           <button (click)="setFilter('PENDING')"
                   [class]="filter() === 'PENDING' ? 'bg-orange-100 text-orange-700' : 'bg-white'"
@@ -40,7 +41,7 @@ import { SubmissionGrade } from '../../../../api/client/assignment.api';
         @if (selectedIds().length > 0) {
           <div class="flex items-center gap-2">
             <span class="text-sm text-gray-600">{{ selectedIds().length }} đã chọn</span>
-            <button (click)="openBatchGrade()" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm transition-colors hover:bg-blue-700">
+            <button (click)="openBatchGrade()" class="px-3 py-1.5 bg-[#0056D2] text-white rounded-lg text-sm transition-colors hover:bg-[#004BB5]">
               Chấm hàng loạt
             </button>
           </div>
@@ -50,7 +51,7 @@ import { SubmissionGrade } from '../../../../api/client/assignment.api';
       <!-- Loading -->
       @if (store.loading()) {
         <div class="flex items-center justify-center py-12">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0056D2]"></div>
         </div>
       }
 
@@ -61,7 +62,7 @@ import { SubmissionGrade } from '../../../../api/client/assignment.api';
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
           </svg>
           <p class="text-red-600 font-medium">{{ store.error() }}</p>
-          <button (click)="reload()" class="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+          <button (click)="reload()" class="mt-3 px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors">
             Thử lại
           </button>
         </div>
@@ -93,7 +94,7 @@ import { SubmissionGrade } from '../../../../api/client/assignment.api';
                   </td>
                   <td class="px-4 py-3">
                     <div class="flex items-center gap-3">
-                      <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-sm font-medium">
+                      <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-[#0056D2] text-sm font-medium">
                         {{ getInitials(sub.studentName) }}
                       </div>
                       <div>
@@ -139,7 +140,7 @@ import { SubmissionGrade } from '../../../../api/client/assignment.api';
                   </td>
                   <td class="px-4 py-3 text-right">
                     <a [routerLink]="['..', 'grade', sub.id]" 
-                       class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                       class="text-[#0056D2] hover:text-blue-800 text-sm font-medium">
                       {{ getGradeScore(sub.grade) !== undefined ? 'Xem/Sửa' : 'Chấm điểm' }} →
                     </a>
                   </td>
@@ -176,7 +177,7 @@ import { SubmissionGrade } from '../../../../api/client/assignment.api';
             </div>
             <div class="flex gap-2 mt-6">
               <button (click)="closeBatchModal()" class="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors">Hủy</button>
-              <button (click)="submitBatchGrade()" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+              <button (click)="submitBatchGrade()" class="flex-1 px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors">
                 Áp dụng
               </button>
             </div>
@@ -190,6 +191,7 @@ export class SubmissionListComponent implements OnInit {
   private route = inject(ActivatedRoute);
   store = inject(SubmissionsStore);
   assignmentStore = inject(AssignmentDetailStore);
+  private toast = inject(ToastService);
 
   filter = this.store.filter;
   selectedIds = signal<string[]>([]);
@@ -201,7 +203,9 @@ export class SubmissionListComponent implements OnInit {
   ngOnInit(): void {
     const assignmentId = this.assignmentStore.assignmentId();
     if (assignmentId) {
-      this.store.loadSubmissions(assignmentId).subscribe();
+      this.store.loadSubmissions(assignmentId).subscribe({
+        error: () => this.toast.error('Không thể tải danh sách bài nộp')
+      });
     }
     // Check for filter query param
     const filterParam = this.route.snapshot.queryParamMap.get('filter');
@@ -217,7 +221,9 @@ export class SubmissionListComponent implements OnInit {
   reload(): void {
     const assignmentId = this.assignmentStore.assignmentId();
     if (assignmentId) {
-      this.store.loadSubmissions(assignmentId, true).subscribe();
+      this.store.loadSubmissions(assignmentId, true).subscribe({
+        error: () => this.toast.error('Không thể tải lại danh sách bài nộp')
+      });
     }
   }
 
@@ -280,8 +286,9 @@ export class SubmissionListComponent implements OnInit {
   saveInlineGrade(id: string, maxScore: number): void {
     const score = this.inlineGrades()[id];
     if (score !== undefined && score >= 0 && score <= maxScore) {
-      this.store.updateInlineGrade({ submissionId: id, score }).subscribe(() => {
-        this.inlineGrades.update(grades => { const g = { ...grades }; delete g[id]; return g; });
+      this.store.updateInlineGrade({ submissionId: id, score }).subscribe({
+        next: () => this.inlineGrades.update(grades => { const g = { ...grades }; delete g[id]; return g; }),
+        error: () => this.toast.error('Không thể lưu điểm')
       });
     }
   }
@@ -298,9 +305,12 @@ export class SubmissionListComponent implements OnInit {
   }
 
   submitBatchGrade(): void {
-    this.store.batchGrade(this.selectedIds(), this.batchScore, this.batchFeedback).subscribe(() => {
-      this.selectedIds.set([]);
-      this.closeBatchModal();
+    this.store.batchGrade(this.selectedIds(), this.batchScore, this.batchFeedback).subscribe({
+      next: () => {
+        this.selectedIds.set([]);
+        this.closeBatchModal();
+      },
+      error: () => this.toast.error('Không thể chấm điểm hàng loạt')
     });
   }
 }

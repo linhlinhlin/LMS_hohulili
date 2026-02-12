@@ -131,7 +131,7 @@ export class CourseInstructorService {
             }),
             tap(() => {
                 // Refresh instructors list
-                this.getInstructors(courseId).subscribe();
+                this.getInstructors(courseId).subscribe({ error: () => {} }); // best-effort refresh
             }),
             map(response => {
                 return {
@@ -158,7 +158,7 @@ export class CourseInstructorService {
             }),
             tap(() => {
                 // Refresh instructors list
-                this.getInstructors(courseId).subscribe();
+                this.getInstructors(courseId).subscribe({ error: () => {} }); // best-effort refresh
             }),
             map(response => {
                 return {

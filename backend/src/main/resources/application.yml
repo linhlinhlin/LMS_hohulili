@@ -13,13 +13,16 @@ spring:
   servlet:
     multipart:
       enabled: true
-      max-file-size: 100MB
-      max-request-size: 100MB
+      max-file-size: 500MB
+      max-request-size: 500MB
   jpa:
     show-sql: false
     properties:
       hibernate:
         format_sql: false
+        dialect.native_param_markers: false
+        # Hypersistence Utils: Custom ObjectMapper with JavaTimeModule for JSONB
+        types.jackson.object.mapper: com.example.lms.config.HibernateJsonConfig
   flyway:
     enabled: true
     baseline-on-migrate: true  # Required for existing databases

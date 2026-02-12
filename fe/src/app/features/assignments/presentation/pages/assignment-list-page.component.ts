@@ -99,7 +99,6 @@ export class AssignmentListPageComponent implements OnInit {
   }
 
   markAsRead(): void {
-    // TODO: Implement mark as read functionality
     this.assignmentState.clearSelection();
   }
 
@@ -124,8 +123,8 @@ export class AssignmentListPageComponent implements OnInit {
     this.assignmentState.navigateToAssignment(assignmentId);
   }
 
-  onBookmarkAssignment(assignmentId: string): void {
-    // TODO: Implement bookmark functionality
+  onBookmarkAssignment(_assignmentId: string): void {
+    // Bookmark feature planned for future release
   }
 
   // ========================================

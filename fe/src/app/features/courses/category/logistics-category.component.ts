@@ -18,9 +18,9 @@ import { PLATFORM_ID } from '@angular/core';
         [title]="'Logistics Hàng hải'"
         [subtitle]="'Vận tải, cảng biển, chuỗi cung ứng và thủ tục hải quan.'"
         [brandColor]="'indigo'"
-        [gradientFrom]="'from-indigo-600'"
-        [gradientVia]="'via-indigo-700'"
-        [gradientTo]="'to-indigo-800'"
+        [gradientFrom]="'from-[#0056D2]'"
+        [gradientVia]="'via-[#004BB5]'"
+        [gradientTo]="'to-[#004BB5]'"
         [primaryCta]="{ text: 'Khám phá khóa học', link: '/courses', queryParams: { category: 'logistics' } }"
       ></app-category-hero>
 
@@ -51,8 +51,8 @@ import { PLATFORM_ID } from '@angular/core';
         [title]="'Xu hướng ngành'"
         [subtitle]="'Số hóa và tối ưu vận hành logistics hàng hải'"
         [cards]="[
-          { icon: '📦', title: 'Số hóa quy trình', highlight: '+30% hiệu suất', description: 'Hệ thống TOS, EDI và theo dõi thời gian thực nâng hiệu quả.' },
-          { icon: '⚓', title: 'Green Shipping', highlight: '+20% chương trình', description: 'Giảm phát thải, tối ưu hành trình và năng lượng tại cảng.' }
+          { icon: 'briefcase', title: 'Số hóa quy trình', highlight: '+30% hiệu suất', description: 'Hệ thống TOS, EDI và theo dõi thời gian thực nâng hiệu quả.' },
+          { icon: 'anchor', title: 'Green Shipping', highlight: '+20% chương trình', description: 'Giảm phát thải, tối ưu hành trình và năng lượng tại cảng.' }
         ]"
       ></app-category-trends>
     </div>

@@ -76,6 +76,86 @@
   }
 }
 
+/* Continue Where You Left Off Widget */
+.continue-widget {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  margin: 0 16px 16px 16px;
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  border-radius: 12px;
+  gap: 16px;
+}
+
+.continue-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.continue-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #0056D2;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.continue-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.continue-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1E3A5F;
+}
+
+.continue-time {
+  font-size: 12px;
+  color: #6B7280;
+}
+
+.continue-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  background: #0056D2;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: #004BB5;
+  }
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
 /* Courses Section */
 .courses-section {
   margin-bottom: 24px;
@@ -338,7 +418,7 @@
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, $blue-primary 0%, #2563EB 100%);
+  background: $blue-primary;
   border-radius: 2px;
   transition: width 0.3s ease;
 }
@@ -641,7 +721,7 @@
   }
 
   &.level-3 {
-    background: #2563EB; // Dark blue (maritime)
+    background: #0056D2; // Dark blue (maritime)
   }
 }
 
@@ -749,5 +829,101 @@
 
   .widget {
     padding: 16px;
+  }
+}
+
+/* Empty State */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  background: #F9FAFB;
+  border-radius: 12px;
+  border: 1px dashed #D1D5DB;
+  text-align: center;
+}
+
+.empty-state-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9CA3AF;
+  margin-bottom: 16px;
+}
+
+.empty-state-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 8px 0;
+}
+
+.empty-state-text {
+  font-size: 14px;
+  color: #6B7280;
+  margin: 0 0 20px 0;
+  max-width: 320px;
+}
+
+/* Achievements Widget */
+.achievements-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.achievement-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #374151;
+  cursor: default;
+
+  &:hover {
+    background: #EFF6FF;
+    border-color: #BFDBFE;
+  }
+}
+
+.achievement-icon {
+  font-size: 16px;
+}
+
+.achievement-name {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Goal Input */
+.career-goal.edit-mode {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.goal-input {
+  flex: 1;
+  min-width: 200px;
+  padding: 6px 12px;
+  border: 1px solid #D1D5DB;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #1F1F1F;
+  outline: none;
+  transition: border-color 0.2s ease;
+
+  &:focus {
+    border-color: $blue-primary;
+    box-shadow: 0 0 0 2px rgba(0, 86, 210, 0.1);
   }
 }

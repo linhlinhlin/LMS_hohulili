@@ -164,7 +164,8 @@ public class UserJpaEntity implements UserDetails {
      * User role enum for JPA persistence.
      */
     public enum UserRole {
-        ADMIN("Quản trị viên"),
+        ADMIN("Quản trị hệ thống"),
+        ORG_ADMIN("Chuyên viên quản lý"),
         TEACHER("Giảng viên"),
         STUDENT("Học viên");
 

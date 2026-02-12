@@ -1,4 +1,4 @@
-﻿
+
     <!-- List View -->
     @if (viewMode() === 'list') {
       <div class="bg-white rounded-lg border border-gray-200 hover:shadow-md transition-all duration-200 p-6"
@@ -12,7 +12,7 @@
             <input type="checkbox"
                    [checked]="isSelected()"
                    (change)="onSelectionChange($event)"
-                   class="mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                   class="mt-1 h-4 w-4 text-[#0056D2] border-gray-300 rounded focus:ring-[#0056D2]">
           </div>
         }
 
@@ -25,7 +25,7 @@
                   {{ assignment().title }}
                 </h3>
                 <p class="text-sm text-gray-600 mb-2">
-                  {{ assignment().courseName }} â€¢ {{ assignment().instructorName }}
+                  {{ assignment().courseName }} • {{ assignment().instructorName }}
                 </p>
               </div>
 
@@ -47,11 +47,11 @@
             @if (assignment().progressPercentage > 0) {
               <div class="mb-4">
                 <div class="flex items-center justify-between text-sm text-gray-600 mb-1">
-                  <span>Tiến độ</span>
+                  <span>Ti?n d?</span>
                   <span>{{ assignment().progressPercentage }}%</span>
                 </div>
                 <div class="w-full bg-gray-200 rounded-full h-2">
-                  <div class="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                  <div class="bg-[#0056D2] h-2 rounded-full transition-all duration-300"
                        [style.width.%]="assignment().progressPercentage"></div>
                 </div>
               </div>
@@ -105,21 +105,21 @@
             <div class="flex items-center justify-between">
               <div class="flex items-center space-x-2">
                 <button (click)="onViewDetails($event)"
-                        class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                  Xem chi tiết
+                        class="text-[#0056D2] hover:text-blue-800 text-sm font-medium">
+                  Xem chi ti?t
                 </button>
 
                 @if (assignment().progressPercentage === 0) {
-                  <span class="text-gray-400">â€¢</span>
+                  <span class="text-gray-400">•</span>
                   <button (click)="onStartWorking($event)"
                           class="text-green-600 hover:text-green-800 text-sm font-medium">
-                    Bắt đầu làm
+                    B?t d?u l�m
                   </button>
                 } @else if (assignment().progressPercentage < 100) {
-                  <span class="text-gray-400">â€¢</span>
+                  <span class="text-gray-400">•</span>
                   <button (click)="onContinueWorking($event)"
-                          class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                    Tiếp tục
+                          class="text-[#0056D2] hover:text-blue-800 text-sm font-medium">
+                    Ti?p t?c
                   </button>
                 }
               </div>
@@ -153,7 +153,7 @@
             <input type="checkbox"
                    [checked]="isSelected()"
                    (change)="onSelectionChange($event)"
-                   class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                   class="h-4 w-4 text-[#0056D2] border-gray-300 rounded focus:ring-[#0056D2]">
           </div>
         }
 
@@ -183,11 +183,11 @@
           @if (assignment().progressPercentage > 0) {
             <div class="mb-4">
               <div class="flex items-center justify-between text-sm text-gray-600 mb-2">
-                <span>Tiến độ</span>
+                <span>Ti?n d?</span>
                 <span>{{ assignment().progressPercentage }}%</span>
               </div>
               <div class="w-full bg-gray-200 rounded-full h-2">
-                <div class="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                <div class="bg-[#0056D2] h-2 rounded-full transition-all duration-300"
                      [style.width.%]="assignment().progressPercentage"></div>
               </div>
             </div>
@@ -227,25 +227,25 @@
           <!-- Actions -->
           <div class="flex items-center justify-between pt-4 border-t border-gray-100">
             <button (click)="onViewDetails($event)"
-                    class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-              Xem chi tiết
+                    class="text-[#0056D2] hover:text-blue-800 text-sm font-medium">
+              Xem chi ti?t
             </button>
 
             <div class="flex items-center space-x-1">
               @if (assignment().progressPercentage === 0) {
                 <button (click)="onStartWorking($event)"
                         class="text-green-600 hover:text-green-800 text-sm font-medium">
-                  Bắt đầu
+                  B?t d?u
                 </button>
               } @else if (assignment().progressPercentage < 100) {
                 <button (click)="onContinueWorking($event)"
-                        class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                  Tiếp tục
+                        class="text-[#0056D2] hover:text-blue-800 text-sm font-medium">
+                  Ti?p t?c
                 </button>
               } @else {
                 <button (click)="onViewSubmission($event)"
                         class="text-gray-600 hover:text-gray-800 text-sm font-medium">
-                  Xem nộp
+                  Xem n?p
                 </button>
               }
 

@@ -1,4 +1,4 @@
-﻿import { Component, inject, signal, computed, effect, ViewEncapsulation, OnDestroy, importProvidersFrom, ChangeDetectionStrategy } from '@angular/core';
+﻿import { Component, inject, signal, computed, effect, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 
 import { Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -40,6 +40,8 @@ import {
 } from 'lucide-angular';
 import { VideoUploadComponent, VideoUploadResult } from '../../../../../shared/components/video-upload/video-upload.component';
 import { QuestionCreateComponent } from '../../../quiz/question-create.component';
+import { ToastService } from '../../../../../core/services/toast.service';
+import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -61,6 +63,8 @@ export class CourseCurriculumComponent implements OnDestroy {
   private quizApi = inject(QuizApi);
   private packageApi = inject(PackageApi);
   private sanitizer = inject(DomSanitizer);
+  private toast = inject(ToastService);
+  private confirmDialog = inject(ConfirmDialogService);
 
   // [NEW] In-Context Question Creation
   showCreateQuestionModal = signal(false);
@@ -83,6 +87,7 @@ export class CourseCurriculumComponent implements OnDestroy {
       await firstValueFrom(this.quizApi.addQuestionToQuiz(lesson.id, question.id));
       this.quizQuestions.update(prev => [...prev, question]);
     } catch {
+      this.toast.error('Thêm câu hỏi vào bài kiểm tra thất bại');
     }
   }
 
@@ -93,7 +98,7 @@ export class CourseCurriculumComponent implements OnDestroy {
 
   public editorConfig = {
     licenseKey: 'GPL',
-    // [QUAN TR?NG] Ph?i n?p Plugins v�o ��y th? Toolbar m?i hi?n
+    // [QUAN TRỌNG] Phải nạp Plugins vào đây thì Toolbar mới hiện
     plugins: [
       Essentials, Paragraph, Heading,
       Bold, Italic, Underline, Strikethrough, Subscript, Superscript, RemoveFormat,
@@ -103,11 +108,11 @@ export class CourseCurriculumComponent implements OnDestroy {
       Table, TableToolbar, MediaEmbed,
       SourceEditing, Autoformat,
 
-      // Plugin Upload ?nh Base64 c?a b?n
+      // Plugin Upload ảnh Base64 của bạn
       Base64UploadAdapterPlugin
     ],
 
-    // C?u h?nh Toolbar (Thi?t l?p n�t b?m)
+    // Cấu hình Toolbar (Thiết lập nút bấm)
     toolbar: {
       items: [
         'undo', 'redo', '|',
@@ -118,13 +123,13 @@ export class CourseCurriculumComponent implements OnDestroy {
         'link', 'uploadImage', 'insertTable', 'mediaEmbed', 'blockQuote', '|',
         'sourceEditing'
       ],
-      shouldNotGroupWhenFull: true // T�ng nh�m n�t n?u m�n h?nh nh?
+      shouldNotGroupWhenFull: true // Tổng nhóm nút nếu màn hình nhỏ
     },
 
-    // C?u h?nh Font (C�i �?t Arial l�m m?c �?nh)
+    // Cấu hình Font (Cài đặt Arial làm mặc định)
     fontFamily: {
       options: [
-        'default', // M?c �?nh c?a theme
+        'default', // Mặc định của theme
         'Arial, Helvetica, sans-serif',
         'Times New Roman, Times, serif',
         'Courier New, Courier, monospace',
@@ -133,7 +138,7 @@ export class CourseCurriculumComponent implements OnDestroy {
       supportAllValues: true
     },
 
-    // C?u h?nh ?nh (Thanh cung khi click vào ảnh)
+    // Cấu hình ảnh (Thanh công cụ khi click vào ảnh)
     image: {
       toolbar: [
         'imageTextAlternative', // Alt text
@@ -165,7 +170,7 @@ export class CourseCurriculumComponent implements OnDestroy {
 
     const onMouseMove = (e: MouseEvent) => {
       const newHeight = startHeight + (e.clientY - startY);
-      if (newHeight > 200) { // Giới hạn chi?u cao t?i thi?u
+      if (newHeight > 200) { // Giới hạn chiều cao tối thiểu
         this.editorHeight.set(newHeight);
       }
     };
@@ -240,10 +245,9 @@ export class CourseCurriculumComponent implements OnDestroy {
   // Random Questions
   showRandomModal = signal(false);
   randomCount = signal(10);
-  randomUnique = false; // [NEW] Fix build error
 
-  // Section Quiz Fields (for QUIZ type sections) [NEW]
-  sectionQuizType: 'ASSESSMENT' | 'EXAM' = 'ASSESSMENT'; // B�i ��nh gi� vs B�i ki?m tra
+  // Section Quiz Fields (for QUIZ type sections)
+  sectionQuizType: 'ASSESSMENT' | 'EXAM' = 'ASSESSMENT';
   sectionQuizTimeLimit = 30;
   sectionQuizPassingScore = 60;
   sectionQuizMaxAttempts = 1;
@@ -344,7 +348,7 @@ export class CourseCurriculumComponent implements OnDestroy {
         }
         // Handle PDF Secure Streaming [SOTA 2025]
         else if (this.newSectionType === 'FILE') {
-          if (this.isPdfFile(section)) { // FIXED: Pass the section object, not just URL string
+          if (this.isPdfFile(section) && section.fileUrl) {
             this.pdfService.getSafePdfUrl(section.fileUrl).subscribe(url => {
               this.safePdfUrl.set(url);
             });
@@ -414,14 +418,6 @@ export class CourseCurriculumComponent implements OnDestroy {
     }
   }
 
-  // Optimisation: Helper method mainly for internal use or simple checks, but template uses signal
-  getWordCount(): number {
-    if (!this.editorInstance) return 0;
-    const data = this.editorInstance.getData();
-    const plainText = data.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-    return plainText ? plainText.split(' ').length : 0;
-  }
-
   onEditorChange(event: any) {
     const editor = event.editor;
     if (editor) {
@@ -452,7 +448,7 @@ export class CourseCurriculumComponent implements OnDestroy {
   }
 
   private fetchLessonDetails(lessonId: string) {
-    setTimeout(() => this.isLoadingLesson.set(true));
+    this.isLoadingLesson.set(true);
     this.lessonApi.getLessonById(lessonId).subscribe({
       next: (response: any) => {
         const detail = response.data || response;
@@ -461,7 +457,10 @@ export class CourseCurriculumComponent implements OnDestroy {
         this.lessonVideoUrl = detail.videoUrl || this.lessonVideoUrl;
         this.isLoadingLesson.set(false);
       },
-      error: () => this.isLoadingLesson.set(false)
+      error: () => {
+        this.toast.error('Không thể tải chi tiết bài học');
+        this.isLoadingLesson.set(false);
+      }
     });
   }
 
@@ -497,14 +496,6 @@ export class CourseCurriculumComponent implements OnDestroy {
     this.sectionCfObjectKey = null;
     this.safeVideoUrl.set(null);
     this.isVideoPreviewVisible.set(false);
-  }
-
-  getYouTubeEmbedUrl(): SafeResourceUrl {
-    const videoId = this.extractYouTubeId(this.lessonVideoUrl);
-    if (videoId) {
-      return this.sanitizer.bypassSecurityTrustResourceUrl(`https://www.youtube.com/embed/${videoId}`);
-    }
-    return this.sanitizer.bypassSecurityTrustResourceUrl('');
   }
 
   private extractYouTubeId(url: string): string | null {
@@ -547,7 +538,8 @@ export class CourseCurriculumComponent implements OnDestroy {
         description: this.chapterDescription.trim()
       }));
       this.store.loadCourse(courseId, true);
-    } catch {
+    } catch (err: any) {
+      this.toast.error('Cập nhật chương thất bại: ' + (err?.error?.message || err?.message || ''));
     } finally {
       this.isSaving.set(false);
     }
@@ -588,7 +580,8 @@ export class CourseCurriculumComponent implements OnDestroy {
 
       await firstValueFrom(this.lessonApi.updateLesson(lesson.id, updateData));
       this.store.loadCourse(courseId, true);
-    } catch {
+    } catch (err: any) {
+      this.toast.error('Cập nhật bài học thất bại: ' + (err?.error?.message || err?.message || ''));
     } finally {
       this.isSaving.set(false);
     }
@@ -599,8 +592,9 @@ export class CourseCurriculumComponent implements OnDestroy {
     try {
       const packages = await firstValueFrom(this.packageApi.getMyPackages());
       this.quizPackages.set(packages || []);
-    } catch {
+    } catch (err: any) {
       this.quizPackages.set([]);
+      this.toast.error('Tải ngân hàng câu hỏi thất bại');
     }
   }
 
@@ -622,8 +616,9 @@ export class CourseCurriculumComponent implements OnDestroy {
         correctOption: q.correctOption,
         options: q.options || []
       })));
-    } catch {
+    } catch (err: any) {
       this.quizQuestions.set([]);
+      this.toast.error('Tải danh sách câu hỏi thất bại');
     } finally {
       this.quizQuestionsLoading.set(false);
     }
@@ -638,8 +633,9 @@ export class CourseCurriculumComponent implements OnDestroy {
       const questions = await firstValueFrom(this.packageApi.getQuestionsInPackage(this.selectedPackageId));
       this.packageQuestions.set(questions || []);
       this.selectedQuestionIds.set(new Set());
-    } catch {
+    } catch (err: any) {
       this.packageQuestions.set([]);
+      this.toast.error('Tải câu hỏi từ gói thất bại');
     }
   }
 
@@ -677,23 +673,31 @@ export class CourseCurriculumComponent implements OnDestroy {
       this.selectedQuestionIds.set(new Set());
       this.selectedPackageId = '';
       this.packageQuestions.set([]);
-    } catch {
+    } catch (err: any) {
+      this.toast.error('Thêm câu hỏi thất bại: ' + (err?.error?.message || err?.message || ''));
     }
   }
 
   async removeQuestionFromQuiz(questionId: string) {
     const lesson = this.selectedLesson();
     if (!lesson) return;
-    if (!confirm('Bạn chắc chắn muốn xóa câu hỏi này?')) return;
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Xóa câu hỏi',
+      message: 'Bạn chắc chắn muốn xóa câu hỏi này?',
+      variant: 'danger',
+      confirmText: 'Xóa',
+      cancelText: 'Hủy'
+    });
+    if (!confirmed) return;
 
     try {
       await firstValueFrom(this.quizApi.removeQuestionFromQuiz(lesson.id, questionId));
       await this.loadQuizQuestions();
-    } catch {
+    } catch (err: any) {
+      this.toast.error('Xóa câu hỏi thất bại: ' + (err?.error?.message || err?.message || ''));
     }
   }
 
-  // Random Questions & Modal
   // Random Questions & Modal
   openRandomizeModal() {
     this.showRandomModal.set(true);
@@ -734,7 +738,7 @@ export class CourseCurriculumComponent implements OnDestroy {
       // 1. Get all questions from the selected package
       const questions = await firstValueFrom(this.packageApi.getQuestionsInPackage(this.selectedPackageId));
       if (!questions || questions.length === 0) {
-        alert('Gói câu hỏi này không có dữ liệu!');
+        this.toast.warning('Gói câu hỏi này không có dữ liệu!');
         return;
       }
 
@@ -758,7 +762,7 @@ export class CourseCurriculumComponent implements OnDestroy {
       await this.loadQuizQuestions();
       this.selectedPackageId = ''; // Reset
     } catch {
-      alert('Lỗi xảy ra khi tạo câu hỏi ngẫu nhiên.');
+      this.toast.error('Lỗi xảy ra khi tạo câu hỏi ngẫu nhiên.');
     } finally {
       this.quizQuestionsLoading.set(false);
     }
@@ -853,9 +857,9 @@ export class CourseCurriculumComponent implements OnDestroy {
       }
     } else {
       this.safeVideoUrl.set(null);
-      // [NEW] If URL doesn't look like YouTube and not R2, assume external source
+      // Non-YouTube, non-R2 external URL — leave videoType as null
       if (!this.sectionCfObjectKey) {
-        this.sectionVideoType = 'YOUTUBE'; // Default to YOUTUBE for any external video URL
+        this.sectionVideoType = null;
       }
     }
   }
@@ -933,14 +937,21 @@ export class CourseCurriculumComponent implements OnDestroy {
       if (courseId) this.store.loadCourse(courseId, true);
       this.showSectionModal.set(false);
     } catch (e: any) {
-      alert('Lỗi khi lưu Mục: ' + (e?.error?.message || e.message));
+      this.toast.error('Lỗi khi lưu Mục: ' + (e?.message || 'Không rõ lỗi'));
     } finally {
       this.isSaving.set(false);
     }
   }
 
   async deleteSection(sectionId: string) {
-    if (!confirm('B?n ch?c ch?n mu?n x�a M?c n�y?')) return;
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Xóa mục',
+      message: 'Bạn chắc chắn muốn xóa Mục này?',
+      variant: 'danger',
+      confirmText: 'Xóa',
+      cancelText: 'Hủy'
+    });
+    if (!confirmed) return;
     this.isSaving.set(true);
     const lesson = this.selectedLesson();
     if (!lesson) {
@@ -952,7 +963,8 @@ export class CourseCurriculumComponent implements OnDestroy {
       await firstValueFrom(this.sectionApi.deleteSection(lesson.id, sectionId));
       const courseId = this.store.courseTree()?.id;
       if (courseId) this.store.loadCourse(courseId, true);
-    } catch {
+    } catch (err: any) {
+      this.toast.error('Xóa nội dung thất bại: ' + (err?.error?.message || err?.message || ''));
     } finally {
       this.isSaving.set(false);
     }
@@ -973,12 +985,12 @@ export class CourseCurriculumComponent implements OnDestroy {
 
   // [NEW] Extract filename from URL for display
   getFileNameFromUrl(url: string): string {
-    if (!url) return 'T?p ��nh k�m';
+    if (!url) return 'Tập đính kèm';
     try {
       const urlObj = new URL(url);
       const pathname = urlObj.pathname;
       const fileName = pathname.substring(pathname.lastIndexOf('/') + 1);
-      return decodeURIComponent(fileName) || 'T?p ��nh k�m';
+      return decodeURIComponent(fileName) || 'Tệp đính kèm';
     } catch {
       // If URL parsing fails, try simple approach
       const lastSlash = url.lastIndexOf('/');
@@ -1063,7 +1075,8 @@ export class CourseCurriculumComponent implements OnDestroy {
       this.sectionQuizSelectedQuestions.update(current => [...current, ...newQuestions]);
       this.showSectionQuizBankModal.set(false);
       this.selectedQuestionIds.set(new Set());
-    } catch {
+    } catch (err: any) {
+      this.toast.error('Thêm câu hỏi từ ngân hàng thất bại');
     }
   }
 
@@ -1073,7 +1086,7 @@ export class CourseCurriculumComponent implements OnDestroy {
     try {
       const questions = await firstValueFrom(this.packageApi.getQuestionsInPackage(this.selectedPackageId));
       if (!questions || questions.length === 0) {
-        alert('Gói câu hỏi này không có dữ liệu!');
+        this.toast.warning('Gói câu hỏi này không có dữ liệu!');
         return;
       }
 
@@ -1088,7 +1101,7 @@ export class CourseCurriculumComponent implements OnDestroy {
       this.sectionQuizSelectedQuestions.update(current => [...current, ...newQuestions]);
       this.showSectionQuizRandomModal.set(false);
     } catch {
-      alert('Lỗi khi tạo câu hỏi ngẫu nhiên.');
+      this.toast.error('Lỗi khi tạo câu hỏi ngẫu nhiên.');
     }
   }
 

@@ -76,7 +76,7 @@ export interface StudentInfo {
 
               <!-- Current Deadline -->
               <div class="bg-blue-50 rounded-lg p-4">
-                <p class="text-sm text-blue-600">Hạn nộp hiện tại</p>
+                <p class="text-sm text-[#0056D2]">Hạn nộp hiện tại</p>
                 <p class="font-medium text-blue-900">
                   {{ formatDate(originalDeadline()) }}
                 </p>
@@ -91,7 +91,7 @@ export interface StudentInfo {
                   type="datetime-local"
                   [(ngModel)]="newDeadline"
                   (ngModelChange)="onDeadlineChange()"
-                  class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]"
                   [class.border-red-500]="dateError()"
                 />
                 @if (dateError()) {
@@ -114,7 +114,7 @@ export interface StudentInfo {
                   (ngModelChange)="onReasonChange()"
                   rows="3"
                   placeholder="Nhập lý do gia hạn (ví dụ: Học viên ốm, đi biển đột xuất...)"
-                  class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                  class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2] resize-none"
                   [class.border-red-500]="reasonError()"
                 ></textarea>
                 @if (reasonError()) {
@@ -152,7 +152,7 @@ export interface StudentInfo {
               <button
                 (click)="submit()"
                 [disabled]="!isValid() || loading()"
-                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                class="px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 @if (loading()) {
                   <span class="flex items-center gap-2">

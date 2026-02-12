@@ -6,6 +6,7 @@ import { QuestionApi, Question, UpdateQuestionRequest } from '../../../api/endpo
 import { BlockEditorComponent } from '../../../shared/components/block-editor/block-editor.component';
 import { EnrichedInputFieldComponent } from '../../../shared/components/enriched-input/enriched-input.component';
 import { ContentBlock } from '../../../api/types/content-block.types';
+import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -23,7 +24,7 @@ import { ContentBlock } from '../../../api/types/content-block.types';
         <!-- Loading State -->
         @if (isLoading) {
           <div class="flex justify-center items-center py-12">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0056D2]"></div>
             <span class="ml-2 text-gray-600">Đang tải...</span>
           </div>
         }
@@ -79,7 +80,7 @@ import { ContentBlock } from '../../../api/types/content-block.types';
                   <select
                     id="difficulty"
                     formControlName="difficulty"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]"
                     >
                     <option value="EASY">Dễ</option>
                     <option value="MEDIUM">Trung bình</option>
@@ -95,7 +96,7 @@ import { ContentBlock } from '../../../api/types/content-block.types';
                     id="tags"
                     type="text"
                     formControlName="tags"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]"
                     placeholder="ví dụ: toán học, đại số"
                     >
                     <div class="text-xs text-gray-500 mt-1">
@@ -111,7 +112,7 @@ import { ContentBlock } from '../../../api/types/content-block.types';
                   <select
                     id="status"
                     formControlName="status"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]"
                     >
                     <option value="DRAFT">Bản nháp</option>
                     <option value="ACTIVE">Hoạt động</option>
@@ -126,7 +127,7 @@ import { ContentBlock } from '../../../api/types/content-block.types';
                   <button
                     type="button"
                     (click)="addOption()"
-                    class="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    class="px-3 py-1 text-sm bg-[#0056D2] text-white rounded-md hover:bg-[#004BB5] focus:outline-none focus:ring-2 focus:ring-[#0056D2]"
                     >
                     Thêm đáp án
                   </button>
@@ -213,7 +214,7 @@ import { ContentBlock } from '../../../api/types/content-block.types';
                   <button
                     type="submit"
                     [disabled]="questionForm.invalid || !getCorrectOptionKey() || options.length < 2"
-                    class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="px-6 py-2 bg-[#0056D2] text-white rounded-md hover:bg-[#004BB5] focus:outline-none focus:ring-2 focus:ring-[#0056D2] disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                     Cập nhật Câu Hỏi
                   </button>
@@ -229,6 +230,7 @@ export class QuestionEditComponent implements OnInit {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private questionApi = inject(QuestionApi);
+  private toast = inject(ToastService);
 
   questionForm: FormGroup;
   isLoading = false;
@@ -290,6 +292,8 @@ export class QuestionEditComponent implements OnInit {
         this.populateFormWithQuestion(question);
       },
       error: () => {
+        this.toast.error('Không thể tải câu hỏi. Vui lòng thử lại.');
+        this.isLoading = false;
       },
       complete: () => {
         this.isLoading = false;
@@ -489,7 +493,7 @@ export class QuestionEditComponent implements OnInit {
         this.router.navigate(['/teacher/quiz/quiz-bank']);
       },
       error: (error) => {
-        alert('Lỗi khi cập nhật câu hỏi: ' + (error?.error?.message || error?.message)); // Show alert
+        this.toast.error('Lỗi khi cập nhật câu hỏi: ' + (error?.error?.message || error?.message));
         this.isLoading = false;
       },
       complete: () => {

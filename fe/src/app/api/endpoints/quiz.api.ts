@@ -30,10 +30,12 @@ export interface SubmitAttemptRequest {
   answers: Record<string, string>;
 }
 
-// BE expects List<AttemptAnswer> with { questionId, selectedOptionId }
+// BE expects List<AttemptAnswer> with { questionId, selectedOption, studentAnswer }
 export interface AttemptAnswer {
   questionId: string;
-  selectedOptionId: string;
+  selectedOption?: string;                    // Legacy: single choice
+  selectedOptionId?: string;                  // Legacy alias
+  studentAnswer?: Record<string, unknown>;    // New: flexible answer format
 }
 
 export interface CreateLessonQuizRequest {
@@ -228,6 +230,24 @@ export class QuizApi {
   // ============================================
 
   /**
+   * Get quiz by ID
+   */
+  getQuizById(quizId: string) {
+    return this.apiClient.get<QuizResponse>(
+      QUIZ_ENDPOINTS.QUIZ_BY_ID(quizId)
+    );
+  }
+
+  /**
+   * Get quizzes by course ID
+   */
+  getQuizzesByCourse(courseId: string) {
+    return this.apiClient.get<QuizResponse[]>(
+      QUIZ_ENDPOINTS.QUIZZES_BY_COURSE(courseId)
+    );
+  }
+
+  /**
    * Create quiz for lesson
    */
   createQuiz(lessonId: string, request: CreateQuizRequest) {
@@ -326,9 +346,10 @@ export class QuizApi {
     // Convert Record<questionId, optionId> to AttemptAnswer[] if needed
     const body = Array.isArray(request)
       ? request
-      : Object.entries(request.answers).map(([questionId, selectedOptionId]) => ({
+      : Object.entries(request.answers).map(([questionId, selectedOption]) => ({
           questionId,
-          selectedOptionId
+          selectedOption,
+          studentAnswer: { selectedOption }
         }));
     return this.apiClient.post<QuizAttemptResponse>(
       QUIZ_ENDPOINTS.SUBMIT_ATTEMPT(attemptId),
@@ -382,15 +403,6 @@ export class QuizApi {
   getTeacherQuizzes() {
     return this.apiClient.get<QuizResponse[]>(
       QUIZ_ENDPOINTS.TEACHER_QUIZZES
-    );
-  }
-
-  /**
-   * Get all assignment quizzes for teacher
-   */
-  getTeacherAssignments(): Observable<AssignmentQuizResponse[]> {
-    return this.apiClient.get<AssignmentQuizResponse[]>(
-      QUIZ_ENDPOINTS.TEACHER_ASSIGNMENTS
     );
   }
 

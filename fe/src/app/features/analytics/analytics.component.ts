@@ -2,11 +2,13 @@ import { Component, signal, computed, inject, ChangeDetectionStrategy } from '@a
 
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { IconComponent } from '../../shared/components/icon/icon.component';
+import { IconName } from '../../shared/components/icon/icon.component';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-analytics',
-  imports: [FormsModule],
+  imports: [FormsModule, IconComponent],
   template: `
     <div class="min-h-screen bg-gray-50 py-8">
       <div class="container mx-auto px-4">
@@ -21,7 +23,7 @@ import { FormsModule } from '@angular/forms';
               <div class="flex space-x-4">
                 <select 
                   [(ngModel)]="selectedPeriod"
-                  class="px-4 py-2 border border-gray-800 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                  class="px-4 py-2 border border-gray-800 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-transparent">
                   <option value="week">Tuần này</option>
                   <option value="month">Tháng này</option>
                   <option value="quarter">Quý này</option>
@@ -29,7 +31,7 @@ import { FormsModule } from '@angular/forms';
                 </select>
                 <button 
                   (click)="refreshAnalytics()"
-                  class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                  class="bg-[#0056D2] text-white px-4 py-2 rounded-lg hover:bg-[#004BB5] transition-colors">
                   Làm mới
                 </button>
               </div>
@@ -41,7 +43,7 @@ import { FormsModule } from '@angular/forms';
             <div class="bg-white rounded-lg shadow-lg p-6">
               <div class="flex items-center">
                 <div class="bg-blue-100 p-3 rounded-lg">
-                  <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="w-6 h-6 text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                   </svg>
                 </div>
@@ -138,7 +140,7 @@ import { FormsModule } from '@angular/forms';
                   </div>
                   <div class="w-full bg-gray-200 rounded-full h-2">
                     <div 
-                      class="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                      class="bg-[#0056D2] h-2 rounded-full transition-all duration-300"
                       [style.width.%]="course.progress">
                     </div>
                   </div>
@@ -202,7 +204,7 @@ import { FormsModule } from '@angular/forms';
           <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
             <h2 class="text-xl font-semibold text-gray-900 mb-6">Chuỗi ngày học liên tiếp</h2>
             <div class="flex items-center space-x-4">
-              <div class="text-4xl font-bold text-blue-600">{{ studyStreak() }}</div>
+              <div class="text-4xl font-bold text-[#0056D2]">{{ studyStreak() }}</div>
               <div>
                 <p class="text-lg font-medium text-gray-900">ngày liên tiếp</p>
                 <p class="text-sm text-gray-600">Hãy duy trì chuỗi học tập của bạn!</p>
@@ -226,17 +228,17 @@ import { FormsModule } from '@angular/forms';
               @for (recommendation of recommendations(); track recommendation.id) {
                 <div class="border border-gray-800 rounded-lg p-4">
                   <div class="flex items-start space-x-3">
-                    <div 
+                    <div
                       class="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium"
                       [class]="getRecommendationClass(recommendation.type)">
-                      {{ getRecommendationIcon(recommendation.type) }}
+                      <app-icon [name]="getRecommendationIcon(recommendation.type)" size="sm"/>
                     </div>
                     <div class="flex-1">
                       <h3 class="font-medium text-gray-900 mb-1">{{ recommendation.title }}</h3>
                       <p class="text-sm text-gray-600 mb-2">{{ recommendation.description }}</p>
                       <button 
                         (click)="followRecommendation(recommendation.id)"
-                        class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                        class="text-[#0056D2] hover:text-blue-800 text-sm font-medium">
                         {{ recommendation.action }}
                       </button>
                     </div>
@@ -390,20 +392,20 @@ export class AnalyticsComponent {
 
   getRecommendationClass(type: string): string {
     const classes: { [key: string]: string } = {
-      'course': 'bg-blue-500',
+      'course': 'bg-[#0056D2]',
       'assignment': 'bg-green-500',
       'study': 'bg-purple-500'
     };
     return classes[type] || 'bg-gray-500';
   }
 
-  getRecommendationIcon(type: string): string {
-    const icons: { [key: string]: string } = {
-      'course': '📚',
-      'assignment': '📝',
-      'study': '🎯'
+  getRecommendationIcon(type: string): IconName {
+    const icons: { [key: string]: IconName } = {
+      'course': 'courses',
+      'assignment': 'file-text',
+      'study': 'target'
     };
-    return icons[type] || '💡';
+    return icons[type] || 'lightbulb';
   }
 
   refreshAnalytics(): void {

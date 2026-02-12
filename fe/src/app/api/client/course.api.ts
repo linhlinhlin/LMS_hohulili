@@ -31,10 +31,20 @@ export class CourseApi {
   }
 
   myCourses() {
-    // Unwrap Spring Page response to a flat array while preserving pagination
-    return this.api.getWithResponse<any>(COURSE_ENDPOINTS.TEACHER.MY_COURSES).pipe(
+    // Unwrap Spring Page response to a flat array - fetch all for client-side pagination
+    return this.api.getWithResponse<any>(`${COURSE_ENDPOINTS.TEACHER.MY_COURSES}?page=0&size=100`).pipe(
       map((res: ApiResponse<any>) => {
-        const content: CourseSummary[] = res?.data?.content ?? [];
+        const content: CourseSummary[] = (res?.data?.content ?? []).map((c: any) => ({
+          ...c,
+          enrolledCount: c.enrolledCount ?? c.studentsCount ?? 0,
+          thumbnailUrl: c.thumbnail ?? c.thumbnailUrl,
+          deliveryMode: c.deliveryMode,
+          sectionCount: c.sectionCount ?? 0,
+          lessonCount: c.lessonCount ?? 0,
+          categoryName: c.categoryName,
+          updatedAt: c.updatedAt,
+          maxStudents: c.maxStudents
+        }));
         return {
           data: content,
           pagination: res?.pagination,
@@ -44,7 +54,7 @@ export class CourseApi {
     );
   }
 
-  publicCourses(params?: { page?: number; limit?: number; search?: string; teacher?: string }): Observable<ApiResponse<CourseSummary[]>> {
+  publicCourses(params?: { page?: number; size?: number; search?: string; teacher?: string }): Observable<ApiResponse<CourseSummary[]>> {
     return this.api.getWithResponse<any>(COURSE_ENDPOINTS.BASE, { params }).pipe(
       map((res: ApiResponse<any>) => {
         const content: CourseSummary[] = res?.data?.content ?? [];
@@ -57,7 +67,7 @@ export class CourseApi {
     );
   }
 
-  enrolledCourses(params?: { page?: number; limit?: number }): Observable<ApiResponse<CourseSummary[]>> {
+  enrolledCourses(params?: { page?: number; size?: number }): Observable<ApiResponse<CourseSummary[]>> {
     return this.api.getWithResponse<any>(COURSE_ENDPOINTS.STUDENT.ENROLLED, { params }).pipe(
       map((res: ApiResponse<any>) => {
         const content: CourseSummary[] = res?.data?.content ?? [];

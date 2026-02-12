@@ -59,12 +59,14 @@ export type PaymentStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 
 
 export type PaymentMethod = 'VNPAY' | 'ZALOPAY' | 'MOMO' | 'BANK_TRANSFER' | 'SIMULATED';
 
-export const PAYMENT_METHODS: { code: PaymentMethod; name: string; icon: string; description: string }[] = [
-    { code: 'VNPAY', name: 'VNPay', icon: '💳', description: 'Thanh toán qua VNPay' },
-    { code: 'ZALOPAY', name: 'ZaloPay', icon: '📱', description: 'Thanh toán qua ZaloPay' },
-    { code: 'MOMO', name: 'MoMo', icon: '💜', description: 'Thanh toán qua MoMo' },
-    { code: 'BANK_TRANSFER', name: 'Chuyển khoản', icon: '🏦', description: 'Chuyển khoản ngân hàng' },
-    { code: 'SIMULATED', name: 'Thanh toán nhanh', icon: '⚡', description: 'Thanh toán giả lập (Dev)' }
+import { IconName } from '../../shared/components/icon/icon.component';
+
+export const PAYMENT_METHODS: { code: PaymentMethod; name: string; icon: IconName; description: string }[] = [
+    { code: 'VNPAY', name: 'VNPay', icon: 'smartphone', description: 'Thanh toán qua VNPay' },
+    { code: 'ZALOPAY', name: 'ZaloPay', icon: 'smartphone', description: 'Thanh toán qua ZaloPay' },
+    { code: 'MOMO', name: 'MoMo', icon: 'smartphone', description: 'Thanh toán qua MoMo' },
+    { code: 'BANK_TRANSFER', name: 'Chuyển khoản', icon: 'briefcase', description: 'Chuyển khoản ngân hàng' },
+    { code: 'SIMULATED', name: 'Thanh toán nhanh', icon: 'zap', description: 'Thanh toán giả lập (Dev)' }
 ];
 
 @Injectable({ providedIn: 'root' })

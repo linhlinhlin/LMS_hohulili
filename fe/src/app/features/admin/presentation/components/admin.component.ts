@@ -4,6 +4,8 @@ import { RouterModule, Router } from '@angular/router';
 import { AdminService, SystemAnalytics, AdminCourseSummary } from '../../infrastructure/services/admin.service';
 import { LoadingComponent } from '../../../../shared/components/loading/loading.component';
 import { RevenueChartComponent, RevenueData } from './dashboard/components/revenue-chart.component';
+import { ToastService } from '../../../../core/services/toast.service';
+import { AuthService } from '../../../../core/services/auth.service';
 
 interface PendingApproval {
   id: string;
@@ -16,15 +18,25 @@ interface PendingApproval {
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin',
   imports: [CommonModule, RouterModule, LoadingComponent, RevenueChartComponent],
-  templateUrl: './dashboard/admin-dashboard.component.html',
-  styleUrl: './dashboard/admin-dashboard.component.scss'
-  // Removed OnPush - signals work better with default change detection
+  templateUrl: './dashboard/admin-dashboard.component.html'
 })
 export class AdminComponent implements OnInit {
   private adminService = inject(AdminService);
   private router = inject(Router);
+  private toast = inject(ToastService);
+  private authService = inject(AuthService);
+
+  // Role-specific dashboard subtitle
+  dashboardSubtitle = computed(() =>
+    this.authService.userRole() === 'org_admin'
+      ? 'Bảng điều khiển quản lý'
+      : 'Bảng điều khiển hệ thống'
+  );
+
+  isSystemAdmin = computed(() => this.authService.userRole() === 'admin');
 
   isLoading = signal(true);
+  loadError = signal(false);
   lastUpdate = signal<Date>(new Date());
   analytics = signal<SystemAnalytics>({
     totalUsers: 0,
@@ -78,40 +90,52 @@ export class AdminComponent implements OnInit {
     unreadMessages: 0
   });
 
-  recentActivities = signal([
-    { id: 1, message: 'Người dùng mới đăng ký', timestamp: new Date() },
-    { id: 2, message: 'Khóa học mới được tạo', timestamp: new Date() },
-    { id: 3, message: 'Cảnh báo: Email service chậm', timestamp: new Date() },
-    { id: 4, message: 'Backup dữ liệu hoàn tất', timestamp: new Date() }
-  ]);
+  // Recent activities derived from analytics (no backend endpoint for activity log)
+  recentActivities = computed(() => {
+    const a = this.analytics();
+    const activities: { id: number; message: string; timestamp: Date }[] = [];
+    let id = 1;
+    if (a.pendingCourses > 0) {
+      activities.push({ id: id++, message: `${a.pendingCourses} khóa học đang chờ duyệt`, timestamp: new Date() });
+    }
+    if (a.totalEnrollments > 0) {
+      activities.push({ id: id++, message: `${a.totalEnrollments} lượt đăng ký khóa học`, timestamp: new Date() });
+    }
+    if (a.totalStudents > 0) {
+      activities.push({ id: id++, message: `${a.totalStudents} học viên trong hệ thống`, timestamp: new Date() });
+    }
+    if (a.totalCourses > 0) {
+      activities.push({ id: id++, message: `${a.totalCourses} khóa học đã tạo`, timestamp: new Date() });
+    }
+    if (activities.length === 0) {
+      activities.push({ id: 1, message: 'Chưa có hoạt động nào', timestamp: new Date() });
+    }
+    return activities;
+  });
 
   // Pending approvals - now using real API data
   pendingApprovals = signal<PendingApproval[]>([]);
   isLoadingPending = signal(false);
 
-  // Revenue chart data - Generate last 30 days
+  // Revenue chart data - derived from real analytics monthly revenue
   revenueChartData = computed<RevenueData>(() => {
     const labels: string[] = [];
     const data: number[] = [];
     const today = new Date();
-    
-    // Generate last 30 days of data
+    const monthlyRevenue = this.analytics().monthlyRevenue || 0;
+    const dailyAvg = monthlyRevenue / 30;
+
     for (let i = 29; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
-      
-      // Format label as "DD/MM"
       const day = date.getDate().toString().padStart(2, '0');
       const month = (date.getMonth() + 1).toString().padStart(2, '0');
       labels.push(`${day}/${month}`);
-      
-      // Generate realistic revenue data (2M - 8M per day)
-      const baseRevenue = 4000000; // 4M base
-      const variation = Math.random() * 4000000; // +/- 4M variation
-      const trend = i * 50000; // Slight upward trend
-      data.push(Math.floor(baseRevenue + variation + trend));
+      // Deterministic variation based on day index (no Math.random)
+      const variation = Math.sin(i * 0.7) * dailyAvg * 0.3;
+      data.push(Math.max(0, Math.floor(dailyAvg + variation)));
     }
-    
+
     return { labels, data };
   });
 
@@ -122,73 +146,17 @@ export class AdminComponent implements OnInit {
 
   private loadAnalytics(): void {
     this.isLoading.set(true);
+    this.loadError.set(false);
     
     this.adminService.getSystemAnalytics().subscribe({
       next: (data) => {
         this.analytics.set(data);
         this.lastUpdate.set(new Date());
         this.isLoading.set(false);
-        // Add loaded class to body to show dashboard (fix for critical.scss opacity: 0 rule)
-        document.body.classList.add('loaded');
       },
       error: () => {
-        // Use mock data as fallback - create new object to ensure signal updates
-        const mockData: SystemAnalytics = {
-          totalUsers: 1234,
-          totalTeachers: 45,
-          totalStudents: 1150,
-          totalAdmins: 39,
-          totalCourses: 156,
-          approvedCourses: 120,
-          pendingCourses: 12,
-          rejectedCourses: 8,
-          draftCourses: 16,
-          totalAssignments: 89,
-          totalSubmissions: 456,
-          totalEnrollments: 890,
-          totalRevenue: 120000000,
-          monthlyRevenue: 45000000,
-          activeUsers: 567,
-          systemHealth: {
-            database: 'healthy',
-            api: 'healthy',
-            storage: 'healthy',
-            email: 'healthy'
-          },
-          userGrowth: {
-            thisMonth: 150,
-            lastMonth: 134,
-            growthRate: 12
-          },
-          courseStats: {
-            pending: 12,
-            approved: 120,
-            rejected: 8,
-            active: 120
-          },
-          revenueStats: {
-            thisMonth: 45000000,
-            lastMonth: 39000000,
-            growthRate: 15
-          },
-          coursesByStatus: {},
-          usersByRole: {},
-          enrollmentsByMonth: {},
-          studentGrowth: 12,
-          courseGrowth: 8,
-          revenue: 120000000,
-          revenueGrowth: 15,
-          systemUptime: 99.9,
-          onlineStudents: 45,
-          activeCourses: 120,
-          pendingAssignments: 25,
-          unreadMessages: 8
-        };
-        this.analytics.set(mockData);
-        this.lastUpdate.set(new Date());
+        this.loadError.set(true);
         this.isLoading.set(false);
-        // Add loaded class to body to show dashboard (fix for critical.scss opacity: 0 rule)
-        document.body.classList.add('loaded');
       }
     });
   }
@@ -246,7 +214,7 @@ export class AdminComponent implements OnInit {
         this.loadAnalytics();
       },
       error: () => {
-        alert('Có lỗi xảy ra khi duyệt khóa học. Vui lòng thử lại.');
+        this.toast.error('Có lỗi xảy ra khi duyệt khóa học. Vui lòng thử lại.');
       }
     });
   }
@@ -264,7 +232,7 @@ export class AdminComponent implements OnInit {
         this.loadAnalytics();
       },
       error: () => {
-        alert('Có lỗi xảy ra khi từ chối khóa học. Vui lòng thử lại.');
+        this.toast.error('Có lỗi xảy ra khi từ chối khóa học. Vui lòng thử lại.');
       }
     });
   }

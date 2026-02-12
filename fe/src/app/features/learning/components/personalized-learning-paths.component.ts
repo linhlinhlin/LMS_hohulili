@@ -1,4 +1,4 @@
-import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
+import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { LearningPathService } from '../../../core/services/learning-path.service';
@@ -7,7 +7,6 @@ import { LearningPath, LearningGoal, AdaptiveLearningRecommendation } from '../.
 @Component({
   selector: 'app-personalized-learning-paths',
   imports: [CommonModule, RouterModule],
-  encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="min-h-screen bg-gray-50">
@@ -43,7 +42,7 @@ import { LearningPath, LearningGoal, AdaptiveLearningRecommendation } from '../.
                 <div class="flex items-center justify-between mb-4">
                   <div class="flex items-center">
                     <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                      <svg class="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                      <svg class="w-6 h-6 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
                       </svg>
                     </div>
@@ -61,14 +60,14 @@ import { LearningPath, LearningGoal, AdaptiveLearningRecommendation } from '../.
                     <span>{{ goal.progress }}%</span>
                   </div>
                   <div class="bg-gray-200 rounded-full h-2">
-                    <div class="bg-blue-500 rounded-full h-2 transition-all duration-300" 
+                    <div class="bg-[#0056D2] rounded-full h-2 transition-all duration-300" 
                          [style.width.%]="goal.progress"></div>
                   </div>
                 </div>
                 <div class="flex justify-between items-center">
                   <span class="text-sm text-gray-600">{{ goal.milestones.length }} mốc quan trọng</span>
                   <button (click)="viewGoalDetail(goal.id)"
-                          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                          class="px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors text-sm">
                     Xem chi tiết
                   </button>
                 </div>
@@ -134,17 +133,17 @@ import { LearningPath, LearningGoal, AdaptiveLearningRecommendation } from '../.
             <h2 class="text-xl font-semibold text-gray-900">Lộ trình học tập</h2>
             <div class="flex space-x-2">
               <button (click)="setActiveTab('recommended')"
-                      [class]="activeTab() === 'recommended' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600'"
+                      [class]="activeTab() === 'recommended' ? 'bg-[#0056D2] text-white' : 'bg-gray-100 text-gray-600'"
                       class="px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                 Được gợi ý
               </button>
               <button (click)="setActiveTab('in-progress')"
-                      [class]="activeTab() === 'in-progress' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600'"
+                      [class]="activeTab() === 'in-progress' ? 'bg-[#0056D2] text-white' : 'bg-gray-100 text-gray-600'"
                       class="px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                 Đang học
               </button>
               <button (click)="setActiveTab('completed')"
-                      [class]="activeTab() === 'completed' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600'"
+                      [class]="activeTab() === 'completed' ? 'bg-[#0056D2] text-white' : 'bg-gray-100 text-gray-600'"
                       class="px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                 Đã hoàn thành
               </button>
@@ -166,7 +165,7 @@ import { LearningPath, LearningGoal, AdaptiveLearningRecommendation } from '../.
                       </div>
                     </div>
                     <div class="text-right">
-                      <div class="text-2xl font-bold text-blue-600">{{ path.progress }}%</div>
+                      <div class="text-2xl font-bold text-[#0056D2]">{{ path.progress }}%</div>
                       <div class="text-sm text-gray-600">Hoàn thành</div>
                     </div>
                   </div>
@@ -174,7 +173,7 @@ import { LearningPath, LearningGoal, AdaptiveLearningRecommendation } from '../.
                   <!-- Progress Bar -->
                   <div class="mb-4">
                     <div class="bg-gray-200 rounded-full h-2">
-                      <div class="bg-blue-500 rounded-full h-2 transition-all duration-300" 
+                      <div class="bg-[#0056D2] rounded-full h-2 transition-all duration-300" 
                            [style.width.%]="path.progress"></div>
                     </div>
                   </div>
@@ -207,7 +206,7 @@ import { LearningPath, LearningGoal, AdaptiveLearningRecommendation } from '../.
                     </div>
                     <button (click)="startLearningPath(path.id)"
                             [disabled]="path.isCompleted"
-                            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm">
+                            class="px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm">
                       {{ path.isCompleted ? 'Đã hoàn thành' : 'Bắt đầu học' }}
                     </button>
                   </div>

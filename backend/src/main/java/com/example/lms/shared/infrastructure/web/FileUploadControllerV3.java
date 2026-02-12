@@ -14,6 +14,7 @@ import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.*;
 
 @Slf4j
@@ -35,9 +36,14 @@ public class FileUploadControllerV3 {
     );
 
     private static final long MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+    private static final long MAX_VIDEO_SIZE = 500L * 1024 * 1024; // 500MB
+
+    private static final Set<String> ALLOWED_VIDEO_TYPES = Set.of(
+        "video/mp4", "video/webm", "video/quicktime"
+    );
 
     private final Optional<R2StorageService> r2StorageService;
-    private final com.example.lms.shared.application.service.FileManagementService fileManagementService;
+    private final com.example.lms.shared.infrastructure.service.FileManagementService fileManagementService;
 
     @Value("${cloudflare.r2.enabled:false}")
     private boolean r2Enabled;
@@ -45,13 +51,13 @@ public class FileUploadControllerV3 {
     @Autowired
     public FileUploadControllerV3(
             @Autowired(required = false) R2StorageService r2StorageService,
-            com.example.lms.shared.application.service.FileManagementService fileManagementService) {
+            com.example.lms.shared.infrastructure.service.FileManagementService fileManagementService) {
         this.r2StorageService = Optional.ofNullable(r2StorageService);
         this.fileManagementService = fileManagementService;
     }
 
     @PostMapping(value = "/upload/editor", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAnyRole('TEACHER', 'INSTRUCTOR', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Operation(summary = "Upload file to Cloudflare R2 for EditorJS")
     public ResponseEntity<Map<String, Object>> uploadForEditor(
             @RequestParam("file") MultipartFile file,
@@ -92,7 +98,7 @@ public class FileUploadControllerV3 {
 
             return ResponseEntity.ok(response);
 
-        } catch (Exception e) {
+        } catch (IOException | RuntimeException e) {
             log.error("File upload failed", e);
             return ResponseEntity.internalServerError().body(Map.of(
                 "success", 0,
@@ -101,8 +107,56 @@ public class FileUploadControllerV3 {
         }
     }
 
+    @PostMapping(value = "/upload/video", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @Operation(summary = "Upload video file to Cloudflare R2")
+    public ResponseEntity<Map<String, Object>> uploadVideo(
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        try {
+            if (!r2Enabled || r2StorageService.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "success", 0,
+                    "message", "Video upload is not available: R2 storage is not configured"
+                ));
+            }
+
+            if (file == null || file.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("success", 0, "message", "File is empty"));
+            }
+            if (file.getSize() > MAX_VIDEO_SIZE) {
+                return ResponseEntity.badRequest().body(Map.of("success", 0, "message", "Video size exceeds maximum allowed size of 500MB"));
+            }
+            String contentType = file.getContentType();
+            if (contentType == null || !ALLOWED_VIDEO_TYPES.contains(contentType.toLowerCase())) {
+                return ResponseEntity.badRequest().body(Map.of("success", 0, "message", "Video type not allowed: " + contentType));
+            }
+
+            UUID uploadedBy = user != null ? user.getId() : UUID.fromString("00000000-0000-0000-0000-000000000000");
+            var attachment = fileManagementService.uploadFile(file, "videos", uploadedBy);
+
+            Map<String, Object> fileData = new HashMap<>();
+            fileData.put("url", attachment.getFileUrl());
+            fileData.put("id", attachment.getEntityId());
+            fileData.put("uuid", attachment.getId());
+            fileData.put("storageKey", attachment.getFileName());
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", 1);
+            response.put("file", fileData);
+            return ResponseEntity.ok(response);
+
+        } catch (IOException | RuntimeException e) {
+            log.error("Video upload failed", e);
+            return ResponseEntity.internalServerError().body(Map.of(
+                "success", 0,
+                "message", "Video upload failed: " + e.getMessage()
+            ));
+        }
+    }
+
     @DeleteMapping("/{storageKey}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'INSTRUCTOR', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Operation(summary = "Delete file from Cloudflare R2")
     public ResponseEntity<Map<String, Object>> deleteFile(@PathVariable String storageKey) {
         try {
@@ -120,7 +174,7 @@ public class FileUploadControllerV3 {
                 "success", true,
                 "message", "File deleted successfully"
             ));
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             log.error("File deletion failed for key: {}", storageKey, e);
             return ResponseEntity.internalServerError().body(Map.of(
                 "success", false,

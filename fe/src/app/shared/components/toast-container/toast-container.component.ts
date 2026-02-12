@@ -31,7 +31,7 @@ export class ToastContainerComponent {
       success: 'bg-green-500 text-white',
       error: 'bg-red-500 text-white',
       warning: 'bg-yellow-500 text-black',
-      info: 'bg-blue-500 text-white'
+      info: 'bg-[#0056D2] text-white'
     };
     return classes[type as keyof typeof classes] || classes.info;
   }

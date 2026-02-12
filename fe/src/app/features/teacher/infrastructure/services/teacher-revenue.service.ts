@@ -1,5 +1,5 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
-import { Observable, throwError, BehaviorSubject } from 'rxjs';
+import { Observable, throwError, BehaviorSubject, firstValueFrom } from 'rxjs';
 import { map, catchError, finalize, tap } from 'rxjs/operators';
 import { ApiClient } from '../../../../api/client/api-client';
 
@@ -187,8 +187,8 @@ export class TeacherRevenueService {
             }),
             tap(() => {
                 // Refresh balance after successful payout request
-                this.getPayoutBalance().subscribe();
-                this.getPayoutHistory().subscribe();
+                this.getPayoutBalance().subscribe({ error: () => {} }); // best-effort refresh
+                this.getPayoutHistory().subscribe({ error: () => {} }); // best-effort refresh
             }),
             map(response => {
                 return {
@@ -235,9 +235,9 @@ export class TeacherRevenueService {
     async loadDashboardData(): Promise<void> {
         try {
             await Promise.all([
-                this.getRevenueSummary().toPromise(),
-                this.getRevenueHistory().toPromise(),
-                this.getPayoutBalance().toPromise()
+                firstValueFrom(this.getRevenueSummary()),
+                firstValueFrom(this.getRevenueHistory()),
+                firstValueFrom(this.getPayoutBalance())
             ]);
         } catch (error) {
             throw error;

@@ -6,7 +6,7 @@
             <p class="text-sm text-gray-500 mt-1">Danh sách các lớp đang hoạt động</p>
         </div>
         <button (click)="openCreateDialog()"
-            class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm">
+            class="inline-flex items-center px-4 py-2 bg-[#0056D2] hover:bg-[#004BB5] text-white text-sm font-medium rounded-lg transition-colors shadow-sm">
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
@@ -25,13 +25,13 @@
                 </svg>
             </div>
             <input type="text" [formControl]="searchControl"
-                class="block w-full pl-10 pr-3 py-1.5 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                class="block w-full pl-10 pr-3 py-1.5 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#0056D2] focus:border-[#0056D2] sm:text-sm"
                 placeholder="Tìm theo tên lớp hoặc mã lớp...">
         </div>
 
         <!-- Year Filter -->
         <select (change)="onYearChange($event)"
-            class="block pl-3 pr-8 py-1.5 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+            class="block pl-3 pr-8 py-1.5 text-base border-gray-300 focus:outline-none focus:ring-[#0056D2] focus:border-[#0056D2] sm:text-sm rounded-md">
             @for (y of years; track y) {
             <option [value]="y" [selected]="y === selectedYear">Năm {{ y }} - {{ y + 1 }}</option>
             }
@@ -39,7 +39,7 @@
 
         <!-- Semester Filter -->
         <select (change)="onSemesterChange($event)"
-            class="block pl-3 pr-8 py-1.5 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+            class="block pl-3 pr-8 py-1.5 text-base border-gray-300 focus:outline-none focus:ring-[#0056D2] focus:border-[#0056D2] sm:text-sm rounded-md">
             <option value="">Tất cả học kỳ</option>
             @for (s of semesters; track s) {
             <option [value]="s">{{ s }}</option>
@@ -48,7 +48,7 @@
 
         <!-- Status Filter -->
         <select (change)="onStatusChange($event)"
-            class="block pl-3 pr-8 py-1.5 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+            class="block pl-3 pr-8 py-1.5 text-base border-gray-300 focus:outline-none focus:ring-[#0056D2] focus:border-[#0056D2] sm:text-sm rounded-md">
             <option value="">Tất cả trạng thái</option>
             <option value="OPEN">Đang mở</option>
             <option value="CLOSED">Đã đóng</option>
@@ -111,7 +111,7 @@
                         <div class="flex flex-col text-xs text-gray-500">
                             <div class="flex items-center">
                                 @if (cls.scheduleType === 'SEMESTER') {
-                                <span class="mr-1.5 font-semibold text-blue-700">
+                                <span class="mr-1.5 font-semibold text-[#004BB5]">
                                     {{ cls.semester }}
                                 </span>
                                 }
@@ -143,7 +143,7 @@
                                 </svg>
                             </button>
                             <button (click)="viewStudents(cls.id)"
-                                class="text-blue-500 hover:text-blue-700 transition-colors p-1"
+                                class="text-blue-500 hover:text-[#004BB5] transition-colors p-1"
                                 title="Xem danh sách học viên">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

@@ -75,6 +75,7 @@ public class UserEntityMapper {
         }
         return switch (entityRole) {
             case ADMIN -> Role.ADMIN;
+            case ORG_ADMIN -> Role.ORG_ADMIN;
             case TEACHER -> Role.TEACHER;
             case STUDENT -> Role.STUDENT;
         };
@@ -89,6 +90,7 @@ public class UserEntityMapper {
         }
         return switch (domainRole) {
             case ADMIN -> UserJpaEntity.UserRole.ADMIN;
+            case ORG_ADMIN -> UserJpaEntity.UserRole.ORG_ADMIN;
             case TEACHER -> UserJpaEntity.UserRole.TEACHER;
             case STUDENT -> UserJpaEntity.UserRole.STUDENT;
         };

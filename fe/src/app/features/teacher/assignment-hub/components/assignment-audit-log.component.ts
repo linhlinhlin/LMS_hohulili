@@ -106,7 +106,7 @@ export class AssignmentAuditLogComponent {
     const classes: Record<string, string> = {
       'GRADE_CREATED': 'text-green-600',
       'GRADE_UPDATED': 'text-yellow-600',
-      'FEEDBACK_ADDED': 'text-blue-600',
+      'FEEDBACK_ADDED': 'text-[#0056D2]',
       'RUBRIC_CHANGED': 'text-purple-600',
       'DEADLINE_EXTENDED': 'text-orange-600',
       'ASSIGNMENT_DISTRIBUTED': 'text-indigo-600'

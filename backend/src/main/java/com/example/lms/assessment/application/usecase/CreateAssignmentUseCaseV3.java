@@ -33,7 +33,7 @@ public class CreateAssignmentUseCaseV3 {
         Assignment.AssignmentType type = Assignment.AssignmentType.FILE_UPLOAD;
         try {
             type = Assignment.AssignmentType.valueOf(command.type());
-        } catch (Exception ignored) {}
+        } catch (IllegalArgumentException ignored) {}
 
         // Create domain model using factory method
         Assignment assignment = Assignment.create(

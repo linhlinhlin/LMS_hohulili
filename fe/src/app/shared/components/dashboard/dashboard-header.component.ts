@@ -1,4 +1,4 @@
-import { Component, inject, output, signal, ChangeDetectionStrategy, ViewEncapsulation } from "@angular/core"
+import { Component, inject, output, signal, ChangeDetectionStrategy } from "@angular/core"
 
 import { RouterModule, Router } from "@angular/router"
 import { FormsModule } from "@angular/forms"
@@ -9,7 +9,6 @@ import { SmartBreadcrumbsComponent } from "../navigation/smart-breadcrumbs.compo
 @Component({
   selector: "app-dashboard-header",
   imports: [RouterModule, FormsModule, SmartBreadcrumbsComponent],
-  encapsulation: ViewEncapsulation.None,
   template: `
     <header class="bg-white shadow-lg border-b border-gray-200 sticky top-0 z-30 backdrop-blur-sm bg-white/95">
       <div class="flex items-center justify-between h-20 px-8">
@@ -28,7 +27,7 @@ import { SmartBreadcrumbsComponent } from "../navigation/smart-breadcrumbs.compo
             <app-smart-breadcrumbs></app-smart-breadcrumbs>
           } @else {
             <div class="flex items-center space-x-3">
-              <div class="w-10 h-10 bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl flex items-center justify-center">
+              <div class="w-10 h-10 bg-[#0056D2] rounded-xl flex items-center justify-center">
                 <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
                   <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
@@ -45,7 +44,7 @@ import { SmartBreadcrumbsComponent } from "../navigation/smart-breadcrumbs.compo
           @if (pwaService.showInstallButton()) {
             <button 
               (click)="pwaService.installPwa()"
-              class="hidden md:flex items-center space-x-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-xl hover:bg-blue-100 transition-colors duration-200">
+              class="hidden md:flex items-center space-x-2 px-4 py-2 bg-blue-50 text-[#004BB5] rounded-xl hover:bg-blue-100 transition-colors duration-200">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
               </svg>
@@ -59,7 +58,7 @@ import { SmartBreadcrumbsComponent } from "../navigation/smart-breadcrumbs.compo
                    placeholder="Tìm kiếm khóa học, bài tập..."
                    [(ngModel)]="searchQuery"
                    (input)="onSearch($event)"
-                   class="w-80 pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 focus:bg-white transition-all duration-200 shadow-sm">
+                   class="w-80 pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-transparent bg-gray-50 focus:bg-white transition-all duration-200 shadow-sm">
             <svg class="absolute left-4 top-3.5 w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"></path>
             </svg>
@@ -97,7 +96,7 @@ import { SmartBreadcrumbsComponent } from "../navigation/smart-breadcrumbs.compo
           <!-- Quick Actions với gradient -->
           <button 
             (click)="goToQuickAction()"
-            class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 text-sm font-semibold shadow-lg hover:shadow-xl transform hover:scale-105">
+            class="px-6 py-3 bg-[#0056D2] hover:bg-[#004BB5] text-white rounded-xl transition-all duration-200 text-sm font-semibold shadow-sm hover:shadow-md">
             {{ getQuickActionText() }}
           </button>
 
@@ -184,10 +183,10 @@ export class DashboardHeaderComponent {
   getDashboardTitle(): string {
     const role = this.authService.userRole()
     switch (role) {
-      case 'student': return 'Student Dashboard'
-      case 'teacher': return 'Teacher Dashboard'
-      case 'admin': return 'Admin Dashboard'
-      default: return 'Dashboard'
+      case 'student': return 'Bảng điều khiển'
+      case 'teacher': return 'Bảng điều khiển'
+      case 'admin': return 'Bảng điều khiển'
+      default: return 'Bảng điều khiển'
     }
   }
 

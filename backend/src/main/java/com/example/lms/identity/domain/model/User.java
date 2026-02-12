@@ -83,15 +83,23 @@ public class User {
     }
     
     public boolean isTeacher() {
-        return role == Role.TEACHER || role == Role.ADMIN;
+        return role == Role.TEACHER || role == Role.ADMIN || role == Role.ORG_ADMIN;
     }
-    
+
     public boolean isStudent() {
         return role == Role.STUDENT;
     }
-    
+
     public boolean isAdmin() {
+        return role == Role.ADMIN || role == Role.ORG_ADMIN;
+    }
+
+    public boolean isSystemAdmin() {
         return role == Role.ADMIN;
+    }
+
+    public boolean isOrgAdmin() {
+        return role == Role.ORG_ADMIN;
     }
     
     // Getters

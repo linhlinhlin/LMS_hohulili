@@ -99,6 +99,7 @@ public class UserRepositoryAdapter implements UserRepository {
         }
         return switch (role) {
             case ADMIN -> UserJpaEntity.UserRole.ADMIN;
+            case ORG_ADMIN -> UserJpaEntity.UserRole.ORG_ADMIN;
             case TEACHER -> UserJpaEntity.UserRole.TEACHER;
             case STUDENT -> UserJpaEntity.UserRole.STUDENT;
         };

@@ -3,7 +3,8 @@
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AdminService, AdminUser, UserAccountStatus, UpdateUserStatusRequest } from '../../infrastructure/services/admin.service';
-
+import { ToastService } from '../../../../core/services/toast.service';
+import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 /**
  * Admin User Management Component
  * SOTA Design: Coursera-inspired with role change, status actions
@@ -90,7 +91,7 @@ import { AdminService, AdminUser, UserAccountStatus, UpdateUserStatusRequest } f
                 <p class="text-xs text-gray-600 mt-2">Trong 7 ngày qua</p>
               </div>
               <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
-                <svg class="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="w-5 h-5 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
                 </svg>
               </div>
@@ -204,13 +205,13 @@ import { AdminService, AdminUser, UserAccountStatus, UpdateUserStatusRequest } f
                                   class="text-xs px-2 py-1 border border-gray-300 rounded bg-white cursor-pointer hover:border-gray-400">
                             <option value="" disabled selected>Trạng thái</option>
                             @if (admin.accountStatus !== 'ACTIVE') {
-                              <option value="ACTIVE">âœ“ Kích hoạt</option>
+                              <option value="ACTIVE">Kích hoạt</option>
                             }
                             @if (admin.accountStatus !== 'BLOCKED') {
-                              <option value="BLOCKED">đŸ”’ Khóa</option>
+                              <option value="BLOCKED">Khóa</option>
                             }
                             @if (admin.accountStatus !== 'RESTRICTED') {
-                              <option value="RESTRICTED">â ï¸ Hạn chế</option>
+                              <option value="RESTRICTED">Hạn chế</option>
                             }
                           </select>
                           <!-- Revoke Admin -->
@@ -283,6 +284,8 @@ import { AdminService, AdminUser, UserAccountStatus, UpdateUserStatusRequest } f
 })
 export class AdminUserManagementComponent implements OnInit {
   private adminService = inject(AdminService);
+  private toast = inject(ToastService);
+  private confirmDialog = inject(ConfirmDialogService);
 
   // State
   allUsers = signal<AdminUser[]>([]);
@@ -293,8 +296,8 @@ export class AdminUserManagementComponent implements OnInit {
   newAdminName = signal('');
   newAdminEmail = signal('');
 
-  // Computed - filter for admins (UserRole.ADMIN = 'admin')
-  adminUsers = computed(() => this.allUsers().filter(u => u.role === 'admin'));
+  // Computed - filter for admins (ADMIN + ORG_ADMIN)
+  adminUsers = computed(() => this.allUsers().filter(u => u.role === 'admin' || u.role === 'org_admin'));
 
   filteredAdmins = computed(() => {
     let admins = this.adminUsers();
@@ -376,14 +379,21 @@ export class AdminUserManagementComponent implements OnInit {
   }
 
   // Role change handler
-  onRoleChange(userId: string, newRole: string) {
-    if (!confirm(`Bạn có chắc muốn thay đổi vai trò người dùng này thành ${this.getRoleLabel(newRole)}?`)) {
-      this.loadUsers(); // Reload to reset dropdown
+  async onRoleChange(userId: string, newRole: string) {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Thay đổi vai trò',
+      message: `Bạn có chắc muốn thay đổi vai trò người dùng này thành ${this.getRoleLabel(newRole)}?`,
+      confirmText: 'Thay đổi',
+      variant: 'warning'
+    });
+    if (!confirmed) {
+      this.loadUsers();
       return;
     }
 
     this.adminService.updateUser(userId, { role: newRole as 'ADMIN' | 'TEACHER' | 'STUDENT' }).subscribe({
-      next: () => this.loadUsers()
+      next: () => this.loadUsers(),
+      error: (err) => this.toast.error('Không thể thay đổi vai trò: ' + (err.error?.message || 'Vui lòng thử lại'))
     });
   }
 
@@ -391,28 +401,32 @@ export class AdminUserManagementComponent implements OnInit {
   onStatusActionChange(user: AdminUser, newStatus: string) {
     if (!newStatus) return;
 
-    const statusLabel = this.getStatusLabel(newStatus);
-    const reason = prompt(`Nhập lý do ${statusLabel.toLowerCase()} tài khoản (tùy chọn):`);
-
     this.adminService.updateUserStatus(user.id, {
       status: newStatus as UserAccountStatus,
-      reason: reason || ''
+      reason: ''
     }).subscribe({
       next: () => this.loadUsers(),
       error: () => {
-        // Fallback to toggle if updateUserStatus not implemented
         this.adminService.toggleUserStatus(user.id).subscribe({
-          next: () => this.loadUsers()
+          next: () => this.loadUsers(),
+          error: (err) => this.toast.error('Không thể thay đổi trạng thái: ' + (err.error?.message || 'Vui lòng thử lại'))
         });
       }
     });
   }
 
-  revokeAdmin(admin: AdminUser) {
-    if (!confirm(`Bạn có chắc muốn thu hồi quyền Admin của ${admin.name}? Họ sẽ trở thành Học viên.`)) return;
+  async revokeAdmin(admin: AdminUser) {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Thu hồi quyền Admin',
+      message: `Bạn có chắc muốn thu hồi quyền Admin của ${admin.name}? Họ sẽ trở thành Học viên.`,
+      confirmText: 'Thu hồi',
+      variant: 'danger'
+    });
+    if (!confirmed) return;
 
     this.adminService.updateUser(admin.id, { role: 'STUDENT' }).subscribe({
-      next: () => this.loadUsers()
+      next: () => this.loadUsers(),
+      error: (err) => this.toast.error('Không thể thu hồi quyền: ' + (err.error?.message || 'Vui lòng thử lại'))
     });
   }
 

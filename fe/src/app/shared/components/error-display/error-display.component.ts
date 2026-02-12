@@ -1,11 +1,10 @@
-import { Component, signal, inject, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
+import { Component, signal, inject, ChangeDetectionStrategy } from '@angular/core';
 
 import { ErrorHandlingService, AppError } from '../../services/error-handling.service';
 
 @Component({
   selector: 'app-error-display',
   imports: [],
-  encapsulation: ViewEncapsulation.None,
   template: `
     <!-- Error Container -->
     <div class="fixed top-4 right-4 z-50 space-y-3 max-w-md">
@@ -81,7 +80,7 @@ import { ErrorHandlingService, AppError } from '../../services/error-handling.se
       <div class="fixed inset-0 bg-black bg-opacity-25 flex items-center justify-center z-50">
         <div class="bg-white rounded-lg p-6 shadow-lg">
           <div class="flex items-center space-x-3">
-            <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+            <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-[#0056D2]"></div>
             <span class="text-gray-700">Đang tải...</span>
           </div>
         </div>

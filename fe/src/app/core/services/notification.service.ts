@@ -105,57 +105,10 @@ export class NotificationService {
   loadNotifications(): Observable<Notification[]> {
     this.loading.set(true);
 
-    // Mock data - replace with real API call
-    const mockNotifications: Notification[] = [
-      {
-        id: '1',
-        type: 'ASSIGNMENT_NEW',
-        title: 'Bài tập mới',
-        message: 'Bạn có bài tập mới: "An toàn Hàng hải - Chương 3"',
-        recipientId: this.currentUserId(),
-        senderId: 'teacher-1',
-        senderName: 'Giảng viên Nguyễn Văn A',
-        relatedEntityId: 'a1',
-        relatedEntityType: 'ASSIGNMENT',
-        priority: 'MEDIUM',
-        isRead: false,
-        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
-        actionUrl: '/student/my-tasks',
-      },
-      {
-        id: '2',
-        type: 'ASSIGNMENT_REMINDER',
-        title: 'Nhắc nhở deadline',
-        message: 'Bài tập "Thực hành Radar" sẽ hết hạn trong 1 ngày',
-        recipientId: this.currentUserId(),
-        relatedEntityId: 'a2',
-        relatedEntityType: 'ASSIGNMENT',
-        priority: 'HIGH',
-        isRead: false,
-        createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // 30 mins ago
-        actionUrl: '/student/my-tasks',
-      },
-      {
-        id: '3',
-        type: 'GRADE_PUBLISHED',
-        title: 'Điểm mới',
-        message: 'Bài tập "Điều hướng cơ bản" đã được chấm điểm: 85/100',
-        recipientId: this.currentUserId(),
-        senderId: 'teacher-1',
-        senderName: 'Giảng viên Nguyễn Văn A',
-        relatedEntityId: 'a3',
-        relatedEntityType: 'ASSIGNMENT',
-        priority: 'MEDIUM',
-        isRead: true,
-        createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
-        readAt: new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString(),
-        actionUrl: '/student/my-tasks',
-        metadata: { score: 85, maxScore: 100 },
-      },
-    ];
+    // Real notifications handled by GamificationApi + notification-bell
+    const notifications: Notification[] = [];
 
-    return of(mockNotifications).pipe(
-      delay(300),
+    return of(notifications).pipe(
       tap((result) => {
         this.notifications.set(result);
         this.loading.set(false);

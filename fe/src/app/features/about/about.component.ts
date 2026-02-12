@@ -1,15 +1,16 @@
 import { Component, ChangeDetectionStrategy } from '@angular/core';
 
 import { RouterModule } from '@angular/router';
+import { IconComponent } from '../../shared/components/icon/icon.component';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-about',
-  imports: [RouterModule],
+  imports: [RouterModule, IconComponent],
   template: `
     <div class="min-h-screen bg-gray-50">
       <!-- Hero Section -->
-      <div class="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-20">
+      <div class="bg-[#0056D2] text-white py-20">
         <div class="container mx-auto px-4 text-center">
           <h1 class="text-4xl md:text-6xl font-bold mb-6">Về LMS Maritime</h1>
           <p class="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
@@ -25,14 +26,14 @@ import { RouterModule } from '@angular/router';
             <h2 class="text-3xl font-bold text-gray-900 mb-8 text-center">Sứ mệnh của chúng tôi</h2>
             <div class="grid md:grid-cols-2 gap-8">
               <div class="bg-blue-50 p-6 rounded-lg">
-                <h3 class="text-xl font-semibold text-blue-900 mb-4">🎯 Mục tiêu</h3>
+                <h3 class="text-xl font-semibold text-blue-900 mb-4 flex items-center"><app-icon name="target" size="sm" class="text-[#0056D2] mr-1"/> Mục tiêu</h3>
                 <p class="text-gray-700">
                   Cung cấp nền tảng học tập trực tuyến hiện đại, đào tạo chuyên sâu về kiến thức hàng hải, 
                   góp phần nâng cao chất lượng nhân lực ngành hàng hải Việt Nam.
                 </p>
               </div>
               <div class="bg-green-50 p-6 rounded-lg">
-                <h3 class="text-xl font-semibold text-green-900 mb-4">🌟 Tầm nhìn</h3>
+                <h3 class="text-xl font-semibold text-green-900 mb-4 flex items-center"><app-icon name="sparkles" size="sm" class="text-green-600 mr-1"/> Tầm nhìn</h3>
                 <p class="text-gray-700">
                   Trở thành hệ thống LMS hàng đầu trong lĩnh vực đào tạo hàng hải, 
                   được tin tưởng bởi các tổ chức và cá nhân trong ngành.
@@ -50,7 +51,7 @@ import { RouterModule } from '@angular/router';
           <div class="grid md:grid-cols-3 gap-8">
             <div class="text-center">
               <div class="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-8 h-8 text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                 </svg>
               </div>
@@ -87,19 +88,19 @@ import { RouterModule } from '@angular/router';
             <div class="text-center">
               <div class="bg-gray-200 w-32 h-32 rounded-full mx-auto mb-4"></div>
               <h3 class="text-xl font-semibold text-gray-900 mb-2">ThS. Nguyễn Văn A</h3>
-              <p class="text-blue-600 mb-2">Chuyên gia Hàng hải</p>
+              <p class="text-[#0056D2] mb-2">Chuyên gia Hàng hải</p>
               <p class="text-gray-600">15 năm kinh nghiệm trong lĩnh vực đào tạo hàng hải</p>
             </div>
             <div class="text-center">
               <div class="bg-gray-200 w-32 h-32 rounded-full mx-auto mb-4"></div>
               <h3 class="text-xl font-semibold text-gray-900 mb-2">TS. Trần Thị B</h3>
-              <p class="text-blue-600 mb-2">Chuyên gia Công nghệ</p>
+              <p class="text-[#0056D2] mb-2">Chuyên gia Công nghệ</p>
               <p class="text-gray-600">Chuyên gia về hệ thống LMS và công nghệ giáo dục</p>
             </div>
             <div class="text-center">
               <div class="bg-gray-200 w-32 h-32 rounded-full mx-auto mb-4"></div>
               <h3 class="text-xl font-semibold text-gray-900 mb-2">ThS. Lê Văn C</h3>
-              <p class="text-blue-600 mb-2">Chuyên gia Đào tạo</p>
+              <p class="text-[#0056D2] mb-2">Chuyên gia Đào tạo</p>
               <p class="text-gray-600">Chuyên gia về phương pháp đào tạo và phát triển nhân lực</p>
             </div>
           </div>
@@ -107,17 +108,17 @@ import { RouterModule } from '@angular/router';
       </div>
 
       <!-- CTA Section -->
-      <div class="py-16 bg-blue-600 text-white">
+      <div class="py-16 bg-[#0056D2] text-white">
         <div class="container mx-auto px-4 text-center">
           <h2 class="text-3xl font-bold mb-4">Sẵn sàng bắt đầu hành trình học tập?</h2>
           <p class="text-xl mb-8">Tham gia ngay để trải nghiệm hệ thống đào tạo hàng hải chuyên nghiệp</p>
           <div class="space-x-4">
             <a routerLink="/auth/register" 
-               class="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+               class="bg-white text-[#0056D2] px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
               Đăng ký ngay
             </a>
             <a routerLink="/courses" 
-               class="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors">
+               class="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-[#0056D2] transition-colors">
               Xem khóa học
             </a>
           </div>

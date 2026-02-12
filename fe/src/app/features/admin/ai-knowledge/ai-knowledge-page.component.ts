@@ -1,6 +1,7 @@
 import { Component, inject, OnInit, signal, ChangeDetectionStrategy } from '@angular/core';
 
 import { AiKnowledgeService } from './services/ai-knowledge.service';
+import { ToastService } from '../../../core/services/toast.service';
 import { KnowledgeStatsComponent } from './components/knowledge-stats.component';
 import { KnowledgeDocumentListComponent } from './components/knowledge-document-list.component';
 import { KnowledgeUploadComponent } from './components/knowledge-upload.component';
@@ -17,18 +18,18 @@ import { KnowledgeStats, KnowledgeDocument } from './domain/knowledge.types';
     DeleteConfirmModalComponent
 ],
     template: `
-    <div class="page-container">
-      <div class="page-header">
-        <h1 class="page-title">Quản lý Tri thức AI</h1>
-        <p class="page-subtitle">Quản lý tài liệu và cơ sở tri thức cho AI Chatbot</p>
+    <div class="px-6 py-6 max-w-[1400px] mx-auto">
+      <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900 mb-1">Quản lý Tri thức AI</h1>
+        <p class="text-gray-500 text-sm">Quản lý tài liệu và cơ sở tri thức cho AI Chatbot</p>
       </div>
 
       <!-- Stats Section -->
       <app-knowledge-stats [stats]="stats()"></app-knowledge-stats>
 
-      <div class="content-grid">
+      <div class="grid grid-cols-1 lg:grid-cols-[1fr_350px] gap-6">
         <!-- Document List (Main Content) -->
-        <div class="main-content">
+        <div>
           <app-knowledge-document-list
             [documents]="documents()"
             (delete)="onDeleteRequest($event)"
@@ -36,7 +37,7 @@ import { KnowledgeStats, KnowledgeDocument } from './domain/knowledge.types';
         </div>
 
         <!-- Sidebar (Upload) -->
-        <div class="sidebar">
+        <div class="lg:order-none order-first">
           <app-knowledge-upload
             [isUploading]="isUploading()"
             (upload)="onUpload($event)"
@@ -52,49 +53,11 @@ import { KnowledgeStats, KnowledgeDocument } from './domain/knowledge.types';
         (cancel)="onCancelDelete()"
       ></app-delete-confirm-modal>
     </div>
-  `,
-    styles: [`
-    .page-container {
-      padding: 24px;
-      max-width: 1400px;
-      margin: 0 auto;
-    }
-
-    .page-header {
-      margin-bottom: 24px;
-    }
-
-    .page-title {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: #111827;
-      margin: 0 0 4px 0;
-    }
-
-    .page-subtitle {
-      color: #6b7280;
-      font-size: 0.95rem;
-    }
-
-    .content-grid {
-      display: grid;
-      grid-template-columns: 1fr 350px;
-      gap: 24px;
-    }
-
-    @media (max-width: 1024px) {
-      .content-grid {
-        grid-template-columns: 1fr;
-      }
-      
-      .sidebar {
-        order: -1; /* Move upload to top on mobile/tablet */
-      }
-    }
-  `]
+  `
 })
 export class AiKnowledgePageComponent implements OnInit {
     private knowledgeService = inject(AiKnowledgeService);
+    private toast = inject(ToastService);
 
     // Signals
     stats = signal<KnowledgeStats | null>(null);
@@ -115,14 +78,14 @@ export class AiKnowledgePageComponent implements OnInit {
     loadStats() {
         this.knowledgeService.getStats().subscribe({
             next: (data) => this.stats.set(data),
-            error: () => {}
+            error: () => { /* Stats are supplementary */ }
         });
     }
 
     loadDocuments() {
         this.knowledgeService.getDocuments().subscribe({
             next: (data) => this.documents.set(data),
-            error: () => {}
+            error: () => { this.toast.error('Không thể tải danh sách tài liệu. Vui lòng thử lại.'); }
         });
     }
 
@@ -132,11 +95,11 @@ export class AiKnowledgePageComponent implements OnInit {
             next: () => {
                 this.isUploading.set(false);
                 this.loadData(); // Reload data
-                alert('Tải lên thành công! Tài liệu đang được xử lý.');
+                this.toast.success('Tải lên thành công! Tài liệu đang được xử lý.');
             },
             error: () => {
                 this.isUploading.set(false);
-                alert('Tải lên thất bại. Vui lòng thử lại.');
+                this.toast.error('Tải lên thất bại. Vui lòng thử lại.');
             }
         });
     }
@@ -157,7 +120,7 @@ export class AiKnowledgePageComponent implements OnInit {
                 this.loadData(); // Reload data
             },
             error: () => {
-                alert('Xóa thất bại. Vui lòng thử lại.');
+                this.toast.error('Xóa thất bại. Vui lòng thử lại.');
             }
         });
     }

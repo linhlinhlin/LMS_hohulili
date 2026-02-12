@@ -16,9 +16,13 @@
         </button>
         <div class="course-title-wrapper">
           <h2 class="course-title">{{ course()?.title || 'Đang tải...' }}</h2>
-          @if (progressPercentage() > 0) {
-          <div class="progress-text">{{ progressPercentage() }}% hoàn thành</div>
-          }
+          <!-- Progress Bar (Coursera-style) -->
+          <div class="progress-bar-container">
+            <div class="progress-bar-track">
+              <div class="progress-bar-fill" [style.width.%]="progressPercentage()"></div>
+            </div>
+            <span class="progress-label">{{ progressPercentage() }}% hoàn thành</span>
+          </div>
         </div>
       </div>
       @if (!isMobileView()) {
@@ -67,7 +71,10 @@
           [attr.aria-label]="section.title + ', ' + section.lessons.length + ' bài học'">
           <div class="section-info">
             <h3 class="section-title">{{ section.title }}</h3>
-            <span class="section-count">{{ section.lessons.length }} bài học</span>
+            <span class="section-count">{{ getCompletedLessonCount(section) }}/{{ section.lessons.length }} bài học</span>
+            <div class="chapter-progress">
+              <div class="chapter-progress-fill" [style.width.%]="getChapterProgress(section)"></div>
+            </div>
           </div>
           <svg class="chevron-icon" [class.rotated]="isSectionExpanded(section.id)" width="20" height="20"
             viewBox="0 0 20 20" fill="none">
@@ -101,10 +108,9 @@
                 </div>
                 <div class="lesson-content">
                   <div class="lesson-title">{{ lesson.title }}</div>
-                  @if (currentLesson()?.sections && currentLesson()?.id === lesson.id &&
-                  currentLesson()!.sections!.length > 0) {
+                  @if (lesson.sections && lesson.sections.length > 0) {
                   <div class="lesson-meta">
-                    <span class="section-count">{{ currentLesson()!.sections!.length }} phần</span>
+                    <span class="section-count">{{ lesson.sections.length }} phần</span>
                   </div>
                   } @else if (lesson.duration > 0) {
                   <div class="lesson-meta">
@@ -113,9 +119,8 @@
                   </div>
                   }
                 </div>
-                <!-- Expand/Collapse icon if current lesson has sections -->
-                @if (currentLesson()?.id === lesson.id && currentLesson()?.sections && currentLesson()!.sections!.length
-                > 0) {
+                <!-- Expand/Collapse icon if lesson has sections -->
+                @if (lesson.sections && lesson.sections.length > 0) {
                 <svg class="chevron-icon lesson-chevron" [class.rotated]="isLessonExpanded(lesson.id)" width="16"
                   height="16" viewBox="0 0 20 20" fill="none">
                   <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -124,14 +129,13 @@
                 }
               </button>
 
-              <!-- Level 3: Sections (if lesson is current and has sections) -->
-              @if (currentLesson()?.id === lesson.id && currentLesson()?.sections && currentLesson()!.sections!.length >
-              0 && isLessonExpanded(lesson.id)) {
+              <!-- Level 3: Sections (if lesson has sections and is expanded) -->
+              @if (lesson.sections && lesson.sections.length > 0 && isLessonExpanded(lesson.id)) {
               <ul class="section-items">
-                @for (sectionItem of currentLesson()!.sections; track sectionItem.id; let sectionIndex = $index) {
+                @for (sectionItem of lesson.sections; track sectionItem.id; let sectionIndex = $index) {
                 <li class="section-item-wrapper">
                   <button class="section-item" 
-                    [class.active]="currentSectionIndex === sectionIndex"
+                    [class.active]="currentSectionIndex() === sectionIndex"
                     [class.completed]="isSectionCompleted(sectionItem.id)"
                     (click)="selectSectionInSidebar(sectionIndex, $event)">
                     
@@ -251,6 +255,12 @@
 
     <!-- Content Area -->
     <div class="content-area">
+      @if (error()) {
+        <div style="background:#fef2f2;border:1px solid #fecaca;color:#991b1b;padding:12px 16px;border-radius:8px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">
+          <span>{{ error() }}</span>
+          <button (click)="error.set(null)" style="background:none;border:none;cursor:pointer;font-size:18px">&times;</button>
+        </div>
+      }
       @if (isLoadingLesson()) {
       <div class="loading-overlay">
         <div class="spinner large"></div>
@@ -269,15 +279,16 @@
       <!-- Lesson Content Component -->
       <app-lesson-content [lesson]="currentLesson()!"
         [isCompleted]="learningService.isLessonCompleted(currentLesson()!.id)()"
-        [hasQuiz]="hasQuiz(currentLesson()!.id)" [sectionIndex]="currentSectionIndex"
+        [hasQuiz]="hasQuiz(currentLesson()!.id)" [sectionIndex]="currentSectionIndex()"
         (sectionIndexChange)="onSectionIndexChange($event)" (markComplete)="onMarkComplete()"
-        (videoStateChange)="onVideoStateChange($event)" (videoEnded)="onVideoEnded()">
+        (videoStateChange)="onVideoStateChange($event)" (videoEnded)="onVideoEnded()"
+        (sectionReadComplete)="onSectionReadComplete($event)">
       </app-lesson-content>
 
       <!-- Navigation Buttons - Inside content area -->
       <div class="lesson-navigation">
-        <button class="nav-btn prev" [disabled]="!canGoPrevious() && currentSectionIndex === 0"
-          (click)="previousLesson()" [attr.aria-label]="currentSectionIndex > 0 ? 'Phần trước' : 'Bài học trước'">
+        <button class="nav-btn prev" [disabled]="!canGoPrevious() && currentSectionIndex() === 0"
+          (click)="previousLesson()" [attr.aria-label]="currentSectionIndex() > 0 ? 'Phần trước' : 'Bài học trước'">
           <i class="icon-chevron-left"></i>
           <span>Trước</span>
         </button>
@@ -293,9 +304,9 @@
         </button>
 
         <button class="nav-btn next"
-          [disabled]="!canGoNext() && (!currentLesson()?.sections || currentSectionIndex >= (currentLesson()?.sections?.length || 0) - 1)"
+          [disabled]="!canGoNext() && (!currentLesson()?.sections || currentSectionIndex() >= (currentLesson()?.sections?.length || 0) - 1)"
           (click)="nextLesson()"
-          [attr.aria-label]="(currentLesson()?.sections && currentSectionIndex < (currentLesson()?.sections?.length || 0) - 1) ? 'Phần tiếp theo' : 'Bài học tiếp theo'">
+          [attr.aria-label]="(currentLesson()?.sections && currentSectionIndex() < (currentLesson()?.sections?.length || 0) - 1) ? 'Phần tiếp theo' : 'Bài học tiếp theo'">
           <span>Tiếp theo</span>
           <i class="icon-chevron-right"></i>
         </button>

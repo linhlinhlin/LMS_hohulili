@@ -1,238 +1,255 @@
 import { Component, inject, signal, effect, untracked, ChangeDetectionStrategy } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { CourseEditorStore } from '../../store/course-editor.store';
+import { CourseAuthoringService } from '../../services/course-authoring.service';
 import { CourseInstructorsComponent } from './course-instructors.component';
+import { CourseApi } from '../../../../../api/client/course.api';
+import { ToastService } from '../../../../../core/services/toast.service';
+import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-course-settings',
   imports: [FormsModule, CourseInstructorsComponent],
   template: `
-<div class="bg-white shadow-sm max-w-10xl mx-auto pb-10 space-y-6">
+<div class="max-w-screen-2xl mx-auto px-8 py-6">
 
-  <!-- Header -->
-  <div class="bg-white shadow-sm border border-gray-200 flex pb-4 justify-between items-end px-8 py-4 sticky top-0 z-10">
-    <div>
-      <h1 class="text-2xl font-bold text-gray-900">Cài đặt khóa học</h1>
-      <p class="text-gray-500 mt-1">Quản lý quyền truy cập, lộ trình và các thiết lập vận hành.</p>
-    </div>
-    <!-- Nút Save thủ công (Nếu không muốn Auto-save) -->
-    <button (click)="saveSettings()" [disabled]="isLoading()"
-      class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2">
-      @if (isLoading()) {
-        <span class="animate-spin">Wait...</span>
-      }
-      <span>Lưu thay đổi</span>
-    </button>
-  </div>
+  <!-- Two-Column Layout matching Info page (WordPress/Shopify pattern) -->
+  <div class="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-start">
 
-  <!-- SECTION 1: QUYỀN TRUY CẬP -->
-  <section class="bg-white shadow-sm border border-gray-200 space-y-4 px-8 py-4">
-    <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
-      <span class="p-1 bg-blue-100 text-blue-600 rounded">
-        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-      </span>
-      Hiển thị & Đăng ký
-    </h2>
+    <!-- ============ MAIN COLUMN ============ -->
+    <div class="space-y-5 min-w-0">
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <!-- Public Card -->
-      <div class="bg-white border rounded-xl p-4 cursor-pointer transition-all hover:border-blue-400 group"
-        [class.ring-2]="visibility() === 'public'"
-        [class.ring-blue-500]="visibility() === 'public'"
-        [class.bg-blue-50]="visibility() === 'public'"
-        (click)="visibility.set('public')">
-        <div class="flex items-center justify-between mb-2">
-          <span class="font-bold text-gray-900 group-hover:text-blue-700">Công khai</span>
-          <input type="radio" name="vis" [checked]="visibility() === 'public'" class="text-blue-600 pointer-events-none">
+      <!-- SECTION 1: QUYỀN TRUY CẬP -->
+      <section class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div class="px-5 py-3.5 border-b border-slate-100 bg-slate-50/50">
+          <h2 class="text-sm font-semibold text-slate-900">Hiển thị & Đăng ký</h2>
+          <p class="text-xs text-slate-500 mt-0.5">Quản lý quyền truy cập và đăng ký khóa học</p>
         </div>
-        <p class="text-sm text-gray-600">Bất kỳ ai cũng có thể tìm thấy và xem nội dung giới thiệu khóa học.</p>
-      </div>
+        <div class="p-5 space-y-5">
+          <div class="grid grid-cols-2 gap-3">
+            <!-- Public Card -->
+            <div class="border rounded-lg p-4 cursor-pointer transition-all group"
+              [class]="visibility() === 'public'
+                ? 'border-[#0056D2] bg-blue-50/50'
+                : 'border-slate-200 hover:border-slate-300'"
+              (click)="visibility.set('public')">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="text-sm font-semibold text-slate-900">Công khai</span>
+                <input type="radio" name="vis" [checked]="visibility() === 'public'" class="text-[#0056D2] pointer-events-none">
+              </div>
+              <p class="text-xs text-slate-500">Bất kỳ ai cũng có thể tìm thấy và xem nội dung giới thiệu.</p>
+            </div>
 
-      <!-- Private Card -->
-      <div class="bg-white border rounded-xl p-4 cursor-pointer transition-all hover:border-blue-400 group"
-        [class.ring-2]="visibility() === 'private'"
-        [class.ring-blue-500]="visibility() === 'private'"
-        [class.bg-blue-50]="visibility() === 'private'"
-        (click)="visibility.set('private')">
-        <div class="flex items-center justify-between mb-2">
-          <span class="font-bold text-gray-900 group-hover:text-blue-700">Riêng tư</span>
-          <input type="radio" name="vis" [checked]="visibility() === 'private'" class="text-blue-600 pointer-events-none">
-        </div>
-        <p class="text-sm text-gray-600">Chỉ những học viên được mời hoặc được cấp quyền mới có thể truy cập.</p>
-      </div>
-    </div>
-
-    <!-- Toggle Options -->
-    <div class="bg-gray-50 rounded-xl p-4 border border-gray-200 space-y-4">
-      <label class="flex items-center justify-between cursor-pointer">
-        <div>
-          <span class="block font-medium text-gray-900">Cho phép tự đăng ký</span>
-          <span class="text-sm text-gray-500">Học viên nhấn "Tham gia" là vào học ngay, không cần duyệt.</span>
-        </div>
-        <input type="checkbox" [ngModel]="allowSelfEnrollment()" (ngModelChange)="allowSelfEnrollment.set($event)"
-          class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500">
-        </label>
-
-        <div class="flex items-center justify-between border-t border-gray-200 pt-4">
-          <div>
-            <span class="block font-medium text-gray-900">Giới hạn sĩ số</span>
-            <span class="text-sm text-gray-500">Để trống nếu không giới hạn.</span>
+            <!-- Private Card -->
+            <div class="border rounded-lg p-4 cursor-pointer transition-all group"
+              [class]="visibility() === 'private'
+                ? 'border-[#0056D2] bg-blue-50/50'
+                : 'border-slate-200 hover:border-slate-300'"
+              (click)="visibility.set('private')">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="text-sm font-semibold text-slate-900">Riêng tư</span>
+                <input type="radio" name="vis" [checked]="visibility() === 'private'" class="text-[#0056D2] pointer-events-none">
+              </div>
+              <p class="text-xs text-slate-500">Chỉ học viên được mời hoặc cấp quyền mới truy cập được.</p>
+            </div>
           </div>
-          <div class="relative w-32">
-            <input type="number" [ngModel]="maxStudents()" (ngModelChange)="maxStudents.set($event)" min="1"
-              class="w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500 pr-8" placeholder="∞">
-              <span class="absolute right-3 top-2 text-xs text-gray-400 font-bold pointer-events-none">HV</span>
+
+          <!-- Toggle Options -->
+          <div class="bg-slate-50 rounded-lg p-4 border border-slate-200 space-y-4">
+            <label class="flex items-center justify-between cursor-pointer">
+              <div>
+                <span class="block text-sm font-medium text-slate-900">Cho phép tự đăng ký</span>
+                <span class="text-xs text-slate-500">Học viên nhấn "Tham gia" là vào học ngay.</span>
+              </div>
+              <input type="checkbox" [ngModel]="allowSelfEnrollment()" (ngModelChange)="allowSelfEnrollment.set($event)"
+                class="w-4 h-4 text-[#0056D2] rounded border-slate-300 focus:ring-[#0056D2]">
+            </label>
+
+            <div class="flex items-center justify-between border-t border-slate-200 pt-4">
+              <div>
+                <span class="block text-sm font-medium text-slate-900">Giới hạn sĩ số</span>
+                <span class="text-xs text-slate-500">Để trống nếu không giới hạn.</span>
+              </div>
+              <div class="relative w-28">
+                <input type="number" [ngModel]="maxStudents()" (ngModelChange)="maxStudents.set($event)" min="1"
+                  class="w-full h-9 px-3 rounded-lg border border-slate-300 text-sm focus:ring-[#0056D2] focus:border-[#0056D2] pr-8" placeholder="--">
+                <span class="absolute right-3 top-2 text-xs text-slate-400 font-medium pointer-events-none">HV</span>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       <!-- SECTION 2: LỘ TRÌNH HỌC -->
-      <section class="bg-white shadow-sm border border-gray-200 space-y-4 px-8 py-4">
-        <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
-          <span class="p-1 bg-purple-100 text-purple-600 rounded">
-            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-          </span>
-          Lộ trình & Điều kiện mở bài
-        </h2>
-
-        <!-- Feature 1: Progression Mode -->
-        <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
-          <div class="px-5 py-3 bg-gray-50 border-b border-gray-200 font-medium text-gray-900">
-            1. Điều kiện học học phần
-          </div>
-          <div class="p-5 space-y-3">
-            <label class="flex items-start gap-3 cursor-pointer group">
-              <input type="radio" name="progression" value="free"
-                [ngModel]="progressionMode()" (ngModelChange)="progressionMode.set($event)"
-                class="mt-1 w-4 h-4 text-purple-600 focus:ring-purple-500">
+      <section class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div class="px-5 py-3.5 border-b border-slate-100 bg-slate-50/50">
+          <h2 class="text-sm font-semibold text-slate-900">Lộ trình & Điều kiện mở bài</h2>
+          <p class="text-xs text-slate-500 mt-0.5">Thiết lập cách học viên truy cập nội dung</p>
+        </div>
+        <div class="p-5 space-y-5">
+          <!-- Progression Mode -->
+          <div class="space-y-3">
+            <label class="block text-sm font-medium text-slate-700">Điều kiện học học phần</label>
+            <div class="space-y-2">
+              <label class="flex items-start gap-3 cursor-pointer group p-3 rounded-lg border border-transparent hover:bg-slate-50 transition-colors"
+                [class.bg-blue-50/50]="progressionMode() === 'free'"
+                [class.border-blue-200]="progressionMode() === 'free'">
+                <input type="radio" name="progression" value="free"
+                  [ngModel]="progressionMode()" (ngModelChange)="progressionMode.set($event)"
+                  class="mt-0.5 w-4 h-4 text-[#0056D2] focus:ring-[#0056D2]">
                 <div>
-                  <span class="font-medium text-gray-900 group-hover:text-purple-700 transition-colors">Luôn mở (Học tự do)</span>
-                  <p class="text-sm text-gray-500">Học viên có thể học bất kỳ bài nào.</p>
+                  <span class="text-sm font-medium text-slate-900">Luôn mở (Học tự do)</span>
+                  <p class="text-xs text-slate-500">Học viên có thể học bất kỳ bài nào.</p>
+                </div>
+              </label>
+              <label class="flex items-start gap-3 cursor-pointer group p-3 rounded-lg border border-transparent hover:bg-slate-50 transition-colors"
+                [class.bg-blue-50/50]="progressionMode() === 'linear'"
+                [class.border-blue-200]="progressionMode() === 'linear'">
+                <input type="radio" name="progression" value="linear"
+                  [ngModel]="progressionMode()" (ngModelChange)="progressionMode.set($event)"
+                  class="mt-0.5 w-4 h-4 text-[#0056D2] focus:ring-[#0056D2]">
+                <div>
+                  <span class="text-sm font-medium text-slate-900">Tuần tự</span>
+                  <p class="text-xs text-slate-500">Phải hoàn thành bài trước mới được mở bài sau.</p>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Drip Content -->
+          <div class="space-y-3">
+            <label class="block text-sm font-medium text-slate-700">Lịch trình mở bài học</label>
+            <div class="space-y-2">
+              <label class="flex items-center gap-3 cursor-pointer p-3 rounded-lg border border-transparent hover:bg-slate-50 transition-colors"
+                [class.bg-blue-50/50]="dripType() === 'instant'"
+                [class.border-blue-200]="dripType() === 'instant'">
+                <input type="radio" name="drip" value="instant"
+                  [ngModel]="dripType()" (ngModelChange)="dripType.set($event)"
+                  class="w-4 h-4 text-[#0056D2] focus:ring-[#0056D2]">
+                <span class="text-sm font-medium text-slate-900">Mở tất cả ngay khi đăng ký</span>
+              </label>
+
+              <label class="flex items-start gap-3 cursor-pointer p-3 rounded-lg border border-transparent hover:bg-slate-50 transition-colors"
+                [class.bg-blue-50/50]="dripType() === 'date'"
+                [class.border-blue-200]="dripType() === 'date'">
+                <input type="radio" name="drip" value="date"
+                  [ngModel]="dripType()" (ngModelChange)="dripType.set($event)"
+                  class="mt-2 w-4 h-4 text-[#0056D2] focus:ring-[#0056D2]">
+                <div class="flex-1">
+                  <span class="text-sm font-medium text-slate-900 block mb-2">Mở theo lịch trình</span>
+                  <div class="flex items-center flex-wrap gap-2 text-sm text-slate-600 transition-opacity" [class.opacity-50]="dripType() !== 'date'">
+                    <span>Tự động mở</span>
+                    <input type="number" [ngModel]="dateBatchSize()" (ngModelChange)="dateBatchSize.set($event)" [disabled]="dripType() !== 'date'" min="0"
+                      class="w-14 px-2 py-1 text-center border border-slate-300 rounded text-sm focus:ring-[#0056D2] focus:border-[#0056D2] font-semibold text-slate-900 disabled:bg-slate-100">
+                    <span>bài, mỗi</span>
+                    <input type="number" [ngModel]="dateIntervalDays()" (ngModelChange)="dateIntervalDays.set($event)" [disabled]="dripType() !== 'date'" min="0"
+                      class="w-14 px-2 py-1 text-center border border-slate-300 rounded text-sm focus:ring-[#0056D2] focus:border-[#0056D2] font-semibold text-slate-900 disabled:bg-slate-100">
+                    <span>ngày.</span>
+                  </div>
                 </div>
               </label>
 
-              <label class="flex items-start gap-3 cursor-pointer group">
-                <input type="radio" name="progression" value="linear"
-                  [ngModel]="progressionMode()" (ngModelChange)="progressionMode.set($event)"
-                  class="mt-1 w-4 h-4 text-purple-600 focus:ring-purple-500">
-                  <div>
-                    <span class="font-medium text-gray-900 group-hover:text-purple-700 transition-colors">Tuần tự</span>
-                    <p class="text-sm text-gray-500">Phải hoàn thành bài trước mới được mở bài sau.</p>
+              <label class="flex items-start gap-3 cursor-pointer p-3 rounded-lg border border-transparent hover:bg-slate-50 transition-colors"
+                [class.bg-blue-50/50]="dripType() === 'complete'"
+                [class.border-blue-200]="dripType() === 'complete'">
+                <input type="radio" name="drip" value="complete"
+                  [ngModel]="dripType()" (ngModelChange)="dripType.set($event)"
+                  class="mt-2 w-4 h-4 text-[#0056D2] focus:ring-[#0056D2]">
+                <div class="flex-1">
+                  <span class="text-sm font-medium text-slate-900 block mb-2">Mở dựa trên tiến độ</span>
+                  <div class="flex items-center flex-wrap gap-2 text-sm text-slate-600 transition-opacity" [class.opacity-50]="dripType() !== 'complete'">
+                    <span>Sau khi hoàn thành, chờ</span>
+                    <input type="number" [ngModel]="completeIntervalDays()" (ngModelChange)="completeIntervalDays.set($event)" [disabled]="dripType() !== 'complete'" min="0"
+                      class="w-14 px-2 py-1 text-center border border-slate-300 rounded text-sm focus:ring-[#0056D2] focus:border-[#0056D2] font-semibold text-slate-900 disabled:bg-slate-100">
+                    <span>ngày, mở</span>
+                    <input type="number" [ngModel]="completeBatchSize()" (ngModelChange)="completeBatchSize.set($event)" [disabled]="dripType() !== 'complete'" min="0"
+                      class="w-14 px-2 py-1 text-center border border-slate-300 rounded text-sm focus:ring-[#0056D2] focus:border-[#0056D2] font-semibold text-slate-900 disabled:bg-slate-100">
+                    <span>bài tiếp theo.</span>
                   </div>
-                </label>
-              </div>
+                </div>
+              </label>
             </div>
+          </div>
+        </div>
+      </section>
 
-            <!-- Feature 2: Drip Content -->
-            <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
-              <div class="px-5 py-3 bg-gray-50 border-b border-gray-200 font-medium text-gray-900">
-                2. Lịch trình mở bài học
-              </div>
-              <div class="p-5 space-y-4">
+      <!-- Save Button (bottom of main column) -->
+      <div class="flex justify-end pb-4">
+        <button (click)="saveSettings()" [disabled]="isLoading()"
+          class="h-10 px-6 rounded-lg bg-[#0056D2] text-white font-medium text-sm hover:bg-[#004BB5] transition-colors disabled:opacity-50 flex items-center gap-2">
+          @if (isLoading()) {
+            <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          }
+          <span>Lưu thay đổi</span>
+        </button>
+      </div>
+    </div>
 
-                <!-- Option A -->
-                <label class="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-gray-50 transition-colors border border-transparent"
-                  [class.bg-purple-50]="dripType() === 'instant'"
-                  [class.border-purple-200]="dripType() === 'instant'">
-                  <input type="radio" name="drip" value="instant"
-                    [ngModel]="dripType()" (ngModelChange)="dripType.set($event)"
-                    class="w-4 h-4 text-purple-600 focus:ring-purple-500">
-                    <span class="font-medium text-gray-900">Mở tất cả bài học ngay khi đăng ký</span>
-                  </label>
+    <!-- ============ SIDEBAR COLUMN (sticky) ============ -->
+    <div class="space-y-5 lg:sticky lg:top-4">
 
-                  <!-- Option B: Date Drip -->
-                  <label class="flex items-start gap-3 cursor-pointer p-3 rounded-lg hover:bg-gray-50 transition-colors border border-transparent"
-                    [class.bg-purple-50]="dripType() === 'date'"
-                    [class.border-purple-200]="dripType() === 'date'">
-                    <input type="radio" name="drip" value="date"
-                      [ngModel]="dripType()" (ngModelChange)="dripType.set($event)"
-                      class="mt-3 w-4 h-4 text-purple-600 focus:ring-purple-500">
-                      <div class="flex-1">
-                        <span class="font-medium text-gray-900 block mb-2">Mở theo lịch trình</span>
-                        <!-- Natural Language Form -->
-                        <div class="flex items-center flex-wrap gap-2 text-sm text-gray-600 transition-opacity" [class.opacity-50]="dripType() !== 'date'">
-                          <span>Tự động mở</span>
-                          <input type="number" [ngModel]="dateBatchSize()" (ngModelChange)="dateBatchSize.set($event)" [disabled]="dripType() !== 'date'" min="0"
-                            class="w-16 px-2 py-1 text-center border border-gray-300 rounded focus:ring-purple-500 focus:border-purple-500 font-bold text-gray-900 disabled:bg-gray-100">
-                            <span>bài học, cứ sau mỗi</span>
-                            <input type="number" [ngModel]="dateIntervalDays()" (ngModelChange)="dateIntervalDays.set($event)" [disabled]="dripType() !== 'date'" min="0"
-                              class="w-16 px-2 py-1 text-center border border-gray-300 rounded focus:ring-purple-500 focus:border-purple-500 font-bold text-gray-900 disabled:bg-gray-100">
-                              <span>ngày.</span>
-                            </div>
-                          </div>
-                        </label>
+      <!-- SECTION 3: CHỨNG CHỈ -->
+      <section class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div class="px-5 py-3.5 border-b border-slate-100 bg-slate-50/50">
+          <h2 class="text-sm font-semibold text-slate-900">Chứng chỉ</h2>
+        </div>
+        <div class="p-4">
+          <label class="flex items-center justify-between cursor-pointer">
+            <div>
+              <span class="block text-sm font-medium text-slate-900">Chứng chỉ hoàn thành</span>
+              <span class="text-xs text-slate-500 mt-0.5">Tự động cấp PDF khi đạt 100%.</span>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" [ngModel]="autoCertificate()" (ngModelChange)="autoCertificate.set($event)" class="sr-only peer">
+              <div class="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#0056D2]"></div>
+            </label>
+          </label>
+        </div>
+      </section>
 
-                        <!-- Option C: Completion Drip -->
-                        <label class="flex items-start gap-3 cursor-pointer p-3 rounded-lg hover:bg-gray-50 transition-colors border border-transparent"
-                          [class.bg-purple-50]="dripType() === 'complete'"
-                          [class.border-purple-200]="dripType() === 'complete'">
-                          <input type="radio" name="drip" value="complete"
-                            [ngModel]="dripType()" (ngModelChange)="dripType.set($event)"
-                            class="mt-3 w-4 h-4 text-purple-600 focus:ring-purple-500">
-                            <div class="flex-1">
-                              <span class="font-medium text-gray-900 block mb-2">Mở dựa trên tiến độ</span>
-                              <!-- Natural Language Form -->
-                              <div class="flex items-center flex-wrap gap-2 text-sm text-gray-600 transition-opacity" [class.opacity-50]="dripType() !== 'complete'">
-                                <span>Sau khi hoàn thành bài trước, chờ thêm</span>
-                                <input type="number" [ngModel]="completeIntervalDays()" (ngModelChange)="completeIntervalDays.set($event)" [disabled]="dripType() !== 'complete'" min="0"
-                                  class="w-16 px-2 py-1 text-center border border-gray-300 rounded focus:ring-purple-500 focus:border-purple-500 font-bold text-gray-900 disabled:bg-gray-100">
-                                  <span>ngày rồi mới mở</span>
-                                  <input type="number" [ngModel]="completeBatchSize()" (ngModelChange)="completeBatchSize.set($event)" [disabled]="dripType() !== 'complete'" min="0"
-                                    class="w-16 px-2 py-1 text-center border border-gray-300 rounded focus:ring-purple-500 focus:border-purple-500 font-bold text-gray-900 disabled:bg-gray-100">
-                                    <span>bài học tiếp theo.</span>
-                                  </div>
-                                </div>
-                              </label>
+      <!-- SECTION 4: GIẢNG VIÊN -->
+      <section class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div class="px-5 py-3.5 border-b border-slate-100 bg-slate-50/50">
+          <h2 class="text-sm font-semibold text-slate-900">Giảng viên</h2>
+        </div>
+        <div class="p-4">
+          <app-course-instructors [courseId]="store.courseTree()?.id || ''"></app-course-instructors>
+        </div>
+      </section>
 
-                            </div>
-                          </div>
-                        </section>
+      <!-- DANGER ZONE -->
+      <section class="bg-red-50 rounded-xl border border-red-200 overflow-hidden">
+        <div class="px-5 py-3.5 border-b border-red-100">
+          <h2 class="text-sm font-semibold text-red-700">Vùng nguy hiểm</h2>
+        </div>
+        <div class="p-4">
+          <p class="text-xs text-red-600/70 mb-3">Hành động này không thể hoàn tác.</p>
+          <button (click)="deleteCourse()" class="w-full h-9 bg-white border border-red-300 text-red-600 font-medium text-sm rounded-lg hover:bg-red-100 transition-colors">
+            Xóa khóa học
+          </button>
+        </div>
+      </section>
 
-                        <!-- SECTION 3: CHỨNG CHỈ -->
-                        <section class="bg-white shadow-sm border border-gray-200 p-5 flex items-center justify-between shadow-sm px-8 py-4">
-                          <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 rounded-full bg-yellow-50 flex items-center justify-center text-yellow-600">
-                              <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            </div>
-                            <div>
-                              <h3 class="font-bold text-gray-900">Chứng chỉ hoàn thành</h3>
-                              <p class="text-sm text-gray-500 mt-0.5">Hệ thống tự động cấp file PDF khi tiến độ đạt 100%.</p>
-                            </div>
-                          </div>
-                          <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" [ngModel]="autoCertificate()" (ngModelChange)="autoCertificate.set($event)" class="sr-only peer">
-                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
-                          </label>
-                        </section>
+    </div>
+  </div>
 
-                        <!-- SECTION 4: GIẢNG VIÊN -->
-                        <section class="bg-white shadow-sm border border-gray-200 px-8 py-4">
-                          <app-course-instructors [courseId]="store.courseTree()?.id || ''"></app-course-instructors>
-                        </section>
-
-                        <!-- DANGER ZONE -->
-                        <section class="bg-red-50 border border-red-200 rounded-xl p-6 mt-8 px-8 py-4">
-                          <div class="flex items-center justify-between">
-                            <div>
-                              <h3 class="font-bold text-red-700">Vùng nguy hiểm</h3>
-                              <p class="text-sm text-red-600/80 mt-1">Các hành động dưới đây không thể hoàn tác.</p>
-                            </div>
-                            <button (click)="deleteCourse()" class="px-4 py-2 bg-white border border-red-300 text-red-600 font-medium rounded-lg hover:bg-red-100 transition-colors shadow-sm">
-                              Xóa khóa học này
-                            </button>
-                          </div>
-                        </section>
-
-                      </div>
+</div>
 `
 })
 export class CourseSettingsComponent {
   store = inject(CourseEditorStore);
+  private service = inject(CourseAuthoringService);
+  private courseApi = inject(CourseApi);
+  private toast = inject(ToastService);
+  private confirmDialog = inject(ConfirmDialogService);
+  private router = inject(Router);
 
-  // Trạng thái Loading giả lập
   isLoading = signal(false);
 
   // --- SIGNALS STATE ---
@@ -242,8 +259,6 @@ export class CourseSettingsComponent {
   autoCertificate = signal(false);
   progressionMode = signal<'free' | 'linear'>('free');
   dripType = signal<'instant' | 'date' | 'complete'>('instant');
-  dripBatchSize = signal(1);
-  dripIntervalDays = signal(7);
 
   dateBatchSize = signal(1);
   dateIntervalDays = signal(1);
@@ -252,53 +267,83 @@ export class CourseSettingsComponent {
   completeIntervalDays = signal(0);
 
   constructor() {
-    // [QUAN TRỌNG] Đồng bộ dữ liệu từ Store vào Local Signals khi component load
     effect(() => {
       const tree = this.store.courseTree();
-      if (tree && tree.settings) {
-        // Untracked để tránh vòng lặp vô tận nếu logic phức tạp
+      if (tree) {
         untracked(() => {
-          this.visibility.set(tree.settings?.visibility || 'public');
-          this.allowSelfEnrollment.set(tree.settings?.allowSelfEnrollment ?? true);
-          this.maxStudents.set(tree.settings?.maxStudents || null);
-          this.autoCertificate.set(tree.settings?.autoCertificate ?? false);
-          this.progressionMode.set(tree.settings?.progressionMode || 'free');
-          this.dripType.set(tree.settings?.dripType || 'instant');
-          this.completeBatchSize.set(tree.settings?.completeBatchSize || 1);
-          this.dateBatchSize.set(tree.settings?.dateBatchSize || 1);
-          this.dateIntervalDays.set(tree.settings?.dateIntervalDays || 1);
-          this.completeIntervalDays.set(tree.settings?.completeIntervalDays || 0);
+          // Map visibility from BE (uppercase) to local (lowercase)
+          const vis = tree.visibility?.toLowerCase() as 'public' | 'private';
+          this.visibility.set(vis || 'public');
+
+          // Settings from BE (if available)
+          if (tree.settings) {
+            this.allowSelfEnrollment.set(tree.settings.allowSelfEnrollment ?? true);
+            this.maxStudents.set(tree.settings.maxStudents || null);
+            this.autoCertificate.set(tree.settings.autoCertificate ?? false);
+            this.progressionMode.set(tree.settings.progressionMode || 'free');
+            this.dripType.set(tree.settings.dripType || 'instant');
+            this.completeBatchSize.set(tree.settings.completeBatchSize || 1);
+            this.dateBatchSize.set(tree.settings.dateBatchSize || 1);
+            this.dateIntervalDays.set(tree.settings.dateIntervalDays || 1);
+            this.completeIntervalDays.set(tree.settings.completeIntervalDays || 0);
+          }
         });
       }
     });
   }
 
   saveSettings() {
+    const courseId = this.store.courseTree()?.id;
+    if (!courseId) {
+      this.toast.warning('Không tìm thấy khóa học');
+      return;
+    }
+
     this.isLoading.set(true);
 
-    // Gom dữ liệu từ Signals thành Object
+    // Note: allowSelfEnrollment, maxStudents, progressionMode, dripType, autoCertificate
+    // are UI-ready but not yet supported by the backend UpdateCourseCommand.
+    // Only visibility is persisted to the backend for now.
     const payload = {
-      visibility: this.visibility(),
-      allowSelfEnrollment: this.allowSelfEnrollment(),
-      maxStudents: this.maxStudents(),
-      autoCertificate: this.autoCertificate(),
-      progressionMode: this.progressionMode(),
-      dripType: this.dripType(),
-      dateBatchSize: this.dateBatchSize(),
-      dateIntervalDays: this.dateIntervalDays(),
-      completeBatchSize: this.completeBatchSize(),
-      completeIntervalDays: this.completeIntervalDays()
+      visibility: this.visibility().toUpperCase()
     };
 
-    // Gọi Store để lưu (Giả lập)
-    // this.store.updateSettings(payload).then(...)
-
-    setTimeout(() => this.isLoading.set(false), 1000);
+    this.service.updateCourseInfo(courseId, payload).subscribe({
+      next: () => {
+        this.toast.success('Đã lưu cài đặt khóa học');
+        this.isLoading.set(false);
+        this.store.loadCourse(courseId, true);
+      },
+      error: (err: any) => {
+        this.toast.error('Lưu thất bại: ' + (err?.error?.message || 'Lỗi không xác định'));
+        this.isLoading.set(false);
+      }
+    });
   }
 
-  deleteCourse() {
-    if (confirm('Bạn có chắc chắn muốn xóa khóa học này? Hành động này không thể hoàn tác!')) {
-      // this.store.deleteCourse();
-    }
+  async deleteCourse() {
+    const courseId = this.store.courseTree()?.id;
+    if (!courseId) return;
+
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Xóa khóa học',
+      message: 'Bạn có chắc chắn muốn xóa khóa học này?\nHành động này không thể hoàn tác!',
+      variant: 'danger',
+      confirmText: 'Xóa vĩnh viễn',
+      cancelText: 'Hủy'
+    });
+    if (!confirmed) return;
+
+    this.isLoading.set(true);
+    this.courseApi.deleteCourse(courseId).subscribe({
+      next: () => {
+        this.toast.success('Đã xóa khóa học');
+        this.router.navigate(['/teacher/courses']);
+      },
+      error: (err: any) => {
+        this.toast.error('Xóa thất bại: ' + (err?.error?.message || 'Lỗi không xác định'));
+        this.isLoading.set(false);
+      }
+    });
   }
 }

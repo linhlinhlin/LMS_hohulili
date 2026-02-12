@@ -12,8 +12,15 @@ import { ButtonComponent } from '../../shared/components/ui/button/button.compon
 import { CardComponent } from '../../shared/components/ui/card/card.component';
 import { ProgressBarComponent } from '../../shared/components/ui/progress-bar/progress-bar.component';
 import { TabsComponent, Tab } from '../../shared/components/ui/tabs/tabs.component';
+import { ToastService } from '../../core/services/toast.service';
 
 // Enhanced course with modules
+interface LessonSection {
+  id: string;
+  title: string;
+  type: string;
+}
+
 interface EnhancedEnrolledCourse extends EnrolledCourse {
   showModules?: boolean;
   estimatedCompletion?: string;
@@ -26,6 +33,7 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
       type: 'video' | 'reading' | 'quiz';
       duration: string;
       completed: boolean;
+      sections?: LessonSection[];
     }>;
   }>;
 }
@@ -46,13 +54,18 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
     FormsModule,
     RouterModule,
     IconComponent,
-    ButtonComponent,
-    IconComponent
+    ButtonComponent
 ],
   template: `
     <div class="my-courses-container">
       <!-- Main Content Area (70%) -->
       <div class="main-content">
+        @if (error()) {
+          <div style="background:#fef2f2;border:1px solid #fecaca;color:#991b1b;padding:12px 16px;border-radius:8px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">
+            <span>{{ error() }}</span>
+            <button (click)="error.set(null)" style="background:none;border:none;cursor:pointer;font-size:18px">&times;</button>
+          </div>
+        }
         <!-- Coursera-Style Header -->
         <div class="coursera-header">
           <div class="header-content">
@@ -165,8 +178,8 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
                       </div>
                       <div class="lessons-list">
                         @for (lesson of module.lessons; track lesson.id) {
-                          <a 
-                            [routerLink]="['/student/courses', course.id, 'lessons', lesson.id]"
+                          <a
+                            [routerLink]="['/student/learn/course', course.id, 'lesson', lesson.id]"
                             class="lesson-item"
                             [class.completed]="lesson.completed">
                             <span class="lesson-title">{{ lesson.title }}</span>
@@ -174,6 +187,22 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
                               <app-icon name="check-circle" size="xs" class="check-icon" />
                             }
                           </a>
+                          @if (lesson.sections && lesson.sections.length > 0) {
+                            <div style="padding-left:24px;display:flex;flex-direction:column;gap:2px;margin-top:2px">
+                              @for (sec of lesson.sections; track sec.id) {
+                                <div style="display:flex;align-items:center;gap:6px;padding:4px 8px;font-size:12px;color:#6B7280">
+                                  @if (sec.type === 'VIDEO') {
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                                  } @else if (sec.type === 'QUIZ') {
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                                  } @else {
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                  }
+                                  <span>{{ sec.title }}</span>
+                                </div>
+                              }
+                            </div>
+                          }
                         }
                       </div>
                     </div>
@@ -244,7 +273,7 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
     </div>
   `,
   styles: [`
-    @import '../../../styles/variables';
+    @use '../../../styles/variables' as *;
 
     .my-courses-container {
       display: grid;
@@ -311,7 +340,7 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
       width: 64px;
       height: 64px;
       border-radius: 50%;
-      background: linear-gradient(135deg, $blue-primary 0%, #0073E6 100%);
+      background: $blue-primary;
       color: white;
       display: flex;
       align-items: center;
@@ -570,7 +599,7 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
 
     .progress-fill {
       height: 100%;
-      background: linear-gradient(90deg, $blue-primary 0%, #2563EB 100%);
+      background: $blue-primary;
       border-radius: 3px;
       transition: width 0.3s ease;
     }
@@ -834,6 +863,7 @@ export class StudentMyCoursesComponent implements OnInit {
   private enrollmentService = inject(StudentEnrollmentService);
   private courseApi = inject(CourseApi);
   private router = inject(Router);
+  private toast = inject(ToastService);
 
   // State
   enrolledCourses = signal<EnhancedEnrolledCourse[]>([]);
@@ -844,6 +874,7 @@ export class StudentMyCoursesComponent implements OnInit {
   filterNotStarted = signal<boolean>(false);
   filterInProgress = signal<boolean>(false);
   filterCompleted = signal<boolean>(false);
+  error = signal<string | null>(null);
 
   // Tabs
   courseTabs: Tab[] = [
@@ -855,11 +886,36 @@ export class StudentMyCoursesComponent implements OnInit {
   readonly filteredCourses = computed(() => {
     const courses = this.enrolledCourses();
     const tab = this.activeTab();
+    const sort = this.sortBy();
+    const fNotStarted = this.filterNotStarted();
+    const fInProgress = this.filterInProgress();
+    const fCompleted = this.filterCompleted();
+    const hasProgressFilter = fNotStarted || fInProgress || fCompleted;
 
-    if (tab === 'in-progress') {
-      return courses.filter(c => c['status'] === 'in-progress' || c['status'] === 'enrolled');
+    // Tab filter
+    let result = tab === 'in-progress'
+      ? courses.filter(c => c['status'] === 'in-progress' || c['status'] === 'enrolled')
+      : courses.filter(c => c['status'] === 'completed');
+
+    // Progress filters (checkbox - OR logic)
+    if (hasProgressFilter) {
+      result = result.filter(c => {
+        if (fNotStarted && c['progress'] === 0) return true;
+        if (fInProgress && c['progress'] > 0 && c['progress'] < 100) return true;
+        if (fCompleted && c['progress'] >= 100) return true;
+        return false;
+      });
     }
-    return courses.filter(c => c['status'] === 'completed');
+
+    // Sort
+    if (sort === 'name') {
+      result = [...result].sort((a, b) => a['title'].localeCompare(b['title']));
+    } else if (sort === 'progress') {
+      result = [...result].sort((a, b) => b['progress'] - a['progress']);
+    }
+    // 'recent' = default order from API
+
+    return result;
   });
 
   readonly inProgressCount = computed(() =>
@@ -893,7 +949,8 @@ export class StudentMyCoursesComponent implements OnInit {
       }));
 
       this.enrolledCourses.set(enhancedCourses);
-    } catch (error) {
+    } catch (err: any) {
+      this.error.set(err?.message || 'Không thể tải danh sách khóa học. Vui lòng thử lại.');
     }
   }
 
@@ -912,7 +969,12 @@ export class StudentMyCoursesComponent implements OnInit {
           title: lesson.title,
           type: this.getLessonType(lesson.lessonType),
           duration: lesson.durationMinutes ? `${lesson.durationMinutes} phút` : '',
-          completed: lesson.completed || false
+          completed: lesson.completed || false,
+          sections: (lesson.sections || []).map((s: any) => ({
+            id: s.id,
+            title: s.title,
+            type: s.type || 'TEXT'
+          }))
         }))
       }));
 
@@ -922,7 +984,8 @@ export class StudentMyCoursesComponent implements OnInit {
           c['id'] === courseId ? { ...c, modules } : c
         )
       );
-    } catch (error) {
+    } catch {
+      this.toast.error('Không thể tải nội dung khóa học.');
     }
   }
 
@@ -975,9 +1038,6 @@ export class StudentMyCoursesComponent implements OnInit {
     }
   }
 
-  toggleMenu(courseId: string): void {
-  }
-
   async resumeCourse(courseId: string): Promise<void> {
     try {
       // Get next lesson from backend
@@ -1004,20 +1064,13 @@ export class StudentMyCoursesComponent implements OnInit {
 
   toggleFilterNotStarted(): void {
     this.filterNotStarted.update(v => !v);
-    this.applyFilters();
   }
 
   toggleFilterInProgress(): void {
     this.filterInProgress.update(v => !v);
-    this.applyFilters();
   }
 
   toggleFilterCompleted(): void {
     this.filterCompleted.update(v => !v);
-    this.applyFilters();
-  }
-
-  applyFilters(): void {
-    // Implement filter logic
   }
 }

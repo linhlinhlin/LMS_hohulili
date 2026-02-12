@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { adminGuard } from '../../core/guards/role.guard';
+import { adminGuard, systemAdminGuard } from '../../core/guards/role.guard';
 
 /**
  * Admin Routes Configuration
@@ -86,10 +86,11 @@ export const adminRoutes: Routes = [
         title: 'Phân tích hệ thống'
       },
 
-      // Settings Routes
+      // Settings Routes - SYSTEM_ADMIN only
       {
         path: 'settings',
         loadComponent: () => import('./presentation/components/system-settings.component').then(m => m.SystemSettingsComponent),
+        canActivate: [systemAdminGuard],
         title: 'Cài đặt hệ thống'
       },
 
@@ -107,10 +108,11 @@ export const adminRoutes: Routes = [
         title: 'Thông báo'
       },
 
-      // Logs Routes
+      // Logs Routes - SYSTEM_ADMIN only
       {
         path: 'logs',
         loadComponent: () => import('./presentation/components/admin-analytics.component').then(m => m.AdminAnalyticsComponent),
+        canActivate: [systemAdminGuard],
         title: 'Nhật ký hệ thống'
       },
 
@@ -121,10 +123,11 @@ export const adminRoutes: Routes = [
         title: 'Trợ lý AI Hàng Hải'
       },
 
-      // AI Knowledge Management - Quản lý Tri thức AI
+      // AI Knowledge Management - SYSTEM_ADMIN only
       {
         path: 'ai-knowledge',
         loadComponent: () => import('./ai-knowledge/ai-knowledge-page.component').then(m => m.AiKnowledgePageComponent),
+        canActivate: [systemAdminGuard],
         title: 'Quản lý Tri thức AI'
       }
     ]

@@ -20,10 +20,18 @@ export class TextBlockComponent {
 
     constructor() {
         // Effect to transform data when it changes
+        // Supports both {html: "..."} and {text: "..."} formats
         effect(() => {
             const value = this.data();
-            if (value && value.html) {
+            if (!value) return;
+            if (value.html) {
                 this.safeHtml.set(this.sanitizer.bypassSecurityTrustHtml(value.html));
+            } else if ((value as any).text) {
+                // Fallback: plain text from quiz questions / content blocks
+                const text = (value as any).text;
+                // If text contains HTML tags, render as HTML; otherwise wrap in <p>
+                const rendered = text.includes('<') ? text : `<p>${text}</p>`;
+                this.safeHtml.set(this.sanitizer.bypassSecurityTrustHtml(rendered));
             }
         });
     }

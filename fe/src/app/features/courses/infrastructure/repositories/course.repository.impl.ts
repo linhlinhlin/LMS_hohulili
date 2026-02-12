@@ -44,12 +44,12 @@ export class CourseRepositoryImpl implements CourseRepository {
     sort?: CourseSortOptions,
     pagination?: PaginationOptions
   ): Observable<PaginatedResult<Course>> {
-    const page = pagination?.page ?? 1;
-    const limit = pagination?.limit ?? 12;
+    const page = pagination?.page ?? 0;
+    const size = pagination?.limit ?? 12;
     const search = filters?.searchQuery ?? undefined;
     const teacher = filters?.instructorId?.[0] as unknown as string | undefined;
 
-    return this.api.publicCourses({ page, limit, search, teacher }).pipe(
+    return this.api.publicCourses({ page, size, search, teacher }).pipe(
       map((res: ApiResponse<any>) => {
         // THÊM DEBUG Ở ĐÂY
 
@@ -72,7 +72,7 @@ export class CourseRepositoryImpl implements CourseRepository {
           const totalPages = (pagination as any).totalPages ?? 1;
           const total = (pagination as any).totalItems ?? items.length;
           const currentPage = (pagination as any).page ?? page;
-          const pageSize = (pagination as any).limit ?? limit;
+          const pageSize = (pagination as any).limit ?? size;
 
           const result = {
             items,
@@ -95,7 +95,7 @@ export class CourseRepositoryImpl implements CourseRepository {
           const totalPages = pageData.totalPages ?? 1;
           const total = pageData.totalElements ?? items.length;
           const currentPage = (pageData.pageable?.pageNumber ?? 0) + 1; // Convert 0-based to 1-based
-          const pageSize = pageData.pageable?.pageSize ?? limit;
+          const pageSize = pageData.pageable?.pageSize ?? size;
 
           const result = {
             items,
@@ -118,7 +118,7 @@ export class CourseRepositoryImpl implements CourseRepository {
         return of({
           items: [],
           page,
-          limit,
+          limit: size,
           total: 0,
           totalPages: 0,
           hasNext: false,

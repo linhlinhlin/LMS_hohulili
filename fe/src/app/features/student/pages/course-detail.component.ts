@@ -1,9 +1,14 @@
 import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
-
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { CourseApi } from '../../../api/client/course.api';
 import { CourseContentChapter, LessonSummary } from '../../../api/types/course.types';
 import { PaymentService, PaymentStatusResponse } from '../services/payment.service';
+import { CourseReviewApi, ReviewDTO, ReviewSummary, SubmitReviewRequest } from '../../../api/endpoints/course-review.api';
+import { firstValueFrom } from 'rxjs';
+import { ToastService } from '../../../core/services/toast.service';
+import { IconComponent } from '../../../shared/components/icon/icon.component';
 
 interface CourseDetail {
   id: string;
@@ -48,7 +53,7 @@ interface Lesson {
 
 @Component({
   selector: 'app-course-detail',
-  imports: [RouterModule],
+  imports: [RouterModule, CommonModule, FormsModule, IconComponent],
   templateUrl: './course-detail.component.html',
   styleUrls: ['./course-detail.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -58,12 +63,15 @@ export class CourseDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private courseApi = inject(CourseApi);
   private paymentService = inject(PaymentService);
+  private reviewApi = inject(CourseReviewApi);
+  private toast = inject(ToastService);
 
   // Số bài học miễn phí
   readonly FREE_LESSONS_COUNT = 2;
 
   // State
   isLoading = signal(false);
+  loadError = signal<string | null>(null);
   course = signal<CourseDetail | null>(null);
   sections = signal<Section[]>([]);
   expandedSections = signal<Set<string>>(new Set());
@@ -72,6 +80,15 @@ export class CourseDetailComponent implements OnInit {
   // Payment state
   hasPaid = signal(false);
   paymentLoading = signal(false);
+
+  // Review state
+  reviews = signal<ReviewDTO[]>([]);
+  reviewSummary = signal<ReviewSummary>({ averageRating: 0, totalReviews: 0 });
+  myReview = signal<ReviewDTO | null>(null);
+  reviewRating = signal(5);
+  reviewComment = signal('');
+  reviewSubmitting = signal(false);
+  showReviewForm = signal(false);
 
   // Computed
   totalLessons = computed(() => {
@@ -109,6 +126,8 @@ export class CourseDetailComponent implements OnInit {
     if (courseId) {
       this.loadCourse(courseId);
       this.checkPaymentStatus(courseId);
+      this.loadReviews(courseId);
+      this.loadMyReview(courseId);
     }
   }
 
@@ -125,11 +144,13 @@ export class CourseDetailComponent implements OnInit {
           description: detail?.description || '',
           teacherName: detail?.teacherName || '',
           enrolledCount: detail?.enrolledCount || 0,
-          chaptersCount: (detail as any)?.chaptersCount || 0,
+          chaptersCount: detail?.chaptersCount || 0,
           price: detail?.price || 500000 // Default price
         });
       },
-      error: (err: any) => {
+      error: () => {
+        this.isLoading.set(false);
+        this.loadError.set('Không thể tải thông tin khóa học. Vui lòng thử lại.');
       }
     });
 
@@ -152,7 +173,7 @@ export class CourseDetailComponent implements OnInit {
                 description: lesson.description || '',
                 orderIndex: lesson.orderIndex ?? 0,
                 durationMinutes: lesson.sections?.reduce((sum, s) => sum + (s.duration || 0), 0) || 0,
-                isCompleted: false, // TODO: Get from progress tracking
+                isCompleted: false, // Progress tracked in learning interface via enrollment guard
                 hasQuiz: lesson.sections?.some(s => s.type === 'QUIZ') || false,
                 sections: (lesson.sections || []).map(s => ({
                   id: s.id,
@@ -182,8 +203,9 @@ export class CourseDetailComponent implements OnInit {
 
         this.isLoading.set(false);
       },
-      error: (err) => {
+      error: () => {
         this.isLoading.set(false);
+        this.loadError.set('Không thể tải nội dung khóa học. Vui lòng thử lại.');
       }
     });
   }
@@ -234,6 +256,7 @@ export class CourseDetailComponent implements OnInit {
         }
       }
     } catch (error) {
+      // localStorage parse — silent fallback to startLearning()
     }
 
     // Fallback to start learning
@@ -286,8 +309,9 @@ export class CourseDetailComponent implements OnInit {
         }
         this.paymentLoading.set(false);
       },
-      error: (err: any) => {
+      error: () => {
         this.paymentLoading.set(false);
+        this.toast.error('Không thể kiểm tra trạng thái thanh toán');
       }
     });
   }
@@ -330,4 +354,79 @@ export class CourseDetailComponent implements OnInit {
       currency: 'VND'
     }).format(price);
   }
+
+  // ============ Review Methods ============
+
+  loadReviews(courseId: string): void {
+    this.reviewApi.getReviews(courseId).subscribe({
+      next: (res: any) => {
+        this.reviews.set(res?.data || []);
+      },
+      error: () => { /* Reviews are supplementary - silent fallback */ }
+    });
+    this.reviewApi.getReviewSummary(courseId).subscribe({
+      next: (res: any) => {
+        if (res?.data) {
+          this.reviewSummary.set(res.data);
+        }
+      },
+      error: () => { /* Summary is supplementary - silent fallback */ }
+    });
+  }
+
+  loadMyReview(courseId: string): void {
+    this.reviewApi.getMyReview(courseId).subscribe({
+      next: (res: any) => {
+        if (res?.data) {
+          this.myReview.set(res.data);
+          this.reviewRating.set(res.data.rating);
+          this.reviewComment.set(res.data.comment || '');
+        }
+      },
+      error: () => { /* My review not found is expected for new users */ }
+    });
+  }
+
+  async submitReview(): Promise<void> {
+    const courseId = this.course()?.id;
+    if (!courseId) return;
+
+    this.reviewSubmitting.set(true);
+    try {
+      const request: SubmitReviewRequest = {
+        rating: this.reviewRating(),
+        comment: this.reviewComment() || undefined
+      };
+      await firstValueFrom(this.reviewApi.submitReview(courseId, request));
+      this.showReviewForm.set(false);
+      this.loadReviews(courseId);
+      this.loadMyReview(courseId);
+    } catch {
+      // silently fail
+    } finally {
+      this.reviewSubmitting.set(false);
+    }
+  }
+
+  async deleteMyReview(): Promise<void> {
+    const courseId = this.course()?.id;
+    const review = this.myReview();
+    if (!courseId || !review) return;
+
+    try {
+      await firstValueFrom(this.reviewApi.deleteReview(courseId, review.id));
+      this.myReview.set(null);
+      this.reviewRating.set(5);
+      this.reviewComment.set('');
+      this.loadReviews(courseId);
+    } catch {
+      // silently fail
+    }
+  }
+
+  setRating(star: number): void {
+    this.reviewRating.set(star);
+  }
+
+  starArray = [1, 2, 3, 4, 5];
 }

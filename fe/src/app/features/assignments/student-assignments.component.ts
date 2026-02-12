@@ -1,4 +1,4 @@
-﻿import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation, ChangeDetectorRef } from '@angular/core';
+﻿import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -70,7 +70,6 @@ interface AssignmentFilter {
 @Component({
   selector: 'app-student-assignments',
   imports: [RouterModule, FormsModule, LoadingComponent],
-  encapsulation: ViewEncapsulation.None,
   templateUrl: './student-assignments.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -273,29 +272,9 @@ export class StudentAssignmentsComponent implements OnInit {
     this.loadAssignments();
   }
 
-  private async loadAssignments(): Promise<void> {
-    try {
-      this.isLoading.set(true);
-      
-      // Simulate loading data
-      await this.simulateDataLoading();
-      
-      // Force change detection to ensure component renders
-      this.cdr.markForCheck();
-      this.cdr.detectChanges();
-      
-      this.errorService.showSuccess('Bài tập đã được tải thành công!', 'assignments');
-      
-    } catch (error) {
-      this.errorService.handleApiError(error, 'assignments');
-    } finally {
-      this.isLoading.set(false);
-    }
-  }
-
-  private async simulateDataLoading(): Promise<void> {
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+  private loadAssignments(): void {
+    // Stub: assignments are hardcoded — backend student assignment list API not implemented yet
+    this.isLoading.set(false);
   }
 
   applyFilters(): void {

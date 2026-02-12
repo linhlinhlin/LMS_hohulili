@@ -9,6 +9,7 @@ import { LessonApi } from '../../../../../api/client/lesson.api';
 import { PackageApi } from '../../../../../api/endpoints/package.api';
 import { QuizFormComponent, QuizFormConfig, QuizFormData } from '../../components/quiz-form/quiz-form.component';
 import { QuestionCreateComponent } from '../../question-create.component';
+import { ToastService } from '../../../../../core/services/toast.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -71,6 +72,7 @@ export class LessonQuizCreateComponent implements OnInit {
     private questionApi = inject(QuestionApi);
     private lessonApi = inject(LessonApi);
     private packageApi = inject(PackageApi);
+    private toast = inject(ToastService);
 
     readonly quizFormComponent = viewChild.required(QuizFormComponent);
 
@@ -150,10 +152,9 @@ export class LessonQuizCreateComponent implements OnInit {
                 if (results.lesson && results.lesson.data) {
                     this.lessonTitle.set(results.lesson.data.title);
                 }
-                // Load questions in background after main content is ready
                 this.loadQuestionsInBackground();
             },
-            error: () => {}
+            error: () => { this.toast.error('Không thể tải dữ liệu bài học. Vui lòng thử lại.'); }
         });
     }
 
@@ -163,10 +164,9 @@ export class LessonQuizCreateComponent implements OnInit {
         this.questionApi.getMyQuestions().subscribe({
             next: (questions: Question[]) => {
                 this.myQuestions.set(questions);
-                // Also set as default display
                 this.questions.set(questions);
             },
-            error: () => {}
+            error: () => { /* Questions load in background - silent fallback */ }
         });
 
         // Load PACKAGES
@@ -174,7 +174,7 @@ export class LessonQuizCreateComponent implements OnInit {
             next: (pkgs: any[]) => {
                 this.packages.set(pkgs);
             },
-            error: () => {}
+            error: () => { /* Packages load in background - silent fallback */ }
         });
     }
 
@@ -187,7 +187,7 @@ export class LessonQuizCreateComponent implements OnInit {
                     this.questions.set(questions);
                 },
                 error: () => {
-                    alert('Không thể tải câu hỏi từ gói này');
+                    this.toast.error('Không thể tải câu hỏi từ gói này');
                 }
             });
     }
@@ -219,7 +219,7 @@ export class LessonQuizCreateComponent implements OnInit {
                         this.handleCancel();
                     },
                     error: () => {
-                        alert('Có lỗi xảy ra khi tạo bài kiểm tra. Vui lòng thử lại.');
+                        this.toast.error('Có lỗi xảy ra khi tạo bài kiểm tra. Vui lòng thử lại.');
                     }
                 });
         } else {
@@ -230,7 +230,7 @@ export class LessonQuizCreateComponent implements OnInit {
                         this.handleCancel();
                     },
                     error: () => {
-                        alert('Có lỗi xảy ra khi tạo bài kiểm tra. Vui lòng thử lại.');
+                        this.toast.error('Có lỗi xảy ra khi tạo bài kiểm tra. Vui lòng thử lại.');
                     }
                 });
         }

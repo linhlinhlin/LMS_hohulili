@@ -1,15 +1,16 @@
-import { Component, ChangeDetectionStrategy, ViewEncapsulation, signal, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, computed, inject } from '@angular/core';
 
 import { Router, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators, FormArray, FormGroup } from '@angular/forms';
-import { 
-  RubricCriterion, 
-  validateRubricWeightSum, 
-  createDefaultCriterion, 
+import {
+  RubricCriterion,
+  validateRubricWeightSum,
+  createDefaultCriterion,
   generateRubricId,
   getRemainingWeight,
   isValidWeightSum
 } from './utils/rubric-calculator';
+import { RubricApi } from '../../../api/endpoints/rubric.api';
 
 /**
  * Rubric Creator Component
@@ -22,7 +23,6 @@ import {
 @Component({
   selector: 'app-rubric-creator',
   imports: [RouterLink, ReactiveFormsModule],
-  encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="max-w-4xl mx-auto p-6">
@@ -49,7 +49,7 @@ import {
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Tên Rubric *</label>
               <input type="text" formControlName="name" 
-                     class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                     class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]"
                      placeholder="VD: Rubric Bài tập Hàng hải"/>
               @if (rubricForm.get('name')?.errors?.['required'] && rubricForm.get('name')?.touched) {
                 <p class="text-red-500 text-sm mt-1">Tên rubric là bắt buộc</p>
@@ -59,7 +59,7 @@ import {
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Mô tả</label>
               <textarea formControlName="description" rows="2"
-                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]"
                         placeholder="Mô tả ngắn về rubric này..."></textarea>
             </div>
           </div>
@@ -74,7 +74,7 @@ import {
                 Tổng trọng số: {{ totalWeight() }}% / 100%
               </span>
               <button type="button" (click)="addCriterion()" 
-                      class="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 text-sm flex items-center gap-1">
+                      class="px-3 py-1.5 bg-blue-50 text-[#0056D2] rounded-lg hover:bg-blue-100 text-sm flex items-center gap-1">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                 </svg>
@@ -96,13 +96,13 @@ import {
                       <div class="col-span-6">
                         <label class="block text-xs font-medium text-gray-500 mb-1">Tên tiêu chí</label>
                         <input type="text" formControlName="name" 
-                               class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                               class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-[#0056D2]"
                                placeholder="VD: Kiến thức chuyên môn"/>
                       </div>
                       <div class="col-span-3">
                         <label class="block text-xs font-medium text-gray-500 mb-1">Trọng số (%)</label>
                         <input type="number" formControlName="weight" min="0" max="100"
-                               class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500"/>
+                               class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-[#0056D2]"/>
                       </div>
                       <div class="col-span-3 flex items-end">
                         <button type="button" (click)="removeCriterion(i)" 
@@ -118,7 +118,7 @@ import {
                   <div class="mb-3">
                     <label class="block text-xs font-medium text-gray-500 mb-1">Mô tả tiêu chí</label>
                     <input type="text" formControlName="description" 
-                           class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                           class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-[#0056D2]"
                            placeholder="Mô tả chi tiết tiêu chí này..."/>
                   </div>
                   
@@ -127,7 +127,7 @@ import {
                     <div class="flex items-center justify-between mb-2">
                       <label class="text-xs font-medium text-gray-500">Các mức điểm</label>
                       <button type="button" (click)="addLevel(i)" 
-                              class="text-xs text-blue-600 hover:underline">+ Thêm mức</button>
+                              class="text-xs text-[#0056D2] hover:underline">+ Thêm mức</button>
                     </div>
                     <div class="space-y-2" formArrayName="levels">
                       @for (level of getLevelsArray(i).controls; track $index; let j = $index) {
@@ -208,7 +208,7 @@ import {
               Hủy
             </a>
             <button type="submit" [disabled]="!rubricForm.valid || !isWeightValid() || saving()"
-                    class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                    class="px-6 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] disabled:opacity-50">
               {{ saving() ? 'Đang lưu...' : 'Lưu Rubric' }}
             </button>
           </div>
@@ -224,8 +224,9 @@ import {
   `
 })
 export class RubricCreatorComponent {
-  private fb = new FormBuilder();
-  private router?: Router;
+  private fb = inject(FormBuilder);
+  private router = inject(Router);
+  private rubricApi = inject(RubricApi);
   
   // State
   saving = signal(false);
@@ -336,22 +337,33 @@ export class RubricCreatorComponent {
     
     this.saving.set(true);
     this.error.set(null);
-    
-    const rubricData = {
-      ...this.rubricForm.value,
-      id: generateRubricId('rubric'),
-      totalPoints: 100,
-      createdAt: new Date().toISOString()
+
+    const formValue = this.rubricForm.value;
+    const request = {
+      title: formValue.name as string,
+      description: formValue.description as string || undefined,
+      maxPoints: 100,
+      criteria: (formValue.criteria as any[]).map(c => ({
+        name: c.name,
+        description: c.description || undefined,
+        maxPoints: c.weight,
+        levels: (c.levels || []).map((l: any) => ({
+          label: l.name,
+          description: l.description || undefined,
+          points: l.points
+        }))
+      }))
     };
-    
-    // TODO: Call API to save rubric
-    // Simulate API call
-    setTimeout(() => {
-      this.saving.set(false);
-      // Navigate back to list
-      if (this.router) {
+
+    this.rubricApi.create(request).subscribe({
+      next: () => {
+        this.saving.set(false);
         this.router.navigate(['/teacher/grading/rubrics']);
+      },
+      error: (err: any) => {
+        this.saving.set(false);
+        this.error.set(err?.error?.message || 'Không thể lưu rubric. Vui lòng thử lại.');
       }
-    }, 1000);
+    });
   }
 }

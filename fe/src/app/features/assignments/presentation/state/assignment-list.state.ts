@@ -1,5 +1,6 @@
 import { Injectable, signal, computed, inject, effect } from '@angular/core';
 import { Router } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { AssignmentFilters, AssignmentSortOptions, StudentId } from '../../domain/types';
 import { AssignmentApplicationService, StudentAssignmentStats } from '../../application/services/assignment.application.service';
 import { AssignmentView, AssignmentListView } from '../../application/use-cases/get-student-assignments.use-case';
@@ -179,10 +180,10 @@ export class AssignmentListState {
     this._error.set(null);
 
     try {
-      const result = await this.assignmentService.getStudentAssignments(studentId, this._filters()).toPromise();
+      const result = await firstValueFrom(this.assignmentService.getStudentAssignments(studentId, this._filters()));
       if (result) {
         this._assignments.set(result.assignments);
-        const stats = await this.assignmentService.getAssignmentStats(studentId).toPromise();
+        const stats = await firstValueFrom(this.assignmentService.getAssignmentStats(studentId));
         this._stats.set(stats || null);
       }
     } catch (error) {
@@ -200,7 +201,7 @@ export class AssignmentListState {
     this._error.set(null);
 
     try {
-      const result = await this.assignmentService.getUpcomingDeadlines(studentId, daysAhead).toPromise();
+      const result = await firstValueFrom(this.assignmentService.getUpcomingDeadlines(studentId, daysAhead));
       if (result) {
         this._assignments.set(result.assignments);
       }
@@ -219,7 +220,7 @@ export class AssignmentListState {
     this._error.set(null);
 
     try {
-      const result = await this.assignmentService.getOverdueAssignments(studentId).toPromise();
+      const result = await firstValueFrom(this.assignmentService.getOverdueAssignments(studentId));
       if (result) {
         this._assignments.set(result.assignments);
       }
@@ -409,6 +410,7 @@ export class AssignmentListState {
           });
         }
       } catch (error) {
+        // localStorage parse — silent, use defaults
       }
     }
   }

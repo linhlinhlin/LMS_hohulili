@@ -1,75 +1,58 @@
-import { inject, Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { environment } from '../../../environments/environment';
+import { ApiClient } from './api-client';
+import { ApiResponse } from '../types/common.types';
 
-export interface TrackProgressRequest {
+export interface TrackSegmentsRequest {
+  lessonId: string;
   sectionId: string;
-  currentPosition: number;
-  duration: number;
+  durationSeconds: number;
+  fromSecond: number;
+  toSecond: number;
+  lastPosition: number;
 }
 
 export interface VideoProgressResponse {
-  id: string;
-  userId: string;
+  id: string | null;
+  studentId: string | null;
+  lessonId: string | null;
   sectionId: string;
-  currentPosition: number;
-  duration: number;
-  progressPercentage: number;
+  durationSeconds: number;
+  watchedSeconds: number;
+  progressPercent: number;
   completed: boolean;
-  completionDate: string | null;
+  lastPosition: number;
 }
 
 export interface CanProceedResponse {
   canProceed: boolean;
-  currentProgress: number;
-  message: string;
 }
 
-export interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  message: string | null;
-  timestamp: string;
+export interface ResumePositionResponse {
+  position: number;
 }
 
 @Injectable({ providedIn: 'root' })
 export class VideoProgressApi {
-  private readonly http = inject(HttpClient);
-  private readonly apiUrl = `${environment.apiUrl}/video-progress`;
+  private apiClient = inject(ApiClient);
 
-  /**
-   * Track video viewing progress
-   */
-  trackProgress(request: TrackProgressRequest): Observable<ApiResponse<VideoProgressResponse>> {
-    return this.http.post<ApiResponse<VideoProgressResponse>>(`${this.apiUrl}/track`, request);
+  trackSegments(request: TrackSegmentsRequest): Observable<ApiResponse<VideoProgressResponse>> {
+    return this.apiClient.post('/api/v3/video-progress/track', request);
   }
 
-  /**
-   * Get progress for a specific video section
-   */
   getProgress(sectionId: string): Observable<ApiResponse<VideoProgressResponse>> {
-    return this.http.get<ApiResponse<VideoProgressResponse>>(`${this.apiUrl}/${sectionId}`);
+    return this.apiClient.get(`/api/v3/video-progress/${sectionId}`);
   }
 
-  /**
-   * Get all progress for current user
-   */
-  getMyProgress(): Observable<ApiResponse<VideoProgressResponse[]>> {
-    return this.http.get<ApiResponse<VideoProgressResponse[]>>(`${this.apiUrl}/my-progress`);
-  }
-
-  /**
-   * Check if user can proceed to next lesson (75% rule)
-   */
   canProceedToNext(sectionId: string): Observable<ApiResponse<CanProceedResponse>> {
-    return this.http.get<ApiResponse<CanProceedResponse>>(`${this.apiUrl}/${sectionId}/can-proceed`);
+    return this.apiClient.get(`/api/v3/video-progress/${sectionId}/can-proceed`);
   }
 
-  /**
-   * Reset progress for a section
-   */
-  resetProgress(sectionId: string): Observable<ApiResponse<void>> {
-    return this.http.delete<ApiResponse<void>>(`${this.apiUrl}/${sectionId}`);
+  getResumePosition(sectionId: string): Observable<ApiResponse<ResumePositionResponse>> {
+    return this.apiClient.get(`/api/v3/video-progress/${sectionId}/resume`);
+  }
+
+  getLessonProgress(lessonId: string): Observable<ApiResponse<VideoProgressResponse[]>> {
+    return this.apiClient.get(`/api/v3/video-progress/lesson/${lessonId}`);
   }
 }

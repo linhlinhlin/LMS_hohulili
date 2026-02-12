@@ -2,6 +2,8 @@ import { Component, inject, signal, input, effect, ChangeDetectionStrategy } fro
 
 import { FormsModule } from '@angular/forms';
 import { CourseInstructorService, CourseInstructor, InstructorPermissions, DEFAULT_PERMISSIONS } from '../../services/course-instructor.service';
+import { ToastService } from '../../../../../core/services/toast.service';
+import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -15,7 +17,7 @@ import { CourseInstructorService, CourseInstructor, InstructorPermissions, DEFAU
           <p class="text-sm text-gray-600 mt-1">Quản lý đồng giảng viên của khóa học</p>
         </div>
         <button (click)="openInviteModal()"
-                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 text-sm">
+                class="px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors flex items-center gap-2 text-sm">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
           </svg>
@@ -26,7 +28,7 @@ import { CourseInstructorService, CourseInstructor, InstructorPermissions, DEFAU
       <!-- Loading State -->
       @if (isLoading()) {
         <div class="py-8 text-center">
-          <div class="inline-block w-8 h-8 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin"></div>
+          <div class="inline-block w-8 h-8 border-4 border-gray-200 border-t-[#0056D2] rounded-full animate-spin"></div>
           <p class="mt-2 text-sm text-gray-600">Đang tải...</p>
         </div>
       } @else if (instructors().length > 0) {
@@ -37,7 +39,7 @@ import { CourseInstructorService, CourseInstructor, InstructorPermissions, DEFAU
               <div class="flex items-center gap-3">
                 <!-- Avatar -->
                 <div class="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-medium"
-                     [class]="instructor.role === 'OWNER' ? 'bg-blue-500' : 'bg-purple-500'">
+                     [class]="instructor.role === 'OWNER' ? 'bg-[#0056D2]' : 'bg-purple-500'">
                   {{ getInitials(instructor.userName) }}
                 </div>
                 <!-- Info -->
@@ -62,7 +64,7 @@ import { CourseInstructorService, CourseInstructor, InstructorPermissions, DEFAU
               @if (instructor.role !== 'OWNER') {
                 <div class="flex items-center gap-2">
                   <button (click)="openPermissionsModal(instructor)"
-                          class="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                          class="p-2 text-gray-600 hover:text-[#0056D2] hover:bg-blue-50 rounded transition-colors"
                           title="Chỉnh sửa quyền">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
@@ -105,7 +107,7 @@ import { CourseInstructorService, CourseInstructor, InstructorPermissions, DEFAU
                 <label class="block text-sm font-medium text-gray-700 mb-1">Email giảng viên</label>
                 <input type="email" 
                        [(ngModel)]="inviteEmail"
-                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]"
                        placeholder="teacher@example.com">
               </div>
 
@@ -114,22 +116,22 @@ import { CourseInstructorService, CourseInstructor, InstructorPermissions, DEFAU
                 <div class="space-y-2">
                   <label class="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" [(ngModel)]="invitePermissions.canEditContent"
-                           class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500">
+                           class="w-4 h-4 text-[#0056D2] rounded focus:ring-[#0056D2]">
                     <span class="text-sm text-gray-700">Chỉnh sửa nội dung khóa học</span>
                   </label>
                   <label class="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" [(ngModel)]="invitePermissions.canManageStudents"
-                           class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500">
+                           class="w-4 h-4 text-[#0056D2] rounded focus:ring-[#0056D2]">
                     <span class="text-sm text-gray-700">Quản lý học viên</span>
                   </label>
                   <label class="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" [(ngModel)]="invitePermissions.canViewAnalytics"
-                           class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500">
+                           class="w-4 h-4 text-[#0056D2] rounded focus:ring-[#0056D2]">
                     <span class="text-sm text-gray-700">Xem thống kê</span>
                   </label>
                   <label class="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" [(ngModel)]="invitePermissions.canManageSettings"
-                           class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500">
+                           class="w-4 h-4 text-[#0056D2] rounded focus:ring-[#0056D2]">
                     <span class="text-sm text-gray-700">Quản lý cài đặt</span>
                   </label>
                 </div>
@@ -139,7 +141,7 @@ import { CourseInstructorService, CourseInstructor, InstructorPermissions, DEFAU
                 <label class="block text-sm font-medium text-gray-700 mb-1">Lời nhắn (tùy chọn)</label>
                 <textarea [(ngModel)]="inviteMessage"
                           rows="2"
-                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]"
                           placeholder="Nhập lời nhắn..."></textarea>
               </div>
             </div>
@@ -151,7 +153,7 @@ import { CourseInstructorService, CourseInstructor, InstructorPermissions, DEFAU
               </button>
               <button (click)="sendInvitation()"
                       [disabled]="!isInviteFormValid()"
-                      class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">
+                      class="flex-1 px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">
                 Gửi lời mời
               </button>
             </div>
@@ -171,22 +173,22 @@ import { CourseInstructorService, CourseInstructor, InstructorPermissions, DEFAU
             <div class="space-y-2">
               <label class="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" [(ngModel)]="editPermissions.canEditContent"
-                       class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500">
+                       class="w-4 h-4 text-[#0056D2] rounded focus:ring-[#0056D2]">
                 <span class="text-sm text-gray-700">Chỉnh sửa nội dung khóa học</span>
               </label>
               <label class="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" [(ngModel)]="editPermissions.canManageStudents"
-                       class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500">
+                       class="w-4 h-4 text-[#0056D2] rounded focus:ring-[#0056D2]">
                 <span class="text-sm text-gray-700">Quản lý học viên</span>
               </label>
               <label class="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" [(ngModel)]="editPermissions.canViewAnalytics"
-                       class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500">
+                       class="w-4 h-4 text-[#0056D2] rounded focus:ring-[#0056D2]">
                 <span class="text-sm text-gray-700">Xem thống kê</span>
               </label>
               <label class="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" [(ngModel)]="editPermissions.canManageSettings"
-                       class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500">
+                       class="w-4 h-4 text-[#0056D2] rounded focus:ring-[#0056D2]">
                 <span class="text-sm text-gray-700">Quản lý cài đặt</span>
               </label>
             </div>
@@ -197,7 +199,7 @@ import { CourseInstructorService, CourseInstructor, InstructorPermissions, DEFAU
                 Hủy
               </button>
               <button (click)="savePermissions()"
-                      class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                      class="flex-1 px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors">
                 Lưu
               </button>
             </div>
@@ -211,6 +213,8 @@ export class CourseInstructorsComponent {
   courseId = input.required<string>();
 
   protected instructorService = inject(CourseInstructorService);
+  private toast = inject(ToastService);
+  private confirmDialog = inject(ConfirmDialogService);
 
   // Signals from service
   instructors = this.instructorService.instructors;
@@ -244,7 +248,9 @@ export class CourseInstructorsComponent {
   }
 
   private loadInstructors(courseId: string): void {
-    this.instructorService.getInstructors(courseId).subscribe();
+    this.instructorService.getInstructors(courseId).subscribe({
+      error: () => {} // error handled by service's isLoading/error signals
+    });
   }
 
   getInitials(name: string | undefined): string {
@@ -277,11 +283,11 @@ export class CourseInstructorsComponent {
       message: this.inviteMessage || undefined
     }).subscribe({
       next: (response) => {
-        alert(response.message);
+        this.toast.success(response.message);
         this.closeInviteModal();
       },
       error: (error) => {
-        alert('Lỗi: ' + (error.message || 'Không thể gửi lời mời'));
+        this.toast.error('Lỗi: ' + (error.message || 'Không thể gửi lời mời'));
       }
     });
   }
@@ -310,22 +316,29 @@ export class CourseInstructorsComponent {
 
     this.instructorService.updatePermissions(this.courseId(), instructor.userId, this.editPermissions).subscribe({
       next: (response) => {
-        alert(response.message);
+        this.toast.success(response.message);
         this.closePermissionsModal();
       },
       error: (error) => {
-        alert('Lỗi: ' + (error.message || 'Không thể cập nhật quyền'));
+        this.toast.error('Lỗi: ' + (error.message || 'Không thể cập nhật quyền'));
       }
     });
   }
 
   // Remove Instructor
-  confirmRemove(instructor: CourseInstructor): void {
-    if (confirm(`Bạn có chắc muốn xóa "${instructor.userName}" khỏi khóa học?`)) {
-      this.instructorService.removeInstructor(this.courseId(), instructor.userId).subscribe({
-        next: (response) => alert(response.message),
-        error: (error) => alert('Lỗi: ' + (error.message || 'Không thể xóa giảng viên'))
-      });
-    }
+  async confirmRemove(instructor: CourseInstructor): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Xóa giảng viên',
+      message: `Bạn có chắc muốn xóa "${instructor.userName}" khỏi khóa học?`,
+      variant: 'danger',
+      confirmText: 'Xóa',
+      cancelText: 'Hủy'
+    });
+    if (!confirmed) return;
+
+    this.instructorService.removeInstructor(this.courseId(), instructor.userId).subscribe({
+      next: (response) => this.toast.success(response.message),
+      error: (error) => this.toast.error('Lỗi: ' + (error.message || 'Không thể xóa giảng viên'))
+    });
   }
 }

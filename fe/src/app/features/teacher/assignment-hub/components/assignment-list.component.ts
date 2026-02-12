@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AssignmentApi, AssignmentSummary } from '../../../../api/client/assignment.api';
+import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 
 /**
  * Assignment List Component
@@ -42,7 +43,7 @@ type FilterType = 'ALL' | 'NEEDS_GRADING' | 'GRADED' | 'DRAFT';
                 </svg>
                 Thư viện Rubric
               </a>
-              <a routerLink="create" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 transition-colors">
+              <a routerLink="create" class="px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] flex items-center gap-2 transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                 </svg>
@@ -61,10 +62,10 @@ type FilterType = 'ALL' | 'NEEDS_GRADING' | 'GRADED' | 'DRAFT';
             <div class="flex items-center justify-between">
               <div>
                 <p class="text-sm text-gray-600">Tổng bài tập</p>
-                <p class="text-3xl font-bold text-blue-600 mt-2">{{ assignments().length }}</p>
+                <p class="text-3xl font-bold text-[#0056D2] mt-2">{{ assignments().length }}</p>
               </div>
               <div class="w-12 h-12 bg-blue-50 rounded flex items-center justify-center">
-                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-6 h-6 text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2H9zm0 0a2 2 0 002 2h2a2 2 0 002-2"></path>
                 </svg>
               </div>
@@ -114,7 +115,7 @@ type FilterType = 'ALL' | 'NEEDS_GRADING' | 'GRADED' | 'DRAFT';
         <!-- Filter Tabs -->
         <div class="flex items-center gap-2 mb-6">
           <button (click)="setFilter('ALL')" 
-                  [class]="filter() === 'ALL' ? 'bg-blue-100 text-blue-700 border-blue-300' : 'bg-white hover:bg-gray-50'"
+                  [class]="filter() === 'ALL' ? 'bg-blue-100 text-[#004BB5] border-blue-300' : 'bg-white hover:bg-gray-50'"
                   class="px-4 py-2 border rounded-lg text-sm font-medium transition-colors">
             Tất cả
           </button>
@@ -141,14 +142,14 @@ type FilterType = 'ALL' | 'NEEDS_GRADING' | 'GRADED' | 'DRAFT';
         <!-- Search -->
         <div class="mb-6">
           <input type="text" [(ngModel)]="searchQuery" placeholder="Tìm kiếm bài tập..."
-                 class="w-full md:w-96 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"/>
+                 class="w-full md:w-96 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]"/>
 
         </div>
 
         <!-- Loading -->
         @if (loading()) {
           <div class="flex items-center justify-center py-12">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0056D2]"></div>
           </div>
         }
 
@@ -186,7 +187,7 @@ type FilterType = 'ALL' | 'NEEDS_GRADING' | 'GRADED' | 'DRAFT';
                   <!-- Stats Row -->
                   <div class="flex items-center gap-6 mt-4 pt-4 border-t">
                     <div class="text-center">
-                      <div class="text-xl font-bold text-blue-600">{{ assignment.submissionsCount }}/{{ assignment.totalStudents }}</div>
+                      <div class="text-xl font-bold text-[#0056D2]">{{ assignment.submissionsCount }}/{{ assignment.totalStudents }}</div>
                       <div class="text-xs text-gray-500">Đã nộp</div>
                     </div>
                     <div class="text-center">
@@ -237,7 +238,7 @@ type FilterType = 'ALL' | 'NEEDS_GRADING' | 'GRADED' | 'DRAFT';
                     @if (assignment.pendingCount && assignment.pendingCount > 0) {
                       <a [routerLink]="[assignment.id, 'submissions']" [queryParams]="{filter: 'PENDING'}"
                          (click)="$event.stopPropagation()"
-                         class="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                         class="px-4 py-2 text-sm bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors">
                         Chấm điểm →
                       </a>
                     }
@@ -258,7 +259,7 @@ type FilterType = 'ALL' | 'NEEDS_GRADING' | 'GRADED' | 'DRAFT';
                 </svg>
                 <h3 class="text-lg font-medium text-gray-900 mb-2">Chưa có bài tập nào</h3>
                 <p class="text-gray-500 mb-4">Bắt đầu tạo bài tập đầu tiên cho khóa học của bạn</p>
-                <a routerLink="create" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                <a routerLink="create" class="inline-flex items-center gap-2 px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                   </svg>
@@ -274,6 +275,7 @@ type FilterType = 'ALL' | 'NEEDS_GRADING' | 'GRADED' | 'DRAFT';
 })
 export class AssignmentListComponent implements OnInit {
   private assignmentApi = inject(AssignmentApi);
+  private confirmDialog = inject(ConfirmDialogService);
 
   loading = signal(false);
   assignments = signal<AssignmentWithStats[]>([]);
@@ -329,19 +331,26 @@ export class AssignmentListComponent implements OnInit {
     this.router.navigate(['/teacher/assignments', id, 'overview']);
   }
 
-  deleteAssignment(id: string, event: Event): void {
+  async deleteAssignment(id: string, event: Event): Promise<void> {
     event.stopPropagation();
-    if (confirm('Bạn có chắc chắn muốn xóa bài tập này không? Hành động này không thể hoàn tác.')) {
-      this.assignmentApi.deleteAssignment(id).subscribe({
-        next: () => {
-          // Remove from local list to avoid full reload flicker
-          this.assignments.update(current => current.filter(a => a.id !== id));
-        },
-        error: (err) => {
-          this.error.set('Không thể xóa bài tập. ' + (err.error?.message || 'Vui lòng thử lại.'));
-        }
-      });
-    }
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Xóa bài tập',
+      message: 'Bạn có chắc chắn muốn xóa bài tập này không? Hành động này không thể hoàn tác.',
+      variant: 'danger',
+      confirmText: 'Xóa',
+      cancelText: 'Hủy'
+    });
+    if (!confirmed) return;
+
+    this.assignmentApi.deleteAssignment(id).subscribe({
+      next: () => {
+        // Remove from local list to avoid full reload flicker
+        this.assignments.update(current => current.filter(a => a.id !== id));
+      },
+      error: (err) => {
+        this.error.set('Không thể xóa bài tập. ' + (err.error?.message || 'Vui lòng thử lại.'));
+      }
+    });
   }
 
   error = signal<string | null>(null);

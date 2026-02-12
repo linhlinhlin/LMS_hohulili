@@ -30,7 +30,7 @@ public class AssignmentControllerV3 {
     private final com.example.lms.assessment.application.usecase.UpdateAssignmentUseCaseV3 updateAssignmentUseCaseV3;
 
     @GetMapping("/summary")
-    @PreAuthorize("hasAnyRole('TEACHER', 'INSTRUCTOR', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Operation(summary = "Get summary of all assignments for the current teacher")
     public ResponseEntity<ApiResponse<Object>> getTeacherAssignmentsSummary(
             @AuthenticationPrincipal UserJpaEntity user) {
@@ -40,7 +40,7 @@ public class AssignmentControllerV3 {
     }
 
     @GetMapping("/courses/{courseId}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'INSTRUCTOR', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Operation(summary = "Get assignments for a specific course")
     public ResponseEntity<ApiResponse<Object>> getAssignmentsByCourse(@PathVariable java.util.UUID courseId) {
         var result = getAssignmentsByCourseUseCase.execute(courseId);
@@ -50,7 +50,7 @@ public class AssignmentControllerV3 {
     // === CRUD Operations for V3 ===
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'INSTRUCTOR', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Operation(summary = "Get assignment detail by ID")
     public ResponseEntity<ApiResponse<com.example.lms.assessment.application.dto.AssignmentDTOs.AssignmentDetail>> getAssignmentById(
             @PathVariable java.util.UUID id
@@ -76,7 +76,7 @@ public class AssignmentControllerV3 {
     }
 
     @PostMapping("/courses/{courseId}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'INSTRUCTOR', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Operation(summary = "Create new assignment")
     public ResponseEntity<ApiResponse<java.util.UUID>> createAssignment(
             @PathVariable java.util.UUID courseId,
@@ -103,7 +103,7 @@ public class AssignmentControllerV3 {
     }
     
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'INSTRUCTOR', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Operation(summary = "Update assignment")
     public ResponseEntity<ApiResponse<Void>> updateAssignment(
             @PathVariable java.util.UUID id,
@@ -121,7 +121,7 @@ public class AssignmentControllerV3 {
     }
     
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'INSTRUCTOR', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Operation(summary = "Delete assignment")
     public ResponseEntity<ApiResponse<Void>> deleteAssignment(
             @PathVariable java.util.UUID id

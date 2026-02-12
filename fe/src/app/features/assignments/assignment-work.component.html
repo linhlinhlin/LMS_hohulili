@@ -1,11 +1,11 @@
-﻿
+
     <div class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 min-h-screen">
       <!-- Loading State -->
       @if (isLoading()) {
         <div class="flex items-center justify-center min-h-screen">
           <div class="text-center">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p class="text-gray-600">Đang tải bài tập...</p>
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0056D2] mx-auto mb-4"></div>
+            <p class="text-gray-600">�ang t?i b�i t?p...</p>
           </div>
         </div>
       }
@@ -19,10 +19,10 @@
                 <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
               </svg>
             </div>
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">Không thể tải bài tập</h3>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Kh�ng th? t?i b�i t?p</h3>
             <p class="text-gray-600 mb-4">{{ error() }}</p>
-            <button (click)="goBack()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-              Quay lại
+            <button (click)="goBack()" class="px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5]">
+              Quay l?i
             </button>
           </div>
         </div>
@@ -40,7 +40,7 @@
                   <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"></path>
                   </svg>
-                  <span>Quay lại</span>
+                  <span>Quay l?i</span>
                 </button>
                 <div>
                   <h1 class="text-3xl font-bold text-gray-900">{{ assignment()?.title }}</h1>
@@ -50,15 +50,15 @@
               
               <div class="flex items-center space-x-4">
                 <div class="text-right">
-                  <p class="text-sm text-gray-600">Hạn nộp</p>
+                  <p class="text-sm text-gray-600">H?n n?p</p>
                   <p class="text-lg font-semibold" [class]="isOverdue() ? 'text-red-600' : 'text-gray-900'">
                     {{ formatDate(assignment()?.dueDate) }}
                   </p>
                 </div>
                 @if (assignment()?.maxScore) {
                   <div class="text-right">
-                    <p class="text-sm text-gray-600">Điểm tối đa</p>
-                    <p class="text-lg font-semibold text-gray-900">{{ assignment()?.maxScore }} điểm</p>
+                    <p class="text-sm text-gray-600">�i?m t?i da</p>
+                    <p class="text-lg font-semibold text-gray-900">{{ assignment()?.maxScore }} di?m</p>
                   </div>
                 }
               </div>
@@ -72,32 +72,32 @@
             <div class="lg:col-span-2 space-y-6">
               <!-- Assignment Instructions -->
               <div class="bg-white rounded-2xl shadow-lg p-6">
-                <h3 class="text-xl font-bold text-gray-900 mb-4">đŸ“‹ Hướng dẫn bài tập</h3>
+                <h3 class="text-xl font-bold text-gray-900 mb-4">d��� Hu?ng d?n b�i t?p</h3>
                 <div class="prose max-w-none">
-                  <p class="text-gray-700 leading-relaxed whitespace-pre-wrap">{{ assignment()?.instructions || assignment()?.description || 'Không có hướng dẫn' }}</p>
+                  <p class="text-gray-700 leading-relaxed whitespace-pre-wrap">{{ assignment()?.instructions || assignment()?.description || 'Kh�ng c� hu?ng d?n' }}</p>
                 </div>
               </div>
 
               <!-- Previous Submission (if exists) -->
               @if (mySubmission()) {
                 <div class="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-green-500">
-                  <h3 class="text-xl font-bold text-gray-900 mb-4">âœ… Bài nộp của bạn</h3>
+                  <h3 class="text-xl font-bold text-gray-900 mb-4">✅ B�i n?p c?a b?n</h3>
                   <div class="space-y-4">
                     <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">Nội dung đã nộp</label>
+                      <label class="block text-sm font-medium text-gray-700 mb-1">N?i dung d� n?p</label>
                       <div class="p-4 bg-gray-50 rounded-xl">
-                        <p class="text-gray-700 whitespace-pre-wrap">{{ mySubmission()?.content || 'Không có nội dung' }}</p>
+                        <p class="text-gray-700 whitespace-pre-wrap">{{ mySubmission()?.content || 'Kh�ng c� n?i dung' }}</p>
                       </div>
                     </div>
                     
                     <div class="flex items-center justify-between">
                       <div>
-                        <span class="text-sm text-gray-600">Thời gian nộp:</span>
+                        <span class="text-sm text-gray-600">Th?i gian n?p:</span>
                         <span class="ml-2 font-medium">{{ formatDateTime(mySubmission()?.submittedAt) }}</span>
                       </div>
                       @if (hasGrade()) {
                         <div class="text-right">
-                          <span class="text-sm text-gray-600">Điểm:</span>
+                          <span class="text-sm text-gray-600">�i?m:</span>
                           <span class="ml-2 text-2xl font-bold text-green-600">
                             {{ getGradeScore(mySubmission()?.grade) }}/{{ assignment()?.maxScore || 100 }}
                           </span>
@@ -107,7 +107,7 @@
 
                     @if (mySubmission()?.feedback || getGradeFeedback(mySubmission()?.grade)) {
                       <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Phản hồi từ giảng viên</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Ph?n h?i t? gi?ng vi�n</label>
                         <div class="p-4 bg-blue-50 rounded-xl">
                           <p class="text-gray-700">{{ mySubmission()?.feedback || getGradeFeedback(mySubmission()?.grade) }}</p>
                         </div>
@@ -120,28 +120,28 @@
               <!-- Submission Form (only if not submitted or can resubmit) -->
               @if (!mySubmission() || canResubmit()) {
                 <div class="bg-white rounded-2xl shadow-lg p-6">
-                  <h3 class="text-xl font-bold text-gray-900 mb-4">âœï¸ {{ mySubmission() ? 'Nộp lại bài tập' : 'Nộp bài tập' }}</h3>
+                  <h3 class="text-xl font-bold text-gray-900 mb-4">✍️ {{ mySubmission() ? 'N?p l?i b�i t?p' : 'N?p b�i t?p' }}</h3>
                   
                   <form (ngSubmit)="submitAssignment()" #assignmentForm="ngForm">
                     <div class="space-y-6">
                       <!-- Text Content -->
                       <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Nội dung bài làm</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">N?i dung b�i l�m</label>
                         <textarea 
                           [(ngModel)]="submissionContent"
                           name="content"
                           rows="12"
-                          placeholder="Nhập nội dung bài tập của bạn..."
-                          class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                          placeholder="Nh?p n?i dung b�i t?p c?a b?n..."
+                          class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-transparent resize-none"
                           required></textarea>
                         <div class="mt-2 flex justify-between text-sm text-gray-600">
-                          <span>Từ: {{ getWordCount(submissionContent()) }}</span>
+                          <span>T?: {{ getWordCount(submissionContent()) }}</span>
                         </div>
                       </div>
 
                       <!-- File Upload -->
                       <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Tệp đính kèm (tùy chọn)</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">T?p d�nh k�m (t�y ch?n)</label>
                         <div class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-blue-400 transition-colors">
                           <input type="file" 
                                  multiple
@@ -150,12 +150,12 @@
                                  #fileInput>
                           <button type="button" 
                                   (click)="fileInput.click()"
-                                  class="flex flex-col items-center space-y-2 text-gray-600 hover:text-blue-600 transition-colors mx-auto">
+                                  class="flex flex-col items-center space-y-2 text-gray-600 hover:text-[#0056D2] transition-colors mx-auto">
                             <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 20 20">
                               <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"></path>
                             </svg>
-                            <span class="font-medium">Chọn tệp hoặc kéo thả vào đây</span>
-                            <span class="text-sm">PDF, DOC, DOCX, JPG, PNG (tối đa 10MB)</span>
+                            <span class="font-medium">Ch?n t?p ho?c k�o th? v�o d�y</span>
+                            <span class="text-sm">PDF, DOC, DOCX, JPG, PNG (t?i da 10MB)</span>
                           </button>
                         </div>
                         
@@ -188,18 +188,18 @@
                       <div class="flex items-center justify-between pt-6 border-t border-gray-200">
                         <div class="text-sm text-gray-600">
                           @if (isOverdue()) {
-                            <p class="text-red-600 font-medium">â ï¸ Bài tập đã quá hạn</p>
+                            <p class="text-red-600 font-medium">�?�️ B�i t?p d� qu� h?n</p>
                           }
                         </div>
                         <div class="flex space-x-3">
                           <button type="submit" 
                                   [disabled]="!canSubmit() || isSubmitting()"
-                                  class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center space-x-2">
+                                  class="px-6 py-3 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center space-x-2">
                             @if (isSubmitting()) {
                               <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                              <span>Đang nộp...</span>
+                              <span>�ang n?p...</span>
                             } @else {
-                              <span>Nộp bài</span>
+                              <span>N?p b�i</span>
                             }
                           </button>
                         </div>
@@ -214,20 +214,20 @@
             <div class="space-y-6">
               <!-- Assignment Info -->
               <div class="bg-white rounded-2xl shadow-lg p-6">
-                <h3 class="text-xl font-bold text-gray-900 mb-4">đŸ“ Thông tin bài tập</h3>
+                <h3 class="text-xl font-bold text-gray-900 mb-4">d��? Th�ng tin b�i t?p</h3>
                 <div class="space-y-4">
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Khóa học</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Kh�a h?c</label>
                     <span class="text-gray-900">{{ assignment()?.courseTitle }}</span>
                   </div>
                   
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Điểm tối đa</label>
-                    <span class="text-lg font-semibold text-gray-900">{{ assignment()?.maxScore || 100 }} điểm</span>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">�i?m t?i da</label>
+                    <span class="text-lg font-semibold text-gray-900">{{ assignment()?.maxScore || 100 }} di?m</span>
                   </div>
                   
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Trạng thái</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Tr?ng th�i</label>
                     <span class="px-3 py-1 rounded-full text-sm font-medium"
                           [class]="getStatusClass()">
                       {{ getStatusText() }}
@@ -236,7 +236,7 @@
 
                   @if (hasGrade()) {
                     <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">Điểm của bạn</label>
+                      <label class="block text-sm font-medium text-gray-700 mb-1">�i?m c?a b?n</label>
                       <span class="text-2xl font-bold text-green-600">
                         {{ getGradeScore(mySubmission()?.grade) }}/{{ assignment()?.maxScore || 100 }}
                       </span>
@@ -247,7 +247,7 @@
 
               <!-- Submission Status -->
               <div class="bg-white rounded-2xl shadow-lg p-6">
-                <h3 class="text-xl font-bold text-gray-900 mb-4">đŸ“ Trạng thái nộp bài</h3>
+                <h3 class="text-xl font-bold text-gray-900 mb-4">d��� Tr?ng th�i n?p b�i</h3>
                 <div class="space-y-3">
                   @if (mySubmission()) {
                     <div class="flex items-center space-x-3 p-3 bg-green-50 rounded-xl">
@@ -255,7 +255,7 @@
                         <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
                       </svg>
                       <div>
-                        <p class="font-medium text-green-800">Đã nộp bài</p>
+                        <p class="font-medium text-green-800">�� n?p b�i</p>
                         <p class="text-sm text-green-600">{{ formatDateTime(mySubmission()?.submittedAt) }}</p>
                       </div>
                     </div>
@@ -265,8 +265,8 @@
                         <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
                       </svg>
                       <div>
-                        <p class="font-medium text-yellow-800">Chưa nộp bài</p>
-                        <p class="text-sm text-yellow-600">Hạn: {{ formatDate(assignment()?.dueDate) }}</p>
+                        <p class="font-medium text-yellow-800">Chua n?p b�i</p>
+                        <p class="text-sm text-yellow-600">H?n: {{ formatDate(assignment()?.dueDate) }}</p>
                       </div>
                     </div>
                   }

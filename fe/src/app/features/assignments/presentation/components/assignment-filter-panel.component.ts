@@ -28,7 +28,7 @@ import { AssignmentFilters, AssignmentStatus, AssignmentType, PriorityLevel, Dea
                    [value]="filters().searchQuery || ''"
                    (input)="onSearchChange($event)"
                    placeholder="Tìm kiếm bài tập..."
-                   class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm">
+                   class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-[#0056D2] focus:border-[#0056D2] text-sm">
           </div>
         </div>
 
@@ -39,7 +39,7 @@ import { AssignmentFilters, AssignmentStatus, AssignmentType, PriorityLevel, Dea
           <div class="relative">
             <select [value]="filters().status?.[0] || ''"
                     (change)="onStatusChange($event)"
-                    class="appearance-none bg-white border border-gray-300 rounded-lg px-3 py-2 pr-8 text-sm focus:ring-blue-500 focus:border-blue-500">
+                    class="appearance-none bg-white border border-gray-300 rounded-lg px-3 py-2 pr-8 text-sm focus:ring-[#0056D2] focus:border-[#0056D2]">
               <option value="">Tất cả trạng thái</option>
               <option value="draft">Bản nháp</option>
               <option value="published">Đã xuất bản</option>
@@ -56,7 +56,7 @@ import { AssignmentFilters, AssignmentStatus, AssignmentType, PriorityLevel, Dea
           <div class="relative">
             <select [value]="filters().type?.[0] || ''"
                     (change)="onTypeChange($event)"
-                    class="appearance-none bg-white border border-gray-300 rounded-lg px-3 py-2 pr-8 text-sm focus:ring-blue-500 focus:border-blue-500">
+                    class="appearance-none bg-white border border-gray-300 rounded-lg px-3 py-2 pr-8 text-sm focus:ring-[#0056D2] focus:border-[#0056D2]">
               <option value="">Tất cả loại</option>
               <option value="assignment">Bài tập</option>
               <option value="quiz">Bài kiểm tra</option>
@@ -74,7 +74,7 @@ import { AssignmentFilters, AssignmentStatus, AssignmentType, PriorityLevel, Dea
           <div class="relative">
             <select [value]="filters().priority?.[0] || ''"
                     (change)="onPriorityChange($event)"
-                    class="appearance-none bg-white border border-gray-300 rounded-lg px-3 py-2 pr-8 text-sm focus:ring-blue-500 focus:border-blue-500">
+                    class="appearance-none bg-white border border-gray-300 rounded-lg px-3 py-2 pr-8 text-sm focus:ring-[#0056D2] focus:border-[#0056D2]">
               <option value="">Tất cả ưu tiên</option>
               <option value="urgent">Khẩn cấp</option>
               <option value="high">Cao</option>
@@ -92,15 +92,15 @@ import { AssignmentFilters, AssignmentStatus, AssignmentType, PriorityLevel, Dea
           <div class="flex items-center space-x-2">
             <button (click)="applyQuickFilter('upcoming')"
                     [class.bg-blue-100]="activeQuickFilter() === 'upcoming'"
-                    [class.text-blue-700]="activeQuickFilter() === 'upcoming'"
-                    class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    [class.text-[#004BB5]]="activeQuickFilter() === 'upcoming'"
+                    class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]">
               Sắp đến hạn
             </button>
 
             <button (click)="applyQuickFilter('overdue')"
                     [class.bg-red-100]="activeQuickFilter() === 'overdue'"
                     [class.text-red-700]="activeQuickFilter() === 'overdue'"
-                    class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                    class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]">
               Quá hạn
             </button>
 
@@ -126,8 +126,8 @@ import { AssignmentFilters, AssignmentStatus, AssignmentType, PriorityLevel, Dea
           <!-- Advanced Filters Toggle -->
           <button (click)="toggleAdvancedFilters()"
                   [class.bg-blue-100]="showAdvancedFilters()"
-                  [class.text-blue-700]="showAdvancedFilters()"
-                  class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                  [class.text-[#004BB5]]="showAdvancedFilters()"
+                  class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]">
             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"></path>
             </svg>
@@ -149,7 +149,7 @@ import { AssignmentFilters, AssignmentStatus, AssignmentType, PriorityLevel, Dea
               <input type="date"
                      [value]="filters().dateRange?.start ? formatDate(filters().dateRange!.start) : ''"
                      (change)="onStartDateChange($event)"
-                     class="block w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+                     class="block w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-[#0056D2] focus:border-[#0056D2]">
             </div>
 
             <div>
@@ -159,7 +159,7 @@ import { AssignmentFilters, AssignmentStatus, AssignmentType, PriorityLevel, Dea
               <input type="date"
                      [value]="filters().dateRange?.end ? formatDate(filters().dateRange!.end) : ''"
                      (change)="onEndDateChange($event)"
-                     class="block w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+                     class="block w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-[#0056D2] focus:border-[#0056D2]">
             </div>
 
             <!-- Course Filter -->
@@ -169,7 +169,7 @@ import { AssignmentFilters, AssignmentStatus, AssignmentType, PriorityLevel, Dea
               </label>
               <select [value]="filters().courseId?.[0] || ''"
                       (change)="onCourseChange($event)"
-                      class="block w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+                      class="block w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-[#0056D2] focus:border-[#0056D2]">
                 <option value="">Tất cả khóa học</option>
                 <option value="course-1">Kỹ thuật Tàu biển Cơ bản</option>
                 <option value="course-2">An toàn Hàng hải Quốc tế</option>
@@ -184,7 +184,7 @@ import { AssignmentFilters, AssignmentStatus, AssignmentType, PriorityLevel, Dea
               </label>
               <select [value]="filters().instructorId?.[0] || ''"
                       (change)="onInstructorChange($event)"
-                      class="block w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+                      class="block w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-[#0056D2] focus:border-[#0056D2]">
                 <option value="">Tất cả giảng viên</option>
                 <option value="instructor-1">ThS. Nguyễn Văn Hải</option>
                 <option value="instructor-2">TS. Phạm Văn Nam</option>
@@ -203,7 +203,7 @@ import { AssignmentFilters, AssignmentStatus, AssignmentType, PriorityLevel, Dea
           @if (filters().searchQuery) {
             <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
               Tìm kiếm: "{{ filters().searchQuery }}"
-              <button (click)="removeSearchFilter()" class="ml-1 text-blue-600 hover:text-blue-800">
+              <button (click)="removeSearchFilter()" class="ml-1 text-[#0056D2] hover:text-blue-800">
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>

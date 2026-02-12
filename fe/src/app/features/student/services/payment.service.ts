@@ -1,7 +1,8 @@
-import { Injectable, inject, signal, computed } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap, catchError, of } from 'rxjs';
 import { PAYMENT_ENDPOINTS } from '../../../api/endpoints/payment.endpoints';
+import { environment } from '../../../../environments/environment';
 
 /**
  * Payment Types
@@ -85,7 +86,7 @@ export class PaymentService {
         this._error.set(null);
 
         return this.http.post<ApiResponse<PaymentResponse>>(
-            PAYMENT_ENDPOINTS.CHECKOUT,
+            `${environment.apiUrl}${PAYMENT_ENDPOINTS.CHECKOUT}`,
             request
         ).pipe(
             tap(response => {
@@ -101,7 +102,7 @@ export class PaymentService {
                         paidAt: response.data.paidAt
                     });
                     // Reload payment history
-                    this.loadPaymentHistory().subscribe();
+                    this.loadPaymentHistory().subscribe({ error: () => {} }); // best-effort refresh
                 }
             }),
             catchError(error => {
@@ -126,7 +127,7 @@ export class PaymentService {
         }
 
         return this.http.get<ApiResponse<PaymentStatusResponse>>(
-            PAYMENT_ENDPOINTS.STATUS(courseId)
+            `${environment.apiUrl}${PAYMENT_ENDPOINTS.STATUS(courseId)}`
         ).pipe(
             tap(response => {
                 if (response.data) {
@@ -151,7 +152,7 @@ export class PaymentService {
         this._loading.set(true);
 
         return this.http.get<ApiResponse<PaymentResponse[]>>(
-            PAYMENT_ENDPOINTS.MY_PAYMENTS
+            `${environment.apiUrl}${PAYMENT_ENDPOINTS.MY_PAYMENTS}`
         ).pipe(
             tap(response => {
                 this._loading.set(false);
@@ -171,7 +172,7 @@ export class PaymentService {
      */
     canAccessLesson(courseId: string, lessonIndex: number): Observable<ApiResponse<LessonAccessResponse>> {
         return this.http.get<ApiResponse<LessonAccessResponse>>(
-            PAYMENT_ENDPOINTS.CAN_ACCESS_LESSON(courseId, lessonIndex)
+            `${environment.apiUrl}${PAYMENT_ENDPOINTS.CAN_ACCESS_LESSON(courseId, lessonIndex)}`
         );
     }
 

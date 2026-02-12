@@ -51,7 +51,7 @@ import { ToastService } from '../../../../../core/services/toast.service';
             </div>
             <div class="flex flex-col sm:flex-row gap-3">
               <button (click)="state.openCreateUserModal()"
-                      class="inline-flex items-center justify-center px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 transition-colors">
+                      class="inline-flex items-center justify-center px-4 py-2.5 bg-[#0056D2] text-white text-sm font-medium rounded hover:bg-[#004BB5] transition-colors">
                 <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"></path>
                 </svg>

@@ -74,6 +74,8 @@ public class ConversationRepositoryAdapter implements ConversationRepository {
             .participant2Id(conversation.getParticipant2Id())
             .lastMessagePreview(conversation.getLastMessagePreview())
             .lastMessageAt(conversation.getLastMessageAt())
+            .isArchived1(conversation.isArchivedByParticipant1())
+            .isArchived2(conversation.isArchivedByParticipant2())
             .build();
     }
 
@@ -84,8 +86,8 @@ public class ConversationRepositoryAdapter implements ConversationRepository {
             entity.getParticipant2Id(),
             entity.getLastMessagePreview(),
             entity.getLastMessageAt(),
-            false, // isArchivedByParticipant1 - add to entity if needed
-            false, // isArchivedByParticipant2 - add to entity if needed
+            entity.getIsArchived1() != null && entity.getIsArchived1(),
+            entity.getIsArchived2() != null && entity.getIsArchived2(),
             entity.getCreatedAt(),
             entity.getUpdatedAt()
         );

@@ -262,7 +262,7 @@ export function getStatusBadge(status: StudentTaskStatus): StatusBadge {
     },
     'IN_PROGRESS': {
       text: 'Đang làm',
-      cssClass: 'bg-blue-100 text-blue-700'
+      cssClass: 'bg-blue-100 text-[#004BB5]'
     },
     'SUBMITTED': {
       text: 'Đã nộp',

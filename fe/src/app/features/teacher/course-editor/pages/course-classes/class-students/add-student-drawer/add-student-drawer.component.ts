@@ -7,6 +7,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatTabsModule } from '@angular/material/tabs';
 import { ClassService } from '../../../../../../../state/class.service';
 import { SideDrawerComponent } from '../../../../../../../shared/components/side-drawer/side-drawer.component';
+import { ConfirmDialogService } from '../../../../../../../core/services/confirm-dialog.service';
+import { ToastService } from '../../../../../../../core/services/toast.service';
 
 interface EnrolledStudent {
     id: string;
@@ -39,13 +41,13 @@ interface EnrolledStudent {
                         <mat-icon class="text-slate-500">groups</mat-icon>
                         <span class="text-sm font-bold text-slate-700">Tổng số học viên</span>
                     </div>
-                    <span class="text-lg font-black text-blue-600">{{ enrolledStudents().length }}</span>
+                    <span class="text-lg font-black text-[#0056D2]">{{ enrolledStudents().length }}</span>
                 </div>
 
                 <!-- Loading State -->
                 @if (isLoadingStudents()) {
                     <div class="flex flex-col items-center justify-center py-12 gap-3">
-                        <div class="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                        <div class="w-10 h-10 border-4 border-[#0056D2] border-t-transparent rounded-full animate-spin"></div>
                         <p class="text-sm text-gray-500">Đang tải danh sách...</p>
                     </div>
                 }
@@ -65,7 +67,7 @@ interface EnrolledStudent {
                         @for (student of enrolledStudents(); track student.id; let i = $index) {
                             <div class="flex items-center gap-3 p-3 bg-white border border-gray-100 rounded-xl hover:border-blue-200 hover:shadow-sm transition-all group">
                                 <!-- Avatar -->
-                                <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                                <div class="w-10 h-10 bg-[#0056D2] rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                                     {{ getInitials(student.fullName || student.email) }}
                                 </div>
                                 
@@ -100,15 +102,15 @@ interface EnrolledStudent {
                 <!-- Manual Email Input -->
                 <div class="p-5 bg-blue-50/50 rounded-2xl border border-blue-100 space-y-4">
                     <div class="flex items-center gap-2 mb-2">
-                        <mat-icon class="text-blue-600">person_add</mat-icon>
+                        <mat-icon class="text-[#0056D2]">person_add</mat-icon>
                         <h4 class="text-sm font-black text-blue-800 uppercase tracking-wide">Nhập email thủ công</h4>
                     </div>
                     
                     <form [formGroup]="form" class="space-y-3">
                         <div class="relative group">
-                            <mat-icon class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-600 transition-colors">mail_outline</mat-icon>
+                            <mat-icon class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#0056D2] transition-colors">mail_outline</mat-icon>
                             <input type="email" formControlName="email" 
-                                   class="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
+                                   class="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#0056D2]/20 focus:border-[#0056D2] transition-all font-medium"
                                    placeholder="student@example.com">
                         </div>
                         
@@ -121,7 +123,7 @@ interface EnrolledStudent {
 
                         <button type="button" (click)="saveManual()" 
                                 [disabled]="form.invalid || isLoading()"
-                                class="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 transition-all flex items-center justify-center gap-2">
+                                class="w-full py-3 bg-[#0056D2] text-white rounded-xl font-bold hover:bg-[#004BB5] disabled:opacity-50 transition-all flex items-center justify-center gap-2">
                             @if (isLoading() && activeTabIndex() === 1) {
                                 <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                             }
@@ -239,6 +241,8 @@ interface EnrolledStudent {
 export class AddStudentDrawerComponent {
     private fb = inject(FormBuilder);
     private classService = inject(ClassService);
+    private confirmDialog = inject(ConfirmDialogService);
+    private toast = inject(ToastService);
 
     // Signal Inputs
     isOpen = input(false);
@@ -329,15 +333,22 @@ export class AddStudentDrawerComponent {
     }
 
     async removeStudent(student: EnrolledStudent) {
-        if (!confirm(`Bạn chắc chắn muốn xóa học viên "${student.fullName || student.email}" khỏi lớp?`)) return;
-        
+        const confirmed = await this.confirmDialog.confirm({
+            title: 'Xóa học viên',
+            message: `Bạn chắc chắn muốn xóa học viên "${student.fullName || student.email}" khỏi lớp?`,
+            variant: 'danger',
+            confirmText: 'Xóa',
+            cancelText: 'Hủy'
+        });
+        if (!confirmed) return;
+
         this.isLoading.set(true);
         try {
             await firstValueFrom(this.classService.removeStudentFromClass(this.classId(), student.id));
             this.loadEnrolledStudents();
             this.onSaved.emit();
         } catch (err: any) {
-            alert(err.error?.message || 'Không thể xóa học viên này.');
+            this.toast.error(err.error?.message || 'Không thể xóa học viên này.');
         } finally {
             this.isLoading.set(false);
         }

@@ -35,7 +35,7 @@ import { AdminUser } from '../../../../../infrastructure/services/admin.service'
       @if (state.isDeletingUser()) {
         <div class="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10">
           <div class="text-center">
-            <div class="inline-block w-12 h-12 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin"></div>
+            <div class="inline-block w-12 h-12 border-4 border-gray-200 border-t-[#0056D2] rounded-full animate-spin"></div>
             <p class="mt-4 text-sm text-gray-600 font-medium">Đang xử lý...</p>
           </div>
         </div>
@@ -44,7 +44,7 @@ import { AdminUser } from '../../../../../infrastructure/services/admin.service'
       @if (state.isLoadingUsers()) {
         <div class="p-12 text-center">
           <div class="inline-block">
-            <div class="w-12 h-12 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin"></div>
+            <div class="w-12 h-12 border-4 border-gray-200 border-t-[#0056D2] rounded-full animate-spin"></div>
           </div>
           <p class="mt-4 text-sm text-gray-600">Đang tải danh sách người dùng...</p>
         </div>
@@ -54,10 +54,10 @@ import { AdminUser } from '../../../../../infrastructure/services/admin.service'
             <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 8v1h1.5a.5.5 0 01.5.5v9a.5.5 0 01-.5.5h-13a.5.5 0 01-.5-.5v-9a.5.5 0 01.5-.5H8v-1a5 5 0 00-5 5v1h9.93z"></path>
           </svg>
           <h3 class="text-base font-medium text-gray-900 mb-2">Không tìm thấy người dùng</h3>
-          <p class="text-sm text-gray-600 mb-4">Thử �‘iều ch�‰nh b�™ lọc hoặc tìm kiếm v�›i từ khóa khác</p>
+          <p class="text-sm text-gray-600 mb-4">Thử điều chỉnh bộ lọc hoặc tìm kiếm với từ khóa khác</p>
           <button (click)="state.clearFilters()"
-                  class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 transition-colors">
-            Xóa b�™ lọc
+                  class="inline-flex items-center px-4 py-2 bg-[#0056D2] text-white text-sm font-medium rounded hover:bg-[#004BB5] transition-colors">
+            Xóa bộ lọc
           </button>
         </div>
       } @else {
@@ -69,8 +69,8 @@ import { AdminUser } from '../../../../../infrastructure/services/admin.service'
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Vai trò</th>
                 <th class="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">Thao tác</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Trạng thái</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Hoạt �‘�™ng cu�‘i</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Th�‘ng kê</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Hoạt động cuối</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Thống kê</th>
               </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-100">
@@ -93,9 +93,9 @@ import { AdminUser } from '../../../../../infrastructure/services/admin.service'
                     <select [ngModel]="user.role"
                             (ngModelChange)="state.onRoleChange(user.id, user.role, $event)"
                             [name]="'user-role-' + user.id"
-                            class="role-select px-3 py-1.5 text-xs font-medium rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer bg-white"
+                            class="role-select px-3 py-1.5 text-xs font-medium rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-transparent cursor-pointer bg-white"
                             [ngClass]="state.getRoleClass(user.role)"
-                            title="Click �‘�ƒ thay �‘�•i vai trò">
+                            title="Click để thay đổi vai trò">
                       @for (roleOpt of state.ROLE_OPTIONS; track roleOpt.value) {
                         <option [value]="roleOpt.value">{{ roleOpt.label }}</option>
                       }
@@ -105,22 +105,22 @@ import { AdminUser } from '../../../../../infrastructure/services/admin.service'
                   <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                     <div class="flex items-center justify-center space-x-1">
                       <select (change)="onStatusAction(user, $any($event.target).value); $any($event.target).value = ''"
-                              class="text-xs px-2 py-1 border border-gray-300 rounded bg-white cursor-pointer hover:border-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                              title="Thay �‘�•i trạng thái">
+                              class="text-xs px-2 py-1 border border-gray-300 rounded bg-white cursor-pointer hover:border-gray-400 focus:outline-none focus:ring-1 focus:ring-[#0056D2]"
+                              title="Thay đổi trạng thái">
                         <option value="" disabled selected>Trạng thái</option>
                         @if (user.accountStatus !== 'ACTIVE') {
-                          <option value="ACTIVE">�œ” Kích hoạt</option>
+                          <option value="ACTIVE">Kích hoạt</option>
                         }
                         @if (user.accountStatus !== 'BLOCKED') {
-                          <option value="BLOCKED">�Ÿ”’ Khóa</option>
+                          <option value="BLOCKED">Khóa</option>
                         }
                         @if (user.accountStatus !== 'RESTRICTED') {
-                          <option value="RESTRICTED">�š�️ Hạn chế</option>
+                          <option value="RESTRICTED">Hạn chế</option>
                         }
                       </select>
                       <button (click)="state.deleteUser(user.id)"
                               class="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                              title="Vô hi�‡u hóa tài khoản">
+                              title="Vô hiệu hóa tài khoản">
                         <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                           <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
                         </svg>
@@ -136,11 +136,11 @@ import { AdminUser } from '../../../../../infrastructure/services/admin.service'
                       {{ state.getStatusLabel(user.accountStatus) }}
                     </span>
                   </td>
-                  <!-- Hoạt �‘�™ng cu�‘i -->
+                  <!-- Hoạt động cuối -->
                   <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-600">
-                    {{ user.lastLogin ? state.formatDate(user.lastLogin) : 'Chưa �‘�ƒng nhập' }}
+                    {{ user.lastLogin ? state.formatDate(user.lastLogin) : 'Chưa đăng nhập' }}
                   </td>
-                  <!-- Th�‘ng kê -->
+                  <!-- Thống kê -->
                   <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-600">
                     <div class="space-y-1">
                       @if (user.role === 'TEACHER') {
@@ -158,7 +158,7 @@ import { AdminUser } from '../../../../../infrastructure/services/admin.service'
                             <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
                             <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
                           </svg>
-                          <span>{{ user.coursesEnrolled || 0 }} �‘ã �‘�ƒng ký</span>
+                          <span>{{ user.coursesEnrolled || 0 }} đã đăng ký</span>
                         </div>
                       }
                       <div class="flex items-center">
@@ -181,11 +181,11 @@ import { AdminUser } from '../../../../../infrastructure/services/admin.service'
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div class="text-sm text-gray-700">
                 <p>
-                  Hi�ƒn th�‹
+                  Hiển thị
                   <span class="font-medium">{{ ((state.pagination()!.page - 1) * state.pagination()!.limit) + 1 }}</span>
-                  �‘ến
+                  đến
                   <span class="font-medium">{{ state.getMinValue(state.pagination()!.page * state.pagination()!.limit, state.pagination()!.totalItems) }}</span>
-                  trong t�•ng s�‘
+                  trong tổng số
                   <span class="font-medium">{{ state.pagination()!.totalItems }}</span>
                   kết quả
                 </p>
@@ -204,7 +204,7 @@ import { AdminUser } from '../../../../../infrastructure/services/admin.service'
 
                   @for (page of state.getVisiblePages(); track page) {
                     <button (click)="state.goToPage(page)"
-                            [class]="page === state.pagination()!.page ? 'z-10 bg-blue-50 border-blue-500 text-blue-600 relative inline-flex items-center px-4 py-2 border text-sm font-medium' : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium'">
+                            [class]="page === state.pagination()!.page ? 'z-10 bg-blue-50 border-blue-500 text-[#0056D2] relative inline-flex items-center px-4 py-2 border text-sm font-medium' : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium'">
                       {{ page }}
                     </button>
                   }

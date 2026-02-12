@@ -89,7 +89,7 @@
                     [class.w-10]="isScrolled()"
                     [class.h-10]="isScrolled()">
 
-                  <span class="font-bold text-gray-900 group-hover:text-blue-600 transition-all duration-300"
+                  <span class="font-bold text-gray-900 group-hover:text-[#0056D2] transition-all duration-300"
                         [class.text-xl]="!isScrolled()"
                         [class.text-lg]="isScrolled()">
                     LMS Maritime
@@ -192,7 +192,7 @@
                   <button (click)="toggleUserMenu()" 
                           class="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors duration-200">
                     <!-- User Avatar -->
-                    <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 text-white flex items-center justify-center text-sm font-semibold shadow-sm">
+                    <div class="w-9 h-9 rounded-full bg-[#0056D2] text-white flex items-center justify-center text-sm font-semibold shadow-sm">
                       {{ getUserInitials() }}
                     </div>
                     <!-- Username + Dropdown Arrow -->
@@ -218,7 +218,7 @@
                       <div class="py-1">
                         <a [routerLink]="getMyCoursesRoute()" 
                            (click)="closeUserMenu()"
-                           class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                           class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-[#004BB5] transition-colors">
                           <svg class="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                           </svg>
@@ -226,7 +226,7 @@
                         </a>
                         <a [routerLink]="getDashboardRoute()" 
                            (click)="closeUserMenu()"
-                           class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                           class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-[#004BB5] transition-colors">
                           <svg class="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
                           </svg>
@@ -250,11 +250,11 @@
               } @else {
                 <!-- Guest: Login/Register Buttons -->
                 <a routerLink="/auth/login"
-                   class="text-gray-700 hover:text-blue-600 px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200">
+                   class="text-gray-700 hover:text-[#0056D2] px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200">
                   Đăng nhập
                 </a>
                 <a routerLink="/auth/register"
-                   class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md text-sm font-semibold transition-all duration-200 hover:shadow-md">
+                   class="bg-[#0056D2] hover:bg-[#004BB5] text-white px-6 py-2 rounded-md text-sm font-semibold transition-all duration-200 hover:shadow-md">
                   Tham gia miễn phí
                 </a>
               }
@@ -267,7 +267,7 @@
               <!-- Mobile Logo -->
               <div class="flex-shrink-0">
                 <a routerLink="/" class="flex items-center">
-                  <div class="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center mr-2">
+                  <div class="w-8 h-8 bg-[#0056D2] rounded-lg flex items-center justify-center mr-2">
                     <span class="text-white text-sm font-bold">đŸ¢</span>
                   </div>
                   <span class="text-lg font-bold text-gray-900">LMS Maritime</span>
@@ -278,7 +278,7 @@
               <button 
                 type="button" 
                 (click)="toggleMobileMenu()"
-                class="text-gray-700 hover:text-blue-600 focus:outline-none focus:text-blue-600 p-2 rounded-md transition-colors duration-200">
+                class="text-gray-700 hover:text-[#0056D2] focus:outline-none focus:text-[#0056D2] p-2 rounded-md transition-colors duration-200">
                 <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   @if (isMobileMenuOpen()) {
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -335,7 +335,7 @@
                 <nav class="px-4 py-6 space-y-1">
                   <a routerLink="/" 
                      (click)="closeMobileMenu()"
-                     routerLinkActive="bg-blue-50 text-blue-600"
+                     routerLinkActive="bg-blue-50 text-[#0056D2]"
                      class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors duration-200">
                     Trang chủ
                   </a>
@@ -372,13 +372,13 @@
 
                   <a routerLink="/about" 
                      (click)="closeMobileMenu()"
-                     routerLinkActive="bg-blue-50 text-blue-600"
+                     routerLinkActive="bg-blue-50 text-[#0056D2]"
                      class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors duration-200">
                     Giới thiệu
                   </a>
                   <a routerLink="/contact" 
                      (click)="closeMobileMenu()"
-                     routerLinkActive="bg-blue-50 text-blue-600"
+                     routerLinkActive="bg-blue-50 text-[#0056D2]"
                      class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors duration-200">
                     Liên hệ
                   </a>
@@ -390,7 +390,7 @@
                 @if (isLoggedIn()) {
                   <!-- Authenticated User Info -->
                   <div class="flex items-center space-x-3 mb-4 pb-4 border-b border-gray-100">
-                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 text-white flex items-center justify-center text-sm font-semibold">
+                    <div class="w-10 h-10 rounded-full bg-[#0056D2] text-white flex items-center justify-center text-sm font-semibold">
                       {{ getUserInitials() }}
                     </div>
                     <div>
@@ -425,7 +425,7 @@
                     </a>
                     <a routerLink="/auth/register" 
                        (click)="closeMobileMenu()"
-                       class="block w-full text-center px-4 py-2 bg-blue-600 text-white rounded-md text-base font-medium hover:bg-blue-700 transition-colors duration-200">
+                       class="block w-full text-center px-4 py-2 bg-[#0056D2] text-white rounded-md text-base font-medium hover:bg-[#004BB5] transition-colors duration-200">
                       Tham gia miễn phí
                     </a>
                   </div>

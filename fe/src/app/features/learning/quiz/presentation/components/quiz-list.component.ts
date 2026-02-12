@@ -1,4 +1,4 @@
-import { Component, signal, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
+import { Component, signal, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -18,7 +18,6 @@ import { LoadingComponent } from '../../../../../shared/components/loading/loadi
 @Component({
   selector: 'app-quiz-list',
   imports: [RouterModule, FormsModule, LoadingComponent],
-  encapsulation: ViewEncapsulation.None,
   template: `
     <!-- Loading State -->
     <app-loading
@@ -46,7 +45,7 @@ import { LoadingComponent } from '../../../../../shared/components/loading/loadi
               <select
                 [(ngModel)]="selectedCourseId"
                 (change)="onCourseFilterChange()"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]"
               >
                 <option value="">Tất cả khóa học</option>
                 @for (course of availableCourses(); track course.id) {
@@ -59,7 +58,7 @@ import { LoadingComponent } from '../../../../../shared/components/loading/loadi
               <select
                 [(ngModel)]="selectedStatus"
                 (change)="onStatusFilterChange()"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]"
               >
                 <option value="">Tất cả</option>
                 <option value="active">Đang mở</option>
@@ -72,7 +71,7 @@ import { LoadingComponent } from '../../../../../shared/components/loading/loadi
               <select
                 [(ngModel)]="selectedTimeLimit"
                 (change)="onTimeFilterChange()"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]"
               >
                 <option value="">Tất cả</option>
                 <option value="short">Ngắn (< 30 phút)</option>
@@ -148,7 +147,7 @@ import { LoadingComponent } from '../../../../../shared/components/loading/loadi
                     <button
                       (click)="startQuiz(quiz.id)"
                       [disabled]="!quiz.isActive"
-                      class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors duration-200"
+                      class="flex-1 bg-[#0056D2] text-white px-4 py-2 rounded-md hover:bg-[#004BB5] disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors duration-200"
                     >
                       @if (quiz.isActive) {
                         Bắt đầu làm

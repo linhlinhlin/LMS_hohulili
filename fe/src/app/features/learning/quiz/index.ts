@@ -14,7 +14,6 @@ export {
   QuizAttemptEntity
 } from './domain/entities/quiz.entity';
 export type { IQuizRepository } from './domain/repositories/quiz.repository';
-export { QuizRepository } from './domain/repositories/quiz.repository';
 
 // Application
 export * from './application/use-cases/get-quiz-list.use-case';

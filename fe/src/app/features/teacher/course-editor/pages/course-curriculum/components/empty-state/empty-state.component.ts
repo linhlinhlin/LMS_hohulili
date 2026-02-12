@@ -16,7 +16,7 @@ import { LucideAngularModule } from 'lucide-angular';
         <p class="text-gray-500 text-sm mb-6">Chọn chương, bài học hoặc mục nội dung từ sidebar để bắt đầu chỉnh sửa</p>
         <div class="flex items-center justify-center gap-4 text-xs text-gray-400">
           <div class="flex items-center gap-1.5">
-            <div class="w-2 h-2 rounded-full bg-blue-500"></div>
+            <div class="w-2 h-2 rounded-full bg-[#0056D2]"></div>
             <span>Video</span>
           </div>
           <div class="flex items-center gap-1.5">

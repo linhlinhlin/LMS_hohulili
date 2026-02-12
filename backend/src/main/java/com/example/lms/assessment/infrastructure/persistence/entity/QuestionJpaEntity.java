@@ -4,7 +4,6 @@ import com.example.lms.shared.domain.model.ContentBlock;
 import io.hypersistence.utils.hibernate.type.json.JsonType;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.Type;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -12,6 +11,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -23,27 +23,30 @@ import java.util.UUID;
 public class QuestionJpaEntity {
     // Manual boilerplate
     public QuestionJpaEntity() {}
-    public QuestionJpaEntity(UUID id, List<ContentBlock> contentBlocks, Difficulty difficulty, String tags, Status status, String correctOption, UUID createdBy, UUID courseId, UUID packageId, Integer usageCount, BigDecimal correctRate, List<QuestionOptionJpaEntity> options, Instant createdAt, Instant updatedAt) {
-        this.id = id; this.contentBlocks = contentBlocks; this.difficulty = difficulty; this.tags = tags; this.status = status; this.correctOption = correctOption; this.createdBy = createdBy; this.courseId = courseId; this.packageId = packageId; this.usageCount = usageCount; this.correctRate = correctRate; this.options = options; this.createdAt = createdAt; this.updatedAt = updatedAt;
+    public QuestionJpaEntity(UUID id, List<ContentBlock> contentBlocks, Difficulty difficulty, String tags, Status status, QuestionType questionType, String correctOption, Map<String, Object> answerKey, UUID createdBy, UUID courseId, UUID packageId, UUID categoryId, Integer usageCount, BigDecimal correctRate, List<QuestionOptionJpaEntity> options, Instant createdAt, Instant updatedAt) {
+        this.id = id; this.contentBlocks = contentBlocks; this.difficulty = difficulty; this.tags = tags; this.status = status; this.questionType = questionType != null ? questionType : QuestionType.SINGLE_CHOICE; this.correctOption = correctOption; this.answerKey = answerKey; this.createdBy = createdBy; this.courseId = courseId; this.packageId = packageId; this.categoryId = categoryId; this.usageCount = usageCount; this.correctRate = correctRate; this.options = options; this.createdAt = createdAt; this.updatedAt = updatedAt;
     }
     public static Builder builder() { return new Builder(); }
     public static class Builder {
-        private UUID id; private List<ContentBlock> contentBlocks; private Difficulty difficulty = Difficulty.MEDIUM; private String tags; private Status status = Status.DRAFT; private String correctOption; private UUID createdBy; private UUID courseId; private UUID packageId; private Integer usageCount = 0; private BigDecimal correctRate = BigDecimal.ZERO; private List<QuestionOptionJpaEntity> options; private Instant createdAt; private Instant updatedAt;
+        private UUID id; private List<ContentBlock> contentBlocks; private Difficulty difficulty = Difficulty.MEDIUM; private String tags; private Status status = Status.DRAFT; private QuestionType questionType = QuestionType.SINGLE_CHOICE; private String correctOption; private Map<String, Object> answerKey; private UUID createdBy; private UUID courseId; private UUID packageId; private UUID categoryId; private Integer usageCount = 0; private BigDecimal correctRate = BigDecimal.ZERO; private List<QuestionOptionJpaEntity> options; private Instant createdAt; private Instant updatedAt;
         public Builder id(UUID id) { this.id = id; return this; }
         public Builder contentBlocks(List<ContentBlock> contentBlocks) { this.contentBlocks = contentBlocks; return this; }
         public Builder difficulty(Difficulty difficulty) { this.difficulty = difficulty; return this; }
         public Builder tags(String tags) { this.tags = tags; return this; }
         public Builder status(Status status) { this.status = status; return this; }
+        public Builder questionType(QuestionType questionType) { this.questionType = questionType; return this; }
         public Builder correctOption(String correctOption) { this.correctOption = correctOption; return this; }
+        public Builder answerKey(Map<String, Object> answerKey) { this.answerKey = answerKey; return this; }
         public Builder createdBy(UUID createdBy) { this.createdBy = createdBy; return this; }
         public Builder courseId(UUID courseId) { this.courseId = courseId; return this; }
         public Builder packageId(UUID packageId) { this.packageId = packageId; return this; }
+        public Builder categoryId(UUID categoryId) { this.categoryId = categoryId; return this; }
         public Builder usageCount(Integer usageCount) { this.usageCount = usageCount; return this; }
         public Builder correctRate(BigDecimal correctRate) { this.correctRate = correctRate; return this; }
         public Builder options(List<QuestionOptionJpaEntity> options) { this.options = options; return this; }
         public Builder createdAt(Instant createdAt) { this.createdAt = createdAt; return this; }
         public Builder updatedAt(Instant updatedAt) { this.updatedAt = updatedAt; return this; }
-        public QuestionJpaEntity build() { return new QuestionJpaEntity(id, contentBlocks, difficulty, tags, status, correctOption, createdBy, courseId, packageId, usageCount, correctRate, options, createdAt, updatedAt); }
+        public QuestionJpaEntity build() { return new QuestionJpaEntity(id, contentBlocks, difficulty, tags, status, questionType, correctOption, answerKey, createdBy, courseId, packageId, categoryId, usageCount, correctRate, options, createdAt, updatedAt); }
     }
 
     @Id
@@ -65,8 +68,16 @@ public class QuestionJpaEntity {
     @Column(nullable = false)
     private Status status = Status.DRAFT;
 
-    @Column(name = "correct_option", nullable = false)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "question_type", nullable = false)
+    private QuestionType questionType = QuestionType.SINGLE_CHOICE;
+
+    @Column(name = "correct_option")
     private String correctOption;
+
+    @Type(JsonType.class)
+    @Column(name = "answer_key", columnDefinition = "jsonb")
+    private Map<String, Object> answerKey;
 
     @Column(name = "created_by", nullable = false)
     private UUID createdBy;
@@ -77,6 +88,9 @@ public class QuestionJpaEntity {
     @Column(name = "package_id")
     private UUID packageId;
 
+    @Column(name = "category_id")
+    private UUID categoryId;
+
     @Column(name = "usage_count", nullable = false)
     private Integer usageCount = 0;
 
@@ -85,7 +99,7 @@ public class QuestionJpaEntity {
 
     @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("orderIndex ASC")
-    @BatchSize(size = 50) // SOTA: Prevent N+1 when loading multiple questions
+    @org.hibernate.annotations.Fetch(org.hibernate.annotations.FetchMode.SUBSELECT)
     private List<QuestionOptionJpaEntity> options;
 
     @CreationTimestamp
@@ -107,14 +121,20 @@ public class QuestionJpaEntity {
     public void setTags(String tags) { this.tags = tags; }
     public Status getStatus() { return status; }
     public void setStatus(Status status) { this.status = status; }
+    public QuestionType getQuestionType() { return questionType; }
+    public void setQuestionType(QuestionType questionType) { this.questionType = questionType; }
     public String getCorrectOption() { return correctOption; }
     public void setCorrectOption(String correctOption) { this.correctOption = correctOption; }
+    public Map<String, Object> getAnswerKey() { return answerKey; }
+    public void setAnswerKey(Map<String, Object> answerKey) { this.answerKey = answerKey; }
     public UUID getCreatedBy() { return createdBy; }
     public void setCreatedBy(UUID createdBy) { this.createdBy = createdBy; }
     public UUID getCourseId() { return courseId; }
     public void setCourseId(UUID courseId) { this.courseId = courseId; }
     public UUID getPackageId() { return packageId; }
     public void setPackageId(UUID packageId) { this.packageId = packageId; }
+    public UUID getCategoryId() { return categoryId; }
+    public void setCategoryId(UUID categoryId) { this.categoryId = categoryId; }
     public Integer getUsageCount() { return usageCount; }
     public void setUsageCount(Integer usageCount) { this.usageCount = usageCount; }
     public BigDecimal getCorrectRate() { return correctRate; }
@@ -132,5 +152,10 @@ public class QuestionJpaEntity {
 
     public enum Status {
         DRAFT, ACTIVE, INACTIVE
+    }
+
+    public enum QuestionType {
+        SINGLE_CHOICE, MULTIPLE_CHOICE, TRUE_FALSE,
+        FILL_IN_BLANK, SHORT_ANSWER, ESSAY
     }
 }

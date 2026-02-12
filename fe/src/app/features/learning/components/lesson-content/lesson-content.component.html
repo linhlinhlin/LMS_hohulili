@@ -1,74 +1,111 @@
 <div class="lesson-content-wrapper">
-  <!-- Content Area - Constrained Width -->
+
+  <!-- VIDEO: Edge-to-edge at top (Coursera/Udemy pattern: video fills full width, no padding) -->
+  @if (currentSection(); as section) {
+    @if (section.type === 'VIDEO' && section.videoUrl) {
+    <div class="video-section">
+      <div class="video-container">
+        @if (isYouTubeUrl(section.videoUrl)) {
+        <app-youtube-player
+          [videoUrl]="section.videoUrl"
+          [lessonId]="lesson().id"
+          [sectionId]="section.id" />
+        } @else {
+        <video [src]="section.videoUrl" controls controlsList="nodownload" class="video-player"
+          (play)="onVideoPlay()" (pause)="onVideoPause()" (ended)="onVideoEnd()"
+          (loadedmetadata)="onVideoLoadedMetadata($event)"
+          (timeupdate)="onVideoTimeUpdate($event)" (error)="onVideoError($event)">
+          Trình duyệt của bạn không hỗ trợ video.
+        </video>
+        }
+      </div>
+      <!-- Video Progress Bar — always visible for video sections -->
+      <div class="video-progress-bar">
+        <div class="progress-track">
+          <div class="progress-fill" [style.width.%]="videoProgress()"></div>
+        </div>
+        <div class="progress-info">
+          <span class="progress-text">{{ videoProgress() | number:'1.0-0' }}% đã xem</span>
+          @if (videoCompleted()) {
+          <span class="progress-complete">Hoàn thành</span>
+          } @else {
+          <span class="progress-remaining">Cần 50% để tiếp tục</span>
+          }
+        </div>
+      </div>
+    </div>
+    }
+  }
+
+  <!-- Fallback: Lesson-level video (no sections) -->
+  @if (!hasSections() && lesson().videoUrl) {
+  <div class="video-section">
+    <div class="video-container">
+      @if (isYouTubeUrl(lesson().videoUrl)) {
+      <app-youtube-player
+        [videoUrl]="lesson().videoUrl!"
+        [lessonId]="lesson().id"
+        [sectionId]="'lesson-' + lesson().id" />
+      } @else {
+      <video [src]="lesson().videoUrl" [poster]="lesson().thumbnail" controls controlsList="nodownload"
+        class="video-player"
+        (play)="onVideoPlay()" (pause)="onVideoPause()" (ended)="onVideoEnd()"
+        (loadedmetadata)="onVideoLoadedMetadata($event)"
+        (timeupdate)="onVideoTimeUpdate($event)" (error)="onVideoError($event)">
+        Trình duyệt của bạn không hỗ trợ video.
+      </video>
+      }
+    </div>
+  </div>
+  }
+
+  <!-- Content Area (padded) -->
   <div class="content-container">
-    <!-- Lesson Header -->
+
+    <!-- Compact Section Navigation Bar (Coursera 2026 pattern: minimal chrome) -->
+    @if (hasSections() && lesson().sections && currentSection(); as section) {
+    <div class="section-nav-bar">
+      <div class="section-nav-left">
+        <span class="section-counter">Phần {{ sectionIndex() + 1 }}/{{ lesson().sections!.length }}</span>
+        @if (lesson().sections!.length > 1) {
+        <div class="section-progress-dots">
+          @for (s of lesson().sections!; track s.id; let i = $index) {
+          <button class="progress-dot"
+            [class.active]="i === sectionIndex()"
+            [class.completed]="i < sectionIndex()"
+            (click)="selectSection(i)"
+            [attr.aria-label]="'Phần ' + (i + 1) + ': ' + s.title">
+          </button>
+          }
+        </div>
+        }
+      </div>
+      <span class="section-type-badge" [attr.data-type]="section.type">
+        {{ getSectionTypeLabel(section.type) }}
+      </span>
+    </div>
+
+    <!-- Section Title -->
+    <h2 class="section-title-main">{{ section.title }}</h2>
+    }
+
+    <!-- Lesson title only shown when NO sections (simple lessons) -->
+    @if (!hasSections()) {
     <div class="lesson-header">
       <h1 class="lesson-title">{{ lesson().title }}</h1>
       @if (lesson().description) {
       <p class="lesson-description">{{ lesson().description }}</p>
       }
-      <div class="lesson-meta">
-        @if (lesson().durationMinutes) {
-        <span class="meta-item">
-          <i class="icon-clock"></i>
-          {{ lesson().durationMinutes }} phút
-        </span>
-        }
-        @if (lesson().lessonType) {
-        <span class="meta-item lesson-type">
-          <i class="icon-book"></i>
-          {{ getLessonTypeLabel() }}
-        </span>
-        }
-        @if (hasSections()) {
-        <span class="meta-item sections-count">
-          <i class="icon-layers"></i>
-          {{ lesson().sections!.length }} phần
-        </span>
-        }
-      </div>
-    </div>
-
-    <!-- Current Section Content (Full Width) - Navigation via Sidebar -->
-    @if (hasSections() && lesson().sections && currentSection(); as section) {
-    <div class="current-section-header">
-      <h2 class="section-title">{{ section.title }}</h2>
-      <span class="section-type-badge" [attr.data-type]="section.type">
-        {{ getSectionTypeLabel(section.type) }}
-      </span>
     </div>
     }
 
-    <!-- Current Section Content -->
+    <!-- Current Section Content (non-video) -->
     @if (currentSection(); as section) {
     <div class="section-content">
-      <!-- Video Section -->
-      @if (section.type === 'VIDEO' && section.videoUrl) {
-      <div class="video-section">
-        <div class="video-container">
-          @if (isYouTubeVideo()) {
-          <div class="video-wrapper">
-            <iframe [src]="getYouTubeEmbedUrl()" frameborder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowfullscreen class="video-iframe">
-            </iframe>
-          </div>
-          } @else {
-          <div class="video-wrapper">
-            <video [src]="section.videoUrl" controls controlsList="nodownload" class="video-player"
-              (play)="onVideoPlay()" (pause)="onVideoPause()" (ended)="onVideoEnd()"
-              (timeupdate)="onVideoTimeUpdate($event)" (error)="onVideoError($event)">
-              Trình duyệt của bạn không hỗ trợ video.
-            </video>
-          </div>
-          }
-        </div>
-      </div>
-      }
 
-      <!-- Text Section -->
+      <!-- Text Section with scroll tracking -->
       @if (section.type === 'TEXT' && section.content) {
-      <div class="html-content" [innerHTML]="getSanitizedHtml(section.content)"></div>
+      <div class="html-content" #textContent [innerHTML]="getSanitizedHtml(section.content)"></div>
       }
 
       <!-- File Section -->
@@ -140,34 +177,7 @@
       }
     </div>
     } @else {
-    <!-- Fallback: Show lesson-level content if no sections -->
-    <!-- Video Player - Coursera Style -->
-    @if (lesson().videoUrl) {
-    <div class="video-section">
-      <div class="video-container">
-        @if (isYouTubeVideo()) {
-        <!-- YouTube Embed -->
-        <div class="video-wrapper">
-          <iframe [src]="getYouTubeEmbedUrl()" frameborder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowfullscreen class="video-iframe">
-          </iframe>
-        </div>
-        } @else {
-        <!-- HTML5 Video Player -->
-        <div class="video-wrapper">
-          <video [src]="lesson().videoUrl" [poster]="lesson().thumbnail" controls controlsList="nodownload"
-            class="video-player" (play)="onVideoPlay()" (pause)="onVideoPause()" (ended)="onVideoEnd()"
-            (timeupdate)="onVideoTimeUpdate($event)" (error)="onVideoError($event)">
-            Trình duyệt của bạn không hỗ trợ video.
-          </video>
-        </div>
-        }
-      </div>
-    </div>
-    }
-
-    <!-- HTML Content -->
+    <!-- Fallback: Show lesson-level content if no sections (video already rendered above) -->
     @if (lesson().content) {
     <div class="html-content" [innerHTML]="getSafeHtmlContent()"></div>
     }

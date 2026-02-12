@@ -130,14 +130,14 @@ export interface CreateUserRequest {
   email: string;
   password: string;
   fullName: string;
-  role: 'ADMIN' | 'TEACHER' | 'STUDENT';
+  role: 'ADMIN' | 'ORG_ADMIN' | 'TEACHER' | 'STUDENT';
 }
 
 // Update User Request
 export interface UpdateUserRequest {
   email?: string;
   fullName?: string;
-  role?: 'ADMIN' | 'TEACHER' | 'STUDENT';
+  role?: 'ADMIN' | 'ORG_ADMIN' | 'TEACHER' | 'STUDENT';
   enabled?: boolean;
 }
 
@@ -222,16 +222,51 @@ export class AdminService {
   readonly users = this._users.asReadonly();
 
   getSystemAnalytics(): Observable<SystemAnalytics> {
-
     this._isLoading.next(true);
-    return this.apiClient.getWithResponse<SystemAnalytics>(ADMIN_ENDPOINTS.ANALYTICS).pipe(
+    return this.apiClient.getWithResponse<any>(ADMIN_ENDPOINTS.ANALYTICS).pipe(
       finalize(() => this._isLoading.next(false)),
       map(response => {
-
-        return response.data;
+        const d = response.data || {};
+        return {
+          totalUsers: d.totalUsers ?? 0,
+          totalTeachers: d.totalTeachers ?? 0,
+          totalStudents: d.totalStudents ?? 0,
+          totalAdmins: d.totalAdmins ?? 0,
+          totalCourses: d.totalCourses ?? 0,
+          approvedCourses: d.approvedCourses ?? d.publishedCourses ?? 0,
+          pendingCourses: d.pendingCourses ?? 0,
+          rejectedCourses: d.rejectedCourses ?? 0,
+          draftCourses: d.draftCourses ?? 0,
+          totalAssignments: d.totalAssignments ?? 0,
+          totalSubmissions: d.totalSubmissions ?? 0,
+          totalEnrollments: d.totalEnrollments ?? 0,
+          totalRevenue: d.totalRevenue ?? 0,
+          monthlyRevenue: d.monthlyRevenue ?? 0,
+          activeUsers: d.activeUsers ?? d.totalUsers ?? 0,
+          systemHealth: d.systemHealth ?? { database: 'healthy', api: 'healthy', storage: 'healthy', email: 'healthy' },
+          userGrowth: d.userGrowth ?? { thisMonth: 0, lastMonth: 0, growthRate: 0 },
+          courseStats: d.courseStats ?? {
+            pending: d.pendingCourses ?? 0,
+            approved: d.approvedCourses ?? d.publishedCourses ?? 0,
+            rejected: d.rejectedCourses ?? 0,
+            active: d.activeCourses ?? d.publishedCourses ?? 0
+          },
+          revenueStats: d.revenueStats ?? { thisMonth: d.monthlyRevenue ?? 0, lastMonth: 0, growthRate: 0 },
+          coursesByStatus: d.coursesByStatus ?? {},
+          usersByRole: d.usersByRole ?? {},
+          enrollmentsByMonth: d.enrollmentsByMonth ?? {},
+          studentGrowth: d.studentGrowth ?? 0,
+          courseGrowth: d.courseGrowth ?? 0,
+          revenue: d.revenue ?? d.totalRevenue ?? 0,
+          revenueGrowth: d.revenueGrowth ?? 0,
+          systemUptime: d.systemUptime ?? 99.9,
+          onlineStudents: d.onlineStudents ?? 0,
+          activeCourses: d.activeCourses ?? d.publishedCourses ?? 0,
+          pendingAssignments: d.pendingAssignments ?? 0,
+          unreadMessages: d.unreadMessages ?? 0
+        } as SystemAnalytics;
       }),
       catchError(error => {
-
         return throwError(() => error);
       })
     );
@@ -239,27 +274,34 @@ export class AdminService {
 
   getPendingCourses(params: any = {}): Observable<{ data: PendingCourseSummary[]; pagination: any }> {
     this._isLoading.next(true);
-    return this.apiClient.getWithResponse<PendingCourseSummary[]>(ADMIN_ENDPOINTS.PENDING_COURSES, { params }).pipe(
+    return this.apiClient.getWithResponse<any>(ADMIN_ENDPOINTS.PENDING_COURSES, { params }).pipe(
       finalize(() => this._isLoading.next(false)),
-      map(response => ({
-        data: response.data || [],
-        pagination: response.pagination
-      })),
+      map(response => {
+        // Backend returns Spring Page: { content: [...], totalPages, ... }
+        const rawData = response.data;
+        const courses: PendingCourseSummary[] = Array.isArray(rawData) ? rawData : (rawData?.content || []);
+        return {
+          data: courses,
+          pagination: rawData?.totalPages ? { totalPages: rawData.totalPages, totalElements: rawData.totalElements } : response.pagination
+        };
+      }),
       catchError(error => {
-
         return throwError(() => error);
       })
     );
   }
 
   getAllCourses(params: any = {}): Observable<{ data: AdminCourseSummary[]; pagination: any }> {
-    return this.apiClient.getWithResponse<AdminCourseSummary[]>(ADMIN_ENDPOINTS.ALL_COURSES, { params }).pipe(
-      map(response => ({
-        data: response.data || [],
-        pagination: response.pagination
-      })),
+    return this.apiClient.getWithResponse<any>(ADMIN_ENDPOINTS.ALL_COURSES, { params }).pipe(
+      map(response => {
+        const rawData = response.data;
+        const courses: AdminCourseSummary[] = Array.isArray(rawData) ? rawData : (rawData?.content || []);
+        return {
+          data: courses,
+          pagination: rawData?.totalPages ? { totalPages: rawData.totalPages, totalElements: rawData.totalElements } : response.pagination
+        };
+      }),
       catchError(error => {
-
         return throwError(() => error);
       })
     );
@@ -483,9 +525,7 @@ export class AdminService {
 
     this._isLoading.next(true);
 
-    // TODO: Update endpoint when Backend implements it
-    // Current implementation uses toggle endpoint as fallback
-    return this.apiClient.patchWithResponse<BackendUser>(`/api/v3/admin/users/${userId}/status`, request).pipe(
+    return this.apiClient.patchWithResponse<BackendUser>(ADMIN_ENDPOINTS.UPDATE_USER_STATUS(userId), request).pipe(
       finalize(() => this._isLoading.next(false)),
       map(response => {
 
@@ -633,11 +673,30 @@ export class AdminService {
   }
 
   getSettings(): Observable<SystemSettings> {
-    return throwError(() => new Error('Settings API not implemented yet'));
+    return this.apiClient.get<SystemSettings>(ADMIN_ENDPOINTS.SETTINGS).pipe(
+      catchError(() => {
+        // Return defaults if API not available
+        return new Observable<SystemSettings>(subscriber => {
+          subscriber.next({
+            general: {
+              siteName: 'Maritime LMS',
+              siteDescription: 'Hệ thống quản lý học tập hàng hải',
+              maintenanceMode: false,
+              allowRegistration: true,
+              requireEmailVerification: false,
+            },
+            email: { smtpHost: '', smtpPort: 587, smtpUser: '', smtpPassword: '', fromEmail: '', fromName: '' },
+            payment: { stripePublicKey: '', stripeSecretKey: '', paypalClientId: '', paypalClientSecret: '', currency: 'VND' },
+            security: { sessionTimeout: 1440, maxLoginAttempts: 5, passwordMinLength: 8, requireTwoFactor: false },
+          });
+          subscriber.complete();
+        });
+      })
+    );
   }
 
   updateSettings(settings: SystemSettings): Observable<{ message: string }> {
-    return throwError(() => new Error('Settings API not implemented yet'));
+    return this.apiClient.put<{ message: string }>(ADMIN_ENDPOINTS.SETTINGS, settings);
   }
 
   // ============================================

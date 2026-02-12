@@ -23,13 +23,13 @@ import { ConversationListItem, formatMessageTime } from './utils/message-utils';
       class="w-full flex items-center gap-3 p-4 hover:bg-gray-50 transition-colors text-left"
       [class.bg-blue-50]="isSelected()"
       [class.border-l-4]="isSelected()"
-      [class.border-l-blue-600]="isSelected()"
+      [class.border-l-[#0056D2]]="isSelected()"
     >
       <!-- Avatar -->
       <div class="relative flex-shrink-0">
         <div
           class="w-12 h-12 rounded-full flex items-center justify-center text-white font-medium"
-          [class.bg-blue-600]="!conversation().otherParticipant.avatar"
+          [class.bg-[#0056D2]]="!conversation().otherParticipant.avatar"
         >
           @if (conversation().otherParticipant.avatar) {
             <img
@@ -66,7 +66,7 @@ import { ConversationListItem, formatMessageTime } from './utils/message-utils';
           <span
             class="text-xs flex-shrink-0 ml-2"
             [class.text-gray-400]="conversation().unreadCount === 0"
-            [class.text-blue-600]="conversation().unreadCount > 0"
+            [class.text-[#0056D2]]="conversation().unreadCount > 0"
             [class.font-medium]="conversation().unreadCount > 0"
           >
             {{ formatTime(conversation().lastMessageTime) }}

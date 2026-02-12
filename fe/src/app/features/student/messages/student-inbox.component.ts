@@ -85,7 +85,7 @@ import {
               [(ngModel)]="searchQuery"
               (ngModelChange)="onSearchChange()"
               placeholder="Tìm kiếm cuộc hội thoại..."
-              class="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              class="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]"
             />
             @if (searchQuery) {
               <button
@@ -105,7 +105,7 @@ import {
       <div class="max-w-4xl mx-auto">
         @if (loading()) {
           <div class="flex items-center justify-center py-12">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0056D2]"></div>
             <span class="ml-3 text-gray-600">Đang tải...</span>
           </div>
         } @else if (error()) {
@@ -114,7 +114,7 @@ import {
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
             </svg>
             <p class="text-gray-600 mb-2">{{ error() }}</p>
-            <button (click)="refreshConversations()" class="text-blue-600 hover:text-blue-800">
+            <button (click)="refreshConversations()" class="text-[#0056D2] hover:text-blue-800">
               Thử lại
             </button>
           </div>

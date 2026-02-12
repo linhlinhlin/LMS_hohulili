@@ -104,24 +104,30 @@ public class QuizRepositoryAdapter implements QuizRepository {
             .showCorrectAnswers(entity.getShowCorrectAnswers())
             .build();
 
-        Quiz quiz = Quiz.reconstitute(
-            QuizId.of(entity.getId()),
-            entity.getLessonId(),
-            entity.getTitle(),
-            entity.getDescription(),
-            settings,
-            Quiz.QuizStatus.valueOf(entity.getStatus().name()),
-            entity.getCreatedAt(),
-            entity.getUpdatedAt()
-        );
-        
-        // Map Questions
+        // Build questions list directly via builder (NOT addQuestion which validates isEditable)
+        // This is reconstitution from persistence - business rules should not apply
+        List<QuizQuestion> questions = new java.util.ArrayList<>();
         if (entity.getQuestions() != null) {
-            entity.getQuestions().forEach(q -> 
-                quiz.addQuestion(q.getQuestionId(), q.getDisplayOrder())
-            );
+            for (var q : entity.getQuestions()) {
+                questions.add(QuizQuestion.builder()
+                    .quizId(entity.getId())
+                    .questionId(q.getQuestionId())
+                    .displayOrder(q.getDisplayOrder())
+                    .points(q.getPoints())
+                    .build());
+            }
         }
-        
-        return quiz;
+
+        return Quiz.builder()
+            .id(QuizId.of(entity.getId()))
+            .lessonId(entity.getLessonId())
+            .title(entity.getTitle())
+            .description(entity.getDescription())
+            .settings(settings)
+            .status(Quiz.QuizStatus.valueOf(entity.getStatus().name()))
+            .questions(questions)
+            .createdAt(entity.getCreatedAt())
+            .updatedAt(entity.getUpdatedAt())
+            .build();
     }
 }

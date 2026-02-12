@@ -1,12 +1,13 @@
-import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, signal, OnInit, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, signal, OnInit, computed } from '@angular/core';
 
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators, FormArray } from '@angular/forms';
-import { 
-  Rubric, RubricCriterion, 
-  validateRubricWeightSum, 
-  generateRubricId 
+import {
+  Rubric, RubricCriterion,
+  validateRubricWeightSum,
+  generateRubricId
 } from './utils/rubric-calculator';
+import { RubricApi } from '../../../api/endpoints/rubric.api';
 
 /**
  * Rubric Editor Component
@@ -19,7 +20,6 @@ import {
 @Component({
   selector: 'app-rubric-editor',
   imports: [RouterLink, ReactiveFormsModule],
-  encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="max-w-4xl mx-auto p-6">
@@ -39,7 +39,7 @@ import {
 
       @if (loading()) {
         <div class="flex items-center justify-center py-12">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0056D2]"></div>
         </div>
       } @else {
         <form [formGroup]="rubricForm" (ngSubmit)="saveRubric()">
@@ -50,12 +50,12 @@ import {
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Tên Rubric *</label>
                 <input type="text" formControlName="name" 
-                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"/>
+                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#0056D2]"/>
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Mô tả</label>
                 <textarea formControlName="description" rows="2"
-                          class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"></textarea>
+                          class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#0056D2]"></textarea>
               </div>
             </div>
           </div>
@@ -69,7 +69,7 @@ import {
                   Tổng trọng số: {{ totalWeight() }}% / 100%
                 </span>
                 <button type="button" (click)="addCriterion()" 
-                        class="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 text-sm">
+                        class="px-3 py-1.5 bg-blue-50 text-[#0056D2] rounded-lg hover:bg-blue-100 text-sm">
                   + Thêm tiêu chí
                 </button>
               </div>
@@ -111,7 +111,7 @@ import {
                   <div class="mt-3 pt-3 border-t">
                     <div class="flex items-center justify-between mb-2">
                       <label class="text-xs font-medium text-gray-500">Các mức điểm</label>
-                      <button type="button" (click)="addLevel(i)" class="text-xs text-blue-600 hover:underline">
+                      <button type="button" (click)="addLevel(i)" class="text-xs text-[#0056D2] hover:underline">
                         + Thêm mức
                       </button>
                     </div>
@@ -148,7 +148,7 @@ import {
               Hủy
             </a>
             <button type="submit" [disabled]="!rubricForm.valid || !isWeightValid() || saving()"
-                    class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                    class="px-6 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] disabled:opacity-50">
               {{ saving() ? 'Đang lưu...' : 'Lưu thay đổi' }}
             </button>
           </div>
@@ -166,6 +166,7 @@ export class RubricEditorComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private fb = inject(FormBuilder);
+  private rubricApi = inject(RubricApi);
   
   // State
   loading = signal(true);
@@ -203,36 +204,41 @@ export class RubricEditorComponent implements OnInit {
   }
   
   private loadRubric(id: string): void {
-    // Mock data - replace with API call
-    setTimeout(() => {
-      const mockRubric: Rubric = {
-        id,
-        name: 'Rubric Bài tập Hàng hải',
-        description: 'Tiêu chí chấm điểm cho bài tập hàng hải',
-        criteria: [
-          { id: 'c1', name: 'Kiến thức', description: 'Hiểu biết về lý thuyết', weight: 40, levels: [
-            { id: 'l1', name: 'Xuất sắc', description: '', points: 100 },
-            { id: 'l2', name: 'Tốt', description: '', points: 75 },
-            { id: 'l3', name: 'Đạt', description: '', points: 50 },
-            { id: 'l4', name: 'Chưa đạt', description: '', points: 0 }
-          ]},
-          { id: 'c2', name: 'Kỹ năng', description: 'Khả năng thực hành', weight: 35, levels: [
-            { id: 'l1', name: 'Xuất sắc', description: '', points: 100 },
-            { id: 'l2', name: 'Tốt', description: '', points: 75 },
-            { id: 'l3', name: 'Đạt', description: '', points: 50 }
-          ]},
-          { id: 'c3', name: 'Thái độ', description: 'Tinh thần học tập', weight: 25, levels: [
-            { id: 'l1', name: 'Tốt', description: '', points: 100 },
-            { id: 'l2', name: 'Đạt', description: '', points: 50 }
-          ]}
-        ],
-        totalPoints: 100,
-        createdAt: '2024-01-15T10:00:00Z'
-      };
-      
-      this.populateForm(mockRubric);
-      this.loading.set(false);
-    }, 500);
+    this.rubricApi.getById(id).subscribe({
+      next: (res: any) => {
+        const data = res?.data;
+        if (!data) {
+          this.error.set('Không tìm thấy Rubric');
+          this.loading.set(false);
+          return;
+        }
+        const rubric: Rubric = {
+          id: data.id,
+          name: data.title,
+          description: data.description || '',
+          criteria: (data.criteria || []).map((c: any, ci: number) => ({
+            id: `c${ci}`,
+            name: c.name,
+            description: c.description || '',
+            weight: c.maxPoints || 0,
+            levels: (c.levels || []).map((l: any, li: number) => ({
+              id: `l${li}`,
+              name: l.label,
+              description: l.description || '',
+              points: l.points || 0
+            }))
+          })),
+          totalPoints: data.maxPoints || 100,
+          createdAt: data.createdAt
+        };
+        this.populateForm(rubric);
+        this.loading.set(false);
+      },
+      error: (err: any) => {
+        this.error.set(err?.error?.message || 'Không thể tải rubric');
+        this.loading.set(false);
+      }
+    });
   }
   
   private populateForm(rubric: Rubric): void {
@@ -321,16 +327,33 @@ export class RubricEditorComponent implements OnInit {
     
     this.saving.set(true);
     this.error.set(null);
-    
-    const rubricData = {
-      id: this.rubricId(),
-      ...this.rubricForm.value,
-      updatedAt: new Date().toISOString()
+
+    const formValue = this.rubricForm.value;
+    const request = {
+      title: formValue.name as string,
+      description: formValue.description as string || undefined,
+      maxPoints: 100,
+      criteria: (formValue.criteria as any[]).map(c => ({
+        name: c.name,
+        description: c.description || undefined,
+        maxPoints: c.weight,
+        levels: (c.levels || []).map((l: any) => ({
+          label: l.name,
+          description: l.description || undefined,
+          points: l.points
+        }))
+      }))
     };
-    
-    setTimeout(() => {
-      this.saving.set(false);
-      this.router.navigate(['/teacher/grading/rubrics']);
-    }, 1000);
+
+    this.rubricApi.update(this.rubricId()!, request).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.router.navigate(['/teacher/grading/rubrics']);
+      },
+      error: (err: any) => {
+        this.saving.set(false);
+        this.error.set(err?.error?.message || 'Không thể lưu rubric. Vui lòng thử lại.');
+      }
+    });
   }
 }

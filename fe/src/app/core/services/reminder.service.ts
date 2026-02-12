@@ -271,19 +271,19 @@ export class ReminderService {
     let message: string;
 
     if (daysUntilDeadline === 0) {
-      title = '⚠️ Deadline hôm nay!';
+      title = 'Deadline hôm nay!';
       message = `Bài tập "${assignmentTitle}" trong khóa học "${courseTitle}" sẽ hết hạn hôm nay lúc ${formattedDate}. Hãy nộp bài ngay!`;
     } else if (daysUntilDeadline === 1) {
-      title = '⏰ Còn 1 ngày!';
+      title = 'Còn 1 ngày!';
       message = `Bài tập "${assignmentTitle}" trong khóa học "${courseTitle}" sẽ hết hạn vào ngày mai (${formattedDate}). Đừng quên nộp bài!`;
     } else if (daysUntilDeadline === 3) {
-      title = '📅 Nhắc nhở deadline';
+      title = 'Nhắc nhở deadline';
       message = `Bài tập "${assignmentTitle}" trong khóa học "${courseTitle}" sẽ hết hạn trong 3 ngày (${formattedDate}).`;
     } else if (daysUntilDeadline < 0) {
-      title = '❌ Đã quá hạn!';
+      title = 'Đã quá hạn!';
       message = `Bài tập "${assignmentTitle}" trong khóa học "${courseTitle}" đã quá hạn ${Math.abs(daysUntilDeadline)} ngày. Liên hệ giảng viên nếu cần gia hạn.`;
     } else {
-      title = '📅 Nhắc nhở deadline';
+      title = 'Nhắc nhở deadline';
       message = `Bài tập "${assignmentTitle}" trong khóa học "${courseTitle}" sẽ hết hạn trong ${daysUntilDeadline} ngày (${formattedDate}).`;
     }
 

@@ -6,6 +6,7 @@ import { PackageApi, PackageDTO } from '../../../../api/endpoints/package.api';
 import { Question } from '../../../../api/endpoints/question.api';
 import { QuizApi } from '../../../../api/endpoints/quiz.api';
 import { LessonApi } from '../../../../api/client/lesson.api';
+import { IconComponent } from '../../../../shared/components/icon/icon.component';
 
 interface QuizMetadata {
   title: string;
@@ -17,7 +18,7 @@ interface QuizMetadata {
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-quiz-creation-modal',
-  imports: [FormsModule],
+  imports: [FormsModule, IconComponent],
   template: `
     @if (isOpen()) {
     <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
@@ -30,9 +31,9 @@ interface QuizMetadata {
              (click)="$event.stopPropagation()">
           
           <!-- Header -->
-          <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 flex justify-between items-center">
+          <div class="bg-[#0056D2] px-6 py-4 flex justify-between items-center">
             <h3 class="text-xl font-semibold text-white" id="modal-title">
-              🎯 Tạo bài trắc nghiệm mới
+              <app-icon name="target" size="sm" class="mr-1"/> Tạo bài trắc nghiệm mới
             </h3>
             <button (click)="close()" 
                     class="text-white hover:text-gray-200 transition-colors"
@@ -48,7 +49,7 @@ interface QuizMetadata {
             
             <!-- Quiz Metadata Section -->
             <div class="mb-6">
-              <h4 class="text-lg font-semibold text-gray-900 mb-4">📝 Thông tin bài trắc nghiệm</h4>
+              <h4 class="text-lg font-semibold text-gray-900 mb-4"><app-icon name="file-text" size="sm" class="mr-1"/> Thông tin bài trắc nghiệm</h4>
               
               <div class="space-y-4">
                 <!-- Title -->
@@ -59,7 +60,7 @@ interface QuizMetadata {
                   <input type="text" 
                          [(ngModel)]="quizTitle"
                          placeholder="Nhập tiêu đề bài trắc nghiệm"
-                         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]"
                          [class.border-red-500]="showValidation() && !quizTitle()">
                   @if (showValidation() && !quizTitle()) {
                   <p class="text-xs text-red-500 mt-1">
@@ -76,7 +77,7 @@ interface QuizMetadata {
                   <textarea [(ngModel)]="quizDescription"
                             rows="3"
                             placeholder="Nhập mô tả cho bài trắc nghiệm (tùy chọn)"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]"></textarea>
                 </div>
 
                 <!-- Time Limit and Passing Score -->
@@ -89,7 +90,7 @@ interface QuizMetadata {
                            [(ngModel)]="quizTimeLimit"
                            min="1"
                            placeholder="Không giới hạn"
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]">
                   </div>
                   
                   <div>
@@ -101,7 +102,7 @@ interface QuizMetadata {
                            min="0"
                            max="100"
                            placeholder="70"
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]"
                            [class.border-red-500]="showValidation() && !isValidPassingScore()">
                     @if (showValidation() && !isValidPassingScore()) {
                     <p class="text-xs text-red-500 mt-1">
@@ -118,7 +119,7 @@ interface QuizMetadata {
 
             <!-- Question Selection Section -->
             <div>
-              <h4 class="text-lg font-semibold text-gray-900 mb-4">📦 Chọn câu hỏi</h4>
+              <h4 class="text-lg font-semibold text-gray-900 mb-4"><app-icon name="courses" size="sm" class="mr-1"/> Chọn câu hỏi</h4>
               
               <!-- Package Selector -->
               <div class="mb-4">
@@ -129,7 +130,7 @@ interface QuizMetadata {
                   <select [(ngModel)]="selectedPackageId" 
                           (ngModelChange)="onPackageChange($event)"
                           [disabled]="packagesLoading()"
-                          class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]"
                           [class.border-red-500]="showValidation() && !selectedPackageId()">
                     <option value="">-- Chọn gói câu hỏi --</option>
                     @for (pkg of packages(); track pkg.id) {
@@ -142,7 +143,7 @@ interface QuizMetadata {
                           [disabled]="packagesLoading()"
                           class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
                           title="Làm mới danh sách gói">
-                    <span [class]="packagesLoading() ? 'animate-spin' : ''">🔄</span>
+                    <app-icon name="refresh" size="sm" [class]="packagesLoading() ? 'animate-spin' : ''"/>
                   </button>
                 </div>
                 @if (showValidation() && !selectedPackageId()) {
@@ -160,13 +161,13 @@ interface QuizMetadata {
                     <h5 class="font-medium text-gray-900">
                       Câu hỏi có sẵn ({{ availableQuestions().length }})
                     </h5>
-                    <p class="text-sm text-blue-600 mt-1">
+                    <p class="text-sm text-[#0056D2] mt-1">
                       Đã chọn: {{ selectedQuestionIds().size }} câu
                     </p>
                   </div>
                   <div class="flex gap-2">
                     <button (click)="selectAllQuestions()" 
-                            class="text-sm px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200">
+                            class="text-sm px-3 py-1 bg-blue-100 text-[#004BB5] rounded hover:bg-blue-200">
                       Chọn tất cả
                     </button>
                     <button (click)="clearQuestionSelection()" 
@@ -192,7 +193,7 @@ interface QuizMetadata {
                           {{ question.difficulty === 'EASY' ? 'Dễ' : question.difficulty === 'MEDIUM' ? 'Trung bình' : 'Khó' }}
                         </span>
                         @if (question.tags) {
-                        <span class="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
+                        <span class="text-xs px-2 py-0.5 bg-blue-100 text-[#004BB5] rounded">
                           {{ question.tags }}
                         </span>
                         }
@@ -213,7 +214,7 @@ interface QuizMetadata {
               <!-- Loading State -->
               @if (questionsLoading()) {
               <div class="text-center py-8">
-                <div class="animate-spin inline-block w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full"></div>
+                <div class="animate-spin inline-block w-8 h-8 border-4 border-[#0056D2] border-t-transparent rounded-full"></div>
                 <p class="text-gray-600 mt-2">Đang tải câu hỏi...</p>
               </div>
               }
@@ -221,7 +222,7 @@ interface QuizMetadata {
               <!-- Empty State -->
               @if (selectedPackageId() && availableQuestions().length === 0 && !questionsLoading()) {
               <div class="text-center py-8 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <p class="text-yellow-700">📦 Gói này chưa có câu hỏi nào.</p>
+                <p class="text-yellow-700"><app-icon name="courses" size="sm" class="mr-1"/> Gói này chưa có câu hỏi nào.</p>
                 <p class="text-sm text-yellow-600 mt-1">Hãy thêm câu hỏi vào gói hoặc chọn gói khác.</p>
               </div>
               }
@@ -229,7 +230,7 @@ interface QuizMetadata {
               @if (!selectedPackageId() && !questionsLoading()) {
               <div class="text-center py-8 bg-gray-50 border border-gray-200 rounded-lg">
                 <p class="text-gray-600">Chọn gói câu hỏi để bắt đầu</p>
-                <p class="text-sm text-gray-500 mt-1">💡 Gói câu hỏi giúp tổ chức câu hỏi theo chủ đề</p>
+                <p class="text-sm text-gray-500 mt-1"><app-icon name="lightbulb" size="sm" class="mr-1"/> Gói câu hỏi giúp tổ chức câu hỏi theo chủ đề</p>
               </div>
               }
 
@@ -247,7 +248,7 @@ interface QuizMetadata {
             <div class="text-sm text-gray-600">
               @if (selectedQuestionIds().size > 0) {
               <span>
-                ✓ {{ selectedQuestionIds().size }} câu hỏi đã chọn
+                <app-icon name="check" size="xs"/> {{ selectedQuestionIds().size }} câu hỏi đã chọn
               </span>
               }
             </div>
@@ -258,7 +259,7 @@ interface QuizMetadata {
               </button>
               <button (click)="createQuiz()" 
                       [disabled]="!isFormValid() || isCreating()"
-                      class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                      class="px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
                 @if (isCreating()) {
                 <span class="animate-spin">⟳</span>
                 }

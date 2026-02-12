@@ -150,7 +150,7 @@ export class AssignmentProgress {
       case ProgressStatus.NOT_STARTED:
         return 'text-gray-600 bg-gray-100';
       case ProgressStatus.IN_PROGRESS:
-        return 'text-blue-600 bg-blue-100';
+        return 'text-[#0056D2] bg-blue-100';
       case ProgressStatus.COMPLETED:
         return 'text-green-600 bg-green-100';
       case ProgressStatus.OVERDUE:

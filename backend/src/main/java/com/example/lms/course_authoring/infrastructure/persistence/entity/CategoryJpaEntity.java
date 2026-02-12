@@ -30,6 +30,9 @@ public class CategoryJpaEntity {
     @Column(nullable = false)
     private String name;
 
+    @Column(nullable = false, unique = true, length = 10)
+    private String prefix;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private Instant createdAt;

@@ -4,7 +4,8 @@ package com.example.lms.identity.domain.model;
  * User role enum with display names.
  */
 public enum Role {
-    ADMIN("Quản trị viên"),
+    ADMIN("Quản trị hệ thống"),
+    ORG_ADMIN("Chuyên viên quản lý"),
     TEACHER("Giảng viên"),
     STUDENT("Học viên");
 

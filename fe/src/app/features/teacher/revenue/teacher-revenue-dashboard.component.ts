@@ -3,6 +3,7 @@ import { Component, inject, OnInit, signal, computed, ChangeDetectionStrategy } 
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { TeacherRevenueService, RevenueSummary, RevenueHistoryItem, PayoutBalance } from '../infrastructure/services/teacher-revenue.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -39,7 +40,7 @@ import { TeacherRevenueService, RevenueSummary, RevenueHistoryItem, PayoutBalanc
             <div class="flex items-center justify-between">
               <div>
                 <p class="text-sm text-gray-600">Tháng này</p>
-                <p class="text-2xl font-bold text-blue-600 mt-2">{{ formatCurrency(revenueSummary()?.thisMonthRevenue || 0) }}</p>
+                <p class="text-2xl font-bold text-[#0056D2] mt-2">{{ formatCurrency(revenueSummary()?.thisMonthRevenue || 0) }}</p>
                 @if (revenueSummary()?.growthPercentage) {
                   <p class="text-xs mt-1" [class]="revenueSummary()!.growthPercentage >= 0 ? 'text-green-600' : 'text-red-600'">
                     {{ revenueSummary()!.growthPercentage >= 0 ? '+' : '' }}{{ revenueSummary()!.growthPercentage }}% so với tháng trước
@@ -47,7 +48,7 @@ import { TeacherRevenueService, RevenueSummary, RevenueHistoryItem, PayoutBalanc
                 }
               </div>
               <div class="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
-                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-6 h-6 text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
                 </svg>
               </div>
@@ -94,7 +95,7 @@ import { TeacherRevenueService, RevenueSummary, RevenueHistoryItem, PayoutBalanc
         <div class="bg-white rounded-lg shadow p-4 mb-6 flex items-center justify-between">
           <div class="flex items-center gap-4">
             <a routerLink="/teacher/revenue/payouts" 
-               class="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1">
+               class="text-sm text-[#0056D2] hover:text-blue-800 flex items-center gap-1">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
               </svg>
@@ -120,7 +121,7 @@ import { TeacherRevenueService, RevenueSummary, RevenueHistoryItem, PayoutBalanc
           @if (isLoading()) {
             <div class="p-12 text-center">
               <div class="inline-block">
-                <div class="w-10 h-10 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin"></div>
+                <div class="w-10 h-10 border-4 border-gray-200 border-t-[#0056D2] rounded-full animate-spin"></div>
               </div>
               <p class="mt-4 text-sm text-gray-600">Đang tải dữ liệu...</p>
             </div>
@@ -193,7 +194,7 @@ import { TeacherRevenueService, RevenueSummary, RevenueHistoryItem, PayoutBalanc
                        [(ngModel)]="payoutAmount"
                        [max]="payoutBalance()?.availableBalance || 0"
                        [min]="payoutBalance()?.minWithdrawAmount || 50000"
-                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]"
                        placeholder="Nhập số tiền...">
                 <p class="text-xs text-gray-500 mt-1">Tối thiểu: {{ formatCurrency(payoutBalance()?.minWithdrawAmount || 50000) }}</p>
               </div>
@@ -202,7 +203,7 @@ import { TeacherRevenueService, RevenueSummary, RevenueHistoryItem, PayoutBalanc
                 <label class="block text-sm font-medium text-gray-700 mb-1">Tên ngân hàng</label>
                 <input type="text" 
                        [(ngModel)]="payoutBankName"
-                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]"
                        placeholder="VD: Vietcombank, Techcombank...">
               </div>
 
@@ -210,7 +211,7 @@ import { TeacherRevenueService, RevenueSummary, RevenueHistoryItem, PayoutBalanc
                 <label class="block text-sm font-medium text-gray-700 mb-1">Số tài khoản</label>
                 <input type="text" 
                        [(ngModel)]="payoutBankAccount"
-                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]"
                        placeholder="Nhập số tài khoản...">
               </div>
 
@@ -218,7 +219,7 @@ import { TeacherRevenueService, RevenueSummary, RevenueHistoryItem, PayoutBalanc
                 <label class="block text-sm font-medium text-gray-700 mb-1">Ghi chú (tùy chọn)</label>
                 <textarea [(ngModel)]="payoutNote"
                           rows="2"
-                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]"
                           placeholder="Ghi chú thêm..."></textarea>
               </div>
             </div>
@@ -242,6 +243,7 @@ import { TeacherRevenueService, RevenueSummary, RevenueHistoryItem, PayoutBalanc
 })
 export class TeacherRevenueDashboardComponent implements OnInit {
     private revenueService = inject(TeacherRevenueService);
+    private toast = inject(ToastService);
 
     // Signals from service
     revenueSummary = this.revenueService.revenueSummary;
@@ -262,7 +264,7 @@ export class TeacherRevenueDashboardComponent implements OnInit {
 
     private loadData(): void {
         this.revenueService.loadDashboardData()
-            .catch(() => {});
+            .catch(() => { this.toast.error('Không thể tải dữ liệu doanh thu.'); });
     }
 
     canRequestPayout(): boolean {
@@ -306,12 +308,12 @@ export class TeacherRevenueDashboardComponent implements OnInit {
             note: this.payoutNote || undefined
         }).subscribe({
             next: (response) => {
-                alert(response.message);
+                this.toast.success(response.message);
                 this.closePayoutModal();
                 this.loadData(); // Refresh data
             },
             error: (error) => {
-                alert('Lỗi: ' + (error.message || 'Không thể gửi yêu cầu rút tiền'));
+                this.toast.error('Lỗi: ' + (error.message || 'Không thể gửi yêu cầu rút tiền'));
             }
         });
     }

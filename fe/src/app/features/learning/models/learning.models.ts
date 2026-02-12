@@ -47,6 +47,7 @@ export interface LessonSummary {
   duration: number; // in minutes
   orderIndex: number;
   isCompleted?: boolean; // Added for progress tracking
+  sections?: SectionContent[]; // L3 content blocks from API
 }
 
 /**

@@ -35,7 +35,7 @@ export const COURSE_ENDPOINTS = {
   CREATE: '/api/v3/teacher/courses',
   MY_COURSES: '/api/v3/teacher/courses/my-courses',
   ENROLLED_COURSES: '/api/v3/student/courses/enrolled',
-  BY_ID: (id: string) => `/api/v3/teacher/courses/${id}`, // Default to teacher for now as it's most common in this module
+  BY_ID: (id: string) => `/api/v3/courses/${id}`, // Public endpoint - accessible by all roles
   PUBLISH: (id: string) => `/api/v3/authoring/courses/${id}/publish`,
   ENROLLMENTS: (id: string) => `/api/v3/teacher/courses/${id}/enrollments`
 } as const;

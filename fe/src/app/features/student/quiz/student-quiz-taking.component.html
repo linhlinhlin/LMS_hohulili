@@ -33,22 +33,30 @@
 
         <!-- Center: Timer -->
         <div class="hidden md:flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-lg">
-          <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-5 h-5 text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           </svg>
-          <span class="font-mono text-lg font-semibold text-blue-700">{{ formatTime(timeRemaining()) }}</span>
+          <span class="font-mono text-lg font-semibold" [class.text-[#004BB5]]="timeRemaining() > 300"
+            [class.text-yellow-600]="timeRemaining() <= 300 && timeRemaining() > 60"
+            [class.text-red-600]="timeRemaining() <= 60"
+            [class.animate-pulse]="timeRemaining() <= 60">{{ formatTime(timeRemaining()) }}</span>
         </div>
 
         <!-- Right: Progress & Submit -->
         <div class="flex items-center gap-4">
           <div class="hidden sm:block text-sm text-gray-600">
-            <span class="font-semibold text-blue-600">{{ answeredCount() }}</span> / {{ questions().length }} câu
+            <span class="font-semibold text-[#0056D2]">{{ answeredCount() }}</span> / {{ questions().length }} câu
           </div>
           @if (!showResults()) {
           <button (click)="submitQuiz()"
-            class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
-            Nộp bài
+            class="px-4 py-2 bg-[#0056D2] text-white text-sm font-medium rounded-lg hover:bg-[#004BB5] transition-colors disabled:opacity-50"
+            [disabled]="submitting()">
+            @if (submitting()) {
+              Đang nộp...
+            } @else {
+              Nộp bài
+            }
           </button>
           }
         </div>
@@ -63,7 +71,7 @@
   @if (loading()) {
   <div class="flex items-center justify-center min-h-[60vh]">
     <div class="text-center">
-      <div class="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+      <div class="w-16 h-16 border-4 border-blue-200 border-t-[#0056D2] rounded-full animate-spin mx-auto mb-4"></div>
       <p class="text-gray-600">Đang tải bài kiểm tra...</p>
     </div>
   </div>
@@ -83,7 +91,7 @@
       <h3 class="text-lg font-semibold text-gray-900 mb-2">Không thể tải bài kiểm tra</h3>
       <p class="text-gray-600 mb-6">{{ error() }}</p>
       <button (click)="goBack()"
-        class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+        class="px-6 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors">
         Quay lại
       </button>
     </div>
@@ -125,18 +133,23 @@
           <h3 class="text-sm font-medium text-gray-700 mb-3">Danh sách câu hỏi</h3>
           <div class="grid grid-cols-5 gap-2">
             @for (q of questions(); track q.id; let i = $index) {
+            @let isOnCurrentPage = i >= currentPage() * QUESTIONS_PER_PAGE && i < (currentPage() + 1) * QUESTIONS_PER_PAGE;
+            @let answered = isAnswered(q.id);
+            @let correctResult = isQuestionCorrect(q);
             <button (click)="goToQuestion(i)"
               class="w-10 h-10 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center"
-              [class.ring-2]="i >= currentPage() * QUESTIONS_PER_PAGE && i < (currentPage() + 1) * QUESTIONS_PER_PAGE"
-              [class.ring-blue-400]="i >= currentPage() * QUESTIONS_PER_PAGE && i < (currentPage() + 1) * QUESTIONS_PER_PAGE"
-              [class.bg-green-100]="showResults() && answers()[q.id] === q.correctOption"
-              [class.text-green-700]="showResults() && answers()[q.id] === q.correctOption"
-              [class.bg-red-100]="showResults() && answers()[q.id] && answers()[q.id] !== q.correctOption"
-              [class.text-red-700]="showResults() && answers()[q.id] && answers()[q.id] !== q.correctOption"
-              [class.bg-blue-100]="!showResults() && answers()[q.id]"
-              [class.text-blue-700]="!showResults() && answers()[q.id]"
-              [class.bg-gray-100]="!showResults() && !answers()[q.id]"
-              [class.text-gray-600]="!showResults() && !answers()[q.id]">
+              [class.ring-2]="isOnCurrentPage"
+              [class.ring-blue-400]="isOnCurrentPage"
+              [class.bg-green-100]="showResults() && correctResult === true"
+              [class.text-green-700]="showResults() && correctResult === true"
+              [class.bg-red-100]="showResults() && correctResult === false"
+              [class.text-red-700]="showResults() && correctResult === false"
+              [class.bg-yellow-100]="showResults() && answered && correctResult === null"
+              [class.text-yellow-700]="showResults() && answered && correctResult === null"
+              [class.bg-blue-100]="!showResults() && answered"
+              [class.text-[#004BB5]]="!showResults() && answered"
+              [class.bg-gray-100]="!showResults() && !answered && !(showResults() && !answered)"
+              [class.text-gray-600]="!showResults() && !answered">
               {{ i + 1 }}
             </button>
             }
@@ -157,6 +170,12 @@
             <div class="w-4 h-4 rounded bg-gray-100"></div>
             <span class="text-gray-600">Chưa trả lời</span>
           </div>
+          @if (showResults()) {
+          <div class="flex items-center gap-2">
+            <div class="w-4 h-4 rounded bg-yellow-100"></div>
+            <span class="text-gray-600">Chờ chấm điểm</span>
+          </div>
+          }
         </div>
       </div>
     </div>
@@ -180,17 +199,18 @@
           @let globalIdx = getQuestionIndex(pageIdx);
           <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
             <!-- Question Header -->
-            <div class="px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700 flex items-center justify-between">
+            <div class="px-6 py-4 bg-[#0056D2] flex items-center justify-between">
               <div class="flex items-center gap-3">
                 <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
                   <span class="text-white font-bold">{{ globalIdx + 1 }}</span>
                 </div>
                 <div>
                   <h3 class="text-white font-semibold">Câu hỏi {{ globalIdx + 1 }}</h3>
+                  <span class="text-white/70 text-xs">{{ getQuestionTypeLabel(question.questionType) }}</span>
                 </div>
               </div>
               <div class="flex items-center gap-2">
-                @if (answers()[question.id]) {
+                @if (isAnswered(question.id)) {
                 <span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full font-medium">Đã trả lời</span>
                 }
                 <span class="px-3 py-1 rounded-full text-xs font-medium"
@@ -211,55 +231,243 @@
                 <app-block-renderer [blocks]="question.contentBlocks"></app-block-renderer>
               </div>
 
-              <!-- Options -->
-              <div class="space-y-3">
-                @for (opt of question.options; track opt.key) {
-                <button (click)="selectAnswer(question.id, opt.key)" [disabled]="showResults()"
-                  class="w-full text-left p-4 rounded-xl border-2 transition-all duration-200 group"
-                  [class.border-blue-500]="answers()[question.id] === opt.key && !showResults()"
-                  [class.bg-blue-50]="answers()[question.id] === opt.key && !showResults()"
-                  [class.border-gray-200]="answers()[question.id] !== opt.key && !showResults()"
-                  [class.hover:border-blue-300]="!showResults() && answers()[question.id] !== opt.key"
-                  [class.hover:bg-gray-50]="!showResults() && answers()[question.id] !== opt.key"
-                  [class.border-green-500]="showResults() && opt.key === question.correctOption"
-                  [class.bg-green-50]="showResults() && opt.key === question.correctOption"
-                  [class.border-red-400]="showResults() && answers()[question.id] === opt.key && opt.key !== question.correctOption"
-                  [class.bg-red-50]="showResults() && answers()[question.id] === opt.key && opt.key !== question.correctOption">
-                  <div class="flex items-center gap-4">
-                    <span
-                      class="w-10 h-10 rounded-xl flex items-center justify-center font-semibold text-sm transition-colors"
-                      [class.bg-blue-600]="answers()[question.id] === opt.key && !showResults()"
-                      [class.text-white]="(answers()[question.id] === opt.key && !showResults()) || (showResults() && opt.key === question.correctOption)"
-                      [class.bg-gray-100]="answers()[question.id] !== opt.key && !showResults()"
-                      [class.text-gray-600]="answers()[question.id] !== opt.key && !showResults()"
-                      [class.group-hover:bg-blue-100]="!showResults() && answers()[question.id] !== opt.key"
-                      [class.bg-green-600]="showResults() && opt.key === question.correctOption"
-                      [class.bg-red-500]="showResults() && answers()[question.id] === opt.key && opt.key !== question.correctOption">
-                      {{ opt.key }}
-                    </span>
-                    @if (opt.contentBlocks?.length || opt.content) {
-                    <div class="flex-1 text-gray-700">
-                      <app-block-renderer [blocks]="opt.contentBlocks || []"></app-block-renderer>
-                    </div>
-                    }
-                    @if (showResults() && opt.key === question.correctOption) {
-                    <svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd"
-                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                        clip-rule="evenodd"></path>
-                    </svg>
-                    }
-                    @if (showResults() && answers()[question.id] === opt.key && opt.key !== question.correctOption) {
-                    <svg class="w-6 h-6 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd"
-                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                        clip-rule="evenodd"></path>
-                    </svg>
+              <!-- Question Type Hint for MULTIPLE_CHOICE -->
+              @if (question.questionType === 'MULTIPLE_CHOICE') {
+              <p class="text-sm text-[#0056D2] mb-3 italic">Chọn một hoặc nhiều đáp án đúng</p>
+              }
+
+              <!-- Render answer input based on question type -->
+              @switch (question.questionType) {
+
+                <!-- SINGLE_CHOICE: Radio-style option buttons -->
+                @case ('SINGLE_CHOICE') {
+                  <div class="space-y-3">
+                    @for (opt of question.options; track opt.key) {
+                    <button (click)="selectAnswer(question.id, opt.key)" [disabled]="showResults()"
+                      class="w-full text-left p-4 rounded-xl border-2 transition-all duration-200 group"
+                      [class.border-blue-500]="answers()[question.id] === opt.key && !showResults()"
+                      [class.bg-blue-50]="answers()[question.id] === opt.key && !showResults()"
+                      [class.border-gray-200]="answers()[question.id] !== opt.key && !showResults()"
+                      [class.hover:border-blue-300]="!showResults() && answers()[question.id] !== opt.key"
+                      [class.hover:bg-gray-50]="!showResults() && answers()[question.id] !== opt.key"
+                      [class.border-green-500]="showResults() && quizSettings().showCorrectAnswers && opt.key === question.correctOption"
+                      [class.bg-green-50]="showResults() && quizSettings().showCorrectAnswers && opt.key === question.correctOption"
+                      [class.border-red-400]="showResults() && quizSettings().showCorrectAnswers && answers()[question.id] === opt.key && opt.key !== question.correctOption"
+                      [class.bg-red-50]="showResults() && quizSettings().showCorrectAnswers && answers()[question.id] === opt.key && opt.key !== question.correctOption">
+                      <div class="flex items-center gap-4">
+                        <!-- Radio circle indicator -->
+                        <span class="w-10 h-10 rounded-full border-2 flex items-center justify-center font-semibold text-sm transition-colors"
+                          [class.border-[#0056D2]]="answers()[question.id] === opt.key && !showResults()"
+                          [class.bg-[#0056D2]]="answers()[question.id] === opt.key && !showResults()"
+                          [class.text-white]="(answers()[question.id] === opt.key && !showResults()) || (showResults() && quizSettings().showCorrectAnswers && opt.key === question.correctOption)"
+                          [class.border-gray-300]="answers()[question.id] !== opt.key && !showResults()"
+                          [class.text-gray-600]="answers()[question.id] !== opt.key && !showResults()"
+                          [class.group-hover:border-blue-400]="!showResults() && answers()[question.id] !== opt.key"
+                          [class.bg-green-600]="showResults() && quizSettings().showCorrectAnswers && opt.key === question.correctOption"
+                          [class.border-green-600]="showResults() && quizSettings().showCorrectAnswers && opt.key === question.correctOption"
+                          [class.bg-red-500]="showResults() && quizSettings().showCorrectAnswers && answers()[question.id] === opt.key && opt.key !== question.correctOption"
+                          [class.border-red-500]="showResults() && quizSettings().showCorrectAnswers && answers()[question.id] === opt.key && opt.key !== question.correctOption">
+                          {{ opt.key }}
+                        </span>
+                        @if (opt.contentBlocks?.length || opt.content) {
+                        <div class="flex-1 text-gray-700">
+                          <app-block-renderer [blocks]="opt.contentBlocks || []"></app-block-renderer>
+                        </div>
+                        }
+                        @if (showResults() && quizSettings().showCorrectAnswers && opt.key === question.correctOption) {
+                        <svg class="w-6 h-6 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fill-rule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                            clip-rule="evenodd"></path>
+                        </svg>
+                        }
+                        @if (showResults() && quizSettings().showCorrectAnswers && answers()[question.id] === opt.key && opt.key !== question.correctOption) {
+                        <svg class="w-6 h-6 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fill-rule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                            clip-rule="evenodd"></path>
+                        </svg>
+                        }
+                      </div>
+                    </button>
                     }
                   </div>
-                </button>
                 }
-              </div>
+
+                <!-- MULTIPLE_CHOICE: Checkbox-style option buttons -->
+                @case ('MULTIPLE_CHOICE') {
+                  <div class="space-y-3">
+                    @for (opt of question.options; track opt.key) {
+                    @let isSelected = isMultipleChoiceSelected(question.id, opt.key);
+                    <button (click)="toggleMultipleChoice(question.id, opt.key)" [disabled]="showResults()"
+                      class="w-full text-left p-4 rounded-xl border-2 transition-all duration-200 group"
+                      [class.border-blue-500]="isSelected && !showResults()"
+                      [class.bg-blue-50]="isSelected && !showResults()"
+                      [class.border-gray-200]="!isSelected && !showResults()"
+                      [class.hover:border-blue-300]="!showResults() && !isSelected"
+                      [class.hover:bg-gray-50]="!showResults() && !isSelected">
+                      <div class="flex items-center gap-4">
+                        <!-- Checkbox square indicator -->
+                        <span class="w-10 h-10 rounded-lg border-2 flex items-center justify-center font-semibold text-sm transition-colors"
+                          [class.border-[#0056D2]]="isSelected && !showResults()"
+                          [class.bg-[#0056D2]]="isSelected && !showResults()"
+                          [class.text-white]="isSelected && !showResults()"
+                          [class.border-gray-300]="!isSelected && !showResults()"
+                          [class.text-gray-600]="!isSelected && !showResults()"
+                          [class.group-hover:border-blue-400]="!showResults() && !isSelected">
+                          @if (isSelected) {
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                          } @else {
+                            {{ opt.key }}
+                          }
+                        </span>
+                        @if (opt.contentBlocks?.length || opt.content) {
+                        <div class="flex-1 text-gray-700">
+                          <app-block-renderer [blocks]="opt.contentBlocks || []"></app-block-renderer>
+                        </div>
+                        }
+                      </div>
+                    </button>
+                    }
+                  </div>
+                }
+
+                <!-- TRUE_FALSE: Two large radio buttons -->
+                @case ('TRUE_FALSE') {
+                  <div class="space-y-3">
+                    @for (opt of question.options; track opt.key) {
+                    <button (click)="selectAnswer(question.id, opt.key)" [disabled]="showResults()"
+                      class="w-full text-left p-4 rounded-xl border-2 transition-all duration-200 group"
+                      [class.border-blue-500]="answers()[question.id] === opt.key && !showResults()"
+                      [class.bg-blue-50]="answers()[question.id] === opt.key && !showResults()"
+                      [class.border-gray-200]="answers()[question.id] !== opt.key && !showResults()"
+                      [class.hover:border-blue-300]="!showResults() && answers()[question.id] !== opt.key"
+                      [class.hover:bg-gray-50]="!showResults() && answers()[question.id] !== opt.key"
+                      [class.border-green-500]="showResults() && quizSettings().showCorrectAnswers && opt.key === question.correctOption"
+                      [class.bg-green-50]="showResults() && quizSettings().showCorrectAnswers && opt.key === question.correctOption"
+                      [class.border-red-400]="showResults() && quizSettings().showCorrectAnswers && answers()[question.id] === opt.key && opt.key !== question.correctOption"
+                      [class.bg-red-50]="showResults() && quizSettings().showCorrectAnswers && answers()[question.id] === opt.key && opt.key !== question.correctOption">
+                      <div class="flex items-center gap-4">
+                        <span class="w-10 h-10 rounded-full border-2 flex items-center justify-center font-semibold text-sm transition-colors"
+                          [class.border-[#0056D2]]="answers()[question.id] === opt.key && !showResults()"
+                          [class.bg-[#0056D2]]="answers()[question.id] === opt.key && !showResults()"
+                          [class.text-white]="(answers()[question.id] === opt.key && !showResults()) || (showResults() && quizSettings().showCorrectAnswers && opt.key === question.correctOption)"
+                          [class.border-gray-300]="answers()[question.id] !== opt.key && !showResults()"
+                          [class.text-gray-600]="answers()[question.id] !== opt.key && !showResults()"
+                          [class.bg-green-600]="showResults() && quizSettings().showCorrectAnswers && opt.key === question.correctOption"
+                          [class.border-green-600]="showResults() && quizSettings().showCorrectAnswers && opt.key === question.correctOption"
+                          [class.bg-red-500]="showResults() && quizSettings().showCorrectAnswers && answers()[question.id] === opt.key && opt.key !== question.correctOption"
+                          [class.border-red-500]="showResults() && quizSettings().showCorrectAnswers && answers()[question.id] === opt.key && opt.key !== question.correctOption">
+                          {{ opt.key }}
+                        </span>
+                        @if (opt.contentBlocks?.length || opt.content) {
+                        <div class="flex-1 text-gray-700">
+                          <app-block-renderer [blocks]="opt.contentBlocks || []"></app-block-renderer>
+                        </div>
+                        }
+                        @if (showResults() && quizSettings().showCorrectAnswers && opt.key === question.correctOption) {
+                        <svg class="w-6 h-6 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fill-rule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                            clip-rule="evenodd"></path>
+                        </svg>
+                        }
+                        @if (showResults() && quizSettings().showCorrectAnswers && answers()[question.id] === opt.key && opt.key !== question.correctOption) {
+                        <svg class="w-6 h-6 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fill-rule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                            clip-rule="evenodd"></path>
+                        </svg>
+                        }
+                      </div>
+                    </button>
+                    }
+                  </div>
+                }
+
+                <!-- FILL_IN_BLANK: Text input -->
+                @case ('FILL_IN_BLANK') {
+                  <div>
+                    <input type="text"
+                      [value]="getTextAnswer(question.id)"
+                      (input)="updateTextAnswer(question.id, $any($event.target).value)"
+                      [disabled]="showResults()"
+                      placeholder="Nhập câu trả lời..."
+                      class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-gray-700 focus:border-[#0056D2] focus:ring-2 focus:ring-blue-200 transition-colors disabled:bg-gray-50 disabled:text-gray-500" />
+                    @if (showResults() && quizSettings().showCorrectAnswers && question.correctOption) {
+                    <p class="mt-2 text-sm text-green-700">
+                      <span class="font-medium">Đáp án đúng:</span> {{ question.correctOption }}
+                    </p>
+                    }
+                  </div>
+                }
+
+                <!-- SHORT_ANSWER: Text input (larger) -->
+                @case ('SHORT_ANSWER') {
+                  <div>
+                    <input type="text"
+                      [value]="getTextAnswer(question.id)"
+                      (input)="updateTextAnswer(question.id, $any($event.target).value)"
+                      [disabled]="showResults()"
+                      placeholder="Nhập câu trả lời ngắn..."
+                      class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-gray-700 focus:border-[#0056D2] focus:ring-2 focus:ring-blue-200 transition-colors disabled:bg-gray-50 disabled:text-gray-500" />
+                    @if (showResults() && quizSettings().showCorrectAnswers && question.correctOption) {
+                    <p class="mt-2 text-sm text-green-700">
+                      <span class="font-medium">Đáp án đúng:</span> {{ question.correctOption }}
+                    </p>
+                    }
+                  </div>
+                }
+
+                <!-- ESSAY: Textarea -->
+                @case ('ESSAY') {
+                  <div>
+                    <textarea
+                      [value]="getTextAnswer(question.id)"
+                      (input)="updateTextAnswer(question.id, $any($event.target).value)"
+                      [disabled]="showResults()"
+                      placeholder="Viết bài tự luận của bạn..."
+                      rows="8"
+                      class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-gray-700 focus:border-[#0056D2] focus:ring-2 focus:ring-blue-200 transition-colors resize-y disabled:bg-gray-50 disabled:text-gray-500">
+                    </textarea>
+                    @if (showResults()) {
+                    <p class="mt-2 text-sm text-yellow-700 bg-yellow-50 p-3 rounded-lg">
+                      Bài tự luận sẽ được giáo viên chấm điểm thủ công.
+                    </p>
+                    }
+                  </div>
+                }
+
+                <!-- Fallback: Same as SINGLE_CHOICE -->
+                @default {
+                  <div class="space-y-3">
+                    @for (opt of question.options; track opt.key) {
+                    <button (click)="selectAnswer(question.id, opt.key)" [disabled]="showResults()"
+                      class="w-full text-left p-4 rounded-xl border-2 transition-all duration-200 group"
+                      [class.border-blue-500]="answers()[question.id] === opt.key && !showResults()"
+                      [class.bg-blue-50]="answers()[question.id] === opt.key && !showResults()"
+                      [class.border-gray-200]="answers()[question.id] !== opt.key && !showResults()">
+                      <div class="flex items-center gap-4">
+                        <span class="w-10 h-10 rounded-xl flex items-center justify-center font-semibold text-sm"
+                          [class.bg-[#0056D2]]="answers()[question.id] === opt.key && !showResults()"
+                          [class.text-white]="answers()[question.id] === opt.key && !showResults()"
+                          [class.bg-gray-100]="answers()[question.id] !== opt.key && !showResults()"
+                          [class.text-gray-600]="answers()[question.id] !== opt.key && !showResults()">
+                          {{ opt.key }}
+                        </span>
+                        @if (opt.contentBlocks?.length || opt.content) {
+                        <div class="flex-1 text-gray-700">
+                          <app-block-renderer [blocks]="opt.contentBlocks || []"></app-block-renderer>
+                        </div>
+                        }
+                      </div>
+                    </button>
+                    }
+                  </div>
+                }
+              }
             </div>
           </div>
           }
@@ -279,7 +487,7 @@
           <div class="flex items-center gap-2">
             @for (page of [].constructor(totalPages()); track $index; let i = $index) {
             <button (click)="goToPage(i)" class="w-10 h-10 rounded-lg text-sm font-medium transition-colors"
-              [class.bg-blue-600]="i === currentPage()" [class.text-white]="i === currentPage()"
+              [class.bg-[#0056D2]]="i === currentPage()" [class.text-white]="i === currentPage()"
               [class.bg-gray-100]="i !== currentPage()" [class.text-gray-600]="i !== currentPage()"
               [class.hover:bg-gray-200]="i !== currentPage()">
               {{ i + 1 }}
@@ -288,7 +496,7 @@
           </div>
 
           @if (currentPage() < totalPages() - 1) { <button (click)="nextPage()"
-            class="flex items-center gap-2 px-5 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors">
+            class="flex items-center gap-2 px-5 py-3 bg-[#0056D2] text-white rounded-xl hover:bg-[#004BB5] transition-colors">
             10 câu tiếp
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
@@ -296,7 +504,8 @@
             </button>
             } @else if (!showResults()) {
             <button (click)="submitQuiz()"
-              class="flex items-center gap-2 px-5 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors">
+              class="flex items-center gap-2 px-5 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors disabled:opacity-50"
+              [disabled]="submitting()">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
               </svg>
@@ -304,7 +513,7 @@
             </button>
             } @else {
             <button (click)="resetQuiz()"
-              class="flex items-center gap-2 px-5 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors">
+              class="flex items-center gap-2 px-5 py-3 bg-[#0056D2] text-white rounded-xl hover:bg-[#004BB5] transition-colors">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
@@ -361,7 +570,13 @@
       <div class="p-6">
         <div class="text-center mb-6">
           <div class="text-5xl font-bold text-gray-900 mb-1">{{ scorePercent() }}%</div>
-          <p class="text-gray-500">Điểm số của bạn</p>
+          <p class="text-gray-500">
+            @if (serverScore() !== null) {
+              Điểm từ hệ thống
+            } @else {
+              Điểm ước tính
+            }
+          </p>
         </div>
 
         <!-- Stats Grid -->
@@ -380,16 +595,30 @@
           </div>
         </div>
 
+        <!-- Passing Score Info -->
+        <div class="rounded-xl p-4 flex items-center justify-between mb-4"
+          [class.bg-green-50]="scorePercent() >= quizSettings().passingScore"
+          [class.bg-red-50]="scorePercent() < quizSettings().passingScore">
+          <span [class.text-green-700]="scorePercent() >= quizSettings().passingScore"
+                [class.text-red-700]="scorePercent() < quizSettings().passingScore">
+            @if (scorePercent() >= quizSettings().passingScore) {
+              Đạt yêu cầu (>= {{ quizSettings().passingScore }}%)
+            } @else {
+              Chưa đạt (yêu cầu >= {{ quizSettings().passingScore }}%)
+            }
+          </span>
+        </div>
+
         <!-- Time Spent -->
         <div class="bg-blue-50 rounded-xl p-4 flex items-center justify-between mb-6">
           <div class="flex items-center gap-3">
-            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-5 h-5 text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
-            <span class="text-blue-700">Thời gian làm bài</span>
+            <span class="text-[#004BB5]">Thời gian làm bài</span>
           </div>
-          <span class="font-mono font-semibold text-blue-700">{{ formatTime(timeSpent()) }}</span>
+          <span class="font-mono font-semibold text-[#004BB5]">{{ formatTime(timeSpent()) }}</span>
         </div>
 
         <!-- Actions -->
@@ -399,7 +628,7 @@
             Xem lại đáp án
           </button>
           <button (click)="resetQuiz()"
-            class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium">
+            class="flex-1 px-4 py-3 bg-[#0056D2] text-white rounded-xl hover:bg-[#004BB5] transition-colors font-medium">
             Làm lại
           </button>
         </div>

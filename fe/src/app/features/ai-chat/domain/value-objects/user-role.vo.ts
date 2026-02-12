@@ -11,6 +11,7 @@ export const USER_ROLES: readonly UserRole[] = [
   'student',
   'teacher',
   'admin',
+  'org_admin',
   'guest',
 ] as const;
 
@@ -42,7 +43,7 @@ export function parseRole(role: string | undefined | null): UserRole {
  * Check if role has elevated privileges (teacher or admin)
  */
 export function isElevatedRole(role: UserRole): boolean {
-  return role === 'teacher' || role === 'admin';
+  return role === 'teacher' || role === 'admin' || role === 'org_admin';
 }
 
 /**
@@ -60,6 +61,7 @@ export function getRoleDisplayName(role: UserRole): string {
     student: 'Học viên',
     teacher: 'Giảng viên',
     admin: 'Quản trị viên',
+    org_admin: 'Chuyên viên quản lý',
     guest: 'Khách',
   };
   return displayNames[role];
@@ -73,7 +75,8 @@ export function getRolePriority(role: UserRole): number {
     guest: 0,
     student: 1,
     teacher: 2,
-    admin: 3,
+    org_admin: 3,
+    admin: 4,
   };
   return priorities[role];
 }

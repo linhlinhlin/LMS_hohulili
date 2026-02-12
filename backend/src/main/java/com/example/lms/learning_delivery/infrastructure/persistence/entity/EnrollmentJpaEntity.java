@@ -8,9 +8,7 @@ import org.hibernate.annotations.Type;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * JPA Entity for Enrollment persistence.
@@ -87,6 +85,7 @@ public class EnrollmentJpaEntity {
 
     /**
      * JSONB data structure for lesson progress.
+     * Note: lastActivity is stored as ISO-8601 String to avoid Jackson/Instant serialization issues.
      */
     @Getter
     @Setter
@@ -97,6 +96,7 @@ public class EnrollmentJpaEntity {
         private String status; // LOCKED, UNLOCKED, COMPLETED
         private Integer watchSeconds;
         private Double grade;
-        private Instant lastActivity;
+        private String lastActivity; // ISO-8601 string, avoids Jackson Instant issue in JSONB
+        private List<String> completedSections;
     }
 }

@@ -22,14 +22,14 @@ interface NavigationItem {
            [class]="isCollapsed() ? 'w-16 min-w-[4rem] max-w-[4rem]' : 'w-64 min-w-[16rem] max-w-[16rem]'">
       
       <!-- Professional LED Accent Border -->
-      <div class="absolute right-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-600 via-yellow-400 to-blue-600 shadow-lg shadow-blue-600/30 z-10">
+      <div class="absolute right-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#0056D2] via-yellow-400 to-[#0056D2] shadow-lg shadow-[#0056D2]/30 z-10">
         <div class="absolute inset-0 bg-gradient-to-b from-transparent via-white/30 to-transparent animate-pulse"></div>
       </div>
 
       <!-- Toggle Button -->
       <button
         (click)="toggleSidebar()"
-        class="fixed top-6 z-50 w-6 h-10 bg-gradient-to-b from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-600 text-white rounded-r-lg shadow-lg hover:shadow-xl flex items-center justify-center transition-all duration-500 ease-in-out border border-l-0 border-yellow-400/30 hover:border-yellow-400/60"
+        class="fixed top-6 z-50 w-6 h-10 bg-[#0056D2] hover:bg-[#004BB5] text-white rounded-r-lg shadow-lg hover:shadow-xl flex items-center justify-center transition-all duration-500 ease-in-out border border-l-0 border-gray-300"
         [class]="isCollapsed() ? 'left-16' : 'left-64'"
         [title]="isCollapsed() ? 'Mở rộng sidebar' : 'Thu gọn sidebar'"
         [attr.aria-label]="isCollapsed() ? 'Mở rộng sidebar' : 'Thu gọn sidebar'">
@@ -39,7 +39,7 @@ interface NavigationItem {
       </button>
 
       <!-- Sidebar Header - Professional Maritime Design -->
-      <header class="flex-shrink-0 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-600 text-white relative overflow-hidden">
+      <header class="flex-shrink-0 bg-[#0056D2] text-white relative overflow-hidden">
         <div class="absolute inset-0 bg-gradient-to-br from-yellow-400/10 to-transparent"></div>
         <div class="absolute top-0 right-0 w-16 h-16 bg-yellow-400/10 rounded-full -translate-y-8 translate-x-8"></div>
         
@@ -93,14 +93,14 @@ interface NavigationItem {
       }
 
       <!-- Navigation Menu - Enhanced Design -->
-      <div class="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-blue-600/50">
+      <div class="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-[#0056D2]/50">
         <!-- Section Divider -->
         <div class="flex items-center transition-all duration-300" [class]="isCollapsed() ? 'px-2 py-2' : 'px-4 py-2'">
           @if (!isCollapsed()) {
-            <div class="w-1.5 h-1.5 bg-blue-600 rounded-full"></div>
-            <div class="flex-1 h-px bg-gradient-to-r from-blue-600/30 via-gray-300 to-transparent ml-2"></div>
+            <div class="w-1.5 h-1.5 bg-[#0056D2] rounded-full"></div>
+            <div class="flex-1 h-px bg-gradient-to-r from-[#0056D2]/30 via-gray-300 to-transparent ml-2"></div>
           } @else {
-            <div class="w-full h-px bg-gradient-to-r from-transparent via-blue-600/50 to-transparent"></div>
+            <div class="w-full h-px bg-gradient-to-r from-transparent via-[#0056D2]/50 to-transparent"></div>
           }
         </div>
 
@@ -145,7 +145,7 @@ interface NavigationItem {
                   @if (!isCollapsed()) {
                     <div class="relative z-10 flex-1 min-w-0">
                       <div class="font-semibold text-sm leading-tight transition-colors duration-300 truncate mb-0.5"
-                           [class]="isActiveRoute(item.route) ? 'text-white' : 'text-gray-900 group-hover:text-blue-600'">
+                           [class]="isActiveRoute(item.route) ? 'text-white' : 'text-gray-900 group-hover:text-[#0056D2]'">
                         {{ item.label }}
                       </div>
                       @if (item.description) {
@@ -175,13 +175,13 @@ interface NavigationItem {
 
                   <!-- Professional Tooltip for collapsed mode -->
                   @if (isCollapsed()) {
-                    <div class="absolute left-full ml-3 px-3 py-2 bg-blue-600 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none whitespace-nowrap z-50 shadow-xl border border-yellow-400/30">
+                    <div class="absolute left-full ml-3 px-3 py-2 bg-[#0056D2] text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none whitespace-nowrap z-50 shadow-xl border border-yellow-400/30">
                       <div class="font-semibold text-sm">{{ item.label }}</div>
                       @if (item.description) {
                         <div class="text-xs text-blue-100 mt-0.5">{{ item.description }}</div>
                       }
                       <!-- Enhanced Tooltip Arrow -->
-                      <div class="absolute left-0 top-1/2 transform -translate-x-1 -translate-y-1/2 w-0 h-0 border-t-4 border-b-4 border-r-4 border-transparent border-r-blue-600"></div>
+                      <div class="absolute left-0 top-1/2 transform -translate-x-1 -translate-y-1/2 w-0 h-0 border-t-4 border-b-4 border-r-4 border-transparent border-r-[#0056D2]"></div>
                     </div>
                   }
 
@@ -198,15 +198,15 @@ interface NavigationItem {
       <!-- Bottom Section Divider -->
       <div class="flex items-center transition-all duration-300" [class]="isCollapsed() ? 'px-2 py-2' : 'px-4 py-2'">
         @if (!isCollapsed()) {
-          <div class="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-blue-600/30 mr-2"></div>
-          <div class="w-1.5 h-1.5 bg-blue-600 rounded-full"></div>
+          <div class="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-[#0056D2]/30 mr-2"></div>
+          <div class="w-1.5 h-1.5 bg-[#0056D2] rounded-full"></div>
         } @else {
-          <div class="w-full h-px bg-gradient-to-r from-transparent via-blue-600/50 to-transparent"></div>
+          <div class="w-full h-px bg-gradient-to-r from-transparent via-[#0056D2]/50 to-transparent"></div>
         }
       </div>
 
       <!-- Footer Section - Professional Design -->
-      <footer class="flex-shrink-0 bg-gradient-to-r from-blue-600/5 to-yellow-400/5 border-t border-gray-200/50 transition-all duration-300"
+      <footer class="flex-shrink-0 bg-gradient-to-r from-[#0056D2]/5 to-yellow-400/5 border-t border-gray-200/50 transition-all duration-300"
               [class]="isCollapsed() ? 'px-2 py-2' : 'px-4 py-3'">
         @if (!isCollapsed()) {
           <div class="text-center">
@@ -215,13 +215,13 @@ interface NavigationItem {
           </div>
         } @else {
           <div class="flex justify-center">
-            <div class="w-2 h-2 bg-blue-600 rounded-full opacity-60"></div>
+            <div class="w-2 h-2 bg-[#0056D2] rounded-full opacity-60"></div>
           </div>
         }
       </footer>
 
       <!-- Bottom Accent Border -->
-      <div class="h-1 bg-gradient-to-r from-blue-600 via-yellow-400 to-blue-600 shadow-inner"></div>
+      <div class="h-1 bg-gradient-to-r from-[#0056D2] via-yellow-400 to-[#0056D2] shadow-inner"></div>
     </aside>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -294,8 +294,8 @@ export class CollapsibleStudentSidebarComponent {
   getNavigationItemClass(item: NavigationItem): string {
     const baseClass = this.isCollapsed() ? 'justify-center px-1 py-3 h-12' : 'gap-3 px-3 py-3 h-14';
     const activeClass = this.isActiveRoute(item.route)
-      ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-600/25 border border-yellow-400/30'
-      : 'text-gray-700 hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-600/5 hover:shadow-md hover:shadow-gray-200/50 border border-transparent hover:border-blue-600/20';
+      ? 'bg-[#0056D2] text-white shadow-lg shadow-[#0056D2]/25 border border-yellow-400/30'
+      : 'text-gray-700 hover:bg-gradient-to-r hover:from-gray-50 hover:to-[#0056D2]/5 hover:shadow-md hover:shadow-gray-200/50 border border-transparent hover:border-[#0056D2]/20';
     
     return `${baseClass} ${activeClass}`;
   }
@@ -304,7 +304,7 @@ export class CollapsibleStudentSidebarComponent {
     const sizeClass = this.isCollapsed() ? 'w-8 h-8' : 'w-10 h-10';
     const colorClass = this.isActiveRoute(item.route)
       ? 'bg-white/20 text-white shadow-md backdrop-blur-sm border border-white/30'
-      : 'bg-gradient-to-br from-gray-100 to-gray-50 text-blue-600 group-hover:bg-gradient-to-br group-hover:from-blue-600 group-hover:to-blue-700 group-hover:text-white group-hover:shadow-md border border-gray-200 group-hover:border-yellow-400/30';
+      : 'bg-gradient-to-br from-gray-100 to-gray-50 text-[#0056D2] group-hover:bg-gradient-to-br group-hover:from-[#0056D2] group-hover:to-[#004BB5] group-hover:text-white group-hover:shadow-md border border-gray-200 group-hover:border-yellow-400/30';
     
     return `${sizeClass} ${colorClass}`;
   }

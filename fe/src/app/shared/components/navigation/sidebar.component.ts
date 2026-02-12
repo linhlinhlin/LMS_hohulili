@@ -3,11 +3,12 @@ import { Component, input, signal, computed, inject, ChangeDetectionStrategy, Vi
 import { RouterModule, Router, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { UserRole } from '../../../shared/types/user.types';
+import { IconComponent, IconName } from '../icon/icon.component';
 
 export interface SidebarMenuItem {
   label: string;
   route: string;
-  icon: string;
+  icon: IconName;
   badge?: string | number;
   children?: SidebarMenuItem[];
   exact?: boolean;
@@ -17,7 +18,7 @@ export interface SidebarConfig {
   role: UserRole;
   title: string;
   subtitle?: string;
-  logoIcon: string;
+  logoIcon: IconName;
   menuItems: SidebarMenuItem[];
   showProgress?: boolean;
   progressValue?: number;
@@ -27,7 +28,7 @@ export interface SidebarConfig {
 
 @Component({
   selector: 'app-sidebar',
-  imports: [RouterModule, RouterLinkActive],
+  imports: [RouterModule, RouterLinkActive, IconComponent],
   encapsulation: ViewEncapsulation.None,
   templateUrl: './sidebar.component.html',
   styleUrl: './sidebar.component.css',
@@ -50,7 +51,7 @@ export class SidebarComponent {
   getProgressTextClass(): string {
     const progress = this.config().progressValue || 0;
     if (progress >= 80) return 'text-green-600';
-    if (progress >= 60) return 'text-blue-600';
+    if (progress >= 60) return 'text-[#0056D2]';
     if (progress >= 40) return 'text-yellow-600';
     return 'text-red-600';
   }
@@ -71,7 +72,7 @@ export class SidebarComponent {
       case 'teacher':
         return `${baseClasses} text-blue-500`;
       case 'admin':
-        return `${baseClasses} text-red-500`;
+        return `${baseClasses} text-blue-500`;
       default:
         return `${baseClasses} text-gray-500`;
     }

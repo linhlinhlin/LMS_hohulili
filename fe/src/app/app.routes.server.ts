@@ -102,10 +102,6 @@ export const serverRoutes: ServerRoute[] = [
     renderMode: RenderMode.Client
   },
   {
-    path: 'student/assignments/work/:id',
-    renderMode: RenderMode.Client
-  },
-  {
     path: 'student/analytics',
     renderMode: RenderMode.Client
   },
@@ -150,7 +146,7 @@ export const serverRoutes: ServerRoute[] = [
     renderMode: RenderMode.Client
   },
   {
-    path: 'student/forum',
+    path: 'student/browse',
     renderMode: RenderMode.Client
   },
   {

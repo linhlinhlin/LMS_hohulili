@@ -51,8 +51,8 @@ import { PLATFORM_ID } from '@angular/core';
         [title]="'Xu hướng ngành'"
         [subtitle]="'Cập nhật quy định quốc tế và tiêu chuẩn tuân thủ'"
         [cards]="[
-          { icon: '⚖️', title: 'Cập nhật công ước', highlight: '+10%/năm', description: 'Quy định mới về an toàn, môi trường đòi hỏi tái chứng nhận định kỳ.' },
-          { icon: '📝', title: 'Hợp đồng điện tử', highlight: '+40% áp dụng', description: 'E-bill of lading và chữ ký số trong vận tải biển.' }
+          { icon: 'shield', title: 'Cập nhật công ước', highlight: '+10%/năm', description: 'Quy định mới về an toàn, môi trường đòi hỏi tái chứng nhận định kỳ.' },
+          { icon: 'file-text', title: 'Hợp đồng điện tử', highlight: '+40% áp dụng', description: 'E-bill of lading và chữ ký số trong vận tải biển.' }
         ]"
       ></app-category-trends>
     </div>

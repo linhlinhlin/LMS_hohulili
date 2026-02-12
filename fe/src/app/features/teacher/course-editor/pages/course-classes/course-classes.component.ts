@@ -1,4 +1,5 @@
-import { Component, OnInit, signal, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, signal, inject, ChangeDetectionStrategy, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -10,6 +11,8 @@ import { ClassSummary } from '../../../../../shared/types/course.types';
 import { ClassDialogComponent } from './class-dialog/class-dialog.component';
 import { Page } from '../../../../../api/types/common.types';
 import { AddStudentDrawerComponent } from './class-students/add-student-drawer/add-student-drawer.component';
+import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
+import { ToastService } from '../../../../../core/services/toast.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -22,6 +25,9 @@ export class CourseClassesComponent implements OnInit {
     private route = inject(ActivatedRoute);
     private dialog = inject(MatDialog);
     private router = inject(Router);
+    private confirmDialog = inject(ConfirmDialogService);
+    private toast = inject(ToastService);
+    private destroyRef = inject(DestroyRef);
 
     courseId = '';
     classes = signal<ClassSummary[]>([]);
@@ -59,7 +65,9 @@ export class CourseClassesComponent implements OnInit {
 
     ngOnInit() {
         this.generateYears();
-        this.route.parent?.params.subscribe(params => {
+        this.route.parent?.params.pipe(
+            takeUntilDestroyed(this.destroyRef)
+        ).subscribe(params => {
             this.courseId = params['id'];
             if (this.courseId) {
                 this.loadClasses();
@@ -69,7 +77,8 @@ export class CourseClassesComponent implements OnInit {
         // Debounce Search
         this.searchControl.valueChanges.pipe(
             debounceTime(400),
-            distinctUntilChanged()
+            distinctUntilChanged(),
+            takeUntilDestroyed(this.destroyRef)
         ).subscribe(() => {
             this.currentPage = 0; // Reset to first page on search
             this.loadClasses();
@@ -131,6 +140,7 @@ export class CourseClassesComponent implements OnInit {
                 this.isLoading.set(false);
             },
             error: () => {
+                this.toast.error('Không thể tải danh sách lớp học');
                 this.isLoading.set(false);
             }
         });
@@ -158,12 +168,19 @@ export class CourseClassesComponent implements OnInit {
         });
     }
 
-    deleteClass(classId: string) {
-        if (confirm('Bạn có chắc chắn muốn xóa lớp này? Học viên sẽ bị hủy đăng ký trong lớp này.')) {
-            this.classService.deleteClass(classId).subscribe(() => {
-                this.loadClasses();
-            });
-        }
+    async deleteClass(classId: string) {
+        const confirmed = await this.confirmDialog.confirm({
+            title: 'Xóa lớp học',
+            message: 'Bạn có chắc chắn muốn xóa lớp này? Học viên sẽ bị hủy đăng ký trong lớp này.',
+            variant: 'danger',
+            confirmText: 'Xóa',
+            cancelText: 'Hủy'
+        });
+        if (!confirmed) return;
+
+        this.classService.deleteClass(classId).subscribe(() => {
+            this.loadClasses();
+        });
     }
 
     viewStudents(classId: string) {

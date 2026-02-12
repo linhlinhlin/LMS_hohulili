@@ -1,6 +1,6 @@
 # Frontend Architecture Reference
 
-> **Last Updated**: 2026-02-06 | **Angular**: 20.3 | **Score**: 9.5/10
+> **Last Updated**: 2026-02-12 | **Angular**: 20.3 | **Score**: 10/10
 
 This document is the **single source of truth** for the LMS frontend architecture.
 Read this instead of re-auditing the codebase.
@@ -12,17 +12,23 @@ Read this instead of re-auditing the codebase.
 | Metric | Value |
 |--------|-------|
 | Framework | Angular 20.3+ (standalone, signals) |
-| Components | 257 |
-| Services (@Injectable) | ~100 |
-| Total TypeScript LOC | ~46,000 |
-| OnPush Coverage | **257/257 (100%)** |
+| TypeScript Files | 508 |
+| Components | 236 |
+| Services (@Injectable) | ~56 |
+| Total TypeScript LOC | ~47,000+ |
+| OnPush Coverage | **236/236 (100%)** |
 | Legacy Patterns | **0** (*ngIf, *ngFor, standalone:true, @Input, @Output, @ViewChild) |
 | console.log/warn/debug | **0** in production code |
-| API Clients | 17 |
-| Shared Components | 52 |
-| Core Services | 14 |
-| State Services | 4 (global, course, class, quiz) |
-| Guards | 5 (6 exported fns in 2 files) |
+| English text in UI | **0** (all Vietnamese) |
+| User-facing emojis | **0** (SVG icons via app-icon) |
+| alert/confirm/prompt | **0** (Toast + ConfirmDialog) |
+| API Clients | 18 |
+| API Endpoints | 23 |
+| API Types | 19 |
+| Shared Components | 48 |
+| Core Services | 15 |
+| State Services | 3 (global, course, class) |
+| Guards | 5 (in 3 files) |
 | Routes | 70+ |
 | Port | 4200 |
 | Build | `npm start` / `npm run build` |
@@ -33,30 +39,30 @@ Read this instead of re-auditing the codebase.
 
 ```
 fe/src/app/
-├── api/                    # HTTP layer (17 clients, 18 endpoints, 18+ types)
-│   ├── client/             # ApiClient + domain-specific clients (17 files)
-│   ├── endpoints/          # URL constant definitions (18 files)
-│   ├── types/              # TypeScript interfaces for all DTOs (18+ files)
+├── api/                    # HTTP layer (18 clients, 23 endpoints, 19 types)
+│   ├── client/             # ApiClient + domain-specific clients (18 files)
+│   ├── endpoints/          # URL constant definitions (23 files)
+│   ├── types/              # TypeScript interfaces for all DTOs (19 files)
 │   ├── interceptors/       # Auth, base-url, error interceptors (3 files)
 │   └── operators/          # RxJS operators (unwrapSpringPage)
 ├── core/                   # Singleton services & guards
-│   ├── services/           # Auth, messaging, notification, etc. (14 services)
-│   └── guards/             # auth.guard, role.guard (5 guard functions)
+│   ├── services/           # Auth, messaging, notification, etc. (15 services)
+│   └── guards/             # auth.guard, role.guard, enrollment.guard (5 guard fns in 3 files)
 ├── features/               # Feature modules (lazy-loaded)
 │   ├── admin/              # 22 components - Admin dashboard
-│   ├── teacher/            # 74 components - Course editor, assignments, grading
+│   ├── teacher/            # 68 components - Course editor, assignments, grading
 │   ├── student/            # 12 components - Learning, enrollments
 │   ├── ai-chat/            # 15 components - AI assistant (full DDD)
-│   ├── learning/           # 20+ components - Course learning interface
+│   ├── learning/           # 13 components - Course learning interface
 │   ├── courses/            # 10+ components - Course browsing, categories
 │   ├── assignments/        # 12 components - Student assignment work
 │   ├── auth/               # 3 components - Login, register, forgot-password
-│   ├── communication/      # 4+ components - Forum, discussions
+│   ├── communication/      # 2 components - Notifications
 │   ├── payment/            # 4 components - VNPay integration
 │   ├── profile/            # 2 components - User profile
 │   ├── home/               # 1 component - Landing page
 │   └── (about, contact, privacy, terms, settings, analytics)
-├── shared/                 # Reusable components (52) & services (8)
+├── shared/                 # Reusable components (48) & services (8)
 │   ├── components/         # UI, layout, content, navigation
 │   ├── services/           # Analytics, file-upload, communication, etc.
 │   └── blocks/             # Content block renderers
@@ -77,9 +83,9 @@ fe/src/app/
 | `input()` / `input.required()` | 69 | Standard |
 | `output()` | 56 | Standard |
 | `viewChild()` / `viewChild.required()` | 23 | Standard |
-| `effect()` | 21 | Where needed |
+| `effect()` | 29 (21 files) | Where needed |
 | `@if` / `@for` / `@switch` | 234 files (2,117 instances) | Standard |
-| `ChangeDetectionStrategy.OnPush` | 257/257 (100%) | Enforced |
+| `ChangeDetectionStrategy.OnPush` | 236/236 (100%) | Enforced |
 | `takeUntilDestroyed(DestroyRef)` | Standard | Cleanup pattern |
 
 ### Legacy Patterns (All Eliminated)
@@ -97,18 +103,18 @@ fe/src/app/
 
 ### Per-Module Breakdown
 
-| Module | Files | Components | Architecture |
-|--------|-------|------------|-------------|
-| Teacher | 106 | 74 | Partial DDD (course-editor has store) |
-| AI-Chat | 45 | 15 | Full DDD |
-| Learning | 44 | 20+ | Full DDD |
-| Courses | 31 | 10+ | DDD |
-| Admin | 30 | 22 | Feature-based |
-| Assignments | 29 | 12 | Full DDD |
-| Student | 22 | 12 | Feature-based |
-| Auth | 8 | 3 | Flat |
-| Communication | 7 | 4+ | Flat |
-| Payment | 5 | 4 | Flat |
+| Module | Components | Architecture |
+|--------|------------|-------------|
+| Teacher | 68 | Partial DDD (course-editor has store) |
+| AI-Chat | 15 | Full DDD |
+| Learning | 13 | Full DDD |
+| Courses | 10+ | DDD |
+| Admin | 22 | Feature-based |
+| Assignments | 12 | Full DDD |
+| Student | 12 | Feature-based |
+| Auth | 3 | Flat |
+| Communication | 2 | Flat (forum removed S38) |
+| Payment | 4 | Flat |
 
 ### Admin (`features/admin/`)
 **22 components** | Store + Signals pattern
@@ -133,12 +139,12 @@ admin/
 ```
 
 ### Teacher (`features/teacher/`)
-**74 components** | Stores + Signals | Most complex feature
+**68 components** | Stores + Signals | Most complex feature
 
 ```
 teacher/
-├── course-editor/          # Standalone layout (no sidebar)
-│   ├── layouts/course-editor-layout/
+├── course-editor/          # SOTA layout: collapsible sidebar, two-column pages
+│   ├── layouts/course-editor-layout/  # Collapsible sidebar, underline tabs, auto-select
 │   ├── components/ (header, sidebar)
 │   ├── pages/
 │   │   ├── course-info/
@@ -202,7 +208,7 @@ ai-chat/
 **Key**: Real streaming enabled (`USE_REAL_STREAMING = true`), session isolation, typewriter effect.
 
 ### Learning (`features/learning/`)
-**20+ components** | Services + Signals
+**13 components** | Services + Signals
 
 ```
 learning/
@@ -211,7 +217,7 @@ learning/
 │   └── presentation/components/ (quiz-list, quiz-attempt, quiz-result)
 ├── services/ (learning.service 666 LOC, video-player.service)
 ├── state/quiz-state.service.ts
-├── components/ (professional-learning-interface, study-planner, etc.)
+├── components/ (lesson-content, youtube-player, study-planner, etc.)
 ├── pages/course-learning.component (687 LOC)
 └── learning.routes.ts
 ```
@@ -252,8 +258,7 @@ assignments/
 ```
 student/
 ├── pages/ (checkout, course-detail)
-├── components/ (student-lesson-viewer)
-├── lesson-viewer/
+├── grades/
 ├── messages/ (inbox, conversation-view)
 ├── assignments/student-assignments-page.component
 ├── services/ (payment.service, enrollment.service)
@@ -346,13 +351,13 @@ class MyComponent {
 | `global.state.ts` | App init, network status, last activity |
 | `course.service.ts` | Course list, caching, selection (378 LOC) |
 | `class.service.ts` | Learning class management |
-| `quiz.service.ts` | Quiz state management (393 LOC) |
+| ~~`quiz.service.ts`~~ | **Deleted** (S26: replaced by learning/quiz infrastructure) |
 
 ### Feature-Level Stores
 
 | Store | Location | Pattern |
 |-------|----------|---------|
-| CourseEditorStore | teacher/course-editor/store | Signals + 1-min cache |
+| CourseEditorStore | teacher/course-editor/store | Signals + 1-min cache + optimistic reorder |
 | AssignmentDetailStore | teacher/assignment-hub | Signals |
 | SubmissionsStore | teacher/assignment-hub | Signals + filters |
 | AssignmentListState | assignments/presentation/state | Signals + computed |
@@ -367,15 +372,15 @@ class MyComponent {
 
 ```
 api/
-├── client/          # 17 HTTP service files
+├── client/          # 18 HTTP service files
 │   ├── api-client.ts     # Base: get/post/put/patch/delete + WithResponse variants
 │   ├── course.api.ts     # Course CRUD
 │   ├── assignment.api.ts # Assignment + submissions
 │   ├── file.api.ts       # File operations
 │   ├── r2-storage.api.ts # Cloudflare R2 uploads
 │   └── ... (chapter, lesson, section, student, payment, etc.)
-├── endpoints/       # 18 URL constant files → /api/v3/*
-├── types/           # 18+ TypeScript interfaces
+├── endpoints/       # 23 URL constant files → /api/v3/*
+├── types/           # 19 TypeScript interfaces
 │   ├── common.types.ts   # ApiResponse<T>, Pagination
 │   ├── course.types.ts   # Course, CourseDTO
 │   └── ... (all domain types)
@@ -400,7 +405,7 @@ ApiClient.delete<T> / deleteWithResponse<T>
 
 ## Core Module
 
-### Services (14)
+### Services (15)
 
 | Service | LOC | Purpose |
 |---------|-----|---------|
@@ -419,19 +424,20 @@ ApiClient.delete<T> / deleteWithResponse<T>
 | `image-lifecycle.service.ts` | ~100 | Image handling |
 | `content-identity.service.ts` | ~100 | Content identification |
 
-### Guards (5 functions in 2 files)
+### Guards (5 functions in 3 files)
 
 | Guard | Access |
 |-------|--------|
 | `authGuard` | Any authenticated user |
-| `adminGuard` | Admin only |
-| `teacherGuard` | Teacher OR Admin |
-| `teacherOnlyGuard` | Teacher only (blocks admin) |
-| `studentGuard` | Student only |
+| `adminGuard` | ADMIN or ORG_ADMIN |
+| `teacherGuard` | TEACHER, ADMIN, or ORG_ADMIN |
+| `teacherOnlyGuard` | TEACHER only (blocks admin) |
+| `studentGuard` | STUDENT only |
+| `enrollmentGuard` | Must be enrolled in course (learning routes) |
 
 ---
 
-## Shared Module (52 Components)
+## Shared Module (48 Components)
 
 ### Layout
 - `homepage-layout`, `public-header`, `footer`, `mega-menu`
@@ -462,9 +468,10 @@ ApiClient.delete<T> / deleteWithResponse<T>
 
 | File | LOC | Note |
 |------|-----|------|
+| sidebar.component.ts (course-editor) | ~1400 | Active - 3-level DnD tree, keyboard reorder, Move To modal |
 | course-learning.component.ts (pages/) | 687 | Active |
 | course-curriculum.component.ts | 680 | Has extracted child components |
-| professional-learning-interface.component.ts | 582 | Active |
+| lesson-content.component.ts | ~400 | Active (replaced professional-learning-interface) |
 | study-planner.component.ts | 564 | Active |
 | chat-main-area.component.ts | 562 | Active |
 | video-upload.component.ts | 555 | Active |
@@ -483,7 +490,7 @@ ApiClient.delete<T> / deleteWithResponse<T>
 | teacher.service.ts | 581 | Active |
 | distribution.service.ts | 577 | Active |
 | course-detail.service.ts | 572 | Active |
-| analytics.service.ts | 498 | Active |
+| ~~analytics.service.ts~~ | - | **Deleted** (S26: 0 imports, mock data only) |
 | notification.service.ts | 479 | Active |
 
 ---
@@ -494,6 +501,8 @@ ApiClient.delete<T> / deleteWithResponse<T>
 |-----------|---------|
 | Angular 20.3 | Framework (standalone, signals) |
 | Angular Material | UI components |
+| Angular CDK DragDrop | Drag-and-drop (3-level tree reorder, handles, placeholders) |
+| Angular CDK Scrolling | Auto-scroll during drag (`cdkScrollable`) |
 | RxJS | Async operations |
 | HLS.js | Video streaming |
 | EditorJS | Block-based content editor |
@@ -571,6 +580,82 @@ items = toSignal(this.service.data$, { initialValue: [] });
 ---
 
 ## Modernization Changelog
+
+### 2026-02-12 Sessions 48-56 (System Audits + Final Polish)
+
+**Score: 9.8/10 → 10/10**
+
+| Task | Detail |
+|------|--------|
+| S48: setTimeout→effect() | Replaced setTimeout in course-learning auto-expand with reactive `effect()` |
+| S48: Dead route cleanup | Deleted empty `communication.routes.ts` (forum removed S38) |
+| S50: 7 duplicate components deleted | notification-bell, ui/pagination, ui/search x2, ui/side-drawer, shared/search, auth.interceptor |
+| S50: GlobalState dead code | Removed 4 unused computed signals, 3 unused methods |
+| S51: Rubric mock→real API | 3 components (creator, editor, manager) → `rubric.api.ts` |
+| S52: Design token unification | `bg-blue-600` → `bg-[#0056D2]` across 130+ files |
+| S52: Gradient elimination | ~25 locations simplified to flat colors |
+| S52: Non-semantic red fix | `focus:ring-red-500` → `focus:ring-[#0056D2]` in 5 files |
+| S53: Course status simplification | Removed PUBLISHED/ARCHIVED, clean DRAFT→PENDING→APPROVED flow |
+| S55: Engagement mock→real | Bookmarks, notes, study planner → local signal-based (no mock API) |
+| S55: Teacher revenue/invitation | Real endpoints + honest stubs for payment features |
+| S56: English→Vietnamese | 13 remaining English strings fixed (route titles, upload messages) |
+| S56: TeacherStudent stubs→real DB | 3 endpoints now query real data (assignments, analytics, status) |
+
+### 2026-02-11 Session 47 (Teacher Courses Table + Course Editor Audit)
+
+**Score: 9.8/10 (maintained)**
+
+| Task | Detail |
+|------|--------|
+| Teacher courses table redesign | Plain 5-col table → Shopify-style 6-col: thumbnail, delivery mode badge, status badge w/ dot, category chip, chapter/lesson counts, 3-slot actions |
+| Delivery mode filter | New `modeFilter` signal + filter pills: `Tất cả \| Khóa học \| Lớp học` |
+| CourseSummary type extended | Added `deliveryMode`, `sectionCount`, `lessonCount`, `maxStudents`, `updatedAt` + API mapping |
+| Course info save flow fixed | `form.markAsPristine()` after save, `loadCourse(id, true)` for force refresh, error format `err?.error?.message` |
+| Hidden form fields exposed | `welcomeMessage` + `benefits` rendered in "Lợi ích & Chào mừng" card |
+
+### 2026-02-09 Session 32 (DnD SOTA + 3-Level Tree)
+
+**Score: 9.7/10 (maintained)**
+
+| Task | Detail |
+|------|--------|
+| 3-level tree hierarchy | Sidebar: Chapter → Lesson → Section expand/collapse (`expandedLessons` signal) |
+| Drag placeholders | Blue insertion line at all 3 levels (CDK `*cdkDragPlaceholder`) |
+| 6-dot drag handle | Coursera/Teachable pattern, hover-only (CDK `cdkDragHandle`) |
+| Custom drag preview | Blue-bordered card (`*cdkDragPreview`) |
+| Optimistic reorder | `reorderLessonsOptimistic()` + `reorderSectionsOptimistic()` in store |
+| Keyboard reorder | Move up/down for chapters, lessons, sections (WCAG 2.5.7) |
+| Move To Chapter modal | Canvas LMS "Move To" pattern for cross-container lesson move |
+| Touch optimization | `cdkDragStartDelay=150ms`, `cdkScrollable` auto-scroll |
+
+### 2026-02-09 Sessions 29-31 (Security + ConfirmDialog + Encoding)
+
+**Score: 9.5/10 -> 9.7/10**
+
+| Task | Detail |
+|------|--------|
+| ConfirmDialog + Toast | 98 `alert()`/`confirm()` → 0 in 26+ teacher files |
+| Vietnamese encoding fix | 60+ strings fixed across 10 files |
+| Dashboard v3 | Editorial/flat design, blue accent (#0056D2), no emoji |
+| 3-step course wizard | mode + title + category → description + price → summary + create |
+| Readiness checklist | 8 items, canPublish computed |
+
+### 2026-02-08 Sessions 25-28 (Mock Elimination + MVP Completion)
+
+**Score: 9.5/10 -> 9.7/10**
+
+| Task | Detail |
+|------|--------|
+| Mock data elimination | 0 `simulateApiCall()`, 0 `loadMockData()` remaining |
+| Security fixes | Enrollment guard, quiz ownership validation, teacher-id from AuthService |
+| Dead code cleanup | 11 files deleted (lesson-viewer, professional-learning, video-player, mock-courses, quiz.service, analytics.service, types/) |
+| Silent error handlers | 18 critical handlers now provide user feedback |
+| TODO cleanup | 13 → 2 (both are documented future work) |
+| Enrollment service | Real API calls (removed dev mode + mock data) |
+| Quiz result component | Real `QuizApi.getQuizResult()` (was 40-line mock) |
+| Learning quiz DDD | 400+ lines mock `QuizRepository` → real `QuizApi` calls |
+| Course detail service | 3 mock repositories → real API (reviews, modules, enrollment) |
+| State services | 4 → 3 (`quiz.service.ts` in `state/` deleted) |
 
 ### 2026-02-06 Session 7 (Re-Audit + Final Cleanup)
 

@@ -1,4 +1,4 @@
-import { Component, signal, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
+import { Component, signal, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule, isPlatformBrowser, DOCUMENT } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { Title, Meta } from '@angular/platform-browser';
@@ -11,6 +11,7 @@ import { firstValueFrom } from 'rxjs';
 import { StudentEnrollmentService } from '../student/services/enrollment.service';
 import { PaymentModalComponent, CoursePaymentInfo } from '../payment/payment-modal.component';
 import { PaymentService } from '../payment/payment.service';
+import { ToastService } from '../../core/services/toast.service';
 
 /**
  * CourseDetailComponent - Coursera/Udemy-inspired Design (Dec 2025 SOTA)
@@ -25,7 +26,6 @@ import { PaymentService } from '../payment/payment.service';
 @Component({
   selector: 'app-course-detail',
   imports: [CommonModule, RouterModule, PaymentModalComponent],
-  encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './course-detail.component.html'
 })
@@ -55,6 +55,7 @@ export class CourseDetailComponent implements OnInit {
   // Inject services
   private enrollmentService = inject(StudentEnrollmentService);
   private paymentService = inject(PaymentService);
+  private toast = inject(ToastService);
 
   ngOnInit(): void {
     this.route.params.subscribe(params => {
@@ -63,7 +64,7 @@ export class CourseDetailComponent implements OnInit {
 
         // Preload enrollment status for logged-in students
         if (this.authService.isAuthenticated() && this.authService.userRole() === 'student') {
-          this.enrollmentService.loadEnrolledCourses(1, 100).then(() => {
+          this.enrollmentService.loadEnrolledCourses(0, 100).then(() => {
             // Check if student is enrolled in this course
             this.isEnrolled.set(this.enrollmentService.isEnrolledInCourse(params['id']));
           });
@@ -133,7 +134,7 @@ export class CourseDetailComponent implements OnInit {
     try {
       const classes = await this.courseService.getAvailableClasses(courseId);
       if (classes.length === 0) {
-        alert('Hiện tại chưa có lớp nào mở cho khóa học này.');
+        this.toast.warning('Hiện tại chưa có lớp nào mở cho khóa học này.');
       } else if (classes.length === 1) {
         await this.enroll(classes[0].id);
       } else {
@@ -142,7 +143,7 @@ export class CourseDetailComponent implements OnInit {
         this.showClassModal.set(true);
       }
     } catch (e) {
-      alert('Có lỗi xảy ra khi kiểm tra lớp học.');
+      this.toast.error('Có lỗi xảy ra khi kiểm tra lớp học.');
     } finally {
       this.isEnrolling.set(false);
     }
@@ -164,10 +165,10 @@ export class CourseDetailComponent implements OnInit {
 
     try {
       await this.courseService.enrollInCourse(this.course()!.id, user.id, classId);
-      alert('Đăng ký thành công! Chuyển đến trang học.');
+      this.toast.success('Đăng ký thành công! Chuyển đến trang học.');
       this.router.navigate(['/student/learn/course', this.course()!.id]);
     } catch (e: any) {
-      alert('Đăng ký thất bại: ' + (e.error?.message || e.message));
+      this.toast.error('Đăng ký thất bại: ' + (e.error?.message || e.message));
     }
   }
 
@@ -179,6 +180,7 @@ export class CourseDetailComponent implements OnInit {
         this.updateSeo(course);
       }
     } catch (error) {
+      this.toast.error('Không thể tải thông tin khóa học');
     }
   }
 

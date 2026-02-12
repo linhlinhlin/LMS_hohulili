@@ -2,6 +2,7 @@ import { Component, inject, signal, computed, OnInit, ChangeDetectionStrategy } 
 
 import { Router } from '@angular/router';
 import { AssignmentNotificationService, AssignmentNotification } from '../../application/services/assignment-notification.service';
+import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -14,7 +15,7 @@ import { AssignmentNotificationService, AssignmentNotification } from '../../app
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-3">
             <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-              <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-5 h-5 text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zM4.868 12.683A17.925 17.925 0 0112 21c7.962 0 12-1.21 12-2.683m-12 2.683a17.925 17.925 0 01-7.132-8.317M12 21c4.411 0 8-4.03 8-9s-3.589-9-8-9-8 4.03-8 9a9.06 9.06 0 001.832 5.445L4 21l7.868-2.317z"></path>
               </svg>
             </div>
@@ -33,7 +34,7 @@ import { AssignmentNotificationService, AssignmentNotification } from '../../app
           <div class="flex items-center space-x-2">
             @if (unreadCount() > 0) {
               <button (click)="markAllAsRead()"
-                      class="px-3 py-1 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded">
+                      class="px-3 py-1 text-sm text-[#0056D2] hover:text-blue-800 hover:bg-blue-50 rounded">
                 Đánh dấu tất cả đã đọc
               </button>
             }
@@ -98,14 +99,14 @@ import { AssignmentNotificationService, AssignmentNotification } from '../../app
                         <div class="flex items-center space-x-2 ml-4">
                           @if (notification.actionUrl && notification.actionLabel) {
                             <button (click)="handleAction(notification)"
-                                    class="px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100">
+                                    class="px-3 py-1 text-xs font-medium text-[#0056D2] bg-blue-50 border border-blue-200 rounded hover:bg-blue-100">
                               {{ notification.actionLabel }}
                             </button>
                           }
 
                           @if (!notification.read) {
                             <button (click)="markAsRead(notification.id)"
-                                    class="p-1 text-gray-400 hover:text-blue-600 rounded">
+                                    class="p-1 text-gray-400 hover:text-[#0056D2] rounded">
                               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                               </svg>
@@ -154,6 +155,7 @@ import { AssignmentNotificationService, AssignmentNotification } from '../../app
 export class AssignmentNotificationsComponent implements OnInit {
   private notificationService = inject(AssignmentNotificationService);
   private router = inject(Router);
+  private confirmDialog = inject(ConfirmDialogService);
 
   private isExpandedSignal = signal<boolean>(true);
 
@@ -182,11 +184,17 @@ export class AssignmentNotificationsComponent implements OnInit {
     this.notificationService.deleteNotification(notificationId);
   }
 
-  clearAllNotifications(): void {
-    if (confirm('Bạn có chắc muốn xóa tất cả thông báo?')) {
+  async clearAllNotifications(): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Xóa tất cả thông báo',
+      message: 'Bạn có chắc muốn xóa tất cả thông báo?',
+      confirmText: 'Xóa tất cả',
+      cancelText: 'Hủy',
+      variant: 'danger'
+    });
+    if (confirmed) {
       // Clear all notifications
       this.notificationService.clearExpiredNotifications();
-      // In a real implementation, this would clear from the service
     }
   }
 
@@ -205,7 +213,7 @@ export class AssignmentNotificationsComponent implements OnInit {
       case 'graded':
         return 'bg-green-100 text-green-600';
       case 'feedback_received':
-        return 'bg-blue-100 text-blue-600';
+        return 'bg-blue-100 text-[#0056D2]';
       case 'assignment_created':
         return 'bg-purple-100 text-purple-600';
       case 'assignment_updated':

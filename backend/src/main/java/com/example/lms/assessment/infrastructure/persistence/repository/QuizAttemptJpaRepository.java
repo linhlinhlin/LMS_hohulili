@@ -12,7 +12,23 @@ import java.util.UUID;
 @Repository
 public interface QuizAttemptJpaRepository extends JpaRepository<QuizAttemptJpaEntity, UUID> {
     List<QuizAttemptJpaEntity> findByQuizIdAndStudentId(UUID quizId, UUID studentId);
-    
+
     @Query("SELECT qa FROM QuizAttemptJpaEntity qa WHERE qa.quizId = :quizId ORDER BY qa.createdAt DESC")
     List<QuizAttemptJpaEntity> findByQuizIdOrderByCreatedAtDesc(@Param("quizId") UUID quizId);
+
+    @Query("SELECT qa FROM QuizAttemptJpaEntity qa WHERE qa.quizId IN :quizIds ORDER BY qa.createdAt DESC")
+    List<QuizAttemptJpaEntity> findByQuizIdInOrderByCreatedAtDesc(@Param("quizIds") List<UUID> quizIds);
+
+    // === Analytics queries ===
+
+    @Query("SELECT AVG(qa.score / qa.maxScore * 100) FROM QuizAttemptJpaEntity qa WHERE qa.studentId = :studentId AND qa.status = 'GRADED' AND qa.maxScore > 0")
+    Double getAverageScorePercentByStudentId(@Param("studentId") UUID studentId);
+
+    @Query("SELECT qa FROM QuizAttemptJpaEntity qa WHERE qa.studentId = :studentId AND qa.status = 'GRADED' ORDER BY qa.submittedAt DESC")
+    List<QuizAttemptJpaEntity> findGradedByStudentIdOrderBySubmittedAtDesc(@Param("studentId") UUID studentId);
+
+    long countByStudentIdAndStatus(UUID studentId, QuizAttemptJpaEntity.AttemptStatus status);
+
+    @Query("SELECT COUNT(qa) FROM QuizAttemptJpaEntity qa WHERE qa.studentId = :studentId AND qa.status = 'GRADED' AND qa.maxScore > 0 AND qa.score >= qa.maxScore")
+    long countPerfectScoresByStudentId(@Param("studentId") UUID studentId);
 }

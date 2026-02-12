@@ -1,4 +1,4 @@
-﻿
+
     <div class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 min-h-screen">
       <!-- Header -->
       <div class="bg-white shadow-xl border-b border-gray-200">
@@ -10,11 +10,11 @@
                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"></path>
                 </svg>
-                <span>Quay lại</span>
+                <span>Quay l?i</span>
               </button>
               <div>
-                <h1 class="text-3xl font-bold text-gray-900">Chỉnh sửa hồ sơ</h1>
-                <p class="text-gray-600">Cập nhật thông tin cá nhân và tùy chọn</p>
+                <h1 class="text-3xl font-bold text-gray-900">Ch?nh s?a h? so</h1>
+                <p class="text-gray-600">C?p nh?t th�ng tin c� nh�n v� t�y ch?n</p>
               </div>
             </div>
           </div>
@@ -26,17 +26,17 @@
           <div class="space-y-8">
             <!-- Personal Information -->
             <div class="bg-white rounded-2xl shadow-lg p-8">
-              <h2 class="text-xl font-bold text-gray-900 mb-6">đŸ‘¤ Thông tin cá nhân</h2>
+              <h2 class="text-xl font-bold text-gray-900 mb-6">d��� Th�ng tin c� nh�n</h2>
               
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Full Name -->
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Họ và tên *</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">H? v� t�n *</label>
                   <input type="text" 
                          [ngModel]="profile().fullName"
                          (ngModelChange)="updateProfile('fullName', $event)"
                          name="fullName"
-                         class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                         class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-transparent"
                          required>
                 </div>
 
@@ -47,63 +47,63 @@
                          [ngModel]="profile().email"
                          (ngModelChange)="updateProfile('email', $event)"
                          name="email"
-                         class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                         class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-transparent"
                          required>
                 </div>
 
                 <!-- Phone -->
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Số điện thoại</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">S? di?n tho?i</label>
                   <input type="tel" 
                          [ngModel]="profile().phone"
                          (ngModelChange)="updateProfile('phone', $event)"
                          name="phone"
-                         class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                         class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-transparent">
                 </div>
 
                 <!-- Date of Birth -->
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Ngày sinh</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Ng�y sinh</label>
                   <input type="date" 
                          [ngModel]="profile().dateOfBirth"
                          (ngModelChange)="updateProfile('dateOfBirth', $event)"
                          name="dateOfBirth"
-                         class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                         class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-transparent">
                 </div>
 
                 <!-- Address -->
                 <div class="md:col-span-2">
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Địa chỉ</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">�?a ch?</label>
                   <textarea 
                     [ngModel]="profile().address"
                     (ngModelChange)="updateProfile('address', $event)"
                     name="address"
                     rows="3"
-                    class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"></textarea>
+                    class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-transparent resize-none"></textarea>
                 </div>
 
                 <!-- Bio -->
                 <div class="md:col-span-2">
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Giới thiệu bản thân</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Gi?i thi?u b?n th�n</label>
                   <textarea 
                     [ngModel]="profile().bio"
                     (ngModelChange)="updateProfile('bio', $event)"
                     name="bio"
                     rows="4"
-                    placeholder="Viết một vài dòng giới thiệu về bản thân..."
-                    class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"></textarea>
+                    placeholder="Vi?t m?t v�i d�ng gi?i thi?u v? b?n th�n..."
+                    class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-transparent resize-none"></textarea>
                 </div>
               </div>
             </div>
 
             <!-- Learning Preferences -->
             <div class="bg-white rounded-2xl shadow-lg p-8">
-              <h2 class="text-xl font-bold text-gray-900 mb-6">đŸ“ Sở thích học tập</h2>
+              <h2 class="text-xl font-bold text-gray-900 mb-6">d�?� S? th�ch h?c t?p</h2>
               
               <div class="space-y-6">
                 <!-- Interests -->
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Lĩnh vực quan tâm</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Linh v?c quan t�m</label>
                   <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
                     @for (interest of availableInterests(); track interest) {
                       <label class="flex items-center space-x-2 p-3 border border-gray-200 rounded-lg hover:bg-blue-50 cursor-pointer">
@@ -111,7 +111,7 @@
                                [value]="interest"
                                [checked]="profile().interests.includes(interest)"
                                (change)="toggleInterest(interest)"
-                               class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                               class="w-4 h-4 text-[#0056D2] border-gray-300 rounded focus:ring-[#0056D2]">
                         <span class="text-sm text-gray-700">{{ interest }}</span>
                       </label>
                     }
@@ -120,7 +120,7 @@
 
                 <!-- Learning Goals -->
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Mục tiêu học tập</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">M?c ti�u h?c t?p</label>
                   <div class="space-y-3">
                     @for (goal of profile().learningGoals; track $index) {
                       <div class="flex items-center space-x-3">
@@ -128,7 +128,7 @@
                                [ngModel]="profile().learningGoals[$index]"
                                (ngModelChange)="updateLearningGoal($index, $event)"
                                [name]="'goal-' + $index"
-                               class="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                               class="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-transparent">
                         <button type="button" 
                                 (click)="removeLearningGoal($index)"
                                 class="p-3 text-red-600 hover:bg-red-100 rounded-lg transition-colors">
@@ -140,15 +140,15 @@
                     }
                     <button type="button" 
                             (click)="addLearningGoal()"
-                            class="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors">
-                      + Thêm mục tiêu học tập
+                            class="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-600 hover:border-blue-400 hover:text-[#0056D2] transition-colors">
+                      + Th�m m?c ti�u h?c t?p
                     </button>
                   </div>
                 </div>
 
                 <!-- Preferred Subjects -->
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Môn học ưa thích</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">M�n h?c ua th�ch</label>
                   <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
                     @for (subject of availableSubjects(); track subject) {
                       <label class="flex items-center space-x-2 p-3 border border-gray-200 rounded-lg hover:bg-green-50 cursor-pointer">
@@ -167,37 +167,37 @@
 
             <!-- Study Schedule -->
             <div class="bg-white rounded-2xl shadow-lg p-8">
-              <h2 class="text-xl font-bold text-gray-900 mb-6">đŸ“… Lịch học tập</h2>
+              <h2 class="text-xl font-bold text-gray-900 mb-6">d��� L?ch h?c t?p</h2>
               
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Preferred Study Time -->
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Thời gian học ưa thích</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Th?i gian h?c ua th�ch</label>
                   <select [ngModel]="profile().studySchedule.preferredStudyTime"
            (ngModelChange)="updateStudySchedule('preferredStudyTime', $event)" 
                           name="preferredStudyTime"
-                          class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    <option value="morning">Sáng (6:00 - 12:00)</option>
-                    <option value="afternoon">Chiều (12:00 - 18:00)</option>
-                    <option value="evening">Tối (18:00 - 24:00)</option>
-                    <option value="flexible">Linh hoạt</option>
+                          class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-transparent">
+                    <option value="morning">S�ng (6:00 - 12:00)</option>
+                    <option value="afternoon">Chi?u (12:00 - 18:00)</option>
+                    <option value="evening">T?i (18:00 - 24:00)</option>
+                    <option value="flexible">Linh ho?t</option>
                   </select>
                 </div>
 
                 <!-- Study Duration -->
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Thời gian học mỗi ngày (giờ)</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Th?i gian h?c m?i ng�y (gi?)</label>
                   <input type="number" 
                          [ngModel]="profile().studySchedule.studyDuration"
                          (ngModelChange)="updateStudySchedule('studyDuration', $event)"
                          name="studyDuration"
                          min="1" max="12"
-                         class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                         class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-transparent">
                 </div>
 
                 <!-- Study Days -->
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Ngày học trong tuần</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Ng�y h?c trong tu?n</label>
                   <div class="grid grid-cols-2 gap-2">
                     @for (day of studyDays(); track day.value) {
                       <label class="flex items-center space-x-2 p-2 border border-gray-200 rounded-lg hover:bg-purple-50 cursor-pointer">
@@ -214,28 +214,39 @@
 
                 <!-- Break Interval -->
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Thời gian nghỉ (phút)</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Th?i gian ngh? (ph�t)</label>
                 <input type="number" 
                        [ngModel]="profile().studySchedule.breakInterval"
                        (ngModelChange)="updateStudySchedule('breakInterval', $event)"
                        name="breakInterval"
                        min="5" max="60"
-                       class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                       class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-transparent">
                 </div>
               </div>
             </div>
 
             <!-- Social Links -->
             <div class="bg-white rounded-2xl shadow-lg p-8">
-              <h2 class="text-xl font-bold text-gray-900 mb-6">đŸ”— Liên kết xã hội</h2>
+              <h2 class="text-xl font-bold text-gray-900 mb-6">d��� Li�n k?t x� h?i</h2>
               
               <div class="space-y-4">
                  @for (link of profile().socialLinks; track $index) {
                   <div class="flex items-center space-x-4 p-4 bg-gray-50 rounded-xl">
+                    @for (platform of socialPlatforms(); track platform.value) {
+                      @if (platform.value === link.platform) {
+                        <app-icon [name]="platform.icon" size="sm"
+                          [class]="platform.value === 'linkedin' ? 'text-[#004BB5]' :
+                                   platform.value === 'facebook' ? 'text-[#0056D2]' :
+                                   platform.value === 'twitter' ? 'text-sky-500' :
+                                   platform.value === 'instagram' ? 'text-pink-500' :
+                                   platform.value === 'youtube' ? 'text-red-600' :
+                                   'text-gray-800'" />
+                      }
+                    }
                     <select [ngModel]="link.platform"
                             (ngModelChange)="updateSocialLink($index, 'platform', $event)"
                             [name]="'platform-' + $index"
-                            class="px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            class="px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-transparent">
                       @for (platform of socialPlatforms(); track platform.value) {
                         <option [value]="platform.value">{{ platform.label }}</option>
                       }
@@ -245,14 +256,14 @@
                            (ngModelChange)="updateSocialLink($index, 'url', $event)"
                            [name]="'url-' + $index"
                            placeholder="https://..."
-                           class="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                           class="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-transparent">
                     <label class="flex items-center space-x-2">
                       <input type="checkbox" 
                              [ngModel]="link.isPublic"
                              (ngModelChange)="updateSocialLink($index, 'isPublic', $event)"
                              [name]="'isPublic-' + $index"
-                             class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                      <span class="text-sm text-gray-700">Công khai</span>
+                             class="w-4 h-4 text-[#0056D2] border-gray-300 rounded focus:ring-[#0056D2]">
+                      <span class="text-sm text-gray-700">C�ng khai</span>
                     </label>
                     <button type="button" 
                             (click)="removeSocialLink($index)"
@@ -265,15 +276,15 @@
                 }
                 <button type="button" 
                         (click)="addSocialLink()"
-                        class="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors">
-                      + Thêm liên kết xã hội
+                        class="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-600 hover:border-blue-400 hover:text-[#0056D2] transition-colors">
+                      + Th�m li�n k?t x� h?i
                 </button>
               </div>
             </div>
 
             <!-- Notifications -->
             <div class="bg-white rounded-2xl shadow-lg p-8">
-              <h2 class="text-xl font-bold text-gray-900 mb-6">đŸ”” Thông báo</h2>
+              <h2 class="text-xl font-bold text-gray-900 mb-6">d��� Th�ng b�o</h2>
               
               <div class="space-y-4">
                 <label class="flex items-center space-x-3">
@@ -281,8 +292,8 @@
                          [ngModel]="profile().notifications.emailNotifications"
            (ngModelChange)="updateNotifications('emailNotifications', $event)"
                          name="emailNotifications"
-                         class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                  <span class="text-gray-700">Thông báo qua email</span>
+                         class="w-4 h-4 text-[#0056D2] border-gray-300 rounded focus:ring-[#0056D2]">
+                  <span class="text-gray-700">Th�ng b�o qua email</span>
                 </label>
                 
                 <label class="flex items-center space-x-3">
@@ -290,8 +301,8 @@
                          [ngModel]="profile().notifications.pushNotifications"
             (ngModelChange)="updateNotifications('pushNotifications', $event)"
                          name="pushNotifications"
-                         class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                  <span class="text-gray-700">Thông báo đẩy</span>
+                         class="w-4 h-4 text-[#0056D2] border-gray-300 rounded focus:ring-[#0056D2]">
+                  <span class="text-gray-700">Th�ng b�o d?y</span>
                 </label>
                 
                 <label class="flex items-center space-x-3">
@@ -299,8 +310,8 @@
                          [ngModel]="profile().notifications.assignmentReminders"
           (ngModelChange)="updateNotifications('assignmentReminders', $event)"
                          name="assignmentReminders"
-                         class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                  <span class="text-gray-700">Nhắc nhở bài tập</span>
+                         class="w-4 h-4 text-[#0056D2] border-gray-300 rounded focus:ring-[#0056D2]">
+                  <span class="text-gray-700">Nh?c nh? b�i t?p</span>
                 </label>
                 
                 <label class="flex items-center space-x-3">
@@ -308,8 +319,8 @@
                          [ngModel]="profile().notifications.courseUpdates"
                 (ngModelChange)="updateNotifications('courseUpdates', $event)"
                          name="courseUpdates"
-                         class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                  <span class="text-gray-700">Cập nhật khóa học</span>
+                         class="w-4 h-4 text-[#0056D2] border-gray-300 rounded focus:ring-[#0056D2]">
+                  <span class="text-gray-700">C?p nh?t kh�a h?c</span>
                 </label>
                 
                 <label class="flex items-center space-x-3">
@@ -317,26 +328,26 @@
                          [ngModel]="profile().notifications.forumUpdates"
                  (ngModelChange)="updateNotifications('forumUpdates', $event)"
                          name="forumUpdates"
-                         class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                  <span class="text-gray-700">Cập nhật diễn đàn</span>
+                         class="w-4 h-4 text-[#0056D2] border-gray-300 rounded focus:ring-[#0056D2]">
+                  <span class="text-gray-700">C?p nh?t di?n d�n</span>
                 </label>
               </div>
             </div>
 
             <!-- Privacy Settings -->
             <div class="bg-white rounded-2xl shadow-lg p-8">
-              <h2 class="text-xl font-bold text-gray-900 mb-6">đŸ”’ Quyền riêng tư</h2>
+              <h2 class="text-xl font-bold text-gray-900 mb-6">d��� Quy?n ri�ng tu</h2>
               
               <div class="space-y-6">
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Hiển thị hồ sơ</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Hi?n th? h? so</label>
                   <select [ngModel]="profile().privacy.profileVisibility"
                   (ngModelChange)="updatePrivacy('profileVisibility', $event)" 
                           name="profileVisibility"
-                          class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    <option value="public">Công khai</option>
-                    <option value="friends">Bạn bè</option>
-                    <option value="private">Riêng tư</option>
+                          class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-transparent">
+                    <option value="public">C�ng khai</option>
+                    <option value="friends">B?n b�</option>
+                    <option value="private">Ri�ng tu</option>
                   </select>
                 </div>
                 
@@ -346,8 +357,8 @@
                             [ngModel]="profile().privacy.showEmail"
                             (ngModelChange)="updatePrivacy('showEmail', $event)"
                            name="showEmail"
-                           class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                    <span class="text-gray-700">Hiển thị email</span>
+                           class="w-4 h-4 text-[#0056D2] border-gray-300 rounded focus:ring-[#0056D2]">
+                    <span class="text-gray-700">Hi?n th? email</span>
                   </label>
                   
                   <label class="flex items-center space-x-3">
@@ -355,8 +366,8 @@
                             [ngModel]="profile().privacy.showPhone"
                             (ngModelChange)="updatePrivacy('showPhone', $event)"
                            name="showPhone"
-                           class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                    <span class="text-gray-700">Hiển thị số điện thoại</span>
+                           class="w-4 h-4 text-[#0056D2] border-gray-300 rounded focus:ring-[#0056D2]">
+                    <span class="text-gray-700">Hi?n th? s? di?n tho?i</span>
                   </label>
                   
                   <label class="flex items-center space-x-3">
@@ -364,8 +375,8 @@
                            [ngModel]="profile().privacy.showProgress"
                        (ngModelChange)="updatePrivacy('showProgress', $event)"
                            name="showProgress"
-                           class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                    <span class="text-gray-700">Hiển thị tiến độ học tập</span>
+                           class="w-4 h-4 text-[#0056D2] border-gray-300 rounded focus:ring-[#0056D2]">
+                    <span class="text-gray-700">Hi?n th? ti?n d? h?c t?p</span>
                   </label>
                 </div>
               </div>
@@ -375,19 +386,19 @@
             <div class="bg-white rounded-2xl shadow-lg p-8">
               <div class="flex items-center justify-between">
                 <div class="text-sm text-gray-600">
-                  <p>Các thay đổi sẽ được lưu tự động</p>
-                  <p>Thông tin cá nhân sẽ được bảo mật</p>
+                  <p>C�c thay d?i s? du?c luu t? d?ng</p>
+                  <p>Th�ng tin c� nh�n s? du?c b?o m?t</p>
                 </div>
                 
                 <div class="flex space-x-4">
                   <button type="button" 
                           (click)="resetProfile()"
                           class="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                    Đặt lại
+                    �?t l?i
                   </button>
                   <button type="submit" 
-                          class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                    Lưu thay đổi
+                          class="px-6 py-3 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors">
+                    Luu thay d?i
                   </button>
                 </div>
               </div>

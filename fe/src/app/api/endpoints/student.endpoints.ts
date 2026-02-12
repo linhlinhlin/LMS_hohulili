@@ -1,6 +1,6 @@
 /**
  * Student Endpoints - Centralized API paths
- * @see StudentControllerV3, StudentProgressControllerV3
+ * @see StudentEnrollmentControllerV3 @ /api/v3/student
  */
 export const STUDENT_ENDPOINTS = {
     // Base
@@ -10,22 +10,23 @@ export const STUDENT_ENDPOINTS = {
     MY_COURSES: '/api/v3/student/courses/enrolled',
     COURSE_PROGRESS: (courseId: string) => `/api/v3/student/progress/courses/${courseId}`,
     COMPLETED_IDS: (courseId: string) => `/api/v3/student/progress/courses/${courseId}/completed-ids`,
+    NEXT_LESSON: (courseId: string) => `/api/v3/student/progress/courses/${courseId}/next-lesson`,
 
-    // Lessons
+    // Lessons (BE: StudentEnrollmentControllerV3)
     LESSON_PROGRESS: (lessonId: string) => `/api/v3/student/lessons/${lessonId}/progress`,
-    MARK_COMPLETE: (lessonId: string) => `/api/v3/student/lessons/${lessonId}/complete`,
+    MARK_COMPLETE: (lessonId: string) => `/api/v3/student/progress/lessons/${lessonId}/complete`,
 
-    // Assignments
+    // Assignments (BE: StudentEnrollmentControllerV3)
     MY_ASSIGNMENTS: '/api/v3/student/assignments',
     ASSIGNMENT_DETAIL: (assignmentId: string) => `/api/v3/student/assignments/${assignmentId}`,
 
-    // Quizzes
-    MY_QUIZZES: '/api/v3/student/quizzes',
-    QUIZ_DETAIL: (quizId: string) => `/api/v3/student/quizzes/${quizId}`,
-    START_QUIZ: (quizId: string) => `/api/v3/student/quizzes/${quizId}/start`,
-    SUBMIT_QUIZ: (quizId: string) => `/api/v3/student/quizzes/${quizId}/submit`,
-
-    // Grades
+    // Grades (BE: StudentEnrollmentControllerV3)
     MY_GRADES: '/api/v3/student/grades',
-    CLASS_GRADES: (classId: string) => `/api/v3/student/classes/${classId}/grades`,
+
+    // Certificates (BE: StudentEnrollmentControllerV3)
+    MY_CERTIFICATES: '/api/v3/student/certificates',
+    VERIFY_CERTIFICATE: (token: string) => `/api/v3/student/certificates/${token}/verify`,
+
+    // Analytics (BE: StudentAnalyticsControllerV3)
+    ANALYTICS: '/api/v3/student/analytics',
 } as const;

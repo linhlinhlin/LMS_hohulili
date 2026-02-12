@@ -1,13 +1,8 @@
-import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, signal, OnInit, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, signal, OnInit, computed } from '@angular/core';
 
 import { RouterLink } from '@angular/router';
 import { Rubric, validateRubricDeletion } from './utils/rubric-calculator';
-
-interface RubricApi {
-  getRubrics(): { subscribe: (handlers: { next: (res: { data?: Rubric[] }) => void; error: (err: unknown) => void }) => void };
-  deleteRubric(id: string): { subscribe: (handlers: { next: () => void; error: (err: unknown) => void }) => void };
-  getAssignmentRubricIds(): { subscribe: (handlers: { next: (res: { data?: string[] }) => void; error: (err: unknown) => void }) => void };
-}
+import { RubricApi } from '../../../api/endpoints/rubric.api';
 
 /**
  * Rubric Manager Component
@@ -20,7 +15,6 @@ interface RubricApi {
 @Component({
   selector: 'app-rubric-manager',
   imports: [RouterLink],
-  encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="max-w-6xl mx-auto p-6">
@@ -30,7 +24,7 @@ interface RubricApi {
           <h1 class="text-2xl font-bold text-gray-900">Quản lý Rubric</h1>
           <p class="text-gray-600 mt-1">Tạo và quản lý các bảng tiêu chí chấm điểm</p>
         </div>
-        <a routerLink="create" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
+        <a routerLink="create" class="px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] flex items-center gap-2">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
           </svg>
@@ -41,7 +35,7 @@ interface RubricApi {
       <!-- Stats -->
       <div class="grid grid-cols-3 gap-4 mb-6">
         <div class="bg-white rounded-xl shadow-sm border p-4 text-center">
-          <div class="text-2xl font-bold text-blue-600">{{ totalRubrics() }}</div>
+          <div class="text-2xl font-bold text-[#0056D2]">{{ totalRubrics() }}</div>
           <div class="text-sm text-gray-500">Tổng số Rubric</div>
         </div>
         <div class="bg-white rounded-xl shadow-sm border p-4 text-center">
@@ -57,7 +51,7 @@ interface RubricApi {
       <!-- Loading State -->
       @if (loading()) {
         <div class="flex items-center justify-center py-12">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0056D2]"></div>
         </div>
       } @else if (rubrics().length === 0) {
         <!-- Empty State -->
@@ -67,7 +61,7 @@ interface RubricApi {
           </svg>
           <h3 class="text-lg font-medium text-gray-900 mb-2">Chưa có Rubric nào</h3>
           <p class="text-gray-500 mb-4">Tạo rubric đầu tiên để bắt đầu chấm điểm theo tiêu chí</p>
-          <a routerLink="create" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+          <a routerLink="create" class="inline-flex items-center gap-2 px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5]">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
             </svg>
@@ -113,7 +107,7 @@ interface RubricApi {
                   <td class="px-6 py-4 text-sm text-gray-500">{{ formatDate(rubric.createdAt || '') }}</td>
                   <td class="px-6 py-4 text-right">
                     <div class="flex items-center justify-end gap-2">
-                      <a [routerLink]="['edit', rubric.id]" class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg" title="Sửa">
+                      <a [routerLink]="['edit', rubric.id]" class="p-2 text-gray-400 hover:text-[#0056D2] hover:bg-blue-50 rounded-lg" title="Sửa">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                         </svg>
@@ -169,54 +163,62 @@ interface RubricApi {
   `
 })
 export class RubricManagerComponent implements OnInit {
+  private rubricApi = inject(RubricApi);
+
   // State signals
   rubrics = signal<Rubric[]>([]);
   assignmentRubricIds = signal<string[]>([]);
   loading = signal(false);
   error = signal<string | null>(null);
-  
+
   // Delete modal state
   showDeleteModal = signal(false);
   rubricToDelete = signal<Rubric | null>(null);
   deleting = signal(false);
   deleteError = signal<string | null>(null);
-  
+
   // Computed signals
   totalRubrics = computed(() => this.rubrics().length);
   inUseCount = computed(() => this.rubrics().filter((r: Rubric) => r.usageCount && r.usageCount > 0).length);
   unusedCount = computed(() => this.rubrics().filter((r: Rubric) => !r.usageCount || r.usageCount === 0).length);
-  
-  // Mock API (replace with real API injection)
-  private rubricApi: RubricApi = {
-    getRubrics: () => ({ subscribe: (handlers: { next: (res: { data?: Rubric[] }) => void }) => handlers.next({ data: this.getMockRubrics() }) }),
-    deleteRubric: (_id: string) => ({ subscribe: (handlers: { next: () => void }) => handlers.next() }),
-    getAssignmentRubricIds: () => ({ subscribe: (handlers: { next: (res: { data?: string[] }) => void }) => handlers.next({ data: [] }) })
-  };
-  
+
   ngOnInit(): void {
     this.loadRubrics();
   }
-  
+
   loadRubrics(): void {
     this.loading.set(true);
     this.error.set(null);
-    
-    this.rubricApi.getRubrics().subscribe({
-      next: (response: { data?: Rubric[] }) => {
-        this.rubrics.set(response.data || []);
+
+    this.rubricApi.list().subscribe({
+      next: (response: any) => {
+        const data = response?.data || [];
+        const mapped: Rubric[] = data.map((r: any) => ({
+          id: r.id,
+          name: r.title,
+          description: r.description || '',
+          criteria: (r.criteria || []).map((c: any, ci: number) => ({
+            id: `c${ci}`,
+            name: c.name,
+            description: c.description || '',
+            weight: c.maxPoints || 0,
+            levels: (c.levels || []).map((l: any, li: number) => ({
+              id: `l${li}`,
+              name: l.label,
+              description: l.description || '',
+              points: l.points || 0
+            }))
+          })),
+          totalPoints: r.maxPoints || 100,
+          usageCount: r.assignmentId ? 1 : 0,
+          createdAt: r.createdAt
+        }));
+        this.rubrics.set(mapped);
         this.loading.set(false);
       },
       error: () => {
         this.error.set('Không thể tải danh sách rubric');
         this.loading.set(false);
-      }
-    });
-    
-    this.rubricApi.getAssignmentRubricIds().subscribe({
-      next: (response: { data?: string[] }) => {
-        this.assignmentRubricIds.set(response.data || []);
-      },
-      error: () => {
       }
     });
   }
@@ -243,57 +245,26 @@ export class RubricManagerComponent implements OnInit {
   deleteRubric(): void {
     const rubric = this.rubricToDelete();
     if (!rubric) return;
-    
+
     this.deleting.set(true);
     this.deleteError.set(null);
-    
-    this.rubricApi.deleteRubric(rubric.id).subscribe({
+
+    this.rubricApi.delete(rubric.id).subscribe({
       next: () => {
         this.rubrics.update((list: Rubric[]) => list.filter((r: Rubric) => r.id !== rubric.id));
         this.cancelDelete();
         this.deleting.set(false);
       },
-      error: () => {
-        this.deleteError.set('Không thể xóa rubric. Vui lòng thử lại.');
+      error: (err: any) => {
+        this.deleteError.set(err?.error?.message || 'Không thể xóa rubric. Vui lòng thử lại.');
         this.deleting.set(false);
       }
     });
   }
-  
+
   formatDate(dateString: string): string {
     if (!dateString) return '';
     const date = new Date(dateString);
     return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  }
-  
-  // Mock data for development
-  private getMockRubrics(): Rubric[] {
-    return [
-      {
-        id: 'rubric-1',
-        name: 'Rubric Bài tập Hàng hải cơ bản',
-        description: 'Tiêu chí chấm điểm cho các bài tập hàng hải cơ bản',
-        criteria: [
-          { id: 'c1', name: 'Kiến thức', weight: 40, levels: [], description: '' },
-          { id: 'c2', name: 'Kỹ năng', weight: 30, levels: [], description: '' },
-          { id: 'c3', name: 'Thái độ', weight: 30, levels: [], description: '' }
-        ],
-        totalPoints: 100,
-        usageCount: 5,
-        createdAt: '2024-01-15T10:00:00Z'
-      },
-      {
-        id: 'rubric-2',
-        name: 'Rubric Thực hành Mô phỏng',
-        description: 'Tiêu chí chấm điểm cho bài thực hành mô phỏng',
-        criteria: [
-          { id: 'c1', name: 'Thao tác', weight: 50, levels: [], description: '' },
-          { id: 'c2', name: 'An toàn', weight: 50, levels: [], description: '' }
-        ],
-        totalPoints: 100,
-        usageCount: 0,
-        createdAt: '2024-02-20T14:30:00Z'
-      }
-    ];
   }
 }

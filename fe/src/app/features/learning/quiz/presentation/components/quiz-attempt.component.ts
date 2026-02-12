@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, signal, inject, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, inject, ChangeDetectionStrategy } from '@angular/core';
 
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
@@ -18,7 +18,6 @@ import { LoadingComponent } from '../../../../../shared/components/loading/loadi
 @Component({
   selector: 'app-quiz-attempt',
   imports: [RouterModule, ReactiveFormsModule, LoadingComponent],
-  encapsulation: ViewEncapsulation.None,
   template: `
     <!-- Loading State -->
     <app-loading
@@ -44,20 +43,20 @@ import { LoadingComponent } from '../../../../../shared/components/loading/loadi
               <h3 class="text-lg font-semibold text-blue-900 mb-4">Thông tin bài thi</h3>
               <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                 <div>
-                  <div class="text-2xl font-bold text-blue-600">{{ quiz()!.questions.length }}</div>
-                  <div class="text-sm text-blue-700">Câu hỏi</div>
+                  <div class="text-2xl font-bold text-[#0056D2]">{{ quiz()!.questions.length }}</div>
+                  <div class="text-sm text-[#004BB5]">Câu hỏi</div>
                 </div>
                 <div>
-                  <div class="text-2xl font-bold text-blue-600">{{ quiz()!.timeLimit || 'N/A' }}</div>
-                  <div class="text-sm text-blue-700">Phút</div>
+                  <div class="text-2xl font-bold text-[#0056D2]">{{ quiz()!.timeLimit || 'N/A' }}</div>
+                  <div class="text-sm text-[#004BB5]">Phút</div>
                 </div>
                 <div>
-                  <div class="text-2xl font-bold text-blue-600">{{ quiz()!.passingScore }}</div>
-                  <div class="text-sm text-blue-700">Điểm đậu (%)</div>
+                  <div class="text-2xl font-bold text-[#0056D2]">{{ quiz()!.passingScore }}</div>
+                  <div class="text-sm text-[#004BB5]">Điểm đậu (%)</div>
                 </div>
                 <div>
-                  <div class="text-2xl font-bold text-blue-600">{{ quiz()!.totalPoints }}</div>
-                  <div class="text-sm text-blue-700">Tổng điểm</div>
+                  <div class="text-2xl font-bold text-[#0056D2]">{{ quiz()!.totalPoints }}</div>
+                  <div class="text-sm text-[#004BB5]">Tổng điểm</div>
                 </div>
               </div>
             </div>
@@ -75,7 +74,7 @@ import { LoadingComponent } from '../../../../../shared/components/loading/loadi
               <button
                 (click)="startQuiz()"
                 [disabled]="isStarting()"
-                class="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium">
+                class="px-8 py-3 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium">
                 @if (isStarting()) {
                   <span class="inline-flex items-center">
                     <svg class="w-4 h-4 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -124,7 +123,7 @@ import { LoadingComponent } from '../../../../../shared/components/loading/loadi
                 <!-- Progress Bar -->
                 <div class="w-full bg-gray-200 rounded-full h-2 mb-6">
                   <div
-                    class="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    class="bg-[#0056D2] h-2 rounded-full transition-all duration-300"
                     [style.width.%]="progressPercentage()">
                   </div>
                 </div>
@@ -147,7 +146,7 @@ import { LoadingComponent } from '../../../../../shared/components/loading/loadi
                               [value]="option"
                               [checked]="isOptionSelected(option)"
                               (change)="selectAnswer(option)"
-                              class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                              class="w-4 h-4 text-[#0056D2] border-gray-300 focus:ring-[#0056D2]">
                             <span class="ml-3 text-gray-800">{{ option }}</span>
                           </label>
                         }
@@ -163,7 +162,7 @@ import { LoadingComponent } from '../../../../../shared/components/loading/loadi
                             value="true"
                             [checked]="isTrueFalseSelected(true)"
                             (change)="selectAnswer('true')"
-                            class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                            class="w-4 h-4 text-[#0056D2] border-gray-300 focus:ring-[#0056D2]">
                           <span class="ml-3 text-gray-800">Đúng</span>
                         </label>
                         <label class="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
@@ -173,20 +172,20 @@ import { LoadingComponent } from '../../../../../shared/components/loading/loadi
                             value="false"
                             [checked]="isTrueFalseSelected(false)"
                             (change)="selectAnswer('false')"
-                            class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                            class="w-4 h-4 text-[#0056D2] border-gray-300 focus:ring-[#0056D2]">
                           <span class="ml-3 text-gray-800">Sai</span>
                         </label>
                       </div>
                     }
 
-                    @if (currentQuestion()!.type === QuestionType.FILL_BLANK) {
+                    @if (currentQuestion()!.type === QuestionType.FILL_IN_BLANK) {
                       <div>
                         <input
                           type="text"
                           [value]="getFillBlankAnswer()"
                           (input)="updateFillBlankAnswer($event)"
                           placeholder="Nhập câu trả lời của bạn..."
-                          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg">
+                          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2] text-lg">
                       </div>
                     }
                   </div>
@@ -208,7 +207,7 @@ import { LoadingComponent } from '../../../../../shared/components/loading/loadi
                     @if (currentQuestionIndex() < quiz()!.questions.length - 1) {
                       <button
                         (click)="nextQuestion()"
-                        class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        class="px-6 py-3 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors">
                         Câu tiếp
                         <svg class="w-5 h-5 inline ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
@@ -495,7 +494,7 @@ export class QuizAttemptComponent implements OnInit, OnDestroy {
     const isAnswered = question ? this.answers().has(question.id) : false;
 
     if (isCurrent) {
-      return 'bg-blue-600 text-white shadow-lg';
+      return 'bg-[#0056D2] text-white shadow-lg';
     } else if (isAnswered) {
       return 'bg-green-100 text-green-800 border-2 border-green-300';
     } else {

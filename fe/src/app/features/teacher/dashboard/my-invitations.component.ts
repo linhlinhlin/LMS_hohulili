@@ -2,6 +2,8 @@ import { Component, inject, OnInit, signal, ChangeDetectionStrategy } from '@ang
 
 import { RouterModule } from '@angular/router';
 import { CourseInstructorService, InvitationItem } from '../course-editor/services/course-instructor.service';
+import { ToastService } from '../../../core/services/toast.service';
+import { ConfirmDialogService } from '../../../core/services/confirm-dialog.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -20,7 +22,7 @@ import { CourseInstructorService, InvitationItem } from '../course-editor/servic
         <div class="bg-white rounded-lg shadow-sm border border-gray-200">
           @if (isLoading()) {
             <div class="p-12 text-center">
-              <div class="inline-block w-10 h-10 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin"></div>
+              <div class="inline-block w-10 h-10 border-4 border-gray-200 border-t-[#0056D2] rounded-full animate-spin"></div>
               <p class="mt-4 text-sm text-gray-600">Đang tải...</p>
             </div>
           } @else if (invitations().length > 0) {
@@ -34,7 +36,7 @@ import { CourseInstructorService, InvitationItem } from '../course-editor/servic
                         <img [src]="invitation.courseThumbnail" [alt]="invitation.courseName" 
                              class="w-full h-full object-cover">
                       } @else {
-                        <div class="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                        <div class="w-full h-full bg-[#0056D2] flex items-center justify-center">
                           <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                           </svg>
@@ -55,7 +57,7 @@ import { CourseInstructorService, InvitationItem } from '../course-editor/servic
                       <!-- Permissions Preview -->
                       <div class="flex flex-wrap gap-2 mt-2">
                         @if (invitation.permissions.canEditContent) {
-                          <span class="px-2 py-0.5 text-xs bg-blue-50 text-blue-700 rounded">Chỉnh sửa nội dung</span>
+                          <span class="px-2 py-0.5 text-xs bg-blue-50 text-[#004BB5] rounded">Chỉnh sửa nội dung</span>
                         }
                         @if (invitation.permissions.canManageStudents) {
                           <span class="px-2 py-0.5 text-xs bg-green-50 text-green-700 rounded">Quản lý học viên</span>
@@ -73,7 +75,7 @@ import { CourseInstructorService, InvitationItem } from '../course-editor/servic
                         Từ chối
                       </button>
                       <button (click)="acceptInvitation(invitation)"
-                              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                              class="px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors text-sm">
                         Chấp nhận
                       </button>
                     </div>
@@ -90,7 +92,7 @@ import { CourseInstructorService, InvitationItem } from '../course-editor/servic
               <h3 class="text-lg font-medium text-gray-900 mb-2">Không có lời mời</h3>
               <p class="text-sm text-gray-600 mb-4">Khi được mời làm đồng giảng viên, lời mời sẽ hiển thị ở đây</p>
               <a routerLink="/teacher/dashboard" 
-                 class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                 class="inline-flex items-center px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors">
                 Về Dashboard
               </a>
             </div>
@@ -102,6 +104,8 @@ import { CourseInstructorService, InvitationItem } from '../course-editor/servic
 })
 export class MyInvitationsComponent implements OnInit {
   protected instructorService = inject(CourseInstructorService);
+  private toast = inject(ToastService);
+  private confirmDialog = inject(ConfirmDialogService);
 
   // Signals from service
   invitations = this.instructorService.myInvitations;
@@ -112,30 +116,39 @@ export class MyInvitationsComponent implements OnInit {
   }
 
   private loadInvitations(): void {
-    this.instructorService.getMyInvitations().subscribe();
+    this.instructorService.getMyInvitations().subscribe({
+      error: () => this.toast.error('Không thể tải danh sách lời mời')
+    });
   }
 
   acceptInvitation(invitation: InvitationItem): void {
     this.instructorService.acceptInvitation(invitation.id).subscribe({
       next: (response) => {
-        alert(response.message);
+        this.toast.success(response.message);
       },
       error: (error) => {
-        alert('Lỗi: ' + (error.message || 'Không thể chấp nhận lời mời'));
+        this.toast.error('Lỗi: ' + (error.message || 'Không thể chấp nhận lời mời'));
       }
     });
   }
 
-  declineInvitation(invitation: InvitationItem): void {
-    if (confirm('Bạn có chắc muốn từ chối lời mời này?')) {
-      this.instructorService.declineInvitation(invitation.id).subscribe({
-        next: (response) => {
-          alert(response.message);
-        },
-        error: (error) => {
-          alert('Lỗi: ' + (error.message || 'Không thể từ chối lời mời'));
-        }
-      });
-    }
+  async declineInvitation(invitation: InvitationItem): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Từ chối lời mời',
+      message: 'Bạn có chắc muốn từ chối lời mời này?',
+      variant: 'warning',
+      confirmText: 'Từ chối',
+      cancelText: 'Hủy'
+    });
+    if (!confirmed) return;
+
+    this.instructorService.declineInvitation(invitation.id).subscribe({
+      next: (response) => {
+        this.toast.success(response.message);
+      },
+      error: (error) => {
+        this.toast.error('Lỗi: ' + (error.message || 'Không thể từ chối lời mời'));
+      }
+    });
   }
 }

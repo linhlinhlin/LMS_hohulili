@@ -1,11 +1,8 @@
 package com.example.lms.course_authoring.infrastructure.persistence.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
-import org.hibernate.annotations.BatchSize;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -26,12 +23,12 @@ public class CourseJpaEntity {
 
     // Manual boilerplate
     public CourseJpaEntity() {}
-    public CourseJpaEntity(UUID id, String code, String title, String description, CourseStatus status, UUID teacherId, UUID categoryId, Set<String> tags, String welcomeMessage, String courseInformation, String benefits, String introVideoUrl, Integer credits, Visibility visibility, PriceType priceType, BigDecimal price, BigDecimal salePrice, String reviewComment, Instant reviewedAt, UUID reviewedById, Instant createdAt, Instant updatedAt) {
-        this.id = id; this.code = code; this.title = title; this.description = description; this.status = status; this.teacherId = teacherId; this.categoryId = categoryId; this.tags = tags; this.welcomeMessage = welcomeMessage; this.courseInformation = courseInformation; this.benefits = benefits; this.introVideoUrl = introVideoUrl; this.credits = credits; this.visibility = visibility; this.priceType = priceType; this.price = price; this.salePrice = salePrice; this.reviewComment = reviewComment; this.reviewedAt = reviewedAt; this.reviewedById = reviewedById; this.createdAt = createdAt; this.updatedAt = updatedAt;
+    public CourseJpaEntity(UUID id, String code, String title, String description, CourseStatus status, UUID teacherId, UUID categoryId, Set<String> tags, String welcomeMessage, String courseInformation, String benefits, String introVideoUrl, Integer credits, Visibility visibility, PriceType priceType, BigDecimal price, BigDecimal salePrice, DeliveryMode deliveryMode, String reviewComment, Instant reviewedAt, UUID reviewedById, Instant createdAt, Instant updatedAt) {
+        this.id = id; this.code = code; this.title = title; this.description = description; this.status = status; this.teacherId = teacherId; this.categoryId = categoryId; this.tags = tags; this.welcomeMessage = welcomeMessage; this.courseInformation = courseInformation; this.benefits = benefits; this.introVideoUrl = introVideoUrl; this.credits = credits; this.visibility = visibility; this.priceType = priceType; this.price = price; this.salePrice = salePrice; this.deliveryMode = deliveryMode; this.reviewComment = reviewComment; this.reviewedAt = reviewedAt; this.reviewedById = reviewedById; this.createdAt = createdAt; this.updatedAt = updatedAt;
     }
     public static Builder builder() { return new Builder(); }
     public static class Builder {
-        private UUID id; private String code; private String title; private String description; private CourseStatus status = CourseStatus.DRAFT; private UUID teacherId; private UUID categoryId; private Set<String> tags = new HashSet<>(); private String welcomeMessage; private String courseInformation; private String benefits; private String introVideoUrl; private Integer credits; private Visibility visibility = Visibility.PUBLIC; private PriceType priceType = PriceType.FREE; private BigDecimal price; private BigDecimal salePrice; private String reviewComment; private Instant reviewedAt; private UUID reviewedById; private Instant createdAt = Instant.now(); private Instant updatedAt;
+        private UUID id; private String code; private String title; private String description; private CourseStatus status = CourseStatus.DRAFT; private UUID teacherId; private UUID categoryId; private Set<String> tags = new HashSet<>(); private String welcomeMessage; private String courseInformation; private String benefits; private String introVideoUrl; private Integer credits; private Visibility visibility = Visibility.PUBLIC; private PriceType priceType = PriceType.FREE; private BigDecimal price; private BigDecimal salePrice; private DeliveryMode deliveryMode = DeliveryMode.SELF_PACED; private String reviewComment; private Instant reviewedAt; private UUID reviewedById; private Instant createdAt = Instant.now(); private Instant updatedAt;
         public Builder id(UUID id) { this.id = id; return this; }
         public Builder code(String code) { this.code = code; return this; }
         public Builder title(String title) { this.title = title; return this; }
@@ -49,12 +46,13 @@ public class CourseJpaEntity {
         public Builder priceType(PriceType priceType) { this.priceType = priceType; return this; }
         public Builder price(BigDecimal price) { this.price = price; return this; }
         public Builder salePrice(BigDecimal salePrice) { this.salePrice = salePrice; return this; }
+        public Builder deliveryMode(DeliveryMode deliveryMode) { this.deliveryMode = deliveryMode; return this; }
         public Builder reviewComment(String reviewComment) { this.reviewComment = reviewComment; return this; }
         public Builder reviewedAt(Instant reviewedAt) { this.reviewedAt = reviewedAt; return this; }
         public Builder reviewedById(UUID reviewedById) { this.reviewedById = reviewedById; return this; }
         public Builder createdAt(Instant createdAt) { this.createdAt = createdAt; return this; }
         public Builder updatedAt(Instant updatedAt) { this.updatedAt = updatedAt; return this; }
-        public CourseJpaEntity build() { return new CourseJpaEntity(id, code, title, description, status, teacherId, categoryId, tags, welcomeMessage, courseInformation, benefits, introVideoUrl, credits, visibility, priceType, price, salePrice, reviewComment, reviewedAt, reviewedById, createdAt, updatedAt); }
+        public CourseJpaEntity build() { return new CourseJpaEntity(id, code, title, description, status, teacherId, categoryId, tags, welcomeMessage, courseInformation, benefits, introVideoUrl, credits, visibility, priceType, price, salePrice, deliveryMode, reviewComment, reviewedAt, reviewedById, createdAt, updatedAt); }
     }
 
     @Id
@@ -83,7 +81,7 @@ public class CourseJpaEntity {
     @ElementCollection
     @CollectionTable(name = "course_tags", joinColumns = @JoinColumn(name = "course_id"))
     @Column(name = "tag_name")
-    @BatchSize(size = 50) // SOTA: Prevent N+1 when loading multiple courses
+    @Fetch(FetchMode.SUBSELECT)
     private Set<String> tags = new HashSet<>();
 
     @Column(columnDefinition = "TEXT")
@@ -114,6 +112,13 @@ public class CourseJpaEntity {
 
     @Column(name = "sale_price", precision = 19, scale = 2)
     private BigDecimal salePrice;
+
+    @Column(name = "thumbnail_url", length = 500)
+    private String thumbnailUrl;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "delivery_mode", nullable = false)
+    private DeliveryMode deliveryMode = DeliveryMode.SELF_PACED;
 
     @Column(name = "review_comment", columnDefinition = "TEXT")
     private String reviewComment;
@@ -165,6 +170,10 @@ public class CourseJpaEntity {
     public void setPrice(BigDecimal price) { this.price = price; }
     public BigDecimal getSalePrice() { return salePrice; }
     public void setSalePrice(BigDecimal salePrice) { this.salePrice = salePrice; }
+    public String getThumbnailUrl() { return thumbnailUrl; }
+    public void setThumbnailUrl(String thumbnailUrl) { this.thumbnailUrl = thumbnailUrl; }
+    public DeliveryMode getDeliveryMode() { return deliveryMode; }
+    public void setDeliveryMode(DeliveryMode deliveryMode) { this.deliveryMode = deliveryMode; }
     public String getReviewComment() { return reviewComment; }
     public void setReviewComment(String reviewComment) { this.reviewComment = reviewComment; }
     public Instant getReviewedAt() { return reviewedAt; }
@@ -200,9 +209,7 @@ public class CourseJpaEntity {
         DRAFT("Bản nháp"),
         PENDING("Chờ duyệt"),
         APPROVED("Đã duyệt"),
-        REJECTED("Bị từ chối"),
-        PUBLISHED("Đã xuất bản"),
-        ARCHIVED("Lưu trữ");
+        REJECTED("Bị từ chối");
 
         private final String displayName;
 
@@ -237,6 +244,21 @@ public class CourseJpaEntity {
         private final String displayName;
 
         PriceType(String displayName) {
+            this.displayName = displayName;
+        }
+
+        public String getDisplayName() {
+            return displayName;
+        }
+    }
+
+    public enum DeliveryMode {
+        SELF_PACED("Khóa học tự học"),
+        INSTRUCTOR_LED("Lớp học có giảng viên");
+
+        private final String displayName;
+
+        DeliveryMode(String displayName) {
             this.displayName = displayName;
         }
 

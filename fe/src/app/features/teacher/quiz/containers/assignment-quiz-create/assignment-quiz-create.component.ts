@@ -6,11 +6,14 @@ import { QuizApi, CreateAssignmentQuizRequest } from '../../../../../api/endpoin
 import { QuestionApi, Question } from '../../../../../api/endpoints/question.api';
 import { CourseApi, ClassSummary } from '../../../../../api/client/course.api';
 import { QuizFormComponent, QuizFormConfig, QuizFormData } from '../../components/quiz-form/quiz-form.component';
+import { ToastService } from '../../../../../core/services/toast.service';
+import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
+import { IconComponent } from '../../../../../shared/components/icon/icon.component';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
     selector: 'app-assignment-quiz-create',
-    imports: [FormsModule, QuizFormComponent],
+    imports: [FormsModule, QuizFormComponent, IconComponent],
     template: `
     <div class="container mx-auto px-4 py-8">
       <div class="mb-6">
@@ -32,11 +35,11 @@ import { QuizFormComponent, QuizFormConfig, QuizFormData } from '../../component
           <h3 class="text-lg font-semibold text-gray-800 mb-4">Phạm vi giao bài</h3>
           <div class="flex gap-6 mb-4">
             <label class="flex items-center gap-2 cursor-pointer">
-              <input type="radio" name="scope" [value]="'COURSE'" [checked]="scope() === 'COURSE'" (change)="scope.set('COURSE')" class="w-4 h-4 text-blue-600">
+              <input type="radio" name="scope" [value]="'COURSE'" [checked]="scope() === 'COURSE'" (change)="scope.set('COURSE')" class="w-4 h-4 text-[#0056D2]">
               <span>Toàn bộ khóa học</span>
             </label>
             <label class="flex items-center gap-2 cursor-pointer">
-              <input type="radio" name="scope" [value]="'CLASS'" [checked]="scope() === 'CLASS'" (change)="scope.set('CLASS')" class="w-4 h-4 text-blue-600">
+              <input type="radio" name="scope" [value]="'CLASS'" [checked]="scope() === 'CLASS'" (change)="scope.set('CLASS')" class="w-4 h-4 text-[#0056D2]">
               <span>Lớp học cụ thể</span>
             </label>
           </div>
@@ -47,7 +50,7 @@ import { QuizFormComponent, QuizFormConfig, QuizFormData } from '../../component
               <select
                 [value]="selectedClassId()"
                 (change)="selectedClassId.set($any($event.target).value)"
-                class="w-full md:w-1/2 px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-white"
+                class="w-full md:w-1/2 px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-[#0056D2] focus:ring-[#0056D2] bg-white"
                 >
                 <option value="" disabled>-- Chọn lớp --</option>
                 @for (cls of classes(); track cls) {
@@ -58,7 +61,7 @@ import { QuizFormComponent, QuizFormConfig, QuizFormData } from '../../component
               </select>
               @if (classes().length === 0) {
                 <p class="text-orange-500 text-sm mt-2">
-                  ⚠️ Khóa học này chưa có lớp nào đang hoạt động.
+                  <app-icon name="alert" size="sm" class="text-yellow-500"/> Khóa học này chưa có lớp nào đang hoạt động.
                 </p>
               }
             </div>
@@ -80,6 +83,8 @@ export class AssignmentQuizCreateComponent implements OnInit {
     private quizApi = inject(QuizApi);
     private questionApi = inject(QuestionApi);
     private courseApi = inject(CourseApi);
+    private toast = inject(ToastService);
+    private confirmDialog = inject(ConfirmDialogService);
 
     courseId = signal<string>('');
     courseTitle = signal<string>('');
@@ -129,7 +134,7 @@ export class AssignmentQuizCreateComponent implements OnInit {
                     this.courseTitle.set(response.data.title);
                 }
             },
-            error: () => {}
+            error: () => { /* Course title is supplementary */ }
         });
 
         // Load Classes
@@ -137,7 +142,7 @@ export class AssignmentQuizCreateComponent implements OnInit {
             next: (res: any) => {
                 this.classes.set(res.data || []);
             },
-            error: () => {}
+            error: () => { /* Classes are optional for quiz scope */ }
         });
 
         // 2. Load Questions (My Questions)
@@ -152,10 +157,10 @@ export class AssignmentQuizCreateComponent implements OnInit {
         });
     }
 
-    handleSubmit(formData: QuizFormData) {
+    async handleSubmit(formData: QuizFormData) {
         // Validation
         if (this.scope() === 'CLASS' && !this.selectedClassId()) {
-            alert('Vui lòng chọn lớp học!');
+            this.toast.warning('Vui lòng chọn lớp học!');
             return;
         }
 
@@ -179,19 +184,26 @@ export class AssignmentQuizCreateComponent implements OnInit {
 
         this.quizApi.createAssignmentQuizV3(this.courseId(), request)
             .subscribe({
-                next: (response: any) => {
+                next: async (response: any) => {
                     const msg = this.scope() === 'CLASS'
                         ? 'Bài tập cho lớp đã được tạo thành công!'
                         : 'Bài tập khóa học đã được tạo thành công!';
 
-                    if (confirm(msg + ' Bạn có muốn giao bài ngay bây giờ không?')) {
+                    const confirmed = await this.confirmDialog.confirm({
+                        title: 'Tạo bài tập thành công',
+                        message: msg + ' Bạn có muốn giao bài ngay bây giờ không?',
+                        variant: 'info',
+                        confirmText: 'Giao bài ngay',
+                        cancelText: 'Để sau'
+                    });
+                    if (confirmed) {
                         this.router.navigate(['/teacher/quiz/assignments', response.data.id, 'assign']);
                     } else {
                         this.handleCancel();
                     }
                 },
                 error: () => {
-                    alert('Có lỗi xảy ra khi tạo bài tập. Vui lòng thử lại.');
+                    this.toast.error('Có lỗi xảy ra khi tạo bài tập. Vui lòng thử lại.');
                 }
             });
     }

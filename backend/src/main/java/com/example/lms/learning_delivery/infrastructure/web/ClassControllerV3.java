@@ -39,6 +39,83 @@ public class ClassControllerV3 {
     private final EnrollStudentByEmailUseCase enrollStudentByEmailUseCase;
     private final GetClassStudentsUseCase getClassStudentsUseCase;
     private final DropStudentUseCase dropStudentUseCase;
+    private final com.example.lms.learning_delivery.infrastructure.persistence.JpaLearningClassRepository classJpaRepository;
+
+    // ================================================================================================
+    // Course-scoped Class Listing (FE: ClassService)
+    // ================================================================================================
+
+    @Operation(summary = "List classes for a course")
+    @GetMapping("/by-course/{courseId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    public ResponseEntity<ApiResponse<java.util.List<java.util.Map<String, Object>>>> getClassesByCourse(
+            @PathVariable UUID courseId) {
+        var entities = classJpaRepository.findByCourseId(courseId);
+        var result = entities.stream().map(this::toClassMap).toList();
+        return ResponseEntity.ok(ApiResponse.success(result, "Classes loaded"));
+    }
+
+    @Operation(summary = "Search classes for a course (paginated)")
+    @GetMapping("/by-course/{courseId}/search")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    public ResponseEntity<ApiResponse<java.util.Map<String, Object>>> searchClassesByCourse(
+            @PathVariable UUID courseId,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String semester,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        // Use simple findByCourseId when no filters, to avoid JPQL null parameter issues
+        String searchParam = (search != null && !search.isBlank()) ? search : null;
+        com.example.lms.learning_delivery.infrastructure.persistence.entity.LearningClassJpaEntity.ClassStatus statusEnum = null;
+        if (status != null && !status.isBlank()) {
+            try {
+                statusEnum = com.example.lms.learning_delivery.infrastructure.persistence.entity.LearningClassJpaEntity.ClassStatus.valueOf(status);
+            } catch (IllegalArgumentException ignored) {}
+        }
+
+        org.springframework.data.domain.Page<com.example.lms.learning_delivery.infrastructure.persistence.entity.LearningClassJpaEntity> pageResult;
+        if (searchParam == null && statusEnum == null) {
+            // Simple query without filters
+            var allClasses = classJpaRepository.findByCourseId(courseId);
+            int start = Math.min(page * size, allClasses.size());
+            int end = Math.min(start + size, allClasses.size());
+            pageResult = new org.springframework.data.domain.PageImpl<>(
+                    allClasses.subList(start, end),
+                    PageRequest.of(page, size),
+                    allClasses.size());
+        } else {
+            pageResult = classJpaRepository.searchByCourseId(courseId, searchParam, statusEnum, PageRequest.of(page, size));
+        }
+
+        var content = pageResult.getContent().stream().map(this::toClassMap).toList();
+        java.util.Map<String, Object> result = new java.util.LinkedHashMap<>();
+        result.put("content", content);
+        result.put("totalElements", pageResult.getTotalElements());
+        result.put("totalPages", pageResult.getTotalPages());
+        result.put("pageNumber", pageResult.getNumber());
+        result.put("pageSize", pageResult.getSize());
+
+        return ResponseEntity.ok(ApiResponse.success(result, "Classes loaded"));
+    }
+
+    private java.util.Map<String, Object> toClassMap(
+            com.example.lms.learning_delivery.infrastructure.persistence.entity.LearningClassJpaEntity e) {
+        java.util.Map<String, Object> map = new java.util.LinkedHashMap<>();
+        map.put("id", e.getId().toString());
+        map.put("name", e.getName());
+        map.put("code", e.getCode());
+        map.put("courseId", e.getCourseId().toString());
+        map.put("teacherId", e.getTeacherId() != null ? e.getTeacherId().toString() : null);
+        map.put("status", e.getStatus().name());
+        map.put("maxStudents", e.getMaxStudents());
+        map.put("semester", e.getSemester());
+        map.put("startDate", e.getStartDate() != null ? e.getStartDate().toString() : null);
+        map.put("endDate", e.getEndDate() != null ? e.getEndDate().toString() : null);
+        map.put("createdAt", e.getCreatedAt() != null ? e.getCreatedAt().toString() : null);
+        return map;
+    }
 
     // ================================================================================================
     // Class CRUD Endpoints
@@ -46,7 +123,7 @@ public class ClassControllerV3 {
 
     @Operation(summary = "Create a new learning class")
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<UUID>> createClass(
             @jakarta.validation.Valid @RequestBody CreateClassRequest request,
             @AuthenticationPrincipal UserJpaEntity user
@@ -82,7 +159,7 @@ public class ClassControllerV3 {
 
     @Operation(summary = "Update an existing learning class")
     @PutMapping("/{classId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<LearningClassResponse>> updateClass(
             @PathVariable String classId,
             @Valid @RequestBody UpdateClassRequest request
@@ -104,7 +181,7 @@ public class ClassControllerV3 {
 
     @Operation(summary = "Delete a learning class")
     @DeleteMapping("/{classId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<Void>> deleteClass(
             @PathVariable String classId
     ) {
@@ -114,7 +191,7 @@ public class ClassControllerV3 {
 
     @Operation(summary = "Get class by ID")
     @GetMapping("/{classId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<LearningClassResponse>> getClassById(
             @PathVariable String classId
     ) {
@@ -128,7 +205,7 @@ public class ClassControllerV3 {
 
     @Operation(summary = "Enroll student by email")
     @PostMapping("/{classId}/enrollments")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<UUID>> enrollStudent(
             @PathVariable String classId,
             @Valid @RequestBody EnrollStudentRequest request
@@ -147,7 +224,7 @@ public class ClassControllerV3 {
 
     @Operation(summary = "Get students in class")
     @GetMapping("/{classId}/students")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<PageResponse<EnrollmentResponse>>> getClassStudents(
             @PathVariable String classId,
             @RequestParam(defaultValue = "0") int page,
@@ -163,7 +240,7 @@ public class ClassControllerV3 {
 
     @Operation(summary = "Remove student from class")
     @DeleteMapping("/{classId}/enrollments/{studentId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<Void>> removeStudent(
             @PathVariable String classId,
             @PathVariable String studentId

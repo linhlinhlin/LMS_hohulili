@@ -29,7 +29,7 @@ import { ExtendedCourse } from '../../../../shared/types/course.types';
         <!-- Course Price -->
         <div class="absolute top-4 right-4">
           <span class="px-3 py-1 rounded-full text-sm font-semibold bg-white/90 backdrop-blur-sm"
-                [ngClass]="course().price === 0 ? 'text-green-700' : 'text-blue-700'">
+                [ngClass]="course().price === 0 ? 'text-green-700' : 'text-[#004BB5]'">
             {{ getPriceDisplay(course().price) }}
           </span>
         </div>
@@ -39,7 +39,7 @@ import { ExtendedCourse } from '../../../../shared/types/course.types';
           <button 
             (click)="playPreview($event)"
             class="w-16 h-16 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white hover:scale-110 transition-all duration-300 shadow-lg">
-            <svg class="w-6 h-6 text-blue-600 ml-1" fill="currentColor" viewBox="0 0 20 20">
+            <svg class="w-6 h-6 text-[#0056D2] ml-1" fill="currentColor" viewBox="0 0 20 20">
               <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
             </svg>
           </button>
@@ -49,7 +49,7 @@ import { ExtendedCourse } from '../../../../shared/types/course.types';
       <!-- Course Content -->
       <div class="p-6">
         <!-- Course Title -->
-        <h3 class="text-lg font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
+        <h3 class="text-lg font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-[#0056D2] transition-colors">
           {{ course().title }}
         </h3>
         
@@ -96,7 +96,7 @@ import { ExtendedCourse } from '../../../../shared/types/course.types';
         <!-- Action Button -->
         <a 
           [routerLink]="['/courses', course().id]" 
-          class="block w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white text-center py-3 px-4 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-200 transform hover:scale-105">
+          class="block w-full bg-[#0056D2] text-white text-center py-3 px-4 rounded-lg font-semibold hover:bg-[#004BB5] transition-all duration-200 transform hover:scale-105">
           Xem chi tiết
         </a>
       </div>

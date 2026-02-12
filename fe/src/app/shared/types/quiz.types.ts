@@ -31,11 +31,12 @@ export interface Question {
 }
 
 export enum QuestionType {
-  MULTIPLE_CHOICE = 'multiple-choice',
-  TRUE_FALSE = 'true-false',
-  FILL_BLANK = 'fill-blank',
-  SHORT_ANSWER = 'short-answer',
-  ESSAY = 'essay'
+  SINGLE_CHOICE = 'SINGLE_CHOICE',
+  MULTIPLE_CHOICE = 'MULTIPLE_CHOICE',
+  TRUE_FALSE = 'TRUE_FALSE',
+  FILL_IN_BLANK = 'FILL_IN_BLANK',
+  SHORT_ANSWER = 'SHORT_ANSWER',
+  ESSAY = 'ESSAY'
 }
 
 export interface QuizAttempt {

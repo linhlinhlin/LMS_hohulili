@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
 
 import { RouterModule, RouterOutlet, Router, NavigationEnd } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
@@ -13,7 +13,6 @@ import { ChatWidgetComponent } from '../../ai-chat/presentation/components/chat-
 @Component({
   selector: 'app-student-layout-simple',
   imports: [RouterModule, RouterOutlet, SidebarComponent, NotificationBellComponent, ChatWidgetComponent],
-  encapsulation: ViewEncapsulation.None,
   template: `
     <!-- Modern gradient background -->
     <div class="min-h-screen flex flex-col">
@@ -46,7 +45,7 @@ import { ChatWidgetComponent } from '../../ai-chat/presentation/components/chat-
               <div class="flex items-center space-x-3">
                 <!-- Modern hamburger menu -->
                 <button (click)="toggleMobileSidebar()"
-                  class="p-2 rounded-xl text-gray-600 hover:text-gray-900 hover:bg-gray-100/80 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all duration-200">
+                  class="p-2 rounded-xl text-gray-600 hover:text-gray-900 hover:bg-gray-100/80 focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20 transition-all duration-200">
                   <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
                   </svg>
@@ -54,7 +53,7 @@ import { ChatWidgetComponent } from '../../ai-chat/presentation/components/chat-
     
                 <!-- Modern logo/brand -->
                 <div class="flex items-center space-x-2">
-                  <div class="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
+                  <div class="w-8 h-8 bg-[#0056D2] rounded-lg flex items-center justify-center">
                     <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                     </svg>
@@ -72,7 +71,7 @@ import { ChatWidgetComponent } from '../../ai-chat/presentation/components/chat-
     
                 <!-- User avatar and info -->
                 <div class="flex items-center space-x-2">
-                  <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                  <div class="w-8 h-8 bg-[#0056D2] rounded-full flex items-center justify-center text-white text-sm font-medium">
                     {{ getUserInitials() }}
                   </div>
                   <div class="hidden sm:block">
@@ -105,7 +104,7 @@ import { ChatWidgetComponent } from '../../ai-chat/presentation/components/chat-
             <div class="flex items-center justify-around px-2 py-2">
               <!-- Dashboard -->
               <a routerLink="/student"
-                routerLinkActive="text-blue-600"
+                routerLinkActive="text-[#0056D2]"
                 [routerLinkActiveOptions]="{exact: true}"
                 class="flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 min-w-0 flex-1">
                 <div class="w-6 h-6 mb-1">
@@ -137,9 +136,6 @@ import { ChatWidgetComponent } from '../../ai-chat/presentation/components/chat-
                   </svg>
                 </div>
                 <span class="text-xs font-medium">Bài tập</span>
-                <div class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
-                  <span class="text-white text-xs font-bold">2</span>
-                </div>
               </a>
               <!-- Learning -->
               <a routerLink="/student/learn"
@@ -219,7 +215,9 @@ export class StudentLayoutSimpleComponent implements OnInit, OnDestroy {
 
     // Initialize messaging service for unread count
     this.messagingService.setCurrentUserId(userId);
-    this.messagingService.getConversations().subscribe();
+    this.messagingService.getConversations().subscribe({
+      error: () => {} // Non-blocking init — silent fail is acceptable
+    });
 
     // Load sidebar state from localStorage on initialization
     this.loadSidebarState();

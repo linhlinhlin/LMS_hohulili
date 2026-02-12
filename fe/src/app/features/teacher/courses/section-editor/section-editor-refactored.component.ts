@@ -68,11 +68,11 @@ import { ToastService } from '../../../../core/services/toast.service';
         <!-- Header -->
         <div class="mb-8">
           <div class="flex items-center gap-2 text-sm text-gray-500 mb-2">
-            <a [routerLink]="['/teacher/courses']" class="hover:text-blue-600">Khóa học</a>
+            <a [routerLink]="['/teacher/courses']" class="hover:text-[#0056D2]">Khóa học</a>
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
             </svg>
-            <a [routerLink]="['/teacher/courses', state.courseId(), 'editor', 'curriculum']" class="hover:text-blue-600">Nội dung khóa học</a>
+            <a [routerLink]="['/teacher/courses', state.courseId(), 'editor', 'curriculum']" class="hover:text-[#0056D2]">Nội dung khóa học</a>
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
             </svg>
@@ -104,10 +104,10 @@ import { ToastService } from '../../../../core/services/toast.service';
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
               </svg>
               <span class="font-semibold text-gray-900">Danh sách bài học</span>
-              <span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">{{ state.lessonCount() }} bài</span>
+              <span class="px-2 py-0.5 bg-blue-100 text-[#004BB5] text-xs rounded-full">{{ state.lessonCount() }} bài</span>
             </div>
             <button (click)="state.toggleCreateForm()"
-                    class="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+                    class="px-4 py-2 bg-[#0056D2] text-white text-sm rounded-lg hover:bg-[#004BB5] transition-colors flex items-center gap-2">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
               </svg>

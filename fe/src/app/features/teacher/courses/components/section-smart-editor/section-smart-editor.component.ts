@@ -4,17 +4,20 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { SectionApi } from '../../../../../api/client/section.api';
 import { RichTextEditorComponent } from '../../../../../shared/components/rich-text-editor/rich-text-editor.component';
+import { ToastService } from '../../../../../core/services/toast.service';
+import { IconComponent } from '../../../../../shared/components/icon/icon.component';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
     selector: 'app-section-smart-editor',
-    imports: [CommonModule, ReactiveFormsModule, RichTextEditorComponent],
+    imports: [CommonModule, ReactiveFormsModule, RichTextEditorComponent, IconComponent],
     templateUrl: './section-smart-editor.component.html'
 })
 export class SectionSmartEditorComponent {
     private readonly fb = inject(FormBuilder);
     private readonly sectionApi = inject(SectionApi);
     private readonly router = inject(Router);
+    private readonly toast = inject(ToastService);
 
     // Signal inputs (Angular v20+)
     readonly lessonId = input.required<string>();
@@ -46,7 +49,7 @@ export class SectionSmartEditorComponent {
     onCreateQuiz() {
         const lessonIdValue = this.lessonId();
         if (!lessonIdValue) {
-            alert('Không tìm thấy lesson ID');
+            this.toast.warning('Không tìm thấy lesson ID');
             return;
         }
 
@@ -59,7 +62,7 @@ export class SectionSmartEditorComponent {
         this.isSubmitting.set(true);
         const courseIdValue = this.courseId();
         if (!courseIdValue) {
-            alert('Không tìm thấy course ID');
+            this.toast.warning('Không tìm thấy course ID');
             this.isSubmitting.set(false);
             return;
         }
@@ -73,7 +76,7 @@ export class SectionSmartEditorComponent {
             },
             error: () => {
                 this.isSubmitting.set(false);
-                alert('Có lỗi xảy ra khi tạo Section Quiz.');
+                this.toast.error('Có lỗi xảy ra khi tạo Section Quiz.');
             }
         });
     }
@@ -89,7 +92,7 @@ export class SectionSmartEditorComponent {
     submit() {
         if (this.form.invalid) return;
         if (this.selectedType() === 'FILE' && !this.selectedFile) {
-            alert('Vui lòng chọn file!');
+            this.toast.warning('Vui lòng chọn file!');
             return;
         }
 
@@ -109,7 +112,7 @@ export class SectionSmartEditorComponent {
             }
 
             if (!courseIdValue) {
-                alert('Không tìm thấy course ID');
+                this.toast.warning('Không tìm thấy course ID');
                 this.isSubmitting.set(false);
                 return;
             }
@@ -122,7 +125,7 @@ export class SectionSmartEditorComponent {
                 },
                 error: () => {
                     this.isSubmitting.set(false);
-                    alert('Có lỗi xảy ra khi lưu section.');
+                    this.toast.error('Có lỗi xảy ra khi lưu section.');
                 }
             });
         } else {
@@ -139,7 +142,7 @@ export class SectionSmartEditorComponent {
             }
 
             if (!courseIdValue) {
-                alert('Không tìm thấy course ID');
+                this.toast.warning('Không tìm thấy course ID');
                 this.isSubmitting.set(false);
                 return;
             }
@@ -152,7 +155,7 @@ export class SectionSmartEditorComponent {
                 },
                 error: () => {
                     this.isSubmitting.set(false);
-                    alert('Có lỗi xảy ra khi lưu section.');
+                    this.toast.error('Có lỗi xảy ra khi lưu section.');
                 }
             });
         }

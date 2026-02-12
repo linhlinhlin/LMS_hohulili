@@ -1,26 +1,23 @@
-﻿import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
+import { Component, signal, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { AdminService, SystemSettings } from '../../infrastructure/services/admin.service';
-import { LoadingComponent } from '../../../../shared/components/loading/loading.component';
+import { ToastService } from '../../../../core/services/toast.service';
 
 @Component({
   selector: 'app-system-settings',
   imports: [FormsModule],
-  encapsulation: ViewEncapsulation.None,
   templateUrl: './system-settings.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SystemSettingsComponent implements OnInit {
-  protected adminService = inject(AdminService);
+  private adminService = inject(AdminService);
+  private toast = inject(ToastService);
 
   // State
   activeTab = signal<'general' | 'email' | 'payment' | 'security'>('general');
   isSaving = signal(false);
   settings = signal<SystemSettings | null>(null);
-
-  // Computed properties
-  // settings = computed(() => this.adminService.settings()); // Removed, using signal instead
 
   ngOnInit(): void {
     this.loadSettings();
@@ -32,6 +29,7 @@ export class SystemSettingsComponent implements OnInit {
         this.settings.set(settings);
       },
       error: () => {
+        this.toast.error('Không thể tải cài đặt hệ thống');
       }
     });
   }
@@ -46,9 +44,11 @@ export class SystemSettingsComponent implements OnInit {
       this.adminService.updateSettings(this.settings()!).subscribe({
         next: () => {
           this.isSaving.set(false);
+          this.toast.success('Đã lưu cài đặt thành công');
         },
         error: () => {
           this.isSaving.set(false);
+          this.toast.error('Không thể lưu cài đặt. Vui lòng thử lại.');
         }
       });
     } else {
@@ -56,8 +56,7 @@ export class SystemSettingsComponent implements OnInit {
     }
   }
 
-  // Helper methods for updating settings
-  updateGeneralSetting(key: string, value: any): void {
+  updateGeneralSetting(key: string, value: string | number | boolean): void {
     const currentSettings = this.settings();
     if (currentSettings) {
       const updatedSettings = {
@@ -71,7 +70,7 @@ export class SystemSettingsComponent implements OnInit {
     }
   }
 
-  updateEmailSetting(key: string, value: any): void {
+  updateEmailSetting(key: string, value: string | number | boolean): void {
     const currentSettings = this.settings();
     if (currentSettings) {
       const updatedSettings = {
@@ -85,7 +84,7 @@ export class SystemSettingsComponent implements OnInit {
     }
   }
 
-  updatePaymentSetting(key: string, value: any): void {
+  updatePaymentSetting(key: string, value: string | number | boolean): void {
     const currentSettings = this.settings();
     if (currentSettings) {
       const updatedSettings = {
@@ -99,7 +98,7 @@ export class SystemSettingsComponent implements OnInit {
     }
   }
 
-  updateSecuritySetting(key: string, value: any): void {
+  updateSecuritySetting(key: string, value: string | number | boolean): void {
     const currentSettings = this.settings();
     if (currentSettings) {
       const updatedSettings = {
@@ -113,4 +112,3 @@ export class SystemSettingsComponent implements OnInit {
     }
   }
 }
-

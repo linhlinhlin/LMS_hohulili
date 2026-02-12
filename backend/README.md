@@ -1,6 +1,6 @@
 # Maritime LMS Backend
 
-> **Spring Boot 3.2.6 + Java 21 + PostgreSQL 16** | Clean Architecture / DDD | 302 source files | 202 tests
+> **Spring Boot 3.2.6 + Java 21 + PostgreSQL 16** | Clean Architecture / DDD | 381 source files | 522 tests | 215 endpoints
 
 ## Quick Start
 
@@ -18,7 +18,7 @@ docker compose logs api --tail=100
 | Service | URL | Credentials |
 |---------|-----|-------------|
 | API | http://localhost:8088/api/v3 | JWT Bearer |
-| **Swagger UI** | **http://localhost:8088/swagger-ui** | - (114 endpoints documented) |
+| **Swagger UI** | **http://localhost:8088/swagger-ui** | - (215 endpoints documented) |
 | OpenAPI Spec | http://localhost:8088/v3/api-docs | - |
 | pgAdmin | http://localhost:8081 | `admin@devmail.net` / `S3cure!Passw0rd` |
 | PostgreSQL | localhost:5432/lms | `lms` / `lms` |
@@ -27,7 +27,8 @@ docker compose logs api --tail=100
 
 | Role | Email | Password | Full Name |
 |------|-------|----------|-----------|
-| ADMIN | `admin@maritime.edu` | `admin123` | Admin User |
+| ADMIN (System) | `admin@maritime.edu` | `admin123` | Admin User |
+| ORG_ADMIN (Operations) | `orgadmin@maritime.edu` | `orgadmin123` | OrgAdmin User |
 | TEACHER | `teacher@maritime.edu` | `teacher123` | Teacher User |
 | STUDENT | `student@maritime.edu` | `student123` | Student User |
 
@@ -39,14 +40,13 @@ docker compose logs api --tail=100
 
 ```
 com.example.lms/
-├── identity/              # Users, Authentication, Roles (JWT)
-├── course_authoring/      # Course, Chapter, Lesson, ContentBlock, Package, Category
-├── course_management/     # Admin course operations (approve/reject/publish)
-├── learning_delivery/     # LearningClass, Enrollment, Progress
-├── assessment/            # Assignment, Quiz, Question, Submission
-├── communication/         # Messages, Forum, Conversations
+├── identity/              # Users, Authentication, Roles (JWT), Multi-tier Admin
+├── course_authoring/      # Course, Chapter, Lesson, ContentBlock, Package, Category, Review, Admin ops
+├── learning_delivery/     # LearningClass, Enrollment, Progress, Gamification, Analytics, Video, Certificate
+├── assessment/            # Assignment, Quiz, Question, Submission, Rubric, QuestionBank
+├── communication/         # Messages, Conversations
 ├── ai_assistant/          # AI Chat integration (streaming SSE)
-├── shared/                # Value objects, domain events, exceptions, file service
+├── shared/                # Value objects, domain events, exceptions, file service, payment, admin settings
 └── config/                # Security, CORS, JWT filter, rate limiting, R2 storage
 ```
 
@@ -109,7 +109,7 @@ Domain ← Application ← Infrastructure
 - Can be used as Flyway baseline for fresh deployments
 
 **Schema Stats:**
-- **34 tables**: identity (1), course_authoring (8), course_management (1), learning_delivery (3), assessment (12), communication (2), ai_assistant (2), shared (3), security (2)
+- **34 tables**: identity (1), course_authoring (8+1 review), learning_delivery (8 incl. gamification/video/certificate), assessment (12+2 question_bank), communication (2), ai_assistant (2), shared (3+1 payment), security (2)
 - **94 indexes**: 60+ B-tree, 9 partial, 6 BRIN, 12 GIN, 7 unique
 - **54 foreign keys**: CASCADE on children, SET NULL on soft dependencies
 - **All enums validated** at DB level with CHECK constraints
@@ -158,10 +158,10 @@ docker compose ps
 
 ```bash
 mvn test -B
-# Expected: Tests run: 202, Failures: 0, Errors: 0
+# Expected: Tests run: 522, Failures: 0, Errors: 0
 ```
 
-**Coverage**: ~35-40% (target: 50%+)
+**Coverage**: ~49% (target: 60%+)
 
 ---
 
@@ -172,33 +172,45 @@ mvn test -B
 **Access**: http://localhost:8088/swagger-ui
 
 **Features:**
-- ✅ **114 endpoints** fully documented with request/response schemas
-- ✅ **17 API tags** organized by domain module
+- ✅ **215 endpoints** fully documented with request/response schemas
+- ✅ **29 API tags** organized by domain module
 - ✅ **Try it out** - Test endpoints directly from browser
 - ✅ **JWT Authentication** - Built-in authorization testing
 - ✅ **OpenAPI 3.0.1** - Standard specification format
 
-### API Modules (17 tags)
+### API Modules (29 controllers)
 
 | Module | Endpoints | Description |
 |--------|-----------|-------------|
-| **Authentication v3** | 7 | Login, register, JWT refresh, profile |
-| **Course Authoring V3** | 12 | Create/update courses, chapters, lessons |
-| **Course Query V3** | 8 | Public course browsing, search |
-| **Admin - Courses** | 7 | Approve/reject/publish courses |
-| **Admin - Users** | 6 | User management (CRUD) |
-| **Teacher - Courses** | 10 | Teacher course management |
-| **Teacher - Assignments** | 9 | Assignment creation, grading |
-| **Teacher - Students** | 5 | Student enrollment, progress |
-| **Student Enrollment V3** | 6 | Enrollment queries, progress |
-| **Quiz V3** | 11 | Quiz CRUD, attempts, grading |
-| **Question V3** | 8 | Question bank management |
-| **Packages V3** | 5 | Question package organization |
-| **Classes V3** | 7 | Learning class management |
-| **Communication V3** | 5 | Messaging between users |
-| **AI Assistant** | 6 | AI chatbot, sessions, health |
-| **File Upload V3** | 2 | File upload/download (R2) |
-| **Course Authoring Support V3** | 2 | Categories, support endpoints |
+| **Authentication V3** | 8 | Login, register, JWT refresh, profile, forgot-password |
+| **User Management V3** | 13 | User CRUD, role change, enable/disable (ADMIN/ORG_ADMIN) |
+| **Course Authoring V3** | 14 | Create/update courses, chapters, lessons, content blocks |
+| **Course Query V3** | 9 | Public course browsing, search, categories |
+| **Admin - Courses** | 7 | Approve/reject courses, dashboard stats (ADMIN/ORG_ADMIN) |
+| **Teacher - Courses** | 9 | Teacher course management, drafts, students |
+| **Course Review V3** | 5 | Student course reviews/ratings |
+| **Packages V3** | 9 | Question package organization |
+| **Student Enrollment V3** | 13 | Enrollment, progress, certificates, lesson completion |
+| **Classes V3** | 9 | Learning class management, students |
+| **Teacher - Students** | 7 | Student management, assignments, analytics, status |
+| **Gamification V3** | 6 | Achievements, streaks, leaderboard |
+| **Learning Activity V3** | 6 | Learning events, progress tracking |
+| **Video Progress V3** | 5 | Heartbeat, resume position, completion |
+| **Teacher Analytics V3** | 1 | Teacher analytics dashboard |
+| **Student Analytics V3** | 1 | Student analytics dashboard |
+| **Teacher Revenue V3** | 5 | Revenue dashboard, payout history |
+| **Teacher Invitation V3** | 3 | Course co-instructor invitations |
+| **Assignment V3** | 6 | Assignment CRUD, publish, close |
+| **Assignment Submission V3** | 9 | Student submissions + teacher grading |
+| **Quiz V3** | 16 | Quiz CRUD, attempts, grading, timeout |
+| **Question V3** | 6 | Question CRUD |
+| **Question Bank V3** | 15 | Question bank, categories, import/export |
+| **Rubric V3** | 7 | Rubric CRUD, library mode, assign-to-assignment |
+| **Communication V3** | 6 | Messaging between users |
+| **AI Assistant V3** | 11 | AI chatbot, sessions, knowledge management |
+| **File Upload V3** | 3 | File upload/download (R2/local) |
+| **Payment V3** | 4 | VNPay integration, payment callbacks |
+| **Admin Settings V3** | 2 | System settings (ADMIN-only) |
 
 ### OpenAPI Specification
 
@@ -288,36 +300,37 @@ curl -X POST http://localhost:8088/api/v3/teacher/courses \
 
 | Metric | Count |
 |--------|-------|
-| Java source files | 302 |
-| Bounded contexts (modules) | 9 |
-| Domain models | 29 |
-| Use cases | 54 |
-| REST controllers | 17 |
-| REST endpoints | 114 |
-| JPA entities | 29 |
-| Flyway migrations | V26 - V30 + V1 (reference) |
-| Test files | 27 |
-| Test cases | 202 |
+| Java source files | 381 |
+| Bounded contexts (modules) | 8 |
+| Domain models | 38 |
+| Use cases | 64 |
+| REST controllers | 29 |
+| REST endpoints | 215 |
+| JPA entities | 39 |
+| Repository ports | 33 |
+| Flyway migrations | V1 (reference) + V26-V43 (18 incremental) |
+| Test files | 50 |
+| Test cases | 522 (0 failures) |
 | Domain events | 11 |
-| @PreAuthorize annotations | 79 |
+| @PreAuthorize annotations | 163 |
 
 ### Module Breakdown
 
 | Module | Domain Models | Use Cases | Controllers | Endpoints |
 |--------|--------------|-----------|-------------|-----------|
-| identity | User, Role | 5 (Auth, Register, Refresh, UpdateUser) | 2 (Auth, User) | 13 |
-| course_authoring | Course, Chapter, Lesson, Section, ContentBlock, Category, Package | 12 (Create/Approve/Reject Course, Chapter, Lesson, ContentBlock, Package) | 4 (Authoring, Query, Package, Publish) | 20 |
-| course_management | Course, Chapter, Lesson | 4 (Publish, CourseAuthoring, GetDraft) | 3 (Admin, Teacher, Authoring) | 16 |
-| learning_delivery | LearningClass, Enrollment | 9 (Create/Update/Delete Class, Enroll, Drop, Close, Progress) | 3 (Class, Enrollment, TeacherStudent) | 17 |
-| assessment | Assignment, Quiz, Question, Submission | 14 (CRUD + Grading + Attempts) | 3 (Assignment, Quiz, Question) | 26 |
-| communication | Conversation, Message | 3 | 1 | 6 |
-| ai_assistant | ChatSession, KnowledgeDocument | 5 | 1 | 10 |
-| shared | ContentBlock, FileMetadata | 2 (FileManagement) | 1 (FileUpload) | 2 |
+| identity | 2 (User, Role) | 7 | 2 (Auth, User) | 21 |
+| course_authoring | 6 (Course, Chapter, Lesson, ContentBlock, Category, CourseReview) | 23 | 6 (Authoring, Query, Package, AdminCourses, TeacherCourses, CourseReview) | 53 |
+| learning_delivery | 9 (LearningClass, Enrollment, Certificate, VideoProgress, LearningStreak, Achievement, etc.) | 17 | 10 (Class, Enrollment, TeacherStudent, Gamification, Activity, Video, Analytics x2, Revenue, Invitation) | 51 |
+| assessment | 11 (Assignment, Quiz, Question, Submission, Rubric, QuestionBank, etc.) | 14 | 6 (Assignment, Submission, Quiz, Question, QuestionBank, Rubric) | 59 |
+| communication | 4 (Conversation, Message, etc.) | 1 | 1 | 6 |
+| ai_assistant | 3 (ChatSession, KnowledgeDocument, etc.) | 1 | 1 | 11 |
+| shared | 3 (ContentBlock, FileMetadata, PaymentTransaction) | 1 | 3 (FileUpload, Payment, AdminSettings) | 9 |
 | config | - | - | - | - |
+| **TOTAL** | **38** | **64** | **29** | **215** |
 
 ---
 
-## API Reference (118 Endpoints)
+## API Reference (215 Endpoints)
 
 ### Identity Module
 
@@ -360,11 +373,6 @@ DELETE /api/v3/authoring/content-blocks/{blockId}                  # Delete cont
 POST   /api/v3/authoring/courses/{id}/submit                      # Submit for approval
 ```
 
-#### CourseAuthoringController (`/api/v3/authoring`)
-```
-POST   /api/v3/authoring/courses/{courseId}/publish                # Publish course
-```
-
 #### CourseQueryControllerV3 (`/api/v3/courses`)
 ```
 GET    /api/v3/courses                                             # List courses (paginated)
@@ -372,6 +380,10 @@ GET    /api/v3/courses/{id}                                        # Course deta
 GET    /api/v3/courses/{id}/full                                   # Full course with chapters/lessons
 GET    /api/v3/courses/search                                      # Search courses
 GET    /api/v3/courses/categories                                  # List categories
+GET    /api/v3/courses/{id}/reviews                                # Course reviews (public)
+GET    /api/v3/courses/{id}/reviews/summary                         # Review summary (avg, count)
+GET    /api/v3/courses/{id}/enrolled                                # Check enrollment status
+GET    /api/v3/courses/{id}/instructor                              # Course instructor info
 ```
 
 #### PackageControllerV3 (`/api/v3/packages`)
@@ -382,23 +394,37 @@ PUT    /api/v3/packages/{id}                                       # Update pack
 DELETE /api/v3/packages/{id}                                       # Delete package
 ```
 
-### Course Management Module
-
-#### AdminCoursesControllerV3 (`/api/v3/admin/courses`)
+#### AdminCoursesControllerV3 (`/api/v3/admin/courses`) — merged from course_management in S50
 ```
-GET    /api/v3/admin/courses                                       # All courses (ADMIN)
-GET    /api/v3/admin/courses/pending                                # Pending approval (ADMIN)
-POST   /api/v3/admin/courses/{id}/approve                          # Approve course (ADMIN)
-POST   /api/v3/admin/courses/{id}/reject                           # Reject course (ADMIN)
-GET    /api/v3/admin/stats                                         # Dashboard stats (ADMIN)
+GET    /api/v3/admin/courses                                       # All courses (ADMIN/ORG_ADMIN)
+GET    /api/v3/admin/courses/pending                                # Pending approval
+POST   /api/v3/admin/courses/{id}/approve                          # Approve course
+POST   /api/v3/admin/courses/{id}/reject                           # Reject course
+POST   /api/v3/admin/courses/{id}/revoke                           # Revoke approval
+GET    /api/v3/admin/stats                                         # Dashboard stats
+GET    /api/v3/admin/courses/{id}                                  # Course detail (admin view)
 ```
 
-#### TeacherCoursesControllerV3 (`/api/v3/teacher/courses`)
+#### TeacherCoursesControllerV3 (`/api/v3/teacher/courses`) — merged from course_management in S50
 ```
 GET    /api/v3/teacher/courses                                     # My courses (TEACHER)
-GET    /api/v3/teacher/courses/{id}                                 # Course detail (TEACHER)
-GET    /api/v3/teacher/courses/{id}/draft                           # Get draft (TEACHER)
+GET    /api/v3/teacher/courses/{id}                                 # Course detail
+GET    /api/v3/teacher/courses/{id}/draft                           # Get draft
 GET    /api/v3/teacher/courses/{id}/students                        # Course students
+GET    /api/v3/teacher/courses/{id}/stats                           # Course statistics
+GET    /api/v3/teacher/courses/stats/overview                       # Teacher overview stats
+GET    /api/v3/teacher/courses/{id}/enrollments                     # Course enrollments
+GET    /api/v3/teacher/courses/{id}/reviews                         # Course reviews
+GET    /api/v3/teacher/dashboard/stats                              # Dashboard stats
+```
+
+#### CourseReviewControllerV3 (`/api/v3/reviews`)
+```
+POST   /api/v3/reviews                                             # Create review (STUDENT)
+PUT    /api/v3/reviews/{id}                                        # Update review
+DELETE /api/v3/reviews/{id}                                        # Delete review
+GET    /api/v3/reviews/my                                          # My reviews
+GET    /api/v3/reviews/course/{courseId}                             # Reviews by course
 ```
 
 ### Learning Delivery Module
@@ -423,13 +449,80 @@ POST   /api/v3/enrollments                                          # Enroll in 
 DELETE /api/v3/enrollments/{id}                                     # Drop enrollment
 GET    /api/v3/enrollments/{id}/progress                            # Get progress
 PUT    /api/v3/enrollments/{id}/progress                            # Update progress
+POST   /api/v3/enrollments/lessons/{lessonId}/complete               # Mark lesson complete
+GET    /api/v3/enrollments/continue                                  # Continue learning (last position)
+GET    /api/v3/enrollments/certificates                              # My certificates
+POST   /api/v3/enrollments/certificates/issue                        # Issue certificate
+GET    /api/v3/enrollments/certificates/{id}/verify                  # Verify certificate
+GET    /api/v3/enrollments/course/{courseId}                          # Enrollment by course
+GET    /api/v3/enrollments/courses/{courseId}/progress                # Progress by course
+GET    /api/v3/enrollments/check/{courseId}                           # Check if enrolled
 ```
 
 #### TeacherStudentControllerV3 (`/api/v3/teacher/students`)
 ```
 GET    /api/v3/teacher/students                                     # My students (TEACHER)
 GET    /api/v3/teacher/students/{id}                                # Student detail
-POST   /api/v3/teacher/students/{id}/message                        # Message student
+GET    /api/v3/teacher/students/{id}/assignments                    # Student assignments (real DB)
+GET    /api/v3/teacher/students/{id}/analytics                      # Student analytics (real DB)
+PUT    /api/v3/teacher/students/{id}/status                         # Update student status
+POST   /api/v3/teacher/students/{id}/message                        # Message student (stub)
+GET    /api/v3/teacher/students/{id}/export                         # Export report (stub)
+```
+
+#### GamificationControllerV3 (`/api/v3/gamification`)
+```
+GET    /api/v3/gamification/achievements                            # All achievements
+GET    /api/v3/gamification/my-achievements                         # My achievements
+GET    /api/v3/gamification/streak                                  # Current streak
+GET    /api/v3/gamification/leaderboard                             # Leaderboard
+POST   /api/v3/gamification/check-in                                # Daily check-in
+GET    /api/v3/gamification/stats                                   # Gamification stats
+```
+
+#### LearningActivityControllerV3 (`/api/v3/learning-activity`)
+```
+POST   /api/v3/learning-activity/events                             # Record learning event
+GET    /api/v3/learning-activity/events                             # My learning events
+GET    /api/v3/learning-activity/progress                           # Overall progress
+GET    /api/v3/learning-activity/recent                             # Recent activity
+GET    /api/v3/learning-activity/stats                              # Activity statistics
+GET    /api/v3/learning-activity/daily                              # Daily activity
+```
+
+#### VideoProgressControllerV3 (`/api/v3/video-progress`)
+```
+POST   /api/v3/video-progress/heartbeat                             # Video heartbeat (position update)
+GET    /api/v3/video-progress/{lessonId}                             # Get progress for lesson
+GET    /api/v3/video-progress/course/{courseId}                      # All video progress for course
+PUT    /api/v3/video-progress/{lessonId}/complete                    # Mark video complete
+GET    /api/v3/video-progress/resume/{lessonId}                      # Get resume position
+```
+
+#### TeacherAnalyticsControllerV3 (`/api/v3/teacher/analytics`)
+```
+GET    /api/v3/teacher/analytics/dashboard                          # Teacher analytics dashboard
+```
+
+#### StudentAnalyticsControllerV3 (`/api/v3/student/analytics`)
+```
+GET    /api/v3/student/analytics/dashboard                          # Student analytics dashboard
+```
+
+#### TeacherRevenueControllerV3 (`/api/v3/teacher/revenue`)
+```
+GET    /api/v3/teacher/revenue/dashboard                            # Revenue dashboard
+GET    /api/v3/teacher/revenue/transactions                         # Transaction history
+GET    /api/v3/teacher/revenue/payout-history                       # Payout history
+GET    /api/v3/teacher/revenue/stats                                # Revenue statistics
+POST   /api/v3/teacher/revenue/request-payout                       # Request payout (stub)
+```
+
+#### TeacherInvitationControllerV3 (`/api/v3/teacher/invitations`)
+```
+GET    /api/v3/teacher/invitations                                  # My invitations
+POST   /api/v3/teacher/invitations/{id}/accept                      # Accept invitation
+POST   /api/v3/teacher/invitations/{id}/reject                      # Reject invitation
 ```
 
 ### Assessment Module
@@ -470,6 +563,50 @@ POST   /api/v3/questions                                            # Create que
 GET    /api/v3/questions/{id}                                       # Question detail
 PUT    /api/v3/questions/{id}                                       # Update question
 DELETE /api/v3/questions/{id}                                       # Delete question
+POST   /api/v3/questions/import                                     # Import from file (Excel/CSV)
+```
+
+#### QuestionBankControllerV3 (`/api/v3/question-banks`)
+```
+GET    /api/v3/question-banks                                       # List question banks
+POST   /api/v3/question-banks                                       # Create question bank
+GET    /api/v3/question-banks/{id}                                  # Bank detail
+PUT    /api/v3/question-banks/{id}                                  # Update bank
+DELETE /api/v3/question-banks/{id}                                  # Delete bank
+GET    /api/v3/question-banks/{id}/questions                         # Questions in bank
+POST   /api/v3/question-banks/{id}/questions                         # Add question to bank
+DELETE /api/v3/question-banks/{id}/questions/{qId}                   # Remove from bank
+GET    /api/v3/question-banks/categories                             # List categories
+POST   /api/v3/question-banks/categories                             # Create category
+PUT    /api/v3/question-banks/categories/{id}                        # Update category
+DELETE /api/v3/question-banks/categories/{id}                        # Delete category
+POST   /api/v3/question-banks/{id}/import                            # Import questions
+GET    /api/v3/question-banks/{id}/export                            # Export questions
+GET    /api/v3/question-banks/search                                 # Search across banks
+```
+
+#### AssignmentSubmissionControllerV3 (`/api/v3/submissions`)
+```
+POST   /api/v3/submissions                                          # Submit assignment work
+GET    /api/v3/submissions/my                                        # My submissions
+GET    /api/v3/submissions/{id}                                     # Submission detail
+GET    /api/v3/submissions/assignment/{assignmentId}                 # Submissions for assignment
+PUT    /api/v3/submissions/{id}/grade                                # Grade submission (TEACHER)
+PUT    /api/v3/submissions/{id}/feedback                             # Add feedback (TEACHER)
+GET    /api/v3/submissions/student/{studentId}                       # Student submissions (TEACHER)
+POST   /api/v3/submissions/{id}/resubmit                             # Resubmit (STUDENT)
+GET    /api/v3/submissions/stats/{assignmentId}                      # Submission statistics
+```
+
+#### RubricControllerV3 (`/api/v3/rubrics`)
+```
+GET    /api/v3/rubrics                                               # My rubrics (TEACHER)
+POST   /api/v3/rubrics                                               # Create rubric
+GET    /api/v3/rubrics/{id}                                         # Rubric detail
+PUT    /api/v3/rubrics/{id}                                         # Update rubric
+DELETE /api/v3/rubrics/{id}                                         # Delete rubric
+POST   /api/v3/rubrics/{id}/assign/{assignmentId}                    # Assign to assignment
+GET    /api/v3/rubrics/assignment/{assignmentId}                     # Get by assignment
 ```
 
 ### Communication Module
@@ -480,8 +617,8 @@ GET    /api/v3/communication/conversations                          # My convers
 POST   /api/v3/communication/conversations                          # Start conversation
 GET    /api/v3/communication/conversations/{id}/messages             # Get messages
 POST   /api/v3/communication/conversations/{id}/messages             # Send message
-POST   /api/v3/communication/forum/posts                            # Create forum post
-GET    /api/v3/communication/forum/posts                            # List forum posts
+GET    /api/v3/communication/unread-count                            # Unread message count
+PUT    /api/v3/communication/conversations/{id}/read                 # Mark as read
 ```
 
 ### AI Assistant Module
@@ -506,6 +643,21 @@ POST   /api/v3/ai/knowledge/search                                  # Search kno
 ```
 POST   /api/v3/files/upload                                         # Upload file (R2/local)
 GET    /api/v3/files/{filename}                                     # Download file
+POST   /api/v3/files/upload-multiple                                 # Upload multiple files
+```
+
+#### PaymentControllerV3 (`/api/v3/payments`)
+```
+POST   /api/v3/payments/create                                      # Create payment (VNPay)
+GET    /api/v3/payments/callback/vnpay                               # VNPay callback
+GET    /api/v3/payments/my                                           # My payments
+GET    /api/v3/payments/{id}                                        # Payment detail
+```
+
+#### AdminSettingsControllerV3 (`/api/v3/admin/settings`) — ADMIN-only
+```
+GET    /api/v3/admin/settings                                       # Get system settings
+PUT    /api/v3/admin/settings                                       # Update system settings
 ```
 
 ---
@@ -520,19 +672,19 @@ Course ──┬── chapters: List<Chapter>
          │       └── lessons: List<Lesson>
          │               └── contentBlocks: List<ContentBlock>
          ├── code: CourseCode (value object)
-         ├── status: DRAFT → PENDING → APPROVED/REJECTED → PUBLISHED → ARCHIVED
+         ├── status: DRAFT → PENDING → APPROVED/REJECTED
          ├── pricing: FREE/PAID + price/salePrice
          └── visibility: PUBLIC/PRIVATE/UNLISTED
 ```
 
 **Status Lifecycle**:
 ```
-DRAFT ──submit()──> PENDING ──approve()──> APPROVED ──publish()──> PUBLISHED
-                        │                                              │
-                        └──reject()──> REJECTED ──resubmit()──> PENDING
-                                                                       │
-                                                              archive()──> ARCHIVED
+DRAFT ──submit()──> PENDING ──approve()──> APPROVED
+                        │
+                        └──reject(reason)──> REJECTED ──resubmit()──> PENDING
 ```
+
+**Note**: APPROVED courses are immediately visible. No separate PUBLISHED/ARCHIVED states.
 
 #### Assignment (assessment)
 ```
@@ -592,10 +744,13 @@ Enrollment ──┬── status: ACTIVE → COMPLETED/DROPPED/SUSPENDED
 - Access token + Refresh token pattern
 - Token generation via `TokenService` port (application layer)
 
-### Authorization
-- **79 @PreAuthorize annotations** across controllers
-- Roles: `ADMIN`, `TEACHER`, `INSTRUCTOR`, `STUDENT`
+### Authorization (Multi-Tier Admin — S43)
+- **163 @PreAuthorize annotations** across controllers
+- Roles: `ADMIN` (system), `ORG_ADMIN` (operations), `TEACHER`, `STUDENT`
+- **Escalation prevention**: ORG_ADMIN cannot create/modify ADMIN/ORG_ADMIN users
+- **ADMIN-only (3 endpoints)**: DELETE user, DELETE course, admin settings
 - Method-level security with SpEL expressions
+- `@AuthenticationPrincipal UserJpaEntity` pattern (not SecurityContextHolder)
 
 ### Security Hardening
 | Feature | Implementation |
@@ -618,8 +773,8 @@ Enrollment ──┬── status: ACTIVE → COMPLETED/DROPPED/SUSPENDED
 /api/v3/auth/profile, /api/v3/auth/logout
 
 // Role-specific
-/api/v3/admin/**        → ADMIN only
-/api/v3/teacher/**      → TEACHER, INSTRUCTOR, ADMIN
+/api/v3/admin/**        → ADMIN, ORG_ADMIN (except settings: ADMIN only)
+/api/v3/teacher/**      → TEACHER, ADMIN, ORG_ADMIN
 /api/v3/assignments/**  → TEACHER, STUDENT (varies by endpoint)
 ```
 
@@ -644,6 +799,17 @@ Port: 5432 (Docker) / 5432 (local)
 | V28 | Add foreign key constraints |
 | V29 | Complete assignment entities (rubrics, attachments) |
 | V30 | Add 13 missing indexes (chat, assignments, files) |
+| V34 | Question bank categories + question types |
+| V35 | Learning delivery tables (video progress, achievements, streaks, events) |
+| V36 | Certificates, notifications, gamification |
+| V37 | Course review tables |
+| V38 | Payment transactions |
+| V39 | Admin settings |
+| V40 | Multi-tier admin (ORG_ADMIN role + user metadata) |
+| V41 | Rubric library mode (teacher_id + nullable assignment_id) |
+| V42 | Teacher revenue + payout tables |
+| V43 | Teacher invitations |
+| V44 | Seed TEACHER + STUDENT test accounts |
 
 **Note**: Migrations V1-V25 exist in production database history but SQL files are managed externally. V26+ are in `src/main/resources/db/migration/`.
 
@@ -765,45 +931,60 @@ docker compose down -v && docker compose up -d
 ## Testing
 
 ### Current Coverage
-- **202 tests** across 27 test files
-- All passing (BUILD SUCCESS)
-- Estimated line coverage: ~35-40%
+- **522 tests** across 50 test files
+- All passing (BUILD SUCCESS, 0 failures, 0 errors)
+- Estimated line coverage: ~49%
 
-### Test Structure
+### Test Structure (50 files, 522 tests)
 ```
 src/test/java/com/example/lms/
 ├── course_authoring/
-│   ├── domain/model/CourseTest.java          # 18 tests - lifecycle, pricing, chapters
+│   ├── domain/model/CourseTest.java                    # 18 tests - lifecycle, pricing, chapters
 │   └── application/usecase/
-│       ├── CreateCourseUseCaseTest.java       # 6 tests
-│       ├── ApproveCourseUseCaseTest.java      # 5 tests
-│       ├── CreateChapterUseCaseV3Test.java    # 2 tests
-│       ├── CreateLessonUseCaseV3Test.java     # 2 tests
-│       └── ManageContentBlockUseCaseV3Test.java # 7 tests
+│       ├── CreateCourseUseCaseTest.java                 # 6 tests
+│       ├── ApproveCourseUseCaseTest.java                # 5 tests
+│       ├── CreateChapterUseCaseV3Test.java              # 3 tests (incl. ownership)
+│       ├── CreateLessonUseCaseV3Test.java               # 2 tests
+│       └── ManageContentBlockUseCaseV3Test.java         # 7 tests
 ├── assessment/
 │   ├── domain/model/
-│   │   ├── AssignmentTest.java               # 12 tests - lifecycle, validation
-│   │   ├── QuizTest.java                     # 10 tests - publish, questions
-│   │   └── QuestionTest.java                 # 3 tests
+│   │   ├── AssignmentTest.java                         # 12 tests
+│   │   ├── QuizTest.java                               # 10 tests
+│   │   ├── QuestionTest.java                            # 3 tests
+│   │   ├── QuestionBankTest.java                        # tests
+│   │   └── QuestionBankCategoryTest.java                # tests
 │   └── application/usecase/
-│       ├── CreateAssignmentUseCaseV3Test.java # 3 tests
-│       ├── UpdateAssignmentUseCaseV3Test.java # 5 tests
-│       └── UpdateQuestionUseCaseV3Test.java   # 4 tests
+│       ├── CreateAssignmentUseCaseV3Test.java           # 3 tests
+│       ├── UpdateAssignmentUseCaseV3Test.java           # 5 tests
+│       ├── UpdateQuestionUseCaseV3Test.java             # 4 tests
+│       ├── CreateQuestionUseCaseV3Test.java              # tests
+│       ├── QuestionBankManagementUseCaseTest.java        # tests
+│       ├── QuestionImportExportUseCaseTest.java          # tests
+│       ├── QuizAttemptUseCaseTest.java                   # tests (incl. timeout)
+│       └── RubricCrudUseCaseTest.java                    # 8 tests
 ├── identity/
-│   ├── domain/model/UserTest.java            # 5 tests
+│   ├── domain/model/UserTest.java                       # 5 tests (incl. ORG_ADMIN)
 │   └── application/usecase/
-│       ├── AuthenticateUserUseCaseV2Test.java # 7 tests
-│       ├── RegisterUserUseCaseV2Test.java     # 10 tests
-│       └── UpdateUserUseCaseV3Test.java       # 4 tests
+│       ├── AuthenticateUserUseCaseV2Test.java           # 7 tests
+│       ├── RegisterUserUseCaseV2Test.java               # 10 tests
+│       └── UpdateUserUseCaseV3Test.java                  # 4 tests
 ├── learning_delivery/
 │   ├── domain/model/
-│   │   ├── EnrollmentTest.java               # 10 tests - status, progress
-│   │   └── LearningClassTest.java            # 10 tests - status transitions
+│   │   ├── EnrollmentTest.java                          # 10 tests
+│   │   ├── LearningClassTest.java                       # 10 tests
+│   │   ├── VideoProgressTest.java                        # tests (90% threshold)
+│   │   └── CertificateTest.java                          # tests
 │   └── application/usecase/
-│       ├── CreateLearningClassUseCaseV3Test.java # 6 tests
-│       └── EnrollStudentUseCaseV3Test.java       # 6 tests
-└── shared/domain/valueobject/
-    └── EmailTest.java                        # 7 tests
+│       ├── CreateLearningClassUseCaseV3Test.java         # 6 tests
+│       ├── EnrollStudentUseCaseV3Test.java               # 6 tests
+│       ├── TrackVideoProgressUseCaseTest.java            # tests
+│       ├── CertificateUseCaseTest.java                   # 3 tests
+│       ├── GamificationUseCaseTest.java                  # tests
+│       ├── LearningActivityUseCaseTest.java              # tests
+│       └── StudentAnalyticsUseCaseTest.java              # tests
+├── shared/domain/valueobject/
+│   └── EmailTest.java                                    # 7 tests
+└── ArchitectureTest.java                                 # Architecture rules
 ```
 
 ### Test Patterns
@@ -996,12 +1177,12 @@ public ResponseEntity<?> create(@Valid @RequestBody CreateCourseCommand cmd) {
 
 ### Step 4: Database
 1. Create Flyway migration in `src/main/resources/db/migration/V{N}__description.sql`
-2. Version must be next sequential number after V30
+2. Version must be next sequential number after V44
 
 ### Step 5: Testing
 1. Domain model tests (pure logic, no mocks)
 2. Use case tests (@Mock repos, @InjectMocks use case)
-3. Run `mvn test -B` to verify all 202+ tests pass
+3. Run `mvn test -B` to verify all 522+ tests pass
 
 ### Checklist
 - [ ] Domain model has NO framework annotations
@@ -1052,4 +1233,4 @@ docker inspect lms-backend --format='{{.State.Health.Status}}'
 
 ---
 
-*Last updated: 2026-02-06 | 302 files | 202 tests | 118 endpoints*
+*Last updated: 2026-02-12 | 381 files | 522 tests | 215 endpoints | 8 modules | 29 controllers*

@@ -1,11 +1,12 @@
-import { Component, signal, computed, inject, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
+import { Component, signal, inject, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
 
 import { RouterModule, Router, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { IconComponent, IconName } from '../icon/icon.component';
 
 interface NavigationItem {
   label: string;
-  icon: string;
+  icon: IconName;
   route: string;
   badge?: string | number;
   isActive?: boolean;
@@ -14,7 +15,7 @@ interface NavigationItem {
 
 @Component({
   selector: 'app-student-sidebar',
-  imports: [RouterModule, RouterLinkActive],
+  imports: [RouterModule, RouterLinkActive, IconComponent],
   encapsulation: ViewEncapsulation.None,
   templateUrl: './student-sidebar.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -36,50 +37,39 @@ export class StudentSidebarComponent {
   navigationItems = signal<NavigationItem[]>([
     {
       label: 'Dashboard',
-      icon: '🏠',
+      icon: 'home',
       route: '/student/dashboard',
       isActive: false
     },
     {
       label: 'Khóa học của tôi',
-      icon: '📚',
+      icon: 'courses',
       route: '/student/courses',
       isActive: false
     },
     {
       label: 'Bài tập của tôi',
-      icon: '📋',
+      icon: 'blog',
       route: '/student/assignments',
       badge: '3',
       isActive: false
     },
     {
       label: 'Tin nhắn',
-      icon: '💬',
+      icon: 'mail',
       route: '/student/messages',
       isActive: false
     },
     {
       label: 'Phân tích',
-      icon: '📊',
+      icon: 'bar-chart',
       route: '/student/analytics',
       isActive: false
     }
   ]);
 
   getIconBgClass(item: NavigationItem): string {
-    const iconMap: { [key: string]: string } = {
-      '🏠': 'bg-blue-100 text-blue-600',
-      '📚': 'bg-green-100 text-green-600',
-      '🎓': 'bg-purple-100 text-purple-600',
-      '📋': 'bg-orange-100 text-orange-600',
-      '❓': 'bg-indigo-100 text-indigo-600',
-      '💬': 'bg-pink-100 text-pink-600',
-      '📊': 'bg-teal-100 text-teal-600',
-      '🔥': 'bg-red-100 text-red-600',
-      '👤': 'bg-gray-100 text-gray-600'
-    };
-    return iconMap[item.icon] || 'bg-gray-100 text-gray-600';
+    return 'bg-[#0056D2]/10 text-[#0056D2]';
   }
 
   isSubMenuOpen(item: NavigationItem): boolean {

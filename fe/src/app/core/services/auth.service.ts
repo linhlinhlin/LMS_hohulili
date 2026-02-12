@@ -8,6 +8,7 @@ import { ApiResponse } from '../../api/types/common.types';
 
 export enum UserRole {
   ADMIN = 'admin',
+  ORG_ADMIN = 'org_admin',
   TEACHER = 'teacher',
   STUDENT = 'student'
 }

@@ -1,5 +1,6 @@
-import { Component, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { NgOptimizedImage } from '@angular/common';
+import { IconComponent } from '../../../shared/components/icon/icon.component';
 
 interface Testimonial {
   id: string;
@@ -19,8 +20,7 @@ interface Partner {
 
 @Component({
   selector: 'app-social-proof',
-  imports: [NgOptimizedImage],
-  encapsulation: ViewEncapsulation.None,
+  imports: [NgOptimizedImage, IconComponent],
   template: `
     <section class="py-16 bg-white">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -59,18 +59,16 @@ interface Partner {
                 <div>
                   <h4 class="font-semibold text-gray-900">{{ testimonial.name }}</h4>
                   <p class="text-sm text-gray-600">{{ testimonial.role }}</p>
-                  <p class="text-xs text-blue-600">{{ testimonial.company }}</p>
+                  <p class="text-xs text-[#0056D2]">{{ testimonial.company }}</p>
                 </div>
               </div>
               
               <!-- Rating -->
               <div class="flex items-center mb-3">
-                @for (star of [1,2,3,4,5]; track star) {
-                  <span 
-                    class="w-4 h-4 mr-1 text-sm"
-                    [class.text-yellow-400]="star <= testimonial.rating"
-                    [class.text-gray-300]="star > testimonial.rating"
-                  >⭐</span>
+                @for (s of [1,2,3,4,5]; track s) {
+                  <app-icon name="star" size="sm"
+                    [class.text-yellow-400]="s <= testimonial.rating"
+                    [class.text-gray-300]="s > testimonial.rating"/>
                 }
                 <span class="text-sm text-gray-500 ml-2">{{ testimonial.rating }}.0</span>
               </div>
@@ -83,7 +81,7 @@ interface Partner {
         </div>
 
         <!-- Stats Section -->
-        <div class="mt-16 bg-gradient-to-r from-blue-600 to-blue-800 rounded-2xl p-8 text-white">
+        <div class="mt-16 bg-[#0056D2] rounded-2xl p-8 text-white">
           <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             <div class="group">
               <div class="text-4xl font-bold mb-2 group-hover:scale-110 transition-transform duration-200">

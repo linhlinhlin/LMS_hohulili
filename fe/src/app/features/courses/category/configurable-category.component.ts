@@ -8,12 +8,13 @@ import { CategoryTrendsComponent } from './shared/category-trends.component';
 import { Meta, Title } from '@angular/platform-browser';
 import { PLATFORM_ID } from '@angular/core';
 import { CATEGORY_CONFIGS } from './category.configs';
+import { IconName } from '../../../shared/components/icon/icon.component';
 
 export interface CategoryConfig {
   id: string;
   title: string;
   subtitle: string;
-  iconEmoji: string;
+  iconEmoji: IconName;
   brandColor: 'blue' | 'green' | 'amber' | 'indigo' | 'rose' | 'cyan';
   gradientFrom: string;
   gradientVia: string;
@@ -72,7 +73,7 @@ export interface CareerCard {
 }
 
 export interface TrendCard {
-  icon: string;
+  icon: IconName;
   title: string;
   highlight: string;
   description: string;

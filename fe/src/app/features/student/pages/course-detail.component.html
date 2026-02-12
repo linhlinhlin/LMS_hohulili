@@ -215,6 +215,90 @@
         </div>
       </section>
       }
+
+      <!-- Reviews Section -->
+      <section class="reviews-card">
+        <div class="reviews-header">
+          <h2 class="section-title">Đánh giá khóa học</h2>
+          <div class="review-summary-inline">
+            <span class="avg-rating">{{ reviewSummary().averageRating }}</span>
+            <span class="star-display">
+              @for (s of starArray; track s) {
+                <span [class.filled]="s <= reviewSummary().averageRating">&#9733;</span>
+              }
+            </span>
+            <span class="review-count">({{ reviewSummary().totalReviews }} đánh giá)</span>
+          </div>
+        </div>
+
+        <!-- My review / Review form -->
+        @if (myReview() && !showReviewForm()) {
+          <div class="my-review-card">
+            <div class="my-review-header">
+              <span class="my-review-label">Đánh giá của bạn</span>
+              <div class="my-review-actions">
+                <button class="btn-sm btn-edit" (click)="showReviewForm.set(true)">Sửa</button>
+                <button class="btn-sm btn-delete" (click)="deleteMyReview()">Xóa</button>
+              </div>
+            </div>
+            <div class="my-review-stars">
+              @for (s of starArray; track s) {
+                <span class="star" [class.filled]="s <= myReview()!.rating">&#9733;</span>
+              }
+            </div>
+            @if (myReview()!.comment) {
+              <p class="my-review-comment">{{ myReview()!.comment }}</p>
+            }
+          </div>
+        } @else {
+          @if (showReviewForm() || !myReview()) {
+            <div class="review-form">
+              <div class="review-form-stars">
+                @for (s of starArray; track s) {
+                  <button class="star-btn" [class.filled]="s <= reviewRating()" (click)="setRating(s)">&#9733;</button>
+                }
+              </div>
+              <textarea class="review-textarea"
+                [ngModel]="reviewComment()"
+                (ngModelChange)="reviewComment.set($event)"
+                placeholder="Nhận xét của bạn (tùy chọn)"
+                rows="3"></textarea>
+              <div class="review-form-actions">
+                <button class="btn-primary btn-sm" (click)="submitReview()" [disabled]="reviewSubmitting()">
+                  {{ reviewSubmitting() ? 'Đang gửi...' : 'Gửi đánh giá' }}
+                </button>
+                @if (showReviewForm()) {
+                  <button class="btn-sm btn-cancel" (click)="showReviewForm.set(false)">Hủy</button>
+                }
+              </div>
+            </div>
+          }
+        }
+
+        <!-- Reviews List -->
+        @if (reviews().length > 0) {
+          <div class="reviews-list">
+            @for (review of reviews(); track review.id) {
+              <div class="review-item">
+                <div class="review-item-header">
+                  <span class="reviewer-name">{{ review.studentName || 'Học viên' }}</span>
+                  <span class="review-date">{{ review.createdAt | date:'dd/MM/yyyy' }}</span>
+                </div>
+                <div class="review-item-stars">
+                  @for (s of starArray; track s) {
+                    <span class="star-sm" [class.filled]="s <= review.rating">&#9733;</span>
+                  }
+                </div>
+                @if (review.comment) {
+                  <p class="review-item-comment">{{ review.comment }}</p>
+                }
+              </div>
+            }
+          </div>
+        } @else {
+          <p class="no-reviews">Chưa có đánh giá nào</p>
+        }
+      </section>
     </div>
 
     <!-- Right Column: Course Content -->
@@ -270,8 +354,8 @@
                     <span class="lesson-title">{{ lesson.title }}</span>
                     <div class="lesson-meta">
                       @if (isLocked) {
-                      <span class="lesson-locked-badge">🔒 Cần thanh toán</span>
-                      } @else if (globalIndex < FREE_LESSONS_COUNT && !hasPaid()) { <span class="lesson-free-badge">✅
+                      <span class="lesson-locked-badge"><app-icon name="lock" size="xs" class="mr-1"/> Cần thanh toán</span>
+                      } @else if (globalIndex < FREE_LESSONS_COUNT && !hasPaid()) { <span class="lesson-free-badge"><app-icon name="circle-check" size="xs" class="mr-1"/>
                         Miễn phí</span>
                         }
                         @if (lesson.sections && lesson.sections.length > 0) {

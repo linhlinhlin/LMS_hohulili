@@ -30,8 +30,6 @@ export class NotificationService {
 
   show(notification: Omit<Notification, 'id' | 'timestamp' | 'read'>): string {
     const id = this.generateId();
-    // Vô hiệu hóa hiển thị thông báo để tránh popup
-    /*
     const newNotification: Notification = {
       ...notification,
       id,
@@ -40,18 +38,13 @@ export class NotificationService {
     };
 
     this._notifications.update(notifications => [newNotification, ...notifications]);
-    */
-    // Vô hiệu hóa hiển thị
-    // this._isVisible.set(true);
+    this._isVisible.set(true);
 
-    // Auto-hide if duration is specified
-    /*
     if (notification.duration && notification.duration > 0) {
       setTimeout(() => {
         this.hide(id);
       }, notification.duration);
     }
-    */
 
     return id;
   }

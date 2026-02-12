@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, ViewEncapsulation, input, output, signal, computed, inject } from '@angular/core';
+import { Component, ChangeDetectionStrategy, input, output, signal, computed, inject } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { FileUploadService, FileUploadOptions, UploadProgress } from '../../services/file-upload.service';
@@ -15,7 +15,6 @@ export interface FileUploadConfig {
 @Component({
   selector: 'app-file-upload',
   imports: [FormsModule],
-  encapsulation: ViewEncapsulation.None,
   template: `
     <div class="file-upload-container">
       <!-- Drop Zone -->
@@ -96,7 +95,7 @@ export interface FileUploadConfig {
                   </div>
                   <div class="w-full bg-gray-200 rounded-full h-2">
                     <div
-                      class="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                      class="bg-[#0056D2] h-2 rounded-full transition-all duration-300"
                       [style.width.%]="progress.progress"
                       [class.bg-green-600]="progress.status === 'completed'"
                       [class.bg-red-600]="progress.status === 'error'">
@@ -136,7 +135,7 @@ export interface FileUploadConfig {
                         <a
                           [href]="file.url"
                           target="_blank"
-                          class="text-blue-600 hover:text-blue-800 text-sm">
+                          class="text-[#0056D2] hover:text-blue-800 text-sm">
                           Xem
                         </a>
                       }

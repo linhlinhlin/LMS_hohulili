@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { enrollmentGuard } from '../../core/guards/enrollment.guard';
 
 export const learningRoutes: Routes = [
   {
@@ -11,32 +12,28 @@ export const learningRoutes: Routes = [
     redirectTo: '/student/my-courses',
     pathMatch: 'full'
   },
-  // New Learning Interface (Refactored)
+  // New Learning Interface - Enrollment required (Coursera/edX pattern)
   {
     path: 'course/:courseId',
     loadComponent: () => import('./pages/course-learning.component').then(m => m.CourseLearningComponent),
+    canActivate: [enrollmentGuard],
     title: 'Khóa học - LMS Maritime'
   },
   {
     path: 'course/:courseId/lesson/:lessonId',
     loadComponent: () => import('./pages/course-learning.component').then(m => m.CourseLearningComponent),
+    canActivate: [enrollmentGuard],
     title: 'Bài học - LMS Maritime'
-  },
-  // Legacy route for backward compatibility (will be removed later)
-  {
-    path: 'course/:id',
-    redirectTo: 'course/:id',
-    pathMatch: 'full'
   },
   {
     path: 'planner',
     loadComponent: () => import('./components/study-planner.component').then(m => m.StudyPlannerComponent),
-    title: 'Study Planner - LMS Maritime'
+    title: 'Kế hoạch học tập - LMS Maritime'
   },
   {
     path: 'calendar',
     loadComponent: () => import('./components/learning-calendar.component').then(m => m.LearningCalendarComponent),
-    title: 'Learning Calendar - LMS Maritime'
+    title: 'Lịch học tập - LMS Maritime'
   },
   {
     path: 'notes',
@@ -46,17 +43,17 @@ export const learningRoutes: Routes = [
   {
     path: 'bookmarks',
     loadComponent: () => import('./components/bookmark-system.component').then(m => m.BookmarkSystemComponent),
-    title: 'Bookmarks - LMS Maritime'
+    title: 'Dấu trang - LMS Maritime'
   },
 
   {
     path: 'learning-paths',
     loadComponent: () => import('./components/personalized-learning-paths.component').then(m => m.PersonalizedLearningPathsComponent),
-    title: 'Learning Paths - LMS Maritime'
+    title: 'Lộ trình học tập - LMS Maritime'
   },
   {
     path: 'learning-path/:id',
     loadComponent: () => import('./components/learning-path-detail.component').then(m => m.LearningPathDetailComponent),
-    title: 'Learning Path Detail - LMS Maritime'
+    title: 'Chi tiết lộ trình - LMS Maritime'
   }
 ];

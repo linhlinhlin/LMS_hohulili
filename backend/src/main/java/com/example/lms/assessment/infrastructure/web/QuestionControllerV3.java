@@ -3,7 +3,9 @@ package com.example.lms.assessment.infrastructure.web;
 import com.example.lms.assessment.application.usecase.CreateQuestionUseCaseV3;
 import com.example.lms.assessment.application.usecase.UpdateQuestionUseCaseV3;
 import com.example.lms.assessment.domain.model.Question;
+import com.example.lms.assessment.domain.repository.QuestionRepository;
 import com.example.lms.assessment.infrastructure.persistence.entity.QuestionJpaEntity;
+import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.assessment.infrastructure.persistence.repository.QuestionJpaRepository;
 import com.example.lms.shared.domain.model.ContentBlock;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
@@ -13,12 +15,14 @@ import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import jakarta.validation.Valid;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -30,87 +34,93 @@ public class QuestionControllerV3 {
 
     private final CreateQuestionUseCaseV3 createQuestionUseCase;
     private final UpdateQuestionUseCaseV3 updateQuestionUseCase;
-    private final QuestionJpaRepository questionRepository;
+    private final QuestionRepository questionRepository;
+    private final QuestionJpaRepository questionJpaRepository; // Only for Excel import (infra concern)
+
+    // ============== Response DTOs ==============
+
+    public record QuestionSummaryResponse(
+            String id,
+            String content,
+            String difficulty,
+            String questionType,
+            String tags,
+            String correctOption,
+            String createdAt,
+            String status
+    ) {}
+
+    public record QuestionDetailResponse(
+            String id,
+            String content,
+            List<ContentBlock> contentBlocks,
+            String difficulty,
+            String questionType,
+            String tags,
+            String correctOption,
+            Map<String, Object> answerKey,
+            String createdAt,
+            String updatedAt,
+            String status,
+            List<QuestionOptionResponse> options
+    ) {}
+
+    public record QuestionOptionResponse(
+            String id,
+            String optionKey,
+            String content,
+            List<ContentBlock> contentBlocks,
+            Integer displayOrder
+    ) {}
+
+    // ============== Endpoints ==============
 
     @GetMapping("/my-questions")
-    @PreAuthorize("hasAnyRole('TEACHER', 'INSTRUCTOR', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Operation(summary = "Get questions created by current user")
-    public ResponseEntity<ApiResponse<List<java.util.Map<String, Object>>>> getMyQuestions() {
-        UUID userId;
-        try {
-            var authentication = SecurityContextHolder.getContext().getAuthentication();
-            if (authentication != null && authentication.getPrincipal() instanceof com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity) {
-                userId = ((com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity) authentication.getPrincipal()).getId();
-            } else {
-                throw new RuntimeException("User not found in context");
-            }
-        } catch (Exception e) {
-             throw new RuntimeException("Failed to retrieve authenticated user: " + e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<List<QuestionSummaryResponse>>> getMyQuestions(
+            @AuthenticationPrincipal UserJpaEntity currentUser) {
+        UUID userId = currentUser.getId();
 
-        var questions = questionRepository.findAllByCreatedBy(userId);
-        List<java.util.Map<String, Object>> result = questions.stream().map(q -> {
-            java.util.Map<String, Object> map = new java.util.HashMap<>();
-            map.put("id", q.getId().toString());
-            String contentText = extractTextFromBlocks(q.getContentBlocks());
-            map.put("content", contentText);
-            map.put("difficulty", q.getDifficulty() != null ? q.getDifficulty().name() : "MEDIUM");
-            map.put("tags", q.getTags());
-            map.put("correctOption", q.getCorrectOption());
-            map.put("createdAt", q.getCreatedAt() != null ? q.getCreatedAt().toString() : null);
-            map.put("status", q.getStatus() != null ? q.getStatus().name() : "ACTIVE");
-            return map;
-        }).toList();
-        
+        List<Question> questions = questionRepository.findAllByCreatedBy(userId);
+        List<QuestionSummaryResponse> result = questions.stream()
+                .map(this::toSummaryResponse)
+                .toList();
+
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'INSTRUCTOR', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Transactional(readOnly = true)
     @Operation(summary = "Get question by ID")
-    public ResponseEntity<ApiResponse<java.util.Map<String, Object>>> getQuestionById(@PathVariable UUID id) {
-        var question = questionRepository.findById(id)
+    public ResponseEntity<ApiResponse<QuestionDetailResponse>> getQuestionById(@PathVariable UUID id) {
+        Question question = questionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Question not found: " + id));
-        
-        java.util.Map<String, Object> result = new java.util.HashMap<>();
-        result.put("id", question.getId().toString());
-        result.put("content", extractTextFromBlocks(question.getContentBlocks()));
-        result.put("contentBlocks", question.getContentBlocks());
-        result.put("difficulty", question.getDifficulty() != null ? question.getDifficulty().name() : "MEDIUM");
-        result.put("tags", question.getTags());
-        result.put("correctOption", question.getCorrectOption());
-        result.put("createdAt", question.getCreatedAt() != null ? question.getCreatedAt().toString() : null);
-        result.put("updatedAt", question.getUpdatedAt() != null ? question.getUpdatedAt().toString() : null);
-        result.put("status", question.getStatus() != null ? question.getStatus().name() : "ACTIVE");
-        
-        // Map options
-        if (question.getOptions() != null) {
-            var options = question.getOptions().stream().map(opt -> {
-                java.util.Map<String, Object> optMap = new java.util.HashMap<>();
-                optMap.put("id", opt.getId() != null ? opt.getId().toString() : null);
-                optMap.put("optionKey", opt.getKey());
-                optMap.put("content", extractTextFromBlocks(opt.getContentBlocks()));
-                optMap.put("contentBlocks", opt.getContentBlocks());
-                optMap.put("displayOrder", opt.getOrderIndex());
-                return optMap;
-            }).toList();
-            result.put("options", options);
-        }
-        
-        return ResponseEntity.ok(ApiResponse.success(result));
+
+        return ResponseEntity.ok(ApiResponse.success(toDetailResponse(question)));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'INSTRUCTOR', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Operation(summary = "Update question by ID")
-    public ResponseEntity<ApiResponse<java.util.Map<String, Object>>> updateQuestion(
+    public ResponseEntity<ApiResponse<Map<String, Object>>> updateQuestion(
             @PathVariable UUID id,
             @Valid @RequestBody UpdateQuestionRequest request) {
+
+        // Resolve question type
+        Question.QuestionType questionType = null;
+        if (request.questionType() != null) {
+            try {
+                questionType = Question.QuestionType.valueOf(request.questionType().toUpperCase());
+            } catch (IllegalArgumentException ignored) { }
+        }
 
         var command = new UpdateQuestionUseCaseV3.Command(
                 request.blocks(),
                 request.correctOption(),
+                request.answerKey(),
+                questionType,
                 request.options(),
                 request.difficulty(),
                 request.tags(),
@@ -118,17 +128,15 @@ public class QuestionControllerV3 {
         );
         updateQuestionUseCase.execute(id, command);
 
-        java.util.Map<String, Object> result = new java.util.HashMap<>();
-        result.put("id", id.toString());
-        result.put("message", "Question updated successfully");
-
-        return ResponseEntity.ok(ApiResponse.success(result));
+        return ResponseEntity.ok(ApiResponse.success(
+                Map.of("id", id.toString(), "message", "Question updated successfully")));
     }
 
     public record UpdateQuestionRequest(
             List<ContentBlock> blocks,
-            @NotNull(message = "Correct option is required")
             String correctOption,
+            Map<String, Object> answerKey,
+            String questionType,
             List<String> options,
             Question.Difficulty difficulty,
             String tags,
@@ -136,52 +144,38 @@ public class QuestionControllerV3 {
     ) {}
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'INSTRUCTOR', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Operation(summary = "Delete question by ID")
-    public ResponseEntity<ApiResponse<java.util.Map<String, Object>>> deleteQuestion(@PathVariable UUID id) {
-        var question = questionRepository.findById(id)
+    public ResponseEntity<ApiResponse<Map<String, String>>> deleteQuestion(@PathVariable UUID id) {
+        questionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Question not found: " + id));
-        
-        questionRepository.delete(question);
-        
-        java.util.Map<String, Object> result = new java.util.HashMap<>();
-        result.put("message", "Question deleted successfully");
-        
-        return ResponseEntity.ok(ApiResponse.success(result));
+
+        questionRepository.deleteById(id);
+
+        return ResponseEntity.ok(ApiResponse.success(Map.of("message", "Question deleted successfully")));
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('TEACHER', 'INSTRUCTOR', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Operation(summary = "Create a new question")
-    public ResponseEntity<ApiResponse<UUID>> createQuestion(@Valid @RequestBody CreateQuestionRequest request) {
-        UUID userId;
-        try {
-            var authentication = SecurityContextHolder.getContext().getAuthentication();
-            if (authentication != null && authentication.getPrincipal() instanceof com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity) {
-                userId = ((com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity) authentication.getPrincipal()).getId();
-            } else {
-                // Fallback for simple user details if not Entity
-                 // This might fail if principal is just a string, but JwtAuthenticationFilter loads UserJpaEntity
-                throw new RuntimeException("User not found in context");
-            }
-        } catch (Exception e) {
-             throw new RuntimeException("Failed to retrieve authenticated user: " + e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<UUID>> createQuestion(
+            @AuthenticationPrincipal UserJpaEntity currentUser,
+            @Valid @RequestBody CreateQuestionRequest request) {
+        UUID userId = currentUser.getId();
 
         return ResponseEntity.ok(ApiResponse.success(createQuestionUseCase.execute(mapToCommand(request, userId))));
     }
 
     private CreateQuestionUseCaseV3.Command mapToCommand(CreateQuestionRequest request, UUID userId) {
         List<CreateQuestionUseCaseV3.OptionCommand> optionCommands = new java.util.ArrayList<>();
-        String[] keys = {"A", "B", "C", "D", "E", "F"}; // Standard keys
-        
-        // Use optionBlocks if available (rich text), otherwise use options (plain text)
+        String[] keys = {"A", "B", "C", "D", "E", "F"};
+
         if (request.optionBlocks() != null && !request.optionBlocks().isEmpty()) {
             int index = 0;
             for (List<ContentBlock> blocks : request.optionBlocks()) {
                 String key = (index < keys.length) ? keys[index] : "?";
                 boolean isCorrect = key.equals(request.correctOption());
-                
+
                 optionCommands.add(CreateQuestionUseCaseV3.OptionCommand.builder()
                         .contentBlocks(blocks)
                         .isCorrect(isCorrect)
@@ -190,19 +184,16 @@ public class QuestionControllerV3 {
                         .build());
                 index++;
             }
-        } 
-        // Fallback or legacy support for simple string options
-        else if (request.options() != null) {
+        } else if (request.options() != null) {
              int index = 0;
              for (String optText : request.options()) {
                 String key = (index < keys.length) ? keys[index] : "?";
                 boolean isCorrect = key.equals(request.correctOption());
-                
-                // Convert string to simple ContentBlock
+
                 java.util.Map<String, Object> data = new java.util.HashMap<>();
                 data.put("text", optText);
                 ContentBlock block = ContentBlock.create("text", data);
-                
+
                 optionCommands.add(CreateQuestionUseCaseV3.OptionCommand.builder()
                         .contentBlocks(List.of(block))
                         .isCorrect(isCorrect)
@@ -212,17 +203,39 @@ public class QuestionControllerV3 {
                 index++;
              }
         }
-        
-        // Map JPA enum to domain enum
+
         Question.Difficulty domainDifficulty = request.difficulty() != null
                 ? Question.Difficulty.valueOf(request.difficulty().name())
                 : Question.Difficulty.MEDIUM;
 
+        Question.QuestionType questionType = Question.QuestionType.SINGLE_CHOICE;
+        if (request.questionType() != null) {
+            try {
+                questionType = Question.QuestionType.valueOf(request.questionType().toUpperCase());
+            } catch (IllegalArgumentException ignored) {}
+        }
+
+        java.util.Map<String, Object> answerKey = request.answerKey();
+        if (answerKey == null && request.correctOption() != null) {
+            answerKey = java.util.Map.of("correctOption", request.correctOption());
+        }
+
+        // Auto-convert content string to contentBlocks if blocks not provided
+        List<ContentBlock> questionBlocks = request.blocks();
+        if ((questionBlocks == null || questionBlocks.isEmpty())
+                && request.content() != null && !request.content().isBlank()) {
+            java.util.Map<String, Object> textData = new java.util.HashMap<>();
+            textData.put("text", request.content());
+            questionBlocks = List.of(ContentBlock.create("text", textData));
+        }
+
         return CreateQuestionUseCaseV3.Command.builder()
-                .contentBlocks(request.blocks())
+                .contentBlocks(questionBlocks)
                 .difficulty(domainDifficulty)
                 .tags(request.tags())
+                .questionType(questionType)
                 .correctOption(request.correctOption())
+                .answerKey(answerKey)
                 .createdBy(userId)
                 .packageId(request.packageId())
                 .options(optionCommands)
@@ -230,12 +243,13 @@ public class QuestionControllerV3 {
     }
 
     public record CreateQuestionRequest(
-            String content, // unused in favor of blocks
+            String content,
             List<ContentBlock> blocks,
-            @NotNull(message = "Correct option is required")
             String correctOption,
-            List<String> options, // simple text options?
-            List<List<ContentBlock>> optionBlocks, // rich text options
+            java.util.Map<String, Object> answerKey,
+            String questionType,
+            List<String> options,
+            List<List<ContentBlock>> optionBlocks,
             QuestionJpaEntity.Difficulty difficulty,
             String tags,
             @NotNull(message = "Package ID is required")
@@ -245,24 +259,15 @@ public class QuestionControllerV3 {
     // ===================== EXCEL IMPORT =====================
 
     @PostMapping("/import/excel")
-    @PreAuthorize("hasAnyRole('TEACHER', 'INSTRUCTOR', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Operation(summary = "Import questions from Excel file")
     public ResponseEntity<ApiResponse<ExcelImportResult>> importFromExcel(
+            @AuthenticationPrincipal UserJpaEntity currentUser,
             @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
             @RequestParam("packageId") UUID packageId,
             @RequestParam("difficulty") QuestionJpaEntity.Difficulty difficulty) {
-        
-        UUID userId;
-        try {
-            var authentication = SecurityContextHolder.getContext().getAuthentication();
-            if (authentication != null && authentication.getPrincipal() instanceof com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity) {
-                userId = ((com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity) authentication.getPrincipal()).getId();
-            } else {
-                throw new RuntimeException("User not found in context");
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to retrieve authenticated user: " + e.getMessage());
-        }
+
+        UUID userId = currentUser.getId();
 
         int successCount = 0;
         int failedCount = 0;
@@ -270,92 +275,77 @@ public class QuestionControllerV3 {
 
         try (java.io.InputStream is = file.getInputStream();
              org.apache.poi.ss.usermodel.Workbook workbook = org.apache.poi.ss.usermodel.WorkbookFactory.create(is)) {
-            
+
             org.apache.poi.ss.usermodel.Sheet sheet = workbook.getSheetAt(0);
-            
-            // Skip header row (row 0), start from row 1
+
             for (int rowNum = 1; rowNum <= sheet.getLastRowNum(); rowNum++) {
                 org.apache.poi.ss.usermodel.Row row = sheet.getRow(rowNum);
                 if (row == null) continue;
-                
+
                 try {
-                    // Column layout: A=Question, B=Option A, C=Option B, D=Option C, E=Option D, F=Correct Answer
                     String questionText = getCellValue(row.getCell(0));
                     String optionA = getCellValue(row.getCell(1));
                     String optionB = getCellValue(row.getCell(2));
                     String optionC = getCellValue(row.getCell(3));
                     String optionD = getCellValue(row.getCell(4));
                     String correctAnswer = getCellValue(row.getCell(5));
-                    
+
                     if (questionText == null || questionText.isBlank()) {
-                        continue; // Skip empty rows
+                        continue;
                     }
-                    
-                    // Validate correct answer
+
                     if (correctAnswer == null || !correctAnswer.matches("[A-Da-d]")) {
                         errors.add("Row " + (rowNum + 1) + ": Invalid correct answer '" + correctAnswer + "'");
                         failedCount++;
                         continue;
                     }
-                    
-                    // Create ContentBlocks for question
+
                     java.util.Map<String, Object> questionData = new java.util.HashMap<>();
                     questionData.put("text", questionText);
                     ContentBlock questionBlock = ContentBlock.create("paragraph", questionData);
-                    
-                    // Create options
+
                     String[] optionTexts = {optionA, optionB, optionC, optionD};
                     String[] optionKeys = {"A", "B", "C", "D"};
                     String normalizedCorrect = correctAnswer.toUpperCase();
-                    
-                    java.util.List<com.example.lms.assessment.infrastructure.persistence.entity.QuestionOptionJpaEntity> options = new java.util.ArrayList<>();
+
+                    List<Question.QuestionOption> options = new java.util.ArrayList<>();
                     for (int i = 0; i < 4; i++) {
                         if (optionTexts[i] == null || optionTexts[i].isBlank()) continue;
-                        
+
                         java.util.Map<String, Object> optData = new java.util.HashMap<>();
                         optData.put("text", optionTexts[i]);
                         ContentBlock optBlock = ContentBlock.create("text", optData);
-                        
-                        var optEntity = com.example.lms.assessment.infrastructure.persistence.entity.QuestionOptionJpaEntity.builder()
-                                .key(optionKeys[i])
-                                .contentBlocks(java.util.List.of(optBlock))
-                                .isCorrect(optionKeys[i].equals(normalizedCorrect))
-                                .orderIndex(i)
-                                .build();
-                        options.add(optEntity);
+
+                        options.add(Question.QuestionOption.create(optionKeys[i], List.of(optBlock), i));
                     }
-                    
-                    // Create question entity
-                    var questionEntity = QuestionJpaEntity.builder()
-                            .contentBlocks(java.util.List.of(questionBlock))
+
+                    Question question = Question.builder()
+                            .contentBlocks(List.of(questionBlock))
+                            .questionType(Question.QuestionType.SINGLE_CHOICE)
                             .correctOption(normalizedCorrect)
-                            .difficulty(difficulty)
-                            .status(QuestionJpaEntity.Status.ACTIVE)
+                            .answerKey(Map.of("correctOption", normalizedCorrect))
+                            .difficulty(Question.Difficulty.valueOf(difficulty.name()))
+                            .status(Question.Status.ACTIVE)
                             .createdBy(userId)
                             .packageId(packageId)
                             .options(options)
                             .build();
-                    
-                    // Set bidirectional relationship
-                    for (var opt : options) {
-                        opt.setQuestion(questionEntity);
-                    }
-                    
-                    questionRepository.save(questionEntity);
+
+                    questionRepository.save(question);
                     successCount++;
-                    
-                } catch (Exception e) {
+
+                } catch (IllegalArgumentException | IllegalStateException e) {
                     errors.add("Row " + (rowNum + 1) + ": " + e.getMessage());
                     failedCount++;
                 }
             }
-        } catch (Exception e) {
+        } catch (java.io.IOException | org.apache.poi.ooxml.POIXMLException e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("IMPORT_ERROR", "Failed to read Excel file: " + e.getMessage()));
         }
 
-        ExcelImportResult result = new ExcelImportResult(successCount, failedCount, successCount + failedCount, errors, 
+        ExcelImportResult result = new ExcelImportResult(successCount, failedCount, successCount + failedCount, errors,
                 successCount > 0 ? "Imported " + successCount + " questions successfully" : "No questions imported");
-        
+
         return ResponseEntity.ok(ApiResponse.success(result, result.message()));
     }
 
@@ -377,7 +367,52 @@ public class QuestionControllerV3 {
             String message
     ) {}
 
-    private String extractTextFromBlocks(java.util.List<com.example.lms.shared.domain.model.ContentBlock> blocks) {
+    // ============== Helpers ==============
+
+    private QuestionSummaryResponse toSummaryResponse(Question q) {
+        return new QuestionSummaryResponse(
+                q.getId().toString(),
+                extractTextFromBlocks(q.getContentBlocks()),
+                q.getDifficulty() != null ? q.getDifficulty().name() : "MEDIUM",
+                q.getQuestionType() != null ? q.getQuestionType().name() : "SINGLE_CHOICE",
+                q.getTags(),
+                q.getCorrectOption(),
+                q.getCreatedAt() != null ? q.getCreatedAt().toString() : null,
+                q.getStatus() != null ? q.getStatus().name() : "ACTIVE"
+        );
+    }
+
+    private QuestionDetailResponse toDetailResponse(Question q) {
+        List<QuestionOptionResponse> optionResponses = null;
+        if (q.getOptions() != null) {
+            optionResponses = q.getOptions().stream()
+                    .map(opt -> new QuestionOptionResponse(
+                            opt.getId() != null ? opt.getId().toString() : null,
+                            opt.getKey(),
+                            extractTextFromBlocks(opt.getContentBlocks()),
+                            opt.getContentBlocks(),
+                            opt.getOrderIndex()
+                    ))
+                    .toList();
+        }
+
+        return new QuestionDetailResponse(
+                q.getId().toString(),
+                extractTextFromBlocks(q.getContentBlocks()),
+                q.getContentBlocks(),
+                q.getDifficulty() != null ? q.getDifficulty().name() : "MEDIUM",
+                q.getQuestionType() != null ? q.getQuestionType().name() : "SINGLE_CHOICE",
+                q.getTags(),
+                q.getCorrectOption(),
+                q.getAnswerKey(),
+                q.getCreatedAt() != null ? q.getCreatedAt().toString() : null,
+                q.getUpdatedAt() != null ? q.getUpdatedAt().toString() : null,
+                q.getStatus() != null ? q.getStatus().name() : "ACTIVE",
+                optionResponses
+        );
+    }
+
+    private String extractTextFromBlocks(List<ContentBlock> blocks) {
         if (blocks == null || blocks.isEmpty()) {
             return "";
         }
@@ -394,4 +429,3 @@ public class QuestionControllerV3 {
         return sb.toString();
     }
 }
-

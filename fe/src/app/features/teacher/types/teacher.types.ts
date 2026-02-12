@@ -1,15 +1,20 @@
 export interface TeacherCourse {
   id: string;
+  code?: string;
   title: string;
   description: string;
   shortDescription?: string;
   category: string;
+  /** Mapped status for backward compat */
   status: 'active' | 'draft' | 'archived';
+  /** Original backend status (DRAFT, PENDING, APPROVED, REJECTED, PUBLISHED, ARCHIVED) */
+  originalStatus: string;
   enrolledStudents: number;
   rating: number;
   revenue?: number;
   thumbnail?: string;
   level?: 'beginner' | 'intermediate' | 'advanced';
+  deliveryMode?: string;
   duration?: string;
   price?: number;
   modules?: number;
@@ -20,7 +25,7 @@ export interface TeacherCourse {
     type: string;
     description: string;
   };
-  students?: number; // Alias for enrolledStudents for compatibility
+  students?: number;
   createdAt: string;
   updatedAt: string;
 }

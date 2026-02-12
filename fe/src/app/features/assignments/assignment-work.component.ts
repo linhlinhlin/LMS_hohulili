@@ -1,14 +1,18 @@
-﻿import { Component, signal, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
+﻿import { Component, signal, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
 import { AssignmentApi, AssignmentDetail, SubmissionDetail, CreateSubmissionRequest } from '../../api/client/assignment.api';
+import { ApiClient } from '../../api/client/api-client';
+import { STUDENT_ENDPOINTS } from '../../api/endpoints/student.endpoints';
+import { FileApi } from '../../api/client/file.api';
+import { firstValueFrom } from 'rxjs';
+import { ToastService } from '../../core/services/toast.service';
 
 @Component({
   selector: 'app-assignment-work',
   imports: [RouterModule, FormsModule],
-  encapsulation: ViewEncapsulation.None,
   templateUrl: './assignment-work.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -17,6 +21,9 @@ export class AssignmentWorkComponent implements OnInit {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private assignmentApi = inject(AssignmentApi);
+  private apiClient = inject(ApiClient);
+  private fileApi = inject(FileApi);
+  private toast = inject(ToastService);
 
   // Component state
   assignment = signal<AssignmentDetail | null>(null);
@@ -41,11 +48,11 @@ export class AssignmentWorkComponent implements OnInit {
     this.isLoading.set(true);
     this.error.set(null);
 
-    // Load assignment details
-    this.assignmentApi.getAssignmentById(assignmentId).subscribe({
+    // Load assignment details via student-scoped endpoint (enrollment check)
+    this.apiClient.getWithResponse<any>(STUDENT_ENDPOINTS.ASSIGNMENT_DETAIL(assignmentId)).subscribe({
       next: (response) => {
         if (response.data) {
-          this.assignment.set(response.data);
+          this.assignment.set(response.data as AssignmentDetail);
           // Load my submission after assignment is loaded
           this.loadMySubmission(assignmentId);
         } else {
@@ -53,7 +60,7 @@ export class AssignmentWorkComponent implements OnInit {
           this.isLoading.set(false);
         }
       },
-      error: (err) => {
+      error: () => {
         this.error.set('Không thể tải bài tập. Vui lòng thử lại.');
         this.isLoading.set(false);
       }
@@ -180,36 +187,59 @@ export class AssignmentWorkComponent implements OnInit {
     return !this.hasGrade();
   }
 
-  submitAssignment(): void {
-    if (!this.canSubmit()) {
-      return;
-    }
+  async submitAssignment(): Promise<void> {
+    if (!this.canSubmit()) return;
 
     const assignmentId = this.assignment()?.id;
     if (!assignmentId) return;
 
     this.isSubmitting.set(true);
+    this.error.set(null);
 
-    const request: CreateSubmissionRequest = {
-      content: this.submissionContent(),
-      attachments: [] // TODO: Handle file uploads
-    };
-
-    this.assignmentApi.submitAssignment(assignmentId.toString(), request).subscribe({
-      next: (response) => {
-        if (response.data) {
-          this.mySubmission.set(response.data);
-          this.submissionContent.set('');
-          this.uploadedFiles.set([]);
-          alert('Nộp bài thành công!');
+    try {
+      // Upload files first if any
+      const fileUrls: string[] = [];
+      let firstFileUrl = '';
+      let firstFileName = '';
+      for (const file of this.uploadedFiles()) {
+        try {
+          const uploaded = await firstValueFrom(this.fileApi.uploadFile(file, 'assignment'));
+          fileUrls.push(uploaded.url);
+          if (!firstFileUrl) {
+            firstFileUrl = uploaded.url;
+            firstFileName = uploaded.originalName || file.name;
+          }
+        } catch {
+          // Continue with other files
         }
-        this.isSubmitting.set(false);
-      },
-      error: (err) => {
-        alert('Không thể nộp bài. Vui lòng thử lại.');
-        this.isSubmitting.set(false);
       }
-    });
+
+      const request: CreateSubmissionRequest = {
+        content: this.submissionContent(),
+        attachments: fileUrls
+      };
+
+      // BE expects { content, fileUrl, fileName } - include file info
+      const payload: any = {
+        content: this.submissionContent(),
+        fileUrl: firstFileUrl || null,
+        fileName: firstFileName || null
+      };
+
+      const response = await firstValueFrom(
+        this.assignmentApi.submitAssignment(assignmentId.toString(), payload)
+      );
+      if (response.data) {
+        this.mySubmission.set(response.data);
+        this.submissionContent.set('');
+        this.uploadedFiles.set([]);
+        this.toast.success('Nộp bài thành công!');
+      }
+    } catch {
+      this.error.set('Không thể nộp bài. Vui lòng thử lại.');
+    } finally {
+      this.isSubmitting.set(false);
+    }
   }
 }
 

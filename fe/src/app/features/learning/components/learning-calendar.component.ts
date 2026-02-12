@@ -1,8 +1,9 @@
-import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
+import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { IconComponent } from '../../../shared/components/icon/icon.component';
 
 interface CalendarEvent {
   id: string;
@@ -31,20 +32,19 @@ interface CalendarDay {
 
 @Component({
   selector: 'app-learning-calendar',
-  imports: [FormsModule, RouterModule],
-  encapsulation: ViewEncapsulation.None,
+  imports: [FormsModule, RouterModule, IconComponent],
   template: `
     <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       <div class="max-w-7xl mx-auto px-6 py-8">
         <!-- Header -->
         <div class="flex items-center justify-between mb-8">
           <div>
-            <h1 class="text-3xl font-bold text-gray-900 mb-2">📅 Learning Calendar</h1>
+            <h1 class="text-3xl font-bold text-gray-900 mb-2 flex items-center"><app-icon name="calendar" size="md" class="text-gray-700 mr-2"/> Learning Calendar</h1>
             <p class="text-gray-600">Lịch học tập và sự kiện</p>
           </div>
           <div class="flex items-center space-x-4">
             <button (click)="goToToday()"
-                    class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                    class="px-6 py-3 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors font-medium">
               <svg class="w-5 h-5 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
               </svg>
@@ -83,17 +83,17 @@ interface CalendarDay {
             <!-- View Toggle -->
             <div class="flex items-center space-x-2">
               <button (click)="setView('month')"
-                      [class]="view() === 'month' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'"
+                      [class]="view() === 'month' ? 'bg-[#0056D2] text-white' : 'bg-gray-200 text-gray-700'"
                       class="px-4 py-2 rounded-lg transition-colors">
                 Tháng
               </button>
               <button (click)="setView('week')"
-                      [class]="view() === 'week' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'"
+                      [class]="view() === 'week' ? 'bg-[#0056D2] text-white' : 'bg-gray-200 text-gray-700'"
                       class="px-4 py-2 rounded-lg transition-colors">
                 Tuần
               </button>
               <button (click)="setView('day')"
-                      [class]="view() === 'day' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'"
+                      [class]="view() === 'day' ? 'bg-[#0056D2] text-white' : 'bg-gray-200 text-gray-700'"
                       class="px-4 py-2 rounded-lg transition-colors">
                 Ngày
               </button>
@@ -160,7 +160,7 @@ interface CalendarDay {
                 Sự kiện ngày {{ formatDate(selectedDay()!.date) }}
               </h3>
               <button (click)="addEventToDay(selectedDay()!.date)"
-                      class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                      class="px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors">
                 Thêm sự kiện
               </button>
             </div>
@@ -212,7 +212,7 @@ interface CalendarDay {
           <h3 class="text-lg font-semibold text-gray-900 mb-4">Chú thích</h3>
           <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div class="flex items-center space-x-3">
-              <div class="w-4 h-4 bg-blue-500 rounded-full"></div>
+              <div class="w-4 h-4 bg-[#0056D2] rounded-full"></div>
               <span class="text-sm text-gray-700">Buổi học</span>
             </div>
             <div class="flex items-center space-x-3">
@@ -244,69 +244,8 @@ export class LearningCalendarComponent implements OnInit {
 
   weekdays = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
 
-  // Mock events data
-  events = signal<CalendarEvent[]>([
-    {
-      id: 'event-1',
-      title: 'Học COLREG',
-      type: 'study',
-      startDate: new Date(),
-      endDate: new Date(),
-      startTime: '09:00',
-      endTime: '11:00',
-      courseId: 'course-1',
-      courseName: 'An toàn hàng hải',
-      description: 'Học về quy tắc COLREG',
-      priority: 'high',
-      status: 'scheduled',
-      color: '#3B82F6'
-    },
-    {
-      id: 'event-2',
-      title: 'Nộp bài tập điều hướng',
-      type: 'assignment',
-      startDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
-      endDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
-      startTime: '23:59',
-      endTime: '23:59',
-      courseId: 'course-2',
-      courseName: 'Điều hướng',
-      description: 'Hạn nộp bài tập về GPS',
-      priority: 'high',
-      status: 'scheduled',
-      color: '#10B981'
-    },
-    {
-      id: 'event-3',
-      title: 'Thi giữa kỳ',
-      type: 'exam',
-      startDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      startTime: '08:00',
-      endTime: '10:00',
-      courseId: 'course-3',
-      courseName: 'Luật hàng hải',
-      description: 'Thi giữa kỳ môn luật hàng hải',
-      priority: 'high',
-      status: 'scheduled',
-      color: '#EF4444'
-    },
-    {
-      id: 'event-4',
-      title: 'Họp nhóm học tập',
-      type: 'meeting',
-      startDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
-      endDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
-      startTime: '19:00',
-      endTime: '21:00',
-      courseId: 'course-1',
-      courseName: 'An toàn hàng hải',
-      description: 'Thảo luận về bài tập nhóm',
-      priority: 'medium',
-      status: 'scheduled',
-      color: '#8B5CF6'
-    }
-  ]);
+  // Events — loaded from API when backend support is available
+  events = signal<CalendarEvent[]>([]);
 
   // Computed properties
   currentMonthText = computed(() => {
@@ -407,7 +346,7 @@ export class LearningCalendarComponent implements OnInit {
 
   getDateClasses(day: CalendarDay): string {
     if (!day.isCurrentMonth) return 'text-gray-400';
-    if (day.isToday) return 'text-blue-600 font-bold';
+    if (day.isToday) return 'text-[#0056D2] font-bold';
     if (day.isSelected) return 'text-blue-800 font-bold';
     return 'text-gray-900';
   }

@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Title, Meta } from '@angular/platform-browser';
@@ -6,6 +6,8 @@ import { CourseDetailService } from './services/course-detail.service';
 import { CourseHeroComponent } from './components/course-hero.component';
 import { CourseCurriculumComponent } from './components/course-curriculum.component';
 import { CourseInstructorComponent } from './components/course-instructor.component';
+import { IconComponent } from '../../../shared/components/icon/icon.component';
+import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   selector: 'app-course-detail-enhanced',
@@ -13,9 +15,9 @@ import { CourseInstructorComponent } from './components/course-instructor.compon
     CommonModule,
     CourseHeroComponent,
     CourseCurriculumComponent,
-    CourseInstructorComponent
+    CourseInstructorComponent,
+    IconComponent
   ],
-  encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './course-detail-enhanced.component.html'
 })
@@ -25,6 +27,7 @@ export class CourseDetailEnhancedComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private title = inject(Title);
   private meta = inject(Meta);
+  private toast = inject(ToastService);
 
   private openFAQs = new Set<string>();
 
@@ -49,6 +52,7 @@ export class CourseDetailEnhancedComponent implements OnInit, OnDestroy {
         this.updateSEO(course);
       }
     } catch (error) {
+      this.toast.error('Không thể tải thông tin khóa học');
     }
   }
 
@@ -106,6 +110,7 @@ export class CourseDetailEnhancedComponent implements OnInit, OnDestroy {
       const userId = 'current-user-id'; // Mock user ID
       await this.courseDetailService.enrollInCourse(course.id, userId);
     } catch (error) {
+      this.toast.error('Đăng ký khóa học thất bại');
     }
   }
 

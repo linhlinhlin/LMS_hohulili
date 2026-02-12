@@ -4,7 +4,7 @@
         <!-- HEADER -->
         <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
             <h3 class="text-lg font-bold text-gray-800">Thêm nội dung mới</h3>
-            <button (click)="close.emit()" class="text-gray-400 hover:text-gray-600">✕</button>
+            <button (click)="close.emit()" class="text-gray-400 hover:text-gray-600"><app-icon name="x" size="sm"/></button>
         </div>
 
         <!-- BODY -->
@@ -13,24 +13,24 @@
             <!-- 1. TYPE SELECTOR (Tabs) -->
             <div class="flex gap-3 mb-6">
                 <button (click)="setType('TEXT')"
-                    [class]="selectedType() === 'TEXT' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                    [class]="selectedType() === 'TEXT' ? 'bg-[#0056D2] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
                     class="flex-1 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2">
-                    <span>📝</span> Bài giảng
+                    <app-icon name="file-text" size="sm"/> Bài giảng
                 </button>
                 <button (click)="setType('VIDEO')"
-                    [class]="selectedType() === 'VIDEO' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                    [class]="selectedType() === 'VIDEO' ? 'bg-[#0056D2] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
                     class="flex-1 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2">
-                    <span>🎥</span> Video
+                    <app-icon name="video" size="sm"/> Video
                 </button>
                 <button (click)="setType('FILE')"
-                    [class]="selectedType() === 'FILE' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                    [class]="selectedType() === 'FILE' ? 'bg-[#0056D2] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
                     class="flex-1 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2">
-                    <span>📎</span> Tài liệu
+                    <app-icon name="upload" size="sm"/> Tài liệu
                 </button>
                 <button (click)="setType('QUIZ')"
-                    [class]="selectedType() === 'QUIZ' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                    [class]="selectedType() === 'QUIZ' ? 'bg-[#0056D2] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
                     class="flex-1 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2">
-                    <span>❓</span> Trắc nghiệm
+                    <app-icon name="target" size="sm"/> Trắc nghiệm
                 </button>
             </div>
 
@@ -40,7 +40,7 @@
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-1">Tiêu đề mục</label>
                     <input formControlName="title"
-                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#0056D2] outline-none"
                         placeholder="Ví dụ: Giới thiệu tổng quan...">
                 </div>
 
@@ -60,7 +60,7 @@
                 <div class="animate-fade-in">
                     <label class="block text-sm font-semibold text-gray-700 mb-1">Đường dẫn Video</label>
                     <input formControlName="content"
-                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#0056D2] outline-none"
                         placeholder="https://youtube.com/...">
                     <p class="text-xs text-gray-500 mt-1">Hỗ trợ Youtube, Vimeo hoặc link trực tiếp.</p>
                 </div>
@@ -91,14 +91,14 @@
                         @if (selectedFile) {
                         <div
                             class="flex items-center gap-3 bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200 z-10">
-                            <span class="text-2xl">📄</span>
+                            <app-icon name="file-text" size="lg"/>
                             <div class="text-left">
                                 <p class="text-sm font-bold text-gray-800">{{ selectedFile.name }}</p>
                                 <p class="text-xs text-gray-500">{{ (selectedFile.size / 1024 / 1024) | number:'1.1-2'
                                     }} MB</p>
                             </div>
                             <button type="button" (click)="selectedFile = null; $event.stopPropagation()"
-                                class="ml-2 text-red-500 hover:bg-red-50 p-1 rounded">✕</button>
+                                class="ml-2 text-red-500 hover:bg-red-50 p-1 rounded"><app-icon name="x" size="xs"/></button>
                         </div>
                         }
                     </div>
@@ -109,8 +109,8 @@
                 @if (selectedType() === 'QUIZ') {
                 <div
                     class="animate-fade-in flex flex-col items-center justify-center p-8 text-center bg-indigo-50 rounded-xl border border-indigo-100">
-                    <div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mb-4 text-3xl">
-                        ❓
+                    <div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
+                        <app-icon name="target" size="lg"/>
                     </div>
                     <h4 class="text-lg font-bold text-gray-800 mb-2">Tạo bài trắc nghiệm mới</h4>
                     <p class="text-gray-600 mb-6 max-w-md">
@@ -120,7 +120,7 @@
                     </p>
                     <button type="button" (click)="onCreateQuiz()"
                         class="px-6 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 flex items-center gap-2">
-                        <span>🚀</span>
+                        <app-icon name="rocket" size="sm"/>
                         Chuyển đến trình tạo Quiz
                     </button>
                     <p class="text-xs text-gray-500 mt-4 italic">
@@ -138,7 +138,7 @@
                 class="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-lg font-medium transition-colors">Hủy
                 bỏ</button>
             <button (click)="submit()" [disabled]="isSubmitting()"
-                class="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2">
+                class="px-6 py-2 bg-[#0056D2] text-white rounded-lg font-medium hover:bg-[#004BB5] transition-colors disabled:opacity-50 flex items-center gap-2">
                 @if (isSubmitting()) {
                 <span class="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
                 }

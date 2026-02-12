@@ -16,17 +16,17 @@
               </div>
             </div>
             <div class="hidden md:flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-lg">
-              <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-5 h-5 text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
               </svg>
-              <span class="font-mono text-lg font-semibold text-blue-700">{{ formatTime(timeRemaining()) }}</span>
+              <span class="font-mono text-lg font-semibold text-[#004BB5]">{{ formatTime(timeRemaining()) }}</span>
             </div>
             <div class="flex items-center gap-4">
               <div class="hidden sm:block text-sm text-gray-600">
-                <span class="font-semibold text-blue-600">{{ answeredCount() }}</span> / {{ questions().length }} câu
+                <span class="font-semibold text-[#0056D2]">{{ answeredCount() }}</span> / {{ questions().length }} câu
               </div>
               @if (!showResults()) {
-                <button (click)="submitQuiz()" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
+                <button (click)="submitQuiz()" class="px-4 py-2 bg-[#0056D2] text-white text-sm font-medium rounded-lg hover:bg-[#004BB5] transition-colors">
                   Nộp bài
                 </button>
               }
@@ -38,7 +38,7 @@
       @if (loading()) {
         <div class="flex items-center justify-center min-h-[60vh]">
           <div class="text-center">
-            <div class="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+            <div class="w-16 h-16 border-4 border-blue-200 border-t-[#0056D2] rounded-full animate-spin mx-auto mb-4"></div>
             <p class="text-gray-600">Đang tải bài kiểm tra...</p>
           </div>
         </div>
@@ -54,7 +54,7 @@
             </div>
             <h3 class="text-lg font-semibold text-gray-900 mb-2">Không thể tải bài kiểm tra</h3>
             <p class="text-gray-600 mb-6">{{ error() }}</p>
-            <button (click)="goBack()" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Quay lại</button>
+            <button (click)="goBack()" class="px-6 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors">Quay lại</button>
           </div>
         </div>
       }
@@ -95,7 +95,7 @@
                             [class.bg-red-100]="showResults() && answers()[q.id] && answers()[q.id] !== q.correctOption"
                             [class.text-red-700]="showResults() && answers()[q.id] && answers()[q.id] !== q.correctOption"
                             [class.bg-blue-100]="!showResults() && answers()[q.id]"
-                            [class.text-blue-700]="!showResults() && answers()[q.id]"
+                            [class.text-[#004BB5]]="!showResults() && answers()[q.id]"
                             [class.bg-gray-100]="!showResults() && !answers()[q.id]"
                             [class.text-gray-600]="!showResults() && !answers()[q.id]">
                       {{ i + 1 }}
@@ -134,7 +134,7 @@
                 @for (question of currentPageQuestions(); track question.id; let pageIdx = $index) {
                   @let globalIdx = getQuestionIndex(pageIdx);
                   <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                    <div class="px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700 flex items-center justify-between">
+                    <div class="px-6 py-4 bg-[#0056D2] flex items-center justify-between">
                       <div class="flex items-center gap-3">
                         <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
                           <span class="text-white font-bold">{{ globalIdx + 1 }}</span>
@@ -174,7 +174,7 @@
                                   [class.bg-red-50]="showResults() && answers()[question.id] === opt.key && opt.key !== question.correctOption">
                             <div class="flex items-center gap-4">
                               <span class="w-10 h-10 rounded-xl flex items-center justify-center font-semibold text-sm transition-colors"
-                                    [class.bg-blue-600]="answers()[question.id] === opt.key && !showResults()"
+                                    [class.bg-[#0056D2]]="answers()[question.id] === opt.key && !showResults()"
                                     [class.text-white]="(answers()[question.id] === opt.key && !showResults()) || (showResults() && opt.key === question.correctOption)"
                                     [class.bg-gray-100]="answers()[question.id] !== opt.key && !showResults()"
                                     [class.text-gray-600]="answers()[question.id] !== opt.key && !showResults()"
@@ -216,7 +216,7 @@
                   @for (page of [].constructor(totalPages()); track $index; let i = $index) {
                     <button (click)="goToPage(i)"
                             class="w-10 h-10 rounded-lg text-sm font-medium transition-colors"
-                            [class.bg-blue-600]="i === currentPage()"
+                            [class.bg-[#0056D2]]="i === currentPage()"
                             [class.text-white]="i === currentPage()"
                             [class.bg-gray-100]="i !== currentPage()"
                             [class.text-gray-600]="i !== currentPage()"
@@ -227,7 +227,7 @@
                 </div>
                 @if (currentPage() < totalPages() - 1) {
                   <button (click)="nextPage()"
-                          class="flex items-center gap-2 px-5 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors">
+                          class="flex items-center gap-2 px-5 py-3 bg-[#0056D2] text-white rounded-xl hover:bg-[#004BB5] transition-colors">
                     10 câu tiếp
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
@@ -243,7 +243,7 @@
                   </button>
                 } @else {
                   <button (click)="resetQuiz()"
-                          class="flex items-center gap-2 px-5 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors">
+                          class="flex items-center gap-2 px-5 py-3 bg-[#0056D2] text-white rounded-xl hover:bg-[#004BB5] transition-colors">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                     </svg>
@@ -310,18 +310,18 @@
                 </div>
                 <div class="bg-blue-50 rounded-xl p-4 flex items-center justify-between mb-6">
                   <div class="flex items-center gap-3">
-                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-5 h-5 text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
-                    <span class="text-blue-700">Thời gian làm bài</span>
+                    <span class="text-[#004BB5]">Thời gian làm bài</span>
                   </div>
-                  <span class="font-mono font-semibold text-blue-700">{{ formatTime(timeSpent()) }}</span>
+                  <span class="font-mono font-semibold text-[#004BB5]">{{ formatTime(timeSpent()) }}</span>
                 </div>
                 <div class="flex gap-3">
                   <button (click)="closeResults()" class="flex-1 px-4 py-3 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium">
                     Xem lại đáp án
                   </button>
-                  <button (click)="resetQuiz()" class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium">
+                  <button (click)="resetQuiz()" class="flex-1 px-4 py-3 bg-[#0056D2] text-white rounded-xl hover:bg-[#004BB5] transition-colors font-medium">
                     Làm lại
                   </button>
                 </div>

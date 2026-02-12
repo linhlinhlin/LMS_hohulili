@@ -14,11 +14,11 @@ import { MatTooltipModule } from '@angular/material/tooltip';
       <div class="flex items-center justify-between">
         <h2 class="text-[11px] font-black text-slate-400 uppercase tracking-widest px-1">Cấu trúc bài học</h2>
         <div class="flex items-center gap-2">
-          <span class="px-1.5 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold rounded">
+          <span class="px-1.5 py-0.5 bg-blue-50 text-[#0056D2] text-[10px] font-bold rounded">
             {{ publishedCount() }}/{{ totalCount() }}
           </span>
           <button (click)="toggleExpand()" 
-                  class="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                  class="p-1 text-slate-400 hover:text-[#0056D2] hover:bg-blue-50 rounded transition-colors"
                   [matTooltip]="allExpanded() ? 'Thu gọn tất cả' : 'Mở rộng tất cả'">
             <mat-icon class="text-sm scale-75">{{ allExpanded() ? 'unfold_less' : 'unfold_more' }}</mat-icon>
           </button>
@@ -33,7 +33,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
           [(ngModel)]="searchQuery"
           (input)="onSearchChange()"
           placeholder="Tìm nhanh..." 
-          class="w-full h-8 bg-slate-50 border-none rounded-lg pl-8 pr-3 text-xs focus:ring-1 focus:ring-blue-500/10 transition-all placeholder:text-slate-400"
+          class="w-full h-8 bg-slate-50 border-none rounded-lg pl-8 pr-3 text-xs focus:ring-1 focus:ring-[#0056D2]/10 transition-all placeholder:text-slate-400"
         />
       </div>
     </div>

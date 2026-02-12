@@ -1,19 +1,22 @@
-import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
+import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AdminService, AdminCourseSummary } from '../../infrastructure/services/admin.service';
 import { LoadingComponent } from '../../../../shared/components/loading/loading.component';
+import { ToastService } from '../../../../core/services/toast.service';
+import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 
 @Component({
   selector: 'app-course-management',
   imports: [RouterModule, FormsModule],
-  encapsulation: ViewEncapsulation.None,
   templateUrl: './course-management.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CourseManagementComponent implements OnInit {
   protected adminService = inject(AdminService);
+  private toast = inject(ToastService);
+  private confirmDialog = inject(ConfirmDialogService);
 
   // Filter states
   searchQuery = signal('');
@@ -104,9 +107,9 @@ export class CourseManagementComponent implements OnInit {
         this.isLoading.set(false);
       },
       error: () => {
-        this.courses.set([]); // Set empty array on error
+        this.courses.set([]);
         this.isLoading.set(false);
-        alert('Không thể tải danh sách khóa học. Vui lòng thử lại.');
+        this.toast.error('Không thể tải danh sách khóa học. Vui lòng thử lại.');
       }
     });
   }
@@ -114,10 +117,11 @@ export class CourseManagementComponent implements OnInit {
   approveCourse(courseId: string): void {
     this.adminService.approveCourse(courseId).subscribe({
       next: () => {
-        // Reload courses after approval
+        this.toast.success('Đã phê duyệt khóa học thành công');
         this.loadCourses();
       },
-      error: () => {
+      error: (err) => {
+        this.toast.error('Không thể phê duyệt: ' + (err.error?.message || 'Vui lòng thử lại'));
       }
     });
   }
@@ -141,7 +145,8 @@ export class CourseManagementComponent implements OnInit {
           this.closeRejectModal();
           this.loadCourses();
         },
-        error: () => {
+        error: (err) => {
+          this.toast.error('Không thể từ chối: ' + (err.error?.message || 'Vui lòng thử lại'));
         }
       });
     }
@@ -251,18 +256,36 @@ export class CourseManagementComponent implements OnInit {
     return s === 'APPROVED' || s === 'ACTIVE' || s === 'PUBLISHED';
   }
 
-  revokeCourse(courseId: string): void {
-    const reason = window.prompt('Nhập lý do thu hồi phê duyệt:', 'Cần xem xét lại nội dung khóa học');
-    if (reason) {
-      this.adminService.revokeCourse(courseId, reason).subscribe({
-        next: () => {
-          alert('Đã thu hồi phê duyệt khóa học');
-          this.loadCourses();
-        },
-        error: (error) => {
-          alert('Lỗi khi thu hồi phê duyệt: ' + (error.error?.message || error.message || 'Không xác định'));
-        }
-      });
-    }
+  revokeReasonInput = signal('');
+  showRevokeModal = signal(false);
+  revokingCourseId = signal('');
+
+  openRevokeModal(courseId: string): void {
+    this.revokingCourseId.set(courseId);
+    this.revokeReasonInput.set('Cần xem xét lại nội dung khóa học');
+    this.showRevokeModal.set(true);
+  }
+
+  closeRevokeModal(): void {
+    this.showRevokeModal.set(false);
+    this.revokingCourseId.set('');
+    this.revokeReasonInput.set('');
+  }
+
+  confirmRevokeCourse(): void {
+    const reason = this.revokeReasonInput();
+    const courseId = this.revokingCourseId();
+    if (!reason.trim() || !courseId) return;
+
+    this.adminService.revokeCourse(courseId, reason).subscribe({
+      next: () => {
+        this.toast.success('Đã thu hồi phê duyệt khóa học');
+        this.closeRevokeModal();
+        this.loadCourses();
+      },
+      error: (error) => {
+        this.toast.error('Lỗi khi thu hồi phê duyệt: ' + (error.error?.message || error.message || 'Không xác định'));
+      }
+    });
   }
 }

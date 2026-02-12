@@ -51,7 +51,9 @@ export const roleGuard = (allowedRoles: UserRole[]): CanActivateFn => {
       // Redirect to their appropriate area root, each module defaults to its own dashboard
       const role = authService.userRole();
       if (role) {
-        const target = role === 'teacher' ? '/teacher' : role === 'admin' ? '/admin' : '/student';
+        const target = role === 'teacher' ? '/teacher'
+          : (role === 'admin' || role === 'org_admin') ? '/admin'
+          : '/student';
         return router.createUrlTree([target]);
       }
     }
@@ -81,7 +83,8 @@ async function ensureRoleServiceInitialized(role: UserRole | string, injector: I
     } catch (err) {
       // Failed to initialize TeacherService - component will handle missing data
     }
-  } else if (normalizedRole === 'admin' || normalizedRole === UserRole.ADMIN) {
+  } else if (normalizedRole === 'admin' || normalizedRole === UserRole.ADMIN
+    || normalizedRole === 'org_admin' || normalizedRole === UserRole.ORG_ADMIN) {
     // AdminService will initialize on component init
   } else if (normalizedRole === 'student' || normalizedRole === UserRole.STUDENT) {
     // StudentEnrollmentService will initialize on component init
@@ -104,14 +107,19 @@ export const teacherOnlyGuard: CanActivateFn = roleGuard([UserRole.TEACHER]);
  * Following Google/Amazon RBAC best practice: Admin inherits all permissions of lower roles
  * Use for: course editor (Admin can VIEW course content for moderation)
  */
-export const teacherGuard: CanActivateFn = roleGuard([UserRole.TEACHER, UserRole.ADMIN]);
+export const teacherGuard: CanActivateFn = roleGuard([UserRole.TEACHER, UserRole.ADMIN, UserRole.ORG_ADMIN]);
 
 /**
- * Admin Guard - Only allows admins
+ * Admin Guard - Allows both ADMIN and ORG_ADMIN (operations + system)
  */
-export const adminGuard: CanActivateFn = roleGuard([UserRole.ADMIN]);
+export const adminGuard: CanActivateFn = roleGuard([UserRole.ADMIN, UserRole.ORG_ADMIN]);
+
+/**
+ * System Admin Guard - Only ADMIN (system-level: settings, logs, AI knowledge)
+ */
+export const systemAdminGuard: CanActivateFn = roleGuard([UserRole.ADMIN]);
 
 /**
  * Teacher or Admin Guard - Alias for teacherGuard
  */
-export const teacherOrAdminGuard: CanActivateFn = roleGuard([UserRole.TEACHER, UserRole.ADMIN]);
+export const teacherOrAdminGuard: CanActivateFn = roleGuard([UserRole.TEACHER, UserRole.ADMIN, UserRole.ORG_ADMIN]);

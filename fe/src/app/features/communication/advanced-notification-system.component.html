@@ -1,9 +1,9 @@
-﻿
+
     <!-- Loading State -->
     <app-loading 
       [show]="isLoading()" 
-      text="Đang tải hệ thống thông báo..."
-      subtext="Vui lòng chờ trong giây lát"
+      text="�ang t?i h? th?ng th�ng b�o..."
+      subtext="Vui l�ng ch? trong gi�y l�t"
       variant="overlay"
       color="blue">
     </app-loading>
@@ -14,23 +14,23 @@
         <div class="mb-8">
           <div class="flex items-center justify-between">
             <div>
-              <h1 class="text-3xl font-bold text-gray-900 mb-2">đŸ”” Hệ thống thông báo</h1>
-              <p class="text-gray-600">Quản lý và theo dõi tất cả thông báo trong hệ thống</p>
+              <h1 class="text-3xl font-bold text-gray-900 mb-2">d��� H? th?ng th�ng b�o</h1>
+              <p class="text-gray-600">Qu?n l� v� theo d�i t?t c? th�ng b�o trong h? th?ng</p>
             </div>
             <div class="flex items-center space-x-4">
               <button (click)="markAllAsRead()"
-                      class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                      class="px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors">
                 <svg class="w-4 h-4 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
                 </svg>
-                Đánh dấu tất cả đã đọc
+                ��nh d?u t?t c? d� d?c
               </button>
               <button (click)="openSettings()"
                       class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
                 <svg class="w-4 h-4 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path>
                 </svg>
-                Cài đặt
+                C�i d?t
               </button>
             </div>
           </div>
@@ -41,13 +41,13 @@
           <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 border-l-4 border-red-500">
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-sm font-medium text-gray-600 mb-1">Chưa đọc</p>
+                <p class="text-sm font-medium text-gray-600 mb-1">Chua d?c</p>
                 <p class="text-3xl font-bold text-gray-900">{{ unreadNotifications() }}</p>
                 <p class="text-sm text-red-600 flex items-center mt-1">
                   <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
                   </svg>
-                  Cần xem
+                  C?n xem
                 </p>
               </div>
               <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
@@ -61,13 +61,13 @@
           <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 border-l-4 border-green-500">
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-sm font-medium text-gray-600 mb-1">Đã đọc</p>
+                <p class="text-sm font-medium text-gray-600 mb-1">�� d?c</p>
                 <p class="text-3xl font-bold text-gray-900">{{ readNotifications() }}</p>
                 <p class="text-sm text-green-600 flex items-center mt-1">
                   <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
                   </svg>
-                  Hoàn thành
+                  Ho�n th�nh
                 </p>
               </div>
               <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
@@ -81,17 +81,17 @@
           <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 border-l-4 border-blue-500">
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-sm font-medium text-gray-600 mb-1">Hôm nay</p>
+                <p class="text-sm font-medium text-gray-600 mb-1">H�m nay</p>
                 <p class="text-3xl font-bold text-gray-900">{{ todayNotifications() }}</p>
-                <p class="text-sm text-blue-600 flex items-center mt-1">
+                <p class="text-sm text-[#0056D2] flex items-center mt-1">
                   <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path>
                   </svg>
-                  Mới
+                  M?i
                 </p>
               </div>
               <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                <svg class="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="w-6 h-6 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path>
                 </svg>
               </div>
@@ -101,13 +101,13 @@
           <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 border-l-4 border-purple-500">
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-sm font-medium text-gray-600 mb-1">Ưu tiên cao</p>
+                <p class="text-sm font-medium text-gray-600 mb-1">Uu ti�n cao</p>
                 <p class="text-3xl font-bold text-gray-900">{{ highPriorityNotifications() }}</p>
                 <p class="text-sm text-purple-600 flex items-center mt-1">
                   <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
                   </svg>
-                  Quan trọng
+                  Quan tr?ng
                 </p>
               </div>
               <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
@@ -126,38 +126,38 @@
               <div class="relative">
                 <input type="text" 
                        [(ngModel)]="searchQuery"
-                       placeholder="Tìm kiếm thông báo..."
-                       class="w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                       placeholder="T�m ki?m th�ng b�o..."
+                       class="w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-transparent">
                 <svg class="absolute left-3 top-2.5 w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"></path>
                 </svg>
               </div>
               
               <select [(ngModel)]="selectedType" 
-                      class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="">Tất cả loại</option>
-                <option value="assignment">Bài tập</option>
-                <option value="course">Khóa học</option>
-                <option value="system">Hệ thống</option>
-                <option value="social">Xã hội</option>
-                <option value="announcement">Thông báo</option>
+                      class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0056D2]">
+                <option value="">T?t c? lo?i</option>
+                <option value="assignment">B�i t?p</option>
+                <option value="course">Kh�a h?c</option>
+                <option value="system">H? th?ng</option>
+                <option value="social">X� h?i</option>
+                <option value="announcement">Th�ng b�o</option>
               </select>
               
               <select [(ngModel)]="selectedPriority" 
-                      class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="">Tất cả mức độ</option>
-                <option value="urgent">Khẩn cấp</option>
+                      class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0056D2]">
+                <option value="">T?t c? m?c d?</option>
+                <option value="urgent">Kh?n c?p</option>
                 <option value="high">Cao</option>
-                <option value="medium">Trung bình</option>
-                <option value="low">Thấp</option>
+                <option value="medium">Trung b�nh</option>
+                <option value="low">Th?p</option>
               </select>
               
               <select [(ngModel)]="selectedStatus" 
-                      class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="">Tất cả trạng thái</option>
-                <option value="unread">Chưa đọc</option>
-                <option value="read">Đã đọc</option>
-                <option value="archived">Đã lưu trữ</option>
+                      class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0056D2]">
+                <option value="">T?t c? tr?ng th�i</option>
+                <option value="unread">Chua d?c</option>
+                <option value="read">�� d?c</option>
+                <option value="archived">�� luu tr?</option>
               </select>
             </div>
             
@@ -168,7 +168,7 @@
                   <path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h4.586l-1.293-1.293a1 1 0 011.414-1.414L10 15.414l2.293-2.293a1 1 0 111.414 1.414L12.414 15H17a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
                 </svg>
               </button>
-              <span class="text-sm text-gray-600">{{ filteredNotifications().length }} thông báo</span>
+              <span class="text-sm text-gray-600">{{ filteredNotifications().length }} th�ng b�o</span>
             </div>
           </div>
         </div>
@@ -176,7 +176,7 @@
         <!-- Notifications List -->
         <div class="bg-white rounded-xl shadow-lg">
           <div class="p-6 border-b border-gray-200">
-            <h3 class="text-lg font-semibold text-gray-900">Danh sách thông báo</h3>
+            <h3 class="text-lg font-semibold text-gray-900">Danh s�ch th�ng b�o</h3>
           </div>
           
           <div class="divide-y divide-gray-200">
@@ -200,7 +200,7 @@
                       <div class="flex items-center space-x-2">
                         <h4 class="text-lg font-semibold text-gray-900">{{ notification.title }}</h4>
                         @if (!notification.isRead) {
-                          <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          <div class="w-2 h-2 bg-[#0056D2] rounded-full"></div>
                         }
                         <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
                               [class]="getPriorityClass(notification.priority)">
@@ -253,7 +253,7 @@
                     @if (notification.actionUrl && notification.actionText) {
                       <div class="mt-3">
                         <button (click)="performAction(notification)"
-                                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                                class="px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors text-sm">
                           {{ notification.actionText }}
                         </button>
                       </div>
@@ -271,8 +271,8 @@
             <svg class="w-24 h-24 text-gray-300 mx-auto mb-4" fill="currentColor" viewBox="0 0 20 20">
               <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"></path>
             </svg>
-            <h3 class="text-lg font-medium text-gray-900 mb-2">Không có thông báo nào</h3>
-            <p class="text-gray-500">Bạn đã xem tất cả thông báo</p>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">Chua c� th�ng b�o n�o</h3>
+            <p class="text-gray-500">Th�ng b�o m?i s? xu?t hi?n t?i d�y</p>
           </div>
         }
       </div>

@@ -1,5 +1,5 @@
 import { Injectable, signal } from '@angular/core';
-import { ChapterDraftDTO, LessonDraftDTO } from './course-authoring.service';
+import { ChapterDraftDTO, LessonDraftDTO, SectionDraftDTO } from './course-authoring.service';
 
 @Injectable({
     providedIn: 'root'
@@ -11,7 +11,7 @@ export class CurriculumSelectionService {
     selectedLesson = signal<LessonDraftDTO | null>(null);
     selectedChapter = signal<ChapterDraftDTO | null>(null);
     selectedSectionId = signal<string | null>(null);
-    selectedSection = signal<any | null>(null);
+    selectedSection = signal<SectionDraftDTO | null>(null);
 
     selectChapter(chapter: ChapterDraftDTO) {
         this.selectedChapterId.set(chapter.id);
@@ -31,7 +31,7 @@ export class CurriculumSelectionService {
         this.selectedSection.set(null);
     }
 
-    selectSection(chapter: ChapterDraftDTO, lesson: LessonDraftDTO, section: any) {
+    selectSection(chapter: ChapterDraftDTO, lesson: LessonDraftDTO, section: SectionDraftDTO) {
         this.selectedChapterId.set(chapter.id);
         this.selectedChapter.set(chapter);
         this.selectedLessonId.set(lesson.id);

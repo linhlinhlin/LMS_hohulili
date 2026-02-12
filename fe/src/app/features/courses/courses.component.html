@@ -22,7 +22,7 @@
                        (ngModelChange)="onSearchChange($event)"
                        placeholder="Nhập từ khóa..."
                        aria-label="Tìm kiếm khóa học theo từ khóa"
-                       class="w-full px-3 py-2 border border-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                       class="w-full px-3 py-2 border border-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]">
               </div>
 
               <!-- Category -->
@@ -31,7 +31,7 @@
                 <select [(ngModel)]="filters.category"
                         (ngModelChange)="applyFilters()"
                         aria-label="Lọc theo danh mục"
-                        class="w-full px-3 py-2 border border-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-3 py-2 border border-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]">
                   <option [ngValue]="undefined">Tất cả danh mục</option>
                   <option [ngValue]="CourseCategory.MARINE_ENGINEERING">Kỹ thuật tàu biển</option>
                   <option [ngValue]="CourseCategory.PORT_MANAGEMENT">Quản lý cảng</option>
@@ -48,7 +48,7 @@
                 <select [(ngModel)]="filters.level"
                         (ngModelChange)="applyFilters()"
                         aria-label="Lọc theo cấp độ"
-                        class="w-full px-3 py-2 border border-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-3 py-2 border border-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]">
                   <option [ngValue]="undefined">Tất cả cấp độ</option>
                   <option [ngValue]="'beginner'">Cơ bản</option>
                   <option [ngValue]="'intermediate'">Trung cấp</option>
@@ -65,13 +65,13 @@
                          (ngModelChange)="onPriceMinChange($event)"
                          placeholder="Từ"
                          aria-label="Giá tối thiểu"
-                         class="w-1/2 px-3 py-2 border border-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                         class="w-1/2 px-3 py-2 border border-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]">
                   <input type="number"
                          [ngModel]="priceMax"
                          (ngModelChange)="onPriceMaxChange($event)"
                          placeholder="Đến"
                          aria-label="Giá tối đa"
-                         class="w-1/2 px-3 py-2 border border-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                         class="w-1/2 px-3 py-2 border border-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]">
                 </div>
               </div>
 
@@ -81,7 +81,7 @@
                 <select [ngModel]="filters.rating"
                         (ngModelChange)="onRatingChange($event)"
                         aria-label="Lọc theo đánh giá tối thiểu"
-                        class="w-full px-3 py-2 border border-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-3 py-2 border border-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]">
                   <option [ngValue]="undefined">Tất cả</option>
                   <option [ngValue]="3.5">Từ 3.5</option>
                   <option [ngValue]="4">Từ 4.0</option>
@@ -95,7 +95,7 @@
                 <select [(ngModel)]="filters.sortBy"
                         (ngModelChange)="applyFilters()"
                         aria-label="Sắp xếp khóa học"
-                        class="w-full px-3 py-2 border border-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-3 py-2 border border-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]">
                   <option [ngValue]="'rating'">Đánh giá cao</option>
                   <option [ngValue]="'title'">Tên A-Z</option>
                   <option [ngValue]="'price'">Giá thấp đến cao</option>

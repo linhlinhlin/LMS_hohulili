@@ -55,6 +55,18 @@ public class PackageJpaEntity {
     @Builder.Default
     private Boolean isActive = true;
 
+    @Column(name = "bank_type", length = 20)
+    @Builder.Default
+    private String bankType = "PERSONAL";
+
+    @Column(name = "status", length = 20)
+    @Builder.Default
+    private String status = "ACTIVE";
+
+    @Column(name = "question_count")
+    @Builder.Default
+    private Integer questionCount = 0;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private Instant createdAt;

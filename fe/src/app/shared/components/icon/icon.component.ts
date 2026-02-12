@@ -1,4 +1,4 @@
-import { Component, input, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
+import { Component, input, ChangeDetectionStrategy } from '@angular/core';
 
 
 export type IconName =
@@ -9,17 +9,20 @@ export type IconName =
   | 'check' | 'alert' | 'info' | 'warning' | 'error' | 'success'
   | 'phone' | 'mail' | 'map' | 'calendar' | 'clock' | 'tag' | 'filter'
   | 'arrow-up' | 'arrow-down' | 'arrow-left' | 'arrow-right'
-  | 'external-link' | 'link' | 'copy' | 'refresh' | 'rotate';
+  | 'external-link' | 'link' | 'copy' | 'refresh' | 'rotate'
+  | 'fire' | 'trophy' | 'graduation-cap' | 'target' | 'zap' | 'sparkles' | 'party'
+  | 'file-text' | 'bar-chart' | 'video' | 'image' | 'music' | 'presentation'
+  | 'lock' | 'shield' | 'lightbulb' | 'rocket' | 'briefcase' | 'smartphone'
+  | 'anchor' | 'ship' | 'footprints' | 'circle-check' | 'circle-x' | 'users' | 'plug';
 
-export type IconSize = 'xs' | 'sm' | 'md' | 'lg';
+export type IconSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
 @Component({
   selector: 'app-icon',
   imports: [],
-  encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <svg 
+    <svg
       [class]="iconClasses"
       [attr.width]="sizeValue"
       [attr.height]="sizeValue"
@@ -251,6 +254,141 @@ export type IconSize = 'xs' | 'sm' | 'md' | 'lg';
           <path d="M23 4v6h-6"/>
           <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
         }
+        @case ('fire') {
+          <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
+        }
+        @case ('trophy') {
+          <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
+          <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+          <path d="M4 22h16"/>
+          <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
+          <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
+          <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
+        }
+        @case ('graduation-cap') {
+          <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+          <path d="M6 12v5c0 1.1 2.7 2 6 2s6-.9 6-2v-5"/>
+        }
+        @case ('target') {
+          <circle cx="12" cy="12" r="10"/>
+          <circle cx="12" cy="12" r="6"/>
+          <circle cx="12" cy="12" r="2"/>
+        }
+        @case ('zap') {
+          <polygon points="13,2 3,14 12,14 11,22 21,10 12,10"/>
+        }
+        @case ('sparkles') {
+          <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+          <path d="M5 3v4"/>
+          <path d="M19 17v4"/>
+          <path d="M3 5h4"/>
+          <path d="M17 19h4"/>
+        }
+        @case ('party') {
+          <path d="M5.8 11.3 2 22l10.7-3.79"/>
+          <path d="M4 3h.01"/>
+          <path d="M22 8h.01"/>
+          <path d="M15 2h.01"/>
+          <path d="M22 20h.01"/>
+          <path d="m22 2-2.24.75a2.9 2.9 0 0 0-1.96 1.96L17.05 7A2.9 2.9 0 0 1 15.1 8.96L12.85 9.7a2.9 2.9 0 0 0-1.96 1.96l-.75 2.24a2.9 2.9 0 0 1-1.96 1.96l-2.24.75"/>
+        }
+        @case ('file-text') {
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14,2 14,8 20,8"/>
+          <line x1="16" x2="8" y1="13" y2="13"/>
+          <line x1="16" x2="8" y1="17" y2="17"/>
+          <line x1="10" x2="8" y1="9" y2="9"/>
+        }
+        @case ('bar-chart') {
+          <line x1="12" x2="12" y1="20" y2="10"/>
+          <line x1="18" x2="18" y1="20" y2="4"/>
+          <line x1="6" x2="6" y1="20" y2="16"/>
+        }
+        @case ('video') {
+          <path d="m22 8-6 4 6 4V8Z"/>
+          <rect width="14" height="12" x="2" y="6" rx="2" ry="2"/>
+        }
+        @case ('image') {
+          <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+          <circle cx="9" cy="9" r="2"/>
+          <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+        }
+        @case ('music') {
+          <path d="M9 18V5l12-2v13"/>
+          <circle cx="6" cy="18" r="3"/>
+          <circle cx="18" cy="16" r="3"/>
+        }
+        @case ('presentation') {
+          <path d="M2 3h20"/>
+          <path d="M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3"/>
+          <path d="m7 21 5-5 5 5"/>
+        }
+        @case ('lock') {
+          <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        }
+        @case ('shield') {
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          <path d="m9 12 2 2 4-4"/>
+        }
+        @case ('lightbulb') {
+          <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/>
+          <path d="M9 18h6"/>
+          <path d="M10 22h4"/>
+        }
+        @case ('rocket') {
+          <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/>
+          <path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/>
+          <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 3 0 3 0"/>
+          <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-3 0-3"/>
+        }
+        @case ('briefcase') {
+          <rect width="20" height="14" x="2" y="7" rx="2" ry="2"/>
+          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+        }
+        @case ('smartphone') {
+          <rect width="14" height="20" x="5" y="2" rx="2" ry="2"/>
+          <line x1="12" x2="12.01" y1="18" y2="18"/>
+        }
+        @case ('anchor') {
+          <circle cx="12" cy="5" r="3"/>
+          <line x1="12" x2="12" y1="22" y2="8"/>
+          <path d="M5 12H2a10 10 0 0 0 20 0h-3"/>
+        }
+        @case ('ship') {
+          <path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1 .6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/>
+          <path d="M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.94 5.34 2.81 7.76"/>
+          <path d="M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6"/>
+          <path d="M12 10V4.5"/>
+          <path d="M12 4.5 8 7"/>
+        }
+        @case ('footprints') {
+          <path d="M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5 10 7.89 8 10 8 12c0 1.18-.59 2-.86 2.63"/>
+          <path d="M8 18c-1.5 0-3-1-3-3"/>
+          <path d="M16 8v2.38c0 2.12 1.03 3.12 1 5.62-.03 2.72-1.49 6-4.5 6-1.87 0-2.5-1.8-2.5-3.5 0-2.39 2-4.61 2-6.61 0-1.18.59-2 .86-2.63"/>
+          <path d="M16 6c1.5 0 3 1 3 3"/>
+        }
+        @case ('circle-check') {
+          <circle cx="12" cy="12" r="10"/>
+          <path d="m9 12 2 2 4-4"/>
+        }
+        @case ('circle-x') {
+          <circle cx="12" cy="12" r="10"/>
+          <path d="m15 9-6 6"/>
+          <path d="m9 9 6 6"/>
+        }
+        @case ('users') {
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        }
+        @case ('plug') {
+          <path d="M12 22v-5"/>
+          <path d="M9 8V2"/>
+          <path d="M15 8V2"/>
+          <path d="M18 8v5a6 6 0 0 1-12 0V8z"/>
+        }
       }
     </svg>
   `
@@ -267,7 +405,8 @@ export class IconComponent {
       'xs': '14',
       'sm': '16',
       'md': '20',
-      'lg': '24'
+      'lg': '24',
+      'xl': '32'
     };
     return sizeMap[this.size()];
   }
@@ -278,7 +417,8 @@ export class IconComponent {
       'xs': 'w-[14px] h-[14px]',
       'sm': 'w-[16px] h-[16px]',
       'md': 'w-[20px] h-[20px]',
-      'lg': 'w-[24px] h-[24px]'
+      'lg': 'w-[24px] h-[24px]',
+      'xl': 'w-[32px] h-[32px]'
     };
     const sizeClasses = sizeMap[this.size()];
     return `${baseClasses} ${sizeClasses} ${this.className()}`.trim();

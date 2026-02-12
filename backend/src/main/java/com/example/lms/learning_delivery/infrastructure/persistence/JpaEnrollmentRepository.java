@@ -74,7 +74,7 @@ public interface JpaEnrollmentRepository extends JpaRepository<EnrollmentJpaEnti
     List<EnrollmentJpaEntity> findActiveWithClass(@Param("studentId") UUID studentId);
 
     // Find all enrollments for a course (via learning classes)
-    @Query("SELECT e FROM EnrollmentJpaEntity e WHERE e.learningClass.courseId = :courseId")
+    @Query("SELECT e FROM EnrollmentJpaEntity e JOIN FETCH e.learningClass lc WHERE lc.courseId = :courseId")
     List<EnrollmentJpaEntity> findByLearningClass_CourseId(@Param("courseId") UUID courseId);
 
     /**
@@ -92,4 +92,18 @@ public interface JpaEnrollmentRepository extends JpaRepository<EnrollmentJpaEnti
             @Param("studentId") UUID studentId,
             @Param("courseId") UUID courseId
     );
+
+    // === Analytics queries ===
+
+    @Query("SELECT COUNT(e) FROM EnrollmentJpaEntity e WHERE e.studentId = :studentId AND e.status = 'COMPLETED'")
+    long countCompletedByStudentId(@Param("studentId") UUID studentId);
+
+    @Query("SELECT COALESCE(AVG(e.completionPercent), 0) FROM EnrollmentJpaEntity e WHERE e.studentId = :studentId AND e.status = 'ACTIVE'")
+    double getAverageCompletionByStudentId(@Param("studentId") UUID studentId);
+
+    @Query("SELECT COUNT(DISTINCT e.studentId) FROM EnrollmentJpaEntity e JOIN e.learningClass lc WHERE lc.courseId IN :courseIds")
+    long countDistinctStudentsByCourseIds(@Param("courseIds") List<UUID> courseIds);
+
+    @Query("SELECT lc.courseId, COUNT(e) FROM EnrollmentJpaEntity e JOIN e.learningClass lc WHERE lc.courseId IN :courseIds GROUP BY lc.courseId")
+    List<Object[]> countEnrollmentsByCourseIds(@Param("courseIds") List<UUID> courseIds);
 }

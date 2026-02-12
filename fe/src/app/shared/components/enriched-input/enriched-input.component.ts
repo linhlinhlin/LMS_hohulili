@@ -6,6 +6,7 @@ import { ImageLifecycleService } from '../../../core/services/image-lifecycle.se
 import { ContentBlock } from '../../../api/types/content-block.types';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { MathQuickToolbarComponent } from '../math-quick-toolbar/math-quick-toolbar.component';
+import { IconComponent } from '../icon/icon.component';
 import katex from 'katex';
 
 /**
@@ -20,7 +21,7 @@ import katex from 'katex';
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
     selector: 'app-enriched-input',
-    imports: [FormsModule, MathQuickToolbarComponent],
+    imports: [FormsModule, MathQuickToolbarComponent, IconComponent],
     template: `
     <div class="relative w-full group">
       <!-- Math Toolbar (Visible when focused or has math) -->
@@ -36,10 +37,10 @@ import katex from 'katex';
            <div class="text-[10px] text-gray-400 mb-1 font-bold uppercase tracking-wider flex justify-between items-center">
              <span>Kết quả hiển thị</span>
              @if (isFormula()) {
-               <span class="text-blue-600 bg-blue-50 px-1.5 rounded font-mono">TeX</span>
+               <span class="text-[#0056D2] bg-blue-50 px-1.5 rounded font-mono">TeX</span>
              }
              @if (hasImage()) {
-               <span class="text-green-600 bg-green-50 px-1.5 rounded">🖼️</span>
+               <span class="text-green-600 bg-green-50 px-1.5 rounded"><app-icon name="image" size="sm"/></span>
              }
            </div>
            <div [innerHTML]="previewHtml()" class="prose prose-sm max-w-none text-gray-800"></div>
@@ -67,10 +68,10 @@ import katex from 'katex';
                    [alt]="'Image ' + (i + 1)"
                    (error)="onImageError($event)">
               <!-- Image Icon SVG -->
-              <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-4 h-4 text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
               </svg>
-              <span class="text-xs text-blue-700 font-medium">Ảnh {{i + 1}}</span>
+              <span class="text-xs text-[#004BB5] font-medium">Ảnh {{i + 1}}</span>
               <button type="button" 
                       (click)="removeImage(img.uuid); $event.stopPropagation()" 
                       class="w-4 h-4 flex items-center justify-center rounded-full bg-red-100 text-red-500 hover:bg-red-500 hover:text-white opacity-0 group-hover/chip:opacity-100 transition-all text-[10px]"
@@ -112,8 +113,8 @@ import katex from 'katex';
         <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center space-x-1 text-gray-400">
            <!-- Image Upload Button -->
            <button type="button" (click)="fileInput.click()" 
-                   class="p-1.5 hover:text-blue-600 rounded-md hover:bg-blue-50 transition-colors relative group/btn"
-                   [class.text-blue-600]="hasImage()"
+                   class="p-1.5 hover:text-[#0056D2] rounded-md hover:bg-blue-50 transition-colors relative group/btn"
+                   [class.text-[#0056D2]]="hasImage()"
                    [class.bg-blue-50]="hasImage()">
              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
              <div class="hidden group-hover/btn:block absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-gray-800 text-white text-[10px] rounded whitespace-nowrap z-50">Chèn ảnh</div>
@@ -121,7 +122,7 @@ import katex from 'katex';
            
            <!-- Math Toggle Button -->
            <button type="button" (click)="insertMath()" 
-                   class="p-1.5 hover:text-blue-600 rounded-md hover:bg-blue-50 transition-colors relative group/btn"
+                   class="p-1.5 hover:text-[#0056D2] rounded-md hover:bg-blue-50 transition-colors relative group/btn"
                    [class.text-amber-600]="isFormula()"
                    [class.bg-amber-50]="isFormula()">
              <span class="font-serif italic font-bold text-lg leading-none">Σ</span>
@@ -136,7 +137,7 @@ import katex from 'katex';
       <!-- Processing Indicator (Overlay) -->
       @if (isProcessing()) {
         <div class="absolute inset-0 bg-white/80 flex items-center justify-center rounded-lg">
-          <div class="flex items-center gap-2 text-blue-600">
+          <div class="flex items-center gap-2 text-[#0056D2]">
             <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>

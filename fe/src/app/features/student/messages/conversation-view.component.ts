@@ -48,7 +48,7 @@ import { Message, sortMessagesByDate, Conversation } from './utils/message-utils
 
         @if (otherParticipant()) {
           <div class="flex items-center gap-3 flex-1">
-            <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-medium">
+            <div class="w-10 h-10 bg-[#0056D2] rounded-full flex items-center justify-center text-white font-medium">
               {{ getInitials(otherParticipant()!.name) }}
             </div>
             <div>
@@ -78,7 +78,7 @@ import { Message, sortMessagesByDate, Conversation } from './utils/message-utils
       <div #messagesContainer class="flex-1 overflow-y-auto p-4">
         @if (loading()) {
           <div class="flex items-center justify-center h-full">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0056D2]"></div>
             <span class="ml-3 text-gray-600">Đang tải tin nhắn...</span>
           </div>
         } @else if (error()) {
@@ -87,7 +87,7 @@ import { Message, sortMessagesByDate, Conversation } from './utils/message-utils
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
             </svg>
             <p class="text-gray-600 mb-2">{{ error() }}</p>
-            <button (click)="refreshMessages()" class="text-blue-600 hover:text-blue-800">
+            <button (click)="refreshMessages()" class="text-[#0056D2] hover:text-blue-800">
               Thử lại
             </button>
           </div>
@@ -185,7 +185,9 @@ export class ConversationViewComponent implements OnInit, OnDestroy, AfterViewCh
           .filter((m) => !m.isRead && m.senderId !== this.currentUserId)
           .map((m) => m.id);
         if (unreadIds.length > 0) {
-          this.messagingService.markAsRead(unreadIds).subscribe();
+          this.messagingService.markAsRead(unreadIds).subscribe({
+            error: () => {} // Non-blocking — messages still displayed
+          });
         }
 
         // Start polling

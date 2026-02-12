@@ -9,7 +9,7 @@ import { Component, output, ChangeDetectionStrategy } from '@angular/core';
     <div class="flex flex-wrap gap-2 p-2 bg-gray-50 border border-gray-200 rounded-lg mb-2">
       @for (symbol of symbols; track symbol.char) {
         <button (click)="insertSymbol(symbol)"
-                class="px-2 py-1 text-sm bg-white border border-gray-300 rounded hover:bg-gray-100 hover:text-blue-600 transition-colors"
+                class="px-2 py-1 text-sm bg-white border border-gray-300 rounded hover:bg-gray-100 hover:text-[#0056D2] transition-colors"
                 [title]="symbol.name">
           {{symbol.char}}
         </button>

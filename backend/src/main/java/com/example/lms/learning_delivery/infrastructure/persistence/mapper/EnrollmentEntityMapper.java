@@ -7,6 +7,8 @@ import com.example.lms.learning_delivery.infrastructure.persistence.entity.Learn
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -31,10 +33,12 @@ public class EnrollmentEntityMapper {
         if (domain.getStatus() != null) {
             try {
                 status = EnrollmentJpaEntity.EnrollmentStatus.valueOf(domain.getStatus().name());
-            } catch (IllegalArgumentException ignored) {}
+            } catch (IllegalArgumentException ignored) {
+                // Unknown status enum — default to ACTIVE
+            }
         }
 
-        // Convert progress map
+        // Convert progress map (domain Instant -> JPA String for JSONB)
         Map<String, EnrollmentJpaEntity.LessonProgressData> progressMap = new HashMap<>();
         if (domain.getProgress() != null) {
             domain.getProgress().forEach((lessonId, lessonProgress) -> {
@@ -42,7 +46,10 @@ public class EnrollmentEntityMapper {
                         .status(lessonProgress.getStatus())
                         .watchSeconds(lessonProgress.getWatchSeconds())
                         .grade(lessonProgress.getGrade())
-                        .lastActivity(lessonProgress.getLastActivity())
+                        .lastActivity(lessonProgress.getLastActivity() != null
+                                ? lessonProgress.getLastActivity().toString() : null)
+                        .completedSections(lessonProgress.getCompletedSections() != null
+                                ? new ArrayList<>(lessonProgress.getCompletedSections()) : null)
                         .build();
                 progressMap.put(lessonId, data);
             });
@@ -73,18 +80,30 @@ public class EnrollmentEntityMapper {
         if (entity.getStatus() != null) {
             try {
                 status = Enrollment.EnrollmentStatus.valueOf(entity.getStatus().name());
-            } catch (IllegalArgumentException ignored) {}
+            } catch (IllegalArgumentException ignored) {
+                // Unknown status enum — default to ACTIVE
+            }
         }
 
-        // Convert progress map
+        // Convert progress map (JPA String -> domain Instant)
         Map<String, Enrollment.LessonProgress> progressMap = new HashMap<>();
         if (entity.getProgress() != null) {
             entity.getProgress().forEach((lessonId, data) -> {
+                Instant lastActivity = null;
+                if (data.getLastActivity() != null) {
+                    try {
+                        lastActivity = Instant.parse(data.getLastActivity());
+                    } catch (Exception ignored) {
+                        // Invalid Instant format — default to null
+                    }
+                }
                 Enrollment.LessonProgress progress = Enrollment.LessonProgress.builder()
                         .status(data.getStatus())
                         .watchSeconds(data.getWatchSeconds())
                         .grade(data.getGrade())
-                        .lastActivity(data.getLastActivity())
+                        .lastActivity(lastActivity)
+                        .completedSections(data.getCompletedSections() != null
+                                ? new ArrayList<>(data.getCompletedSections()) : null)
                         .build();
                 progressMap.put(lessonId, progress);
             });

@@ -21,7 +21,7 @@ import { QuestionApi, Question } from '../../../api/endpoints/question.api';
         <!-- Loading State -->
         @if (isLoading) {
           <div class="flex justify-center items-center py-12">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0056D2]"></div>
             <span class="ml-2 text-gray-600">Đang tải...</span>
           </div>
         }
@@ -58,7 +58,7 @@ import { QuestionApi, Question } from '../../../api/endpoints/question.api';
                     formControlName="timeLimitMinutes"
                     min="5"
                     max="120"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]"
                     >
                   </div>
                   <!-- Max Attempts -->
@@ -72,7 +72,7 @@ import { QuestionApi, Question } from '../../../api/endpoints/question.api';
                       formControlName="maxAttempts"
                       min="1"
                       max="10"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]"
                       >
                     </div>
                     <!-- Passing Score -->
@@ -86,7 +86,7 @@ import { QuestionApi, Question } from '../../../api/endpoints/question.api';
                         formControlName="passingScore"
                         min="0"
                         max="100"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]"
                         >
                       </div>
                     </div>
@@ -97,7 +97,7 @@ import { QuestionApi, Question } from '../../../api/endpoints/question.api';
                           id="showCorrectAnswers"
                           type="checkbox"
                           formControlName="showCorrectAnswers"
-                          class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          class="h-4 w-4 text-[#0056D2] focus:ring-[#0056D2] border-gray-300 rounded"
                           >
                           <label for="showCorrectAnswers" class="ml-2 block text-sm text-gray-700">
                             Hiển thị đáp án đúng sau khi làm xong
@@ -108,7 +108,7 @@ import { QuestionApi, Question } from '../../../api/endpoints/question.api';
                             id="shuffleQuestions"
                             type="checkbox"
                             formControlName="shuffleQuestions"
-                            class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                            class="h-4 w-4 text-[#0056D2] focus:ring-[#0056D2] border-gray-300 rounded"
                             >
                             <label for="shuffleQuestions" class="ml-2 block text-sm text-gray-700">
                               Xáo trộn thứ tự câu hỏi
@@ -119,7 +119,7 @@ import { QuestionApi, Question } from '../../../api/endpoints/question.api';
                               id="shuffleOptions"
                               type="checkbox"
                               formControlName="shuffleOptions"
-                              class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                              class="h-4 w-4 text-[#0056D2] focus:ring-[#0056D2] border-gray-300 rounded"
                               >
                               <label for="shuffleOptions" class="ml-2 block text-sm text-gray-700">
                                 Xáo trộn thứ tự đáp án
@@ -130,7 +130,7 @@ import { QuestionApi, Question } from '../../../api/endpoints/question.api';
                                 id="showResultsImmediately"
                                 type="checkbox"
                                 formControlName="showResultsImmediately"
-                                class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                class="h-4 w-4 text-[#0056D2] focus:ring-[#0056D2] border-gray-300 rounded"
                                 >
                                 <label for="showResultsImmediately" class="ml-2 block text-sm text-gray-700">
                                   Hiển thị kết quả ngay lập tức
@@ -150,7 +150,7 @@ import { QuestionApi, Question } from '../../../api/endpoints/question.api';
                                     type="checkbox"
                                     [checked]="selectedQuestionIds.has(question.id)"
                                     (change)="onQuestionToggle(question.id, $event)"
-                                    class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mr-3"
+                                    class="h-4 w-4 text-[#0056D2] focus:ring-[#0056D2] border-gray-300 rounded mr-3"
                                     >
                                     <div class="flex-1">
                                       <div class="font-medium text-gray-800">{{ question.content }}</div>
@@ -175,7 +175,7 @@ import { QuestionApi, Question } from '../../../api/endpoints/question.api';
                                   [(ngModel)]="questionSearchTerm"
                                   (ngModelChange)="onQuestionSearch()"
                                   placeholder="Tìm kiếm câu hỏi..."
-                                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]"
                                   >
                                 </div>
                                 <!-- Questions List -->
@@ -188,7 +188,7 @@ import { QuestionApi, Question } from '../../../api/endpoints/question.api';
                                         type="checkbox"
                                         [checked]="selectedQuestionIds.has(question.id)"
                                         (change)="onQuestionToggle(question.id, $event)"
-                                        class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mr-3"
+                                        class="h-4 w-4 text-[#0056D2] focus:ring-[#0056D2] border-gray-300 rounded mr-3"
                                         >
                                         <div class="flex-1">
                                           <div class="font-medium text-gray-800">{{ question.content }}</div>
@@ -221,7 +221,7 @@ import { QuestionApi, Question } from '../../../api/endpoints/question.api';
                                   <button
                                     type="submit"
                                     [disabled]="quizForm.invalid || selectedQuestionIds.size === 0"
-                                    class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    class="px-6 py-2 bg-[#0056D2] text-white rounded-md hover:bg-[#004BB5] focus:outline-none focus:ring-2 focus:ring-[#0056D2] disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                     Cập nhật Quiz
                                   </button>

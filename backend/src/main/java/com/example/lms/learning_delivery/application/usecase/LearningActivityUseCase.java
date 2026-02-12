@@ -1,0 +1,133 @@
+package com.example.lms.learning_delivery.application.usecase;
+
+import com.example.lms.learning_delivery.domain.model.LearningEvent;
+import com.example.lms.learning_delivery.domain.repository.LearningEventRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Map;
+import java.util.UUID;
+
+/**
+ * Use case for tracking learning activity — time spent, heartbeats,
+ * reading progress, and "continue where you left off".
+ *
+ * Pattern reference: Coursera heartbeat (30s interval), edX time-on-task,
+ * xAPI Video Profile "experienced" statements.
+ */
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class LearningActivityUseCase {
+
+    private final LearningEventRepository learningEventRepository;
+    private final GamificationUseCase gamificationUseCase;
+
+    /**
+     * Record a heartbeat from the frontend.
+     * Called every 30 seconds while a student is actively engaged with content.
+     *
+     * @param studentId  the student
+     * @param lessonId   current lesson
+     * @param sectionId  current section (nullable)
+     * @param timeSpentSeconds seconds since last heartbeat (typically 30)
+     * @param contentType VIDEO, TEXT, QUIZ, FILE, etc.
+     */
+    @Transactional
+    public void recordHeartbeat(UUID studentId, UUID lessonId, String sectionId,
+                                 int timeSpentSeconds, String contentType) {
+        learningEventRepository.save(LearningEvent.create(
+                studentId, lessonId, sectionId,
+                LearningEvent.EventType.HEARTBEAT,
+                Map.of(
+                        "timeSpentSeconds", timeSpentSeconds,
+                        "contentType", contentType != null ? contentType : "UNKNOWN"
+                )
+        ));
+
+        // Auto-trigger streak update + achievement check on heartbeat
+        try {
+            gamificationUseCase.updateStreak(studentId);
+        } catch (Exception e) {
+            log.warn("Failed to update streak for student {}: {}", studentId, e.getMessage());
+        }
+    }
+
+    /**
+     * Record reading progress for TEXT sections.
+     * Called when scroll reaches a threshold (e.g., 80%).
+     */
+    @Transactional
+    public void recordReadingProgress(UUID studentId, UUID lessonId, String sectionId,
+                                       double scrollPercent) {
+        learningEventRepository.save(LearningEvent.create(
+                studentId, lessonId, sectionId,
+                LearningEvent.EventType.READING_PROGRESS,
+                Map.of("scrollPercent", scrollPercent)
+        ));
+    }
+
+    /**
+     * Get "continue where you left off" data.
+     * Returns the most recent activity event with lesson/section info.
+     */
+    @Transactional(readOnly = true)
+    public ContinueWhereLeftOffDTO getContinueWhereLeftOff(UUID studentId) {
+        return learningEventRepository.findLastActivityEvent(studentId)
+                .map(event -> new ContinueWhereLeftOffDTO(
+                        event.getLessonId(),
+                        event.getSectionId(),
+                        event.getEventType().name(),
+                        event.getCreatedAt()
+                ))
+                .orElse(null);
+    }
+
+    /**
+     * Get today's total study time for a student (in seconds).
+     */
+    @Transactional(readOnly = true)
+    public long getTodayStudyTimeSeconds(UUID studentId) {
+        Instant startOfDay = Instant.now().truncatedTo(ChronoUnit.DAYS);
+        return learningEventRepository.sumTimeSpentSince(studentId, startOfDay);
+    }
+
+    // DTOs
+    public record HeartbeatRequest(
+            UUID lessonId,
+            String sectionId,
+            int timeSpentSeconds,
+            String contentType
+    ) {}
+
+    public record ReadingProgressRequest(
+            UUID lessonId,
+            String sectionId,
+            double scrollPercent
+    ) {}
+
+    public record ContinueWhereLeftOffDTO(
+            UUID lessonId,
+            String sectionId,
+            String lastEventType,
+            Instant lastActivityAt
+    ) {}
+
+    public record StudyTimeResponse(
+            long todaySeconds,
+            String todayFormatted
+    ) {
+        public static StudyTimeResponse from(long seconds) {
+            long hours = seconds / 3600;
+            long mins = (seconds % 3600) / 60;
+            String formatted = hours > 0
+                    ? hours + "h " + mins + "m"
+                    : mins + " phút";
+            return new StudyTimeResponse(seconds, formatted);
+        }
+    }
+}

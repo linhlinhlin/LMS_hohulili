@@ -33,11 +33,15 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
+        # Fix Hibernate 6.4 UUID array ClassCastException (HHH-17557)
+        dialect.native_param_markers: false
         # SOTA Batch Fetching - Reduce N+1 queries
         default_batch_fetch_size: 16    # Load 16 lazy entities per batch
         jdbc.batch_size: 25             # Batch inserts/updates
         order_inserts: true             # Group inserts by entity type
         order_updates: true             # Group updates by entity type
+        # Hypersistence Utils: Custom ObjectMapper with JavaTimeModule for JSONB
+        types.jackson.object.mapper: com.example.lms.config.HibernateJsonConfig
     # CRITICAL: Disable Open Session In View anti-pattern
     # Reference: Netflix/Google explicitly disable this
     open-in-view: false

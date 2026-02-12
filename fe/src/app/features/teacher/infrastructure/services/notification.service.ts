@@ -1,6 +1,5 @@
-import { Injectable, signal, computed, inject } from '@angular/core';
+import { Injectable, signal, computed } from '@angular/core';
 import { interval } from 'rxjs';
-import { ApiClient } from '../../../../api/client/api-client';
 import { Notification, NotificationPreferences } from '../../types/teacher.types';
 
 /**
@@ -12,8 +11,6 @@ import { Notification, NotificationPreferences } from '../../types/teacher.types
   providedIn: 'root'
 })
 export class NotificationService {
-  private apiClient = inject(ApiClient);
-
   // Core signals for state management
   private _notifications = signal<Notification[]>([]);
   private _preferences = signal<NotificationPreferences>({
@@ -67,144 +64,35 @@ export class NotificationService {
   });
 
   constructor() {
-    // Initialize with mock data for development
-    this.initializeMockData();
-    // Start auto-refresh for notifications
     this.startAutoRefresh();
   }
 
-  private initializeMockData(): void {
-    // Mock notifications data
-    const mockNotifications: Notification[] = [
-      {
-        id: '1',
-        type: 'assignment',
-        title: 'New Assignment Submission',
-        message: 'Student Nguyễn Văn An submitted "Safety Procedures Quiz"',
-        isRead: false,
-        timestamp: new Date('2024-09-15T10:30:00'),
-        priority: 'medium',
-        actionUrl: '/teacher/assignments/1/submissions',
-        metadata: { assignmentId: '1', studentId: '1' }
-      },
-      {
-        id: '2',
-        type: 'course',
-        title: 'Course Enrollment',
-        message: 'New student enrolled in "Maritime Safety Fundamentals"',
-        isRead: false,
-        timestamp: new Date('2024-09-15T09:15:00'),
-        priority: 'low',
-        actionUrl: '/teacher/students',
-        metadata: { courseId: '1', studentId: '2' }
-      },
-      {
-        id: '3',
-        type: 'system',
-        title: 'System Maintenance',
-        message: 'Scheduled maintenance will occur tonight from 2-4 AM',
-        isRead: true,
-        timestamp: new Date('2024-09-14T16:00:00'),
-        priority: 'high',
-        metadata: { maintenanceStart: '2024-09-16T02:00:00' }
-      },
-      {
-        id: '4',
-        type: 'grade',
-        title: 'Grade Review Request',
-        message: 'Student Trần Thị Bình requested grade review for Quiz #2',
-        isRead: false,
-        timestamp: new Date('2024-09-14T14:20:00'),
-        priority: 'medium',
-        actionUrl: '/teacher/assignments/2/submissions',
-        metadata: { assignmentId: '2', studentId: '2', reviewRequest: true }
-      },
-      {
-        id: '5',
-        type: 'assignment',
-        title: 'Assignment Due Soon',
-        message: 'Assignment "Navigation Project" is due in 2 days',
-        isRead: false,
-        timestamp: new Date('2024-09-13T08:00:00'),
-        priority: 'urgent',
-        actionUrl: '/teacher/assignments/2',
-        metadata: { assignmentId: '2', dueDate: '2024-09-20' }
-      }
-    ];
-
-    this._notifications.set(mockNotifications);
-  }
-
   // API Methods
-  async getNotifications(): Promise<Notification[]> {
-    this._isLoading.set(true);
-    this._error.set(null);
-
-    try {
-      await this.simulateApiCall();
-      this._lastChecked.set(new Date());
-      return this._notifications();
-    } catch (error) {
-      this._error.set('Failed to load notifications');
-      throw error;
-    } finally {
-      this._isLoading.set(false);
-    }
+  getNotifications(): Notification[] {
+    this._lastChecked.set(new Date());
+    return this._notifications();
   }
 
-  async markAsRead(notificationId: string): Promise<void> {
-    this._isLoading.set(true);
-    this._error.set(null);
-
-    try {
-      await this.simulateApiCall();
-      this._notifications.update(notifications =>
-        notifications.map(notification =>
-          notification.id === notificationId
-            ? { ...notification, isRead: true }
-            : notification
-        )
-      );
-    } catch (error) {
-      this._error.set('Failed to mark notification as read');
-      throw error;
-    } finally {
-      this._isLoading.set(false);
-    }
+  markAsRead(notificationId: string): void {
+    this._notifications.update(notifications =>
+      notifications.map(notification =>
+        notification.id === notificationId
+          ? { ...notification, isRead: true }
+          : notification
+      )
+    );
   }
 
-  async markAllAsRead(): Promise<void> {
-    this._isLoading.set(true);
-    this._error.set(null);
-
-    try {
-      await this.simulateApiCall();
-      this._notifications.update(notifications =>
-        notifications.map(notification => ({ ...notification, isRead: true }))
-      );
-    } catch (error) {
-      this._error.set('Failed to mark all notifications as read');
-      throw error;
-    } finally {
-      this._isLoading.set(false);
-    }
+  markAllAsRead(): void {
+    this._notifications.update(notifications =>
+      notifications.map(notification => ({ ...notification, isRead: true }))
+    );
   }
 
-  async deleteNotification(notificationId: string): Promise<void> {
-    this._isLoading.set(true);
-    this._error.set(null);
-
-    try {
-      await this.simulateApiCall();
-      this._notifications.update(notifications =>
-        notifications.filter(notification => notification.id !== notificationId)
-      );
-    } catch (error) {
-      this._error.set('Failed to delete notification');
-      throw error;
-    } finally {
-      this._isLoading.set(false);
-    }
+  deleteNotification(notificationId: string): void {
+    this._notifications.update(notifications =>
+      notifications.filter(notification => notification.id !== notificationId)
+    );
   }
 
   // Business logic methods
@@ -222,11 +110,6 @@ export class NotificationService {
 
   getNotificationsByPriority(priority: Notification['priority']): Notification[] {
     return this._notifications().filter(notification => notification.priority === priority);
-  }
-
-  // Utility methods
-  private async simulateApiCall(): Promise<void> {
-    await new Promise(resolve => setTimeout(resolve, 300));
   }
 
   // Notification Creation Methods (for system-generated notifications)
@@ -335,27 +218,13 @@ export class NotificationService {
     });
   }
 
-  // Preferences Management
-  async getPreferences(): Promise<NotificationPreferences> {
-    try {
-      // TODO: Replace with real API call
-      await this.simulateApiCall();
-      return this._preferences();
-    } catch {
-      return this._preferences();
-    }
+  // Preferences Management (client-side until backend notification API is available)
+  getPreferences(): NotificationPreferences {
+    return this._preferences();
   }
 
-  async updatePreferences(preferences: Partial<NotificationPreferences>): Promise<void> {
-    this._isLoading.set(true);
-    try {
-      // TODO: Replace with real API call
-      await this.simulateApiCall();
-      
-      this._preferences.update(current => ({ ...current, ...preferences }));
-    } finally {
-      this._isLoading.set(false);
-    }
+  updatePreferences(preferences: Partial<NotificationPreferences>): void {
+    this._preferences.update(current => ({ ...current, ...preferences }));
   }
 
   // Auto-refresh functionality

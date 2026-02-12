@@ -114,7 +114,7 @@
                   <div class="lessons-list">
                     @for (lesson of module.lessons; track lesson.id) {
                       <a
-                        [routerLink]="['/student/courses', course.id, 'lessons', lesson.id]"
+                        [routerLink]="['/learn/course', course.id, 'lesson', lesson.id]"
                         class="lesson-item"
                         [class.completed]="lesson.completed">
                         <span class="lesson-title">{{ lesson.title }}</span>

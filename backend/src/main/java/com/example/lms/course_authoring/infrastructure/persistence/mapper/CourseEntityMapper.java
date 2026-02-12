@@ -39,6 +39,8 @@ public class CourseEntityMapper {
         entity.setPriceType(mapPriceTypeToEntity(domain.getPriceType()));
         entity.setPrice(domain.getPrice());
         entity.setSalePrice(domain.getSalePrice());
+        entity.setThumbnailUrl(domain.getThumbnailUrl());
+        entity.setDeliveryMode(mapDeliveryModeToEntity(domain.getDeliveryMode()));
         entity.setReviewComment(domain.getReviewComment());
         entity.setReviewedAt(domain.getReviewedAt());
         entity.setReviewedById(domain.getReviewedById());
@@ -55,8 +57,6 @@ public class CourseEntityMapper {
             case PENDING -> CourseJpaEntity.CourseStatus.PENDING;
             case APPROVED -> CourseJpaEntity.CourseStatus.APPROVED;
             case REJECTED -> CourseJpaEntity.CourseStatus.REJECTED;
-            case PUBLISHED -> CourseJpaEntity.CourseStatus.PUBLISHED;
-            case ARCHIVED -> CourseJpaEntity.CourseStatus.ARCHIVED;
         };
     }
 
@@ -83,6 +83,17 @@ public class CourseEntityMapper {
     }
 
     /**
+     * Map domain DeliveryMode to JPA entity DeliveryMode.
+     */
+    private CourseJpaEntity.DeliveryMode mapDeliveryModeToEntity(Course.DeliveryMode domainMode) {
+        if (domainMode == null) return CourseJpaEntity.DeliveryMode.SELF_PACED;
+        return switch (domainMode) {
+            case SELF_PACED -> CourseJpaEntity.DeliveryMode.SELF_PACED;
+            case INSTRUCTOR_LED -> CourseJpaEntity.DeliveryMode.INSTRUCTOR_LED;
+        };
+    }
+
+    /**
      * Convert JPA entity to domain model.
      * Uses reflection to reconstruct immutable domain object during migration phase.
      */
@@ -92,8 +103,10 @@ public class CourseEntityMapper {
         }
 
         try {
-            // Create instance using protected constructor
-            Course course = Course.class.getDeclaredConstructor().newInstance();
+            // Create instance using protected constructor (setAccessible needed for cross-package access)
+            var constructor = Course.class.getDeclaredConstructor();
+            constructor.setAccessible(true);
+            Course course = constructor.newInstance();
 
             // Set ID from BaseEntity
             setField(course, "id", entity.getId());
@@ -107,7 +120,14 @@ public class CourseEntityMapper {
             setField(course, "status", mapStatusToDomain(entity.getStatus()));
             setField(course, "teacherId", entity.getTeacherId());
             setField(course, "categoryId", entity.getCategoryId());
-            setField(course, "tags", entity.getTags() != null ? new java.util.HashSet<>(entity.getTags()) : new java.util.HashSet<>());
+            java.util.Set<String> tags;
+            try {
+                tags = entity.getTags() != null ? new java.util.HashSet<>(entity.getTags()) : new java.util.HashSet<>();
+            } catch (Exception e) {
+                // Safety net: Hibernate 6.4 batch loading bugs (ClassCastException, LazyInitializationException)
+                tags = new java.util.HashSet<>();
+            }
+            setField(course, "tags", tags);
             setField(course, "welcomeMessage", entity.getWelcomeMessage());
             setField(course, "courseInformation", entity.getCourseInformation());
             setField(course, "benefits", entity.getBenefits());
@@ -117,6 +137,8 @@ public class CourseEntityMapper {
             setField(course, "priceType", mapPriceTypeToDomain(entity.getPriceType()));
             setField(course, "price", entity.getPrice());
             setField(course, "salePrice", entity.getSalePrice());
+            setField(course, "thumbnailUrl", entity.getThumbnailUrl());
+            setField(course, "deliveryMode", mapDeliveryModeToDomain(entity.getDeliveryMode()));
             setField(course, "reviewComment", entity.getReviewComment());
             setField(course, "reviewedAt", entity.getReviewedAt());
             setField(course, "reviewedById", entity.getReviewedById());
@@ -141,8 +163,6 @@ public class CourseEntityMapper {
             case PENDING -> Course.CourseStatus.PENDING;
             case APPROVED -> Course.CourseStatus.APPROVED;
             case REJECTED -> Course.CourseStatus.REJECTED;
-            case PUBLISHED -> Course.CourseStatus.PUBLISHED;
-            case ARCHIVED -> Course.CourseStatus.ARCHIVED;
         };
     }
 
@@ -165,6 +185,17 @@ public class CourseEntityMapper {
         return switch (entityPriceType) {
             case FREE -> Course.PriceType.FREE;
             case PAID -> Course.PriceType.PAID;
+        };
+    }
+
+    /**
+     * Map JPA entity DeliveryMode to domain DeliveryMode.
+     */
+    private Course.DeliveryMode mapDeliveryModeToDomain(CourseJpaEntity.DeliveryMode entityMode) {
+        if (entityMode == null) return Course.DeliveryMode.SELF_PACED;
+        return switch (entityMode) {
+            case SELF_PACED -> Course.DeliveryMode.SELF_PACED;
+            case INSTRUCTOR_LED -> Course.DeliveryMode.INSTRUCTOR_LED;
         };
     }
 

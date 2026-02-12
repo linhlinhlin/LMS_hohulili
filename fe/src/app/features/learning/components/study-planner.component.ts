@@ -1,8 +1,9 @@
-import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
+import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { IconComponent } from '../../../shared/components/icon/icon.component';
 
 interface StudySession {
   id: string;
@@ -48,20 +49,19 @@ interface StudyPlan {
 
 @Component({
   selector: 'app-study-planner',
-  imports: [FormsModule, RouterModule],
-  encapsulation: ViewEncapsulation.None,
+  imports: [FormsModule, RouterModule, IconComponent],
   template: `
     <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       <div class="max-w-7xl mx-auto px-6 py-8">
         <!-- Header -->
         <div class="flex items-center justify-between mb-8">
           <div>
-            <h1 class="text-3xl font-bold text-gray-900 mb-2">📅 Study Planner</h1>
+            <h1 class="text-3xl font-bold text-gray-900 mb-2 flex items-center"><app-icon name="calendar" size="lg" class="mr-2"/> Study Planner</h1>
             <p class="text-gray-600">Lập kế hoạch học tập và theo dõi tiến độ</p>
           </div>
           <div class="flex items-center space-x-4">
             <button (click)="createNewPlan()"
-                    class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                    class="px-6 py-3 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors font-medium">
               <svg class="w-5 h-5 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"></path>
               </svg>
@@ -86,7 +86,7 @@ interface StudyPlan {
                 <p class="text-2xl font-bold text-gray-900">{{ stats().totalPlans }}</p>
               </div>
               <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                <svg class="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="w-6 h-6 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path>
                 </svg>
               </div>
@@ -139,13 +139,13 @@ interface StudyPlan {
         <!-- Today's Sessions -->
         @if (todaySessions().length > 0) {
           <div class="bg-white rounded-2xl shadow-lg p-6 mb-8">
-            <h3 class="text-xl font-bold text-gray-900 mb-6">📚 Buổi học hôm nay</h3>
+            <h3 class="text-xl font-bold text-gray-900 mb-6 flex items-center"><app-icon name="courses" size="md" class="mr-2"/> Buổi học hôm nay</h3>
             <div class="space-y-4">
               @for (session of todaySessions(); track session.id) {
                 <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
                   <div class="flex items-center space-x-4">
                     <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                      <svg class="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                      <svg class="w-6 h-6 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
                         <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
                       </svg>
@@ -163,7 +163,7 @@ interface StudyPlan {
                     </span>
                     @if (session.status === 'scheduled') {
                       <button (click)="startSession(session.id)"
-                              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                              class="px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors">
                         Bắt đầu
                       </button>
                     } @else if (session.status === 'in-progress') {
@@ -186,10 +186,10 @@ interface StudyPlan {
         <!-- Study Plans -->
         <div class="bg-white rounded-2xl shadow-lg p-6">
           <div class="flex items-center justify-between mb-6">
-            <h3 class="text-xl font-bold text-gray-900">📋 Kế hoạch học tập</h3>
+            <h3 class="text-xl font-bold text-gray-900 flex items-center"><app-icon name="file-text" size="md" class="mr-2"/> Kế hoạch học tập</h3>
             <div class="flex items-center space-x-4">
               <select [(ngModel)]="selectedFilter" (ngModelChange)="filterPlans()"
-                      class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                      class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]">
                 <option value="all">Tất cả</option>
                 <option value="active">Đang hoạt động</option>
                 <option value="completed">Đã hoàn thành</option>
@@ -208,7 +208,7 @@ interface StudyPlan {
               <h3 class="text-lg font-medium text-gray-900 mb-2">Chưa có kế hoạch học tập</h3>
               <p class="text-gray-600 mb-6">Tạo kế hoạch học tập đầu tiên để bắt đầu hành trình học tập có tổ chức</p>
               <button (click)="createNewPlan()"
-                      class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                      class="px-6 py-3 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors font-medium">
                 Tạo kế hoạch đầu tiên
               </button>
             </div>
@@ -242,7 +242,7 @@ interface StudyPlan {
                       <span class="text-sm text-gray-600">{{ plan.completedSessions }}/{{ plan.totalSessions }} buổi học</span>
                     </div>
                     <div class="w-full bg-gray-200 rounded-full h-2">
-                      <div class="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                      <div class="bg-[#0056D2] h-2 rounded-full transition-all duration-300"
                            [style.width.%]="plan.progress"></div>
                     </div>
                   </div>
@@ -252,7 +252,7 @@ interface StudyPlan {
                     @for (goal of plan.goals.slice(0, 3); track goal.id) {
                       <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
                         <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                          <svg class="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                          <svg class="w-4 h-4 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
                           </svg>
                         </div>
@@ -268,7 +268,7 @@ interface StudyPlan {
                     }
                     @if (plan.goals.length > 3) {
                       <button (click)="viewAllGoals(plan.id)"
-                              class="w-full text-blue-600 hover:text-blue-800 font-medium text-sm">
+                              class="w-full text-[#0056D2] hover:text-blue-800 font-medium text-sm">
                         Xem thêm {{ plan.goals.length - 3 }} mục tiêu khác →
                       </button>
                     }
@@ -281,7 +281,7 @@ interface StudyPlan {
                     </div>
                     <div class="flex items-center space-x-3">
                       <button (click)="viewPlanDetails(plan.id)"
-                              class="px-4 py-2 text-blue-600 hover:text-blue-800 font-medium">
+                              class="px-4 py-2 text-[#0056D2] hover:text-blue-800 font-medium">
                         Xem chi tiết
                       </button>
                       @if (plan.status === 'active') {
@@ -311,114 +311,10 @@ export class StudyPlannerComponent implements OnInit {
   protected authService = inject(AuthService);
   private router = inject(Router);
 
-  // Mock data
-  studyPlans = signal<StudyPlan[]>([
-    {
-      id: 'plan-1',
-      title: 'Chuẩn bị thi chứng chỉ hàng hải',
-      description: 'Kế hoạch học tập để chuẩn bị cho kỳ thi chứng chỉ hàng hải quốc tế',
-      startDate: new Date('2024-01-01'),
-      endDate: new Date('2024-06-30'),
-      goals: [
-        {
-          id: 'goal-1',
-          title: 'Hoàn thành khóa học An toàn hàng hải',
-          description: 'Học và thi đậu khóa học về an toàn hàng hải',
-          targetDate: new Date('2024-03-31'),
-          progress: 75,
-          status: 'active',
-          sessions: [],
-          createdAt: new Date('2024-01-01')
-        },
-        {
-          id: 'goal-2',
-          title: 'Luyện tập bài thi thực hành',
-          description: 'Thực hành các kỹ năng điều khiển tàu',
-          targetDate: new Date('2024-05-31'),
-          progress: 40,
-          status: 'active',
-          sessions: [],
-          createdAt: new Date('2024-01-01')
-        }
-      ],
-      totalSessions: 50,
-      completedSessions: 30,
-      progress: 60,
-      status: 'active',
-      createdAt: new Date('2024-01-01')
-    },
-    {
-      id: 'plan-2',
-      title: 'Nâng cao kỹ năng điều hướng',
-      description: 'Học các kỹ thuật điều hướng hiện đại và sử dụng thiết bị GPS',
-      startDate: new Date('2024-02-01'),
-      endDate: new Date('2024-04-30'),
-      goals: [
-        {
-          id: 'goal-3',
-          title: 'Thành thạo sử dụng GPS',
-          description: 'Học cách sử dụng hệ thống GPS trong điều hướng',
-          targetDate: new Date('2024-03-15'),
-          progress: 100,
-          status: 'completed',
-          sessions: [],
-          createdAt: new Date('2024-02-01')
-        }
-      ],
-      totalSessions: 20,
-      completedSessions: 20,
-      progress: 100,
-      status: 'completed',
-      createdAt: new Date('2024-02-01')
-    }
-  ]);
+  // Study plans — loaded from API when backend support is available
+  studyPlans = signal<StudyPlan[]>([]);
 
-  studySessions = signal<StudySession[]>([
-    {
-      id: 'session-1',
-      title: 'Học về quy tắc COLREG',
-      courseId: 'course-1',
-      courseName: 'An toàn hàng hải',
-      lessonId: 'lesson-1',
-      lessonName: 'Quy tắc COLREG',
-      duration: 90,
-      scheduledDate: new Date(),
-      scheduledTime: '09:00',
-      status: 'scheduled',
-      priority: 'high',
-      notes: 'Chuẩn bị cho bài thi tuần tới',
-      createdAt: new Date()
-    },
-    {
-      id: 'session-2',
-      title: 'Thực hành điều hướng GPS',
-      courseId: 'course-2',
-      courseName: 'Điều hướng hiện đại',
-      lessonId: 'lesson-2',
-      lessonName: 'Sử dụng GPS',
-      duration: 120,
-      scheduledDate: new Date(),
-      scheduledTime: '14:00',
-      status: 'in-progress',
-      priority: 'medium',
-      createdAt: new Date()
-    },
-    {
-      id: 'session-3',
-      title: 'Ôn tập luật hàng hải',
-      courseId: 'course-3',
-      courseName: 'Luật hàng hải',
-      lessonId: 'lesson-3',
-      lessonName: 'Luật cơ bản',
-      duration: 60,
-      scheduledDate: new Date(),
-      scheduledTime: '19:00',
-      status: 'completed',
-      priority: 'low',
-      completedAt: new Date(),
-      createdAt: new Date()
-    }
-  ]);
+  studySessions = signal<StudySession[]>([]);
 
   selectedFilter = signal<string>('all');
 

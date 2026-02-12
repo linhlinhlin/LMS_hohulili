@@ -17,6 +17,7 @@ export interface User {
 // Runtime constants for roles (used in value positions)
 export const UserRole = {
   ADMIN: 'admin',
+  ORG_ADMIN: 'org_admin',
   TEACHER: 'teacher',
   STUDENT: 'student'
 } as const;

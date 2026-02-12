@@ -1,15 +1,15 @@
-import { Component, signal, inject, computed, ChangeDetectionStrategy, ViewEncapsulation, OnInit } from '@angular/core';
+import { Component, signal, inject, computed, ChangeDetectionStrategy, OnInit } from '@angular/core';
 
 import { RouterModule, Router } from '@angular/router';
 import { ResponsiveService } from '../../shared/services/responsive.service';
 import { ErrorHandlingService } from '../../shared/services/error-handling.service';
 import { LoadingComponent } from '../../shared/components/loading/loading.component';
 import { EnrolledCourse } from '../../shared/types/course.types';
+import { StudentEnrollmentService } from '../student/services/enrollment.service';
 
 @Component({
   selector: 'app-learning-new',
   imports: [RouterModule, LoadingComponent],
-  encapsulation: ViewEncapsulation.None,
   template: `
     <!-- Loading State -->
     <app-loading 
@@ -31,7 +31,7 @@ import { EnrolledCourse } from '../../shared/types/course.types';
             <div class="flex space-x-4">
               <button 
                 (click)="goToCourseSelection()"
-                class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                class="bg-[#0056D2] text-white px-6 py-3 rounded-lg hover:bg-[#004BB5] transition-colors font-medium">
                 Chọn khóa học
               </button>
               <button 
@@ -48,7 +48,7 @@ import { EnrolledCourse } from '../../shared/types/course.types';
           <div class="bg-white rounded-xl shadow-lg p-6">
             <div class="flex items-center">
               <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mr-4">
-                <svg class="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="w-6 h-6 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
                   <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
                 </svg>
@@ -97,7 +97,7 @@ import { EnrolledCourse } from '../../shared/types/course.types';
               routerLink="/student/quiz"
               class="p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors text-left">
               <div class="flex items-center space-x-3">
-                <svg class="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="w-6 h-6 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path>
                 </svg>
                 <div>
@@ -136,15 +136,15 @@ import { EnrolledCourse } from '../../shared/types/course.types';
               </div>
             </button>
 
-            <button 
-              routerLink="/student/forum"
+            <button
+              routerLink="/student/ai-chat"
               class="p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors text-left">
               <div class="flex items-center space-x-3">
                 <svg class="w-6 h-6 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
                 </svg>
                 <div>
-                  <h3 class="font-medium text-gray-900">Hỗ trợ</h3>
+                  <h3 class="font-medium text-gray-900">Trợ lý AI</h3>
                   <p class="text-sm text-gray-600">Trợ giúp và FAQ</p>
                 </div>
               </div>
@@ -158,7 +158,7 @@ import { EnrolledCourse } from '../../shared/types/course.types';
             <h2 class="text-2xl font-bold text-gray-900">Khóa học của tôi</h2>
             <button 
               routerLink="/courses"
-              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+              class="px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors">
               Xem tất cả
             </button>
           </div>
@@ -207,7 +207,7 @@ import { EnrolledCourse } from '../../shared/types/course.types';
                       <span>{{ course.progress }}%</span>
                     </div>
                     <div class="w-full bg-gray-200 rounded-full h-2">
-                      <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" [style.width.%]="course.progress"></div>
+                      <div class="bg-[#0056D2] h-2 rounded-full transition-all duration-300" [style.width.%]="course.progress"></div>
                     </div>
                   </div>
                   
@@ -215,7 +215,7 @@ import { EnrolledCourse } from '../../shared/types/course.types';
                   <div class="mt-4">
                     <button 
                       (click)="continueCourse(course.id)"
-                      class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                      class="w-full px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors">
                       @if (course.status === 'completed') {
                         Xem lại
                       } @else if (course.status === 'in-progress') {
@@ -239,82 +239,13 @@ export class LearningNewComponent implements OnInit {
   protected responsive = inject(ResponsiveService);
   private router = inject(Router);
   private errorService = inject(ErrorHandlingService);
+  private enrollmentService = inject(StudentEnrollmentService);
 
   // Loading state
   isLoading = signal<boolean>(true);
 
-  // Mock data for enrolled courses
-  enrolledCourses = signal<EnrolledCourse[]>([
-    {
-      id: 'course-1',
-      title: 'Kỹ thuật Tàu biển Cơ bản',
-      description: 'Khóa học cung cấp kiến thức cơ bản về kỹ thuật tàu biển, bao gồm cấu trúc tàu, hệ thống động lực, và quy trình vận hành.',
-      instructor: 'ThS. Nguyễn Văn Hải',
-      thumbnail: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400&h=300&fit=crop',
-      progress: 75,
-      totalLessons: 12,
-      completedLessons: 9,
-      duration: '3 giờ',
-      lastAccessed: '2 giờ trước',
-      status: 'in-progress',
-      currentLesson: 'Bài 9: Hệ thống động lực tàu',
-      nextLesson: 'Bài 10: Bảo trì và sửa chữa',
-      studyTime: 180, // 3 hours
-      averageScore: 8.5,
-      notesCount: 23,
-      bookmarksCount: 8,
-      isFavorite: true,
-      lastLessonCompleted: 'Bài 8: Cấu trúc tàu container',
-      upcomingDeadlines: [new Date('2024-09-25'), new Date('2024-10-02')],
-      certificateAvailable: false
-    },
-    {
-      id: 'course-2',
-      title: 'An toàn Hàng hải',
-      description: 'Các quy định và thực hành an toàn trong ngành hàng hải, bao gồm quy trình an toàn, thiết bị cứu sinh, và xử lý tình huống khẩn cấp.',
-      instructor: 'TS. Trần Thị Lan',
-      thumbnail: 'https://images.unsplash.com/photo-1506905925346-14b1e3d71e51?w=400&h=300&fit=crop',
-      progress: 100,
-      totalLessons: 8,
-      completedLessons: 8,
-      duration: '2 giờ',
-      lastAccessed: '1 ngày trước',
-      status: 'completed',
-      currentLesson: undefined,
-      nextLesson: undefined,
-      studyTime: 120, // 2 hours
-      averageScore: 9.2,
-      notesCount: 45,
-      bookmarksCount: 12,
-      isFavorite: true,
-      lastLessonCompleted: 'Bài 8: Xử lý tình huống khẩn cấp',
-      upcomingDeadlines: [],
-      certificateAvailable: true
-    },
-    {
-      id: 'course-3',
-      title: 'Quản lý Cảng biển',
-      description: 'Kiến thức về quản lý và vận hành cảng biển, bao gồm quy trình logistics, quản lý container, và an toàn cảng.',
-      instructor: 'ThS. Lê Văn Minh',
-      thumbnail: 'https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?w=400&h=300&fit=crop',
-      progress: 0,
-      totalLessons: 10,
-      completedLessons: 0,
-      duration: '4 giờ',
-      lastAccessed: 'Chưa bắt đầu',
-      status: 'not-started',
-      currentLesson: 'Bài 1: Giới thiệu về quản lý cảng',
-      nextLesson: 'Bài 2: Cơ sở hạ tầng cảng',
-      studyTime: 0,
-      averageScore: 0,
-      notesCount: 0,
-      bookmarksCount: 0,
-      isFavorite: false,
-      lastLessonCompleted: undefined,
-      upcomingDeadlines: [new Date('2024-09-28'), new Date('2024-10-05')],
-      certificateAvailable: false
-    }
-  ]);
+  // Enrolled courses loaded from API via StudentEnrollmentService
+  enrolledCourses = signal<EnrolledCourse[]>([]);
 
   totalCompletedLessons = computed(() => 
     this.enrolledCourses().reduce((sum, course) => sum + course.completedLessons, 0)
@@ -332,23 +263,16 @@ export class LearningNewComponent implements OnInit {
   private async loadLearningData(): Promise<void> {
     try {
       this.isLoading.set(true);
-      
-      // Simulate loading data
-      await this.simulateDataLoading();
-      
-      
-      this.errorService.showSuccess('Giao diện học tập đã được tải thành công!', 'learning');
-      
+
+      // Load enrolled courses from backend via StudentEnrollmentService
+      await this.enrollmentService.loadEnrolledCourses(0, 50);
+      this.enrolledCourses.set(this.enrollmentService.enrolledCourses());
+
     } catch (error) {
       this.errorService.handleApiError(error, 'learning');
     } finally {
       this.isLoading.set(false);
     }
-  }
-
-  private async simulateDataLoading(): Promise<void> {
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 800));
   }
 
   getStatusClass(status: string): string {

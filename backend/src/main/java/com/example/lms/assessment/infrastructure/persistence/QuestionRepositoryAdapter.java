@@ -8,6 +8,7 @@ import com.example.lms.assessment.infrastructure.persistence.repository.Question
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -30,8 +31,57 @@ public class QuestionRepositoryAdapter implements QuestionRepository {
     }
 
     @Override
+    public List<Question> saveAll(List<Question> questions) {
+        List<QuestionJpaEntity> entities = questions.stream()
+                .map(this::toEntity)
+                .collect(Collectors.toList());
+        return jpaRepository.saveAll(entities).stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public Optional<Question> findById(UUID id) {
         return jpaRepository.findById(id).map(this::toDomain);
+    }
+
+    @Override
+    public List<Question> findAllByIds(List<UUID> ids) {
+        if (ids == null || ids.isEmpty()) return new ArrayList<>();
+        return jpaRepository.findAllById(ids).stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Question> findByBankId(UUID bankId) {
+        return jpaRepository.findByPackageId(bankId).stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Question> findByBankIdAndCategoryId(UUID bankId, UUID categoryId) {
+        return jpaRepository.findByPackageIdAndCategoryId(bankId, categoryId).stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Question> findAllByCreatedBy(UUID createdBy) {
+        return jpaRepository.findAllByCreatedBy(createdBy).stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public long countByBankId(UUID bankId) {
+        return jpaRepository.countByPackageId(bankId);
+    }
+
+    @Override
+    public long countByCategoryId(UUID categoryId) {
+        return jpaRepository.countByCategoryId(categoryId);
     }
 
     @Override
@@ -48,10 +98,13 @@ public class QuestionRepositoryAdapter implements QuestionRepository {
                 .difficulty(QuestionJpaEntity.Difficulty.valueOf(domain.getDifficulty().name()))
                 .tags(domain.getTags())
                 .status(QuestionJpaEntity.Status.valueOf(domain.getStatus().name()))
+                .questionType(QuestionJpaEntity.QuestionType.valueOf(domain.getQuestionType().name()))
                 .correctOption(domain.getCorrectOption())
+                .answerKey(domain.getAnswerKey())
                 .createdBy(domain.getCreatedBy())
                 .courseId(domain.getCourseId())
                 .packageId(domain.getPackageId())
+                .categoryId(domain.getCategoryId())
                 .usageCount(domain.getUsageCount())
                 .correctRate(domain.getCorrectRate())
                 .build();
@@ -90,10 +143,13 @@ public class QuestionRepositoryAdapter implements QuestionRepository {
                 .difficulty(Question.Difficulty.valueOf(entity.getDifficulty().name()))
                 .tags(entity.getTags())
                 .status(Question.Status.valueOf(entity.getStatus().name()))
+                .questionType(entity.getQuestionType() != null ? Question.QuestionType.valueOf(entity.getQuestionType().name()) : Question.QuestionType.SINGLE_CHOICE)
                 .correctOption(entity.getCorrectOption())
+                .answerKey(entity.getAnswerKey())
                 .createdBy(entity.getCreatedBy())
                 .courseId(entity.getCourseId())
                 .packageId(entity.getPackageId())
+                .categoryId(entity.getCategoryId())
                 .usageCount(entity.getUsageCount())
                 .correctRate(entity.getCorrectRate())
                 .options(options)

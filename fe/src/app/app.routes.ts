@@ -148,12 +148,6 @@ export const routes: Routes = [
     loadChildren: () => import('./features/learning/learning.routes').then(m => m.learningRoutes),
     canActivate: [authGuard]
   },
-  {
-    path: 'communication',
-    loadChildren: () => import('./features/communication/communication.routes').then(m => m.communicationRoutes),
-    canActivate: [authGuard]
-  },
-
   // AI Chat for Guests (public route)
   {
     path: 'ai-chat',

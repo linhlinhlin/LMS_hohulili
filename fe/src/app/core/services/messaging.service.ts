@@ -380,7 +380,7 @@ export class MessagingService {
           return this.getConversations();
         })
       )
-      .subscribe();
+      .subscribe({ error: () => {} }); // polling — silent failure ok
   }
 
   /**

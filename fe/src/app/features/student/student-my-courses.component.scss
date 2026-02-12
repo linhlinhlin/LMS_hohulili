@@ -65,7 +65,7 @@
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: linear-gradient(135deg, $blue-primary 0%, #0073E6 100%);
+  background: $blue-primary;
   color: white;
   display: flex;
   align-items: center;
@@ -324,7 +324,7 @@
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, $blue-primary 0%, #2563EB 100%);
+  background: $blue-primary;
   border-radius: 3px;
   transition: width 0.3s ease;
 }

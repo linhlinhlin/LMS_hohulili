@@ -1,4 +1,4 @@
-import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
+import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { DOCUMENT, isPlatformBrowser } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -13,11 +13,11 @@ import { PLATFORM_ID } from '@angular/core';
 import { StudentEnrollmentService } from '../student/services/enrollment.service';
 import { AuthService } from '../../core/services/auth.service';
 import { GetCoursesUseCase } from './application/use-cases/get-courses.use-case';
+import { ToastService } from '../../core/services/toast.service';
 
 @Component({
   selector: 'app-courses',
   imports: [RouterModule, FormsModule, CourseCardComponent, PaginationComponent],
-  encapsulation: ViewEncapsulation.None,
   template: `
     <div class="min-h-screen bg-gray-50">
       <!-- Header -->
@@ -43,7 +43,7 @@ import { GetCoursesUseCase } from './application/use-cases/get-courses.use-case'
                        (ngModelChange)="onSearchChange($event)"
                        placeholder="Nhập từ khóa..."
                        aria-label="Tìm kiếm khóa học theo từ khóa"
-                       class="w-full px-3 py-2 border border-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                       class="w-full px-3 py-2 border border-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]">
               </div>
 
               <!-- Category -->
@@ -52,7 +52,7 @@ import { GetCoursesUseCase } from './application/use-cases/get-courses.use-case'
                 <select [(ngModel)]="filters.category"
                         (ngModelChange)="applyFilters()"
                         aria-label="Lọc theo danh mục"
-                        class="w-full px-3 py-2 border border-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-3 py-2 border border-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]">
                   <option [ngValue]="undefined">Tất cả danh mục</option>
                   <option [ngValue]="CourseCategory.MARINE_ENGINEERING">Kỹ thuật tàu biển</option>
                   <option [ngValue]="CourseCategory.PORT_MANAGEMENT">Quản lý cảng</option>
@@ -69,7 +69,7 @@ import { GetCoursesUseCase } from './application/use-cases/get-courses.use-case'
                 <select [(ngModel)]="filters.level"
                         (ngModelChange)="applyFilters()"
                         aria-label="Lọc theo cấp độ"
-                        class="w-full px-3 py-2 border border-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-3 py-2 border border-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]">
                   <option [ngValue]="undefined">Tất cả cấp độ</option>
                   <option [ngValue]="'beginner'">Cơ bản</option>
                   <option [ngValue]="'intermediate'">Trung cấp</option>
@@ -86,13 +86,13 @@ import { GetCoursesUseCase } from './application/use-cases/get-courses.use-case'
                          (ngModelChange)="onPriceMinChange($event)"
                          placeholder="Từ"
                          aria-label="Giá tối thiểu"
-                         class="w-1/2 px-3 py-2 border border-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                         class="w-1/2 px-3 py-2 border border-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]">
                   <input type="number"
                          [ngModel]="priceMax"
                          (ngModelChange)="onPriceMaxChange($event)"
                          placeholder="Đến"
                          aria-label="Giá tối đa"
-                         class="w-1/2 px-3 py-2 border border-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                         class="w-1/2 px-3 py-2 border border-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]">
                 </div>
               </div>
 
@@ -102,7 +102,7 @@ import { GetCoursesUseCase } from './application/use-cases/get-courses.use-case'
                 <select [ngModel]="filters.rating"
                         (ngModelChange)="onRatingChange($event)"
                         aria-label="Lọc theo đánh giá tối thiểu"
-                        class="w-full px-3 py-2 border border-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-3 py-2 border border-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]">
                   <option [ngValue]="undefined">Tất cả</option>
                   <option [ngValue]="3.5">Từ 3.5</option>
                   <option [ngValue]="4">Từ 4.0</option>
@@ -116,7 +116,7 @@ import { GetCoursesUseCase } from './application/use-cases/get-courses.use-case'
                 <select [(ngModel)]="filters.sortBy"
                         (ngModelChange)="applyFilters()"
                         aria-label="Sắp xếp khóa học"
-                        class="w-full px-3 py-2 border border-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-3 py-2 border border-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]">
                   <option [ngValue]="'rating'">Đánh giá cao</option>
                   <option [ngValue]="'title'">Tên A-Z</option>
                   <option [ngValue]="'price'">Giá thấp đến cao</option>
@@ -206,6 +206,7 @@ export class CoursesComponent implements OnInit {
   protected enrollmentService = inject(StudentEnrollmentService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private toast = inject(ToastService);
 
   courses = signal<ExtendedCourse[]>([]);
   isLoading = signal<boolean>(false);
@@ -245,14 +246,9 @@ export class CoursesComponent implements OnInit {
     this.meta.updateTag({ property: 'og:title', content: pageTitle });
     this.meta.updateTag({ property: 'og:description', content: description });
 
-    // Make this component accessible globally for course cards (only in browser)
-    if (isPlatformBrowser(this.platformId)) {
-      (window as any).coursesComponent = this;
-    }
-
     // Preload enrolled courses for logged-in students to enable isEnrolled check
     if (this.authService.isAuthenticated() && this.authService.userRole() === 'student') {
-      this.enrollmentService.loadEnrolledCourses(1, 100); // Load enough courses for cache
+      this.enrollmentService.loadEnrolledCourses(0, 100); // Load enough courses for cache
     }
 
 
@@ -340,9 +336,8 @@ export class CoursesComponent implements OnInit {
             hasPrevious: response.hasPrev
           });
         },
-        error: (error: any) => {
-          // Loading state is handled by finalize operator
-          // TODO: Add proper error handling
+        error: () => {
+          this.toast.error('Không thể tải danh sách khóa học. Vui lòng thử lại.');
         }
       });
   }

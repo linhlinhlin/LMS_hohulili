@@ -22,10 +22,10 @@ export const CONTENT_TYPE_CONFIG = {
     },
     // Video - Đại dương / Tin cậy
     VIDEO: {
-        color: 'bg-blue-500',
+        color: 'bg-[#0056D2]',
         label: 'Video bài giảng',
         icon: 'play-circle',
-        indicatorColor: 'bg-blue-500',
+        indicatorColor: 'bg-[#0056D2]',
         hoverBg: 'hover:bg-blue-50',
         borderColor: 'border-blue-200'
     },

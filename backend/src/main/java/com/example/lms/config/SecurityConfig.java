@@ -61,15 +61,29 @@ public class SecurityConfig {
                     // AI health endpoints
                     "/api/v3/ai/health",
                     "/api/v3/ai/ping",
-                    // Public course endpoints
+                    // Public course endpoints (CourseQueryControllerV3)
                     "/api/v3/courses",
-                    "/api/v3/courses/public/**",
+                    "/api/v3/courses/*",
+                    "/api/v3/courses/*/content",
+                    "/api/v3/courses/lessons/*",
+                    "/api/v3/courses/chapters/*",
                     // Categories
                     "/api/v3/categories",
+                    // Public package endpoints (PackageControllerV3)
+                    "/api/v3/packages/*",
+                    "/api/v3/packages/*/questions",
+                    "/api/v3/packages/search",
                     // Uploaded files (static resources)
                     "/uploads/**",
+                    // Certificate verification (public)
+                    "/api/v3/student/certificates/*/verify",
+                    // Course reviews (public read)
+                    "/api/v3/courses/*/reviews",
+                    "/api/v3/courses/*/reviews/summary",
                     // Actuator health check (Docker HEALTHCHECK)
-                    "/actuator/health"
+                    "/actuator/health",
+                    // Public question bank search
+                    "/api/v3/question-banks/search"
                 ).permitAll()
                 .anyRequest().authenticated()
             )

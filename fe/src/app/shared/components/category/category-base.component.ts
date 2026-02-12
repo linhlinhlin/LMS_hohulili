@@ -2,15 +2,16 @@ import { Component, input, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { CategoryInfo, Course } from '../../types/course.types';
+import { IconComponent } from '../icon/icon.component';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-category-base',
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, IconComponent],
   template: `
     <div class="min-h-screen bg-gray-50">
       <!-- Hero Section -->
-      <section class="relative bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 text-white">
+      <section class="relative bg-[#0056D2] text-white">
         <div class="absolute inset-0 bg-black opacity-20"></div>
         <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -54,11 +55,11 @@ import { CategoryInfo, Course } from '../../types/course.types';
               <!-- CTA Buttons -->
               <div class="flex flex-col sm:flex-row gap-4">
                 <a routerLink="#courses" 
-                   class="bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition-colors duration-200 text-center">
+                   class="bg-white text-[#0056D2] px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition-colors duration-200 text-center">
                   Khám phá khóa học
                 </a>
                 <a routerLink="#career" 
-                   class="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors duration-200 text-center">
+                   class="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold hover:bg-white hover:text-[#0056D2] transition-colors duration-200 text-center">
                   Xem cơ hội nghề nghiệp
                 </a>
               </div>
@@ -75,7 +76,7 @@ import { CategoryInfo, Course } from '../../types/course.types';
               <div class="absolute -top-4 -left-4 bg-white rounded-lg p-4 shadow-lg">
                 <div class="flex items-center space-x-2">
                   <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                    <span class="text-green-600 text-sm">✓</span>
+                    <app-icon name="check" size="xs" class="text-green-600"/>
                   </div>
                   <div>
                     <div class="text-sm font-semibold text-gray-900">Chứng chỉ quốc tế</div>
@@ -86,7 +87,7 @@ import { CategoryInfo, Course } from '../../types/course.types';
               <div class="absolute -bottom-4 -right-4 bg-white rounded-lg p-4 shadow-lg">
                 <div class="flex items-center space-x-2">
                   <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                    <span class="text-blue-600 text-sm">👨‍🏫</span>
+                    <app-icon name="users" size="xs" class="text-[#0056D2]"/>
                   </div>
                   <div>
                     <div class="text-sm font-semibold text-gray-900">Giảng viên chuyên môn</div>
@@ -114,7 +115,7 @@ import { CategoryInfo, Course } from '../../types/course.types';
             <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-8">
               <div class="flex items-center space-x-3 mb-6">
                 <div class="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center">
-                  <span class="text-white text-xl">🌱</span>
+                  <app-icon name="sparkles" size="md" class="text-white"/>
                 </div>
                 <div>
                   <h3 class="text-xl font-bold text-gray-900">Cơ bản</h3>
@@ -137,12 +138,12 @@ import { CategoryInfo, Course } from '../../types/course.types';
             <!-- Intermediate -->
             <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-8">
               <div class="flex items-center space-x-3 mb-6">
-                <div class="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center">
-                  <span class="text-white text-xl">🚀</span>
+                <div class="w-12 h-12 bg-[#0056D2] rounded-lg flex items-center justify-center">
+                  <app-icon name="rocket" size="md" class="text-white"/>
                 </div>
                 <div>
                   <h3 class="text-xl font-bold text-gray-900">Trung cấp</h3>
-                  <p class="text-blue-600 font-medium">Nâng cao kỹ năng</p>
+                  <p class="text-[#0056D2] font-medium">Nâng cao kỹ năng</p>
                 </div>
               </div>
               <div class="space-y-4">
@@ -162,7 +163,7 @@ import { CategoryInfo, Course } from '../../types/course.types';
             <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-8">
               <div class="flex items-center space-x-3 mb-6">
                 <div class="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center">
-                  <span class="text-white text-xl">🏆</span>
+                  <app-icon name="trophy" size="md" class="text-white"/>
                 </div>
                 <div>
                   <h3 class="text-xl font-bold text-gray-900">Nâng cao</h3>
@@ -219,11 +220,11 @@ import { CategoryInfo, Course } from '../../types/course.types';
                 <!-- Course Content -->
                 <div class="p-6">
                   <div class="flex items-center justify-between mb-3">
-                    <span class="px-3 py-1 bg-blue-100 text-blue-600 rounded-full text-sm font-medium">
+                    <span class="px-3 py-1 bg-blue-100 text-[#0056D2] rounded-full text-sm font-medium">
                       {{ course.level }}
                     </span>
                     <div class="flex items-center space-x-1">
-                      <span class="text-yellow-400">★</span>
+                      <app-icon name="star" size="xs" class="text-yellow-400"/>
                       <span class="text-sm text-gray-600">{{ course.rating }} ({{ course.reviews }})</span>
                     </div>
                   </div>
@@ -262,7 +263,7 @@ import { CategoryInfo, Course } from '../../types/course.types';
                       }
                     </div>
                     <a [routerLink]="['/courses', course.id]" 
-                       class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                       class="bg-[#0056D2] text-white px-4 py-2 rounded-lg hover:bg-[#004BB5] transition-colors duration-200">
                       Xem chi tiết
                     </a>
                   </div>
@@ -288,13 +289,13 @@ import { CategoryInfo, Course } from '../../types/course.types';
               <div class="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-8 hover:shadow-lg transition-shadow duration-300">
                 <h3 class="text-xl font-bold text-gray-900 mb-3">{{ career.title }}</h3>
                 <p class="text-gray-600 mb-4">{{ career.description }}</p>
-                <div class="text-lg font-semibold text-blue-600 mb-4">{{ career.salary }}</div>
+                <div class="text-lg font-semibold text-[#0056D2] mb-4">{{ career.salary }}</div>
                 <div class="space-y-2">
                   <h4 class="font-medium text-gray-900">Yêu cầu:</h4>
                   <ul class="space-y-1">
                     @for (req of career.requirements; track req) {
                       <li class="text-sm text-gray-600 flex items-center">
-                        <span class="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                        <span class="w-2 h-2 bg-[#0056D2] rounded-full mr-2"></span>
                         {{ req }}
                       </li>
                     }

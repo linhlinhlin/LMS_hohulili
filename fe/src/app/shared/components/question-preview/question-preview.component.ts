@@ -23,7 +23,7 @@ import katex from 'katex';
   template: `
     <div class="bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
       <!-- Header -->
-      <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 flex justify-between items-center">
+      <div class="bg-[#0056D2] px-4 py-3 flex justify-between items-center">
         <span class="text-white text-sm font-semibold uppercase tracking-wide flex items-center gap-2">
           <!-- Eye Icon SVG -->
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -36,8 +36,8 @@ import katex from 'katex';
           <button (click)="toggleView()" 
                   class="px-2 py-1 rounded text-xs font-medium transition-all flex items-center gap-1"
                   [class.bg-white]="viewMode() === 'desktop'"
-                  [class.text-blue-600]="viewMode() === 'desktop'"
-                  [class.bg-blue-500]="viewMode() !== 'desktop'"
+                  [class.text-[#0056D2]]="viewMode() === 'desktop'"
+                  [class.bg-[#0056D2]]="viewMode() !== 'desktop'"
                   [class.text-white]="viewMode() !== 'desktop'">
             <!-- Desktop Icon SVG -->
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -48,8 +48,8 @@ import katex from 'katex';
           <button (click)="toggleView()" 
                   class="px-2 py-1 rounded text-xs font-medium transition-all flex items-center gap-1"
                   [class.bg-white]="viewMode() === 'mobile'"
-                  [class.text-blue-600]="viewMode() === 'mobile'"
-                  [class.bg-blue-500]="viewMode() !== 'mobile'"
+                  [class.text-[#0056D2]]="viewMode() === 'mobile'"
+                  [class.bg-[#0056D2]]="viewMode() !== 'mobile'"
                   [class.text-white]="viewMode() !== 'mobile'">
             <!-- Mobile Icon SVG -->
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

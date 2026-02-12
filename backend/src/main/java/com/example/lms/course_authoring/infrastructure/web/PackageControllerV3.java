@@ -16,8 +16,8 @@ import java.util.Map;
 import java.util.HashMap;
 
 /**
- * V3 Controller for Course Packages (stub implementation).
- * TODO: Implement full package management features.
+ * V3 Controller for Course Packages (legacy compatibility layer).
+ * New code should use QuestionBankControllerV3 instead.
  */
 @Tag(name = "Packages V3", description = "Question Bank Package management endpoints")
 @RestController
@@ -27,10 +27,11 @@ public class PackageControllerV3 {
 
     private final com.example.lms.shared.infrastructure.persistence.repository.PackageJpaRepository packageRepository;
     private final com.example.lms.assessment.infrastructure.persistence.repository.QuestionJpaRepository questionRepository;
+    private final com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository userRepository;
 
     @Operation(summary = "Get teacher's packages (Question Banks)")
     @GetMapping("/my-packages")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<List<PackageDTO>>> getMyPackages(@org.springframework.security.core.annotation.AuthenticationPrincipal com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
         if (user == null) {
             return ResponseEntity.status(401).build();
@@ -43,11 +44,11 @@ public class PackageControllerV3 {
 
     @Operation(summary = "Get all available packages")
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<List<PackageDTO>>> getAllPackages() {
-        // Only return PUBLIC or owned? For now return all (Admin view?) or Stub, but frontend calls my-packages mostly.
-        // This endpoint was stubbed before.
-        return ResponseEntity.ok(ApiResponse.success(List.of(), "All packages loaded"));
+        List<com.example.lms.shared.infrastructure.persistence.entity.PackageJpaEntity> entities = packageRepository.findAll();
+        List<PackageDTO> dtos = entities.stream().map(this::toDTO).toList();
+        return ResponseEntity.ok(ApiResponse.success(dtos, "All packages loaded"));
     }
 
     @Operation(summary = "Get package by ID")
@@ -60,7 +61,7 @@ public class PackageControllerV3 {
 
     @Operation(summary = "Create package")
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<PackageDTO>> createPackage(
             @Valid @RequestBody CreatePackageRequest request,
             @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
@@ -83,7 +84,7 @@ public class PackageControllerV3 {
 
     @Operation(summary = "Update package")
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<PackageDTO>> updatePackage(
             @PathVariable java.util.UUID id,
             @Valid @RequestBody UpdatePackageRequest request) {
@@ -105,7 +106,7 @@ public class PackageControllerV3 {
 
     @Operation(summary = "Delete package")
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<String>> deletePackage(@PathVariable java.util.UUID id) {
         if (packageRepository.existsById(id)) {
             packageRepository.deleteById(id);
@@ -155,7 +156,7 @@ public class PackageControllerV3 {
 
     @Operation(summary = "Move questions to package")
     @PostMapping("/move-questions")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<String>> moveQuestions(@Valid @RequestBody MoveQuestionsRequest request) {
         if (request.getQuestionIds() == null || request.getQuestionIds().isEmpty()) {
              return ResponseEntity.badRequest().body(ApiResponse.error("400", "No questions specified"));
@@ -188,19 +189,24 @@ public class PackageControllerV3 {
     // === Helpers ===
 
     private PackageDTO toDTO(com.example.lms.shared.infrastructure.persistence.entity.PackageJpaEntity entity) {
+        String ownerName = userRepository.findById(entity.getOwnerId())
+                .map(u -> u.getFullName())
+                .orElse("Unknown");
+        int questionCount = (int) questionRepository.countByPackageId(entity.getId());
+
         return PackageDTO.builder()
                 .id(entity.getId().toString())
                 .name(entity.getName())
                 .description(entity.getDescription())
                 .subject(entity.getSubject())
                 .ownerId(entity.getOwnerId().toString())
-                .ownerName("Unknown") // TODO fetch user
+                .ownerName(ownerName)
                 .visibility(entity.getVisibility().name())
                 .capacity(entity.getCapacity())
-                .questionCount(0) // TODO count questions
-                .status("ACTIVE")
+                .questionCount(questionCount)
+                .status(entity.getStatus() != null ? entity.getStatus() : "ACTIVE")
                 .createdAt(entity.getCreatedAt() != null ? entity.getCreatedAt().toString() : null)
-                .updatedAt(entity.getId() != null ? entity.getId().toString() : null) // simplistic
+                .updatedAt(entity.getUpdatedAt() != null ? entity.getUpdatedAt().toString() : null)
                 .build();
     }
 

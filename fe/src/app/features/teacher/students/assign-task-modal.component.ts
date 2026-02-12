@@ -74,7 +74,7 @@ export interface AssignTaskRequest {
               [(ngModel)]="searchQuery"
               (ngModelChange)="onSearchChange()"
               placeholder="Tìm kiếm bài tập..."
-              class="w-full border rounded-lg px-4 py-2 pl-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              class="w-full border rounded-lg px-4 py-2 pl-10 focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]"
             />
             <svg class="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
@@ -87,7 +87,7 @@ export interface AssignTaskRequest {
             <select
               [(ngModel)]="selectedCourseId"
               (ngModelChange)="onCourseChange()"
-              class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]"
             >
               <option value="">Tất cả khóa học</option>
               @for (course of courses(); track course.id) {
@@ -99,7 +99,7 @@ export interface AssignTaskRequest {
           <!-- Loading State -->
           @if (loading()) {
             <div class="flex items-center justify-center py-8">
-              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0056D2]"></div>
               <span class="ml-3 text-gray-600">Đang tải danh sách bài tập...</span>
             </div>
           }
@@ -144,7 +144,7 @@ export interface AssignTaskRequest {
                     </div>
                     
                     @if (selectedAssignment()?.id === assignment.id) {
-                      <svg class="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+                      <svg class="w-6 h-6 text-[#0056D2]" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path>
                       </svg>
                     }
@@ -166,7 +166,7 @@ export interface AssignTaskRequest {
                     type="checkbox"
                     id="useCustomDeadline"
                     [(ngModel)]="useCustomDeadline"
-                    class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    class="rounded border-gray-300 text-[#0056D2] focus:ring-[#0056D2]"
                   />
                   <label for="useCustomDeadline" class="text-sm text-gray-700">
                     Đặt hạn nộp riêng cho học viên này
@@ -182,7 +182,7 @@ export interface AssignTaskRequest {
                       type="datetime-local"
                       [(ngModel)]="customDeadline"
                       [min]="minDateTime()"
-                      class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]"
                     />
                     <p class="text-xs text-gray-500 mt-1">
                       Hạn gốc: {{ formatDate(selectedAssignment()!.dueDate) }}
@@ -200,7 +200,7 @@ export interface AssignTaskRequest {
                     placeholder="Ghi chú cho việc giao bài tập này..."
                     rows="2"
                     maxlength="500"
-                    class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                    class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2] resize-none"
                   ></textarea>
                 </div>
               </div>
@@ -221,7 +221,7 @@ export interface AssignTaskRequest {
             type="button"
             (click)="onConfirm()"
             [disabled]="!canConfirm()"
-            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+            class="px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
           >
             Giao bài tập
           </button>
@@ -246,6 +246,7 @@ export class AssignTaskModalComponent implements OnInit {
   assignments = signal<AvailableAssignment[]>([]);
   courses = signal<{ id: string; title: string }[]>([]);
   loading = signal(false);
+  loadError = signal(false);
   selectedAssignment = signal<AvailableAssignment | null>(null);
 
   // Form state
@@ -298,74 +299,12 @@ export class AssignTaskModalComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.loadMockData();
+        this.assignments.set([]);
+        this.courses.set([]);
+        this.loadError.set(true);
         this.loading.set(false);
       }
     });
-  }
-
-  private loadMockData(): void {
-    const mockCourses = [
-      { id: 'c1', title: 'An toàn Hàng hải Cơ bản' },
-      { id: 'c2', title: 'Điều hướng Maritime' },
-      { id: 'c3', title: 'Vận hành Tàu biển' }
-    ];
-
-    const mockAssignments: AvailableAssignment[] = [
-      {
-        id: 'a1',
-        title: 'Bài tập An toàn Hàng hải - Chương 2',
-        courseId: 'c1',
-        courseTitle: 'An toàn Hàng hải Cơ bản',
-        dueDate: '2025-12-15T23:59:59Z',
-        maxScore: 100,
-        status: 'PUBLISHED',
-        alreadyAssigned: false
-      },
-      {
-        id: 'a2',
-        title: 'Bài tập An toàn Hàng hải - Chương 3',
-        courseId: 'c1',
-        courseTitle: 'An toàn Hàng hải Cơ bản',
-        dueDate: '2025-12-20T23:59:59Z',
-        maxScore: 100,
-        status: 'PUBLISHED',
-        alreadyAssigned: false
-      },
-      {
-        id: 'a3',
-        title: 'Thực hành Điều hướng GPS',
-        courseId: 'c2',
-        courseTitle: 'Điều hướng Maritime',
-        dueDate: '2025-12-10T23:59:59Z',
-        maxScore: 100,
-        status: 'PUBLISHED',
-        alreadyAssigned: true
-      },
-      {
-        id: 'a4',
-        title: 'Bài tập Radar nâng cao',
-        courseId: 'c2',
-        courseTitle: 'Điều hướng Maritime',
-        dueDate: '2025-12-25T23:59:59Z',
-        maxScore: 100,
-        status: 'PUBLISHED',
-        alreadyAssigned: false
-      },
-      {
-        id: 'a5',
-        title: 'Quy trình vận hành máy chính',
-        courseId: 'c3',
-        courseTitle: 'Vận hành Tàu biển',
-        dueDate: '2025-12-18T23:59:59Z',
-        maxScore: 100,
-        status: 'PUBLISHED',
-        alreadyAssigned: false
-      }
-    ];
-
-    this.courses.set(mockCourses);
-    this.assignments.set(mockAssignments);
   }
 
   selectAssignment(assignment: AvailableAssignment): void {

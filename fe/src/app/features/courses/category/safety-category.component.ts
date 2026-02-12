@@ -53,11 +53,11 @@ interface Course {
       <app-category-hero
         [title]="'An toàn Hàng hải'"
         [subtitle]="'Chứng chỉ STCW, an toàn lao động và quản lý rủi ro trên biển.'"
-        [iconEmoji]="'🛡️'"
+        [iconEmoji]="'shield'"
         [brandColor]="'blue'"
-        [gradientFrom]="'from-blue-600'"
-        [gradientVia]="'via-blue-700'"
-        [gradientTo]="'to-blue-800'"
+        [gradientFrom]="'from-[#0056D2]'"
+        [gradientVia]="'via-[#004BB5]'"
+        [gradientTo]="'to-[#004BB5]'"
         [primaryCta]="{ text: 'Xem tất cả khóa học', link: '/courses' }"
         [secondaryCta]="{ text: 'Khóa học theo chủ đề', link: '/courses', queryParams: { category: 'safety' } }"
       ></app-category-hero>
@@ -89,8 +89,8 @@ interface Course {
         [title]="'Xu hướng ngành'"
         [subtitle]="'Cập nhật những xu hướng mới nhất trong lĩnh vực an toàn hàng hải'"
         [cards]="[
-          { icon: '📈', title: 'Tăng cường quy định an toàn', highlight: '+15% mỗi năm', description: 'IMO liên tục cập nhật các quy định an toàn mới, yêu cầu nhân sự có chứng chỉ cập nhật.' },
-          { icon: '🤖', title: 'Công nghệ an toàn mới', highlight: '+25% mỗi năm', description: 'Ứng dụng AI và IoT trong quản lý an toàn, tạo cơ hội cho chuyên gia công nghệ.' }
+          { icon: 'bar-chart', title: 'Tăng cường quy định an toàn', highlight: '+15% mỗi năm', description: 'IMO liên tục cập nhật các quy định an toàn mới, yêu cầu nhân sự có chứng chỉ cập nhật.' },
+          { icon: 'globe', title: 'Công nghệ an toàn mới', highlight: '+25% mỗi năm', description: 'Ứng dụng AI và IoT trong quản lý an toàn, tạo cơ hội cho chuyên gia công nghệ.' }
         ]"
       ></app-category-trends>
     </div>

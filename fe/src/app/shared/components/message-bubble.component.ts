@@ -32,7 +32,7 @@ import {
     >
       <div
         class="max-w-[70%] rounded-2xl px-4 py-3"
-        [class.bg-blue-600]="isOwnMessage"
+        [class.bg-[#0056D2]]="isOwnMessage"
         [class.text-white]="isOwnMessage"
         [class.bg-gray-100]="!isOwnMessage"
         [class.text-gray-900]="!isOwnMessage"
@@ -56,7 +56,7 @@ import {
                 rel="noopener noreferrer"
                 class="underline hover:opacity-80"
                 [class.text-blue-200]="isOwnMessage"
-                [class.text-blue-600]="!isOwnMessage"
+                [class.text-[#0056D2]]="!isOwnMessage"
               >{{ segment.content }}</a>
             } @else {
               {{ segment.content }}
@@ -68,7 +68,7 @@ import {
         @if (hasReference()) {
           <div
             class="mt-2 p-3 rounded-lg border"
-            [class.bg-blue-500]="isOwnMessage"
+            [class.bg-[#0056D2]]="isOwnMessage"
             [class.border-blue-400]="isOwnMessage"
             [class.bg-white]="!isOwnMessage"
             [class.border-gray-200]="!isOwnMessage"
@@ -77,7 +77,7 @@ import {
               <svg
                 class="w-4 h-4"
                 [class.text-blue-200]="isOwnMessage"
-                [class.text-blue-600]="!isOwnMessage"
+                [class.text-[#0056D2]]="!isOwnMessage"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -101,7 +101,7 @@ import {
               [routerLink]="['/student/assignments', message().assignmentReference?.assignmentId]"
               class="block font-medium text-sm hover:underline"
               [class.text-white]="isOwnMessage"
-              [class.text-blue-600]="!isOwnMessage"
+              [class.text-[#0056D2]]="!isOwnMessage"
             >
               {{ message().assignmentReference?.assignmentTitle }}
             </a>

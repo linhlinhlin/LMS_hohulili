@@ -18,9 +18,9 @@ interface CategoryItem {
 
       <!-- Trigger Button -->
       <button
-        class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 flex items-center space-x-1"
+        class="text-gray-700 hover:text-[#0056D2] px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 flex items-center space-x-1"
         (click)="toggleMenu()"
-        [class.text-blue-600]="isMenuVisible()">
+        [class.text-[#0056D2]]="isMenuVisible()">
         <span>Khám phá</span>
         <svg class="w-4 h-4 transition-transform duration-200"
               [class.rotate-180]="isMenuVisible()"
@@ -47,7 +47,7 @@ interface CategoryItem {
               <div>
                 <a routerLink="/courses"
                    class="block mb-4">
-                  <p class="text-sm font-semibold text-gray-900 hover:text-blue-600 transition-colors">
+                  <p class="text-sm font-semibold text-gray-900 hover:text-[#0056D2] transition-colors">
                     Khám phá danh mục
                   </p>
                 </a>
@@ -56,14 +56,14 @@ interface CategoryItem {
                     <li>
                       <a [routerLink]="['/courses']"
                          [queryParams]="{ category: category.id }"
-                         class="block text-sm text-gray-600 hover:text-blue-600 transition-colors py-1">
+                         class="block text-sm text-gray-600 hover:text-[#0056D2] transition-colors py-1">
                         {{ category.name }}
                       </a>
                     </li>
                   }
                 </ul>
                 <a routerLink="/courses"
-                   class="block text-sm text-blue-600 hover:text-blue-700 font-medium mt-3">
+                   class="block text-sm text-[#0056D2] hover:text-[#004BB5] font-medium mt-3">
                   Xem tất cả →
                 </a>
               </div>
@@ -72,17 +72,17 @@ interface CategoryItem {
               <div>
                 <a routerLink="/courses"
                    class="block mb-4">
-                  <p class="text-sm font-semibold text-gray-900 hover:text-blue-600 transition-colors">
+                  <p class="text-sm font-semibold text-gray-900 hover:text-[#0056D2] transition-colors">
                     Khám phá vai trò
                   </p>
                 </a>
                 <ul class="space-y-2">
-                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-blue-600 transition-colors py-1">Thủy thủ</a></li>
-                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-blue-600 transition-colors py-1">Kỹ sư hàng hải</a></li>
-                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-blue-600 transition-colors py-1">Quản lý cảng biển</a></li>
-                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-blue-600 transition-colors py-1">Điều khiển tàu</a></li>
-                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-blue-600 transition-colors py-1">An toàn hàng hải</a></li>
-                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-blue-600 transition-colors py-1">Logistics biển</a></li>
+                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-[#0056D2] transition-colors py-1">Thủy thủ</a></li>
+                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-[#0056D2] transition-colors py-1">Kỹ sư hàng hải</a></li>
+                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-[#0056D2] transition-colors py-1">Quản lý cảng biển</a></li>
+                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-[#0056D2] transition-colors py-1">Điều khiển tàu</a></li>
+                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-[#0056D2] transition-colors py-1">An toàn hàng hải</a></li>
+                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-[#0056D2] transition-colors py-1">Logistics biển</a></li>
                 </ul>
               </div>
 
@@ -90,17 +90,17 @@ interface CategoryItem {
               <div>
                 <a routerLink="/courses"
                    class="block mb-4">
-                  <p class="text-sm font-semibold text-gray-900 hover:text-blue-600 transition-colors">
+                  <p class="text-sm font-semibold text-gray-900 hover:text-[#0056D2] transition-colors">
                     Chứng chỉ chuyên môn
                   </p>
                 </a>
                 <ul class="space-y-2">
-                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-blue-600 transition-colors py-1">STCW Cơ bản</a></li>
-                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-blue-600 transition-colors py-1">STCW Nâng cao</a></li>
-                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-blue-600 transition-colors py-1">IMO Certificates</a></li>
-                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-blue-600 transition-colors py-1">ECDIS</a></li>
-                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-blue-600 transition-colors py-1">Radar ARPA</a></li>
-                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-blue-600 transition-colors py-1">GMDSS</a></li>
+                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-[#0056D2] transition-colors py-1">STCW Cơ bản</a></li>
+                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-[#0056D2] transition-colors py-1">STCW Nâng cao</a></li>
+                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-[#0056D2] transition-colors py-1">IMO Certificates</a></li>
+                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-[#0056D2] transition-colors py-1">ECDIS</a></li>
+                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-[#0056D2] transition-colors py-1">Radar ARPA</a></li>
+                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-[#0056D2] transition-colors py-1">GMDSS</a></li>
                 </ul>
               </div>
 
@@ -110,12 +110,12 @@ interface CategoryItem {
                   Kỹ năng phổ biến
                 </p>
                 <ul class="space-y-2">
-                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-blue-600 transition-colors py-1">Điều hướng hàng hải</a></li>
-                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-blue-600 transition-colors py-1">An toàn trên tàu</a></li>
-                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-blue-600 transition-colors py-1">Kỹ thuật máy tàu</a></li>
-                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-blue-600 transition-colors py-1">Quản lý hàng hóa</a></li>
-                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-blue-600 transition-colors py-1">Luật hàng hải</a></li>
-                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-blue-600 transition-colors py-1">Bảo hiểm biển</a></li>
+                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-[#0056D2] transition-colors py-1">Điều hướng hàng hải</a></li>
+                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-[#0056D2] transition-colors py-1">An toàn trên tàu</a></li>
+                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-[#0056D2] transition-colors py-1">Kỹ thuật máy tàu</a></li>
+                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-[#0056D2] transition-colors py-1">Quản lý hàng hóa</a></li>
+                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-[#0056D2] transition-colors py-1">Luật hàng hải</a></li>
+                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-[#0056D2] transition-colors py-1">Bảo hiểm biển</a></li>
                 </ul>
               </div>
 
@@ -125,12 +125,12 @@ interface CategoryItem {
                   Đào tạo nâng cao
                 </p>
                 <ul class="space-y-2">
-                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-blue-600 transition-colors py-1">Quản lý đội tàu</a></li>
-                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-blue-600 transition-colors py-1">Logistics quốc tế</a></li>
-                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-blue-600 transition-colors py-1">Công nghệ tàu thông minh</a></li>
-                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-blue-600 transition-colors py-1">Bảo vệ môi trường biển</a></li>
-                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-blue-600 transition-colors py-1">Quản lý rủi ro hàng hải</a></li>
-                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-blue-600 transition-colors py-1">Lãnh đạo hàng hải</a></li>
+                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-[#0056D2] transition-colors py-1">Quản lý đội tàu</a></li>
+                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-[#0056D2] transition-colors py-1">Logistics quốc tế</a></li>
+                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-[#0056D2] transition-colors py-1">Công nghệ tàu thông minh</a></li>
+                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-[#0056D2] transition-colors py-1">Bảo vệ môi trường biển</a></li>
+                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-[#0056D2] transition-colors py-1">Quản lý rủi ro hàng hải</a></li>
+                  <li><a routerLink="/courses" class="block text-sm text-gray-600 hover:text-[#0056D2] transition-colors py-1">Lãnh đạo hàng hải</a></li>
                 </ul>
               </div>
 
@@ -142,7 +142,7 @@ interface CategoryItem {
                 <div class="flex items-center space-x-6">
                   <span class="text-sm text-gray-600">Không chắc nên bắt đầu từ đâu?</span>
                   <a routerLink="/courses"
-                     class="text-sm text-blue-600 hover:text-blue-700 font-medium">
+                     class="text-sm text-[#0056D2] hover:text-[#004BB5] font-medium">
                     Xem tất cả khóa học
                   </a>
                 </div>

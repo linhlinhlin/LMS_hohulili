@@ -227,11 +227,11 @@ export class CourseService {
         title: course.title,
         description: course.description || '',
         shortDescription: course.description?.substring(0, 100) || '',
-        thumbnail: 'https://via.placeholder.com/400x300/0288D1/FFFFFF?text=' + encodeURIComponent(course.title.substring(0, 20)),
+        thumbnail: null as any,
         instructor: {
           id: '',
           name: course.teacherName || 'Giảng viên',
-          avatar: 'https://via.placeholder.com/150',
+          avatar: null as any,
           title: 'Giảng viên',
           credentials: [],
           experience: 0,
@@ -283,7 +283,7 @@ export class CourseService {
       title: course.title,
       description: course.description || '',
       shortDescription: course.description?.substring(0, 100) || '',
-      thumbnail: course.introVideoUrl || 'https://via.placeholder.com/400x300/0288D1/FFFFFF?text=' + encodeURIComponent(course.title.substring(0, 20)),
+      thumbnail: course.introVideoUrl || null as any,
       instructor: {
         id: course.teacherId || '',
         name: course.teacherName || 'Giảng viên',

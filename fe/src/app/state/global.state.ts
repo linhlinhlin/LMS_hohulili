@@ -1,5 +1,4 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
-import { UserRole } from '../shared/types/user.types';
 import { AuthService } from '../core/services/auth.service';
 import { CourseService } from './course.service';
 import { CommunicationService } from '../shared/services/communication.service';
@@ -33,20 +32,6 @@ export class GlobalState {
   // These computed signals are removed to avoid duplication
 
 
-  readonly userProgressSummary = computed(() => {
-    const user = this.authService.currentUser();
-    if (!user || user.role !== UserRole.STUDENT) return null;
-
-    // This would aggregate progress across all enrolled courses
-    // For now, return mock data
-    return {
-      completedCourses: 2,
-      inProgressCourses: 3,
-      totalProgress: 65,
-      certificatesEarned: 2
-    };
-  });
-
   readonly systemHealth = computed(() => ({
     isOnline: this._networkStatus() === 'online',
     lastActivity: this._lastActivity(),
@@ -76,6 +61,7 @@ export class GlobalState {
 
       this.updateLastActivity();
     } catch (error) {
+      // App init failure — non-blocking, individual services handle their own state
     } finally {
       this._isInitializing.set(false);
     }
@@ -91,78 +77,8 @@ export class GlobalState {
 
       this.updateLastActivity();
     } catch (error) {
+      // Refresh failure — non-blocking, individual services handle their own state
     }
-  }
-
-  // User-specific computed state - using authService directly
-  readonly studentDashboardData = computed(() => {
-    if (this.authService.userRole() !== UserRole.STUDENT) return null;
-
-    return {
-      enrolledCourses: this.courseService.courses(),
-      recentMessages: this.communicationService.recentMessages(),
-      progressSummary: this.userProgressSummary()
-    };
-  });
-
-  readonly teacherDashboardData = computed(() => {
-    if (this.authService.userRole() !== UserRole.TEACHER) return null;
-
-    return {
-      courses: this.courseService.courses(),
-      students: [], // Would come from teacher service
-      assignments: [], // Would come from teacher service
-      unreadMessages: this.communicationService.unreadMessages()
-    };
-  });
-
-  readonly adminDashboardData = computed(() => {
-    if (this.authService.userRole() !== UserRole.ADMIN) return null;
-
-    return {
-      systemHealth: this.systemHealth(),
-      userStats: {
-        total: 0, // Would come from admin service
-        active: 0,
-        newThisMonth: 0
-      },
-      courseStats: {
-        total: this.courseService.courses().length,
-        pending: 0, // Would come from admin service
-        approved: 0
-      }
-    };
-  });
-
-  // Global search functionality
-  searchGlobal(query: string): any[] {
-    const results = [];
-
-    // Search courses
-    const courseResults = this.courseService.courses()
-      .filter(course =>
-        course.title.toLowerCase().includes(query.toLowerCase()) ||
-        course.description.toLowerCase().includes(query.toLowerCase())
-      )
-      .map(course => ({ type: 'course', item: course }));
-
-    // Search messages
-    const messageResults = this.communicationService.messages()
-      .filter(message =>
-        message.subject.toLowerCase().includes(query.toLowerCase()) ||
-        message.content.toLowerCase().includes(query.toLowerCase())
-      )
-      .map(message => ({ type: 'message', item: message }));
-
-    // Search announcements
-    const announcementResults = this.communicationService.announcements()
-      .filter(announcement =>
-        announcement.title.toLowerCase().includes(query.toLowerCase()) ||
-        announcement.content.toLowerCase().includes(query.toLowerCase())
-      )
-      .map(announcement => ({ type: 'announcement', item: announcement }));
-
-    return [...courseResults, ...messageResults, ...announcementResults];
   }
 
   // Global logout
@@ -183,29 +99,6 @@ export class GlobalState {
     // Other services would have reset methods
   }
 
-  // Utility methods for cross-cutting concerns
-  getCurrentUserPermissions(): string[] {
-    const role = this.authService.userRole();
-    if (!role) return [];
-
-    // This would be more sophisticated in a real app
-    // with role-based permissions from backend
-    switch (role) {
-      case UserRole.ADMIN:
-        return ['read', 'write', 'delete', 'manage_users', 'manage_system'];
-      case UserRole.TEACHER:
-        return ['read', 'write', 'manage_courses', 'manage_students'];
-      case UserRole.STUDENT:
-        return ['read', 'enroll_courses'];
-      default:
-        return ['read'];
-    }
-  }
-
-  hasPermission(permission: string): boolean {
-    return this.getCurrentUserPermissions().includes(permission);
-  }
-
   // Network status monitoring
   startNetworkMonitoring(): void {
     if (typeof window !== 'undefined') {
@@ -213,19 +106,4 @@ export class GlobalState {
       window.addEventListener('offline', () => this.setNetworkStatus('offline'));
     }
   }
-
-  // Activity tracking
-  trackActivity(): void {
-    this.updateLastActivity();
-  }
-
-  // Global error state (would integrate with error service)
-  readonly hasGlobalErrors = computed(() => false); // Placeholder
-
-  // Performance monitoring
-  readonly performanceMetrics = computed(() => ({
-    lastActivity: this._lastActivity(),
-    networkStatus: this._networkStatus(),
-    isInitializing: this._isInitializing()
-  }));
 }

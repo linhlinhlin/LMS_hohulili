@@ -95,36 +95,106 @@ class UserTest {
     @DisplayName("Role Query Tests")
     class RoleQueryTests {
 
-        @Test
-        @DisplayName("isTeacher should return true for TEACHER and ADMIN")
-        void isTeacherShouldReturnTrueForTeacherAndAdmin() {
-            User teacher = User.createNew("t", validEmail, "p", "T", Role.TEACHER);
-            User admin = User.createNew("a", Email.of("admin@test.com"), "p", "A", Role.ADMIN);
-            User student = User.createNew("s", Email.of("student@test.com"), "p", "S", Role.STUDENT);
+        private User admin;
+        private User orgAdmin;
+        private User teacher;
+        private User student;
 
+        @BeforeEach
+        void setUpRoleUsers() {
+            admin = User.createNew("a", Email.of("admin@test.com"), "p", "A", Role.ADMIN);
+            orgAdmin = User.createNew("o", Email.of("orgadmin@test.com"), "p", "O", Role.ORG_ADMIN);
+            teacher = User.createNew("t", Email.of("teacher@test.com"), "p", "T", Role.TEACHER);
+            student = User.createNew("s", validEmail, "p", "S", Role.STUDENT);
+        }
+
+        @Test
+        @DisplayName("isTeacher should return true for TEACHER, ADMIN, and ORG_ADMIN")
+        void isTeacherShouldReturnTrueForTeacherAdminAndOrgAdmin() {
             assertThat(teacher.isTeacher()).isTrue();
             assertThat(admin.isTeacher()).isTrue();
+            assertThat(orgAdmin.isTeacher()).isTrue();
             assertThat(student.isTeacher()).isFalse();
         }
 
         @Test
-        @DisplayName("isAdmin should return true only for ADMIN")
-        void isAdminShouldReturnTrueOnlyForAdmin() {
-            User admin = User.createNew("a", validEmail, "p", "A", Role.ADMIN);
-            User teacher = User.createNew("t", Email.of("teacher@test.com"), "p", "T", Role.TEACHER);
-
+        @DisplayName("isAdmin should return true for ADMIN and ORG_ADMIN")
+        void isAdminShouldReturnTrueForAdminAndOrgAdmin() {
             assertThat(admin.isAdmin()).isTrue();
+            assertThat(orgAdmin.isAdmin()).isTrue();
             assertThat(teacher.isAdmin()).isFalse();
+            assertThat(student.isAdmin()).isFalse();
+        }
+
+        @Test
+        @DisplayName("isSystemAdmin should return true only for ADMIN")
+        void isSystemAdminShouldReturnTrueOnlyForAdmin() {
+            assertThat(admin.isSystemAdmin()).isTrue();
+            assertThat(orgAdmin.isSystemAdmin()).isFalse();
+            assertThat(teacher.isSystemAdmin()).isFalse();
+            assertThat(student.isSystemAdmin()).isFalse();
+        }
+
+        @Test
+        @DisplayName("isOrgAdmin should return true only for ORG_ADMIN")
+        void isOrgAdminShouldReturnTrueOnlyForOrgAdmin() {
+            assertThat(orgAdmin.isOrgAdmin()).isTrue();
+            assertThat(admin.isOrgAdmin()).isFalse();
+            assertThat(teacher.isOrgAdmin()).isFalse();
+            assertThat(student.isOrgAdmin()).isFalse();
         }
 
         @Test
         @DisplayName("isStudent should return true only for STUDENT")
         void isStudentShouldReturnTrueOnlyForStudent() {
-            User student = User.createNew("s", validEmail, "p", "S", Role.STUDENT);
-            User teacher = User.createNew("t", Email.of("teacher@test.com"), "p", "T", Role.TEACHER);
-
             assertThat(student.isStudent()).isTrue();
+            assertThat(admin.isStudent()).isFalse();
+            assertThat(orgAdmin.isStudent()).isFalse();
             assertThat(teacher.isStudent()).isFalse();
+        }
+    }
+
+    @Nested
+    @DisplayName("ORG_ADMIN Role Transition Tests")
+    class OrgAdminRoleTransitionTests {
+
+        @Test
+        @DisplayName("Should change role from STUDENT to ORG_ADMIN")
+        void shouldChangeRoleToOrgAdmin() {
+            User user = User.createNew("u", validEmail, "p", "User", Role.STUDENT);
+
+            user.changeRole(Role.ORG_ADMIN);
+
+            assertThat(user.getRole()).isEqualTo(Role.ORG_ADMIN);
+            assertThat(user.isOrgAdmin()).isTrue();
+            assertThat(user.isAdmin()).isTrue();
+            assertThat(user.isTeacher()).isTrue();
+            assertThat(user.isStudent()).isFalse();
+            assertThat(user.getUpdatedAt()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("Should change role from ORG_ADMIN to TEACHER")
+        void shouldChangeRoleFromOrgAdminToTeacher() {
+            User user = User.createNew("u", validEmail, "p", "User", Role.ORG_ADMIN);
+
+            user.changeRole(Role.TEACHER);
+
+            assertThat(user.getRole()).isEqualTo(Role.TEACHER);
+            assertThat(user.isOrgAdmin()).isFalse();
+            assertThat(user.isAdmin()).isFalse();
+            assertThat(user.isTeacher()).isTrue();
+        }
+
+        @Test
+        @DisplayName("Should create new user with ORG_ADMIN role")
+        void shouldCreateNewUserWithOrgAdminRole() {
+            User user = User.createNew("orgadmin", validEmail, "encodedPass", "Org Admin", Role.ORG_ADMIN);
+
+            assertThat(user.getRole()).isEqualTo(Role.ORG_ADMIN);
+            assertThat(user.isEnabled()).isTrue();
+            assertThat(user.isAdmin()).isTrue();
+            assertThat(user.isSystemAdmin()).isFalse();
         }
     }
 }

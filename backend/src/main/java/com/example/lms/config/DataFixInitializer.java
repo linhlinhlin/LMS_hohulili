@@ -31,6 +31,7 @@ public class DataFixInitializer {
 
         // Only run constraint fixes that need to be idempotent
         fixSectionTypeConstraint();
+        fixUserRoleConstraint();
 
         log.info("=== DataFixInitializer: Completed ===");
     }
@@ -39,6 +40,23 @@ public class DataFixInitializer {
      * Fix section type constraint to include all valid types.
      * This needs to run on every startup because JPA/Hibernate may recreate constraints.
      */
+    /**
+     * Ensure users role constraint includes ORG_ADMIN.
+     * Idempotent — safe to run on every startup.
+     */
+    private void fixUserRoleConstraint() {
+        try {
+            jdbcTemplate.execute("ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check");
+            jdbcTemplate.execute(
+                "ALTER TABLE users ADD CONSTRAINT users_role_check " +
+                "CHECK (role IN ('ADMIN', 'ORG_ADMIN', 'TEACHER', 'STUDENT'))"
+            );
+            log.debug("Updated users_role_check constraint");
+        } catch (Exception e) {
+            log.trace("Could not update users_role_check: {}", e.getMessage());
+        }
+    }
+
     private void fixSectionTypeConstraint() {
         try {
             // Drop and recreate constraint with all valid types

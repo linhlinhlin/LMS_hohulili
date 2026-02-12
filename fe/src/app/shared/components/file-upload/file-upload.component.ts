@@ -20,7 +20,7 @@ import { UploadedFile } from '../../models/uploaded-file.model';
             <p class="text-sm text-gray-600">
               Kéo thả file vào đây hoặc
               <button type="button"
-                      class="text-blue-600 hover:text-blue-500 font-medium"
+                      class="text-[#0056D2] hover:text-blue-500 font-medium"
                       (click)="triggerFileInput()">
                 chọn file
               </button>

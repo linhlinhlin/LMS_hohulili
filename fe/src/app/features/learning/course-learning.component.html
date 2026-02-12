@@ -85,14 +85,14 @@
                     <!-- Quiz Content -->
                     <div class="p-6 bg-blue-50 rounded-xl">
                       <div class="flex items-center space-x-3 mb-4">
-                        <svg class="w-8 h-8 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                        <svg class="w-8 h-8 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
                           <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path>
                         </svg>
                         <h3 class="text-lg font-semibold text-blue-900">Bài kiểm tra</h3>
                       </div>
                       <p class="text-blue-800 mb-4">{{ currentLesson()?.description }}</p>
                       <button (click)="startQuiz(currentLesson()?.id!)"
-                              class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                              class="px-6 py-3 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors">
                         Bắt đầu làm bài
                       </button>
                     </div>
@@ -124,7 +124,7 @@
                       @for (resource of currentLesson()!.resources; track resource.id) {
                         <div class="flex items-center space-x-3 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
                           <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                            <svg class="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                            <svg class="w-5 h-5 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
                               <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path>
                             </svg>
                           </div>
@@ -133,7 +133,7 @@
                             <p class="text-sm text-gray-600">{{ getResourceTypeText(resource.type) }}</p>
                           </div>
                           <button (click)="downloadResource(resource.id)"
-                                  class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                  class="px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors">
                             Tải xuống
                           </button>
                         </div>
@@ -173,7 +173,7 @@
 
                   <button (click)="nextLesson()"
                           [disabled]="!canGoNext()"
-                          class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors">
+                          class="px-6 py-3 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors">
                     Bài tiếp
                     <svg class="w-5 h-5 inline ml-2" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"></path>
@@ -238,7 +238,7 @@
                     <span>{{ course()?.progress }}%</span>
                   </div>
                   <div class="w-full bg-gray-200 rounded-full h-3">
-                    <div class="bg-blue-600 h-3 rounded-full transition-all duration-500" 
+                    <div class="bg-[#0056D2] h-3 rounded-full transition-all duration-500" 
                          [style.width.%]="course()?.progress"></div>
                   </div>
                 </div>

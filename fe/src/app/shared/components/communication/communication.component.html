@@ -1,16 +1,16 @@
-﻿
+
     <div class="communication-container bg-white rounded-xl shadow-lg">
       <!-- Header -->
       <div class="border-b border-gray-200 p-6">
         <div class="flex items-center justify-between">
           <div>
-            <h2 class="text-xl font-semibold text-gray-900">đŸ’¬ Giao tiếp</h2>
-            <p class="text-sm text-gray-600">Tin nhắn và thông báo</p>
+            <h2 class="text-xl font-semibold text-gray-900">d��� Giao ti?p</h2>
+            <p class="text-sm text-gray-600">Tin nh?n v� th�ng b�o</p>
           </div>
           <div class="flex items-center space-x-2">
             <div class="flex items-center space-x-1">
               <div class="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span class="text-xs text-gray-500">Trực tuyến</span>
+              <span class="text-xs text-gray-500">Tr?c tuy?n</span>
             </div>
             @if (totalUnreadCount() > 0) {
               <span class="px-2 py-1 text-xs bg-red-500 text-white rounded-full">
@@ -27,7 +27,7 @@
           <button (click)="setActiveTab('messages')"
                   class="py-4 px-1 border-b-2 font-medium text-sm transition-colors"
                   [class]="activeTab() === 'messages' ? 'border-purple-500 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-700'">
-            Tin nhắn
+            Tin nh?n
             @if (unreadMessages().length > 0) {
               <span class="ml-2 px-2 py-1 text-xs bg-red-500 text-white rounded-full">
                 {{ unreadMessages().length }}
@@ -37,17 +37,12 @@
           <button (click)="setActiveTab('announcements')"
                   class="py-4 px-1 border-b-2 font-medium text-sm transition-colors"
                   [class]="activeTab() === 'announcements' ? 'border-purple-500 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-700'">
-            Thông báo
+            Th�ng b�o
             @if (unreadAnnouncements().length > 0) {
               <span class="ml-2 px-2 py-1 text-xs bg-red-500 text-white rounded-full">
                 {{ unreadAnnouncements().length }}
               </span>
             }
-          </button>
-          <button (click)="setActiveTab('forums')"
-                  class="py-4 px-1 border-b-2 font-medium text-sm transition-colors"
-                  [class]="activeTab() === 'forums' ? 'border-purple-500 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-700'">
-            Diễn đàn
           </button>
         </nav>
       </div>
@@ -60,14 +55,14 @@
             <div class="space-y-6">
               <!-- Quick Actions -->
               <div class="flex items-center justify-between">
-                <h3 class="text-lg font-medium text-gray-900">Tin nhắn gần đây</h3>
+                <h3 class="text-lg font-medium text-gray-900">Tin nh?n g?n d�y</h3>
                 <button (click)="composeMessage()"
                         class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium">
                   <svg class="w-4 h-4 mr-2 inline" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path>
                     <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path>
                   </svg>
-                  Soạn tin nhắn
+                  So?n tin nh?n
                 </button>
               </div>
 
@@ -122,13 +117,13 @@
             <!-- Announcements Tab -->
             <div class="space-y-6">
               <div class="flex items-center justify-between">
-                <h3 class="text-lg font-medium text-gray-900">Thông báo</h3>
+                <h3 class="text-lg font-medium text-gray-900">Th�ng b�o</h3>
                 <button (click)="createAnnouncement()"
                         class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium">
                   <svg class="w-4 h-4 mr-2 inline" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"></path>
                   </svg>
-                  Tạo thông báo
+                  T?o th�ng b�o
                 </button>
               </div>
 
@@ -142,7 +137,7 @@
                           <h4 class="font-medium text-gray-900">{{ announcement.title }}</h4>
                           @if (announcement.priority === 'urgent') {
                             <span class="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">
-                              Khẩn cấp
+                              Kh?n c?p
                             </span>
                           } @else if (announcement.priority === 'high') {
                             <span class="px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full">
@@ -150,28 +145,28 @@
                             </span>
                           }
                           @if (!announcement.readBy.includes('current-user')) {
-                            <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
+                            <span class="w-2 h-2 bg-[#0056D2] rounded-full"></span>
                           }
                         </div>
                         <p class="text-sm text-gray-600 mb-2">{{ announcement.content }}</p>
                         <div class="flex items-center space-x-4 text-xs text-gray-500">
-                          <span>Tác giả: {{ announcement.authorName }}</span>
+                          <span>T�c gi?: {{ announcement.authorName }}</span>
                           <span>{{ formatDateTime(announcement.createdAt) }}</span>
                           @if (announcement.targetAudience !== 'all') {
-                            <span>Đối tượng: {{ getTargetAudienceText(announcement.targetAudience) }}</span>
+                            <span>�?i tu?ng: {{ getTargetAudienceText(announcement.targetAudience) }}</span>
                           }
                         </div>
                       </div>
                       <div class="flex items-center space-x-2">
                         @if (!announcement.readBy.includes('current-user')) {
                           <button (click)="markAnnouncementAsRead(announcement.id)"
-                                  class="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
-                            Đánh dấu đã đọc
+                                  class="px-3 py-1 text-xs bg-blue-100 text-[#004BB5] rounded-lg hover:bg-blue-200 transition-colors">
+                            ��nh d?u d� d?c
                           </button>
                         }
                         <button (click)="viewAnnouncement(announcement.id)"
                                 class="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                          Xem chi tiết
+                          Xem chi ti?t
                         </button>
                       </div>
                     </div>
@@ -181,59 +176,6 @@
             </div>
           }
 
-          @case ('forums') {
-            <!-- Forums Tab -->
-            <div class="space-y-6">
-              <div class="flex items-center justify-between">
-                <h3 class="text-lg font-medium text-gray-900">Diễn đàn thảo luận</h3>
-                <button (click)="createForum()"
-                        class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium">
-                  <svg class="w-4 h-4 mr-2 inline" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"></path>
-                  </svg>
-                  Tạo diễn đàn
-                </button>
-              </div>
-
-              <div class="space-y-4">
-                @for (forum of forums(); track forum.id) {
-                  <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer"
-                       (click)="openForum(forum.id)">
-                    <div class="flex items-start justify-between">
-                      <div class="flex-1">
-                        <div class="flex items-center space-x-2 mb-2">
-                          <h4 class="font-medium text-gray-900">{{ forum.title }}</h4>
-                          @if (forum.isPinned) {
-                            <span class="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
-                              Ghim
-                            </span>
-                          }
-                          @if (forum.isLocked) {
-                            <span class="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">
-                              Khóa
-                            </span>
-                          }
-                        </div>
-                        <p class="text-sm text-gray-600 mb-2">{{ forum.description }}</p>
-                        <div class="flex items-center space-x-4 text-xs text-gray-500">
-                          <span>Tác giả: {{ forum.authorName }}</span>
-                          <span>{{ forum.postCount }} bài viết</span>
-                          @if (forum.lastPost) {
-                            <span>Cuối: {{ formatTime(forum.lastPost.timestamp) }}</span>
-                          }
-                        </div>
-                      </div>
-                      <div class="text-right">
-                        <span class="px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded-full">
-                          {{ getCategoryText(forum.category) }}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                }
-              </div>
-            </div>
-          }
         }
       </div>
     </div>
@@ -244,7 +186,7 @@
         <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
           <div class="mt-3">
             <div class="flex items-center justify-between mb-4">
-              <h3 class="text-lg font-medium text-gray-900">Soạn tin nhắn mới</h3>
+              <h3 class="text-lg font-medium text-gray-900">So?n tin nh?n m?i</h3>
               <button (click)="closeMessageComposer()" class="text-gray-400 hover:text-gray-600">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -254,31 +196,31 @@
             
             <div class="space-y-4">
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Người nhận</label>
-                <input type="text" placeholder="Nhập tên hoặc email..." 
-                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Ngu?i nh?n</label>
+                <input type="text" placeholder="Nh?p t�n ho?c email..." 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]">
               </div>
               
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Tiêu đề</label>
-                <input type="text" placeholder="Nhập tiêu đề tin nhắn..." 
-                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Ti�u d?</label>
+                <input type="text" placeholder="Nh?p ti�u d? tin nh?n..." 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]">
               </div>
               
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Nội dung</label>
-                <textarea rows="4" placeholder="Nhập nội dung tin nhắn..." 
-                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                <label class="block text-sm font-medium text-gray-700 mb-1">N?i dung</label>
+                <textarea rows="4" placeholder="Nh?p n?i dung tin nh?n..." 
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]"></textarea>
               </div>
             </div>
             
             <div class="flex justify-end space-x-3 mt-6">
               <button (click)="closeMessageComposer()"
                       class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors">
-                Hủy
+                H?y
               </button>
-              <button class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
-                Gửi tin nhắn
+              <button class="px-4 py-2 bg-[#0056D2] text-white rounded-md hover:bg-[#004BB5] transition-colors">
+                G?i tin nh?n
               </button>
             </div>
           </div>
@@ -292,7 +234,7 @@
         <div class="relative top-20 mx-auto p-5 border w-11/12 max-w-2xl shadow-lg rounded-md bg-white">
           <div class="mt-3">
             <div class="flex items-center justify-between mb-4">
-              <h3 class="text-lg font-medium text-gray-900">Chi tiết thông báo</h3>
+              <h3 class="text-lg font-medium text-gray-900">Chi ti?t th�ng b�o</h3>
               <button (click)="closeAnnouncementDetail()" class="text-gray-400 hover:text-gray-600">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -303,7 +245,7 @@
             <div class="space-y-4">
               <div>
                 <h4 class="text-xl font-semibold text-gray-900">{{ selectedAnnouncement().title }}</h4>
-                <p class="text-sm text-gray-500 mt-1">{{ selectedAnnouncement().author.name }} â€¢ {{ formatDate(selectedAnnouncement().createdAt) }}</p>
+                <p class="text-sm text-gray-500 mt-1">{{ selectedAnnouncement().author.name }} • {{ formatDate(selectedAnnouncement().createdAt) }}</p>
               </div>
               
               <div class="prose max-w-none">
@@ -312,7 +254,7 @@
               
               @if (selectedAnnouncement().attachments && selectedAnnouncement().attachments.length > 0) {
                 <div>
-                  <h5 class="font-medium text-gray-900 mb-2">Tệp đính kèm</h5>
+                  <h5 class="font-medium text-gray-900 mb-2">T?p d�nh k�m</h5>
                   <div class="space-y-2">
                     @for (attachment of selectedAnnouncement().attachments; track attachment.id) {
                       <div class="flex items-center p-2 bg-gray-50 rounded">
@@ -330,7 +272,7 @@
             <div class="flex justify-end mt-6">
               <button (click)="closeAnnouncementDetail()"
                       class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors">
-                Đóng
+                ��ng
               </button>
             </div>
           </div>

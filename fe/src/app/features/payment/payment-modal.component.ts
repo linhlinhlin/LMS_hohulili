@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PaymentService } from './payment.service';
 import { PAYMENT_METHODS, PaymentMethod } from '../../api/client/payment.api';
+import { IconComponent } from '../../shared/components/icon/icon.component';
 
 /**
  * Payment Modal Component
@@ -26,7 +27,7 @@ export interface CoursePaymentInfo {
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-payment-modal',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, IconComponent],
   template: `
     <div class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
          (click)="onBackdropClick($event)">
@@ -34,7 +35,7 @@ export interface CoursePaymentInfo {
            (click)="$event.stopPropagation()">
         
         <!-- Header -->
-        <div class="relative bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-white">
+        <div class="relative bg-[#0056D2] p-6 text-white">
           <button (click)="close.emit()" 
                   class="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -53,7 +54,7 @@ export interface CoursePaymentInfo {
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
               </svg>
             </div>
-            <h3 class="text-2xl font-bold text-gray-900 mb-2">Thanh toán thành công! 🎉</h3>
+            <h3 class="text-2xl font-bold text-gray-900 mb-2"><app-icon name="party" size="md" class="text-emerald-500"/> Thanh toán thành công!</h3>
             <p class="text-gray-600 mb-6">Bạn đã mở khóa toàn bộ khóa học. Chúc bạn học tập vui vẻ!</p>
             <button (click)="close.emit(true)"
                     class="w-full py-3 px-6 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold hover:shadow-lg transition-all">
@@ -82,11 +83,11 @@ export interface CoursePaymentInfo {
                   <span class="text-sm text-gray-400 line-through mr-2">
                     {{ courseInfo().price | number:'1.0-0' }}₫
                   </span>
-                  <span class="text-2xl font-bold text-blue-600">
+                  <span class="text-2xl font-bold text-[#0056D2]">
                     {{ courseInfo().salePrice | number:'1.0-0' }}₫
                   </span>
                 } @else {
-                  <span class="text-2xl font-bold text-blue-600">
+                  <span class="text-2xl font-bold text-[#0056D2]">
                     {{ courseInfo().price | number:'1.0-0' }}₫
                   </span>
                 }
@@ -108,8 +109,8 @@ export interface CoursePaymentInfo {
                            [value]="method.code"
                            [checked]="selectedMethod() === method.code"
                            (change)="selectedMethod.set(method.code)"
-                           class="w-4 h-4 text-blue-600">
-                    <span class="text-xl">{{ method.icon }}</span>
+                           class="w-4 h-4 text-[#0056D2]">
+                    <app-icon [name]="method.icon" size="md" class="text-[#0056D2]"/>
                     <div class="flex-1">
                       <div class="font-medium text-gray-900">{{ method.name }}</div>
                       <div class="text-xs text-gray-500">{{ method.description }}</div>
@@ -129,7 +130,7 @@ export interface CoursePaymentInfo {
             <!-- Submit Button -->
             <button (click)="processPayment()"
                     [disabled]="isProcessing()"
-                    class="w-full py-4 px-6 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                    class="w-full py-4 px-6 rounded-xl bg-[#0056D2] hover:bg-[#004BB5] text-white font-bold text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
               @if (isProcessing()) {
                 <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -143,7 +144,7 @@ export interface CoursePaymentInfo {
 
             <!-- Security Note -->
             <p class="text-center text-xs text-gray-400 mt-4">
-              🔒 Thanh toán được bảo mật. Đảm bảo hoàn tiền trong 30 ngày.
+              <app-icon name="shield" size="sm" class="text-emerald-600 mr-1"/> Thanh toán được bảo mật. Đảm bảo hoàn tiền trong 30 ngày.
             </p>
           </div>
         }

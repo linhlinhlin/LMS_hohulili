@@ -1,8 +1,9 @@
-﻿import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
+﻿import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 
 import { RouterModule, Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
+import { ToastService } from '../../core/services/toast.service';
 
 interface StudentProfileForm {
   fullName: string;
@@ -30,7 +31,6 @@ interface StudentProfileForm {
 @Component({
   selector: 'app-student-profile-edit',
   imports: [RouterModule, ReactiveFormsModule],
-  encapsulation: ViewEncapsulation.None,
   templateUrl: './student-profile-edit.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -38,6 +38,7 @@ export class StudentProfileEditComponent implements OnInit {
   protected authService = inject(AuthService);
   private router = inject(Router);
   private fb = inject(FormBuilder);
+  private toast = inject(ToastService);
 
   profileForm: FormGroup;
   isSaving = signal(false);
@@ -217,13 +218,13 @@ export class StudentProfileEditComponent implements OnInit {
     if (file) {
       // Validate file size (5MB max)
       if (file.size > 5 * 1024 * 1024) {
-        alert('File quá lớn. Vui lòng chọn file nhỏ hơn 5MB.');
+        this.toast.warning('File quá lớn. Vui lòng chọn file nhỏ hơn 5MB.');
         return;
       }
 
       // Validate file type
       if (!file.type.startsWith('image/')) {
-        alert('Vui lòng chọn file ảnh.');
+        this.toast.warning('Vui lòng chọn file ảnh.');
         return;
       }
 

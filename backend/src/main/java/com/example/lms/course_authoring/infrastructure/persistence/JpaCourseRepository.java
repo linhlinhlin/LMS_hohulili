@@ -44,13 +44,29 @@ public interface JpaCourseRepository extends JpaRepository<CourseJpaEntity, UUID
             @Param("search") String search,
             Pageable pageable);
 
+    java.util.List<CourseJpaEntity> findByTeacherId(UUID teacherId);
+
     long countByTeacherId(UUID teacherId);
 
     long countByStatus(CourseJpaEntity.CourseStatus status);
+
+    @Query("SELECT c FROM CourseJpaEntity c WHERE LOWER(c.title) LIKE LOWER(CONCAT('%', :search, '%'))")
+    Page<CourseJpaEntity> findByTitleContaining(@Param("search") String search, Pageable pageable);
 
     @Query("SELECT c FROM CourseJpaEntity c WHERE c.id = (SELECT ch.courseId FROM ChapterJpaEntity ch WHERE ch.id = :chapterId)")
     Optional<CourseJpaEntity> findByChapterId(@Param("chapterId") UUID chapterId);
 
     @Query("SELECT c FROM CourseJpaEntity c WHERE c.id = (SELECT ch.courseId FROM ChapterJpaEntity ch JOIN LessonJpaEntity l ON l.chapterId = ch.id WHERE l.id = :lessonId)")
     Optional<CourseJpaEntity> findByLessonId(@Param("lessonId") UUID lessonId);
+
+    @Query(value = "SELECT COALESCE(MAX(CAST(SUBSTRING(code FROM '-(\\d+)$') AS INTEGER)), 0) FROM courses WHERE code LIKE :prefix || '-%'",
+           nativeQuery = true)
+    Integer findMaxSequenceNumberByPrefix(@Param("prefix") String prefix);
+
+    // Batch queries for teacher course stats
+    @Query("SELECT ch.courseId, COUNT(ch) FROM ChapterJpaEntity ch WHERE ch.courseId IN :courseIds GROUP BY ch.courseId")
+    java.util.List<Object[]> countChaptersByCourseIds(@Param("courseIds") java.util.List<UUID> courseIds);
+
+    @Query("SELECT ch.courseId, COUNT(l) FROM ChapterJpaEntity ch JOIN LessonJpaEntity l ON l.chapterId = ch.id WHERE ch.courseId IN :courseIds GROUP BY ch.courseId")
+    java.util.List<Object[]> countLessonsByCourseIds(@Param("courseIds") java.util.List<UUID> courseIds);
 }

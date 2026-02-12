@@ -19,7 +19,7 @@ import { Component, input, output, computed, ChangeDetectionStrategy } from '@an
           <span class="text-sm text-gray-700">Hiển thị</span>
           <select [value]="pageSize()"
                   (change)="onPageSizeChange($event)"
-                  class="border border-gray-300 rounded px-2 py-1 text-sm focus:ring-blue-500 focus:border-blue-500">
+                  class="border border-gray-300 rounded px-2 py-1 text-sm focus:ring-[#0056D2] focus:border-[#0056D2]">
             <option value="6">6</option>
             <option value="12">12</option>
             <option value="24">24</option>
@@ -41,7 +41,7 @@ import { Component, input, output, computed, ChangeDetectionStrategy } from '@an
                   [disabled]="!hasPrev()"
                   [class.opacity-50]="!hasPrev()"
                   [class.cursor-not-allowed]="!hasPrev()"
-                  class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:hover:bg-white">
+                  class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2] disabled:hover:bg-white">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
             </svg>
@@ -52,10 +52,10 @@ import { Component, input, output, computed, ChangeDetectionStrategy } from '@an
           <div class="flex items-center space-x-1">
             @for (page of visiblePages(); track page) {
               <button (click)="goToPage(page)"
-                      [class.bg-blue-600]="page === currentPage()"
+                      [class.bg-[#0056D2]]="page === currentPage()"
                       [class.text-white]="page === currentPage()"
                       [class.text-gray-700]="page !== currentPage()"
-                      class="px-3 py-2 text-sm font-medium border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                      class="px-3 py-2 text-sm font-medium border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]">
                 {{ page }}
               </button>
             }
@@ -66,7 +66,7 @@ import { Component, input, output, computed, ChangeDetectionStrategy } from '@an
                   [disabled]="!hasNext()"
                   [class.opacity-50]="!hasNext()"
                   [class.cursor-not-allowed]="!hasNext()"
-                  class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:hover:bg-white">
+                  class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2] disabled:hover:bg-white">
             Sau
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>

@@ -34,7 +34,7 @@ import { RouterModule, Router } from '@angular/router';
           <!-- Hero Title -->
           <h1 class="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 text-balance text-slate-800">
             Nâng tầm sự nghiệp
-            <span class="block text-blue-600">Hàng hải của bạn</span>
+            <span class="block text-[#0056D2]">Hàng hải của bạn</span>
           </h1>
 
           <!-- Subtitle -->
@@ -73,11 +73,11 @@ import { RouterModule, Router } from '@angular/router';
           <!-- CTA Buttons -->
           <div class="flex flex-col sm:flex-row gap-4 justify-center">
             <button (click)="navigateToCourses()"
-               class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all transform hover:scale-105 hover:shadow-lg">
+               class="bg-[#0056D2] hover:bg-[#004BB5] text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all transform hover:scale-105 hover:shadow-lg">
               Khám phá khóa học
             </button>
             <button (click)="navigateToLogin()"
-               class="bg-white hover:bg-gray-50 text-blue-600 px-8 py-4 rounded-lg text-lg font-semibold transition-all transform hover:scale-105 hover:shadow-lg border-2 border-blue-600">
+               class="bg-white hover:bg-gray-50 text-[#0056D2] px-8 py-4 rounded-lg text-lg font-semibold transition-all transform hover:scale-105 hover:shadow-lg border-2 border-[#0056D2]">
               Đăng nhập
             </button>
           </div>

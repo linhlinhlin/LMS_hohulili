@@ -29,7 +29,7 @@ public class EnrollmentRepositoryImpl implements EnrollmentRepository, Enrollmen
 
     @Override
     public Enrollment save(Enrollment enrollment) {
-        // Look up the LearningClass JPA entity
+        // Look up the LearningClass JPA entity (eagerly loaded, avoids LazyInitializationException)
         LearningClassJpaEntity learningClassEntity = null;
         if (enrollment.getLearningClass() != null && enrollment.getLearningClass().getId() != null) {
             learningClassEntity = jpaLearningClassRepository.findById(enrollment.getLearningClass().getId())
@@ -38,6 +38,12 @@ public class EnrollmentRepositoryImpl implements EnrollmentRepository, Enrollmen
 
         EnrollmentJpaEntity entity = mapper.toEntity(enrollment, learningClassEntity);
         EnrollmentJpaEntity saved = jpaRepository.save(entity);
+
+        // Set the eagerly-loaded learningClass on the saved entity to avoid lazy proxy issues
+        // (open-in-view is disabled, so Hibernate session may be closed)
+        if (learningClassEntity != null) {
+            saved.setLearningClass(learningClassEntity);
+        }
         return mapper.toDomain(saved);
     }
 

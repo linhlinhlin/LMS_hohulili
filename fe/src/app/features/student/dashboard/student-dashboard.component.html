@@ -1,18 +1,64 @@
 <div class="dashboard-container">
   <!-- Main Column (70%) - Course Feed -->
   <div class="main-column">
+    @if (error()) {
+      <div class="error-banner" style="background:#fef2f2;border:1px solid #fecaca;color:#991b1b;padding:12px 16px;border-radius:8px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">
+        <span>{{ error() }}</span>
+        <button (click)="error.set(null)" style="background:none;border:none;cursor:pointer;font-size:18px">&times;</button>
+      </div>
+    }
     <!-- Header: Greeting + Career Goal -->
     <div class="dashboard-header">
       <h1 class="greeting">{{ getGreeting() }}, {{ getUserFirstName() }}</h1>
-      <p class="career-goal">
-        Mục tiêu nghề nghiệp của bạn là phát triển kỹ năng 
-        <strong>{{ careerGoal() }}</strong>
-        <button class="edit-goal-btn" (click)="editGoal()">
-          <app-icon name="pencil" size="xs" />
-          Chỉnh sửa mục tiêu
-        </button>
-      </p>
+      @if (isEditingGoal()) {
+        <div class="career-goal edit-mode">
+          <span>Mục tiêu nghề nghiệp:</span>
+          <input
+            #goalInput
+            type="text"
+            class="goal-input"
+            [value]="careerGoal()"
+            (keydown.enter)="saveGoal(goalInput.value)"
+            (keydown.escape)="isEditingGoal.set(false)"
+            placeholder="Nhập mục tiêu nghề nghiệp..."
+          />
+          <button class="edit-goal-btn" (click)="saveGoal(goalInput.value)">Lưu</button>
+          <button class="edit-goal-btn" (click)="isEditingGoal.set(false)">Hủy</button>
+        </div>
+      } @else {
+        <p class="career-goal">
+          Mục tiêu nghề nghiệp của bạn là phát triển kỹ năng
+          <strong>{{ careerGoal() }}</strong>
+          <button class="edit-goal-btn" (click)="editGoal()">
+            <app-icon name="pencil" size="xs" />
+            Chỉnh sửa mục tiêu
+          </button>
+        </p>
+      }
     </div>
+
+    <!-- Continue Where You Left Off - Netflix/Coursera Pattern -->
+    @if (continueData()) {
+    <div class="continue-widget">
+      <div class="continue-content">
+        <div class="continue-icon">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
+            <path d="M8 5v14l11-7z"/>
+          </svg>
+        </div>
+        <div class="continue-text">
+          <span class="continue-label">Tiếp tục từ chỗ bạn đã dừng</span>
+          <span class="continue-time">Hoạt động lần cuối: {{ getRelativeTime(continueData()!.lastActivityAt) }}</span>
+        </div>
+      </div>
+      <button class="continue-btn" (click)="continueLastActivity()">
+        Tiếp tục
+        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+          <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
+        </svg>
+      </button>
+    </div>
+    }
 
     <!-- Courses Section with Tabs -->
     <div class="courses-section">
@@ -42,6 +88,20 @@
           <app-icon name="arrow-right" size="xs" />
         </a>
       </div>
+
+      <!-- In Progress Tab Content - Empty State -->
+      @if (activeTab() === 'in-progress' && recentInProgress().length === 0 && !isLoading()) {
+        <div class="empty-state">
+          <div class="empty-state-icon">
+            <app-icon name="academic-cap" size="lg" />
+          </div>
+          <h3 class="empty-state-title">Chưa có khóa học nào</h3>
+          <p class="empty-state-text">Hãy khám phá và đăng ký khóa học để bắt đầu hành trình học tập!</p>
+          <app-button variant="primary" (clicked)="router.navigate(['/courses'])">
+            Khám phá khóa học
+          </app-button>
+        </div>
+      }
 
       <!-- In Progress Tab Content -->
       @if (activeTab() === 'in-progress' && recentInProgress().length > 0) {
@@ -110,7 +170,7 @@
                     <div class="lessons-list">
                       @for (lesson of module.lessons; track lesson.id) {
                         <a 
-                          [routerLink]="['/student/courses', course.id, 'lessons', lesson.id]"
+                          [routerLink]="['/student/learn/course', course.id, 'lesson', lesson.id]"
                           class="lesson-item"
                           [class.completed]="lesson.completed">
                           <span class="lesson-title">{{ lesson.title }}</span>
@@ -118,6 +178,22 @@
                             <app-icon name="check-circle" size="xs" class="check-icon" />
                           }
                         </a>
+                        @if (lesson.sections && lesson.sections.length > 0) {
+                          <div class="section-sub-list" style="padding-left:24px;display:flex;flex-direction:column;gap:2px;margin-top:2px">
+                            @for (sec of lesson.sections; track sec.id) {
+                              <div style="display:flex;align-items:center;gap:6px;padding:4px 8px;font-size:12px;color:#6B7280">
+                                @if (sec.type === 'VIDEO') {
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                                } @else if (sec.type === 'QUIZ') {
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                                } @else {
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                }
+                                <span>{{ sec.title }}</span>
+                              </div>
+                            }
+                          </div>
+                        }
                       }
                     </div>
                   </div>
@@ -125,6 +201,17 @@
               </div>
             }
           }
+        </div>
+      }
+
+      <!-- Completed Tab Content - Empty State -->
+      @if (activeTab() === 'completed' && recentCompleted().length === 0 && !isLoading()) {
+        <div class="empty-state">
+          <div class="empty-state-icon">
+            <app-icon name="check-circle" size="lg" />
+          </div>
+          <h3 class="empty-state-title">Chưa hoàn thành khóa học nào</h3>
+          <p class="empty-state-text">Hãy tiếp tục học tập để hoàn thành khóa học đầu tiên!</p>
         </div>
       }
 
@@ -195,7 +282,7 @@
                 <div class="lessons-list">
                   @for (lesson of module.lessons; track lesson.id) {
                     <a 
-                      [routerLink]="['/student/courses', course.id, 'lessons', lesson.id]"
+                      [routerLink]="['/student/learn/course', course.id, 'lesson', lesson.id]"
                       class="lesson-item"
                       [class.completed]="lesson.completed">
                       <span class="lesson-title">{{ lesson.title }}</span>
@@ -242,7 +329,7 @@
       
       <!-- Heatmap Grid -->
       <div class="heatmap-grid">
-        @for (week of learningHeatmap; track week.week) {
+        @for (week of learningHeatmap(); track week.week) {
           <div class="heatmap-week">
             @for (day of week.days; track day.date) {
               <div 
@@ -261,12 +348,12 @@
       <!-- Stats -->
       <div class="learning-stats">
         <div class="stat">
-          <span class="stat-value">{{ learningStreak() }}</span>
-          <span class="stat-label">Tuần liên tiếp</span>
+          <span class="stat-value">{{ todayStudyTime() }}</span>
+          <span class="stat-label">Học hôm nay</span>
         </div>
         <div class="stat">
-          <span class="stat-value">{{ completedGoals() }}</span>
-          <span class="stat-label">Mục tiêu hoàn thành</span>
+          <span class="stat-value">{{ learningStreak() }}</span>
+          <span class="stat-label">Ngày liên tiếp</span>
         </div>
       </div>
 
@@ -274,5 +361,20 @@
         Thiết lập kế hoạch
       </app-button>
     </app-card>
+
+    <!-- Achievements Widget -->
+    @if (achievements().length > 0) {
+      <app-card class="widget">
+        <h3 class="widget-title">Thành tích</h3>
+        <div class="achievements-grid">
+          @for (achievement of achievements(); track achievement.id) {
+            <div class="achievement-item" [title]="achievement.description">
+              <span class="achievement-icon"><app-icon [name]="$any(getAchievementIcon(achievement.icon))" size="sm"/></span>
+              <span class="achievement-name">{{ achievement.name }}</span>
+            </div>
+          }
+        </div>
+      </app-card>
+    }
   </aside>
 </div>

@@ -44,7 +44,7 @@ export class DocumentService {
             return {
               progress,
               status: 'uploading' as const,
-              message: `Uploading... ${progress}%`
+              message: `Đang tải... ${progress}%`
             } as UploadProgress;
 
           case HttpEventType.Response:
@@ -57,7 +57,7 @@ export class DocumentService {
             return {
               progress: 0,
               status: 'processing' as const,
-              message: 'Processing document...'
+              message: 'Đang xử lý tài liệu...'
             } as UploadProgress;
         }
       })

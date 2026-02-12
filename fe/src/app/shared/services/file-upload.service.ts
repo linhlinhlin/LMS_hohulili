@@ -1,8 +1,6 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
-import { HttpClient, HttpEvent, HttpEventType, HttpProgressEvent } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import { UploadedFile } from '../models/uploaded-file.model';
-import { Observable, throwError } from 'rxjs';
-import { map, catchError, tap } from 'rxjs/operators';
 import { FileApi, FileUploadResponse } from '../../api/client/file.api';
 
 // Use shared UploadedFile model
@@ -28,7 +26,6 @@ export interface FileUploadOptions {
   providedIn: 'root'
 })
 export class FileUploadService {
-  private http = inject(HttpClient);
   private fileApi = inject(FileApi);
 
   // Signals for reactive state management
@@ -67,7 +64,6 @@ export class FileUploadService {
   });
 
   constructor() {
-    this.loadMockFiles();
   }
 
   // File Upload Methods
@@ -215,7 +211,7 @@ export class FileUploadService {
   // File Management Methods
   async deleteFile(fileId: string): Promise<void> {
     try {
-      await this.fileApi.deleteFile(fileId).toPromise();
+      await firstValueFrom(this.fileApi.deleteFile(fileId));
       
       this._uploadedFiles.update(files => 
         files.filter(file => file.id !== fileId)
@@ -231,18 +227,11 @@ export class FileUploadService {
     }
   }
 
-  async getFiles(category?: string): Promise<UploadedFile[]> {
-    try {
-      await this.simulateApiCall();
-      
-      if (category) {
-        return this._uploadedFiles().filter(file => (file as any).category === category);
-      }
-      
-      return this._uploadedFiles();
-    } catch (error) {
-      return this._uploadedFiles();
+  getFiles(category?: string): UploadedFile[] {
+    if (category) {
+      return this._uploadedFiles().filter(file => (file as any).category === category);
     }
+    return this._uploadedFiles();
   }
 
   // File Validation Methods
@@ -297,64 +286,31 @@ export class FileUploadService {
   }
 
   getFileIcon(fileType: string): string {
-    if (fileType.startsWith('image/')) return '🖼️';
-    if (fileType.startsWith('video/')) return '🎥';
-    if (fileType.startsWith('audio/')) return '🎵';
-    if (fileType === 'application/pdf') return '📄';
-    if (fileType.includes('word')) return '';
-    if (fileType.includes('excel') || fileType.includes('spreadsheet')) return '📊';
-    if (fileType.includes('powerpoint') || fileType.includes('presentation')) return '📽️';
-    if (fileType.includes('zip') || fileType.includes('rar')) return '📦';
-    return '📎';
+    if (fileType.startsWith('image/')) return 'image';
+    if (fileType.startsWith('video/')) return 'video';
+    if (fileType.startsWith('audio/')) return 'music';
+    if (fileType === 'application/pdf') return 'file-text';
+    if (fileType.includes('word')) return 'file-text';
+    if (fileType.includes('excel') || fileType.includes('spreadsheet')) return 'bar-chart';
+    if (fileType.includes('powerpoint') || fileType.includes('presentation')) return 'presentation';
+    if (fileType.includes('zip') || fileType.includes('rar')) return 'archive';
+    return 'file-text';
   }
 
   getFileCategoryIcon(category: string): string {
     switch (category) {
-      case 'course': return '';
-      case 'assignment': return '';
-      case 'profile': return '👤';
-      case 'document': return '📄';
-      case 'image': return '🖼️';
-      case 'video': return '🎥';
-      default: return '📎';
+      case 'course': return 'book-open';
+      case 'assignment': return 'clipboard';
+      case 'profile': return 'user';
+      case 'document': return 'file-text';
+      case 'image': return 'image';
+      case 'video': return 'video';
+      default: return 'file-text';
     }
-  }
-
-  // Mock Data Methods
-  private loadMockFiles(): void {
-    const mockFiles: UploadedFile[] = [
-      {
-        id: 'file_1',
-        originalName: 'maritime-safety-guide.pdf',
-        size: 2048576, // 2MB
-        mimeType: 'application/pdf',
-        url: 'https://storage.lms-maritime.com/files/file_1'
-      },
-      {
-        id: 'file_2',
-        originalName: 'ship-engineering-diagram.jpg',
-        size: 1024768, // 1MB
-        mimeType: 'image/jpeg',
-        url: 'https://storage.lms-maritime.com/files/file_2'
-      },
-      {
-        id: 'file_3',
-        originalName: 'navigation-procedures.mp4',
-        size: 52428800, // 50MB
-        mimeType: 'video/mp4',
-        url: 'https://storage.lms-maritime.com/files/file_3'
-      }
-    ];
-
-    this._uploadedFiles.set(mockFiles);
   }
 
   private generateFileId(): string {
     return 'file_' + Math.random().toString(36).substr(2, 9);
-  }
-
-  private async simulateApiCall(): Promise<void> {
-    await new Promise(resolve => setTimeout(resolve, 500));
   }
 
   // Clear upload progress after completion

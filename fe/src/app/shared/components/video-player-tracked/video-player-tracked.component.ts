@@ -12,13 +12,15 @@ import {
 
 import videojs from 'video.js';
 import Player from 'video.js/dist/types/player';
-import { VideoProgressApi, TrackProgressRequest } from '../../../api/client/video-progress.api';
-import { interval, Subscription } from 'rxjs';
+import { VideoProgressApi } from '../../../api/client/video-progress.api';
+import { WatchedSegmentsTracker } from '../../../features/learning/services/watched-segments-tracker.service';
+import { Subscription } from 'rxjs';
+import { IconComponent } from '../icon/icon.component';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-video-player-tracked',
-  imports: [],
+  imports: [IconComponent],
   template: `
     <div class="video-player-container">
       <!-- Video Player -->
@@ -62,7 +64,7 @@ import { interval, Subscription } from 'rxjs';
             </div>
             <div class="progress-message">
               @if (isCompleted()) {
-                <span class="text-green-600 font-semibold">✓ Hoàn thành bài học</span>
+                <span class="text-green-600 font-semibold"><app-icon name="circle-check" size="xs" class="mr-1"/> Hoàn thành bài học</span>
               } @else {
                 <span class="text-gray-600">Cần xem {{ 75 - currentProgress() }}% nữa</span>
               }
@@ -149,10 +151,12 @@ export class VideoPlayerTrackedComponent implements OnInit, AfterViewInit, OnDes
   // Signal inputs - Angular v20+
   videoUrl = input<string>('');
   sectionId = input<string>('');
+  lessonId = input<string>('');
   autoplay = input<boolean>(false);
   trackingInterval = input<number>(5000); // Track every 5 seconds
 
   private videoProgressApi = inject(VideoProgressApi);
+  private tracker = inject(WatchedSegmentsTracker);
   private player: Player | null = null;
   private trackingSubscription?: Subscription;
   private lastTrackedTime: number = 0;
@@ -220,103 +224,55 @@ export class VideoPlayerTrackedComponent implements OnInit, AfterViewInit, OnDes
   private setupTrackingListeners(): void {
     if (!this.player) return;
 
-    // Start tracking on play
+    // Start segment tracking on play
     this.player.on('play', () => {
-      this.startTracking();
+      const duration = Math.floor(this.player?.duration() || 0);
+      if (duration > 0) {
+        this.tracker.startTracking(this.lessonId(), this.sectionId(), duration);
+      }
     });
 
-    // Pause tracking on pause
+    // Stop tracking on pause
     this.player.on('pause', () => {
-      this.stopTracking();
-      this.trackProgressNow(); // Track immediately when paused
+      this.tracker.stopTracking();
     });
 
-    // Track when video ends
+    // Stop tracking when video ends
     this.player.on('ended', () => {
-      this.stopTracking();
-      this.trackProgressNow();
+      this.tracker.stopTracking();
     });
 
-    // Update progress display in real-time
+    // Record seconds and update progress display
     this.player.on('timeupdate', () => {
+      if (!this.player) return;
+      const currentTime = this.player.currentTime() || 0;
+      this.tracker.recordSecond(currentTime);
       this.updateProgressDisplay();
-    });
-  }
-
-  private startTracking(): void {
-    if (this.trackingSubscription) return;
-
-    // Track progress every N seconds
-    this.trackingSubscription = interval(this.trackingInterval()).subscribe(() => {
-      this.trackProgressNow();
-    });
-  }
-
-  private stopTracking(): void {
-    if (this.trackingSubscription) {
-      this.trackingSubscription.unsubscribe();
-      this.trackingSubscription = undefined;
-    }
-  }
-
-  private trackProgressNow(): void {
-    if (!this.player || !this.sectionId()) return;
-
-    const currentTime = Math.floor(this.player.currentTime() || 0);
-    const duration = Math.floor(this.player.duration() || 0);
-
-    // Only track if time has changed significantly (at least 1 second)
-    if (Math.abs(currentTime - this.lastTrackedTime) < 1) {
-      return;
-    }
-
-    this.lastTrackedTime = currentTime;
-
-    const request: TrackProgressRequest = {
-      sectionId: this.sectionId(),
-      currentPosition: currentTime,
-      duration,
-    };
-
-    this.videoProgressApi.trackProgress(request).subscribe({
-      next: (response) => {
-        if (response.success && response.data) {
-          this.currentProgress.set(Math.floor(response.data.progressPercentage));
-          this.isCompleted.set(response.data.completed);
-
-          // Completion event
-
-        }
-      },
-      error: () => {
-      },
     });
   }
 
   private updateProgressDisplay(): void {
     if (!this.player) return;
 
-    const currentTime = this.player.currentTime() || 0;
-    const duration = this.player.duration() || 0;
-
-    if (duration > 0) {
-      const progress = Math.floor((currentTime / duration) * 100);
-      this.currentProgress.set(progress);
+    const localProgress = this.tracker.getLocalProgress();
+    if (localProgress > 0) {
+      this.currentProgress.set(Math.floor(localProgress));
+      this.isCompleted.set(localProgress >= 90);
     }
   }
 
   private loadExistingProgress(): void {
     this.videoProgressApi.getProgress(this.sectionId()).subscribe({
-      next: (response) => {
+      next: (response: any) => {
         if (response.success && response.data) {
           const progress = response.data;
-          this.currentProgress.set(Math.floor(progress.progressPercentage));
+          this.currentProgress.set(Math.floor(progress.progressPercent || 0));
           this.isCompleted.set(progress.completed);
 
           // Resume from last position if video was partially watched
-          if (progress.currentPosition > 0 && this.player) {
+          if (progress.lastPosition > 0 && this.player) {
             setTimeout(() => {
-              this.player?.currentTime(progress.currentPosition);
+              this.player?.currentTime(progress.lastPosition);
             }, 500);
           }
         }
@@ -340,7 +296,7 @@ export class VideoPlayerTrackedComponent implements OnInit, AfterViewInit, OnDes
   }
 
   private cleanup(): void {
-    this.stopTracking();
+    this.tracker.stopTracking();
     if (this.player) {
       this.player.dispose();
       this.player = null;

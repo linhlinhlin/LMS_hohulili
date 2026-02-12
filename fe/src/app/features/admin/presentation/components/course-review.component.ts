@@ -2,6 +2,8 @@ import { Component, signal, inject, computed, OnInit, ChangeDetectionStrategy } 
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminService, AdminCourseSummary, PendingCourseSummary } from '../../infrastructure/services/admin.service';
+import { ToastService } from '../../../../core/services/toast.service';
+import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 
 // Union type for courses that can be either pending or full course summary
 type CourseListItem = AdminCourseSummary | (PendingCourseSummary & { status: string });
@@ -21,12 +23,12 @@ type CourseListItem = AdminCourseSummary | (PendingCourseSummary & { status: str
             <input
               [(ngModel)]="searchKeyword"
               (keyup.enter)="loadCourses()"
-              class="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#0056D2]"
               placeholder="Tìm kiếm theo tên khóa học hoặc giảng viên..." />
               <select
                 [(ngModel)]="statusFilter"
                 (ngModelChange)="loadCourses()"
-                class="border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                class="border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#0056D2]">
                 <option value="">Tất cả trạng thái</option>
                 <option value="PENDING">Chờ duyệt</option>
                 <option value="APPROVED">Đã duyệt</option>
@@ -35,7 +37,7 @@ type CourseListItem = AdminCourseSummary | (PendingCourseSummary & { status: str
               </select>
               <button
                 (click)="loadCourses()"
-                class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                class="px-5 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5]">
                 Tìm kiếm
               </button>
             </div>
@@ -91,7 +93,7 @@ type CourseListItem = AdminCourseSummary | (PendingCourseSummary & { status: str
                         <div class="flex justify-center gap-2">
                           <button
                             (click)="viewDetails(course)"
-                            class="px-3 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded text-xs font-medium">
+                            class="px-3 py-1 bg-blue-50 text-[#0056D2] hover:bg-blue-100 rounded text-xs font-medium">
                             Xem chi tiết
                           </button>
                           @if (course.status === 'PENDING') {
@@ -127,7 +129,7 @@ type CourseListItem = AdminCourseSummary | (PendingCourseSummary & { status: str
             @if (!loading() && !error() && courses().length > 0) {
               <div class="px-6 py-4 border-t bg-gray-50 flex items-center justify-between">
                 <div class="text-sm text-gray-600">
-                  Hiển thị {{ (currentPage - 1) * pageSize + 1 }} - {{ Math.min(currentPage * pageSize, totalItems) }} trong tổng số {{ totalItems }} khóa học
+                  Hiển thị {{ (currentPage - 1) * pageSize + 1 }} - {{ getDisplayEnd() }} trong tổng số {{ totalItems }} khóa học
                 </div>
                 <div class="flex gap-2">
                   <button
@@ -202,7 +204,7 @@ type CourseListItem = AdminCourseSummary | (PendingCourseSummary & { status: str
                     <!-- Course Stats -->
                     <div class="grid grid-cols-3 gap-4 mb-6">
                       <div class="bg-blue-50 rounded-lg p-4 text-center">
-                        <div class="text-2xl font-bold text-blue-600">{{ courseDetails.sectionsCount || 0 }}</div>
+                        <div class="text-2xl font-bold text-[#0056D2]">{{ courseDetails.sectionsCount || 0 }}</div>
                         <div class="text-sm text-gray-600">Chương</div>
                       </div>
                       @if (courseDetails.enrolledCount !== undefined) {
@@ -270,7 +272,7 @@ type CourseListItem = AdminCourseSummary | (PendingCourseSummary & { status: str
                 <h3 class="text-lg font-semibold mb-4">Từ chối khóa học</h3>
                 <textarea
                   [(ngModel)]="rejectComment"
-                  class="w-full border rounded-lg p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-red-500"
+                  class="w-full border rounded-lg p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-[#0056D2]"
                   rows="4"
                 placeholder="Nhập lý do từ chối (bắt buộc)..."></textarea>
                 <div class="flex gap-3 justify-end">
@@ -295,9 +297,8 @@ type CourseListItem = AdminCourseSummary | (PendingCourseSummary & { status: str
 })
 export class CourseReviewComponent implements OnInit {
   private adminService = inject(AdminService);
-  
-  // Expose Math for template
-  Math = Math;
+  private toast = inject(ToastService);
+  private confirmDialog = inject(ConfirmDialogService);
   
   courses = signal<CourseListItem[]>([]);
   loading = signal(false);
@@ -380,18 +381,6 @@ export class CourseReviewComponent implements OnInit {
     this.courseDetails = course; // For now, use the summary data
     this.detailModalOpen.set(true);
     
-    // TODO: In a future enhancement, fetch full course details with sections/lessons
-    // this.loadingDetails.set(true);
-    // this.adminService.getCourseDetails(course.id).subscribe({
-    //   next: (details) => {
-    //     this.courseDetails = details;
-    //     this.loadingDetails.set(false);
-    //   },
-    //   error: (err) => {
-    //     console.error('Error loading course details:', err);
-    //     this.loadingDetails.set(false);
-    //   }
-    // });
   }
   
   closeDetailModal() {
@@ -410,29 +399,31 @@ export class CourseReviewComponent implements OnInit {
   showRejectModalFromDetail() {
     if (!this.courseDetails) return;
     const course = this.courseDetails;
-    this.closeDetailModal(); // Đóng modal detail trước
-    // Delay nhỏ để đảm bảo modal detail đã đóng hoàn toàn
-    setTimeout(() => {
-      this.showRejectModal(course);
-    }, 100);
+    this.closeDetailModal();
+    this.showRejectModal(course);
   }
 
-  approveCourse(id: string) {
-    if (!confirm('Bạn có chắc chắn muốn duyệt khóa học này?')) return;
-    
+  async approveCourse(id: string) {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Duyệt khóa học',
+      message: 'Bạn có chắc chắn muốn duyệt khóa học này?',
+      confirmText: 'Duyệt',
+      variant: 'warning'
+    });
+    if (!confirmed) return;
+
     this.approving.set(id);
     this.adminService.approveCourse(id).subscribe({
       next: (response) => {
-        alert('✅ ' + (response.message || 'Đã duyệt khóa học thành công'));
+        this.toast.success(response.message || 'Đã duyệt khóa học thành công');
         this.approving.set(null);
-        // Đảm bảo modal detail đã đóng
         if (this.detailModalOpen()) {
           this.closeDetailModal();
         }
         this.loadCourses();
       },
       error: (err) => {
-        alert('❌ Không thể duyệt khóa học: ' + (err.error?.message || err.message || 'Lỗi không xác định'));
+        this.toast.error('Không thể duyệt khóa học: ' + (err.error?.message || err.message || 'Lỗi không xác định'));
         this.approving.set(null);
       }
     });
@@ -452,10 +443,10 @@ export class CourseReviewComponent implements OnInit {
 
   confirmReject() {
     if (!this.rejectComment.trim()) {
-      alert('⚠️ Vui lòng nhập lý do từ chối');
+      this.toast.warning('Vui lòng nhập lý do từ chối');
       return;
     }
-    
+
     if (!this.selectedCourse) {
       return;
     }
@@ -463,17 +454,16 @@ export class CourseReviewComponent implements OnInit {
     this.rejecting.set(true);
     this.adminService.rejectCourse(this.selectedCourse.id, this.rejectComment.trim()).subscribe({
       next: (response) => {
-        alert('✅ ' + (response.message || 'Đã từ chối khóa học'));
+        this.toast.success(response.message || 'Đã từ chối khóa học');
         this.rejecting.set(false);
         this.closeRejectModal();
-        // Đảm bảo modal detail cũng đã đóng
         if (this.detailModalOpen()) {
           this.closeDetailModal();
         }
         this.loadCourses();
       },
       error: (err) => {
-        alert('❌ Không thể từ chối khóa học: ' + (err.error?.message || err.message || 'Lỗi không xác định'));
+        this.toast.error('Không thể từ chối khóa học: ' + (err.error?.message || err.message || 'Lỗi không xác định'));
         this.rejecting.set(false);
       }
     });
@@ -489,6 +479,10 @@ export class CourseReviewComponent implements OnInit {
     return map[status] || status;
   }
   
+  getDisplayEnd(): number {
+    return Math.min(this.currentPage * this.pageSize, this.totalItems);
+  }
+
   // Pagination methods
   get totalPages(): number {
     return Math.ceil(this.totalItems / this.pageSize);

@@ -3,6 +3,7 @@ import { CommonModule, NgOptimizedImage } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { ExtendedCourse } from '../../../../shared/types/course.types';
 import { CourseDetailService } from '../services/course-detail.service';
+import { ToastService } from '../../../../core/services/toast.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -14,6 +15,7 @@ export class CourseHeroComponent {
   course = input<ExtendedCourse | null>(null);
 
   protected courseDetailService = inject(CourseDetailService);
+  private toast = inject(ToastService);
 
   getCategoryName(category: string): string {
     const categoryNames: Record<string, string> = {
@@ -47,6 +49,7 @@ export class CourseHeroComponent {
       const userId = 'current-user-id';
       await this.courseDetailService.enrollInCourse(course.id, userId);
     } catch (error) {
+      this.toast.error('Đăng ký khóa học thất bại');
     }
   }
 

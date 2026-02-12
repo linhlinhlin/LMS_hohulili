@@ -1,0 +1,375 @@
+import {
+  Component, ChangeDetectionStrategy, inject, signal, computed, OnInit, DestroyRef
+} from '@angular/core';
+import { Router } from '@angular/router';
+import { CourseApi } from '../../../api/client/course.api';
+import { CourseSummary } from '../../../api/types/course.types';
+import { StudentEnrollmentService } from '../services/enrollment.service';
+import { ToastService } from '../../../core/services/toast.service';
+
+@Component({
+  selector: 'app-student-course-browser',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <div class="px-6 py-6 max-w-[1400px] mx-auto">
+      <!-- Header -->
+      <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900">Khám phá khóa học</h1>
+        <p class="text-sm text-gray-500 mt-1">Tìm kiếm và đăng ký các khóa học mới</p>
+      </div>
+
+      <!-- Search Bar -->
+      <div class="mb-4">
+        <div class="relative max-w-lg">
+          <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+          <input
+            type="text"
+            [value]="searchQuery()"
+            (input)="onSearchInput($event)"
+            placeholder="Tìm kiếm khóa học..."
+            class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-[#0056D2] focus:border-[#0056D2] outline-none" />
+        </div>
+      </div>
+
+      <!-- Category Filter Pills -->
+      <div class="flex items-center gap-2 mb-4 overflow-x-auto pb-1 scrollbar-thin">
+        @for (cat of categoryList(); track cat) {
+          <button
+            (click)="selectCategory(cat)"
+            class="px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap border transition-colors"
+            [class]="selectedCategory() === cat
+              ? 'bg-[#0056D2] text-white border-[#0056D2]'
+              : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400 hover:bg-gray-50'">
+            {{ cat }}
+          </button>
+        }
+      </div>
+
+      <!-- Filters Bar: Result Count + Sort + Quick Toggle -->
+      <div class="flex items-center justify-between mb-5 flex-wrap gap-2">
+        <div class="flex items-center gap-3">
+          <span class="text-sm text-gray-600">
+            @if (!isLoading()) {
+              Tìm thấy <strong class="text-gray-900">{{ filteredCourses().length }}</strong> khóa học
+            }
+          </span>
+          <!-- "Đang học" quick toggle -->
+          <button
+            (click)="toggleEnrolledFilter()"
+            class="px-3 py-1 rounded-full text-xs font-medium border transition-colors"
+            [class]="showEnrolledOnly()
+              ? 'bg-green-50 text-green-700 border-green-300'
+              : 'bg-white text-gray-500 border-gray-300 hover:border-gray-400'">
+            @if (showEnrolledOnly()) {
+              <svg class="inline-block w-3 h-3 mr-1 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            }
+            Đang học
+          </button>
+        </div>
+
+        <!-- Sort Dropdown -->
+        <div class="flex items-center gap-2">
+          <label class="text-xs text-gray-500">Sắp xếp:</label>
+          <select
+            [value]="sortMode()"
+            (change)="onSortChange($event)"
+            class="text-sm border border-gray-300 rounded-lg px-2 py-1.5 bg-white focus:ring-[#0056D2] focus:border-[#0056D2] outline-none">
+            <option value="newest">Mới nhất</option>
+            <option value="az">Tên A-Z</option>
+            <option value="za">Tên Z-A</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      @if (isLoading()) {
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          @for (i of [1,2,3,4,5,6]; track i) {
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden animate-pulse">
+              <div class="h-40 bg-gray-200"></div>
+              <div class="p-4 space-y-3">
+                <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+                <div class="h-3 bg-gray-200 rounded w-1/2"></div>
+                <div class="h-3 bg-gray-200 rounded w-full"></div>
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Error State -->
+      @if (errorMsg() && !isLoading()) {
+        <div class="text-center py-16">
+          <svg class="w-12 h-12 text-red-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <p class="text-gray-600 mb-4">{{ errorMsg() }}</p>
+          <button (click)="loadCourses()" class="px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] text-sm">
+            Thử lại
+          </button>
+        </div>
+      }
+
+      <!-- Course Grid -->
+      @if (!isLoading() && !errorMsg()) {
+        @if (filteredCourses().length === 0) {
+          <div class="text-center py-16">
+            <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+            </svg>
+            <h3 class="text-lg font-medium text-gray-700 mb-1">Không tìm thấy khóa học</h3>
+            <p class="text-sm text-gray-500">Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc</p>
+          </div>
+        } @else {
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            @for (course of filteredCourses(); track course.id) {
+              <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-lg hover:scale-[1.02] transition-all duration-200 group cursor-pointer"
+                   (click)="isEnrolled(course.id) ? continueLearning(course.id) : viewDetail(course.id)">
+                <!-- Thumbnail -->
+                <div class="relative h-40 overflow-hidden">
+                  @if (course.thumbnailUrl) {
+                    <img [src]="course.thumbnailUrl" [alt]="course.title" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  } @else {
+                    <div class="w-full h-full flex items-center justify-center"
+                         [style.background]="getThumbnailGradient(course.title)">
+                      <span class="text-4xl font-bold text-white/80">{{ course.title.charAt(0).toUpperCase() }}</span>
+                    </div>
+                  }
+                  <!-- Category chip on thumbnail -->
+                  @if (course.categoryName) {
+                    <span class="absolute top-2 left-2 px-2 py-0.5 text-[11px] font-medium bg-white/90 backdrop-blur-sm text-gray-700 rounded-md">
+                      {{ course.categoryName }}
+                    </span>
+                  }
+                  <!-- Enrolled badge -->
+                  @if (isEnrolled(course.id)) {
+                    <span class="absolute top-2 right-2 px-2 py-1 text-xs font-medium bg-green-500 text-white rounded-full">
+                      Đã đăng ký
+                    </span>
+                  }
+                </div>
+
+                <!-- Content -->
+                <div class="p-4">
+                  <h3 class="font-semibold text-gray-900 line-clamp-2 mb-1 group-hover:text-[#0056D2] transition-colors">{{ course.title }}</h3>
+                  @if (course.teacherName) {
+                    <p class="text-xs text-gray-500 mb-2">{{ course.teacherName }}</p>
+                  }
+                  @if (course.description) {
+                    <p class="text-sm text-gray-600 line-clamp-2 mb-3">{{ course.description }}</p>
+                  }
+
+                  <!-- Footer -->
+                  <div class="flex items-center justify-between pt-3 border-t border-gray-100">
+                    @if (course.priceType === 'FREE' || !course.price) {
+                      <span class="text-sm font-medium text-green-600">Miễn phí</span>
+                    } @else {
+                      <span class="text-sm font-semibold text-gray-900">{{ formatPrice(course.price) }}</span>
+                    }
+
+                    @if (isEnrolled(course.id)) {
+                      <button (click)="continueLearning(course.id); $event.stopPropagation()"
+                        class="px-3 py-1.5 text-sm font-medium text-[#0056D2] border border-[#0056D2] rounded-lg hover:bg-[#0056D2] hover:text-white transition-colors">
+                        Tiếp tục học
+                      </button>
+                    } @else {
+                      <button (click)="viewDetail(course.id); $event.stopPropagation()"
+                        class="px-3 py-1.5 text-sm font-medium bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors">
+                        Xem chi tiết
+                      </button>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+
+          <!-- Pagination -->
+          @if (totalPages() > 1) {
+            <div class="flex items-center justify-center gap-3 mt-8">
+              <button (click)="prevPage()" [disabled]="currentPage() === 0"
+                class="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">
+                Trang trước
+              </button>
+              <span class="text-sm text-gray-600">
+                Trang {{ currentPage() + 1 }} / {{ totalPages() }}
+              </span>
+              <button (click)="nextPage()" [disabled]="currentPage() >= totalPages() - 1"
+                class="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">
+                Trang sau
+              </button>
+            </div>
+          }
+        }
+      }
+    </div>
+  `
+})
+export class StudentCourseBrowserComponent implements OnInit {
+  private courseApi = inject(CourseApi);
+  private enrollmentService = inject(StudentEnrollmentService);
+  private toast = inject(ToastService);
+  private router = inject(Router);
+  private destroyRef = inject(DestroyRef);
+
+  // Raw courses from API
+  private rawCourses = signal<CourseSummary[]>([]);
+  isLoading = signal(false);
+  errorMsg = signal<string | null>(null);
+  searchQuery = signal('');
+  currentPage = signal(0);
+  totalPages = signal(1);
+
+  // New filter/sort state
+  selectedCategory = signal<string>('Tất cả');
+  sortMode = signal<string>('newest');
+  showEnrolledOnly = signal(false);
+
+  private searchTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly PAGE_SIZE = 12;
+
+  private enrolledIds = computed(() => this.enrollmentService.enrolledCourseIds());
+
+  // Extract unique categories from loaded courses
+  categoryList = computed(() => {
+    const cats = new Set<string>();
+    cats.add('Tất cả');
+    for (const c of this.rawCourses()) {
+      if (c.categoryName) cats.add(c.categoryName);
+    }
+    return Array.from(cats);
+  });
+
+  // Client-side filtered + sorted courses
+  filteredCourses = computed(() => {
+    let result = this.rawCourses();
+
+    // Category filter
+    const cat = this.selectedCategory();
+    if (cat !== 'Tất cả') {
+      result = result.filter(c => c.categoryName === cat);
+    }
+
+    // Enrolled-only filter
+    if (this.showEnrolledOnly()) {
+      const ids = this.enrolledIds();
+      result = result.filter(c => ids.has(c.id));
+    }
+
+    // Sort
+    const sort = this.sortMode();
+    if (sort === 'az') {
+      result = [...result].sort((a, b) => a.title.localeCompare(b.title, 'vi'));
+    } else if (sort === 'za') {
+      result = [...result].sort((a, b) => b.title.localeCompare(a.title, 'vi'));
+    }
+    // 'newest' = API default order
+
+    return result;
+  });
+
+  // Expose filtered for template (backwards compat)
+  courses = this.filteredCourses;
+
+  private readonly GRADIENTS = [
+    'linear-gradient(135deg, #0056D2 0%, #4A90D9 100%)',
+    'linear-gradient(135deg, #059669 0%, #34D399 100%)',
+    'linear-gradient(135deg, #7C3AED 0%, #A78BFA 100%)',
+    'linear-gradient(135deg, #DC2626 0%, #F87171 100%)',
+    'linear-gradient(135deg, #D97706 0%, #FCD34D 100%)',
+    'linear-gradient(135deg, #0891B2 0%, #67E8F9 100%)',
+  ];
+
+  ngOnInit(): void {
+    this.loadCourses();
+    this.enrollmentService.loadEnrolledCourses(0);
+  }
+
+  onSearchInput(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.searchQuery.set(value);
+
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => {
+      this.currentPage.set(0);
+      this.loadCourses();
+    }, 300);
+  }
+
+  loadCourses(): void {
+    this.isLoading.set(true);
+    this.errorMsg.set(null);
+
+    const params: any = { page: this.currentPage(), size: this.PAGE_SIZE };
+    const q = this.searchQuery().trim();
+    if (q) params.search = q;
+
+    this.courseApi.publicCourses(params).subscribe({
+      next: (res) => {
+        this.rawCourses.set(res.data ?? []);
+        const pagination = res.pagination as any;
+        if (pagination?.totalPages) {
+          this.totalPages.set(pagination.totalPages);
+        } else {
+          this.totalPages.set((res.data?.length ?? 0) >= this.PAGE_SIZE ? this.currentPage() + 2 : this.currentPage() + 1);
+        }
+        this.isLoading.set(false);
+      },
+      error: () => {
+        this.errorMsg.set('Không thể tải danh sách khóa học');
+        this.isLoading.set(false);
+        this.toast.error('Không thể tải danh sách khóa học');
+      }
+    });
+  }
+
+  selectCategory(cat: string): void {
+    this.selectedCategory.set(cat);
+  }
+
+  onSortChange(event: Event): void {
+    this.sortMode.set((event.target as HTMLSelectElement).value);
+  }
+
+  toggleEnrolledFilter(): void {
+    this.showEnrolledOnly.update(v => !v);
+  }
+
+  isEnrolled(courseId: string): boolean {
+    return this.enrolledIds().has(courseId);
+  }
+
+  continueLearning(courseId: string): void {
+    this.router.navigate(['/student/learn/course', courseId]);
+  }
+
+  viewDetail(courseId: string): void {
+    this.router.navigate(['/student/course', courseId]);
+  }
+
+  prevPage(): void {
+    if (this.currentPage() > 0) {
+      this.currentPage.update(p => p - 1);
+      this.loadCourses();
+    }
+  }
+
+  nextPage(): void {
+    if (this.currentPage() < this.totalPages() - 1) {
+      this.currentPage.update(p => p + 1);
+      this.loadCourses();
+    }
+  }
+
+  formatPrice(price: number | undefined): string {
+    if (!price) return 'Miễn phí';
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
+  }
+
+  getThumbnailGradient(title: string): string {
+    const hash = title.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+    return this.GRADIENTS[hash % this.GRADIENTS.length];
+  }
+}

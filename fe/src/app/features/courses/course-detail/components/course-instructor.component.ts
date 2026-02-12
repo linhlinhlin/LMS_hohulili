@@ -21,57 +21,8 @@ export class CourseInstructorComponent {
   }
 
   getOtherCourses(): ExtendedCourse[] {
-    const instructor = this.instructor();
-    return [
-      {
-        id: 'other-1',
-        title: 'Kỹ thuật Tàu biển Nâng cao',
-        thumbnail: 'https://via.placeholder.com/200x120/0288D1/FFFFFF?text=Advanced',
-        rating: 4.8,
-        studentsCount: 650,
-        description: '',
-        shortDescription: '',
-        level: 'advanced',
-        duration: '45h',
-        students: 650,
-        reviews: 95,
-        price: 3500000,
-        instructor: instructor!,
-        category: 'engineering',
-        tags: [],
-        skills: [],
-        prerequisites: [],
-        certificate: { type: 'Professional', description: '' },
-        curriculum: { modules: 0, lessons: 0, duration: '' },
-        lessonsCount: 0,
-        isPublished: true,
-        isEnrolled: false // Default for instructor courses
-      },
-      {
-        id: 'other-2',
-        title: 'Bảo trì Hệ thống Tàu',
-        thumbnail: 'https://via.placeholder.com/200x120/2E7D32/FFFFFF?text=Maintenance',
-        rating: 4.6,
-        studentsCount: 420,
-        description: '',
-        shortDescription: '',
-        level: 'intermediate',
-        duration: '35h',
-        students: 420,
-        reviews: 78,
-        price: 2800000,
-        instructor: instructor!,
-        category: 'engineering',
-        tags: [],
-        skills: [],
-        prerequisites: [],
-        certificate: { type: 'Professional', description: '' },
-        curriculum: { modules: 0, lessons: 0, duration: '' },
-        lessonsCount: 0,
-        isPublished: true,
-        isEnrolled: false // Default for instructor courses
-      }
-    ];
+    // TODO: Wire to real API to fetch other courses by instructor
+    return [];
   }
 
   contactInstructor(): void {

@@ -54,8 +54,8 @@ import { PLATFORM_ID } from '@angular/core';
         [title]="'Xu hướng ngành'"
         [subtitle]="'Công nghệ và phương pháp bảo trì mới trong lĩnh vực máy tàu'"
         [cards]="[
-          { icon: '⚙️', title: 'Bảo trì dự đoán (PdM)', highlight: '+35% áp dụng', description: 'Ứng dụng cảm biến và phân tích dữ liệu để dự đoán hỏng hóc.' },
-          { icon: '🔌', title: 'Điện hóa & Tự động hóa', highlight: '+25% nhu cầu', description: 'Hệ thống điện lai, tự động hóa nâng cao trên tàu thế hệ mới.' }
+          { icon: 'settings', title: 'Bảo trì dự đoán (PdM)', highlight: '+35% áp dụng', description: 'Ứng dụng cảm biến và phân tích dữ liệu để dự đoán hỏng hóc.' },
+          { icon: 'plug', title: 'Điện hóa & Tự động hóa', highlight: '+25% nhu cầu', description: 'Hệ thống điện lai, tự động hóa nâng cao trên tàu thế hệ mới.' }
         ]"
       ></app-category-trends>
     </div>

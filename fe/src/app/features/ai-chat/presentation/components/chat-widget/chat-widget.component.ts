@@ -96,6 +96,7 @@ export class ChatWidgetComponent implements OnInit, OnDestroy {
         this.router.navigate(['/teacher/ai-chat']);
         break;
       case 'admin':
+      case 'org_admin':
         this.router.navigate(['/admin/ai-chat']);
         break;
       default:

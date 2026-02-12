@@ -23,6 +23,7 @@ import {
 
 import { RouterModule } from '@angular/router';
 import { DistributionService } from '../../../core/services/distribution.service';
+import { ConfirmDialogService } from '../../../core/services/confirm-dialog.service';
 
 export interface StudentAssignment {
   id: string;
@@ -60,7 +61,7 @@ export interface StudentAssignment {
         </div>
         <button
           (click)="onAssignTask()"
-          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+          class="px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors flex items-center gap-2"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
@@ -74,8 +75,8 @@ export interface StudentAssignment {
         <button
           (click)="filterType.set('all')"
           class="px-4 py-2 text-sm font-medium border-b-2 transition-colors"
-          [class.border-blue-600]="filterType() === 'all'"
-          [class.text-blue-600]="filterType() === 'all'"
+          [class.border-[#0056D2]]="filterType() === 'all'"
+          [class.text-[#0056D2]]="filterType() === 'all'"
           [class.border-transparent]="filterType() !== 'all'"
           [class.text-gray-500]="filterType() !== 'all'"
         >
@@ -84,8 +85,8 @@ export interface StudentAssignment {
         <button
           (click)="filterType.set('individual')"
           class="px-4 py-2 text-sm font-medium border-b-2 transition-colors"
-          [class.border-blue-600]="filterType() === 'individual'"
-          [class.text-blue-600]="filterType() === 'individual'"
+          [class.border-[#0056D2]]="filterType() === 'individual'"
+          [class.text-[#0056D2]]="filterType() === 'individual'"
           [class.border-transparent]="filterType() !== 'individual'"
           [class.text-gray-500]="filterType() !== 'individual'"
         >
@@ -94,8 +95,8 @@ export interface StudentAssignment {
         <button
           (click)="filterType.set('pending')"
           class="px-4 py-2 text-sm font-medium border-b-2 transition-colors"
-          [class.border-blue-600]="filterType() === 'pending'"
-          [class.text-blue-600]="filterType() === 'pending'"
+          [class.border-[#0056D2]]="filterType() === 'pending'"
+          [class.text-[#0056D2]]="filterType() === 'pending'"
           [class.border-transparent]="filterType() !== 'pending'"
           [class.text-gray-500]="filterType() !== 'pending'"
         >
@@ -104,8 +105,8 @@ export interface StudentAssignment {
         <button
           (click)="filterType.set('graded')"
           class="px-4 py-2 text-sm font-medium border-b-2 transition-colors"
-          [class.border-blue-600]="filterType() === 'graded'"
-          [class.text-blue-600]="filterType() === 'graded'"
+          [class.border-[#0056D2]]="filterType() === 'graded'"
+          [class.text-[#0056D2]]="filterType() === 'graded'"
           [class.border-transparent]="filterType() !== 'graded'"
           [class.text-gray-500]="filterType() !== 'graded'"
         >
@@ -116,7 +117,7 @@ export interface StudentAssignment {
       <!-- Loading State -->
       @if (loading()) {
         <div class="flex items-center justify-center py-12">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0056D2]"></div>
           <span class="ml-3 text-gray-600">Đang tải...</span>
         </div>
       }
@@ -141,7 +142,7 @@ export interface StudentAssignment {
           </p>
           <button
             (click)="onAssignTask()"
-            class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+            class="mt-4 px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] text-sm"
           >
             Giao bài tập mới
           </button>
@@ -234,7 +235,7 @@ export interface StudentAssignment {
                     @if (assignment.status === 'submitted' || assignment.status === 'graded') {
                       <a
                         [routerLink]="['/teacher/assignment-hub', assignment.assignmentId, 'submissions']"
-                        class="text-sm text-blue-600 hover:text-blue-800"
+                        class="text-sm text-[#0056D2] hover:text-blue-800"
                       >
                         Xem bài nộp
                       </a>
@@ -276,10 +277,12 @@ export class StudentAssignmentsComponent implements OnInit {
   readonly removeAssignment = output<StudentAssignment>();
 
   private distributionService = inject(DistributionService);
+  private confirmDialog = inject(ConfirmDialogService);
 
   // State
   assignments = signal<StudentAssignment[]>([]);
   loading = signal(false);
+  loadError = signal(false);
   filterType = signal<'all' | 'individual' | 'pending' | 'graded'>('all');
 
   // Computed
@@ -336,73 +339,32 @@ export class StudentAssignmentsComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.loadMockData();
+        this.assignments.set([]);
+        this.loadError.set(true);
         this.loading.set(false);
       }
     });
-  }
-
-  private loadMockData(): void {
-    const mockAssignments: StudentAssignment[] = [
-      {
-        id: '1',
-        assignmentId: 'a1',
-        assignmentTitle: 'Bài tập An toàn Hàng hải - Chương 1',
-        courseId: 'c1',
-        courseTitle: 'An toàn Hàng hải Cơ bản',
-        dueDate: '2025-11-30T23:59:59Z',
-        submittedAt: '2025-11-28T14:30:00Z',
-        status: 'graded',
-        score: 85,
-        maxScore: 100,
-        feedback: 'Bài làm tốt, cần chú ý thêm về phần SOLAS',
-        isIndividual: false,
-        assignedAt: '2025-11-01T00:00:00Z'
-      },
-      {
-        id: '2',
-        assignmentId: 'a2',
-        assignmentTitle: 'Bài tập bổ sung - Điều hướng',
-        courseId: 'c2',
-        courseTitle: 'Điều hướng Maritime',
-        dueDate: '2025-12-05T23:59:59Z',
-        personalDeadline: '2025-12-10T23:59:59Z',
-        status: 'pending',
-        maxScore: 100,
-        isIndividual: true,
-        assignedAt: '2025-11-25T10:00:00Z',
-        assignedBy: 'Giảng viên Nguyễn Văn A'
-      },
-      {
-        id: '3',
-        assignmentId: 'a3',
-        assignmentTitle: 'Thực hành Radar',
-        courseId: 'c2',
-        courseTitle: 'Điều hướng Maritime',
-        dueDate: '2025-12-01T23:59:59Z',
-        submittedAt: '2025-11-30T20:15:00Z',
-        status: 'submitted',
-        maxScore: 100,
-        isIndividual: false,
-        assignedAt: '2025-11-15T00:00:00Z'
-      }
-    ];
-
-    this.assignments.set(mockAssignments);
   }
 
   onAssignTask(): void {
     this.assignTask.emit();
   }
 
-  onRemoveAssignment(assignment: StudentAssignment): void {
-    if (confirm(`Bạn có chắc muốn hủy giao bài tập "${assignment.assignmentTitle}" cho học viên này?`)) {
-      this.removeAssignment.emit(assignment);
-      // Remove from local state
-      this.assignments.update(current =>
-        current.filter(a => a.id !== assignment.id)
-      );
-    }
+  async onRemoveAssignment(assignment: StudentAssignment): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Hủy giao bài tập',
+      message: `Bạn có chắc muốn hủy giao bài tập "${assignment.assignmentTitle}" cho học viên này?`,
+      variant: 'danger',
+      confirmText: 'Hủy giao',
+      cancelText: 'Giữ lại'
+    });
+    if (!confirmed) return;
+
+    this.removeAssignment.emit(assignment);
+    // Remove from local state
+    this.assignments.update(current =>
+      current.filter(a => a.id !== assignment.id)
+    );
   }
 
   getStatusText(status: string): string {

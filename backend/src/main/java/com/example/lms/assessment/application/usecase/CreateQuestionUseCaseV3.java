@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -23,7 +24,8 @@ import java.util.stream.Collectors;
 public class CreateQuestionUseCaseV3 {
 
     private final QuestionRepository questionRepository;
-    private final com.example.lms.shared.application.service.FileManagementService fileManagementService;
+    // Pragmatic compromise: application layer depends on infrastructure file utility (shared cross-cutting concern)
+    private final com.example.lms.shared.infrastructure.service.FileManagementService fileManagementService;
 
     @Transactional
     public UUID execute(Command command) {
@@ -47,9 +49,12 @@ public class CreateQuestionUseCaseV3 {
                 .difficulty(command.difficulty())
                 .tags(command.tags())
                 .status(Question.Status.ACTIVE)
+                .questionType(command.questionType() != null ? command.questionType() : Question.QuestionType.SINGLE_CHOICE)
                 .correctOption(command.correctOption())
+                .answerKey(command.answerKey())
                 .createdBy(command.createdBy())
                 .packageId(command.packageId())
+                .categoryId(command.categoryId())
                 .options(domainOptions)
                 .build();
 
@@ -74,9 +79,12 @@ public class CreateQuestionUseCaseV3 {
         List<ContentBlock> contentBlocks,
         Question.Difficulty difficulty,
         String tags,
+        Question.QuestionType questionType,
         String correctOption,
+        Map<String, Object> answerKey,
         UUID createdBy,
         UUID packageId,
+        UUID categoryId,
         List<OptionCommand> options
     ) {}
 

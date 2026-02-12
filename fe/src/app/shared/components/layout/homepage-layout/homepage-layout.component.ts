@@ -1,4 +1,4 @@
-import { Component, ViewEncapsulation, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { PublicHeaderComponent } from '../public-header.component';
 import { FooterComponent } from '../footer/footer.component';
@@ -7,7 +7,6 @@ import { ChatWidgetComponent } from '../../../../features/ai-chat/presentation/c
 @Component({
   selector: 'app-homepage-layout',
   imports: [RouterOutlet, PublicHeaderComponent, FooterComponent, ChatWidgetComponent],
-  encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="min-h-screen flex flex-col">

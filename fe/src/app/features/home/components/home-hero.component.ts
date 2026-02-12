@@ -5,7 +5,6 @@ import {
   type OnInit,
   type AfterViewInit,
   ChangeDetectionStrategy,
-  ViewEncapsulation,
   ElementRef,
   viewChild,
 } from '@angular/core';
@@ -16,10 +15,9 @@ import { AuthService } from '../../../core/services/auth.service';
 @Component({
   selector: 'app-home-hero',
   imports: [RouterModule],
-  encapsulation: ViewEncapsulation.None,
   template: `
     <!-- Hero Section - Enhanced with better messaging and video background support -->
-    <section class="relative bg-gradient-to-r from-blue-600 via-blue-700 to-blue-900 text-white overflow-hidden">
+    <section class="relative bg-[#0056D2] text-white overflow-hidden">
       <!-- Video Background Placeholder -->
       <div class="absolute inset-0 bg-black bg-opacity-40 z-10"></div>
       
@@ -80,7 +78,7 @@ import { AuthService } from '../../../core/services/auth.service';
             </a>
             @if (!authService.isAuthenticated()) {
               <a routerLink="/auth/register" 
-                 class="border-2 border-white text-white hover:bg-white hover:text-blue-600 px-8 py-4 rounded-lg text-lg font-semibold transition-all transform hover:scale-105">
+                 class="border-2 border-white text-white hover:bg-white hover:text-[#0056D2] px-8 py-4 rounded-lg text-lg font-semibold transition-all transform hover:scale-105">
                 Đăng ký miễn phí
               </a>
             }

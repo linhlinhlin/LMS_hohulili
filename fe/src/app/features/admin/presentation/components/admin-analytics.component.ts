@@ -1,18 +1,17 @@
-﻿import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
+import { Component, signal, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 
 import { AdminService, SystemAnalytics } from '../../infrastructure/services/admin.service';
-import { LoadingComponent } from '../../../../shared/components/loading/loading.component';
+import { ToastService } from '../../../../core/services/toast.service';
 
 @Component({
   selector: 'app-admin-analytics',
   imports: [],
-  encapsulation: ViewEncapsulation.None,
   templateUrl: './admin-analytics.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AdminAnalyticsComponent implements OnInit {
-  protected adminService = inject(AdminService);
-  protected Math = Math;
+  private adminService = inject(AdminService);
+  private toast = inject(ToastService);
 
   // State
   analytics = signal<SystemAnalytics | null>(null);
@@ -22,19 +21,22 @@ export class AdminAnalyticsComponent implements OnInit {
     this.loadAnalytics();
   }
 
-  async loadAnalytics(): Promise<void> {
+  loadAnalytics(): void {
     this.isLoading.set(true);
-    try {
-      const data = await this.adminService.getSystemAnalytics().toPromise();
-      this.analytics.set(data || null);
-    } catch (error) {
-    } finally {
-      this.isLoading.set(false);
-    }
+    this.adminService.getSystemAnalytics().subscribe({
+      next: (data) => {
+        this.analytics.set(data);
+        this.isLoading.set(false);
+      },
+      error: () => {
+        this.toast.error('Không thể tải dữ liệu phân tích');
+        this.isLoading.set(false);
+      }
+    });
   }
 
-  async refreshAnalytics(): Promise<void> {
-    await this.loadAnalytics();
+  refreshAnalytics(): void {
+    this.loadAnalytics();
   }
 
   getCurrentTime(): string {
@@ -50,6 +52,22 @@ export class AdminAnalyticsComponent implements OnInit {
       style: 'currency',
       currency: 'VND'
     }).format(amount);
+  }
+
+  getGrowthBarWidth(): number {
+    return Math.min((this.analytics()?.userGrowth?.growthRate || 0) * 2, 100);
+  }
+
+  getActiveUserPercent(): number {
+    const active = this.analytics()?.activeUsers || 0;
+    const total = this.analytics()?.totalUsers || 1;
+    return Math.min((active / total) * 100, 100);
+  }
+
+  getActiveUserPercentText(): number {
+    const active = this.analytics()?.activeUsers || 0;
+    const total = this.analytics()?.totalUsers || 1;
+    return Math.round((active / total) * 100);
   }
 
   getHealthClass(status: string): string {
@@ -104,4 +122,3 @@ export class AdminAnalyticsComponent implements OnInit {
     }
   }
 }
-

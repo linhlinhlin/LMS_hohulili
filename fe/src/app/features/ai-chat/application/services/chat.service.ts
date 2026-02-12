@@ -1319,7 +1319,7 @@ export class ChatService {
     if (userId) {
       this.apiClient.deleteChatHistory(userId).subscribe({
         next: () => {},
-        error: () => {}
+        error: () => { /* Delete history is best-effort - silent fallback */ }
       });
     }
   }
@@ -1362,7 +1362,7 @@ export class ChatService {
    * Wake up the server (call before user interaction)
    */
   wakeUpServer(): void {
-    this.apiClient.wakeUpServer().subscribe();
+    this.apiClient.wakeUpServer().subscribe({ error: () => {} }); // best-effort wake-up
   }
 
   /**

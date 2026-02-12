@@ -1,10 +1,7 @@
 package com.example.lms.learning_delivery.domain.model;
 
 import java.time.Instant;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Enrollment aggregate.
@@ -106,31 +103,45 @@ public class Enrollment {
         private Integer watchSeconds;
         private Double grade;
         private Instant lastActivity;
+        private List<String> completedSections;
 
         public LessonProgress() {}
 
-        public LessonProgress(String status, Integer watchSeconds, Double grade, Instant lastActivity) {
+        public LessonProgress(String status, Integer watchSeconds, Double grade, Instant lastActivity, List<String> completedSections) {
             this.status = status;
             this.watchSeconds = watchSeconds;
             this.grade = grade;
             this.lastActivity = lastActivity;
+            this.completedSections = completedSections;
         }
 
         public static LessonProgressBuilder builder() { return new LessonProgressBuilder(); }
+
+        public void addCompletedSection(String sectionId) {
+            if (this.completedSections == null) {
+                this.completedSections = new ArrayList<>();
+            }
+            if (!this.completedSections.contains(sectionId)) {
+                this.completedSections.add(sectionId);
+            }
+            this.lastActivity = Instant.now();
+        }
 
         public static class LessonProgressBuilder {
             private String status;
             private Integer watchSeconds;
             private Double grade;
             private Instant lastActivity;
+            private List<String> completedSections;
 
             public LessonProgressBuilder status(String status) { this.status = status; return this; }
             public LessonProgressBuilder watchSeconds(Integer watchSeconds) { this.watchSeconds = watchSeconds; return this; }
             public LessonProgressBuilder grade(Double grade) { this.grade = grade; return this; }
             public LessonProgressBuilder lastActivity(Instant lastActivity) { this.lastActivity = lastActivity; return this; }
+            public LessonProgressBuilder completedSections(List<String> completedSections) { this.completedSections = completedSections; return this; }
 
             public LessonProgress build() {
-                return new LessonProgress(status, watchSeconds, grade, lastActivity);
+                return new LessonProgress(status, watchSeconds, grade, lastActivity, completedSections);
             }
         }
 
@@ -138,6 +149,7 @@ public class Enrollment {
         public Integer getWatchSeconds() { return watchSeconds; }
         public Double getGrade() { return grade; }
         public Instant getLastActivity() { return lastActivity; }
+        public List<String> getCompletedSections() { return completedSections; }
     }
 
     // ==================== Builder (for construction & reconstitution) ====================

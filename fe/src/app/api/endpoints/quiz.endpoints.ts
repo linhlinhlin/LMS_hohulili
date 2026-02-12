@@ -37,7 +37,6 @@ export const QUIZ_ENDPOINTS = {
 
   // === Teacher Quiz Management ===
   TEACHER_QUIZZES: '/api/v3/quizzes/teacher/quizzes',
-  TEACHER_ASSIGNMENTS: '/api/v3/quizzes/assignments',
 
   // === Quiz Assignments ===
   QUIZ_ASSIGNMENTS: (quizId: string) => `/api/v3/quizzes/${quizId}/assignments`,

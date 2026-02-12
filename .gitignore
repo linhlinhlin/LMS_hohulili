@@ -74,6 +74,12 @@ Front-end-NCKH_v2-main/nodejs/**
 backend-lms-postgres/uploads/**
 
 
-!api/src/main/resources/db/migration/*.sql
+!backend/src/main/resources/db/migration/*.sql
+!backend/src/main/resources/db/V1__lms_complete_schema.sql
+
+# === DB dumps (gửi riêng, không commit) ===
+db_dump_*.sql
+export_db.sh
+
 fe/build_log*.txt
-nul 
+nul

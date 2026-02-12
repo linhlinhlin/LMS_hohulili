@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, signal, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, signal, computed } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -9,7 +9,6 @@ import { CourseSummary } from '../../../api/types/course.types';
 @Component({
   selector: 'app-student-management',
   imports: [RouterModule, FormsModule],
-  encapsulation: ViewEncapsulation.None,
   template: `
     <div class="p-6 space-y-6">
       <h1 class="text-2xl font-bold text-gray-900">Học viên</h1>
@@ -50,7 +49,7 @@ import { CourseSummary } from '../../../api/types/course.types';
                 <tr>
                   <td colspan="6" class="px-6 py-12 text-center text-gray-600">
                     <div class="flex items-center justify-center gap-2">
-                      <svg class="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <svg class="animate-spin h-5 w-5 text-[#0056D2]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
@@ -64,7 +63,7 @@ import { CourseSummary } from '../../../api/types/course.types';
                 <tr>
                   <td colspan="6" class="px-6 py-12 text-center text-red-600">
                     {{ error() }}
-                    <button (click)="onReload()" class="ml-2 text-blue-600 underline text-sm">Tải lại</button>
+                    <button (click)="onReload()" class="ml-2 text-[#0056D2] underline text-sm">Tải lại</button>
                   </td>
                 </tr>
               }
@@ -84,7 +83,7 @@ import { CourseSummary } from '../../../api/types/course.types';
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                     <div class="flex items-center">
                       <div class="w-16 bg-gray-200 rounded-full h-2 mr-2">
-                        <div class="bg-blue-600 h-2 rounded-full" [style.width.%]="s.progress"></div>
+                        <div class="bg-[#0056D2] h-2 rounded-full" [style.width.%]="s.progress"></div>
                       </div>
                       <span>{{ s.progress }}%</span>
                     </div>
@@ -119,7 +118,7 @@ import { CourseSummary } from '../../../api/types/course.types';
                           Chi tiết
                         </a>
                         <button (click)="sendMessage(s.id)"
-                          class="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-md transition-colors text-xs font-medium inline-flex items-center gap-1">
+                          class="px-3 py-1.5 bg-blue-50 text-[#0056D2] hover:bg-blue-100 rounded-md transition-colors text-xs font-medium inline-flex items-center gap-1">
                           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                               d="M7 8h10M7 12h6m2 8l-4-4H7a3 3 0 01-3-3V7a3 3 0 013-3h10a3 3 0 013 3v6a3 3 0 01-3 3h-3l-4 4" />
@@ -127,7 +126,7 @@ import { CourseSummary } from '../../../api/types/course.types';
                             Nhắn tin
                           </button>
                           <!-- <a [routerLink]="['/teacher/students', s.id]" class="text-indigo-600 hover:text-indigo-900 mr-4">Chi tiết</a>
-                          <button (click)="sendMessage(s.id)" class="text-blue-600 hover:text-blue-900">Nhắn tin</button>-->
+                          <button (click)="sendMessage(s.id)" class="text-[#0056D2] hover:text-blue-900">Nhắn tin</button>-->
                         </td>
                       </tr>
                     }

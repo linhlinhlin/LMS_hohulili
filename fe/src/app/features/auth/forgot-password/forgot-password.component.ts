@@ -1,8 +1,10 @@
-import { Component, signal, inject, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
-
+import { Component, signal, inject, ChangeDetectionStrategy } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import { RouterModule, Router } from '@angular/router';
 import { FormBuilder, FormGroup, FormControl, Validators, ReactiveFormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
+import { ApiClient } from '../../../api/client/api-client';
+import { AUTH_ENDPOINTS } from '../../../api/endpoints/auth.endpoints';
 
 // Typed form interface
 type ForgotPasswordForm = {
@@ -12,7 +14,6 @@ type ForgotPasswordForm = {
 @Component({
   selector: 'app-forgot-password',
   imports: [RouterModule, ReactiveFormsModule],
-  encapsulation: ViewEncapsulation.Emulated,
   template: `
     <style>
       @keyframes fadeIn {
@@ -89,7 +90,7 @@ type ForgotPasswordForm = {
     <div class="min-h-screen bg-slate-50">
       <div class="flex min-h-screen">
         <!-- Left Side - Compact Hero (35%) -->
-        <div class="hidden lg:flex lg:w-[35%] bg-gradient-to-br from-slate-800 to-blue-900 relative overflow-hidden">
+        <div class="hidden lg:flex lg:w-[35%] bg-[#0056D2] relative overflow-hidden">
           <!-- Subtle Pattern Overlay -->
           <div class="absolute inset-0 opacity-[0.03]">
             <svg class="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -109,7 +110,7 @@ type ForgotPasswordForm = {
           <div class="relative z-10 flex flex-col justify-center items-center text-white p-12 w-full">
             <div class="text-center max-w-sm">
               <!-- Logo -->
-              <div class="w-20 h-20 bg-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl">
+              <div class="w-20 h-20 bg-[#0056D2] rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl">
                 <svg class="w-11 h-11 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
                 </svg>
@@ -133,7 +134,7 @@ type ForgotPasswordForm = {
           <div class="w-full max-w-md mx-auto">
             <!-- Mobile Logo -->
             <div class="lg:hidden flex justify-center mb-8">
-              <div class="w-16 h-16 bg-blue-500 rounded-2xl flex items-center justify-center shadow-lg">
+              <div class="w-16 h-16 bg-[#0056D2] rounded-2xl flex items-center justify-center shadow-lg">
                 <svg class="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
                 </svg>
@@ -146,7 +147,7 @@ type ForgotPasswordForm = {
                   style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #92400e 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
                 Quên mật khẩu?
               </h1>
-              <p class="text-lg lg:text-xl text-blue-700 font-medium leading-relaxed">
+              <p class="text-lg lg:text-xl text-[#004BB5] font-medium leading-relaxed">
                 Nhập email để nhận hướng dẫn khôi phục
               </p>
             </div>
@@ -167,7 +168,7 @@ type ForgotPasswordForm = {
                   Không nhận được email? Kiểm tra thư mục spam hoặc thử lại.
                 </p>
                 <button (click)="resetForm()"
-                        class="btn-submit w-full bg-blue-600 text-white py-4 px-6 rounded-xl font-semibold shadow-lg">
+                        class="btn-submit w-full bg-[#0056D2] text-white py-4 px-6 rounded-xl font-semibold shadow-lg">
                   Gửi lại email
                 </button>
               </div>
@@ -222,7 +223,7 @@ type ForgotPasswordForm = {
                 <div class="form-element">
                   <button type="submit"
                           [disabled]="forgotPasswordForm.invalid || isLoading()"
-                          class="btn-submit w-full flex justify-center items-center py-4 px-6 border-none rounded-xl text-base font-semibold text-white bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg">
+                          class="btn-submit w-full flex justify-center items-center py-4 px-6 border-none rounded-xl text-base font-semibold text-white bg-[#0056D2] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg">
                     @if (isLoading()) {
                       <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -245,7 +246,7 @@ type ForgotPasswordForm = {
               <p class="text-sm text-gray-600">
                 Nhớ mật khẩu?
                 <a routerLink="/auth/login"
-                   class="font-semibold text-blue-600 hover:text-blue-700 transition-colors ml-1">
+                   class="font-semibold text-[#0056D2] hover:text-[#004BB5] transition-colors ml-1">
                   Đăng nhập
                 </a>
               </p>
@@ -271,6 +272,7 @@ export class ForgotPasswordComponent {
   protected authService = inject(AuthService);
   private router = inject(Router);
   private fb = inject(FormBuilder);
+  private apiClient = inject(ApiClient);
 
   forgotPasswordForm!: FormGroup<ForgotPasswordForm>;
   emailSent = signal(false);
@@ -295,20 +297,15 @@ export class ForgotPasswordComponent {
 
     try {
       const email = this.forgotPasswordForm.get('email')?.value || '';
-
-      // Simulate API call (replace with real API when backend is ready)
-      await this.simulateForgotPassword(email);
-
+      await firstValueFrom(
+        this.apiClient.post(AUTH_ENDPOINTS.FORGOT_PASSWORD, { email })
+      );
       this.emailSent.set(true);
       this.lastEmailSent.set(email);
-      this.isLoading.set(false);
-
-
-
-    } catch (error) {
-
-      this.isLoading.set(false);
+    } catch {
       this.errorMessage.set('Không thể gửi email. Vui lòng thử lại sau.');
+    } finally {
+      this.isLoading.set(false);
     }
   }
 
@@ -316,16 +313,5 @@ export class ForgotPasswordComponent {
     this.emailSent.set(false);
     this.lastEmailSent.set('');
     this.forgotPasswordForm.reset();
-  }
-
-  private async simulateForgotPassword(email: string): Promise<void> {
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    // In a real implementation, this would call:
-    // return this.authService.forgotPassword({ email });
-    // or this.apiClient.post(AUTH_ENDPOINTS.FORGOT_PASSWORD, { email });
-
-    return Promise.resolve();
   }
 }

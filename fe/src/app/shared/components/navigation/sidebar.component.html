@@ -4,10 +4,7 @@
         <div class="flex items-center space-x-3">
             <!-- Logo -->
             <div class="sidebar-logo" [class]="getLogoClasses()">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" [attr.d]="config().logoIcon">
-                    </path>
-                </svg>
+                <app-icon [name]="config().logoIcon" size="md" class="text-white"/>
             </div>
 
             <div class="flex-1 min-w-0">
@@ -39,10 +36,7 @@
             <a [routerLink]="item.route" routerLinkActive="active"
                 [routerLinkActiveOptions]="{exact: item.exact ?? false}" class="nav-item">
                 <div class="nav-icon" [class]="getIconClasses(item)">
-                    <svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" [attr.d]="item.icon">
-                        </path>
-                    </svg>
+                    <app-icon [name]="item.icon" size="sm"/>
                 </div>
                 <span class="nav-label">{{ item.label }}</span>
                 @if (item.badge) {
@@ -57,10 +51,7 @@
                 <a [routerLink]="child.route" routerLinkActive="active"
                     [routerLinkActiveOptions]="{exact: child.exact ?? false}" class="sub-menu-item">
                     <div class="sub-icon" [class]="getIconClasses(child)">
-                        <svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" [attr.d]="child.icon">
-                            </path>
-                        </svg>
+                        <app-icon [name]="child.icon" size="xs"/>
                     </div>
                     {{ child.label }}
                 </a>
@@ -74,11 +65,7 @@
     <!-- Footer -->
     <div class="sidebar-footer">
         <button (click)="logout()" class="logout-btn">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
-                </path>
-            </svg>
+            <app-icon name="logout" size="sm"/>
             <span>Đăng xuất</span>
         </button>
     </div>

@@ -5,5 +5,6 @@ export const AUTH_ENDPOINTS = {
   REFRESH: '/api/v3/auth/refresh',
   ME: '/api/v3/auth/me',
   PROFILE: '/api/v3/auth/profile',
-  PASSWORD: '/api/v3/auth/password'
+  PASSWORD: '/api/v3/auth/password',
+  FORGOT_PASSWORD: '/api/v3/auth/forgot-password'
 } as const;

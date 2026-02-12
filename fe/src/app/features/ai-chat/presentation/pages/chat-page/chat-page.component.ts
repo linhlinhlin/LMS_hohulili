@@ -25,6 +25,7 @@ import { TypingIndicatorComponent } from '../../components/typing-indicator/typi
 import { SuggestedQuestionsComponent } from '../../components/suggested-questions/suggested-questions.component';
 import { SourceCitationComponent } from '../../components/source-citation/source-citation.component';
 import { AuthService } from '../../../../../core/services/auth.service';
+import { IconComponent } from '../../../../../shared/components/icon/icon.component';
 
 @Component({
   selector: 'app-chat-page',
@@ -33,7 +34,8 @@ import { AuthService } from '../../../../../core/services/auth.service';
     ChatMessageInputComponent,
     TypingIndicatorComponent,
     SuggestedQuestionsComponent,
-    SourceCitationComponent
+    SourceCitationComponent,
+    IconComponent
 ],
   templateUrl: './chat-page.component.html',
   styleUrls: ['./chat-page.component.scss'],

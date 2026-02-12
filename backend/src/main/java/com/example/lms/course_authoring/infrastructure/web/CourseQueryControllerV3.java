@@ -1,8 +1,6 @@
 package com.example.lms.course_authoring.infrastructure.web;
 
 import com.example.lms.course_authoring.domain.model.Course;
-import com.example.lms.course_authoring.domain.model.Chapter;
-import com.example.lms.course_authoring.domain.model.Lesson;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
 import com.example.lms.course_authoring.infrastructure.persistence.entity.LessonJpaEntity;
 import com.example.lms.course_authoring.infrastructure.persistence.repository.LessonJpaRepository;
@@ -25,7 +23,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
 import java.util.stream.Collectors;
-import org.springframework.security.core.context.SecurityContextHolder;
+import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
 
 /**
  * V3 Controller for Course queries.
@@ -43,15 +41,17 @@ public class CourseQueryControllerV3 {
     private final LearningClassRepository learningClassRepository;
     private final EnrollmentRepositoryImpl enrollmentRepository;
     private final com.example.lms.course_authoring.infrastructure.persistence.repository.ChapterJpaRepository chapterRepository;
+    private final UserJpaRepository userJpaRepository;
+    private final com.example.lms.course_authoring.infrastructure.persistence.repository.CategoryJpaRepository categoryJpaRepository;
 
     @Operation(summary = "Get all published courses")
     @GetMapping
     public ResponseEntity<ApiResponse<Page<CourseSummaryResponse>>> getPublicCourses(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "20") int limit,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) String search
     ) {
-        PageRequest pageable = PageRequest.of(Math.max(0, page - 1), limit, Sort.by("createdAt").descending());
+        PageRequest pageable = PageRequest.of(Math.max(0, page), Math.min(Math.max(1, size), 100), Sort.by("createdAt").descending());
         
         Page<Course> courses;
         if (search != null && !search.isBlank()) {
@@ -83,90 +83,80 @@ public class CourseQueryControllerV3 {
     public ResponseEntity<ApiResponse<List<ChapterResponse>>> getCourseContent(
             @PathVariable UUID courseId
     ) {
-        try {
-            // With Set instead of List, JOIN FETCH works without MultipleBagFetchException
-            return courseRepository.findByIdWithContent(courseId)
-                    .map(course -> {
-                        List<ChapterResponse> chapters = new ArrayList<>();
-                        
-                        // Convert Set to List and sort by orderIndex
-                        List<Chapter> sortedChapters = new ArrayList<>(course.getChapters());
-                        sortedChapters.sort(Comparator.comparingInt(c -> c.getOrderIndex() != null ? c.getOrderIndex() : 0));
-                        
-                        if (sortedChapters.isEmpty()) {
-                            return ResponseEntity.ok(ApiResponse.success(chapters, "Course has no content"));
-                        }
-                        
-                        for (Chapter ch : sortedChapters) {
-                            List<LessonResponse> lessonResponses = new ArrayList<>();
-                            
-                            // Convert Set to List and sort by orderIndex  
-                            List<Lesson> sortedLessons = new ArrayList<>(ch.getLessons());
-                            sortedLessons.sort(Comparator.comparingInt(l -> l.getOrderIndex() != null ? l.getOrderIndex() : 0));
-                            
-                            for (Lesson l : sortedLessons) {
-                                List<SectionResponse> sectionResponses = new ArrayList<>();
-                                if (l.getContentBlocks() != null) {
-                                    for (com.example.lms.shared.domain.model.ContentBlock block : l.getContentBlocks()) {
-                                         java.util.Map<String, Object> data = block.getData() != null ? block.getData() : new java.util.HashMap<>();
-                                         sectionResponses.add(SectionResponse.builder()
-                                             .id(block.getId())
-                                             .title((String) data.getOrDefault("title", "Untitled"))
-                                             .type(block.getType())
-                                             .content((String) data.get("content"))
-                                             .videoUrl((String) data.get("videoUrl"))
-                                             .fileUrl((String) data.get("fileUrl"))
-                                             .duration(data.get("duration") != null ? ((Number) data.get("duration")).intValue() : 0)
-                                             .orderIndex(data.get("orderIndex") != null ? ((Number) data.get("orderIndex")).intValue() : 0)
-                                             .isRequired(data.get("isRequired") != null ? (Boolean) data.get("isRequired") : false)
-                                             .build());
-                                    }
-                                }
+        // Query chapters and lessons directly from JPA repositories
+        // (CourseEntityMapper.toDomain() doesn't load chapters - they're separate entities)
+        var chapterEntities = chapterRepository.findByCourseIdOrderByOrderIndex(courseId);
 
-                                lessonResponses.add(LessonResponse.builder()
-                                        .id(l.getId().toString())
-                                        .title(l.getTitle())
-                                        .description(l.getDescription())
-                                        .type(l.getLessonType() != null ? l.getLessonType().name() : "LECTURE")
-                                        .durationMinutes(l.getDurationMinutes())
-                                        .orderIndex(l.getOrderIndex())
-                                        .isFree(l.getIsPreview() != null && l.getIsPreview())
-                                        .sections(sectionResponses)
-                                        .build());
-                            }
-                            
-                            chapters.add(ChapterResponse.builder()
-                                    .id(ch.getId().toString())
-                                    .title(ch.getTitle())
-                                    .description(ch.getDescription())
-                                    .orderIndex(ch.getOrderIndex())
-                                    .lessons(lessonResponses)
-                                    .build());
-                        }
-                        
-                        return ResponseEntity.ok(ApiResponse.success(chapters, "Course content loaded"));
-                    })
-                    .orElse(ResponseEntity.notFound().build());
-        } catch (Exception e) {
-            log.error("Error loading course content", e);
-            return ResponseEntity.ok(ApiResponse.success(new ArrayList<>(), "Error loading content"));
+        if (chapterEntities.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.success(new ArrayList<>(), "Course has no content"));
         }
+
+        List<ChapterResponse> chapters = new ArrayList<>();
+        for (var ch : chapterEntities) {
+            var lessonEntities = lessonRepository.findByChapterIdOrderByOrderIndex(ch.getId());
+
+            List<LessonResponse> lessonResponses = new ArrayList<>();
+            for (var l : lessonEntities) {
+                List<SectionResponse> sectionResponses = new ArrayList<>();
+                if (l.getContentBlocks() != null) {
+                    for (var block : l.getContentBlocks()) {
+                        java.util.Map<String, Object> data = block.getData() != null ? block.getData() : new java.util.HashMap<>();
+                        sectionResponses.add(SectionResponse.builder()
+                            .id(block.getId())
+                            .title((String) data.getOrDefault("title", "Untitled"))
+                            .type(block.getType())
+                            .content((String) data.get("content"))
+                            .videoUrl((String) data.get("videoUrl"))
+                            .fileUrl((String) data.get("fileUrl"))
+                            .duration(data.get("duration") != null ? ((Number) data.get("duration")).intValue() : 0)
+                            .orderIndex(data.get("orderIndex") != null ? ((Number) data.get("orderIndex")).intValue() : 0)
+                            .isRequired(data.get("isRequired") != null ? (Boolean) data.get("isRequired") : false)
+                            .build());
+                    }
+                }
+
+                lessonResponses.add(LessonResponse.builder()
+                        .id(l.getId().toString())
+                        .title(l.getTitle())
+                        .description(l.getDescription())
+                        .type(l.getType() != null ? l.getType().name() : "LECTURE")
+                        .durationMinutes(l.getDurationMinutes())
+                        .orderIndex(l.getOrderIndex())
+                        .isFree(l.getIsFree() != null && l.getIsFree())
+                        .sections(sectionResponses)
+                        .build());
+            }
+
+            chapters.add(ChapterResponse.builder()
+                    .id(ch.getId().toString())
+                    .title(ch.getTitle())
+                    .description(ch.getDescription())
+                    .orderIndex(ch.getOrderIndex())
+                    .lessons(lessonResponses)
+                    .build());
+        }
+
+        return ResponseEntity.ok(ApiResponse.success(chapters, "Course content loaded"));
     }
 
     @Operation(summary = "Get instructors for a course")
     @GetMapping("/{courseId}/instructors")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<List<InstructorResponse>>> getCourseInstructors(
             @PathVariable UUID courseId
     ) {
-        // Return course owner/teacher as instructor for now
+        // Return course owner/teacher as instructor with real user data
         return courseRepository.findById(courseId)
                 .map(course -> {
+                    var teacherOpt = userJpaRepository.findById(course.getTeacherId());
+                    String teacherName = teacherOpt.map(u -> u.getFullName()).orElse("Unknown");
+                    String teacherEmail = teacherOpt.map(u -> u.getEmail()).orElse("");
+
                     InstructorResponse instructor = InstructorResponse.builder()
-                            .id(java.util.UUID.randomUUID().toString())
+                            .id(course.getTeacherId().toString())
                             .userId(course.getTeacherId().toString())
-                            .userName("Giảng viên")
-                            .userEmail("teacher@lms.edu.vn")
+                            .userName(teacherName)
+                            .userEmail(teacherEmail)
                             .role("OWNER")
                             .status("ACTIVE")
                             .canManage(true)
@@ -203,7 +193,7 @@ public class CourseQueryControllerV3 {
 
     @Operation(summary = "Get classes for a course")
     @GetMapping("/{courseId}/classes")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<List<ClassInfoResponse>>> getCourseClasses(
             @PathVariable UUID courseId
     ) {
@@ -218,7 +208,7 @@ public class CourseQueryControllerV3 {
 
     @Operation(summary = "Search classes for a course")
     @GetMapping("/{courseId}/classes/search")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<Page<ClassInfoResponse>>> searchCourseClasses(
             @PathVariable UUID courseId,
             @RequestParam(required = false) String search,
@@ -227,7 +217,7 @@ public class CourseQueryControllerV3 {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        PageRequest pageable = PageRequest.of(page, size);
+        PageRequest pageable = PageRequest.of(page, Math.min(size, 100));
         Page<LearningClass> classPage = learningClassRepository.searchByCourseId(courseId, search, status, pageable);
         Page<ClassInfoResponse> response = classPage.map(this::toClassInfoResponse);
         return ResponseEntity.ok(ApiResponse.success(response, "Classes search completed"));
@@ -274,41 +264,62 @@ public class CourseQueryControllerV3 {
     public ResponseEntity<ApiResponse<LessonDetailResponse>> getLessonById(
             @PathVariable UUID lessonId
     ) {
-        try {
-            // Query chain: Lesson -> Chapter -> Course (3 indexed queries, no nested loops)
-            return lessonRepository.findById(lessonId)
-                    .flatMap(lesson -> chapterRepository.findById(lesson.getChapterId())
-                            .flatMap(chapter -> courseRepository.findById(chapter.getCourseId())
-                                    .map(course -> {
-                                        LessonDetailResponse response = LessonDetailResponse.builder()
-                                                .id(lesson.getId().toString())
-                                                .title(lesson.getTitle())
-                                                .description(lesson.getDescription())
-                                                .lessonType(lesson.getType() != null ? lesson.getType().name() : "LECTURE")
-                                                .durationMinutes(lesson.getDurationMinutes())
-                                                .orderIndex(lesson.getOrderIndex())
-                                                .content(null) // LessonJpaEntity doesn't have content field
-                                                .videoUrl(lesson.getVideoUrl())
-                                                .sectionId(chapter.getId().toString())
-                                                .sectionTitle(chapter.getTitle())
-                                                .courseId(course.getId().toString())
-                                                .courseTitle(course.getTitle())
-                                                .isPreview(lesson.getIsFree() != null && lesson.getIsFree())
-                                                .build();
-                                        return ResponseEntity.ok(ApiResponse.success(response, "Lesson loaded"));
-                                    })
-                            )
-                    )
-                    .orElse(ResponseEntity.notFound().build());
-        } catch (Exception e) {
-            log.error("Error loading lesson", e);
-            return ResponseEntity.ok(ApiResponse.success(null, "Error loading lesson"));
-        }
+        // Query chain: Lesson -> Chapter -> Course (3 indexed queries, no nested loops)
+        return lessonRepository.findById(lessonId)
+                .flatMap(lesson -> chapterRepository.findById(lesson.getChapterId())
+                        .flatMap(chapter -> courseRepository.findById(chapter.getCourseId())
+                                .map(course -> {
+                                    // Build sections from contentBlocks
+                                    List<SectionResponse> sectionResponses = new ArrayList<>();
+                                    String contentText = null;
+                                    if (lesson.getContentBlocks() != null) {
+                                        for (var block : lesson.getContentBlocks()) {
+                                            Map<String, Object> data = block.getData() != null ? block.getData() : new HashMap<>();
+                                            sectionResponses.add(SectionResponse.builder()
+                                                .id(block.getId())
+                                                .title((String) data.getOrDefault("title", "Untitled"))
+                                                .type(block.getType())
+                                                .content((String) data.get("content"))
+                                                .videoUrl((String) data.get("videoUrl"))
+                                                .fileUrl((String) data.get("fileUrl"))
+                                                .duration(data.get("duration") != null ? ((Number) data.get("duration")).intValue() : 0)
+                                                .orderIndex(data.get("orderIndex") != null ? ((Number) data.get("orderIndex")).intValue() : 0)
+                                                .isRequired(data.get("isRequired") != null ? (Boolean) data.get("isRequired") : false)
+                                                .build());
+                                        }
+                                        // Populate content from first TEXT block as fallback
+                                        contentText = lesson.getContentBlocks().stream()
+                                            .filter(b -> "TEXT".equals(b.getType()) && b.getData() != null)
+                                            .map(b -> (String) b.getData().get("content"))
+                                            .findFirst().orElse(null);
+                                    }
+
+                                    LessonDetailResponse response = LessonDetailResponse.builder()
+                                            .id(lesson.getId().toString())
+                                            .title(lesson.getTitle())
+                                            .description(lesson.getDescription())
+                                            .lessonType(lesson.getType() != null ? lesson.getType().name() : "LECTURE")
+                                            .durationMinutes(lesson.getDurationMinutes())
+                                            .orderIndex(lesson.getOrderIndex())
+                                            .content(contentText)
+                                            .videoUrl(lesson.getVideoUrl())
+                                            .sectionId(chapter.getId().toString())
+                                            .sectionTitle(chapter.getTitle())
+                                            .courseId(course.getId().toString())
+                                            .courseTitle(course.getTitle())
+                                            .isPreview(lesson.getIsFree() != null && lesson.getIsFree())
+                                            .sections(sectionResponses)
+                                            .build();
+                                    return ResponseEntity.ok(ApiResponse.success(response, "Lesson loaded"));
+                                })
+                        )
+                )
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @Operation(summary = "Get lessons by chapter ID")
     @GetMapping("/chapters/{chapterId}/lessons")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<List<LessonResponse>>> getChapterLessons(
             @PathVariable UUID chapterId
     ) {
@@ -351,31 +362,68 @@ public class CourseQueryControllerV3 {
     // === Mapping methods ===
     
     private CourseSummaryResponse toSummary(Course course) {
+        String teacherName = resolveTeacherName(course.getTeacherId());
+        String categoryName = resolveCategoryName(course.getCategoryId());
         return CourseSummaryResponse.builder()
                 .id(course.getId().toString())
                 .title(course.getTitle())
                 .description(course.getDescription())
-                .thumbnailUrl(null) // Course doesn't have thumbnailUrl in domain model
+                .thumbnailUrl(course.getThumbnailUrl())
                 .status(course.getStatus().name().toLowerCase())
-                .teacherName("Giảng viên") // TODO: Fetch from User service
+                .teacherName(teacherName)
                 .createdAt(course.getCreatedAt() != null ? course.getCreatedAt().toString() : null)
+                .categoryName(categoryName)
                 .build();
     }
 
     private CourseDetailResponse toDetail(Course course) {
+        String teacherName = resolveTeacherName(course.getTeacherId());
+        String categoryName = resolveCategoryName(course.getCategoryId());
+
         return CourseDetailResponse.builder()
                 .id(course.getId().toString())
                 .title(course.getTitle())
                 .description(course.getDescription())
-                .thumbnailUrl(null)
+                .thumbnailUrl(course.getThumbnailUrl())
                 .status(course.getStatus().name().toLowerCase())
                 .code(course.getCode() != null ? course.getCode().getValue() : null)
                 .teacherId(course.getTeacherId() != null ? course.getTeacherId().toString() : null)
-                .teacherName("Giảng viên")
+                .teacherName(teacherName)
+                .deliveryMode(course.getDeliveryMode() != null ? course.getDeliveryMode().name() : "SELF_PACED")
+                // Category
+                .categoryId(course.getCategoryId() != null ? course.getCategoryId().toString() : null)
+                .categoryName(categoryName)
+                // Extended info
+                .tags(course.getTags() != null ? new ArrayList<>(course.getTags()) : List.of())
+                .welcomeMessage(course.getWelcomeMessage())
+                .courseInformation(course.getCourseInformation())
+                .benefits(course.getBenefits())
+                .introVideoUrl(course.getIntroVideoUrl())
+                .credits(course.getCredits())
+                // Visibility & Pricing
+                .visibility(course.getVisibility() != null ? course.getVisibility().name() : "PUBLIC")
+                .priceType(course.getPriceType() != null ? course.getPriceType().name() : "FREE")
+                .price(course.getPrice())
+                .salePrice(course.getSalePrice())
+                // Counts & timestamps
                 .chapterCount(course.getChapters() != null ? course.getChapters().size() : 0)
                 .createdAt(course.getCreatedAt() != null ? course.getCreatedAt().toString() : null)
                 .updatedAt(course.getUpdatedAt() != null ? course.getUpdatedAt().toString() : null)
                 .build();
+    }
+
+    private String resolveTeacherName(UUID teacherId) {
+        if (teacherId == null) return "";
+        return userJpaRepository.findById(teacherId)
+                .map(u -> u.getFullName())
+                .orElse("");
+    }
+
+    private String resolveCategoryName(UUID categoryId) {
+        if (categoryId == null) return null;
+        return categoryJpaRepository.findById(categoryId)
+                .map(c -> c.getName())
+                .orElse(null);
     }
 
     // === Response DTOs ===
@@ -390,6 +438,7 @@ public class CourseQueryControllerV3 {
         private String status;
         private String teacherName;
         private String createdAt;
+        private String categoryName;
     }
 
     @lombok.Builder
@@ -403,6 +452,23 @@ public class CourseQueryControllerV3 {
         private String code;
         private String teacherId;
         private String teacherName;
+        private String deliveryMode;
+        // Category
+        private String categoryId;
+        private String categoryName;
+        // Extended info
+        private List<String> tags;
+        private String welcomeMessage;
+        private String courseInformation;
+        private String benefits;
+        private String introVideoUrl;
+        private Integer credits;
+        // Visibility & Pricing
+        private String visibility;
+        private String priceType;
+        private java.math.BigDecimal price;
+        private java.math.BigDecimal salePrice;
+        // Counts & timestamps
         private Integer chapterCount;
         private String createdAt;
         private String updatedAt;
@@ -461,5 +527,6 @@ public class CourseQueryControllerV3 {
         private String courseId;
         private String courseTitle;
         private Boolean isPreview;
+        private List<SectionResponse> sections;
     }
 }

@@ -60,7 +60,7 @@ export class LessonAttachmentApi {
             return {
               progress,
               status: 'uploading' as const,
-              message: `Uploading... ${progress}%`
+              message: `Đang tải... ${progress}%`
             } as UploadProgress;
 
           case HttpEventType.Response:
@@ -79,7 +79,7 @@ export class LessonAttachmentApi {
             return {
               progress: 0,
               status: 'processing' as const,
-              message: 'Processing attachment...'
+              message: 'Đang xử lý tệp đính kèm...'
             } as UploadProgress;
         }
       })

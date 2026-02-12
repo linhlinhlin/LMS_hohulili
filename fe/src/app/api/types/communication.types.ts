@@ -1,57 +1,8 @@
-﻿/**
+/**
  * Communication Types
- * Types for forums, discussions, notifications, messaging
+ * Types for discussions, notifications, messaging
  * PostgreSQL Tables: notifications, discussion_threads, discussion_replies
  */
-
-// =======================
-// Forum Types
-// =======================
-
-export interface ForumPost {
-    id: string;
-    title: string;
-    content: string;
-    authorId: string;
-    authorName: string;
-    authorAvatar?: string;
-    categoryId: string;
-    categoryName: string;
-    courseId?: string;
-    tags?: string[];
-    pinned: boolean;
-    locked: boolean;
-    viewCount: number;
-    replyCount: number;
-    likeCount: number;
-    createdAt: string; // ISO 8601
-    updatedAt?: string; // ISO 8601
-}
-
-export interface ForumReply {
-    id: string;
-    postId: string;
-    parentId?: string;
-    content: string;
-    authorId: string;
-    authorName: string;
-    authorAvatar?: string;
-    likeCount: number;
-    isAccepted: boolean;
-    createdAt: string; // ISO 8601
-    updatedAt?: string; // ISO 8601
-    replies?: ForumReply[];
-}
-
-export interface ForumCategory {
-    id: string;
-    name: string;
-    description?: string;
-    icon?: string;
-    color?: string;
-    postCount: number;
-    order: number;
-}
 
 // =======================
 // Discussion Types

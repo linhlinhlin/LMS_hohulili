@@ -1,9 +1,11 @@
-import { Component, OnInit, signal, inject, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
+import { Component, OnInit, signal, inject, ChangeDetectionStrategy } from '@angular/core';
 
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { TakeQuizUseCase } from '../../application/use-cases/take-quiz.use-case';
 import { AuthService } from '../../../../../core/services/auth.service';
 import { ErrorHandlingService } from '../../../../../shared/services/error-handling.service';
+import { QuizApi } from '../../../../../api/endpoints/quiz.api';
+import { firstValueFrom } from 'rxjs';
 
 /**
  * Quiz Result Component - Shows quiz completion results
@@ -11,13 +13,12 @@ import { ErrorHandlingService } from '../../../../../shared/services/error-handl
 @Component({
   selector: 'app-quiz-result',
   imports: [RouterModule],
-  encapsulation: ViewEncapsulation.None,
   template: `
     <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         @if (isLoading()) {
           <div class="bg-white rounded-xl shadow-lg p-8 text-center">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0056D2] mx-auto mb-4"></div>
             <p class="text-gray-600">Đang tải kết quả...</p>
           </div>
         } @else if (result()) {
@@ -57,7 +58,7 @@ import { ErrorHandlingService } from '../../../../../shared/services/error-handl
               <!-- Stats -->
               <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <div class="text-center">
-                  <div class="text-2xl font-bold text-blue-600">{{ result()!.totalQuestions }}</div>
+                  <div class="text-2xl font-bold text-[#0056D2]">{{ result()!.totalQuestions }}</div>
                   <div class="text-sm text-gray-600">Tổng câu hỏi</div>
                 </div>
                 <div class="text-center">
@@ -114,7 +115,7 @@ import { ErrorHandlingService } from '../../../../../shared/services/error-handl
                       }
 
                       @if (questionResult.points > 0) {
-                        <div class="text-sm text-blue-600 mt-1">
+                        <div class="text-sm text-[#0056D2] mt-1">
                           <strong>Điểm:</strong> {{ questionResult.pointsEarned }}/{{ questionResult.points }}
                         </div>
                       }
@@ -129,7 +130,7 @@ import { ErrorHandlingService } from '../../../../../shared/services/error-handl
               <div class="flex flex-col sm:flex-row gap-4 justify-center">
                 <button
                   (click)="retakeQuiz()"
-                  class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                  class="px-6 py-3 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors font-medium">
                   Làm lại bài thi
                 </button>
                 <button
@@ -156,7 +157,7 @@ import { ErrorHandlingService } from '../../../../../shared/services/error-handl
             <p class="text-gray-600 mb-6">Không thể tải kết quả bài thi. Vui lòng thử lại.</p>
             <button
               (click)="goToQuizList()"
-              class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+              class="px-6 py-3 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors font-medium">
               Quay lại danh sách Quiz
             </button>
           </div>
@@ -168,6 +169,7 @@ import { ErrorHandlingService } from '../../../../../shared/services/error-handl
 })
 export class QuizResultComponent implements OnInit {
   private takeQuizUseCase = inject(TakeQuizUseCase);
+  private quizApi = inject(QuizApi);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private errorService = inject(ErrorHandlingService);
@@ -189,50 +191,52 @@ export class QuizResultComponent implements OnInit {
     }
   }
 
-  private loadResult(attemptId: string): void {
+  private async loadResult(attemptId: string): Promise<void> {
     this.isLoading.set(true);
 
-    // Mock result data - in real app this would come from the use case
-    setTimeout(() => {
-      const mockResult = {
-        attemptId,
-        quizTitle: 'Quiz Cơ bản về An toàn Thực phẩm',
-        score: 85,
-        pointsEarned: 17,
-        totalPoints: 20,
-        passingScore: 70,
-        passed: true,
-        totalQuestions: 10,
-        correctAnswers: 8,
-        incorrectAnswers: 2,
-        timeSpent: '25:30',
-        completedAt: new Date(),
-        questionResults: [
-          {
-            questionId: 'q1',
-            questionText: 'Thực phẩm nguy cơ cao bao gồm?',
-            userAnswer: 'Thịt, sữa, trứng',
-            correctAnswer: 'Thịt, sữa, trứng',
-            isCorrect: true,
-            points: 2,
-            pointsEarned: 2
-          },
-          {
-            questionId: 'q2',
-            questionText: 'Nhiệt độ bảo quản lạnh đúng là?',
-            userAnswer: '10°C',
-            correctAnswer: '4°C',
-            isCorrect: false,
-            points: 2,
-            pointsEarned: 0
-          }
-          // Add more mock results as needed
-        ]
-      };
+    try {
+      const response = await firstValueFrom(this.quizApi.getQuizResult(attemptId));
+      const data = (response as any)?.data || response;
+      if (!data) {
+        this.result.set(null);
+        return;
+      }
 
-      this.result.set(mockResult);
+      const totalQuestions = data.totalQuestions || 0;
+      const correctAnswers = data.correctAnswers || 0;
+      const score = data.score || 0;
+      const timeSeconds = data.timeSpentSeconds || 0;
+      const minutes = Math.floor(timeSeconds / 60);
+      const seconds = timeSeconds % 60;
+
+      this.result.set({
+        attemptId: data.attemptId || attemptId,
+        quizTitle: data.quizTitle || 'Quiz',
+        score,
+        pointsEarned: correctAnswers,
+        totalPoints: totalQuestions,
+        passingScore: data.passingScore || 60,
+        passed: data.isPassed ?? score >= (data.passingScore || 60),
+        totalQuestions,
+        correctAnswers,
+        incorrectAnswers: data.incorrectAnswers || (totalQuestions - correctAnswers),
+        timeSpent: `${minutes}:${String(seconds).padStart(2, '0')}`,
+        completedAt: data.endTime ? new Date(data.endTime) : new Date(),
+        questionResults: (data.resultItems || []).map((item: any) => ({
+          questionId: item.questionId,
+          questionText: item.questionContent || '',
+          userAnswer: item.selectedOption || 'Không trả lời',
+          correctAnswer: item.correctOption || '',
+          isCorrect: item.isCorrect,
+          points: 1,
+          pointsEarned: item.isCorrect ? 1 : 0
+        }))
+      });
+    } catch {
+      this.result.set(null);
+    } finally {
       this.isLoading.set(false);
-    }, 1000);
+    }
   }
 
   retakeQuiz(): void {

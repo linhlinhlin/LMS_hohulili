@@ -1,4 +1,4 @@
-import { Component, signal, inject, ChangeDetectionStrategy, ViewEncapsulation, OnInit } from '@angular/core';
+import { Component, signal, inject, ChangeDetectionStrategy, OnInit } from '@angular/core';
 
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, FormControl, Validators, ReactiveFormsModule } from '@angular/forms';
@@ -21,7 +21,6 @@ type ProfileForm = {
 @Component({
   selector: 'app-register',
   imports: [RouterModule, ReactiveFormsModule],
-  encapsulation: ViewEncapsulation.Emulated,
   templateUrl: './register.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -87,6 +86,7 @@ export class RegisterComponent implements OnInit {
         let redirectUrl = '/';
         switch (userRole) {
           case 'admin':
+          case 'org_admin':
             redirectUrl = '/admin';
             break;
           case 'teacher':

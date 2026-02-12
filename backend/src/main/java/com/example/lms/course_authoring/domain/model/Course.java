@@ -37,6 +37,7 @@ public class Course extends AggregateRoot {
     private PriceType priceType = PriceType.FREE;
     private BigDecimal price;
     private BigDecimal salePrice;
+    private DeliveryMode deliveryMode = DeliveryMode.SELF_PACED;
 
     // Review workflow fields
     private String reviewComment;
@@ -133,6 +134,16 @@ public class Course extends AggregateRoot {
     }
 
     /**
+     * Update course delivery mode.
+     * SELF_PACED: Online course (Coursera-like), no class management
+     * INSTRUCTOR_LED: University-style with classes, assignments, gradebook
+     */
+    public void updateDeliveryMode(DeliveryMode deliveryMode) {
+        ensureEditable();
+        this.deliveryMode = deliveryMode != null ? deliveryMode : DeliveryMode.SELF_PACED;
+    }
+
+    /**
      * Update course category.
      */
     public void updateCategory(UUID categoryId) {
@@ -157,12 +168,12 @@ public class Course extends AggregateRoot {
      */
     public void submitForApproval() {
         if (status != CourseStatus.DRAFT && status != CourseStatus.REJECTED) {
-            throw new BusinessRuleException("INVALID_STATUS", 
+            throw new BusinessRuleException("INVALID_STATUS",
                 "Chỉ có thể gửi duyệt khóa học ở trạng thái Bản nháp hoặc Bị từ chối");
         }
-        
+
         if (chapters.isEmpty()) {
-            throw new BusinessRuleException("NO_CONTENT", 
+            throw new BusinessRuleException("NO_CHAPTERS",
                 "Khóa học phải có ít nhất 1 chương trước khi gửi duyệt");
         }
 
@@ -361,6 +372,7 @@ public class Course extends AggregateRoot {
     public PriceType getPriceType() { return priceType; }
     public BigDecimal getPrice() { return price; }
     public BigDecimal getSalePrice() { return salePrice; }
+    public DeliveryMode getDeliveryMode() { return deliveryMode; }
     public String getReviewComment() { return reviewComment; }
     public Instant getReviewedAt() { return reviewedAt; }
     public UUID getReviewedById() { return reviewedById; }
@@ -372,9 +384,7 @@ public class Course extends AggregateRoot {
         DRAFT("Bản nháp"),
         PENDING("Chờ duyệt"),
         APPROVED("Đã duyệt"),
-        REJECTED("Bị từ chối"),
-        PUBLISHED("Đã xuất bản"),
-        ARCHIVED("Lưu trữ");
+        REJECTED("Bị từ chối");
 
         private final String displayName;
 
@@ -409,6 +419,21 @@ public class Course extends AggregateRoot {
         private final String displayName;
 
         PriceType(String displayName) {
+            this.displayName = displayName;
+        }
+
+        public String getDisplayName() {
+            return displayName;
+        }
+    }
+
+    public enum DeliveryMode {
+        SELF_PACED("Khóa học tự học"),
+        INSTRUCTOR_LED("Lớp học có giảng viên");
+
+        private final String displayName;
+
+        DeliveryMode(String displayName) {
             this.displayName = displayName;
         }
 

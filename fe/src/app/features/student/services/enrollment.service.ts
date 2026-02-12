@@ -86,27 +86,15 @@ export class StudentEnrollmentService {
   /**
    * Load danh sách courses đã enroll của student
    */
-  async loadEnrolledCourses(page: number = 1, limit: number = 10): Promise<void> {
+  async loadEnrolledCourses(page: number = 0, size: number = 10): Promise<void> {
     this._isLoading.set(true);
     this._error.set(null);
 
-    // Ensure page is always >= 1
-    const safePage = Math.max(page, 1);
+    // Ensure page is always >= 0 (Spring Data 0-indexed)
+    const safePage = Math.max(page, 0);
 
     try {
-      // DEVELOPMENT MODE: Use mock data for testing UI
-      if (this.isDevelopmentMode()) {
-        const { MOCK_ENROLLED_COURSES } = await import('../../../shared/test-data/mock-courses');
-        this._enrolledCourses.set(MOCK_ENROLLED_COURSES);
-        this._currentPage.set(safePage);
-        this._totalPages.set(1);
-        this._totalCount.set(MOCK_ENROLLED_COURSES.length);
-
-        return;
-      }
-
-      // PRODUCTION MODE: Use real API
-      const response = await firstValueFrom(this.courseApi.enrolledCourses({ page: safePage, limit }));
+      const response = await firstValueFrom(this.courseApi.enrolledCourses({ page: safePage, size }));
 
       if (response?.data) {
         // Fetch progress for each course and map to EnrolledCourse
@@ -139,7 +127,7 @@ export class StudentEnrollmentService {
   /**
    * Load danh sách courses available để enroll
    */
-  async loadAvailableCourses(page: number = 1, limit: number = 10, filters?: {
+  async loadAvailableCourses(page: number = 0, size: number = 10, filters?: {
     search?: string;
     teacher?: string;
   }): Promise<void> {
@@ -147,31 +135,9 @@ export class StudentEnrollmentService {
     this._error.set(null);
 
     try {
-      // DEVELOPMENT MODE: Use mock data for testing UI
-      if (this.isDevelopmentMode()) {
-        const { MOCK_COURSES_FOR_TESTING } = await import('../../../shared/test-data/mock-courses');
-        let filteredCourses = MOCK_COURSES_FOR_TESTING;
-
-        // Apply search filter if provided
-        if (filters?.search) {
-          filteredCourses = filteredCourses.filter(course =>
-            course.title.toLowerCase().includes(filters.search!.toLowerCase()) ||
-            course.description.toLowerCase().includes(filters.search!.toLowerCase())
-          );
-        }
-
-        this._availableCourses.set(filteredCourses);
-        this._currentPage.set(page);
-        this._totalPages.set(1);
-        this._totalCount.set(filteredCourses.length);
-
-        return;
-      }
-
-      // PRODUCTION MODE: Use real API
       const response = await firstValueFrom(this.courseApi.publicCourses({
         page,
-        limit,
+        size,
         ...filters
       }));
 
@@ -275,22 +241,25 @@ export class StudentEnrollmentService {
    * Map CourseSummary từ API thành EnrolledCourse cho UI
    */
   private mapToEnrolledCourse(course: CourseSummary, progress?: number): EnrolledCourse {
-    // Use provided progress or extract from course metadata
-    const actualProgress = progress !== undefined ? progress : this.extractProgressFromCourse(course);
+    // Use provided progress or extract from course data
+    const courseAny = course as any;
+    const actualProgress = progress !== undefined ? progress : (courseAny.progress ?? 0);
     const status = this.determineEnrollmentStatus(course, actualProgress);
+    const totalLessons = courseAny.totalLessons ?? 0;
+    const completedLessons = courseAny.completedLessons ?? (totalLessons > 0 ? Math.round((actualProgress / 100) * totalLessons) : 0);
 
     return {
       id: course.id,
       title: course.title,
-      description: course.description || 'Mô tả khóa học',
-      instructor: course.teacherName || 'Giảng viên',
+      description: course.description || '',
+      instructor: course.teacherName || '',
       progress: actualProgress,
-      totalLessons: 10, // Default value - can be fetched from course details if needed
-      completedLessons: Math.floor((actualProgress / 100) * 10),
-      duration: '40 giờ', // Default duration
-      deadline: undefined, // No deadline info in CourseSummary
-      status: status,
-      thumbnail: (course as any).thumbnailUrl || 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=300&h=200&fit=crop',
+      totalLessons,
+      completedLessons,
+      duration: totalLessons > 0 ? `${Math.ceil(totalLessons * 0.5)} giờ` : '',
+      deadline: undefined,
+      status,
+      thumbnail: courseAny.thumbnailUrl || 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=300&h=200&fit=crop',
       category: 'general',
       rating: 4.5,
       lastAccessed: new Date(),
@@ -304,15 +273,13 @@ export class StudentEnrollmentService {
    */
   private async fetchCourseProgress(courseId: string): Promise<number> {
     try {
-      // Call the progress API to get actual progress
       const response = await firstValueFrom(this.courseApi.getCourseProgress(courseId));
       if (response?.data?.progressPercentage !== undefined) {
         return Math.round(response.data.progressPercentage);
       }
       return 0;
-    } catch (error) {
-      // Fallback to random progress for demo
-      return Math.floor(Math.random() * 100);
+    } catch {
+      return 0;
     }
   }
 
@@ -320,10 +287,7 @@ export class StudentEnrollmentService {
    * Extract progress từ course metadata
    */
   private extractProgressFromCourse(course: CourseSummary): number {
-    // CourseSummary doesn't have progress info - will be fetched separately
-    // For now, return 0 for new courses, random for demo
-    // TODO: Fetch actual progress from backend API
-    return Math.floor(Math.random() * 100);
+    return (course as any).progress ?? 0;
   }
 
   /**
@@ -353,12 +317,4 @@ export class StudentEnrollmentService {
     return 2400;
   }
 
-  /**
-   * Check if running in development mode for mock data
-   * Set to false to always use real API
-   */
-  private isDevelopmentMode(): boolean {
-    // Always use real API - no mock data
-    return false;
-  }
 }

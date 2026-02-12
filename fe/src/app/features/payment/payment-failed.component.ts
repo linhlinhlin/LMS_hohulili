@@ -1,6 +1,7 @@
 import { Component, OnInit, signal, inject, ChangeDetectionStrategy } from '@angular/core';
 
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { IconComponent } from '../../shared/components/icon/icon.component';
 
 /**
  * Payment Failed Component
@@ -10,7 +11,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
     selector: 'app-payment-failed',
-    imports: [RouterLink],
+    imports: [RouterLink, IconComponent],
     template: `
         <div class="payment-result-container">
             <div class="result-card failed">
@@ -35,13 +36,13 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
                 <div class="actions">
                     <button (click)="retry()" class="btn btn-primary">
-                        🔄 Thử lại
+                        <app-icon name="refresh" size="sm" class="mr-1"/> Thử lại
                     </button>
                     <a routerLink="/courses" class="btn btn-secondary">
                         ← Quay lại danh sách khóa học
                     </a>
                     <a href="mailto:support@lms-maritime.com" class="btn btn-link">
-                        📧 Liên hệ hỗ trợ
+                        <app-icon name="mail" size="sm" class="mr-1"/> Liên hệ hỗ trợ
                     </a>
                 </div>
             </div>

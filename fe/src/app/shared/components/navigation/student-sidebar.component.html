@@ -1,14 +1,9 @@
 <aside class="w-64 bg-gradient-to-b from-white to-gray-50 shadow-xl border-r border-gray-200 h-full flex flex-col">
     <!-- Header với Logo chuyên nghiệp -->
-    <div class="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-blue-700">
+    <div class="p-6 border-b border-gray-200 bg-[#0056D2]">
         <div class="flex items-center space-x-3">
             <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-                <svg class="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
-                    <path fill-rule="evenodd"
-                        d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z"
-                        clip-rule="evenodd"></path>
-                </svg>
+                <app-icon name="anchor" size="lg" class="text-white"/>
             </div>
             <div>
                 <h1 class="text-xl font-bold text-white">LMS Maritime</h1>
@@ -43,12 +38,8 @@
     <div class="p-4 border-b border-gray-200 bg-white">
         <div class="relative">
             <input type="text" placeholder="Tìm kiếm khóa học, bài tập..."
-                class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 focus:bg-white transition-all duration-200">
-            <svg class="absolute left-3 top-3.5 w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd"
-                    d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-                    clip-rule="evenodd"></path>
-            </svg>
+                class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-transparent bg-gray-50 focus:bg-white transition-all duration-200">
+            <app-icon name="search" size="sm" class="absolute left-3 top-3.5 text-gray-400"/>
         </div>
     </div>
 
@@ -57,14 +48,14 @@
         @for (item of navigationItems(); track item.route) {
         <div class="space-y-1">
             <a [routerLink]="item.route"
-                routerLinkActive="bg-blue-50 text-blue-700 border-r-2 border-blue-700 shadow-sm"
+                routerLinkActive="bg-blue-50 text-[#004BB5] border-r-2 border-[#004BB5] shadow-sm"
                 [routerLinkActiveOptions]="{exact: false}"
                 class="flex items-center justify-between px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 group hover:bg-gray-50 hover:shadow-sm">
                 <div class="flex items-center space-x-3">
                     @if (item.icon) {
                     <div class="w-8 h-8 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-200"
                         [class]="getIconBgClass(item)">
-                        <span class="text-sm">{{ item.icon }}</span>
+                        <app-icon [name]="item.icon" size="sm"/>
                     </div>
                     }
                     <span class="font-medium">{{ item.label }}</span>
@@ -83,7 +74,7 @@
                 <a [routerLink]="child.route" routerLinkActive="bg-blue-100 text-blue-800"
                     [routerLinkActiveOptions]="{exact: false}"
                     class="flex items-center px-4 py-2 text-sm text-gray-600 rounded-lg hover:bg-gray-100 hover:text-gray-900 transition-all duration-200">
-                    <span class="text-xs mr-3">{{ child.icon }}</span>
+                    <app-icon [name]="child.icon" size="xs" class="mr-3"/>
                     {{ child.label }}
                 </a>
                 }
@@ -98,38 +89,28 @@
         <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 px-2">Thao tác nhanh</h4>
         <div class="space-y-2">
             <button (click)="goToQuickAction('quiz')"
-                class="w-full flex items-center space-x-3 px-4 py-3 text-gray-700 rounded-xl hover:bg-blue-50 hover:text-blue-700 transition-all duration-200 group">
+                class="w-full flex items-center space-x-3 px-4 py-3 text-gray-700 rounded-xl hover:bg-blue-50 hover:text-[#004BB5] transition-all duration-200 group">
                 <div
-                    class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd"
-                            d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
-                            clip-rule="evenodd"></path>
-                    </svg>
+                    class="w-8 h-8 bg-[#0056D2]/10 rounded-lg flex items-center justify-center group-hover:bg-[#0056D2]/20 transition-colors">
+                    <app-icon name="target" size="sm" class="text-[#0056D2]"/>
                 </div>
                 <span class="font-medium">Làm Quiz</span>
             </button>
 
             <button (click)="goToQuickAction('courses')"
-                class="w-full flex items-center space-x-3 px-4 py-3 text-gray-700 rounded-xl hover:bg-green-50 hover:text-green-700 transition-all duration-200 group">
+                class="w-full flex items-center space-x-3 px-4 py-3 text-gray-700 rounded-xl hover:bg-[#0056D2]/5 hover:text-[#004BB5] transition-all duration-200 group">
                 <div
-                    class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center group-hover:bg-green-200 transition-colors">
-                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
-                    </svg>
+                    class="w-8 h-8 bg-[#0056D2]/10 rounded-lg flex items-center justify-center group-hover:bg-[#0056D2]/20 transition-colors">
+                    <app-icon name="courses" size="sm" class="text-[#0056D2]"/>
                 </div>
                 <span class="font-medium">Khóa học mới</span>
             </button>
 
             <button (click)="goToQuickAction('learning')"
-                class="w-full flex items-center space-x-3 px-4 py-3 text-gray-700 rounded-xl hover:bg-purple-50 hover:text-purple-700 transition-all duration-200 group">
+                class="w-full flex items-center space-x-3 px-4 py-3 text-gray-700 rounded-xl hover:bg-[#0056D2]/5 hover:text-[#004BB5] transition-all duration-200 group">
                 <div
-                    class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center group-hover:bg-purple-200 transition-colors">
-                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd"
-                            d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
-                            clip-rule="evenodd"></path>
-                    </svg>
+                    class="w-8 h-8 bg-[#0056D2]/10 rounded-lg flex items-center justify-center group-hover:bg-[#0056D2]/20 transition-colors">
+                    <app-icon name="play" size="sm" class="text-[#0056D2]"/>
                 </div>
                 <span class="font-medium">Tiếp tục học</span>
             </button>
@@ -142,11 +123,7 @@
             class="w-full flex items-center space-x-3 px-4 py-3 text-red-700 rounded-xl hover:bg-red-50 transition-all duration-200 group">
             <div
                 class="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center group-hover:bg-red-200 transition-colors">
-                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd"
-                        d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z"
-                        clip-rule="evenodd"></path>
-                </svg>
+                <app-icon name="logout" size="sm" class="text-red-600"/>
             </div>
             <span class="font-medium">Đăng xuất</span>
         </button>

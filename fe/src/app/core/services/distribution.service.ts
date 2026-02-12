@@ -1,5 +1,5 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
-import { Observable, of, delay, tap, map, catchError } from 'rxjs';
+import { Observable, of, tap, map, catchError, throwError } from 'rxjs';
 import {
   AssignmentAllocation,
   DistributionType,
@@ -19,6 +19,7 @@ import {
   DeadlineOverride,
 } from '../../features/student/assignments/utils/task-utils';
 import { AllocationApi, AllocationResponse, AllocationStatsResponse } from '../../api/client/allocation.api';
+import { AssignmentApi } from '../../api/client/assignment.api';
 
 /**
  * Distribution Service
@@ -32,6 +33,7 @@ import { AllocationApi, AllocationResponse, AllocationStatsResponse } from '../.
 })
 export class DistributionService {
   private allocationApi = inject(AllocationApi);
+  private assignmentApi = inject(AssignmentApi);
 
   // State
   private allocations = signal<AssignmentAllocation[]>([]);
@@ -78,9 +80,7 @@ export class DistributionService {
       catchError(err => {
         this.error.set('Không thể lưu cài đặt phân phối');
         this.loading.set(false);
-        // Fallback to local creation
-        const allocation = createAllocation(assignmentId, courseId, distributionType, studentIds, createdBy, isIndividual);
-        return of(allocation);
+        return throwError(() => err);
       })
     );
   }
@@ -341,16 +341,13 @@ export class DistributionService {
   }
 
   /**
-   * Load allocations from API (mock)
+   * Load allocations for a course
+   * // TODO: Wire to real API when assignment distribution is implemented
    */
   loadAllocations(courseId: string): Observable<AssignmentAllocation[]> {
     this.loading.set(true);
 
-    // Mock data - replace with real API call
-    const mockAllocations: AssignmentAllocation[] = [];
-
-    return of(mockAllocations).pipe(
-      delay(300),
+    return of([]).pipe(
       tap((result) => {
         this.allocations.set(result);
         this.loading.set(false);
@@ -370,48 +367,12 @@ export class DistributionService {
 
   /**
    * Get student tasks (simplified version for StudentAssignmentsComponent)
+   * // TODO: Wire to real API when assignment distribution is implemented
    * @requirements 2.1, 2.5
    */
   getStudentTasks(studentId: string): Observable<StudentTask[]> {
-    this.loading.set(true);
-
-    // Mock data - replace with real API call
-    const mockTasks: StudentTask[] = [
-      {
-        id: '1',
-        assignmentId: 'a1',
-        title: 'Bài tập An toàn Hàng hải - Chương 1',
-        courseId: 'c1',
-        courseName: 'An toàn Hàng hải Cơ bản',
-        dueDate: '2025-11-30T23:59:59Z',
-        submittedAt: '2025-11-28T14:30:00Z',
-        status: 'GRADED',
-        grade: 85,
-        maxScore: 100,
-        feedback: 'Bài làm tốt, cần chú ý thêm về phần SOLAS',
-        isIndividual: false,
-        assignedAt: '2025-11-01T00:00:00Z'
-      },
-      {
-        id: '2',
-        assignmentId: 'a2',
-        title: 'Bài tập bổ sung - Điều hướng',
-        courseId: 'c2',
-        courseName: 'Điều hướng Maritime',
-        dueDate: '2025-12-05T23:59:59Z',
-        personalDeadline: '2025-12-10T23:59:59Z',
-        status: 'NOT_STARTED',
-        maxScore: 100,
-        isIndividual: true,
-        assignedAt: '2025-11-25T10:00:00Z',
-        assignedBy: 'Giảng viên Nguyễn Văn A'
-      }
-    ];
-
-    return of(mockTasks).pipe(
-      delay(300),
-      tap(() => this.loading.set(false))
-    );
+    this.loading.set(false);
+    return of([]);
   }
 
   /**
@@ -433,39 +394,30 @@ export class DistributionService {
   }> {
     this.loading.set(true);
 
-    // Mock data - replace with real API call
-    const mockData = {
-      courses: [
-        { id: 'c1', title: 'An toàn Hàng hải Cơ bản' },
-        { id: 'c2', title: 'Điều hướng Maritime' }
-      ],
-      assignments: [
-        {
-          id: 'a1',
-          title: 'Bài tập An toàn Hàng hải - Chương 2',
-          courseId: 'c1',
-          courseTitle: 'An toàn Hàng hải Cơ bản',
-          dueDate: '2025-12-15T23:59:59Z',
-          maxScore: 100,
-          status: 'PUBLISHED' as const,
+    return this.assignmentApi.getTeacherAssignments({ status: 'PUBLISHED' }).pipe(
+      map(response => {
+        const assignments = (response.data || []).map((a: any) => ({
+          id: a.id,
+          title: a.title,
+          courseId: a.courseId || '',
+          courseTitle: a.courseTitle || '',
+          dueDate: a.dueDate || null,
+          maxScore: a.maxScore || 100,
+          status: a.status || 'PUBLISHED',
           alreadyAssigned: false
-        },
-        {
-          id: 'a2',
-          title: 'Thực hành Radar',
-          courseId: 'c2',
-          courseTitle: 'Điều hướng Maritime',
-          dueDate: '2025-12-20T23:59:59Z',
-          maxScore: 100,
-          status: 'PUBLISHED' as const,
-          alreadyAssigned: true
-        }
-      ]
-    };
-
-    return of(mockData).pipe(
-      delay(300),
-      tap(() => this.loading.set(false))
+        }));
+        const courseMap = new Map<string, string>();
+        assignments.forEach((a: any) => {
+          if (a.courseId && a.courseTitle) courseMap.set(a.courseId, a.courseTitle);
+        });
+        const courses = Array.from(courseMap.entries()).map(([id, title]) => ({ id, title }));
+        return { assignments, courses };
+      }),
+      tap(() => this.loading.set(false)),
+      catchError(() => {
+        this.loading.set(false);
+        return of({ assignments: [] as any[], courses: [] as any[] });
+      })
     );
   }
 
@@ -516,17 +468,7 @@ export class DistributionService {
       catchError(err => {
         this.error.set('Không thể giao bài tập riêng');
         this.loading.set(false);
-
-        // Fallback to local creation
-        const allocation = createAllocation(
-          assignmentId,
-          '',
-          'SPECIFIC_STUDENTS',
-          [studentId],
-          'current-teacher',
-          true
-        );
-        return of(allocation);
+        return throwError(() => err);
       })
     );
   }

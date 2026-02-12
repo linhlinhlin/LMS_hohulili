@@ -33,7 +33,7 @@
                 <!-- Stats -->
                 <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                     <div class="text-center p-3 bg-blue-50 rounded-lg">
-                        <div class="text-2xl font-bold text-blue-600">{{ instructor()!.rating }}</div>
+                        <div class="text-2xl font-bold text-[#0056D2]">{{ instructor()!.rating }}</div>
                         <div class="text-sm text-gray-600">Đánh giá</div>
                     </div>
                     <div class="text-center p-3 bg-green-50 rounded-lg">
@@ -69,7 +69,7 @@
                 <!-- Action Buttons -->
                 <div class="flex flex-col sm:flex-row gap-3">
                     <button [routerLink]="['/instructor', instructor()!.id]"
-                        class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors">
+                        class="bg-[#0056D2] hover:bg-[#004BB5] text-white px-6 py-3 rounded-lg font-semibold transition-colors">
                         Xem hồ sơ
                     </button>
                     <button (click)="contactInstructor()"
@@ -84,23 +84,29 @@
     <!-- Instructor's Other Courses -->
     <div class="mt-8 pt-6 border-t border-gray-200">
         <h4 class="text-lg font-semibold text-gray-900 mb-4">Khóa học khác của giảng viên</h4>
+        @if (getOtherCourses().length > 0) {
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             @for (course of getOtherCourses(); track course.id) {
             <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                @if (course.thumbnail) {
                 <img [ngSrc]="course.thumbnail" width="200" height="120"
                     class="w-full h-24 object-cover rounded-lg mb-3" [alt]="course.title" />
+                }
                 <h5 class="font-semibold text-gray-900 mb-1 line-clamp-2">{{ course.title }}</h5>
                 <div class="flex items-center justify-between text-sm text-gray-600">
-                    <span>{{ course.rating }} ⭐</span>
+                    <span>{{ course.rating }} &#11088;</span>
                     <span>{{ course.studentsCount }} học viên</span>
                 </div>
                 <a [routerLink]="['/courses', course.id]"
-                    class="block mt-3 text-blue-600 hover:text-blue-700 text-sm font-medium">
-                    Xem chi tiết →
+                    class="block mt-3 text-[#0056D2] hover:text-[#004BB5] text-sm font-medium">
+                    Xem chi tiết &#8594;
                 </a>
             </div>
             }
         </div>
+        } @else {
+        <p class="text-gray-500 text-sm">Chưa có khóa học khác từ giảng viên này.</p>
+        }
     </div>
     } @else {
     <!-- Loading State -->

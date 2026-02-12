@@ -2,7 +2,7 @@
     <!-- Bell Button -->
     <button (click)="toggleDropdown()"
         class="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
-        [class.text-blue-600]="isOpen()" aria-label="Thông báo">
+        [class.text-[#0056D2]]="isOpen()" aria-label="Thông báo">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9">
@@ -25,7 +25,7 @@
         <div class="flex items-center justify-between px-4 py-3 border-b bg-gray-50">
             <h3 class="font-semibold text-gray-900">Thông báo</h3>
             @if (unreadCount() > 0) {
-            <button (click)="markAllAsRead()" class="text-sm text-blue-600 hover:text-blue-800">
+            <button (click)="markAllAsRead()" class="text-sm text-[#0056D2] hover:text-blue-800">
                 Đánh dấu tất cả đã đọc
             </button>
             }
@@ -56,7 +56,7 @@
                         [class.bg-purple-100]="notification.type === 'DEADLINE_EXTENDED'"
                         [class.bg-gray-100]="notification.type === 'SUBMISSION_RECEIVED'"
                         [class.bg-indigo-100]="notification.type === 'MESSAGE_RECEIVED'">
-                        <svg class="w-5 h-5" [class.text-blue-600]="notification.type === 'ASSIGNMENT_NEW'"
+                        <svg class="w-5 h-5" [class.text-[#0056D2]]="notification.type === 'ASSIGNMENT_NEW'"
                             [class.text-orange-600]="notification.type === 'ASSIGNMENT_REMINDER'"
                             [class.text-green-600]="notification.type === 'GRADE_PUBLISHED'"
                             [class.text-purple-600]="notification.type === 'DEADLINE_EXTENDED'"
@@ -103,7 +103,7 @@
                                 {{ notification.title }}
                             </p>
                             @if (!notification.isRead) {
-                            <span class="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0"></span>
+                            <span class="w-2 h-2 bg-[#0056D2] rounded-full flex-shrink-0"></span>
                             }
                         </div>
                         <p class="text-sm text-gray-600 line-clamp-2">
@@ -122,7 +122,7 @@
         <!-- Footer -->
         @if (recentNotifications().length > 0) {
         <div class="px-4 py-3 border-t bg-gray-50 text-center">
-            <button (click)="viewAllNotifications()" class="text-sm text-blue-600 hover:text-blue-800 font-medium">
+            <button (click)="viewAllNotifications()" class="text-sm text-[#0056D2] hover:text-blue-800 font-medium">
                 Xem tất cả thông báo
             </button>
         </div>

@@ -3,6 +3,7 @@ import { Component, inject, OnInit, OnDestroy, ChangeDetectionStrategy } from '@
 import { RouterModule, RouterOutlet, ActivatedRoute, Router } from '@angular/router';
 import { AssignmentDetailStore } from '../stores/assignment-detail.store';
 import { SubmissionsStore } from '../stores/submissions.store';
+import { ToastService } from '../../../../core/services/toast.service';
 
 /**
  * Assignment Detail Layout Component
@@ -49,26 +50,26 @@ import { SubmissionsStore } from '../stores/submissions.store';
           
           <!-- Tabs Navigation -->
           <nav class="flex gap-1 mt-4 -mb-px">
-            <a routerLink="overview" routerLinkActive="border-blue-500 text-blue-600"
+            <a routerLink="overview" routerLinkActive="border-blue-500 text-[#0056D2]"
                class="px-4 py-2 text-sm font-medium border-b-2 border-transparent hover:border-gray-300 hover:text-gray-700 transition-colors">
               Tổng quan
             </a>
-            <a routerLink="submissions" routerLinkActive="border-blue-500 text-blue-600"
+            <a routerLink="submissions" routerLinkActive="border-blue-500 text-[#0056D2]"
                class="px-4 py-2 text-sm font-medium border-b-2 border-transparent hover:border-gray-300 hover:text-gray-700 transition-colors flex items-center gap-2">
               Bài nộp
               @if (submissionsStore.totalCount() > 0) {
                 <span class="px-1.5 py-0.5 text-xs bg-gray-100 rounded-full">{{ submissionsStore.totalCount() }}</span>
               }
             </a>
-            <a routerLink="settings" routerLinkActive="border-blue-500 text-blue-600"
+            <a routerLink="settings" routerLinkActive="border-blue-500 text-[#0056D2]"
                class="px-4 py-2 text-sm font-medium border-b-2 border-transparent hover:border-gray-300 hover:text-gray-700 transition-colors">
               Cài đặt
             </a>
-            <a routerLink="rubric" routerLinkActive="border-blue-500 text-blue-600"
+            <a routerLink="rubric" routerLinkActive="border-blue-500 text-[#0056D2]"
                class="px-4 py-2 text-sm font-medium border-b-2 border-transparent hover:border-gray-300 hover:text-gray-700 transition-colors">
               Rubric
             </a>
-            <a routerLink="audit-log" routerLinkActive="border-blue-500 text-blue-600"
+            <a routerLink="audit-log" routerLinkActive="border-blue-500 text-[#0056D2]"
                class="px-4 py-2 text-sm font-medium border-b-2 border-transparent hover:border-gray-300 hover:text-gray-700 transition-colors">
               Lịch sử
             </a>
@@ -89,11 +90,14 @@ export class AssignmentDetailLayoutComponent implements OnInit, OnDestroy {
   
   assignmentStore = inject(AssignmentDetailStore);
   submissionsStore = inject(SubmissionsStore);
+  private toast = inject(ToastService);
 
   ngOnInit(): void {
     const assignmentId = this.route.snapshot.paramMap.get('id');
     if (assignmentId) {
-      this.assignmentStore.loadAssignment(assignmentId).subscribe();
+      this.assignmentStore.loadAssignment(assignmentId).subscribe({
+        error: () => this.toast.error('Không thể tải bài tập')
+      });
       // Lazy load submissions only when needed (will be triggered by submissions tab)
     }
   }

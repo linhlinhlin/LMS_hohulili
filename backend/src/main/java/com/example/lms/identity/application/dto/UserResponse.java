@@ -1,8 +1,6 @@
 package com.example.lms.identity.application.dto;
 
-import com.example.lms.identity.domain.model.Role;
 import com.example.lms.identity.domain.model.User;
-import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 
 import java.util.UUID;
 
@@ -28,20 +26,6 @@ public record UserResponse(
             user.getFullName(),
             user.getRole().name(),
             user.isEnabled()
-        );
-    }
-
-    /**
-     * Create from JPA entity.
-     */
-    public static UserResponse from(UserJpaEntity entity) {
-        return new UserResponse(
-            entity.getId(),
-            entity.getUsername(),
-            entity.getEmail(),
-            entity.getFullName(),
-            entity.getRole() != null ? entity.getRole().name() : null,
-            entity.isEnabled()
         );
     }
 }

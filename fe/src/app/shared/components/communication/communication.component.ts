@@ -1,4 +1,4 @@
-﻿import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
+﻿import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { CommunicationService, Message, Conversation, Announcement } from '../../services/communication.service';
@@ -6,7 +6,6 @@ import { CommunicationService, Message, Conversation, Announcement } from '../..
 @Component({
   selector: 'app-communication',
   imports: [FormsModule],
-  encapsulation: ViewEncapsulation.None,
   templateUrl: './communication.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -14,20 +13,18 @@ export class CommunicationComponent implements OnInit {
   protected communicationService = inject(CommunicationService);
 
   // State
-  activeTab = signal<'messages' | 'announcements' | 'forums'>('messages');
+  activeTab = signal<'messages' | 'announcements'>('messages');
   
   // Modal states
   showMessageComposer = signal(false);
   showAnnouncementCreator = signal(false);
   showAnnouncementDetail = signal(false);
-  showForumCreator = signal(false);
   selectedAnnouncement = signal<any>(null);
 
   // Computed properties from service
   messages = computed(() => this.communicationService.messages());
   conversations = computed(() => this.communicationService.conversations());
   announcements = computed(() => this.communicationService.announcements());
-  forums = computed(() => this.communicationService.forums());
   unreadMessages = computed(() => this.communicationService.unreadMessages());
   unreadAnnouncements = computed(() => this.communicationService.unreadAnnouncements());
   activeConversations = computed(() => this.communicationService.activeConversations());
@@ -41,12 +38,11 @@ export class CommunicationComponent implements OnInit {
     await Promise.all([
       this.communicationService.getMessages(),
       this.communicationService.getConversations(),
-      this.communicationService.getAnnouncements(),
-      this.communicationService.getForums()
+      this.communicationService.getAnnouncements()
     ]);
   }
 
-  setActiveTab(tab: 'messages' | 'announcements' | 'forums'): void {
+  setActiveTab(tab: 'messages' | 'announcements'): void {
     this.activeTab.set(tab);
   }
 
@@ -81,16 +77,6 @@ export class CommunicationComponent implements OnInit {
     }
   }
 
-  // Forum Actions
-  createForum(): void {
-    this.showForumCreator.set(true);
-  }
-
-  openForum(forumId: string): void {
-    // Navigate to forum detail page
-    window.open(`/communication/forum/${forumId}`, '_blank');
-  }
-
   // Modal close methods
   closeMessageComposer(): void {
     this.showMessageComposer.set(false);
@@ -103,10 +89,6 @@ export class CommunicationComponent implements OnInit {
   closeAnnouncementDetail(): void {
     this.showAnnouncementDetail.set(false);
     this.selectedAnnouncement.set(null);
-  }
-
-  closeForumCreator(): void {
-    this.showForumCreator.set(false);
   }
 
   formatDate(date: Date): string {

@@ -1,6 +1,7 @@
 import { Component, signal, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
+import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { CourseApi } from '../../../api/client/course.api';
 import { PaymentService, CheckoutRequest } from '../services/payment.service';
 
@@ -23,7 +24,7 @@ interface CourseInfo {
  */
 @Component({
   selector: 'app-checkout',
-  imports: [RouterModule],
+  imports: [RouterModule, IconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 py-8 px-4">
@@ -32,7 +33,7 @@ interface CourseInfo {
         <div class="mb-8">
           <button 
             (click)="goBack()" 
-            class="flex items-center text-slate-600 hover:text-blue-600 transition-colors mb-4">
+            class="flex items-center text-slate-600 hover:text-[#0056D2] transition-colors mb-4">
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
             </svg>
@@ -45,7 +46,7 @@ interface CourseInfo {
         <!-- Loading State -->
         @if (isLoading()) {
           <div class="bg-white rounded-2xl shadow-lg p-12 text-center">
-            <div class="animate-spin w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <div class="animate-spin w-12 h-12 border-4 border-[#0056D2] border-t-transparent rounded-full mx-auto mb-4"></div>
             <p class="text-slate-600">Đang tải thông tin...</p>
           </div>
         }
@@ -79,7 +80,7 @@ interface CourseInfo {
             <div class="space-y-3">
               <button 
                 (click)="goToCourse()"
-                class="w-full py-3 px-6 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors">
+                class="w-full py-3 px-6 bg-[#0056D2] text-white font-semibold rounded-xl hover:bg-[#004BB5] transition-colors">
                 Bắt đầu học ngay
               </button>
               <button 
@@ -95,20 +96,20 @@ interface CourseInfo {
         @if (alreadyPaid()) {
           <div class="bg-white rounded-2xl shadow-lg p-8 text-center">
             <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <svg class="w-10 h-10 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+              <svg class="w-10 h-10 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
               </svg>
             </div>
             <h2 class="text-2xl font-bold text-slate-800 mb-2">Bạn đã sở hữu khóa học này!</h2>
             @if (course()) {
-              <p class="text-lg text-blue-600 font-semibold mb-2">{{ course()?.title }}</p>
+              <p class="text-lg text-[#0056D2] font-semibold mb-2">{{ course()?.title }}</p>
             }
             <p class="text-slate-600 mb-6">Khóa học này đã được thanh toán. Bạn có quyền truy cập đầy đủ tất cả bài học.</p>
             
             <div class="space-y-3">
               <button 
                 (click)="goToCourse()"
-                class="w-full py-3 px-6 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors">
+                class="w-full py-3 px-6 bg-[#0056D2] text-white font-semibold rounded-xl hover:bg-[#004BB5] transition-colors">
                 Tiếp tục học
               </button>
               <button 
@@ -131,7 +132,7 @@ interface CourseInfo {
                        [alt]="course()?.title"
                        class="w-24 h-24 rounded-xl object-cover flex-shrink-0">
                 } @else {
-                  <div class="w-24 h-24 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <div class="w-24 h-24 bg-[#0056D2] rounded-xl flex items-center justify-center flex-shrink-0">
                     <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
                     </svg>
@@ -157,7 +158,7 @@ interface CourseInfo {
               </div>
               <div class="border-t border-slate-200 pt-4 flex justify-between items-center">
                 <span class="text-lg font-bold text-slate-800">Tổng thanh toán</span>
-                <span class="text-2xl font-bold text-blue-600">{{ formatPrice(course()?.price || 0) }}</span>
+                <span class="text-2xl font-bold text-[#0056D2]">{{ formatPrice(course()?.price || 0) }}</span>
               </div>
             </div>
 
@@ -166,9 +167,9 @@ interface CourseInfo {
               <h3 class="font-semibold text-slate-800 mb-4">Phương thức thanh toán</h3>
               <div class="space-y-3">
                 <label class="flex items-center p-4 border-2 border-blue-500 bg-blue-50 rounded-xl cursor-pointer">
-                  <input type="radio" name="payment" checked class="w-5 h-5 text-blue-600">
+                  <input type="radio" name="payment" checked class="w-5 h-5 text-[#0056D2]">
                   <span class="ml-3 font-medium text-slate-700">Thanh toán giả lập (Demo)</span>
-                  <span class="ml-auto text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">Miễn phí</span>
+                  <span class="ml-auto text-xs bg-blue-100 text-[#004BB5] px-2 py-1 rounded">Miễn phí</span>
                 </label>
                 <label class="flex items-center p-4 border border-slate-200 rounded-xl cursor-not-allowed opacity-50">
                   <input type="radio" name="payment" disabled class="w-5 h-5">
@@ -198,7 +199,7 @@ interface CourseInfo {
               <button 
                 (click)="processPayment()"
                 [disabled]="isProcessing()"
-                class="w-full py-4 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-lg rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl">
+                class="w-full py-4 px-6 bg-[#0056D2] hover:bg-[#004BB5] text-white font-bold text-lg rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl">
                 @if (isProcessing()) {
                   <div class="flex items-center justify-center">
                     <svg class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24">
@@ -217,7 +218,7 @@ interface CourseInfo {
 
         <!-- Free Preview Notice -->
         <div class="mt-6 text-center text-sm text-slate-500">
-          <p>💡 Chưa thanh toán? Bạn có thể xem thử 2 bài học đầu tiên miễn phí!</p>
+          <p><app-icon name="lightbulb" size="sm" class="text-yellow-500 mr-1"/> Chưa thanh toán? Bạn có thể xem thử 2 bài học đầu tiên miễn phí!</p>
         </div>
       </div>
     </div>

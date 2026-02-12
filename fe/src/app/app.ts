@@ -1,16 +1,18 @@
-import { Component, signal, ViewEncapsulation, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, signal, inject, ChangeDetectionStrategy } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { ErrorDisplayComponent } from './shared/components/error-display/error-display.component';
 import { PwaService } from './core/services/pwa.service';
+import { ToastContainerComponent } from './shared/components/toast-container/toast-container.component';
+import { ConfirmDialogComponent } from './shared/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-root',
-  imports: [RouterOutlet],
-  encapsulation: ViewEncapsulation.None,
+  imports: [RouterOutlet, ToastContainerComponent, ConfirmDialogComponent],
   template: `
     <router-outlet></router-outlet>
-    <!-- <app-error-display></app-error-display> DISABLED để tránh popup -->
+    <app-toast-container />
+    <app-confirm-dialog />
   `,
 })
 export class App {

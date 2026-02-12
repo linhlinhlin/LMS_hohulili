@@ -45,7 +45,7 @@ export interface MessageSendEvent {
           <label class="block text-sm text-gray-600 mb-1">Đính kèm bài tập (tùy chọn)</label>
           <select
             [(ngModel)]="selectedAssignmentId"
-            class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]"
           >
             <option value="">-- Không đính kèm --</option>
             @for (assignment of assignments(); track assignment.id) {
@@ -86,7 +86,7 @@ export interface MessageSendEvent {
             [placeholder]="placeholder()"
             [disabled]="loading()"
             rows="1"
-            class="w-full border rounded-2xl px-4 py-3 pr-12 resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+            class="w-full border rounded-2xl px-4 py-3 pr-12 resize-none focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2] disabled:bg-gray-100 disabled:cursor-not-allowed"
             [class.border-gray-300]="!loading()"
             [class.border-gray-200]="loading()"
             style="max-height: 150px; min-height: 44px;"
@@ -110,8 +110,8 @@ export interface MessageSendEvent {
           (click)="send()"
           [disabled]="!canSend()"
           class="p-3 rounded-full transition-colors"
-          [class.bg-blue-600]="canSend()"
-          [class.hover:bg-blue-700]="canSend()"
+          [class.bg-[#0056D2]]="canSend()"
+          [class.hover:bg-[#004BB5]]="canSend()"
           [class.text-white]="canSend()"
           [class.bg-gray-100]="!canSend()"
           [class.text-gray-400]="!canSend()"

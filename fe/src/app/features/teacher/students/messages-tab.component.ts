@@ -43,7 +43,7 @@ import { Message, sortMessagesByDate } from '../../student/messages/utils/messag
       <div class="bg-white border-b px-4 py-3 flex items-center justify-between">
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-            <span class="text-blue-600 font-medium">
+            <span class="text-[#0056D2] font-medium">
               {{ getInitials(studentName()) }}
             </span>
           </div>
@@ -75,7 +75,7 @@ import { Message, sortMessagesByDate } from '../../student/messages/utils/messag
       >
         @if (loading()) {
           <div class="flex items-center justify-center h-full">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0056D2]"></div>
             <span class="ml-3 text-gray-600">Đang tải tin nhắn...</span>
           </div>
         } @else if (error()) {
@@ -86,7 +86,7 @@ import { Message, sortMessagesByDate } from '../../student/messages/utils/messag
             <p class="text-gray-600 mb-2">{{ error() }}</p>
             <button
               (click)="refreshMessages()"
-              class="text-blue-600 hover:text-blue-800"
+              class="text-[#0056D2] hover:text-blue-800"
             >
               Thử lại
             </button>
@@ -205,7 +205,7 @@ export class MessagesTabComponent implements OnInit, OnDestroy, AfterViewChecked
   }
 
   private loadAvailableAssignments(): void {
-    // TODO: Load from API - for now empty
+    // Assignment list for message context - empty until backend provides endpoint
     this.availableAssignments.set([]);
   }
 

@@ -9,6 +9,7 @@ import { QuestionPreviewComponent } from '../../../shared/components/question-pr
 import { ContentBlock } from '../../../api/types/content-block.types';
 import { ContentIdentityService } from '../../../core/services/content-identity.service';
 import { AuthImagePipe } from '../../../shared/pipes/auth-image.pipe';
+import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -24,7 +25,7 @@ import { AuthImagePipe } from '../../../shared/pipes/auth-image.pipe';
             <p class="text-gray-600">Soạn thảo câu hỏi trắc nghiệm với công thức toán học và hình ảnh minh họa</p>
           </div>
           <button type="button" (click)="showPreview = true"
-            class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-md">
+            class="flex items-center gap-2 px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors shadow-md">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
@@ -69,7 +70,7 @@ import { AuthImagePipe } from '../../../shared/pipes/auth-image.pipe';
                 <select
                   id="difficulty"
                   formControlName="difficulty"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]"
                   >
                   <option value="EASY">Dễ</option>
                   <option value="MEDIUM">Trung bình</option>
@@ -86,7 +87,7 @@ import { AuthImagePipe } from '../../../shared/pipes/auth-image.pipe';
                   id="tags"
                   type="text"
                   formControlName="tags"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]"
                   placeholder="ví dụ: toán học, đại số"
                   >
                   <div class="text-xs text-gray-500 mt-1">
@@ -103,7 +104,7 @@ import { AuthImagePipe } from '../../../shared/pipes/auth-image.pipe';
                 <button
                   type="button"
                   (click)="addOption()"
-                  class="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="px-3 py-1 text-sm bg-[#0056D2] text-white rounded-md hover:bg-[#004BB5] focus:outline-none focus:ring-2 focus:ring-[#0056D2]"
                   >
                   Thêm đáp án
                 </button>
@@ -201,7 +202,7 @@ import { AuthImagePipe } from '../../../shared/pipes/auth-image.pipe';
                   <button
                     type="submit"
                     [disabled]="questionForm.invalid || !getCorrectOptionKey() || options.length < 2 || questionBlocks().length === 0"
-                    class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="px-6 py-2 bg-[#0056D2] text-white rounded-md hover:bg-[#004BB5] focus:outline-none focus:ring-2 focus:ring-[#0056D2] disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                     Tạo Câu Hỏi
                   </button>
@@ -218,7 +219,7 @@ import { AuthImagePipe } from '../../../shared/pipes/auth-image.pipe';
               <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden"
                 (click)="$event.stopPropagation()">
                 <!-- Modal Header -->
-                <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 flex justify-between items-center">
+                <div class="bg-[#0056D2] px-6 py-4 flex justify-between items-center">
                   <span class="text-white text-lg font-semibold flex items-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -259,6 +260,7 @@ export class QuestionCreateComponent implements OnInit {
   isLoading = false;
   courseId: string | null = null;
   packageId: string | null = null;
+  categoryId: string | null = null;
   showPreview = false;
 
   // Signals for Content Blocks
@@ -277,6 +279,7 @@ export class QuestionCreateComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly questionApi = inject(QuestionApi);
+  private readonly toast = inject(ToastService);
 
   constructor() {
     this.questionForm = this.fb.group({
@@ -294,6 +297,7 @@ export class QuestionCreateComponent implements OnInit {
 
   ngOnInit(): void {
     this.packageId = this.route.snapshot.queryParamMap.get('packageId');
+    this.categoryId = this.route.snapshot.queryParamMap.get('categoryId');
     this.courseId = this.route.snapshot.paramMap.get('courseId') ||
       this.route.snapshot.queryParamMap.get('courseId');
     this.setCorrectOption('A');
@@ -457,7 +461,8 @@ export class QuestionCreateComponent implements OnInit {
       difficulty: formValue.difficulty,
       tags: formValue.tags,
       courseId: this.courseId || undefined,
-      packageId: this.packageId || undefined
+      packageId: this.packageId || undefined,
+      categoryId: this.categoryId || undefined
     };
 
     this.questionApi.createQuestion(request).subscribe({
@@ -477,7 +482,7 @@ export class QuestionCreateComponent implements OnInit {
         }
       },
       error: (error) => {
-        alert('Lỗi khi tạo câu hỏi: ' + (error?.error?.message || error?.message));
+        this.toast.error('Lỗi khi tạo câu hỏi: ' + (error?.error?.message || error?.message));
         this.isLoading = false;
       },
       complete: () => {

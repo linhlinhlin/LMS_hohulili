@@ -61,7 +61,7 @@ import { NotificationService, Notification } from '../../services/notification.s
                 @if (notificationService.unreadCount() > 0) {
                   <button
                     (click)="markAllAsRead()"
-                    class="text-sm text-blue-600 hover:text-blue-800">
+                    class="text-sm text-[#0056D2] hover:text-blue-800">
                     Đọc tất cả
                   </button>
                 }
@@ -121,7 +121,7 @@ import { NotificationService, Notification } from '../../services/notification.s
                         <h4 class="text-sm font-medium text-gray-900 truncate">{{ notification.title }}</h4>
                         <div class="flex items-center space-x-2">
                           @if (!notification.read) {
-                            <div class="w-2 h-2 bg-blue-600 rounded-full"></div>
+                            <div class="w-2 h-2 bg-[#0056D2] rounded-full"></div>
                           }
                           <span class="text-xs text-gray-500">{{ formatTime(notification.timestamp) }}</span>
                         </div>
@@ -131,7 +131,7 @@ import { NotificationService, Notification } from '../../services/notification.s
                       @if (notification.action) {
                         <button
                           (click)="handleActionClick(notification, $event)"
-                          class="text-xs text-blue-600 hover:text-blue-800 mt-2">
+                          class="text-xs text-[#0056D2] hover:text-blue-800 mt-2">
                           {{ notification.action.label }}
                         </button>
                       }
@@ -168,7 +168,7 @@ import { NotificationService, Notification } from '../../services/notification.s
           <div class="p-4 border-t border-gray-800">
             <button
               (click)="viewAllNotifications()"
-              class="w-full text-center text-sm text-blue-600 hover:text-blue-800">
+              class="w-full text-center text-sm text-[#0056D2] hover:text-blue-800">
               Xem tất cả thông báo
             </button>
           </div>
@@ -247,7 +247,7 @@ export class NotificationComponent {
       case 'error':
         return 'bg-red-500';
       default:
-        return 'bg-blue-500';
+        return 'bg-[#0056D2]';
     }
   }
 

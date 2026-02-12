@@ -4,6 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import { QuizApi } from '../../../../../../api/endpoints/quiz.api';
 import { PackageApi } from '../../../../../../api/endpoints/package.api';
 import { ToastService } from '../../../../../../core/services/toast.service';
+import { ConfirmDialogService } from '../../../../../../core/services/confirm-dialog.service';
 
 /**
  * Manages quiz question state for the curriculum editor.
@@ -14,6 +15,7 @@ export class QuizManagerState {
   private quizApi = inject(QuizApi);
   private packageApi = inject(PackageApi);
   private toastService = inject(ToastService);
+  private confirmDialog = inject(ConfirmDialogService);
 
   // Lesson quiz questions
   readonly quizQuestions = signal<any[]>([]);
@@ -111,15 +113,24 @@ export class QuizManagerState {
       this.selectedPackageId = '';
       this.packageQuestions.set([]);
     } catch (error) {
+      this.toastService.error('Không thể thêm câu hỏi vào quiz');
     }
   }
 
   async removeQuestionFromQuiz(lessonId: string, questionId: string): Promise<void> {
-    if (!confirm('Bạn chắc chắn muốn xóa câu hỏi này?')) return;
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Xóa câu hỏi',
+      message: 'Bạn chắc chắn muốn xóa câu hỏi này?',
+      variant: 'danger',
+      confirmText: 'Xóa',
+      cancelText: 'Hủy'
+    });
+    if (!confirmed) return;
     try {
       await firstValueFrom(this.quizApi.removeQuestionFromQuiz(lessonId, questionId));
       await this.loadQuizQuestions(lessonId);
     } catch (error) {
+      this.toastService.error('Không thể xóa câu hỏi khỏi quiz');
     }
   }
 

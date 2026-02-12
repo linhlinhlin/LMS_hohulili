@@ -54,11 +54,16 @@ public class QuizAttemptJpaEntity {
     @Column(name = "submitted_at")
     private Instant submittedAt;
 
+    @Version
+    @Column(name = "version")
+    @Builder.Default
+    private Long version = 0L;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private Instant createdAt;
 
     public enum AttemptStatus {
-        IN_PROGRESS, SUBMITTED, GRADED, EXPIRED
+        IN_PROGRESS, SUBMITTED, GRADED, EXPIRED, TIMEOUT
     }
 }

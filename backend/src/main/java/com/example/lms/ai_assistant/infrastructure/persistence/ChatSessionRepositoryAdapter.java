@@ -81,7 +81,7 @@ public class ChatSessionRepositoryAdapter implements ChatSessionRepository {
         ChatSession.ContextType contextType;
         try {
             contextType = ChatSession.ContextType.valueOf(entity.getContextType());
-        } catch (Exception e) {
+        } catch (IllegalArgumentException e) {
             contextType = ChatSession.ContextType.GENERAL;
         }
 

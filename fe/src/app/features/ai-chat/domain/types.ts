@@ -10,7 +10,7 @@
 /**
  * User role for AI behavior customization
  */
-export type UserRole = 'student' | 'teacher' | 'admin' | 'guest';
+export type UserRole = 'student' | 'teacher' | 'admin' | 'org_admin' | 'guest';
 
 /**
  * Message sender type

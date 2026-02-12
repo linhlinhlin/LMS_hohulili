@@ -82,7 +82,7 @@ public class QuizJpaEntity {
 
     @OneToMany(mappedBy = "quiz", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("displayOrder ASC")
-    @BatchSize(size = 50) // SOTA: Prevent N+1 when loading multiple quizzes
+    @org.hibernate.annotations.Fetch(org.hibernate.annotations.FetchMode.SUBSELECT)
     private java.util.List<QuizQuestionJpaEntity> questions;
 
     @CreationTimestamp

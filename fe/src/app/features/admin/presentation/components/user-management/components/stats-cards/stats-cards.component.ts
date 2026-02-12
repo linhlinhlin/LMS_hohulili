@@ -17,7 +17,7 @@ import { UserManagementState } from '../../state/user-management.state';
             <p class="text-xs text-gray-600 mt-2">{{ state.activeUsers() }} đang hoạt động</p>
           </div>
           <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
-            <svg class="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+            <svg class="w-5 h-5 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
               <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 8v1h1.5a.5.5 0 01.5.5v9a.5.5 0 01-.5.5h-13a.5.5 0 01-.5-.5v-9a.5.5 0 01.5-.5H8v-1a5 5 0 00-5 5v1h9.93z"></path>
             </svg>
           </div>

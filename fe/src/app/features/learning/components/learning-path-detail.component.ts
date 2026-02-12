@@ -1,4 +1,4 @@
-import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
+import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { LearningPathService } from '../../../core/services/learning-path.service';
@@ -7,7 +7,6 @@ import { LearningPath, LearningPathCourse, LearningPathLesson } from '../../../s
 @Component({
   selector: 'app-learning-path-detail',
   imports: [RouterModule],
-  encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="min-h-screen bg-gray-50">
@@ -30,11 +29,11 @@ import { LearningPath, LearningPathCourse, LearningPathLesson } from '../../../s
             <div class="flex items-center space-x-4">
               <div class="text-right">
                 <div class="text-sm text-gray-600">Tiến độ</div>
-                <div class="text-2xl font-bold text-blue-600">{{ learningPath()?.progress }}%</div>
+                <div class="text-2xl font-bold text-[#0056D2]">{{ learningPath()?.progress }}%</div>
               </div>
               <button (click)="startLearning()"
                       [disabled]="learningPath()?.isCompleted"
-                      class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                      class="px-6 py-3 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                 {{ learningPath()?.isCompleted ? 'Đã hoàn thành' : 'Bắt đầu học' }}
               </button>
             </div>
@@ -58,7 +57,7 @@ import { LearningPath, LearningPathCourse, LearningPathLesson } from '../../../s
                   <span>{{ learningPath()?.progress }}%</span>
                 </div>
                 <div class="bg-gray-200 rounded-full h-3">
-                  <div class="bg-blue-500 rounded-full h-3 transition-all duration-300" 
+                  <div class="bg-[#0056D2] rounded-full h-3 transition-all duration-300" 
                        [style.width.%]="learningPath()?.progress || 0"></div>
                 </div>
               </div>
@@ -168,7 +167,7 @@ import { LearningPath, LearningPathCourse, LearningPathLesson } from '../../../s
                     </div>
                   </div>
                   <div class="text-right">
-                    <div class="text-2xl font-bold text-blue-600">{{ course.progress }}%</div>
+                    <div class="text-2xl font-bold text-[#0056D2]">{{ course.progress }}%</div>
                     <div class="text-sm text-gray-600">Hoàn thành</div>
                   </div>
                 </div>
@@ -176,7 +175,7 @@ import { LearningPath, LearningPathCourse, LearningPathLesson } from '../../../s
                 <!-- Course Progress -->
                 <div class="mb-4">
                   <div class="bg-gray-200 rounded-full h-2">
-                    <div class="bg-blue-500 rounded-full h-2 transition-all duration-300" 
+                    <div class="bg-[#0056D2] rounded-full h-2 transition-all duration-300" 
                          [style.width.%]="course.progress"></div>
                   </div>
                 </div>
@@ -211,7 +210,7 @@ import { LearningPath, LearningPathCourse, LearningPathLesson } from '../../../s
                       </div>
                       <button (click)="startLesson(lesson.id, course.id)"
                               [disabled]="!lesson.isUnlocked"
-                              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm">
+                              class="px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm">
                         {{ lesson.isCompleted ? 'Xem lại' : 'Bắt đầu' }}
                       </button>
                     </div>

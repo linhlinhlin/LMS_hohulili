@@ -1,5 +1,7 @@
 package com.example.lms.course_authoring.application.usecase;
 
+import com.example.lms.course_authoring.domain.model.Course;
+import com.example.lms.course_authoring.domain.repository.CourseRepository;
 import com.example.lms.course_authoring.domain.repository.LessonRepositoryPort;
 import com.example.lms.shared.domain.model.ContentBlock;
 import com.example.lms.shared.exception.EntityNotFoundException;
@@ -11,6 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.util.*;
 
@@ -29,18 +32,29 @@ class ManageContentBlockUseCaseV3Test {
     @Mock
     private LessonRepositoryPort lessonRepository;
 
+    @Mock
+    private CourseRepository courseRepository;
+
     @InjectMocks
     private ManageContentBlockUseCaseV3 useCase;
 
     private UUID lessonId;
+    private UUID userId;
     private ContentBlock existingBlock;
     private List<ContentBlock> existingBlocks;
 
     @BeforeEach
     void setUp() {
         lessonId = UUID.randomUUID();
+        userId = UUID.randomUUID();
         existingBlock = ContentBlock.of("block-1", "text", Map.of("text", "Hello"));
         existingBlocks = new ArrayList<>(List.of(existingBlock));
+    }
+
+    private void stubOwnershipCheck() {
+        Course course = mock(Course.class);
+        when(course.getTeacherId()).thenReturn(userId);
+        when(courseRepository.findByLessonId(lessonId)).thenReturn(Optional.of(course));
     }
 
     @Nested
@@ -51,12 +65,13 @@ class ManageContentBlockUseCaseV3Test {
         @DisplayName("Should add block successfully")
         void shouldAddBlockSuccessfully() {
             // Given
+            stubOwnershipCheck();
             when(lessonRepository.getContentBlocks(lessonId)).thenReturn(Optional.of(existingBlocks));
 
             Map<String, Object> data = Map.of("text", "New content");
 
             // When
-            ContentBlock result = useCase.addBlock(lessonId, "text", data);
+            ContentBlock result = useCase.addBlock(lessonId, "text", data, userId, false);
 
             // Then
             assertThat(result).isNotNull();
@@ -65,14 +80,38 @@ class ManageContentBlockUseCaseV3Test {
         }
 
         @Test
+        @DisplayName("Should add block as admin without ownership")
+        void shouldAddBlockAsAdmin() {
+            UUID adminId = UUID.randomUUID();
+            when(lessonRepository.getContentBlocks(lessonId)).thenReturn(Optional.of(existingBlocks));
+
+            ContentBlock result = useCase.addBlock(lessonId, "text", Map.of("text", "Admin content"), adminId, true);
+
+            assertThat(result).isNotNull();
+            verify(lessonRepository).saveContentBlocks(eq(lessonId), any());
+        }
+
+        @Test
         @DisplayName("Should throw when lesson not found for addBlock")
         void shouldThrowWhenLessonNotFoundForAddBlock() {
-            // Given
+            // Given - admin so no ownership check
             when(lessonRepository.getContentBlocks(lessonId)).thenReturn(Optional.empty());
 
             // When/Then
-            assertThatThrownBy(() -> useCase.addBlock(lessonId, "text", Map.of()))
+            assertThatThrownBy(() -> useCase.addBlock(lessonId, "text", Map.of(), userId, true))
                 .isInstanceOf(EntityNotFoundException.class);
+        }
+
+        @Test
+        @DisplayName("Should throw when not owner")
+        void shouldThrowWhenNotOwner() {
+            UUID otherUserId = UUID.randomUUID();
+            Course course = mock(Course.class);
+            when(course.getTeacherId()).thenReturn(userId);
+            when(courseRepository.findByLessonId(lessonId)).thenReturn(Optional.of(course));
+
+            assertThatThrownBy(() -> useCase.addBlock(lessonId, "text", Map.of(), otherUserId, false))
+                .isInstanceOf(AccessDeniedException.class);
         }
     }
 
@@ -84,12 +123,13 @@ class ManageContentBlockUseCaseV3Test {
         @DisplayName("Should update block successfully")
         void shouldUpdateBlockSuccessfully() {
             // Given
+            stubOwnershipCheck();
             when(lessonRepository.getContentBlocks(lessonId)).thenReturn(Optional.of(existingBlocks));
 
             Map<String, Object> newData = Map.of("text", "Updated content");
 
             // When
-            ContentBlock result = useCase.updateBlock(lessonId, "block-1", newData);
+            ContentBlock result = useCase.updateBlock(lessonId, "block-1", newData, userId, false);
 
             // Then
             assertThat(result).isNotNull();
@@ -101,21 +141,22 @@ class ManageContentBlockUseCaseV3Test {
         @DisplayName("Should throw when block not found for update")
         void shouldThrowWhenBlockNotFoundForUpdate() {
             // Given
+            stubOwnershipCheck();
             when(lessonRepository.getContentBlocks(lessonId)).thenReturn(Optional.of(existingBlocks));
 
             // When/Then
-            assertThatThrownBy(() -> useCase.updateBlock(lessonId, "nonexistent-id", Map.of()))
+            assertThatThrownBy(() -> useCase.updateBlock(lessonId, "nonexistent-id", Map.of(), userId, false))
                 .isInstanceOf(EntityNotFoundException.class);
         }
 
         @Test
         @DisplayName("Should throw when lesson not found for updateBlock")
         void shouldThrowWhenLessonNotFoundForUpdateBlock() {
-            // Given
+            // Given - admin so no ownership check
             when(lessonRepository.getContentBlocks(lessonId)).thenReturn(Optional.empty());
 
             // When/Then
-            assertThatThrownBy(() -> useCase.updateBlock(lessonId, "block-1", Map.of()))
+            assertThatThrownBy(() -> useCase.updateBlock(lessonId, "block-1", Map.of(), userId, true))
                 .isInstanceOf(EntityNotFoundException.class);
         }
     }
@@ -128,10 +169,11 @@ class ManageContentBlockUseCaseV3Test {
         @DisplayName("Should delete block successfully")
         void shouldDeleteBlockSuccessfully() {
             // Given
+            stubOwnershipCheck();
             when(lessonRepository.getContentBlocks(lessonId)).thenReturn(Optional.of(existingBlocks));
 
             // When
-            useCase.deleteBlock(lessonId, "block-1");
+            useCase.deleteBlock(lessonId, "block-1", userId, false);
 
             // Then
             verify(lessonRepository).saveContentBlocks(eq(lessonId), any());
@@ -141,10 +183,11 @@ class ManageContentBlockUseCaseV3Test {
         @DisplayName("Should throw when block not found for delete")
         void shouldThrowWhenBlockNotFoundForDelete() {
             // Given
+            stubOwnershipCheck();
             when(lessonRepository.getContentBlocks(lessonId)).thenReturn(Optional.of(existingBlocks));
 
             // When/Then
-            assertThatThrownBy(() -> useCase.deleteBlock(lessonId, "nonexistent-id"))
+            assertThatThrownBy(() -> useCase.deleteBlock(lessonId, "nonexistent-id", userId, false))
                 .isInstanceOf(EntityNotFoundException.class);
         }
     }

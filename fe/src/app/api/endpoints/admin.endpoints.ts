@@ -31,10 +31,13 @@ export const ADMIN_ENDPOINTS = {
   IMPORT_TEMPLATE: '/api/v3/users/bulk-import/template',
 
   // === User Courses (Admin View) ===
-  USER_ENROLLED_COURSES: (userId: string) => `/api/v3/admin/users/${userId}/enrolled-courses`,
-  USER_MANAGED_COURSES: (userId: string) => `/api/v3/admin/users/${userId}/managed-courses`,
-  USER_COOP_COURSES: (userId: string) => `/api/v3/admin/users/${userId}/coop-courses`,
-  UPDATE_USER_STATUS: (userId: string) => `/api/v3/admin/users/${userId}/status`,
+  USER_ENROLLED_COURSES: (userId: string) => `/api/v3/users/${userId}/enrolled-courses`,
+  USER_MANAGED_COURSES: (userId: string) => `/api/v3/users/${userId}/managed-courses`,
+  USER_COOP_COURSES: (userId: string) => `/api/v3/users/${userId}/coop-courses`,
+  UPDATE_USER_STATUS: (userId: string) => `/api/v3/users/${userId}/status`,
+
+  // === Settings ===
+  SETTINGS: '/api/v3/admin/settings',
 
   // === File Upload (Admin) ===
   SIGNED_URL: '/api/v3/files/presign',

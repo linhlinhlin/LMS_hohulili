@@ -1,6 +1,7 @@
 import { Component, OnInit, signal, inject, ChangeDetectionStrategy } from '@angular/core';
 
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { IconComponent } from '../../shared/components/icon/icon.component';
 
 /**
  * Payment Success Component
@@ -10,7 +11,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
     selector: 'app-payment-success',
-    imports: [RouterLink],
+    imports: [RouterLink, IconComponent],
     template: `
         <div class="payment-result-container">
             <div class="result-card success">
@@ -26,7 +27,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
                     </div>
                 </div>
 
-                <h1 class="title">Thanh toán thành công! 🎉</h1>
+                <h1 class="title"><app-icon name="party" size="lg" class="text-emerald-500"/> Thanh toán thành công!</h1>
                 
                 <p class="message">
                     Cảm ơn bạn đã đăng ký khóa học. Bạn đã có thể truy cập đầy đủ nội dung khóa học.
@@ -48,10 +49,10 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
                 <div class="actions">
                     <a routerLink="/student/my-courses" class="btn btn-primary">
-                        📚 Bắt đầu học ngay
+                        <app-icon name="courses" size="sm" class="mr-1"/> Bắt đầu học ngay
                     </a>
                     <a routerLink="/courses" class="btn btn-secondary">
-                        🔍 Khám phá thêm khóa học
+                        <app-icon name="search" size="sm" class="mr-1"/> Khám phá thêm khóa học
                     </a>
                 </div>
             </div>

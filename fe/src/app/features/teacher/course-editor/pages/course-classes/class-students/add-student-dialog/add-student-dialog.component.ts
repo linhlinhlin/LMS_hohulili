@@ -24,7 +24,7 @@ import { ClassService } from '../../../../../../../state/class.service';
                   <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-1">Email Học viên</label>
                     <input type="email" formControlName="email"
-                      class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:border-blue-500 focus:ring-blue-500 text-sm"
+                      class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:border-[#0056D2] focus:ring-[#0056D2] text-sm"
                       placeholder="student@example.com">
                     </div>
                     @if (manualError) {
@@ -44,7 +44,7 @@ import { ClassService } from '../../../../../../../state/class.service';
                       <h4 class="text-xs font-bold text-blue-800 flex items-center gap-1 mb-2">
                         <mat-icon class="text-xs scale-90">info</mat-icon> HƯỚNG DẪN CẤU TRÚC FILE
                       </h4>
-                      <p class="text-[11px] text-blue-700 leading-relaxed mb-3">
+                      <p class="text-[11px] text-[#004BB5] leading-relaxed mb-3">
                         File Excel (.xlsx) cần có tiêu đề cột là <span class="bg-blue-100 px-1 rounded font-bold">Email</span> ở Sheet đầu tiên.
                       </p>
                       <div class="overflow-hidden rounded-md border border-blue-200">
@@ -84,7 +84,7 @@ import { ClassService } from '../../../../../../../state/class.service';
         
                         @if (!selectedFile) {
                           <div class="text-sm font-medium text-gray-600">
-                            Kéo thả file vào đây hoặc <span class="text-blue-600 hover:underline">duyệt thư mục</span>
+                            Kéo thả file vào đây hoặc <span class="text-[#0056D2] hover:underline">duyệt thư mục</span>
                             <p class="text-[10px] text-gray-400 mt-1">Định dạng hỗ trợ: .xlsx (Tối đa 5MB)</p>
                           </div>
                         }
@@ -150,7 +150,7 @@ import { ClassService } from '../../../../../../../state/class.service';
               @if (activeTabIndex === 0) {
                 <button
                   mat-raised-button color="primary" (click)="saveManual()" [disabled]="form.invalid || loading"
-                  class="bg-blue-600 text-white px-8 py-2 rounded-lg shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all disabled:opacity-50 disabled:shadow-none">
+                  class="bg-[#0056D2] text-white px-8 py-2 rounded-lg shadow-lg hover:bg-[#004BB5] hover:shadow-xl transition-all disabled:opacity-50 disabled:shadow-none">
                   {{ loading ? 'Đang xử lý...' : 'Xác nhận Thêm' }}
                 </button>
               }

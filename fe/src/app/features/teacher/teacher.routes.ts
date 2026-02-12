@@ -88,7 +88,7 @@ export const teacherRoutes: Routes = [
       {
         path: 'courses/:courseId/sections/:sectionId/assignments/:assignmentId/submissions',
         loadComponent: () => import('./assignments/assignment-submissions.component').then(m => m.AssignmentSubmissionsComponent),
-        title: 'Bai nop cua hoc vien'
+        title: 'Bài nộp của học viên'
       },
 
       // Student Management Routes

@@ -22,6 +22,7 @@ import { ChatMessageComponent } from '../chat-message/chat-message.component';
 import { ChatMessageInputComponent } from '../chat-message-input/chat-message-input.component';
 import { TypingIndicatorComponent } from '../typing-indicator/typing-indicator.component';
 import { SuggestedQuestionsComponent } from '../suggested-questions/suggested-questions.component';
+import { IconComponent } from '../../../../../shared/components/icon/icon.component';
 
 @Component({
   selector: 'app-chat-panel',
@@ -29,7 +30,8 @@ import { SuggestedQuestionsComponent } from '../suggested-questions/suggested-qu
     ChatMessageComponent,
     ChatMessageInputComponent,
     TypingIndicatorComponent,
-    SuggestedQuestionsComponent
+    SuggestedQuestionsComponent,
+    IconComponent
 ],
   template: `
     <div
@@ -64,14 +66,14 @@ import { SuggestedQuestionsComponent } from '../suggested-questions/suggested-qu
         <!-- Cold Start Notice -->
         @if (chatService.serviceState().coldStartDetected) {
           <div class="cold-start-notice">
-            <span class="icon">⏳</span>
+            <app-icon name="clock" size="sm" class="text-amber-500"/>
             <span>Server đang khởi động, có thể mất 20-30 giây cho lần đầu...</span>
           </div>
         }
 
         @if (chatService.messages().length === 0) {
           <div class="empty-state">
-            <div class="empty-icon">🚢</div>
+            <div class="empty-icon"><app-icon name="ship" size="xl"/></div>
             <h3>Xin chào!</h3>
             <p>Tôi là trợ lý AI chuyên về hàng hải. Hãy hỏi tôi về COLREGs, luật hàng hải, hoặc bất kỳ chủ đề nào liên quan!</p>
           </div>

@@ -1,6 +1,7 @@
 import { Component, input, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { IconComponent, IconName } from '../../../../shared/components/icon/icon.component';
 
 export interface CategoryCta {
   text: string;
@@ -12,7 +13,7 @@ export interface CategoryCta {
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-category-hero',
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, IconComponent],
   template: `
     <section class="relative text-white" [ngClass]="gradientClass()" role="banner" [attr.aria-label]="'Trang chủ danh mục ' + title()">
       @if (overlay()) {
@@ -23,8 +24,8 @@ export interface CategoryCta {
           <div>
             @if (iconEmoji()) {
               <div class="flex items-center space-x-3 mb-6">
-                <div class="w-16 h-16 rounded-xl flex items-center justify-center text-3xl" [ngClass]="iconBgClass()">
-                  {{ iconEmoji() }}
+                <div class="w-16 h-16 rounded-xl flex items-center justify-center" [ngClass]="iconBgClass()">
+                  <app-icon [name]="iconEmoji()!" size="xl" class="text-white"/>
                 </div>
                 <div>
                   <h1 class="text-4xl lg:text-5xl font-bold mb-2">{{ title() }}</h1>
@@ -74,7 +75,7 @@ export interface CategoryCta {
 export class CategoryHeroComponent {
   title = input('');
   subtitle = input('');
-  iconEmoji = input<string | undefined>(undefined);
+  iconEmoji = input<IconName | undefined>(undefined);
   imageUrl = input<string | undefined>(undefined);
 
   // Tailwind classes for brand/gradient and tinting
@@ -111,7 +112,7 @@ export class CategoryHeroComponent {
       case 'indigo': return 'bg-indigo-500';
       case 'rose': return 'bg-rose-500';
       case 'cyan': return 'bg-cyan-500';
-      default: return 'bg-blue-500';
+      default: return 'bg-[#0056D2]';
     }
   });
 
@@ -122,7 +123,7 @@ export class CategoryHeroComponent {
       case 'indigo': return 'bg-white text-indigo-700 hover:bg-gray-100';
       case 'rose': return 'bg-white text-rose-700 hover:bg-gray-100';
       case 'cyan': return 'bg-white text-cyan-700 hover:bg-gray-100';
-      default: return 'bg-white text-blue-600 hover:bg-gray-100';
+      default: return 'bg-white text-[#0056D2] hover:bg-gray-100';
     }
   });
 
@@ -133,7 +134,7 @@ export class CategoryHeroComponent {
       case 'indigo': return 'border-white text-white hover:bg-white hover:text-indigo-700';
       case 'rose': return 'border-white text-white hover:bg-white hover:text-rose-700';
       case 'cyan': return 'border-white text-white hover:bg-white hover:text-cyan-700';
-      default: return 'border-white text-white hover:bg-white hover:text-blue-600';
+      default: return 'border-white text-white hover:bg-white hover:text-[#0056D2]';
     }
   });
 }

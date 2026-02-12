@@ -67,14 +67,14 @@ export class RevenueChartComponent implements OnInit {
         datasets: [{
           label: 'Doanh thu (VNĐ)',
           data: data.data,
-          borderColor: '#0369a1',
-          backgroundColor: 'rgba(3, 105, 161, 0.1)',
+          borderColor: '#0056D2',
+          backgroundColor: 'rgba(0, 86, 210, 0.1)',
           borderWidth: 2,
           fill: true,
           tension: 0.4,
           pointRadius: 4,
           pointHoverRadius: 6,
-          pointBackgroundColor: '#0369a1',
+          pointBackgroundColor: '#0056D2',
           pointBorderColor: '#fff',
           pointBorderWidth: 2
         }]

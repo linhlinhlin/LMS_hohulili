@@ -1,20 +1,7 @@
 import { Routes } from '@angular/router';
 import { studentGuard } from '../../core/guards/role.guard';
 
-/**
- * Student Routes Configuration
- * 
- * Cấu trúc routing đơn giản và chuyên nghiệp cho Student features
- * - Flat structure để dễ maintain
- * - Consistent naming conventions
- * - Clear hierarchy và organization
- * - Proper lazy loading cho performance
-          {
-            path: 'backend',
-            loadComponent: () => import('../courses/my-courses-backend.component').then(m => m.MyCoursesBackendComponent),
-            title: 'Khóa học của tôi (Backend)'
-          }
- */
+/** Student Routes — flat structure, lazy loading, consistent naming */
 export const studentRoutes: Routes = [
   {
     path: '',
@@ -49,11 +36,11 @@ export const studentRoutes: Routes = [
         title: 'Chi tiết khóa học'
       },
 
-      // Lesson Viewer - Xem bài học với video tracking
+      // Lesson Viewer - redirect to new learning interface
       {
         path: 'lesson-viewer',
-        loadComponent: () => import('./lesson-viewer/lesson-viewer.component').then(m => m.LessonViewerComponent),
-        title: 'Xem bài học'
+        redirectTo: 'learn',
+        pathMatch: 'full'
       },
       
       // Checkout - Thanh toán khóa học
@@ -74,11 +61,6 @@ export const studentRoutes: Routes = [
           },
           {
             path: ':id/work',
-            loadComponent: () => import('../assignments/assignment-work.component').then(m => m.AssignmentWorkComponent),
-            title: 'Làm bài tập'
-          },
-          {
-            path: 'work/:id',
             loadComponent: () => import('../assignments/assignment-work.component').then(m => m.AssignmentWorkComponent),
             title: 'Làm bài tập'
           }
@@ -112,6 +94,25 @@ export const studentRoutes: Routes = [
         ]
       },
 
+      // Grades - Bảng điểm
+      {
+        path: 'grades',
+        loadComponent: () => import('./grades/student-grades.component').then(m => m.StudentGradesComponent),
+        title: 'Bảng điểm'
+      },
+
+      // Certificates
+      {
+        path: 'certificates',
+        loadComponent: () => import('./grades/student-grades.component').then(m => m.StudentGradesComponent),
+        title: 'Chứng chỉ của tôi'
+      },
+      {
+        path: 'certificate/:token',
+        loadComponent: () => import('../profile/certificate-view.component').then(m => m.CertificateViewComponent),
+        title: 'Xem chứng chỉ'
+      },
+
       // Analytics Routes
       {
         path: 'analytics',
@@ -126,11 +127,11 @@ export const studentRoutes: Routes = [
         title: 'Hồ sơ cá nhân'
       },
 
-      // Forum Routes
+      // Browse Courses - Khám phá khóa học
       {
-        path: 'forum',
-        loadComponent: () => import('../communication/student-forum.component').then(m => m.StudentForumComponent),
-        title: 'Diễn đàn'
+        path: 'browse',
+        loadComponent: () => import('./browse/student-course-browser.component').then(m => m.StudentCourseBrowserComponent),
+        title: 'Khám phá khóa học'
       },
 
       // Messages Routes - Tin nhắn với giảng viên

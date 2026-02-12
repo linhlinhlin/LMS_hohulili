@@ -1,4 +1,4 @@
-﻿<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
   rel="stylesheet" />
 
 <div class="relative flex h-auto min-h-screen w-full flex-col bg-gray-50">
@@ -8,13 +8,13 @@
     <div class="mx-auto max-w-7xl flex items-center justify-between">
       <div class="flex items-center gap-3">
         <span class="material-symbols-outlined">add_circle</span>
-        <span class="font-medium">Chế độ thêm câu hỏi vào Quiz</span>
-        <span class="text-green-200">- Chọn câu hỏi và nhấn "Thêm vào Quiz"</span>
+        <span class="font-medium">Che do them cau hoi vao Quiz</span>
+        <span class="text-green-200">- Chon cau hoi va nhan "Them vao Quiz"</span>
       </div>
       @if (returnUrl) {
       <button (click)="goBack()"
         class="px-3 py-1 bg-white text-green-600 rounded text-sm font-medium hover:bg-green-50">
-        â† Quay lại
+        &#8592; Quay lai
       </button>
       }
     </div>
@@ -26,31 +26,29 @@
       <!-- Header -->
       <div class="flex flex-wrap justify-between items-start gap-4 mb-6">
         <div class="flex flex-col gap-2">
-          <p class="text-gray-900 text-4xl font-black leading-tight tracking-tight">Bài kiểm tra</p>
-          <p class="text-gray-600 text-base font-normal leading-normal">Quản lý ngân hàng câu hỏi và tạo các
-            bài kiểm tra mới.</p>
+          <p class="text-gray-900 text-4xl font-black leading-tight tracking-tight">Ngan hang cau hoi</p>
+          <p class="text-gray-600 text-base font-normal leading-normal">Quan ly ngan hang cau hoi theo danh muc va
+            to chuc cau hoi hieu qua.</p>
         </div>
       </div>
-
-      <!-- Tabs removed -->
 
       <!-- Main Content Card -->
       <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
         <!-- Toolbar -->
         <div class="p-6 border-b border-gray-200">
           <!-- Label row -->
-          <label class="block text-sm font-medium text-gray-700 mb-2">Chọn gói câu hỏi</label>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Chon ngan hang cau hoi</label>
 
           <div class="flex flex-wrap gap-4 items-center justify-between">
-            <!-- Left: Package selector -->
+            <!-- Left: Bank selector -->
             <div class="flex items-center gap-3 flex-1 min-w-0">
               <div class="relative flex-1 max-w-md">
-                <select [(ngModel)]="selectedPackageId" (ngModelChange)="onPackageChange()"
-                  class="w-full h-11 pl-10 pr-10 rounded-lg border-2 border-gray-300 bg-white text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer hover:border-gray-400 transition-colors">
-                  <option value="ALL">Tất cả câu hỏi</option>
-                  @for (pkg of packages(); track pkg.id) {
-                  <option [value]="pkg.id">
-                    {{ pkg.name }} ({{ pkg.questionCount }} câu)
+                <select [ngModel]="selectedBankId()" (ngModelChange)="selectedBankId.set($event); onBankChange()"
+                  class="w-full h-11 pl-10 pr-10 rounded-lg border-2 border-gray-300 bg-white text-sm font-medium focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2] appearance-none cursor-pointer hover:border-gray-400 transition-colors">
+                  <option value="ALL">Tat ca cau hoi</option>
+                  @for (bank of banks(); track bank.id) {
+                  <option [value]="bank.id">
+                    {{ bank.name }} ({{ bank.questionCount }} cau)
                   </option>
                   }
                 </select>
@@ -60,28 +58,28 @@
                   class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">expand_more</span>
               </div>
 
-              <button (click)="showCreatePackageModal = true"
-                class="flex items-center gap-2 h-11 px-4 rounded-lg border-2 border-blue-600 text-blue-600 text-sm font-semibold hover:bg-blue-50 transition-colors whitespace-nowrap">
+              <button (click)="showCreateBankModal.set(true)"
+                class="flex items-center gap-2 h-11 px-4 rounded-lg border-2 border-[#0056D2] text-[#0056D2] text-sm font-semibold hover:bg-blue-50 transition-colors whitespace-nowrap">
                 <span class="material-symbols-outlined text-base">add</span>
-                <span>Tạo gói</span>
+                <span>Tao ngan hang</span>
               </button>
 
-              @if (selectedPackage() && !selectedPackage()!.name.includes('Chưa phân loại')) {
-              <button (click)="showManagePackageMenu = !showManagePackageMenu"
-                class="flex items-center gap-1 h-11 px-3 rounded-lg border-2 border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors">
-                <span class="material-symbols-outlined text-base">more_vert</span>
-              </button>
-              }
-
-              <!-- Package menu dropdown -->
-              @if (showManagePackageMenu && selectedPackage()) {
-              <div class="absolute mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10"
-                style="top: 180px;">
-                <button (click)="deleteCurrentPackage(); showManagePackageMenu = false"
-                  class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2">
-                  <span class="material-symbols-outlined text-base">delete</span>
-                  <span>Xóa gói này</span>
+              @if (selectedBank()) {
+              <div class="relative">
+                <button (click)="showManageBankMenu.set(!showManageBankMenu())"
+                  class="flex items-center gap-1 h-11 px-3 rounded-lg border-2 border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors">
+                  <span class="material-symbols-outlined text-base">more_vert</span>
                 </button>
+
+                @if (showManageBankMenu()) {
+                <div class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                  <button (click)="archiveCurrentBank(); showManageBankMenu.set(false)"
+                    class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2">
+                    <span class="material-symbols-outlined text-base">archive</span>
+                    <span>Luu tru ngan hang</span>
+                  </button>
+                </div>
+                }
               </div>
               }
             </div>
@@ -89,171 +87,243 @@
             <!-- Right: Action buttons -->
             <div class="flex items-center gap-2">
               <!-- Import button -->
-              <button (click)="openImportModal()" [disabled]="!selectedPackage()"
+              <button (click)="openImportModal()" [disabled]="!selectedBank()"
                 class="flex items-center justify-center gap-2 h-11 px-4 rounded-lg border-2 border-green-600 text-green-600 text-sm font-semibold hover:bg-green-50 disabled:border-gray-300 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors whitespace-nowrap">
                 <span class="material-symbols-outlined text-base">upload_file</span>
-                <span>Tải file lên</span>
+                <span>Tai file len</span>
               </button>
 
               <!-- Add question button -->
               <button (click)="createNewQuestion()"
-                class="flex items-center justify-center gap-2 h-11 px-5 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors whitespace-nowrap">
+                class="flex items-center justify-center gap-2 h-11 px-5 rounded-lg bg-[#0056D2] text-white text-sm font-bold hover:bg-[#004BB5] disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors whitespace-nowrap">
                 <span class="material-symbols-outlined text-base">add</span>
-                <span>Thêm câu hỏi</span>
+                <span>Them cau hoi</span>
               </button>
             </div>
           </div>
 
-          <!-- Package info -->
-          @if (selectedPackage()) {
+          <!-- Bank info badges -->
+          @if (selectedBank()) {
           <div class="mt-4 flex flex-wrap items-center gap-3 text-sm">
-            <div class="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg">
+            <div class="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-[#004BB5] rounded-lg">
               <span class="material-symbols-outlined text-base">quiz</span>
-              <span class="font-medium">{{ selectedPackage()!.questionCount }} câu hỏi</span>
+              <span class="font-medium">{{ selectedBank()!.questionCount }} cau hoi</span>
             </div>
-            @if (selectedPackage()!.subject) {
+            <div class="flex items-center gap-2 px-3 py-1.5 bg-purple-50 text-purple-700 rounded-lg">
+              <span class="material-symbols-outlined text-base">category</span>
+              <span>{{ getBankTypeLabel(selectedBank()!.bankType) }}</span>
+            </div>
+            @if (selectedBank()!.subject) {
             <div class="flex items-center gap-2 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg">
               <span class="material-symbols-outlined text-base">book</span>
-              <span>{{ selectedPackage()!.subject }}</span>
+              <span>{{ selectedBank()!.subject }}</span>
             </div>
             }
             <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg"
-              [class]="selectedPackage()!.visibility === 'PUBLIC' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600'">
-              <span class="material-symbols-outlined text-base">{{ selectedPackage()!.visibility === 'PUBLIC' ? 'public'
+              [class]="selectedBank()!.visibility === 'PUBLIC' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600'">
+              <span class="material-symbols-outlined text-base">{{ selectedBank()!.visibility === 'PUBLIC' ? 'public'
                 : 'lock' }}</span>
-              <span>{{ selectedPackage()!.visibility === 'PUBLIC' ? 'Công khai' : 'Riêng tư' }}</span>
+              <span>{{ selectedBank()!.visibility === 'PUBLIC' ? 'Cong khai' : 'Rieng tu' }}</span>
             </div>
-            @if (selectedPackage()!.description) {
-            <p class="text-gray-600 ml-2">{{ selectedPackage()!.description }}</p>
+            @if (selectedBank()!.description) {
+            <p class="text-gray-600 ml-2">{{ selectedBank()!.description }}</p>
             }
           </div>
           }
         </div>
 
-        <!-- Filters -->
-        @if (selectedPackageId) {
-        <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div class="relative md:col-span-2">
-              <input type="text" [(ngModel)]="filters.search" (ngModelChange)="filterQuestions()"
-                class="w-full h-10 px-4 pl-10 rounded-lg border border-gray-300 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Tìm kiếm câu hỏi..." />
-              <span
-                class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
+        <!-- Two-column layout: Category sidebar + Questions -->
+        <div class="flex">
+          <!-- Category Sidebar (only when bank selected) -->
+          @if (selectedBank()) {
+          <div class="w-64 border-r border-gray-200 bg-gray-50 flex-shrink-0">
+            <div class="p-4">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Danh muc</h3>
+                <button (click)="showAddCategoryModal.set(true)"
+                  class="p-1 hover:bg-gray-200 rounded text-gray-500 hover:text-[#0056D2] transition-colors"
+                  title="Them danh muc">
+                  <span class="material-symbols-outlined text-sm">add</span>
+                </button>
+              </div>
+
+              <!-- "All" category option -->
+              <button (click)="onCategorySelect(null)"
+                class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors mb-1"
+                [class]="selectedCategoryId() === null ? 'bg-blue-100 text-blue-800' : 'text-gray-700 hover:bg-gray-200'">
+                <div class="flex items-center justify-between">
+                  <span>Tat ca</span>
+                  <span
+                    class="text-xs px-1.5 py-0.5 rounded-full bg-gray-200 text-gray-600">{{ selectedBank()!.questionCount }}</span>
+                </div>
+              </button>
+
+              <!-- Category tree (flat rendering with indentation) -->
+              @for (item of flatCategories(); track item.cat.id) {
+              <div class="flex items-center group">
+                <button (click)="onCategorySelect(item.cat.id)"
+                  class="flex-1 text-left px-3 py-2 rounded-lg text-sm transition-colors"
+                  [style.padding-left.px]="12 + item.depth * 16"
+                  [class]="selectedCategoryId() === item.cat.id ? 'bg-blue-100 text-blue-800 font-medium' : 'text-gray-700 hover:bg-gray-200'">
+                  <div class="flex items-center justify-between">
+                    <span class="truncate">{{ item.cat.name }}</span>
+                    <span
+                      class="text-xs px-1.5 py-0.5 rounded-full bg-gray-200 text-gray-600 flex-shrink-0 ml-2">{{ item.cat.questionCount }}</span>
+                  </div>
+                </button>
+                <button (click)="deleteCategory(item.cat.id, item.cat.name)"
+                  class="p-1 opacity-0 group-hover:opacity-100 hover:bg-red-100 rounded text-gray-400 hover:text-red-600 transition-all flex-shrink-0 mr-1"
+                  title="Xoa danh muc">
+                  <span class="material-symbols-outlined text-sm">close</span>
+                </button>
+              </div>
+              }
+
+              @if (flatCategories().length === 0) {
+              <p class="text-xs text-gray-400 px-3 py-2">Chua co danh muc nao</p>
+              }
             </div>
-            <select [(ngModel)]="filters.difficulty" (ngModelChange)="filterQuestions()"
-              class="h-10 px-4 rounded-lg border border-gray-300 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-              <option value="">Tất cả độ khó</option>
-              <option value="EASY">Dễ</option>
-              <option value="MEDIUM">Trung bình</option>
-              <option value="HARD">Khó</option>
-            </select>
+          </div>
+          }
+
+          <!-- Main content area -->
+          <div class="flex-1 min-w-0">
+            <!-- Filters -->
+            <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div class="relative md:col-span-2">
+                  <input type="text" [(ngModel)]="filters.search" (ngModelChange)="filterQuestions()"
+                    class="w-full h-10 px-4 pl-10 rounded-lg border border-gray-300 bg-white text-sm focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]"
+                    placeholder="Tim kiem cau hoi..." />
+                  <span
+                    class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
+                </div>
+                <select [(ngModel)]="filters.difficulty" (ngModelChange)="filterQuestions()"
+                  class="h-10 px-4 rounded-lg border border-gray-300 bg-white text-sm focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]">
+                  <option value="">Tat ca do kho</option>
+                  <option value="EASY">De</option>
+                  <option value="MEDIUM">Trung binh</option>
+                  <option value="HARD">Kho</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Empty state (no bank selected) -->
+            @if (selectedBankId() === 'ALL' && filteredQuestions().length === 0) {
+            <div class="p-16 text-center">
+              <span class="material-symbols-outlined text-gray-300" style="font-size: 80px;">folder_open</span>
+              <p class="text-gray-500 text-lg mt-4 mb-2">Chua co cau hoi nao</p>
+              <p class="text-gray-400 text-sm mb-6">Tao ngan hang moi hoac them cau hoi</p>
+              <button (click)="showCreateBankModal.set(true)"
+                class="inline-flex items-center gap-2 px-5 py-2.5 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] text-sm font-medium">
+                <span class="material-symbols-outlined text-base">add</span>
+                <span>Tao ngan hang dau tien</span>
+              </button>
+            </div>
+            }
+
+            <!-- Questions table -->
+            @if (filteredQuestions().length > 0 || (selectedBankId() !== 'ALL')) {
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm">
+                <thead class="bg-gray-50 text-gray-600 border-b border-gray-200">
+                  <tr>
+                    <th class="p-4 font-semibold">
+                      <input type="checkbox" [checked]="isAllSelected()" (change)="toggleSelectAll()"
+                        class="w-4 h-4 text-[#0056D2] border-gray-300 rounded focus:ring-2 focus:ring-[#0056D2]" />
+                    </th>
+                    <th class="p-3 align-middle font-semibold">Noi dung cau hoi</th>
+                    @if (selectedBank()) {
+                    <th class="px-4 py-3 align-middle font-semibold">Danh muc</th>
+                    }
+                    <th class="px-6 py-3 align-middle font-semibold">Chu de</th>
+                    <th class="px-4 py-3 align-middle font-semibold">Do kho</th>
+                    <th class="px-4 py-3 align-middle font-semibold">Ngay tao</th>
+                    <th class="px-4 py-3 align-middle font-semibold text-center tracking-wider w-35">Hanh dong</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                  @for (question of filteredQuestions(); track question.id) {
+                  <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="py-1 px-2">
+                      <input type="checkbox" [checked]="isQuestionSelected(question.id)"
+                        (change)="toggleQuestionSelection(question.id)"
+                        class="w-4 h-4 text-[#0056D2] border-gray-300 rounded focus:ring-2 focus:ring-[#0056D2]" />
+                    </td>
+                    <td class="py-1 px-2 text-gray-800 max-w-xl">
+                      <div class="line-clamp-2">{{ $any(question).content }}</div>
+                    </td>
+                    @if (selectedBank()) {
+                    <td class="py-1 px-2">
+                      <span
+                        class="inline-flex px-2.5 py-1 text-xs font-medium rounded-full bg-indigo-50 text-indigo-700">
+                        {{ getCategoryName($any(question).categoryId) }}
+                      </span>
+                    </td>
+                    }
+                    <td class="py-1 px-2 text-gray-600">
+                      <span class="inline-flex px-2.5 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-700">
+                        {{ $any(question).tags || 'Chua phan loai' }}
+                      </span>
+                    </td>
+                    <td class="py-2 px-2">
+                      <span class="inline-flex px-2.5 py-1 text-xs font-medium rounded-full" [ngClass]="{
+                                      'bg-green-100 text-green-800': question.difficulty === 'EASY',
+                                      'bg-yellow-100 text-yellow-800': question.difficulty === 'MEDIUM',
+                                      'bg-red-100 text-red-800': question.difficulty === 'HARD'
+                                    }">
+                        {{ getDifficultyLabel(question.difficulty) }}
+                      </span>
+                    </td>
+                    <td class="py-1 px-2 text-gray-600 whitespace-nowrap">{{ $any(question).createdAt | date:'dd/MM/yyyy'
+                      }}</td>
+                    <td class="py-1 px-2 text-center">
+                      <div class="flex justify-end gap-1 mr-2">
+                        <button (click)="editQuestion(question)"
+                          class="px-3 py-1.5 bg-blue-50 text-[#0056D2] hover:bg-blue-100 rounded-md transition-colors text-xs font-medium inline-flex items-center gap-1"
+                          title="Sua">
+                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
+                            </path>
+                          </svg>
+                          Sua
+                        </button>
+
+                        <button (click)="deleteQuestion(question)"
+                          class="px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-md transition-colors text-xs font-medium disabled:opacity-50 inline-flex items-center gap-1"
+                          title="Xoa">
+                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                            </path>
+                          </svg>
+                          Xoa
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  }
+                  @if (filteredQuestions().length === 0) {
+                  <tr>
+                    <td [attr.colspan]="selectedBank() ? 7 : 6" class="p-12 text-center">
+                      <div class="flex flex-col items-center gap-3">
+                        <span class="material-symbols-outlined text-gray-300" style="font-size: 56px;">quiz</span>
+                        <p class="text-gray-500 text-base">Khong tim thay cau hoi nao</p>
+                        <button (click)="createNewQuestion()"
+                          class="mt-2 px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] text-sm font-medium">
+                          Tao cau hoi dau tien
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            }
           </div>
         </div>
-        }
-
-        <!-- Empty state -->
-        @if (!selectedPackageId) {
-        <div class="p-16 text-center">
-          <span class="material-symbols-outlined text-gray-300" style="font-size: 80px;">folder_open</span>
-          <p class="text-gray-500 text-lg mt-4 mb-2">Chọn một gói câu hỏi để bắt đầu</p>
-          <p class="text-gray-400 text-sm mb-6">Hoặc tạo gói mới để tổ chức câu hỏi của bạn</p>
-          <button (click)="showCreatePackageModal = true"
-            class="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">
-            <span class="material-symbols-outlined text-base">add</span>
-            <span>Tạo gói đầu tiên</span>
-          </button>
-        </div>
-        }
-
-        <!-- Questions table -->
-        @if (selectedPackageId) {
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-sm">
-            <thead class="bg-gray-50 text-gray-600 border-b border-gray-200">
-              <tr>
-                <th class="p-4 font-semibold">
-                  <input type="checkbox" [checked]="isAllSelected()" (change)="toggleSelectAll()"
-                    class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500" />
-                </th>
-                <th class="p3 align-middle font-semibold">Nội dung câu hỏi</th>
-                <th class="px-6 py-3 align-middle font-semibold">Chủ đề</th>
-                <th class="px-4 py-3 align-middle font-semibold">Độ khó</th>
-                <th class="px-4 py-3 align-middle font-semibold">Ngày tạo</th>
-                <th class="px-4 py-3 align-middle font-semibold text-center tracking-wider w-35">Hành động</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200">
-              @for (question of filteredQuestions(); track question.id) {
-              <tr class="hover:bg-gray-50 transition-colors">
-                <td class="py-1 px-2">
-                  <input type="checkbox" [checked]="isQuestionSelected(question.id)"
-                    (change)="toggleQuestionSelection(question.id)"
-                    class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500" />
-                </td>
-                <td class="py-1 px-2 text-gray-800 max-w-xl">
-                  <div class="line-clamp-2">{{ question.content }}</div>
-                </td>
-                <td class="py-1 px-2 text-gray-600">
-                  <span class="inline-flex px-2.5 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-700">
-                    {{ question.tags || 'Chưa phân loại' }}
-                  </span>
-                </td>
-                <td class="py-2 px-2">
-                  <span class="inline-flex px-2.5 py-1 text-xs font-medium rounded-full" [ngClass]="{
-                                  'bg-green-100 text-green-800': question.difficulty === 'EASY', 
-                                  'bg-yellow-100 text-yellow-800': question.difficulty === 'MEDIUM', 
-                                  'bg-red-100 text-red-800': question.difficulty === 'HARD'
-                                }">
-                    {{ getDifficultyLabel(question.difficulty) }}
-                  </span>
-                </td>
-                <td class="py-1 px-2 text-gray-600 whitespace-nowrap">{{ question.createdAt | date:'dd/MM/yyyy' }}</td>
-                <td class="py-1 px-2 text-center">
-                  <div class="flex justify-end gap-1 mr-2">
-                    <button (click)="editQuestion(question)"
-                      class="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-md transition-colors text-xs font-medium inline-flex items-center gap-1"
-                      title="Sửa">
-                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
-                        </path>
-                      </svg>
-                      Sửa
-                    </button>
-
-                    <button (click)="deleteQuestion(question)"
-                      class="px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-md transition-colors text-xs font-medium disabled:opacity-50 inline-flex items-center gap-1"
-                      title="Xóa">
-                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
-                        </path>
-                      </svg>
-                      Xóa
-                    </button>
-                  </div>
-                </td>
-              </tr>
-              }
-              @if (filteredQuestions().length === 0) {
-              <tr>
-                <td colspan="6" class="p-12 text-center">
-                  <div class="flex flex-col items-center gap-3">
-                    <span class="material-symbols-outlined text-gray-300" style="font-size: 56px;">quiz</span>
-                    <p class="text-gray-500 text-base">Không tìm thấy câu hỏi nào</p>
-                    <button (click)="createNewQuestion()"
-                      class="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">
-                      Tạo câu hỏi đầu tiên
-                    </button>
-                  </div>
-                </td>
-              </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-        }
 
         <!-- Bulk actions bar -->
         @if (selectedQuestions().length > 0) {
@@ -261,11 +331,11 @@
           class="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-blue-50 border-2 border-blue-200 rounded-2xl px-6 py-4 shadow-lg flex items-center gap-6">
           <div class="flex items-center gap-2">
             <span
-              class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 text-white text-sm font-bold">
+              class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#0056D2] text-white text-sm font-bold">
               {{ selectedQuestions().length }}
             </span>
             <span class="text-sm font-medium text-blue-900">
-              câu hỏi đã chọn
+              cau hoi da chon
             </span>
           </div>
           <div class="flex gap-2">
@@ -274,18 +344,18 @@
             <button (click)="addSelectedToQuiz()" [disabled]="addingToQuiz()"
               class="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-bold transition-colors disabled:opacity-50">
               <span class="material-symbols-outlined text-base">add_circle</span>
-              <span>{{ addingToQuiz() ? 'Đang thêm...' : 'Thêm vào Quiz' }}</span>
+              <span>{{ addingToQuiz() ? 'Dang them...' : 'Them vao Quiz' }}</span>
             </button>
             }
-            <button (click)="showMoveModal = true"
-              class="flex items-center gap-2 px-4 py-2 bg-white border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 text-sm font-medium transition-colors">
+            <button (click)="openMoveModal()"
+              class="flex items-center gap-2 px-4 py-2 bg-white border-2 border-[#0056D2] text-[#0056D2] rounded-lg hover:bg-blue-50 text-sm font-medium transition-colors">
               <span class="material-symbols-outlined text-base">drive_file_move</span>
-              <span>Di chuyển</span>
+              <span>Di chuyen</span>
             </button>
             <button (click)="clearSelection()"
               class="flex items-center gap-2 px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors">
               <span class="material-symbols-outlined text-base">close</span>
-              <span>Bỏ chọn</span>
+              <span>Bo chon</span>
             </button>
           </div>
         </div>
@@ -295,58 +365,118 @@
   </main>
 </div>
 
-<!-- Modal: Create Package -->
-@if (showCreatePackageModal) {
+<!-- Modal: Create Bank -->
+@if (showCreateBankModal()) {
 <div class="fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity flex items-center justify-center z-50 p-4"
-  (click)="showCreatePackageModal = false">
+  (click)="showCreateBankModal.set(false)">
   <div class="bg-white rounded-xl p-6 w-full max-w-lg shadow-2xl" (click)="$event.stopPropagation()">
     <div class="flex items-center justify-between mb-6">
-      <h3 class="text-2xl font-bold text-gray-900">Tạo gói câu hỏi mới</h3>
-      <button (click)="showCreatePackageModal = false" class="p-1 hover:bg-gray-100 rounded-lg">
+      <h3 class="text-2xl font-bold text-gray-900">Tao ngan hang cau hoi</h3>
+      <button (click)="showCreateBankModal.set(false)" class="p-1 hover:bg-gray-100 rounded-lg">
         <span class="material-symbols-outlined text-gray-400">close</span>
       </button>
     </div>
 
-    <form (ngSubmit)="createPackage()" class="space-y-4">
+    <form (ngSubmit)="createBank()" class="space-y-4">
       <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-2">Tên gói <span
+        <label class="block text-sm font-semibold text-gray-700 mb-2">Ten ngan hang <span
             class="text-red-500">*</span></label>
-        <input type="text" [(ngModel)]="newPackage.name" name="name" required
-          class="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          placeholder="VD: Luật Hàng hải - Chương 1" />
+        <input type="text" [(ngModel)]="newBank.name" name="name" required
+          class="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]"
+          placeholder="VD: Luat Hang hai - Chuong 1" />
       </div>
 
       <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-2">Mô tả</label>
-        <textarea [(ngModel)]="newPackage.description" name="description" rows="3"
-          class="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          placeholder="Mô tả ngắn gọn về gói câu hỏi"></textarea>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">Mo ta</label>
+        <textarea [(ngModel)]="newBank.description" name="description" rows="3"
+          class="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]"
+          placeholder="Mo ta ngan ve ngan hang cau hoi"></textarea>
       </div>
 
       <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-2">Môn học</label>
-        <input type="text" [(ngModel)]="newPackage.subject" name="subject"
-          class="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          placeholder="VD: Luật Hàng hải" />
+        <label class="block text-sm font-semibold text-gray-700 mb-2">Mon hoc</label>
+        <input type="text" [(ngModel)]="newBank.subject" name="subject"
+          class="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]"
+          placeholder="VD: Luat Hang hai" />
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Loai ngan hang</label>
+          <select [(ngModel)]="newBank.bankType" name="bankType"
+            class="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]">
+            <option value="PERSONAL">Ca nhan</option>
+            <option value="DEPARTMENT">Khoa</option>
+            <option value="INSTITUTIONAL">Truong</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Hien thi</label>
+          <select [(ngModel)]="newBank.visibility" name="visibility"
+            class="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]">
+            <option value="PRIVATE">Rieng tu</option>
+            <option value="PUBLIC">Cong khai</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="flex gap-3 pt-4">
+        <button type="button" (click)="showCreateBankModal.set(false)"
+          class="flex-1 px-4 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors">
+          Huy
+        </button>
+        <button type="submit"
+          class="flex-1 px-4 py-2.5 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] font-medium transition-colors">
+          Tao ngan hang
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+}
+
+<!-- Modal: Add Category -->
+@if (showAddCategoryModal()) {
+<div class="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+  (click)="showAddCategoryModal.set(false)">
+  <div class="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl" (click)="$event.stopPropagation()">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-xl font-bold text-gray-900">Them danh muc</h3>
+      <button (click)="showAddCategoryModal.set(false)" class="p-1 hover:bg-gray-100 rounded-lg">
+        <span class="material-symbols-outlined text-gray-400">close</span>
+      </button>
+    </div>
+
+    <form (ngSubmit)="addCategory()" class="space-y-4">
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">Ten danh muc <span
+            class="text-red-500">*</span></label>
+        <input type="text" [(ngModel)]="newCategoryName" name="catName" required
+          class="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]"
+          placeholder="VD: Chuong 1 - Khai niem" />
       </div>
 
       <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-2">Hiển thị</label>
-        <select [(ngModel)]="newPackage.visibility" name="visibility"
-          class="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-          <option value="PRIVATE">Riêng tư (chỉ mình tôi)</option>
-          <option value="PUBLIC">Công khai (mọi người xem được)</option>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">Danh muc cha (tuy chon)</label>
+        <select [(ngModel)]="newCategoryParentId" name="parentId"
+          class="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]">
+          <option [ngValue]="null">-- Goc (khong co cha) --</option>
+          @for (item of flatCategories(); track item.cat.id) {
+          <option [ngValue]="item.cat.id">
+            {{ '&nbsp;'.repeat(item.depth * 2) }}{{ item.depth > 0 ? '└ ' : '' }}{{ item.cat.name }}
+          </option>
+          }
         </select>
       </div>
 
       <div class="flex gap-3 pt-4">
-        <button type="button" (click)="showCreatePackageModal = false"
+        <button type="button" (click)="showAddCategoryModal.set(false)"
           class="flex-1 px-4 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors">
-          Hủy
+          Huy
         </button>
         <button type="submit"
-          class="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors">
-          Tạo gói
+          class="flex-1 px-4 py-2.5 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] font-medium transition-colors">
+          Them danh muc
         </button>
       </div>
     </form>
@@ -355,50 +485,62 @@
 }
 
 <!-- Modal: Move Questions -->
-@if (showMoveModal) {
-<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-  (click)="showMoveModal = false">
+@if (showMoveModal()) {
+<div class="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+  (click)="showMoveModal.set(false)">
   <div class="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl" (click)="$event.stopPropagation()">
     <div class="flex items-center justify-between mb-4">
-      <h3 class="text-xl font-bold text-gray-900">Di chuyển câu hỏi</h3>
-      <button (click)="showMoveModal = false" class="p-1 hover:bg-gray-100 rounded-lg">
+      <h3 class="text-xl font-bold text-gray-900">Di chuyen cau hoi</h3>
+      <button (click)="showMoveModal.set(false)" class="p-1 hover:bg-gray-100 rounded-lg">
         <span class="material-symbols-outlined text-gray-400">close</span>
       </button>
     </div>
 
     <p class="text-sm text-gray-600 mb-4">
-      Chọn gói đích để di chuyển <span class="font-semibold text-blue-600">{{ selectedQuestions().length
-        }}</span> câu hỏi
+      Di chuyen <span class="font-semibold text-[#0056D2]">{{ selectedQuestions().length }}</span> cau hoi den ngan hang
+      khac
     </p>
 
-    <div class="space-y-2 max-h-96 overflow-y-auto mb-4">
-      @for (pkg of packages(); track pkg.id) {
-      <button [disabled]="pkg.id === selectedPackage()?.id" (click)="moveQuestionsToPackage(pkg.id)"
-        class="w-full text-left p-4 rounded-lg border-2 transition-all" [class]="pkg.id === selectedPackage()?.id
-                  ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-50'
-                  : 'border-gray-200 hover:border-blue-500 hover:bg-blue-50'">
-        <div class="flex items-center justify-between">
-          <div class="flex-1 min-w-0">
-            <div class="font-semibold text-sm text-gray-900 truncate">{{ pkg.name }}</div>
-            <div class="flex items-center gap-2 mt-1">
-              <span class="text-xs text-gray-500">{{ pkg.questionCount }} câu hỏi</span>
-              @if (pkg.subject) {
-              <span class="text-xs text-gray-400">â€¢ {{ pkg.subject }}</span>
-              }
-            </div>
-          </div>
-          @if (pkg.id !== selectedPackage()?.id) {
-          <span class="material-symbols-outlined text-gray-400">arrow_forward</span>
-          }
-        </div>
-      </button>
-      }
+    <!-- Target bank selector -->
+    <div class="mb-4">
+      <label class="block text-sm font-semibold text-gray-700 mb-2">Ngan hang dich</label>
+      <select [(ngModel)]="moveBankId" (ngModelChange)="onMoveBankSelect($event)" name="moveBankId"
+        class="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]">
+        <option value="">-- Chon ngan hang --</option>
+        @for (bank of banks(); track bank.id) {
+        <option [value]="bank.id" [disabled]="bank.id === selectedBank()?.id">
+          {{ bank.name }} ({{ bank.questionCount }} cau){{ bank.id === selectedBank()?.id ? ' - Hien tai' : '' }}
+        </option>
+        }
+      </select>
     </div>
 
-    <button (click)="showMoveModal = false"
-      class="w-full px-4 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors">
-      Đóng
-    </button>
+    <!-- Target category selector (appears after selecting bank) -->
+    @if (moveBankId && moveBankCategories().length > 0) {
+    <div class="mb-4">
+      <label class="block text-sm font-semibold text-gray-700 mb-2">Danh muc dich (tuy chon)</label>
+      <select [(ngModel)]="moveCategoryId" name="moveCategoryId"
+        class="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]">
+        <option [ngValue]="null">-- Khong chon danh muc --</option>
+        @for (item of moveBankCategories(); track item.cat.id) {
+        <option [ngValue]="item.cat.id">
+          {{ item.depth > 0 ? '└ ' : '' }}{{ item.cat.name }} ({{ item.cat.questionCount }})
+        </option>
+        }
+      </select>
+    </div>
+    }
+
+    <div class="flex gap-3 pt-2">
+      <button type="button" (click)="showMoveModal.set(false)"
+        class="flex-1 px-4 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors">
+        Huy
+      </button>
+      <button (click)="moveQuestionsToBank()" [disabled]="!moveBankId"
+        class="flex-1 px-4 py-2.5 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] font-medium transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed">
+        Di chuyen
+      </button>
+    </div>
   </div>
 </div>
 }

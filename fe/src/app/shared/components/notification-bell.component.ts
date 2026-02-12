@@ -88,7 +88,9 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
   onNotificationClick(notification: Notification): void {
     // Mark as read
     if (!notification.isRead) {
-      this.notificationService.markAsRead(notification.id).subscribe();
+      this.notificationService.markAsRead(notification.id).subscribe({
+        error: () => {} // Non-blocking — UI already updated
+      });
     }
 
     // Navigate to action URL
@@ -101,7 +103,9 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
   }
 
   markAllAsRead(): void {
-    this.notificationService.markAllAsRead().subscribe();
+    this.notificationService.markAllAsRead().subscribe({
+      error: () => {} // Non-blocking — UI already updated
+    });
   }
 
   viewAllNotifications(): void {

@@ -12,7 +12,7 @@ import { SectionEditorState, LessonItem, QuizQuestion } from '../../state/sectio
       <div class="flex items-center justify-between">
         <h3 class="text-lg font-semibold text-gray-900">Thông tin bài trắc nghiệm</h3>
         <button (click)="previewQuiz.emit()"
-                class="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors flex items-center gap-2">
+                class="px-4 py-2 bg-[#0056D2] text-white text-sm rounded hover:bg-[#004BB5] transition-colors flex items-center gap-2">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -27,11 +27,11 @@ import { SectionEditorState, LessonItem, QuizQuestion } from '../../state/sectio
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm text-gray-500">Thời gian</p>
-              <p class="text-2xl font-bold text-blue-600 mt-1">{{ lesson()?.quizTimeLimit || 30 }}</p>
+              <p class="text-2xl font-bold text-[#0056D2] mt-1">{{ lesson()?.quizTimeLimit || 30 }}</p>
               <p class="text-xs text-gray-400">phút</p>
             </div>
             <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
-              <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-5 h-5 text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
               </svg>
             </div>
@@ -101,7 +101,7 @@ import { SectionEditorState, LessonItem, QuizQuestion } from '../../state/sectio
               </svg>
             </button>
             <button (click)="addQuestions.emit()"
-                    class="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors flex items-center gap-2">
+                    class="px-4 py-2 bg-[#0056D2] text-white text-sm rounded hover:bg-[#004BB5] transition-colors flex items-center gap-2">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
               </svg>
@@ -130,7 +130,7 @@ import { SectionEditorState, LessonItem, QuizQuestion } from '../../state/sectio
               <h4 class="text-lg font-medium text-gray-900 mb-1">Chưa có câu hỏi</h4>
               <p class="text-gray-500 text-sm mb-4">Thêm câu hỏi từ ngân hàng câu hỏi để bắt đầu</p>
               <button (click)="addQuestions.emit()"
-                      class="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2">
+                      class="px-4 py-2 bg-[#0056D2] text-white text-sm rounded-lg hover:bg-[#004BB5] transition-colors inline-flex items-center gap-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                 </svg>
@@ -147,7 +147,7 @@ import { SectionEditorState, LessonItem, QuizQuestion } from '../../state/sectio
               <div class="p-4 hover:bg-gray-50 transition-colors">
                 <div class="flex items-start gap-4">
                   <!-- Number Badge -->
-                  <div class="flex-shrink-0 w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-semibold text-sm">
+                  <div class="flex-shrink-0 w-8 h-8 rounded-lg bg-blue-100 text-[#004BB5] flex items-center justify-center font-semibold text-sm">
                     {{ i + 1 }}
                   </div>
 

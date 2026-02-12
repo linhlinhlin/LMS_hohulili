@@ -3,6 +3,7 @@ package com.example.lms.assessment.domain.model;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -72,6 +73,8 @@ public class QuizAttempt {
     public enum AttemptStatus {
         IN_PROGRESS,
         SUBMITTED,
+        GRADED,
+        EXPIRED,
         TIMEOUT
     }
 
@@ -107,6 +110,16 @@ public class QuizAttempt {
         // For pure DDD, we can store 'answers' here and let a Domain Service calculate score.
     }
     
+    /**
+     * Marks this attempt as timed out.
+     * Called when server detects elapsed time exceeds the quiz time limit + grace period.
+     * Grading still proceeds to give partial credit for submitted answers.
+     */
+    public void markTimeout() {
+        this.endTime = Instant.now();
+        this.status = AttemptStatus.TIMEOUT;
+    }
+
     // Simplification: Let UseCase grade it and update the Attempt
     public void finishGrading(Double score, Boolean isPassed) {
         this.score = score;
@@ -127,13 +140,17 @@ public class QuizAttempt {
     
     public static class AttemptItem {
         private UUID questionId;
-        private String selectedOption;
+        private String selectedOption; // Legacy: kept for backward compat with existing data
+        private Map<String, Object> studentAnswer; // New: flexible answer format (JSONB)
         private Boolean isCorrect;
+        private Double pointsEarned;
 
-        private AttemptItem(UUID questionId, String selectedOption, Boolean isCorrect) {
+        private AttemptItem(UUID questionId, String selectedOption, Map<String, Object> studentAnswer, Boolean isCorrect, Double pointsEarned) {
             this.questionId = questionId;
             this.selectedOption = selectedOption;
+            this.studentAnswer = studentAnswer;
             this.isCorrect = isCorrect;
+            this.pointsEarned = pointsEarned;
         }
 
         public static Builder builder() {
@@ -143,29 +160,37 @@ public class QuizAttempt {
         public static class Builder {
             private UUID questionId;
             private String selectedOption;
+            private Map<String, Object> studentAnswer;
             private Boolean isCorrect;
+            private Double pointsEarned;
 
             public Builder questionId(UUID questionId) { this.questionId = questionId; return this; }
             public Builder selectedOption(String selectedOption) { this.selectedOption = selectedOption; return this; }
+            public Builder studentAnswer(Map<String, Object> studentAnswer) { this.studentAnswer = studentAnswer; return this; }
             public Builder isCorrect(Boolean isCorrect) { this.isCorrect = isCorrect; return this; }
+            public Builder pointsEarned(Double pointsEarned) { this.pointsEarned = pointsEarned; return this; }
 
             public AttemptItem build() {
-                return new AttemptItem(questionId, selectedOption, isCorrect);
+                return new AttemptItem(questionId, selectedOption, studentAnswer, isCorrect, pointsEarned);
             }
         }
 
         public UUID getQuestionId() { return questionId; }
         public String getSelectedOption() { return selectedOption; }
+        public Map<String, Object> getStudentAnswer() { return studentAnswer; }
         public Boolean getIsCorrect() { return isCorrect; }
+        public Double getPointsEarned() { return pointsEarned; }
     }
     
     public static class AttemptAnswer {
         private UUID questionId;
-        private String selectedOption;
+        private String selectedOption; // Legacy: single choice backward compat
+        private Map<String, Object> studentAnswer; // New: flexible answer format
 
-        private AttemptAnswer(UUID questionId, String selectedOption) {
+        private AttemptAnswer(UUID questionId, String selectedOption, Map<String, Object> studentAnswer) {
             this.questionId = questionId;
             this.selectedOption = selectedOption;
+            this.studentAnswer = studentAnswer;
         }
 
         public static Builder builder() {
@@ -175,16 +200,31 @@ public class QuizAttempt {
         public static class Builder {
             private UUID questionId;
             private String selectedOption;
+            private Map<String, Object> studentAnswer;
 
             public Builder questionId(UUID questionId) { this.questionId = questionId; return this; }
             public Builder selectedOption(String selectedOption) { this.selectedOption = selectedOption; return this; }
+            public Builder studentAnswer(Map<String, Object> studentAnswer) { this.studentAnswer = studentAnswer; return this; }
 
             public AttemptAnswer build() {
-                return new AttemptAnswer(questionId, selectedOption);
+                return new AttemptAnswer(questionId, selectedOption, studentAnswer);
             }
         }
 
         public UUID getQuestionId() { return questionId; }
         public String getSelectedOption() { return selectedOption; }
+        public Map<String, Object> getStudentAnswer() { return studentAnswer; }
+
+        /** Get the effective answer - prefer studentAnswer, fall back to selectedOption for legacy data */
+        public Map<String, Object> getEffectiveAnswer() {
+            if (studentAnswer != null && !studentAnswer.isEmpty()) {
+                return studentAnswer;
+            }
+            // Legacy: wrap selectedOption into map
+            if (selectedOption != null) {
+                return Map.of("selectedOption", selectedOption);
+            }
+            return Map.of();
+        }
     }
 }

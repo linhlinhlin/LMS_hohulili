@@ -30,7 +30,7 @@ import { UserManagementState } from '../../state/user-management.state';
                 <input type="text"
                        [ngModel]="state.editingUserName()"
                        (ngModelChange)="state.editingUserName.set($event)"
-                       class="w-full px-3 py-2.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                       class="w-full px-3 py-2.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-transparent transition-all">
               </div>
 
               <div>
@@ -38,14 +38,14 @@ import { UserManagementState } from '../../state/user-management.state';
                 <input type="email"
                        [ngModel]="state.editingUserEmail()"
                        (ngModelChange)="state.editingUserEmail.set($event)"
-                       class="w-full px-3 py-2.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                       class="w-full px-3 py-2.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-transparent transition-all">
               </div>
 
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Vai trò</label>
                 <select [ngModel]="state.editingUserRole()"
                         (ngModelChange)="state.editingUserRole.set($event)"
-                        class="w-full px-3 py-2.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white">
+                        class="w-full px-3 py-2.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-transparent transition-all bg-white">
                   @for (roleOpt of state.ROLE_OPTIONS; track roleOpt.value) {
                     <option [value]="roleOpt.value">{{ roleOpt.label }}</option>
                   }
@@ -62,7 +62,7 @@ import { UserManagementState } from '../../state/user-management.state';
               </button>
               <button (click)="state.saveUserEdit()"
                       type="button"
-                      class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700 transition-colors">
+                      class="px-4 py-2 text-sm font-medium text-white bg-[#0056D2] rounded hover:bg-[#004BB5] transition-colors">
                 Lưu thay đổi
               </button>
             </div>

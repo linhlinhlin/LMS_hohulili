@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -19,12 +20,14 @@ import java.util.UUID;
  */
 @Component
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class CourseRepositoryImpl implements CourseRepository {
 
     private final JpaCourseRepository jpaRepository;
     private final CourseEntityMapper mapper;
 
     @Override
+    @Transactional
     public Course save(Course course) {
         CourseJpaEntity entity = mapper.toEntity(course);
         CourseJpaEntity saved = jpaRepository.save(entity);
@@ -52,6 +55,7 @@ public class CourseRepositoryImpl implements CourseRepository {
     }
 
     @Override
+    @Transactional
     public void delete(Course course) {
         if (course != null && course.getId() != null) {
             jpaRepository.deleteById(course.getId());
@@ -59,6 +63,7 @@ public class CourseRepositoryImpl implements CourseRepository {
     }
 
     @Override
+    @Transactional
     public void deleteById(UUID id) {
         jpaRepository.deleteById(id);
     }
@@ -142,6 +147,18 @@ public class CourseRepositoryImpl implements CourseRepository {
                 .map(mapper::toDomain);
     }
 
+    @Override
+    public Page<Course> findByTitleContaining(String search, Pageable pageable) {
+        return jpaRepository.findByTitleContaining(search, pageable)
+                .map(mapper::toDomain);
+    }
+
+    @Override
+    public int findMaxSequenceNumberByPrefix(String prefix) {
+        Integer max = jpaRepository.findMaxSequenceNumberByPrefix(prefix);
+        return max != null ? max : 0;
+    }
+
     /**
      * Helper to map domain status to entity status for queries.
      */
@@ -152,8 +169,6 @@ public class CourseRepositoryImpl implements CourseRepository {
             case PENDING -> CourseJpaEntity.CourseStatus.PENDING;
             case APPROVED -> CourseJpaEntity.CourseStatus.APPROVED;
             case REJECTED -> CourseJpaEntity.CourseStatus.REJECTED;
-            case PUBLISHED -> CourseJpaEntity.CourseStatus.PUBLISHED;
-            case ARCHIVED -> CourseJpaEntity.CourseStatus.ARCHIVED;
         };
     }
 }

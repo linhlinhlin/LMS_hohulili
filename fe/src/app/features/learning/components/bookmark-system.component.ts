@@ -1,8 +1,9 @@
-﻿import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
+﻿import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { ConfirmDialogService } from '../../../core/services/confirm-dialog.service';
 
 interface Bookmark {
   id: string;
@@ -43,96 +44,18 @@ interface BookmarkFilter {
 @Component({
   selector: 'app-bookmark-system',
   imports: [FormsModule, RouterModule],
-  encapsulation: ViewEncapsulation.None,
   templateUrl: './bookmark-system.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class BookmarkSystemComponent implements OnInit {
   protected authService = inject(AuthService);
   private router = inject(Router);
+  private confirmDialog = inject(ConfirmDialogService);
 
-  // Mock bookmarks data
-  bookmarks = signal<Bookmark[]>([
-    {
-      id: 'bookmark-1',
-      title: 'Cấu trúc tàu container - Video bài giảng',
-      description: 'Video giải thích chi tiết về cấu trúc tàu container và các thành phần chính',
-      url: '/learn/course/course-1/lesson/lesson-1',
-      courseId: 'course-1',
-      courseName: 'Kỹ thuật Tàu biển Cơ bản',
-      lessonId: 'lesson-1',
-      lessonTitle: 'Cấu trúc tàu biển',
-      timestamp: 1250, // 20:50
-      type: 'video',
-      tags: ['cấu trúc', 'container', 'video'],
-      isPublic: false,
-      createdAt: new Date('2024-09-10'),
-      updatedAt: new Date('2024-09-15'),
-      thumbnail: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400&h=200&fit=crop'
-    },
-    {
-      id: 'bookmark-2',
-      title: 'Quy định STCW - Tài liệu PDF',
-      description: 'Tài liệu chi tiết về các quy định STCW và yêu cầu đào tạo thuyền viên',
-      url: '/documents/stcw-regulations.pdf',
-      courseId: 'course-2',
-      courseName: 'An toàn Hàng hải',
-      lessonId: 'lesson-2',
-      lessonTitle: 'Quy định quốc tế',
-      type: 'document',
-      tags: ['STCW', 'quy định', 'PDF'],
-      isPublic: true,
-      createdAt: new Date('2024-09-08'),
-      updatedAt: new Date('2024-09-12')
-    },
-    {
-      id: 'bookmark-3',
-      title: 'Quiz An toàn Hàng hải',
-      description: 'Bài kiểm tra kiến thức về an toàn hàng hải với 20 câu hỏi',
-      url: '/learn/quiz/quiz-1',
-      courseId: 'course-2',
-      courseName: 'An toàn Hàng hải',
-      lessonId: 'lesson-3',
-      lessonTitle: 'Kiểm tra kiến thức',
-      type: 'quiz',
-      tags: ['quiz', 'kiểm tra', 'an toàn'],
-      isPublic: false,
-      createdAt: new Date('2024-09-05'),
-      updatedAt: new Date('2024-09-10')
-    },
-    {
-      id: 'bookmark-4',
-      title: 'IMO Guidelines - External Link',
-      description: 'Hướng dẫn của Tổ chức Hàng hải Quốc tế về an toàn hàng hải',
-      url: 'https://www.imo.org/en/OurWork/Safety/Pages/Default.aspx',
-      courseId: 'course-2',
-      courseName: 'An toàn Hàng hải',
-      type: 'external',
-      tags: ['IMO', 'hướng dẫn', 'quốc tế'],
-      isPublic: true,
-      createdAt: new Date('2024-09-03'),
-      updatedAt: new Date('2024-09-08')
-    }
-  ]);
+  // Bookmarks — loaded from API when backend support is available
+  bookmarks = signal<Bookmark[]>([]);
 
-  folders = signal<BookmarkFolder[]>([
-    {
-      id: 'folder-1',
-      name: 'An toàn hàng hải',
-      description: 'Các dấu trang liên quan đến an toàn hàng hải',
-      bookmarks: ['bookmark-2', 'bookmark-3', 'bookmark-4'],
-      color: '#3B82F6',
-      createdAt: new Date('2024-09-01')
-    },
-    {
-      id: 'folder-2',
-      name: 'Kỹ thuật tàu',
-      description: 'Các dấu trang về kỹ thuật tàu biển',
-      bookmarks: ['bookmark-1'],
-      color: '#10B981',
-      createdAt: new Date('2024-09-02')
-    }
-  ]);
+  folders = signal<BookmarkFolder[]>([]);
 
   filters: BookmarkFilter = {
     type: [],
@@ -294,8 +217,14 @@ export class BookmarkSystemComponent implements OnInit {
     // Navigate to bookmark editor
   }
 
-  deleteBookmark(bookmarkId: string): void {
-    if (confirm('Bạn có chắc chắn muốn xóa dấu trang này?')) {
+  async deleteBookmark(bookmarkId: string): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Xóa dấu trang',
+      message: 'Bạn có chắc chắn muốn xóa dấu trang này?',
+      confirmText: 'Xóa',
+      variant: 'danger'
+    });
+    if (confirmed) {
       this.bookmarks.update(bookmarks => bookmarks.filter(bookmark => bookmark.id !== bookmarkId));
     }
   }

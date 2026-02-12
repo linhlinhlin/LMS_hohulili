@@ -1,8 +1,9 @@
 import { Component, input, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { IconComponent, IconName } from '../../../../shared/components/icon/icon.component';
 
 export interface TrendCard {
-  icon?: string;
+  icon?: IconName;
   title: string;
   highlight?: string;
   description: string;
@@ -11,7 +12,7 @@ export interface TrendCard {
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-category-trends',
-  imports: [CommonModule],
+  imports: [CommonModule, IconComponent],
   template: `
     <section class="py-16 bg-white" role="region" [attr.aria-label]="'Xu hướng ngành: ' + title()">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -27,8 +28,8 @@ export interface TrendCard {
             <div class="rounded-2xl p-8" [ngClass]="containerBgClass()" role="listitem" [attr.aria-label]="'Xu hướng: ' + card.title">
               <div class="flex items-center space-x-3 mb-4">
                 @if (card.icon) {
-                  <div class="w-12 h-12 rounded-lg flex items-center justify-center text-white text-xl" [ngClass]="iconBgClass()" aria-hidden="true">
-                    <span>{{ card.icon }}</span>
+                  <div class="w-12 h-12 rounded-lg flex items-center justify-center text-white" [ngClass]="iconBgClass()" aria-hidden="true">
+                    <app-icon [name]="card.icon!" size="md" class="text-white"/>
                   </div>
                 }
                 <div>
@@ -59,7 +60,7 @@ export class CategoryTrendsComponent {
       case 'indigo': return 'text-indigo-700';
       case 'rose': return 'text-rose-700';
       case 'cyan': return 'text-cyan-700';
-      default: return 'text-blue-600';
+      default: return 'text-[#0056D2]';
     }
   });
 
@@ -70,7 +71,7 @@ export class CategoryTrendsComponent {
       case 'indigo': return 'bg-indigo-500';
       case 'rose': return 'bg-rose-500';
       case 'cyan': return 'bg-cyan-500';
-      default: return 'bg-blue-500';
+      default: return 'bg-[#0056D2]';
     }
   });
 

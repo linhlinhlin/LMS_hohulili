@@ -1,10 +1,11 @@
-﻿import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, signal, OnInit, computed } from '@angular/core';
+﻿import { Component, ChangeDetectionStrategy, inject, signal, OnInit, computed } from '@angular/core';
 
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AssignmentApi, SubmissionSummary, SubmissionGrade } from '../../../api/client/assignment.api';
 import { isLateSubmission, formatLateDuration, LateSubmissionResult } from './utils/submission-utils';
 import { validateGrade } from './utils/assignment-validators';
+import { ToastService } from '../../../core/services/toast.service';
 
 /** Helper to extract numeric score from grade */
 function getGradeScore(grade: number | SubmissionGrade | undefined): number | undefined {
@@ -56,7 +57,6 @@ interface AssignmentDetail {
 @Component({
   selector: 'app-assignment-submissions',
   imports: [RouterLink, ReactiveFormsModule],
-  encapsulation: ViewEncapsulation.None,
   templateUrl: './assignment-submissions.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -64,6 +64,7 @@ export class AssignmentSubmissionsComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private assignmentApi = inject(AssignmentApi);
   private fb = inject(FormBuilder);
+  private toast = inject(ToastService);
 
   // Route params
   assignmentId = '';
@@ -101,42 +102,42 @@ export class AssignmentSubmissionsComponent implements OnInit {
 
   private loadData(): void {
     this.loading.set(true);
-    // Load mock data for now - replace with real API
-    setTimeout(() => {
-      this.assignment.set({
-        id: this.assignmentId,
-        title: 'Bài tập An toàn Hàng hải - Chương 1',
-        description: 'Phân tích các quy định SOLAS',
-        instructions: 'Nộp báo cáo PDF và bản đồ hàng hải',
-        dueDate: '2025-12-20T23:59:59Z',
-        maxScore: 100,
-        status: 'PUBLISHED',
-        submissionCount: 3,
-        totalStudents: 5,
-        courseTitle: 'An toàn Hàng hải Cơ bản'
-      });
-      this.submissions.set([
-        {
-          id: '1', studentId: 's1', studentName: 'Nguyễn Văn A', studentEmail: 'nva@email.com',
-          submittedAt: '2025-12-18T14:30:00Z', status: 'graded', grade: 85, feedback: 'Tốt',
-          content: 'Báo cáo phân tích SOLAS...', attachments: [
-            { id: 'f1', fileName: 'baocao.pdf', fileUrl: '/uploads/baocao.pdf', mimeType: 'application/pdf' }
-          ]
-        },
-        {
-          id: '2', studentId: 's2', studentName: 'Trần Thị B', studentEmail: 'ttb@email.com',
-          submittedAt: '2025-12-21T10:00:00Z', status: 'late', content: 'Bài nộp muộn', attachments: []
-        },
-        {
-          id: '3', studentId: 's3', studentName: 'Lê Văn C', studentEmail: 'lvc@email.com',
-          submittedAt: '2025-12-19T16:00:00Z', status: 'pending', content: 'Đang chờ chấm', attachments: [
-            { id: 'f2', fileName: 'chart.png', fileUrl: '/uploads/chart.png', mimeType: 'image/png',
-              metadata: { scale: '1:50000', captureDate: '2025-12-01' } }
-          ]
+    // Load assignment details
+    this.assignmentApi.getAssignmentById(this.assignmentId).subscribe({
+      next: (res) => {
+        const detail = res.data;
+        if (detail) {
+          this.assignment.set({
+            id: detail.id,
+            title: detail.title,
+            description: detail.description || '',
+            instructions: detail.instructions || '',
+            dueDate: detail.dueDate,
+            maxScore: detail.maxScore || 100,
+            status: detail.status,
+            submissionCount: detail.submissionsCount || 0,
+            totalStudents: detail.totalStudents || 0,
+            courseTitle: detail.courseTitle
+          });
         }
-      ]);
-      this.loading.set(false);
-    }, 500);
+        // Load submissions
+        this.assignmentApi.getSubmissionsByAssignment(this.assignmentId).subscribe({
+          next: (subRes) => {
+            const subs = subRes.data || [];
+            this.submissions.set(subs as AssignmentSubmission[]);
+            this.loading.set(false);
+          },
+          error: () => {
+            this.toast.error('Không thể tải danh sách bài nộp.');
+            this.loading.set(false);
+          }
+        });
+      },
+      error: () => {
+        this.toast.error('Không thể tải thông tin bài tập.');
+        this.loading.set(false);
+      }
+    });
   }
 
   onFilterChange(event: Event): void {
@@ -175,14 +176,24 @@ export class AssignmentSubmissionsComponent implements OnInit {
     if (!validation.isValid) return;
 
     this.savingGrade.set(true);
-    // Mock save - replace with API
-    setTimeout(() => {
-      this.submissions.update((list: AssignmentSubmission[]) => list.map((s: AssignmentSubmission) =>
-        s.id === submission.id ? { ...s, grade, feedback, status: 'graded' as const } : s
-      ));
-      this.savingGrade.set(false);
-      this.closeGradingModal();
-    }, 500);
+    this.assignmentApi.gradeSubmission(submission.id, {
+      score: grade,
+      maxScore: this.assignment()?.maxScore || 100,
+      feedback
+    }).subscribe({
+      next: () => {
+        this.submissions.update((list: AssignmentSubmission[]) => list.map((s: AssignmentSubmission) =>
+          s.id === submission.id ? { ...s, grade, feedback, status: 'graded' as const } : s
+        ));
+        this.toast.success('Chấm điểm thành công.');
+        this.savingGrade.set(false);
+        this.closeGradingModal();
+      },
+      error: () => {
+        this.toast.error('Chấm điểm thất bại. Vui lòng thử lại.');
+        this.savingGrade.set(false);
+      }
+    });
   }
 
   closeGradingModal(): void {
@@ -208,7 +219,7 @@ export class AssignmentSubmissionsComponent implements OnInit {
         a.click();
         window.URL.revokeObjectURL(url);
       },
-      error: () => {}
+      error: () => { this.toast.error('Không thể xuất danh sách bài nộp. Vui lòng thử lại.'); }
     });
   }
 

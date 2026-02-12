@@ -1,8 +1,11 @@
-﻿import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
+﻿import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
+import { ConfirmDialogService } from '../../core/services/confirm-dialog.service';
+import { ToastService } from '../../core/services/toast.service';
+import { IconComponent, IconName } from '../../shared/components/icon/icon.component';
 
 interface ProfileEdit {
   fullName: string;
@@ -48,19 +51,20 @@ interface StudyDay {
 interface SocialPlatform {
   value: string;
   label: string;
-  icon: string;
+  icon: IconName;
 }
 
 @Component({
   selector: 'app-profile-edit',
-  imports: [RouterModule, FormsModule],
-  encapsulation: ViewEncapsulation.None,
+  imports: [RouterModule, FormsModule, IconComponent],
   templateUrl: './profile-edit.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ProfileEditComponent implements OnInit {
   protected authService = inject(AuthService);
   private router = inject(Router);
+  private confirmDialog = inject(ConfirmDialogService);
+  private toast = inject(ToastService);
 
   // Component state
   profile = signal<ProfileEdit>({
@@ -140,12 +144,12 @@ export class ProfileEditComponent implements OnInit {
   ]);
 
   socialPlatforms = signal<SocialPlatform[]>([
-    { value: 'linkedin', label: 'LinkedIn', icon: 'đŸ’¼' },
-    { value: 'facebook', label: 'Facebook', icon: 'đŸ“˜' },
-    { value: 'twitter', label: 'Twitter', icon: 'đŸ¦' },
-    { value: 'instagram', label: 'Instagram', icon: 'đŸ“·' },
-    { value: 'youtube', label: 'YouTube', icon: 'đŸ“º' },
-    { value: 'github', label: 'GitHub', icon: 'đŸ’»' }
+    { value: 'linkedin', label: 'LinkedIn', icon: 'briefcase' },
+    { value: 'facebook', label: 'Facebook', icon: 'book' },
+    { value: 'twitter', label: 'Twitter', icon: 'external-link' },
+    { value: 'instagram', label: 'Instagram', icon: 'image' },
+    { value: 'youtube', label: 'YouTube', icon: 'video' },
+    { value: 'github', label: 'GitHub', icon: 'globe' }
   ]);
 
   ngOnInit(): void {
@@ -262,8 +266,15 @@ export class ProfileEditComponent implements OnInit {
     }));
   }
 
-  resetProfile(): void {
-    if (confirm('Bạn có chắc chắn muốn đặt lại tất cả thông tin?')) {
+  async resetProfile(): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Đặt lại hồ sơ',
+      message: 'Bạn có chắc chắn muốn đặt lại tất cả thông tin?',
+      confirmText: 'Đặt lại',
+      cancelText: 'Hủy',
+      variant: 'warning'
+    });
+    if (confirmed) {
       // Reset to original values
       this.profile.set({
         fullName: 'Nguyễn Văn Hải',
@@ -310,8 +321,8 @@ export class ProfileEditComponent implements OnInit {
 
   saveProfile(): void {
     // Mock save functionality
-    alert('Đã lưu thông tin hồ sơ thành công!');
-    
+    this.toast.success('Đã lưu thông tin hồ sơ thành công!');
+
     // Navigate back to profile
     this.router.navigate(['/student/profile']);
   }

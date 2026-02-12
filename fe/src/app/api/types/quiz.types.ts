@@ -19,8 +19,8 @@ export type QuizType = 'LESSON_QUIZ' | 'ASSIGNMENT';
 /** PostgreSQL: status VARCHAR(50) CHECK (...) in quizzes table */
 export type QuizStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
 
-/** PostgreSQL: type VARCHAR(50) CHECK (...) in quiz_questions table */
-export type QuestionType = 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'SHORT_ANSWER' | 'ESSAY';
+/** PostgreSQL: question_type VARCHAR(30) CHECK (...) in questions table */
+export type QuestionType = 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'FILL_IN_BLANK' | 'SHORT_ANSWER' | 'ESSAY';
 
 /** PostgreSQL: status VARCHAR(50) CHECK (...) in quiz_attempts table */
 export type AttemptStatus = 'IN_PROGRESS' | 'SUBMITTED' | 'EXPIRED';
@@ -63,7 +63,9 @@ export interface Question {
     courseId: string | null;           // UUID NULLABLE (FK courses)
     content: string | null;            // TEXT NULLABLE
     contentBlocks: Record<string, unknown> | null; // JSONB NULLABLE
-    correctOption: string;             // VARCHAR(10) NOT NULL
+    questionType: QuestionType;        // VARCHAR(30) NOT NULL DEFAULT 'SINGLE_CHOICE'
+    correctOption: string | null;      // VARCHAR(10) NULLABLE (legacy, replaced by answerKey)
+    answerKey: Record<string, unknown> | null; // JSONB NULLABLE (flexible answer definition)
     difficulty: QuestionDifficulty;    // VARCHAR(20) NOT NULL
     status: QuestionStatus;            // VARCHAR(50) NOT NULL
     tags: string | null;               // TEXT NULLABLE
@@ -188,7 +190,9 @@ export interface CreateQuizRequest {
 export interface CreateQuestionRequest {
     content?: string;
     contentBlocks?: Record<string, unknown>;
-    correctOption: string;
+    questionType?: QuestionType;          // New: defaults to SINGLE_CHOICE
+    correctOption?: string;               // Legacy: optional if answerKey provided
+    answerKey?: Record<string, unknown>;  // New: flexible answer key
     difficulty: QuestionDifficulty;
     tags?: string;
     packageId?: string;
@@ -202,7 +206,13 @@ export interface CreateQuestionOptionRequest {
 }
 
 export interface SubmitQuizRequest {
-    answers: Record<string, string>; // questionId -> selectedOption
+    answers: SubmitQuizAnswer[];
+}
+
+export interface SubmitQuizAnswer {
+    questionId: string;
+    selectedOption?: string;                    // Legacy: single choice
+    studentAnswer?: Record<string, unknown>;    // New: flexible answer format
 }
 
 // ============================================
