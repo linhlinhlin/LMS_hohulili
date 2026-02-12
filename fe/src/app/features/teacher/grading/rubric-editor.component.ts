@@ -69,7 +69,7 @@ import { RubricApi } from '../../../api/endpoints/rubric.api';
                   Tổng trọng số: {{ totalWeight() }}% / 100%
                 </span>
                 <button type="button" (click)="addCriterion()" 
-                        class="px-3 py-1.5 bg-blue-50 text-[#0056D2] rounded-lg hover:bg-blue-100 text-sm">
+                        class="px-3 py-1.5 bg-[#0056D2]/5 text-[#0056D2] rounded-lg hover:bg-[#0056D2]/10 text-sm">
                   + Thêm tiêu chí
                 </button>
               </div>

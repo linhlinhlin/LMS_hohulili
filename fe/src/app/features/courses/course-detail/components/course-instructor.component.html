@@ -7,7 +7,7 @@
         <div class="flex-shrink-0">
             <div class="relative">
                 <img [ngSrc]="instructor()!.avatar!" width="150" height="150"
-                    class="w-32 h-32 rounded-full object-cover border-4 border-blue-100" [alt]="instructor()!.name" />
+                    class="w-32 h-32 rounded-full object-cover border-4 border-[#0056D2]/10" [alt]="instructor()!.name" />
 
                 <!-- Verified Badge -->
                 <div
@@ -32,7 +32,7 @@
 
                 <!-- Stats -->
                 <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <div class="text-center p-3 bg-blue-50 rounded-lg">
+                    <div class="text-center p-3 bg-[#0056D2]/5 rounded-lg">
                         <div class="text-2xl font-bold text-[#0056D2]">{{ instructor()!.rating }}</div>
                         <div class="text-sm text-gray-600">Đánh giá</div>
                     </div>

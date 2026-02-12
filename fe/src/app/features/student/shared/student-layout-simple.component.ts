@@ -59,7 +59,7 @@ import { ChatWidgetComponent } from '../../ai-chat/presentation/components/chat-
                     </svg>
                   </div>
                   <h1 class="text-lg font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
-                    Student Portal
+                    Cổng Học viên
                   </h1>
                 </div>
               </div>
@@ -113,7 +113,7 @@ import { ChatWidgetComponent } from '../../ai-chat/presentation/components/chat-
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v2H8V5z"></path>
                   </svg>
                 </div>
-                <span class="text-xs font-medium">Dashboard</span>
+                <span class="text-xs font-medium">Trang chủ</span>
               </a>
               <!-- My Courses -->
               <a routerLink="/student/my-courses"

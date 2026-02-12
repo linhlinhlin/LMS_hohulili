@@ -51,13 +51,13 @@ import { SectionEditorState } from '../../state/section-editor.state';
                     Đã chọn {{ state.selectedInlineQuestions().length }}/{{ state.inlinePackageQuestions().length }}
                   </span>
                   <button (click)="state.selectAllInlineQuestions()"
-                          class="text-sm text-[#0056D2] hover:text-blue-800 font-medium">
+                          class="text-sm text-[#0056D2] hover:text-[#004BB5] font-medium">
                     {{ state.selectedInlineQuestions().length === state.inlinePackageQuestions().length ? 'Bỏ chọn tất cả' : 'Chọn tất cả' }}
                   </button>
                 </div>
                 <div class="max-h-[300px] overflow-y-auto divide-y divide-gray-100">
                   @for (q of state.inlinePackageQuestions(); track q.id) {
-                    <div class="p-4 hover:bg-blue-50/50 cursor-pointer transition-colors"
+                    <div class="p-4 hover:bg-[#0056D2]/5/50 cursor-pointer transition-colors"
                          (click)="state.toggleInlineQuestion(q.id)">
                       <div class="flex items-start gap-3">
                         <input type="checkbox"

@@ -205,8 +205,8 @@ export interface StudentAssignment {
                     class="px-2 py-1 text-xs font-semibold rounded-full"
                     [class.bg-yellow-100]="assignment.status === 'pending'"
                     [class.text-yellow-800]="assignment.status === 'pending'"
-                    [class.bg-blue-100]="assignment.status === 'submitted'"
-                    [class.text-blue-800]="assignment.status === 'submitted'"
+                    [class.bg-[#0056D2]/10]="assignment.status === 'submitted'"
+                    [class.text-[#004BB5]]="assignment.status === 'submitted'"
                     [class.bg-green-100]="assignment.status === 'graded'"
                     [class.text-green-800]="assignment.status === 'graded'"
                     [class.bg-red-100]="assignment.status === 'overdue'"
@@ -235,7 +235,7 @@ export interface StudentAssignment {
                     @if (assignment.status === 'submitted' || assignment.status === 'graded') {
                       <a
                         [routerLink]="['/teacher/assignment-hub', assignment.assignmentId, 'submissions']"
-                        class="text-sm text-[#0056D2] hover:text-blue-800"
+                        class="text-sm text-[#0056D2] hover:text-[#004BB5]"
                       >
                         Xem bài nộp
                       </a>

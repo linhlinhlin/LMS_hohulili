@@ -1,9 +1,9 @@
 
     <!-- Loading State -->
-    <app-loading 
-      [show]="isLoading()" 
-      text="�ang t?i b�i t?p..."
-      subtext="Vui l�ng ch? trong gi�y l�t"
+    <app-loading
+      [show]="isLoading()"
+      text="Đang tải bài tập..."
+      subtext="Vui lòng chờ trong giây lát"
       variant="overlay"
       color="blue">
     </app-loading>
@@ -13,8 +13,8 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div class="flex items-center justify-between">
             <div>
-              <h1 class="text-3xl font-bold text-gray-900">B�i t?p c?a t�i</h1>
-              <p class="text-lg text-gray-600 mt-2">Qu?n l� v� theo d�i ti?n d? b�i t?p</p>
+              <h1 class="text-3xl font-bold text-gray-900">Bài tập của tôi</h1>
+              <p class="text-lg text-gray-600 mt-2">Quản lý và theo dõi tiến độ bài tập</p>
             </div>
             <div class="flex items-center space-x-4">
               <button (click)="goToCalendar()"
@@ -22,14 +22,14 @@
                 <svg class="w-5 h-5 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path>
                 </svg>
-                L?ch h?c t?p
+                Lịch học tập
               </button>
               <button (click)="goToGrades()"
                       class="px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors">
                 <svg class="w-5 h-5 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
                 </svg>
-                Xem di?m
+                Xem điểm
               </button>
             </div>
           </div>
@@ -42,10 +42,10 @@
           <div class="bg-white rounded-xl shadow-lg p-6">
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-sm font-medium text-gray-600 mb-1">T?ng b�i t?p</p>
+                <p class="text-sm font-medium text-gray-600 mb-1">Tổng bài tập</p>
                 <p class="text-3xl font-bold text-gray-900">{{ assignments().length }}</p>
               </div>
-              <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+              <div class="w-12 h-12 bg-[#0056D2]/10 rounded-xl flex items-center justify-center">
                 <svg class="w-6 h-6 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path>
                 </svg>
@@ -56,7 +56,7 @@
           <div class="bg-white rounded-xl shadow-lg p-6">
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-sm font-medium text-gray-600 mb-1">Ch? l�m</p>
+                <p class="text-sm font-medium text-gray-600 mb-1">Chờ làm</p>
                 <p class="text-3xl font-bold text-gray-900">{{ pendingAssignments().length }}</p>
               </div>
               <div class="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
@@ -70,7 +70,7 @@
           <div class="bg-white rounded-xl shadow-lg p-6">
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-sm font-medium text-gray-600 mb-1">�� n?p</p>
+                <p class="text-sm font-medium text-gray-600 mb-1">Đã nộp</p>
                 <p class="text-3xl font-bold text-gray-900">{{ submittedAssignments().length }}</p>
               </div>
               <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
@@ -84,7 +84,7 @@
           <div class="bg-white rounded-xl shadow-lg p-6">
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-sm font-medium text-gray-600 mb-1">Qu� h?n</p>
+                <p class="text-sm font-medium text-gray-600 mb-1">Quá hạn</p>
                 <p class="text-3xl font-bold text-gray-900">{{ overdueAssignments().length }}</p>
               </div>
               <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
@@ -100,59 +100,59 @@
         <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
           <div class="flex flex-wrap items-center gap-4">
             <div class="flex items-center space-x-2">
-              <label class="text-sm font-medium text-gray-700">Tr?ng th�i:</label>
-              <select [(ngModel)]="filters.status[0]" 
+              <label class="text-sm font-medium text-gray-700">Trạng thái:</label>
+              <select [(ngModel)]="filters.status[0]"
                       (ngModelChange)="applyFilters()"
                       class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]">
-                <option value="">T?t c?</option>
-                <option value="pending">Ch? l�m</option>
-                <option value="in-progress">�ang l�m</option>
-                <option value="submitted">�� n?p</option>
-                <option value="graded">�� ch?m</option>
-                <option value="overdue">Qu� h?n</option>
+                <option value="">Tất cả</option>
+                <option value="pending">Chờ làm</option>
+                <option value="in-progress">Đang làm</option>
+                <option value="submitted">Đã nộp</option>
+                <option value="graded">Đã chấm</option>
+                <option value="overdue">Quá hạn</option>
               </select>
             </div>
 
             <div class="flex items-center space-x-2">
-              <label class="text-sm font-medium text-gray-700">Lo?i:</label>
-              <select [(ngModel)]="filters.type[0]" 
+              <label class="text-sm font-medium text-gray-700">Loại:</label>
+              <select [(ngModel)]="filters.type[0]"
                       (ngModelChange)="applyFilters()"
                       class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]">
-                <option value="">T?t c?</option>
+                <option value="">Tất cả</option>
                 <option value="quiz">Quiz</option>
-                <option value="assignment">B�i t?p</option>
-                <option value="project">D? �n</option>
-                <option value="discussion">Th?o lu?n</option>
+                <option value="assignment">Bài tập</option>
+                <option value="project">Dự án</option>
+                <option value="discussion">Thảo luận</option>
               </select>
             </div>
 
             <div class="flex items-center space-x-2">
-              <label class="text-sm font-medium text-gray-700">Uu ti�n:</label>
-              <select [(ngModel)]="filters.priority[0]" 
+              <label class="text-sm font-medium text-gray-700">Ưu tiên:</label>
+              <select [(ngModel)]="filters.priority[0]"
                       (ngModelChange)="applyFilters()"
                       class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]">
-                <option value="">T?t c?</option>
+                <option value="">Tất cả</option>
                 <option value="high">Cao</option>
-                <option value="medium">Trung b�nh</option>
-                <option value="low">Th?p</option>
+                <option value="medium">Trung bình</option>
+                <option value="low">Thấp</option>
               </select>
             </div>
 
             <div class="flex items-center space-x-2">
-              <label class="text-sm font-medium text-gray-700">S?p x?p:</label>
-              <select [(ngModel)]="filters.sortBy" 
+              <label class="text-sm font-medium text-gray-700">Sắp xếp:</label>
+              <select [(ngModel)]="filters.sortBy"
                       (ngModelChange)="applyFilters()"
                       class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]">
-                <option value="dueDate">H?n n?p</option>
-                <option value="priority">Uu ti�n</option>
-                <option value="title">T�n b�i t?p</option>
-                <option value="status">Tr?ng th�i</option>
+                <option value="dueDate">Hạn nộp</option>
+                <option value="priority">Ưu tiên</option>
+                <option value="title">Tên bài tập</option>
+                <option value="status">Trạng thái</option>
               </select>
             </div>
 
             <button (click)="clearFilters()"
                     class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors">
-              X�a b? l?c
+              Xóa bộ lọc
             </button>
           </div>
         </div>
@@ -173,7 +173,7 @@
                           [class]="getPriorityClass(assignment.priority)">
                       {{ getPriorityText(assignment.priority) }}
                     </span>
-                    <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                    <span class="px-3 py-1 bg-[#0056D2]/10 text-[#004BB5] rounded-full text-sm font-medium">
                       {{ getTypeText(assignment.type) }}
                     </span>
                     <span class="px-3 py-1 rounded-full text-sm font-medium border"
@@ -181,24 +181,24 @@
                       {{ getUrgencyText(getUrgencyLevel(assignment)) }}
                     </span>
                   </div>
-                  
+
                   <p class="text-gray-600 mb-4">{{ assignment.description }}</p>
-                  
+
                   <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">Kh�a h?c</label>
+                      <label class="block text-sm font-medium text-gray-700 mb-1">Khóa học</label>
                       <p class="text-gray-900">{{ assignment.courseName }}</p>
                     </div>
                     <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">H?n n?p</label>
+                      <label class="block text-sm font-medium text-gray-700 mb-1">Hạn nộp</label>
                       <p class="text-gray-900" [class]="isOverdue(assignment.dueDate) ? 'text-red-600 font-medium' : ''">
                         {{ formatDate(assignment.dueDate) }}
                       </p>
                     </div>
                     <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">Gi?ng vi�n</label>
+                      <label class="block text-sm font-medium text-gray-700 mb-1">Giảng viên</label>
                       <div class="flex items-center space-x-2">
-                        <img [src]="assignment.instructor.avatar" [alt]="assignment.instructor.name" 
+                        <img [src]="assignment.instructor.avatar" [alt]="assignment.instructor.name"
                              class="w-6 h-6 rounded-full object-cover">
                         <span class="text-gray-900">{{ assignment.instructor.name }}</span>
                       </div>
@@ -209,30 +209,30 @@
                   <div class="space-y-3 mb-4">
                     <!-- Progress Bar -->
                     <div class="flex items-center justify-between text-sm text-gray-600">
-                      <span>Ti?n d? ho�n th�nh</span>
+                      <span>Tiến độ hoàn thành</span>
                       <span>{{ getAssignmentProgress(assignment) }}%</span>
                     </div>
                     <div class="w-full bg-gray-200 rounded-full h-2">
-                      <div class="bg-[#0056D2] h-2 rounded-full transition-all duration-500" 
+                      <div class="bg-[#0056D2] h-2 rounded-full transition-all duration-500"
                            [style.width.%]="getAssignmentProgress(assignment)"></div>
                     </div>
-                    
+
                     <!-- Assignment Details -->
                     <div class="flex items-center justify-between text-sm text-gray-600">
-                      <span>L?n th?: {{ assignment.attempts }}/{{ assignment.maxAttempts }}</span>
+                      <span>Lần thứ: {{ assignment.attempts }}/{{ assignment.maxAttempts }}</span>
                       @if (assignment.timeLimit) {
-                        <span>Th?i gian: {{ assignment.timeLimit }} ph�t</span>
+                        <span>Thời gian: {{ assignment.timeLimit }} phút</span>
                       }
                       @if (assignment.wordCount) {
-                        <span>T? t?i thi?u: {{ assignment.wordCount }} t?</span>
+                        <span>Từ tối thiểu: {{ assignment.wordCount }} từ</span>
                       }
                     </div>
-                    
+
                     <!-- Days Until Due -->
                     <div class="flex items-center justify-between text-sm">
-                      <span class="text-gray-600">C�n l?i:</span>
+                      <span class="text-gray-600">Còn lại:</span>
                       <span [class]="getDaysUntilDue(assignment.dueDate) <= 3 ? 'text-red-600 font-medium' : 'text-gray-900'">
-                        {{ getDaysUntilDue(assignment.dueDate) }} ng�y
+                        {{ getDaysUntilDue(assignment.dueDate) }} ngày
                       </span>
                     </div>
                   </div>
@@ -240,7 +240,7 @@
                   <!-- Attachments -->
                   @if (assignment.attachments && assignment.attachments.length > 0) {
                     <div class="mb-4">
-                      <h4 class="text-sm font-medium text-gray-700 mb-2">T�i li?u d�nh k�m:</h4>
+                      <h4 class="text-sm font-medium text-gray-700 mb-2">Tài liệu đính kèm:</h4>
                       <div class="space-y-2">
                         @for (attachment of assignment.attachments; track attachment.id) {
                           <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
@@ -252,8 +252,8 @@
                               <span class="text-xs text-gray-500">({{ formatFileSize(attachment.size) }})</span>
                             </div>
                             <button (click)="downloadAttachment(attachment)"
-                                    class="px-3 py-1 bg-blue-100 text-[#004BB5] rounded-md hover:bg-blue-200 transition-colors text-sm">
-                              T?i xu?ng
+                                    class="px-3 py-1 bg-[#0056D2]/10 text-[#004BB5] rounded-md hover:bg-[#0056D2]/20 transition-colors text-sm">
+                              Tải xuống
                             </button>
                           </div>
                         }
@@ -266,16 +266,16 @@
                     <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
                       <div class="flex items-center justify-between">
                         <div>
-                          <h4 class="font-medium text-green-900">�i?m s?</h4>
+                          <h4 class="font-medium text-green-900">Điểm số</h4>
                           <p class="text-green-800">{{ assignment.grade }}/{{ assignment.maxGrade }}</p>
                         </div>
                         <div class="text-right">
-                          <p class="text-sm text-green-600">Ch?m ng�y: {{ formatDate(assignment.gradedAt!) }}</p>
+                          <p class="text-sm text-green-600">Chấm ngày: {{ formatDate(assignment.gradedAt!) }}</p>
                         </div>
                       </div>
                       @if (assignment.feedback) {
                         <div class="mt-3">
-                          <h5 class="font-medium text-green-900 mb-1">Nh?n x�t:</h5>
+                          <h5 class="font-medium text-green-900 mb-1">Nhận xét:</h5>
                           <p class="text-green-800">{{ assignment.feedback }}</p>
                         </div>
                       }
@@ -291,7 +291,7 @@
                       <svg class="w-5 h-5 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
                       </svg>
-                      {{ assignment.status === 'pending' ? 'B?t d?u' : 'Ti?p t?c' }}
+                      {{ assignment.status === 'pending' ? 'Bắt đầu' : 'Tiếp tục' }}
                     </button>
                   } @else if (assignment.status === 'submitted') {
                     <button (click)="viewSubmission(assignment.id)"
@@ -299,7 +299,7 @@
                       <svg class="w-5 h-5 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path>
                       </svg>
-                      Xem b�i n?p
+                      Xem bài nộp
                     </button>
                   } @else if (assignment.status === 'graded') {
                     <button (click)="viewGrade(assignment.id)"
@@ -307,17 +307,17 @@
                       <svg class="w-5 h-5 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
                       </svg>
-                      Xem di?m
+                      Xem điểm
                     </button>
                   }
-                  
+
                   <button (click)="viewAssignmentDetail(assignment.id)"
                           class="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
                     <svg class="w-5 h-5 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path>
                       <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"></path>
                     </svg>
-                    Chi ti?t
+                    Chi tiết
                   </button>
                 </div>
               </div>
@@ -331,10 +331,10 @@
             <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
             </svg>
-            <h3 class="mt-2 text-sm font-medium text-gray-900">Kh�ng c� b�i t?p n�o</h3>
-            <p class="mt-1 text-sm text-gray-500">B?n chua c� b�i t?p n�o ho?c kh�ng c� b�i t?p ph� h?p v?i b? l?c.</p>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">Không có bài tập nào</h3>
+            <p class="mt-1 text-sm text-gray-500">Bạn chưa có bài tập nào hoặc không có bài tập phù hợp với bộ lọc.</p>
           </div>
         }
       </div>
     </div>
-  
+

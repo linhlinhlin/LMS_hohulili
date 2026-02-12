@@ -27,7 +27,7 @@ interface CourseInfo {
   imports: [RouterModule, IconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 py-8 px-4">
+    <div class="min-h-screen bg-gradient-to-br from-slate-50 to-[#0056D2]/5 py-8 px-4">
       <div class="max-w-2xl mx-auto">
         <!-- Header -->
         <div class="mb-8">
@@ -95,7 +95,7 @@ interface CourseInfo {
         <!-- Already Paid State -->
         @if (alreadyPaid()) {
           <div class="bg-white rounded-2xl shadow-lg p-8 text-center">
-            <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <div class="w-20 h-20 bg-[#0056D2]/10 rounded-full flex items-center justify-center mx-auto mb-6">
               <svg class="w-10 h-10 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
               </svg>
@@ -166,10 +166,10 @@ interface CourseInfo {
             <div class="p-6">
               <h3 class="font-semibold text-slate-800 mb-4">Phương thức thanh toán</h3>
               <div class="space-y-3">
-                <label class="flex items-center p-4 border-2 border-blue-500 bg-blue-50 rounded-xl cursor-pointer">
+                <label class="flex items-center p-4 border-2 border-[#0056D2] bg-[#0056D2]/5 rounded-xl cursor-pointer">
                   <input type="radio" name="payment" checked class="w-5 h-5 text-[#0056D2]">
                   <span class="ml-3 font-medium text-slate-700">Thanh toán giả lập (Demo)</span>
-                  <span class="ml-auto text-xs bg-blue-100 text-[#004BB5] px-2 py-1 rounded">Miễn phí</span>
+                  <span class="ml-auto text-xs bg-[#0056D2]/10 text-[#004BB5] px-2 py-1 rounded">Miễn phí</span>
                 </label>
                 <label class="flex items-center p-4 border border-slate-200 rounded-xl cursor-not-allowed opacity-50">
                   <input type="radio" name="payment" disabled class="w-5 h-5">

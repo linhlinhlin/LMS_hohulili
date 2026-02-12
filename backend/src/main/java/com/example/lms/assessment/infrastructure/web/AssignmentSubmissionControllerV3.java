@@ -47,7 +47,7 @@ public class AssignmentSubmissionControllerV3 {
         var submissions = submissionRepository.findByAssignmentId(assignmentId);
         List<Map<String, Object>> result = submissions.stream()
                 .map(this::toSubmissionMap).toList();
-        return ResponseEntity.ok(ApiResponse.success(result, "Submissions loaded"));
+        return ResponseEntity.ok(ApiResponse.success(result, "Danh sách bài nộp"));
     }
 
     @Operation(summary = "Get detailed submissions for an assignment (Teacher)")
@@ -60,7 +60,7 @@ public class AssignmentSubmissionControllerV3 {
         var submissions = submissionRepository.findByAssignmentId(assignmentId);
         List<Map<String, Object>> result = submissions.stream()
                 .map(this::toSubmissionDetailMap).toList();
-        return ResponseEntity.ok(ApiResponse.success(result, "Submission details loaded"));
+        return ResponseEntity.ok(ApiResponse.success(result, "Chi tiết bài nộp"));
     }
 
     @Operation(summary = "Get pending submissions for teacher's assignments")
@@ -92,7 +92,7 @@ public class AssignmentSubmissionControllerV3 {
 
         List<Map<String, Object>> result = allSubmitted.stream()
                 .map(this::toSubmissionMap).toList();
-        return ResponseEntity.ok(ApiResponse.success(result, "Pending submissions loaded"));
+        return ResponseEntity.ok(ApiResponse.success(result, "Danh sách bài nộp chờ chấm"));
     }
 
     @Operation(summary = "Grade a submission")
@@ -106,8 +106,9 @@ public class AssignmentSubmissionControllerV3 {
 
         return submissionRepository.findById(submissionId)
                 .map(submission -> {
-                    if (request.grade() != null) {
-                        submission.setGrade(request.grade());
+                    Double gradeValue = request.score() != null ? request.score() : request.grade();
+                    if (gradeValue != null) {
+                        submission.setGrade(gradeValue);
                     }
                     if (request.feedback() != null) {
                         submission.setFeedback(request.feedback());
@@ -118,9 +119,39 @@ public class AssignmentSubmissionControllerV3 {
 
                     submissionRepository.save(submission);
                     return ResponseEntity.ok(ApiResponse.success(
-                            toSubmissionDetailMap(submission), "Submission graded"));
+                            toSubmissionDetailMap(submission), "Đã chấm điểm bài nộp"));
                 })
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @Operation(summary = "Batch grade multiple submissions")
+    @PatchMapping("/api/v3/assignments/{assignmentId}/submissions/batch-grade")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @Transactional
+    public ResponseEntity<ApiResponse<Map<String, Object>>> batchGrade(
+            @PathVariable UUID assignmentId,
+            @Valid @RequestBody List<BatchGradeItem> items,
+            @AuthenticationPrincipal UserJpaEntity user) {
+
+        int gradedCount = 0;
+        for (BatchGradeItem item : items) {
+            var opt = submissionRepository.findById(item.submissionId());
+            if (opt.isPresent()) {
+                var submission = opt.get();
+                if (!submission.getAssignmentId().equals(assignmentId)) continue;
+                if (item.grade() != null) submission.setGrade(item.grade());
+                if (item.feedback() != null) submission.setFeedback(item.feedback());
+                submission.setGradedBy(user.getId());
+                submission.setGradedAt(Instant.now());
+                submission.setStatus(AssignmentSubmissionJpaEntity.SubmissionStatus.GRADED);
+                submissionRepository.save(submission);
+                gradedCount++;
+            }
+        }
+
+        return ResponseEntity.ok(ApiResponse.success(
+                Map.of("gradedCount", gradedCount),
+                "Đã chấm điểm " + gradedCount + " bài nộp"));
     }
 
     @Operation(summary = "Get a single submission by ID")
@@ -181,7 +212,7 @@ public class AssignmentSubmissionControllerV3 {
             submission.setSubmittedAt(Instant.now());
             submissionRepository.save(submission);
             return ResponseEntity.ok(ApiResponse.success(
-                    toSubmissionDetailMap(submission), "Assignment resubmitted"));
+                    toSubmissionDetailMap(submission), "Đã nộp lại bài tập"));
         }
 
         var submission = AssignmentSubmissionJpaEntity.builder()
@@ -196,7 +227,7 @@ public class AssignmentSubmissionControllerV3 {
 
         submission = submissionRepository.save(submission);
         return ResponseEntity.ok(ApiResponse.success(
-                toSubmissionDetailMap(submission), "Assignment submitted"));
+                toSubmissionDetailMap(submission), "Đã nộp bài tập"));
     }
 
     @Operation(summary = "Get my submission for an assignment (Student)")
@@ -209,7 +240,7 @@ public class AssignmentSubmissionControllerV3 {
 
         return submissionRepository.findByAssignmentIdAndStudentId(assignmentId, user.getId())
                 .map(s -> ResponseEntity.ok(ApiResponse.success(toSubmissionDetailMap(s))))
-                .orElse(ResponseEntity.ok(ApiResponse.success(null, "No submission found")));
+                .orElse(ResponseEntity.ok(ApiResponse.success(null, "Không tìm thấy bài nộp")));
     }
 
     // =============================================
@@ -225,7 +256,7 @@ public class AssignmentSubmissionControllerV3 {
                 .map(a -> {
                     a.setStatus(AssignmentJpaEntity.AssignmentStatus.PUBLISHED);
                     assignmentRepository.save(a);
-                    return ResponseEntity.ok(ApiResponse.<Void>success(null, "Assignment published"));
+                    return ResponseEntity.ok(ApiResponse.<Void>success(null, "Đã phát hành bài tập"));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -263,6 +294,7 @@ public class AssignmentSubmissionControllerV3 {
     // DTOs
     // =============================================
 
-    public record GradeRequest(Double grade, String feedback) {}
+    public record GradeRequest(Double grade, Double score, String feedback) {}
+    public record BatchGradeItem(UUID submissionId, Double grade, String feedback) {}
     public record SubmitRequest(String content, String fileUrl, String fileName) {}
 }

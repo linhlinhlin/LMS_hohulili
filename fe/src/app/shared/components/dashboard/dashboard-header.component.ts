@@ -44,7 +44,7 @@ import { SmartBreadcrumbsComponent } from "../navigation/smart-breadcrumbs.compo
           @if (pwaService.showInstallButton()) {
             <button 
               (click)="pwaService.installPwa()"
-              class="hidden md:flex items-center space-x-2 px-4 py-2 bg-blue-50 text-[#004BB5] rounded-xl hover:bg-blue-100 transition-colors duration-200">
+              class="hidden md:flex items-center space-x-2 px-4 py-2 bg-[#0056D2]/5 text-[#004BB5] rounded-xl hover:bg-[#0056D2]/10 transition-colors duration-200">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
               </svg>
@@ -81,7 +81,7 @@ import { SmartBreadcrumbsComponent } from "../navigation/smart-breadcrumbs.compo
             <div class="relative">
               <img [src]="currentUser()?.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face'"
                    [alt]="userName()"
-                   class="w-10 h-10 rounded-xl object-cover border-2 border-blue-200 shadow-sm group-hover:scale-105 transition-transform duration-200">
+                   class="w-10 h-10 rounded-xl object-cover border-2 border-[#0056D2]/20 shadow-sm group-hover:scale-105 transition-transform duration-200">
               <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
             </div>
             <div class="hidden md:block">

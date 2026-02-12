@@ -52,7 +52,7 @@ public class LearningActivityUseCase {
         // Auto-trigger streak update + achievement check on heartbeat
         try {
             gamificationUseCase.updateStreak(studentId);
-        } catch (Exception e) {
+        } catch (IllegalArgumentException | IllegalStateException e) {
             log.warn("Failed to update streak for student {}: {}", studentId, e.getMessage());
         }
     }

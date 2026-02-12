@@ -92,7 +92,7 @@ export class TeacherService {
 
       this._courses.set(courses);
     } catch {
-      this._error.set('Failed to load courses');
+      this._error.set('Không thể tải danh sách khóa học');
       this._courses.set([]);
     } finally {
       this._isLoading.set(false);
@@ -131,7 +131,7 @@ export class TeacherService {
       this._courses.update(courses => [...courses, newCourse]);
       return newCourse;
     } catch (error) {
-      this._error.set('Failed to create course');
+      this._error.set('Không thể tạo khóa học');
       this.handleError(error, 'Tạo khóa học thất bại');
       throw error;
     } finally {
@@ -161,7 +161,7 @@ export class TeacherService {
 
       return updatedCourse;
     } catch (error) {
-      this._error.set('Failed to update course');
+      this._error.set('Không thể cập nhật khóa học');
       throw error;
     } finally {
       this._isLoading.set(false);
@@ -179,7 +179,7 @@ export class TeacherService {
 
       this._courses.update(courses => courses.filter(course => course.id !== courseId));
     } catch (error) {
-      this._error.set('Failed to delete course');
+      this._error.set('Không thể xóa khóa học');
       throw error;
     } finally {
       this._isLoading.set(false);
@@ -217,7 +217,7 @@ export class TeacherService {
       this._students.set(students);
       return students;
     } catch {
-      this._error.set('Failed to load students');
+      this._error.set('Không thể tải danh sách học viên');
       this._students.set([]);
       return [];
     } finally {
@@ -274,7 +274,7 @@ export class TeacherService {
 
       return updatedStudent;
     } catch (error) {
-      this._error.set('Failed to update student');
+      this._error.set('Không thể cập nhật học viên');
       throw error;
     } finally {
       this._isLoading.set(false);
@@ -313,7 +313,7 @@ export class TeacherService {
       this._assignments.set(assignments);
       return assignments;
     } catch {
-      this._error.set('Failed to load assignments');
+      this._error.set('Không thể tải danh sách bài tập');
       this._assignments.set([]);
       return [];
     } finally {
@@ -346,7 +346,7 @@ export class TeacherService {
       this._assignments.update(assignments => [...assignments, newAssignment]);
       return newAssignment;
     } catch (error) {
-      this._error.set('Failed to create assignment');
+      this._error.set('Không thể tạo bài tập');
       throw error;
     } finally {
       this._isLoading.set(false);
@@ -375,7 +375,7 @@ export class TeacherService {
 
       return updatedAssignment;
     } catch (error) {
-      this._error.set('Failed to update assignment');
+      this._error.set('Không thể cập nhật bài tập');
       throw error;
     } finally {
       this._isLoading.set(false);
@@ -393,7 +393,7 @@ export class TeacherService {
 
       this._assignments.update(assignments => assignments.filter(a => a.id !== assignmentId));
     } catch (error) {
-      this._error.set('Failed to delete assignment');
+      this._error.set('Không thể xóa bài tập');
       throw error;
     } finally {
       this._isLoading.set(false);

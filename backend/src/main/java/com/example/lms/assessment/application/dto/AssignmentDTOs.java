@@ -21,13 +21,17 @@ public class AssignmentDTOs {
         private String dueDate;
         private String courseId;
         private String courseTitle;
+        private String deliveryMode;
         private String status;
         private int submissionsCount;
         private int totalStudents;
+        private int gradedCount;
+        private int pendingCount;
+        private Double averageScore;
         private String createdAt;
         private String updatedAt;
     }
-    
+
     @Data
     @Builder
     @NoArgsConstructor

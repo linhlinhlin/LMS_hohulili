@@ -24,11 +24,11 @@ import { IconComponent } from '../icon/icon.component';
                 </div>
                 <div>
                   <h1 class="text-4xl lg:text-5xl font-bold mb-2">{{ categoryInfo().name }}</h1>
-                  <p class="text-xl text-blue-100">{{ categoryInfo().shortDescription }}</p>
+                  <p class="text-xl text-white/80">{{ categoryInfo().shortDescription }}</p>
                 </div>
               </div>
               
-              <p class="text-lg text-blue-100 mb-8 leading-relaxed">
+              <p class="text-lg text-white/80 mb-8 leading-relaxed">
                 {{ categoryInfo().description }}
               </p>
 
@@ -36,19 +36,19 @@ import { IconComponent } from '../icon/icon.component';
               <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <div class="text-center">
                   <div class="text-3xl font-bold text-white">{{ categoryInfo().stats.courses }}</div>
-                  <div class="text-sm text-blue-200">Khóa học</div>
+                  <div class="text-sm text-white/60">Khóa học</div>
                 </div>
                 <div class="text-center">
                   <div class="text-3xl font-bold text-white">{{ categoryInfo().stats.students }}+</div>
-                  <div class="text-sm text-blue-200">Học viên</div>
+                  <div class="text-sm text-white/60">Học viên</div>
                 </div>
                 <div class="text-center">
                   <div class="text-3xl font-bold text-white">{{ categoryInfo().stats.instructors }}</div>
-                  <div class="text-sm text-blue-200">Giảng viên</div>
+                  <div class="text-sm text-white/60">Giảng viên</div>
                 </div>
                 <div class="text-center">
                   <div class="text-3xl font-bold text-white">{{ categoryInfo().stats.certificates }}</div>
-                  <div class="text-sm text-blue-200">Chứng chỉ</div>
+                  <div class="text-sm text-white/60">Chứng chỉ</div>
                 </div>
               </div>
 
@@ -86,7 +86,7 @@ import { IconComponent } from '../icon/icon.component';
               </div>
               <div class="absolute -bottom-4 -right-4 bg-white rounded-lg p-4 shadow-lg">
                 <div class="flex items-center space-x-2">
-                  <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                  <div class="w-8 h-8 bg-[#0056D2]/10 rounded-full flex items-center justify-center">
                     <app-icon name="users" size="xs" class="text-[#0056D2]"/>
                   </div>
                   <div>
@@ -136,7 +136,7 @@ import { IconComponent } from '../icon/icon.component';
             </div>
 
             <!-- Intermediate -->
-            <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-8">
+            <div class="bg-gradient-to-br from-[#0056D2]/5 to-[#0056D2]/10 rounded-2xl p-8">
               <div class="flex items-center space-x-3 mb-6">
                 <div class="w-12 h-12 bg-[#0056D2] rounded-lg flex items-center justify-center">
                   <app-icon name="rocket" size="md" class="text-white"/>
@@ -220,7 +220,7 @@ import { IconComponent } from '../icon/icon.component';
                 <!-- Course Content -->
                 <div class="p-6">
                   <div class="flex items-center justify-between mb-3">
-                    <span class="px-3 py-1 bg-blue-100 text-[#0056D2] rounded-full text-sm font-medium">
+                    <span class="px-3 py-1 bg-[#0056D2]/10 text-[#0056D2] rounded-full text-sm font-medium">
                       {{ course.level }}
                     </span>
                     <div class="flex items-center space-x-1">

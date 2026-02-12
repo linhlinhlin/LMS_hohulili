@@ -74,18 +74,18 @@ import { filter, take, map } from 'rxjs/operators';
             <!-- Breadcrumb (only on curriculum tab when chapter/lesson selected) -->
             @if (activeTab() === 'curriculum' && breadcrumbChapter()) {
                 <div class="flex items-center gap-1.5 px-6 py-2 bg-white border-b border-slate-100 text-xs flex-shrink-0">
-                    <button (click)="clearBreadcrumb()" class="text-[#0056D2] hover:text-blue-800 font-medium truncate max-w-[200px]">
+                    <button (click)="clearBreadcrumb()" class="text-[#0056D2] hover:text-[#004BB5] font-medium truncate max-w-[200px]">
                         {{ store.courseInfo()?.title || 'Khóa học' }}
                     </button>
                     <svg class="w-3 h-3 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                     <button (click)="selectChapter()" class="font-medium truncate max-w-[200px]"
-                            [class]="breadcrumbLesson() ? 'text-[#0056D2] hover:text-blue-800' : 'text-slate-900'">
+                            [class]="breadcrumbLesson() ? 'text-[#0056D2] hover:text-[#004BB5]' : 'text-slate-900'">
                         {{ breadcrumbChapter()?.title }}
                     </button>
                     @if (breadcrumbLesson()) {
                         <svg class="w-3 h-3 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                         <button (click)="selectLesson()" class="font-medium truncate max-w-[200px]"
-                                [class]="breadcrumbSection() ? 'text-[#0056D2] hover:text-blue-800' : 'text-slate-900'">
+                                [class]="breadcrumbSection() ? 'text-[#0056D2] hover:text-[#004BB5]' : 'text-slate-900'">
                             {{ breadcrumbLesson()?.title }}
                         </button>
                     }

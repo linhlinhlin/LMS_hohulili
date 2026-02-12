@@ -81,4 +81,15 @@ db_dump_*.sql
 export_db.sh
 
 fe/build_log*.txt
+fe/.npm-start.err
 nul
+
+# === Local/temp files ===
+.claude/settings.local.json
+.claude/settings.local.json.tmp*
+screenshots/
+screenshot*.js
+sidebar_screenshot.png
+*.png
+!fe/src/**/*.png
+!backend/src/**/*.png

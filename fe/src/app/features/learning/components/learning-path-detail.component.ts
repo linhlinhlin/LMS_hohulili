@@ -82,7 +82,7 @@ import { LearningPath, LearningPathCourse, LearningPathLesson } from '../../../s
                 <h3 class="text-lg font-semibold text-gray-900 mb-3">Kỹ năng sẽ học được</h3>
                 <div class="flex flex-wrap gap-2">
                   @for (skill of learningPath()?.skills; track skill) {
-                    <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                    <span class="px-3 py-1 bg-[#0056D2]/10 text-[#004BB5] rounded-full text-sm">
                       {{ skill }}
                     </span>
                   }
@@ -117,7 +117,7 @@ import { LearningPath, LearningPathCourse, LearningPathLesson } from '../../../s
                 </div>
                 <div class="flex items-center justify-between">
                   <span class="text-gray-600">Cấp độ</span>
-                  <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                  <span class="px-2 py-1 bg-[#0056D2]/10 text-[#004BB5] rounded-full text-sm">
                     {{ getCategoryLabel(learningPath()?.category) }}
                   </span>
                 </div>

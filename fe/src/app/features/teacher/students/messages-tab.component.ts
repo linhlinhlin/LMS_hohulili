@@ -42,7 +42,7 @@ import { Message, sortMessagesByDate } from '../../student/messages/utils/messag
       <!-- Header -->
       <div class="bg-white border-b px-4 py-3 flex items-center justify-between">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+          <div class="w-10 h-10 bg-[#0056D2]/10 rounded-full flex items-center justify-center">
             <span class="text-[#0056D2] font-medium">
               {{ getInitials(studentName()) }}
             </span>
@@ -86,7 +86,7 @@ import { Message, sortMessagesByDate } from '../../student/messages/utils/messag
             <p class="text-gray-600 mb-2">{{ error() }}</p>
             <button
               (click)="refreshMessages()"
-              class="text-[#0056D2] hover:text-blue-800"
+              class="text-[#0056D2] hover:text-[#004BB5]"
             >
               Thử lại
             </button>

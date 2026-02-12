@@ -30,6 +30,6 @@ public class StudentAnalyticsControllerV3 {
             @AuthenticationPrincipal UserJpaEntity currentUser) {
         UUID studentId = currentUser.getId();
         var analytics = analyticsUseCase.getAnalytics(studentId);
-        return ResponseEntity.ok(ApiResponse.success(analytics, "Analytics loaded"));
+        return ResponseEntity.ok(ApiResponse.success(analytics, "Dữ liệu phân tích"));
     }
 }

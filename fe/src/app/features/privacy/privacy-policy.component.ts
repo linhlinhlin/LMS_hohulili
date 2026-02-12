@@ -1,4 +1,4 @@
-﻿import { Component, ChangeDetectionStrategy, signal, inject, OnInit, OnDestroy, HostListener, PLATFORM_ID } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, inject, OnInit, OnDestroy, HostListener, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -74,7 +74,7 @@ export class PrivacyPolicyComponent implements OnInit, OnDestroy {
 
   getSectionClass(sectionId: string): string {
     return this.activeSection() === sectionId
-      ? 'bg-blue-50 text-[#004BB5]'
+      ? 'bg-[#0056D2]/5 text-[#004BB5]'
       : 'hover:bg-gray-100 text-gray-700';
   }
 

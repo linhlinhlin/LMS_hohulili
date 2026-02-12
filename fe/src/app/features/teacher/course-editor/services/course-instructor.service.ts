@@ -291,7 +291,7 @@ export class CourseInstructorService {
 
     getRoleBadgeClass(role: string): string {
         return role === 'OWNER'
-            ? 'bg-blue-100 text-blue-800'
+            ? 'bg-[#0056D2]/10 text-[#004BB5]'
             : 'bg-purple-100 text-purple-800';
     }
 

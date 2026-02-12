@@ -46,10 +46,10 @@ import { ToastService } from '../../../core/services/toast.service';
                   <div class="space-y-6">
                     <h2 class="text-xl font-bold text-gray-900">Thông tin chung</h2>
                     <!-- Course Selection -->
-                    <div class="p-4 bg-blue-50 rounded-lg border border-blue-100 mb-4">
-                      <label class="block text-sm font-bold text-blue-800 mb-2">Chọn khóa học <span class="text-red-500">*</span></label>
+                    <div class="p-4 bg-[#0056D2]/5 rounded-lg border border-[#0056D2]/10 mb-4">
+                      <label class="block text-sm font-bold text-[#004BB5] mb-2">Chọn khóa học <span class="text-red-500">*</span></label>
                       <select [(ngModel)]="quizForm.courseId"
-                        class="w-full h-11 px-4 rounded-lg border border-blue-200 bg-white text-gray-900 focus:ring-2 focus:ring-[#0056D2]">
+                        class="w-full h-11 px-4 rounded-lg border border-[#0056D2]/20 bg-white text-gray-900 focus:ring-2 focus:ring-[#0056D2]">
                         <option value="" disabled selected>-- Chọn khóa học --</option>
                         @for (course of courses(); track course) {
                           <option [value]="course.id">
@@ -182,7 +182,7 @@ import { ToastService } from '../../../core/services/toast.service';
                                   <div class="grid grid-cols-2 gap-4">
                                     <div class="col-span-2">
                                       <p class="text-sm text-gray-600">Khóa học</p>
-                                      <p class="font-bold text-lg text-blue-800">{{ getSelectedCourseTitle() }}</p>
+                                      <p class="font-bold text-lg text-[#004BB5]">{{ getSelectedCourseTitle() }}</p>
                                     </div>
                                     <div>
                                       <p class="text-sm text-gray-600">Tên bài kiểm tra</p>

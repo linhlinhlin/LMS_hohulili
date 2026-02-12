@@ -75,9 +75,9 @@ export interface StudentInfo {
               </div>
 
               <!-- Current Deadline -->
-              <div class="bg-blue-50 rounded-lg p-4">
+              <div class="bg-[#0056D2]/5 rounded-lg p-4">
                 <p class="text-sm text-[#0056D2]">Hạn nộp hiện tại</p>
-                <p class="font-medium text-blue-900">
+                <p class="font-medium text-[#004BB5]">
                   {{ formatDate(originalDeadline()) }}
                 </p>
               </div>

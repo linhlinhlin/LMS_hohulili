@@ -4,14 +4,14 @@ import type { UserRole as UserRoleType } from '../../../shared/types/user.types'
 // Student Sidebar Configuration
 export const studentSidebarConfig: SidebarConfig = {
   role: 'student',
-  title: 'Student Portal',
+  title: 'Cổng Học viên',
   logoIcon: 'courses',
   showProgress: true,
   progressValue: 75,
   progressLabel: 'Tiến độ học tập',
   menuItems: [
     {
-      label: 'Dashboard',
+      label: 'Trang chủ',
       route: '/student',
       icon: 'home',
       exact: true
@@ -58,11 +58,11 @@ export const studentSidebarConfig: SidebarConfig = {
 // Teacher Sidebar Configuration
 export const teacherSidebarConfig: SidebarConfig = {
   role: 'teacher',
-  title: 'Teacher Portal',
+  title: 'Cổng Giảng viên',
   logoIcon: 'courses',
   menuItems: [
     {
-      label: 'Dashboard',
+      label: 'Trang chủ',
       route: '/teacher/dashboard',
       icon: 'home'
     },
@@ -131,7 +131,7 @@ export const teacherSidebarConfig: SidebarConfig = {
 // Full Admin Sidebar Configuration (all items — SYSTEM_ADMIN sees everything)
 const allAdminMenuItems: SidebarMenuItem[] = [
   {
-    label: 'Dashboard',
+    label: 'Trang chủ',
     route: '/admin/dashboard',
     icon: 'home',
     exact: true
@@ -190,8 +190,8 @@ const systemOnlyRoutes = new Set(['/admin/settings', '/admin/logs', '/admin/ai-k
 // System Admin sidebar (full access)
 export const adminSidebarConfig: SidebarConfig = {
   role: 'admin',
-  title: 'Admin Portal',
-  subtitle: 'System Admin',
+  title: 'Cổng Quản trị',
+  subtitle: 'Quản trị hệ thống',
   logoIcon: 'settings',
   menuItems: allAdminMenuItems
 };
@@ -199,7 +199,7 @@ export const adminSidebarConfig: SidebarConfig = {
 // ORG_ADMIN sidebar (operations only — no settings/logs/AI knowledge)
 export const orgAdminSidebarConfig: SidebarConfig = {
   role: 'org_admin',
-  title: 'Admin Portal',
+  title: 'Cổng Quản trị',
   subtitle: 'Chuyên viên',
   logoIcon: 'settings',
   menuItems: allAdminMenuItems.filter(item => !systemOnlyRoutes.has(item.route))

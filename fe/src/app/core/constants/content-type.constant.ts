@@ -26,8 +26,8 @@ export const CONTENT_TYPE_CONFIG = {
         label: 'Video bài giảng',
         icon: 'play-circle',
         indicatorColor: 'bg-[#0056D2]',
-        hoverBg: 'hover:bg-blue-50',
-        borderColor: 'border-blue-200'
+        hoverBg: 'hover:bg-[#0056D2]/5',
+        borderColor: 'border-[#0056D2]/20'
     },
     // File/Tài liệu - Phao tiêu cảnh báo / Chỉ dẫn
     FILE: {

@@ -39,7 +39,7 @@ public class PackageControllerV3 {
         List<com.example.lms.shared.infrastructure.persistence.entity.PackageJpaEntity> entities = packageRepository.findByOwnerId(user.getId());
         
         List<PackageDTO> dtos = entities.stream().map(this::toDTO).toList();
-        return ResponseEntity.ok(ApiResponse.success(dtos, "Packages loaded"));
+        return ResponseEntity.ok(ApiResponse.success(dtos, "Danh sách gói câu hỏi"));
     }
 
     @Operation(summary = "Get all available packages")
@@ -48,7 +48,7 @@ public class PackageControllerV3 {
     public ResponseEntity<ApiResponse<List<PackageDTO>>> getAllPackages() {
         List<com.example.lms.shared.infrastructure.persistence.entity.PackageJpaEntity> entities = packageRepository.findAll();
         List<PackageDTO> dtos = entities.stream().map(this::toDTO).toList();
-        return ResponseEntity.ok(ApiResponse.success(dtos, "All packages loaded"));
+        return ResponseEntity.ok(ApiResponse.success(dtos, "Tất cả gói câu hỏi"));
     }
 
     @Operation(summary = "Get package by ID")
@@ -79,7 +79,7 @@ public class PackageControllerV3 {
                 .build();
         
         entity = packageRepository.save(entity);
-        return ResponseEntity.ok(ApiResponse.success(toDTO(entity), "Package created"));
+        return ResponseEntity.ok(ApiResponse.success(toDTO(entity), "Tạo gói câu hỏi thành công"));
     }
 
     @Operation(summary = "Update package")
@@ -99,7 +99,7 @@ public class PackageControllerV3 {
                     }
                     if (request.getCapacity() != null) entity.setCapacity(request.getCapacity());
                     
-                    return ResponseEntity.ok(ApiResponse.success(toDTO(packageRepository.save(entity)), "Package updated"));
+                    return ResponseEntity.ok(ApiResponse.success(toDTO(packageRepository.save(entity)), "Cập nhật gói câu hỏi thành công"));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -110,7 +110,7 @@ public class PackageControllerV3 {
     public ResponseEntity<ApiResponse<String>> deletePackage(@PathVariable java.util.UUID id) {
         if (packageRepository.existsById(id)) {
             packageRepository.deleteById(id);
-            return ResponseEntity.ok(ApiResponse.success("Deleted", "Package deleted"));
+            return ResponseEntity.ok(ApiResponse.success("Đã xóa", "Gói câu hỏi đã được xóa"));
         }
         return ResponseEntity.notFound().build();
     }
@@ -159,7 +159,7 @@ public class PackageControllerV3 {
     @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<String>> moveQuestions(@Valid @RequestBody MoveQuestionsRequest request) {
         if (request.getQuestionIds() == null || request.getQuestionIds().isEmpty()) {
-             return ResponseEntity.badRequest().body(ApiResponse.error("400", "No questions specified"));
+             return ResponseEntity.badRequest().body(ApiResponse.error("400", "Chưa chọn câu hỏi"));
         }
         java.util.UUID targetId = java.util.UUID.fromString(request.getTargetPackageId());
         
@@ -169,7 +169,7 @@ public class PackageControllerV3 {
         questions.forEach(q -> q.setPackageId(targetId));
         questionRepository.saveAll(questions);
         
-        return ResponseEntity.ok(ApiResponse.success("Moved", "Questions moved successfully"));
+        return ResponseEntity.ok(ApiResponse.success("Đã di chuyển", "Câu hỏi đã được di chuyển thành công"));
     }
     
     @Operation(summary = "Search packages")
@@ -183,7 +183,7 @@ public class PackageControllerV3 {
             packageRepository.findByNameContainingIgnoreCase(keyword, org.springframework.data.domain.Pageable.ofSize(20));
             
         List<PackageDTO> dtos = page.getContent().stream().map(this::toDTO).toList();
-        return ResponseEntity.ok(ApiResponse.success(dtos, "Search results"));
+        return ResponseEntity.ok(ApiResponse.success(dtos, "Kết quả tìm kiếm"));
     }
 
     // === Helpers ===
@@ -233,7 +233,7 @@ public class PackageControllerV3 {
 
     @lombok.Data
     public static class CreatePackageRequest {
-        @NotBlank(message = "Name is required")
+        @NotBlank(message = "Tên không được để trống")
         private String name;
         private String description;
         private String subject;
@@ -252,7 +252,7 @@ public class PackageControllerV3 {
 
     @lombok.Data
     public static class MoveQuestionsRequest {
-        @NotEmpty(message = "Question IDs cannot be empty")
+        @NotEmpty(message = "Danh sách câu hỏi không được để trống")
         private List<String> questionIds;
         private String targetPackageId;
     }

@@ -2,7 +2,11 @@ package com.example.lms.assessment.infrastructure.persistence.repository;
 
 import com.example.lms.assessment.infrastructure.persistence.entity.AssignmentSubmissionJpaEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
+import java.util.List;
 import java.util.UUID;
 
 @Repository
@@ -28,4 +32,15 @@ public interface AssignmentSubmissionJpaRepository extends JpaRepository<Assignm
     long countPendingByAssignmentIds(@org.springframework.data.repository.query.Param("assignmentIds") java.util.List<UUID> assignmentIds);
 
     long countByStudentIdAndStatus(UUID studentId, AssignmentSubmissionJpaEntity.SubmissionStatus status);
+
+    // === Teacher assignment stats queries (batch) ===
+
+    @Query("SELECT s.assignmentId, COUNT(s) FROM AssignmentSubmissionJpaEntity s WHERE s.assignmentId IN :ids GROUP BY s.assignmentId")
+    List<Object[]> countSubmissionsByAssignmentIds(@Param("ids") List<UUID> ids);
+
+    @Query("SELECT s.assignmentId, COUNT(s) FROM AssignmentSubmissionJpaEntity s WHERE s.assignmentId IN :ids AND s.status = 'GRADED' GROUP BY s.assignmentId")
+    List<Object[]> countGradedByAssignmentIds(@Param("ids") List<UUID> ids);
+
+    @Query("SELECT s.assignmentId, AVG(s.grade) FROM AssignmentSubmissionJpaEntity s WHERE s.assignmentId IN :ids AND s.grade IS NOT NULL GROUP BY s.assignmentId")
+    List<Object[]> avgGradeByAssignmentIds(@Param("ids") List<UUID> ids);
 }

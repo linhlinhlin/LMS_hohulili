@@ -98,8 +98,8 @@ import { ToastService } from '../../../core/services/toast.service';
                   <div class="flex items-center justify-between mb-2">
                     <h4 class="font-medium text-gray-900">{{ course.courseTitle }}</h4>
                     <span class="px-2 py-1 text-xs font-semibold rounded-full"
-                      [class.bg-blue-100]="course.status === 'in-progress'"
-                      [class.text-blue-800]="course.status === 'in-progress'"
+                      [class.bg-[#0056D2]/10]="course.status === 'in-progress'"
+                      [class.text-[#004BB5]]="course.status === 'in-progress'"
                       [class.bg-green-100]="course.status === 'completed'"
                       [class.text-green-800]="course.status === 'completed'"
                       [class.bg-gray-100]="course.status === 'dropped'"

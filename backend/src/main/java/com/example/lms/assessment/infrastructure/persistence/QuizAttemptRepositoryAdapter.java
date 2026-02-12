@@ -117,7 +117,7 @@ public class QuizAttemptRepositoryAdapter implements QuizAttemptRepository {
                        // Ideally, we trust the JSON payload.
                     }
                     items.add(item);
-                } catch (Exception e) {
+                } catch (IllegalArgumentException e) {
                     log.error("Failed to deserialize AttemptItem for attempt {}", entity.getId(), e);
                 }
             }

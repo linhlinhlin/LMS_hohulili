@@ -73,7 +73,7 @@ public class StudentEnrollmentControllerV3 {
         if (currentUser == null) {
             return ResponseEntity.ok(ApiResponse.success(
                 new PageImpl<>(Collections.emptyList(), PageRequest.of(0, Math.max(1, size)), 0),
-                "User not authenticated properly"
+                "Xác thực người dùng không thành công"
             ));
         }
 
@@ -152,7 +152,7 @@ public class StudentEnrollmentControllerV3 {
         PageRequest pageable = PageRequest.of(safePage, safeSize);
         Page<EnrolledCourseResponse> pageResult = new PageImpl<>(pageContent, pageable, courseResponses.size());
         
-        return ResponseEntity.ok(ApiResponse.success(pageResult, "Loaded enrolled courses"));
+        return ResponseEntity.ok(ApiResponse.success(pageResult, "Danh sách khóa học đã đăng ký"));
     }
 
     @Operation(summary = "Get course progress for student")
@@ -169,7 +169,7 @@ public class StudentEnrollmentControllerV3 {
                     .progressPercentage(0)
                     .status("not_authenticated")
                     .build(),
-                "User not authenticated properly"
+                "Xác thực người dùng không thành công"
             ));
         }
 
@@ -186,7 +186,7 @@ public class StudentEnrollmentControllerV3 {
                     .progressPercentage(0)
                     .status("not_enrolled")
                     .build(),
-                "Not enrolled in this course"
+                "Chưa đăng ký khóa học này"
             ));
         }
         
@@ -206,7 +206,7 @@ public class StudentEnrollmentControllerV3 {
                 .lastAccessedAt(enrollment.getLastAccessedAt() != null ? enrollment.getLastAccessedAt().toString() : null)
                 .build();
         
-        return ResponseEntity.ok(ApiResponse.success(progress, "Course progress loaded"));
+        return ResponseEntity.ok(ApiResponse.success(progress, "Tiến độ khóa học"));
     }
 
     @Operation(summary = "Get completed lesson IDs for a course")
@@ -217,7 +217,7 @@ public class StudentEnrollmentControllerV3 {
             @PathVariable UUID courseId
     ) {
         if (currentUser == null) {
-            return ResponseEntity.ok(ApiResponse.success(List.of(), "User not authenticated properly"));
+            return ResponseEntity.ok(ApiResponse.success(List.of(), "Xác thực người dùng không thành công"));
         }
 
         UUID studentId = currentUser.getId();
@@ -231,11 +231,11 @@ public class StudentEnrollmentControllerV3 {
             List<String> completedIds = enrollment.getProgress() != null
                 ? new ArrayList<>(enrollment.getProgress().keySet())
                 : List.of();
-            return ResponseEntity.ok(ApiResponse.success(completedIds, "Completed lesson IDs loaded"));
+            return ResponseEntity.ok(ApiResponse.success(completedIds, "Danh sách bài học đã hoàn thành"));
         }
 
         // Not enrolled - return empty list
-        return ResponseEntity.ok(ApiResponse.success(List.of(), "Not enrolled in this course"));
+        return ResponseEntity.ok(ApiResponse.success(List.of(), "Chưa đăng ký khóa học này"));
     }
 
     @Operation(summary = "Mark lesson as completed")
@@ -247,7 +247,7 @@ public class StudentEnrollmentControllerV3 {
     ) {
         if (currentUser == null) {
             return ResponseEntity.status(401)
-                .body(ApiResponse.error("User not authenticated"));
+                .body(ApiResponse.error("Người dùng chưa xác thực"));
         }
 
         UUID studentId = currentUser.getId();
@@ -257,7 +257,7 @@ public class StudentEnrollmentControllerV3 {
         if (courseOpt.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.success(
                 Map.of("lessonId", lessonId.toString(), "status", "LESSON_NOT_FOUND"),
-                "Lesson not found in any course"
+                "Không tìm thấy bài học trong khóa học nào"
             ));
         }
 
@@ -267,7 +267,7 @@ public class StudentEnrollmentControllerV3 {
         if (enrollmentOpt.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.success(
                 Map.of("lessonId", lessonId.toString(), "status", "NOT_ENROLLED"),
-                "Not enrolled in the course containing this lesson"
+                "Chưa đăng ký khóa học chứa bài học này"
             ));
         }
 
@@ -301,7 +301,7 @@ public class StudentEnrollmentControllerV3 {
 
         return ResponseEntity.ok(ApiResponse.success(
             Map.of("lessonId", lessonId.toString(), "status", "COMPLETED", "completedAt", Instant.now().toString()),
-            "Lesson marked as completed"
+            "Đã hoàn thành bài học"
         ));
     }
 
@@ -315,7 +315,7 @@ public class StudentEnrollmentControllerV3 {
     ) {
         if (currentUser == null) {
             return ResponseEntity.status(401)
-                .body(ApiResponse.error("User not authenticated"));
+                .body(ApiResponse.error("Người dùng chưa xác thực"));
         }
 
         UUID studentId = currentUser.getId();
@@ -325,7 +325,7 @@ public class StudentEnrollmentControllerV3 {
         if (courseOpt.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.success(
                 Map.of("lessonId", lessonId.toString(), "status", "LESSON_NOT_FOUND"),
-                "Lesson not found in any course"
+                "Không tìm thấy bài học trong khóa học nào"
             ));
         }
 
@@ -335,7 +335,7 @@ public class StudentEnrollmentControllerV3 {
         if (enrollmentOpt.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.success(
                 Map.of("lessonId", lessonId.toString(), "status", "NOT_ENROLLED"),
-                "Not enrolled in the course containing this lesson"
+                "Chưa đăng ký khóa học chứa bài học này"
             ));
         }
 
@@ -366,7 +366,7 @@ public class StudentEnrollmentControllerV3 {
                     ? lessonProgress.getCompletedSections() : List.of(),
                 "status", "SECTION_COMPLETED"
             ),
-            "Section marked as completed"
+            "Đã hoàn thành phần học"
         ));
     }
 
@@ -379,7 +379,7 @@ public class StudentEnrollmentControllerV3 {
     ) {
         if (currentUser == null) {
             return ResponseEntity.status(401)
-                .body(ApiResponse.error("User not authenticated"));
+                .body(ApiResponse.error("Người dùng chưa xác thực"));
         }
 
         UUID studentId = currentUser.getId();
@@ -396,7 +396,7 @@ public class StudentEnrollmentControllerV3 {
                         "watchTimeSeconds", lp.getWatchSeconds() != null ? lp.getWatchSeconds() : 0,
                         "completionPercent", "COMPLETED".equals(lp.getStatus()) ? 100 : 0
                     ),
-                    "Lesson progress loaded"
+                    "Tiến độ bài học"
                 ));
             }
         }
@@ -404,7 +404,7 @@ public class StudentEnrollmentControllerV3 {
         // No progress found - lesson not started
         return ResponseEntity.ok(ApiResponse.success(
             Map.of("lessonId", lessonId.toString(), "status", "NOT_STARTED", "watchTimeSeconds", 0, "completionPercent", 0),
-            "Lesson not started"
+            "Bài học chưa bắt đầu"
         ));
     }
 
@@ -416,7 +416,7 @@ public class StudentEnrollmentControllerV3 {
             @PathVariable UUID courseId
     ) {
         if (currentUser == null) {
-            return ResponseEntity.ok(ApiResponse.success(null, "User not authenticated"));
+            return ResponseEntity.ok(ApiResponse.success(null, "Người dùng chưa xác thực"));
         }
 
         UUID studentId = currentUser.getId();
@@ -438,16 +438,16 @@ public class StudentEnrollmentControllerV3 {
                 for (LessonJpaEntity lesson : lessons) {
                     if (!completedIds.contains(lesson.getId().toString())) {
                         return ResponseEntity.ok(ApiResponse.success(
-                                lesson.getId().toString(), "Next lesson found"));
+                                lesson.getId().toString(), "Bài học tiếp theo"));
                     }
                 }
             }
 
             // All lessons completed
-            return ResponseEntity.ok(ApiResponse.success(null, "All lessons completed"));
+            return ResponseEntity.ok(ApiResponse.success(null, "Đã hoàn thành tất cả bài học"));
         }
 
-        return ResponseEntity.ok(ApiResponse.success(null, "Not enrolled"));
+        return ResponseEntity.ok(ApiResponse.success(null, "Chưa đăng ký"));
     }
 
     @Operation(summary = "Get student's certificates")
@@ -456,7 +456,7 @@ public class StudentEnrollmentControllerV3 {
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getStudentCertificates(
             @AuthenticationPrincipal UserJpaEntity currentUser) {
         if (currentUser == null) {
-            return ResponseEntity.status(401).body(ApiResponse.error("User not authenticated"));
+            return ResponseEntity.status(401).body(ApiResponse.error("Người dùng chưa xác thực"));
         }
 
         var certs = certificateRepository.findByStudentIdOrderByIssuedAtDesc(currentUser.getId());
@@ -471,7 +471,7 @@ public class StudentEnrollmentControllerV3 {
             return (Map<String, Object>) map;
         }).toList();
 
-        return ResponseEntity.ok(ApiResponse.success(result, "Certificates loaded"));
+        return ResponseEntity.ok(ApiResponse.success(result, "Danh sách chứng chỉ"));
     }
 
     @Operation(summary = "Issue certificate for completed course")
@@ -481,7 +481,7 @@ public class StudentEnrollmentControllerV3 {
             @AuthenticationPrincipal UserJpaEntity currentUser,
             @PathVariable UUID enrollmentId) {
         if (currentUser == null) {
-            return ResponseEntity.status(401).body(ApiResponse.error("User not authenticated"));
+            return ResponseEntity.status(401).body(ApiResponse.error("Người dùng chưa xác thực"));
         }
 
         // Check enrollment exists and belongs to student
@@ -490,7 +490,7 @@ public class StudentEnrollmentControllerV3 {
                 .findFirst();
 
         if (enrollmentOpt.isEmpty()) {
-            return ResponseEntity.ok(ApiResponse.error("Enrollment not found"));
+            return ResponseEntity.ok(ApiResponse.error("Không tìm thấy đăng ký khóa học"));
         }
 
         Enrollment enrollment = enrollmentOpt.get();
@@ -503,18 +503,18 @@ public class StudentEnrollmentControllerV3 {
             result.put("verificationToken", existing.getVerificationToken().toString());
             result.put("issuedAt", existing.getIssuedAt().toString());
             result.put("alreadyExists", true);
-            return ResponseEntity.ok(ApiResponse.success(result, "Certificate already issued"));
+            return ResponseEntity.ok(ApiResponse.success(result, "Chứng chỉ đã được cấp"));
         }
 
         // Check course completion (>= 80% progress)
         int progress = enrollment.getCompletionPercent() != null ? enrollment.getCompletionPercent() : 0;
         if (progress < 80) {
-            return ResponseEntity.ok(ApiResponse.error("Course must be at least 80% complete to issue certificate"));
+            return ResponseEntity.ok(ApiResponse.error("Khóa học phải hoàn thành ít nhất 80% để cấp chứng chỉ"));
         }
 
         UUID courseId = enrollment.getLearningClass() != null ? enrollment.getLearningClass().getCourseId() : null;
         if (courseId == null) {
-            return ResponseEntity.ok(ApiResponse.error("Course not found for enrollment"));
+            return ResponseEntity.ok(ApiResponse.error("Không tìm thấy khóa học cho đăng ký này"));
         }
 
         // Issue certificate
@@ -531,7 +531,7 @@ public class StudentEnrollmentControllerV3 {
         result.put("verificationToken", saved.getVerificationToken().toString());
         result.put("issuedAt", saved.getIssuedAt().toString());
         result.put("courseId", courseId.toString());
-        return ResponseEntity.ok(ApiResponse.success(result, "Certificate issued successfully"));
+        return ResponseEntity.ok(ApiResponse.success(result, "Cấp chứng chỉ thành công"));
     }
 
     @Operation(summary = "Verify a certificate (public endpoint)")
@@ -549,10 +549,10 @@ public class StudentEnrollmentControllerV3 {
                     result.put("courseName", courseJpaRepository.findById(cert.getCourseId())
                             .map(CourseJpaEntity::getTitle).orElse(""));
                     result.put("issuedAt", cert.getIssuedAt().toString());
-                    return ResponseEntity.ok(ApiResponse.success(result, "Certificate valid"));
+                    return ResponseEntity.ok(ApiResponse.success(result, "Chứng chỉ hợp lệ"));
                 })
                 .orElse(ResponseEntity.ok(ApiResponse.success(
-                        Map.of("valid", (Object) false), "Certificate not found")));
+                        Map.of("valid", (Object) false), "Không tìm thấy chứng chỉ")));
     }
 
     @Operation(summary = "Get student grades across all courses")
@@ -561,7 +561,7 @@ public class StudentEnrollmentControllerV3 {
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getStudentGrades(
             @AuthenticationPrincipal UserJpaEntity currentUser) {
         if (currentUser == null) {
-            return ResponseEntity.status(401).body(ApiResponse.error("User not authenticated"));
+            return ResponseEntity.status(401).body(ApiResponse.error("Người dùng chưa xác thực"));
         }
 
         UUID studentId = currentUser.getId();
@@ -639,7 +639,7 @@ public class StudentEnrollmentControllerV3 {
             });
         }
 
-        return ResponseEntity.ok(ApiResponse.success(grades, "Student grades loaded"));
+        return ResponseEntity.ok(ApiResponse.success(grades, "Bảng điểm học viên"));
     }
 
     // =============================================
@@ -652,7 +652,7 @@ public class StudentEnrollmentControllerV3 {
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getStudentAssignments(
             @AuthenticationPrincipal UserJpaEntity currentUser) {
         if (currentUser == null) {
-            return ResponseEntity.status(401).body(ApiResponse.error("User not authenticated"));
+            return ResponseEntity.status(401).body(ApiResponse.error("Người dùng chưa xác thực"));
         }
 
         UUID studentId = currentUser.getId();
@@ -666,7 +666,7 @@ public class StudentEnrollmentControllerV3 {
                 .collect(Collectors.toList());
 
         if (courseIds.isEmpty()) {
-            return ResponseEntity.ok(ApiResponse.success(List.of(), "No enrolled courses"));
+            return ResponseEntity.ok(ApiResponse.success(List.of(), "Chưa đăng ký khóa học nào"));
         }
 
         // Get PUBLISHED assignments for enrolled courses
@@ -715,7 +715,7 @@ public class StudentEnrollmentControllerV3 {
             return map;
         }).toList();
 
-        return ResponseEntity.ok(ApiResponse.success(result, "Student assignments loaded"));
+        return ResponseEntity.ok(ApiResponse.success(result, "Danh sách bài tập"));
     }
 
     @Operation(summary = "Get assignment detail for student (with enrollment check)")
@@ -725,13 +725,13 @@ public class StudentEnrollmentControllerV3 {
             @AuthenticationPrincipal UserJpaEntity currentUser,
             @PathVariable UUID assignmentId) {
         if (currentUser == null) {
-            return ResponseEntity.status(401).body(ApiResponse.error("User not authenticated"));
+            return ResponseEntity.status(401).body(ApiResponse.error("Người dùng chưa xác thực"));
         }
 
         // Find assignment
         var assignmentOpt = assignmentJpaRepository.findById(assignmentId);
         if (assignmentOpt.isEmpty()) {
-            return ResponseEntity.ok(ApiResponse.success(null, "Assignment not found"));
+            return ResponseEntity.ok(ApiResponse.success(null, "Không tìm thấy bài tập"));
         }
 
         AssignmentJpaEntity assignment = assignmentOpt.get();
@@ -743,7 +743,7 @@ public class StudentEnrollmentControllerV3 {
                     .findByStudentIdAndCourseId(studentId, assignment.getCourseId());
             if (enrollmentOpt.isEmpty()) {
                 return ResponseEntity.status(403)
-                        .body(ApiResponse.error("Not enrolled in this course"));
+                        .body(ApiResponse.error("Chưa đăng ký khóa học này"));
             }
         }
 
@@ -768,7 +768,7 @@ public class StudentEnrollmentControllerV3 {
                     .ifPresent(c -> map.put("courseTitle", c.getTitle()));
         }
 
-        return ResponseEntity.ok(ApiResponse.success(map, "Assignment loaded"));
+        return ResponseEntity.ok(ApiResponse.success(map, "Thông tin bài tập"));
     }
 
     // Response DTOs

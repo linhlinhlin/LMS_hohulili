@@ -1,7 +1,6 @@
 import { Component, inject, OnInit, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
-import { FormsModule } from '@angular/forms';
 import { AssignmentApi, AssignmentSummary } from '../../../../api/client/assignment.api';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 
@@ -14,17 +13,13 @@ import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.s
  * @requirements Expert feedback - Assignment list with grading stats
  */
 
-interface AssignmentWithStats extends AssignmentSummary {
-  pendingCount?: number;
-  gradedCount?: number;
-  averageScore?: number;
-}
+type AssignmentWithStats = AssignmentSummary;
 
 type FilterType = 'ALL' | 'NEEDS_GRADING' | 'GRADED' | 'DRAFT';
 
 @Component({
   selector: 'app-assignment-list',
-  imports: [CommonModule, RouterLink, FormsModule],
+  imports: [CommonModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="min-h-screen bg-gray-50">
@@ -64,7 +59,7 @@ type FilterType = 'ALL' | 'NEEDS_GRADING' | 'GRADED' | 'DRAFT';
                 <p class="text-sm text-gray-600">Tổng bài tập</p>
                 <p class="text-3xl font-bold text-[#0056D2] mt-2">{{ assignments().length }}</p>
               </div>
-              <div class="w-12 h-12 bg-blue-50 rounded flex items-center justify-center">
+              <div class="w-12 h-12 bg-[#0056D2]/5 rounded flex items-center justify-center">
                 <svg class="w-6 h-6 text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2H9zm0 0a2 2 0 002 2h2a2 2 0 002-2"></path>
                 </svg>
@@ -115,7 +110,7 @@ type FilterType = 'ALL' | 'NEEDS_GRADING' | 'GRADED' | 'DRAFT';
         <!-- Filter Tabs -->
         <div class="flex items-center gap-2 mb-6">
           <button (click)="setFilter('ALL')" 
-                  [class]="filter() === 'ALL' ? 'bg-blue-100 text-[#004BB5] border-blue-300' : 'bg-white hover:bg-gray-50'"
+                  [class]="filter() === 'ALL' ? 'bg-[#0056D2]/10 text-[#004BB5] border-[#0056D2]/30' : 'bg-white hover:bg-gray-50'"
                   class="px-4 py-2 border rounded-lg text-sm font-medium transition-colors">
             Tất cả
           </button>
@@ -141,7 +136,7 @@ type FilterType = 'ALL' | 'NEEDS_GRADING' | 'GRADED' | 'DRAFT';
 
         <!-- Search -->
         <div class="mb-6">
-          <input type="text" [(ngModel)]="searchQuery" placeholder="Tìm kiếm bài tập..."
+          <input type="text" [value]="searchQuery()" (input)="searchQuery.set($any($event.target).value)" placeholder="Tìm kiếm bài tập..."
                  class="w-full md:w-96 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]"/>
 
         </div>
@@ -280,7 +275,7 @@ export class AssignmentListComponent implements OnInit {
   loading = signal(false);
   assignments = signal<AssignmentWithStats[]>([]);
   filter = signal<FilterType>('ALL');
-  searchQuery = '';
+  searchQuery = signal('');
 
   // Computed
   filteredAssignments = computed(() => {
@@ -292,16 +287,23 @@ export class AssignmentListComponent implements OnInit {
         result = result.filter(a => (a.pendingCount || 0) > 0);
         break;
       case 'GRADED':
-        result = result.filter(a => a.status === 'closed' || (a.pendingCount || 0) === 0);
+        result = result.filter(a => {
+          const s = a.status?.toLowerCase() || '';
+          return s === 'closed' || ((a.pendingCount || 0) === 0 && a.submissionsCount > 0);
+        });
         break;
       case 'DRAFT':
-        result = result.filter(a => a.status === 'pending');
+        result = result.filter(a => {
+          const s = a.status?.toLowerCase() || '';
+          return s === 'draft' || s === 'pending';
+        });
         break;
     }
 
     // Apply search
-    if (this.searchQuery.trim()) {
-      const query = this.searchQuery.toLowerCase();
+    const searchTerm = this.searchQuery();
+    if (searchTerm.trim()) {
+      const query = searchTerm.toLowerCase();
       result = result.filter(a =>
         a.title.toLowerCase().includes(query) ||
         a.courseTitle?.toLowerCase().includes(query)
@@ -365,15 +367,13 @@ export class AssignmentListComponent implements OnInit {
 
     this.assignmentApi.getTeacherAssignments().subscribe({
       next: (response) => {
-        const data = response.data || [];
-        // Map to AssignmentWithStats (add computed grading stats)
-        const withStats: AssignmentWithStats[] = data.map(a => ({
+        const data: AssignmentWithStats[] = response.data || [];
+        // Normalize status to lowercase for consistent FE comparison
+        const normalized = data.map(a => ({
           ...a,
-          pendingCount: a.submissionsCount - (a as any).gradedCount || Math.max(0, a.submissionsCount - Math.floor(a.submissionsCount * 0.7)),
-          gradedCount: (a as any).gradedCount || Math.floor(a.submissionsCount * 0.7),
-          averageScore: (a as any).averageScore
+          status: (a.status?.toLowerCase() || 'draft') as AssignmentSummary['status']
         }));
-        this.assignments.set(withStats);
+        this.assignments.set(normalized);
       },
       error: () => {
         this.error.set('Không thể tải danh sách bài tập. Vui lòng thử lại.');
@@ -390,7 +390,7 @@ export class AssignmentListComponent implements OnInit {
   }
 
   formatDate(dateString?: string): string {
-    if (!dateString) return 'Khong gioi han';
+    if (!dateString) return 'Không giới hạn';
     return new Date(dateString).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
   }
 
@@ -400,21 +400,25 @@ export class AssignmentListComponent implements OnInit {
   }
 
   getStatusClass(status: string): string {
+    const s = status?.toLowerCase() || '';
     const classes: Record<string, string> = {
       'published': 'bg-green-100 text-green-700',
+      'draft': 'bg-yellow-100 text-yellow-700',
       'pending': 'bg-yellow-100 text-yellow-700',
       'closed': 'bg-gray-100 text-gray-700'
     };
-    return classes[status] || 'bg-gray-100 text-gray-700';
+    return classes[s] || 'bg-gray-100 text-gray-700';
   }
 
   getStatusText(status: string): string {
+    const s = status?.toLowerCase() || '';
     const texts: Record<string, string> = {
       'published': 'Đang mở',
+      'draft': 'Bản nháp',
       'pending': 'Bản nháp',
       'closed': 'Đã đóng'
     };
-    return texts[status] || status;
+    return texts[s] || status;
   }
 
 }

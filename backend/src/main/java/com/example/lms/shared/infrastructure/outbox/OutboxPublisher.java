@@ -83,7 +83,7 @@ public class OutboxPublisher {
                     }
                 });
 
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             log.error("Error publishing outbox message {}: {}", message.getId(), e.getMessage());
             handleFailure(message, e);
         }

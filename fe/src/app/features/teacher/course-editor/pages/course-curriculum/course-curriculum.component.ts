@@ -152,7 +152,7 @@ export class CourseCurriculumComponent implements OnDestroy {
       ]
     },
 
-    // C?u h?nh B?ng
+    // Cấu hình Bảng
     table: {
       contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells']
     },

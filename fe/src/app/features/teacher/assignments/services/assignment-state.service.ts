@@ -166,6 +166,8 @@ export class AssignmentStateService {
             status: response.data.status,
             submissionsCount: response.data.submissionsCount,
             totalStudents: response.data.totalStudents,
+            gradedCount: 0,
+            pendingCount: 0,
             createdAt: response.data.createdAt,
             updatedAt: response.data.updatedAt
           };

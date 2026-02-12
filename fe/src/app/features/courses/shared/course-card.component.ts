@@ -63,7 +63,7 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
       <div class="p-5">
         <!-- Category + Level Row -->
         <div class="flex items-center justify-between mb-3">
-          <span class="inline-flex items-center bg-blue-50 text-[#004BB5] text-xs font-semibold px-2.5 py-1 rounded-full">
+          <span class="inline-flex items-center bg-[#0056D2]/5 text-[#004BB5] text-xs font-semibold px-2.5 py-1 rounded-full">
             {{ getCategoryName(course().category) }}
           </span>
           <span class="text-xs text-gray-500 font-medium">{{ levelLabelSafe(course().level) }}</span>

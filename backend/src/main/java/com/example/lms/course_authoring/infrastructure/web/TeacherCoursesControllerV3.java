@@ -49,7 +49,7 @@ public class TeacherCoursesControllerV3 {
             @RequestParam(required = false) String status
     ) {
         if (currentUser == null) {
-            return ResponseEntity.badRequest().body(ApiResponse.error("AUTH_ERROR", "User not authenticated"));
+            return ResponseEntity.badRequest().body(ApiResponse.error("AUTH_ERROR", "Người dùng chưa xác thực"));
         }
 
         int safeSize = Math.min(size, 100);
@@ -111,28 +111,28 @@ public class TeacherCoursesControllerV3 {
             @PathVariable UUID courseId,
             @Valid @RequestBody CourseDTOs.UpdateCourseRequest request) {
         courseAuthoringUseCase.updateCourse(courseId, request);
-        return ResponseEntity.ok(ApiResponse.success("Success"));
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật thành công"));
     }
 
     @DeleteMapping("/{courseId}")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     public ResponseEntity<ApiResponse<Object>> deleteCourse(@PathVariable UUID courseId) {
         courseAuthoringUseCase.deleteCourse(courseId);
-        return ResponseEntity.ok(ApiResponse.success("Success"));
+        return ResponseEntity.ok(ApiResponse.success("Xóa thành công"));
     }
 
     @PostMapping("/{courseId}/submit-for-approval")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     public ResponseEntity<ApiResponse<Object>> submitForApproval(@PathVariable UUID courseId) {
         courseAuthoringUseCase.submitForApproval(courseId);
-        return ResponseEntity.ok(ApiResponse.success("Submitted"));
+        return ResponseEntity.ok(ApiResponse.success("Đã gửi yêu cầu phê duyệt"));
     }
 
     @PostMapping("/{courseId}/cancel-approval")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     public ResponseEntity<ApiResponse<Object>> cancelApproval(@PathVariable UUID courseId) {
         courseAuthoringUseCase.cancelApproval(courseId);
-        return ResponseEntity.ok(ApiResponse.success("Cancelled"));
+        return ResponseEntity.ok(ApiResponse.success("Đã hủy yêu cầu phê duyệt"));
     }
 
     @GetMapping("/{courseId}/review-status")
@@ -179,7 +179,7 @@ public class TeacherCoursesControllerV3 {
                 .collect(java.util.stream.Collectors.toMap(StudentInfoResponse::getId, p -> p, (p, q) -> p))
                 .values().stream().toList();
 
-        return ResponseEntity.ok(ApiResponse.success(response, "Students loaded"));
+        return ResponseEntity.ok(ApiResponse.success(response, "Danh sách học viên"));
     }
 
     @lombok.Builder

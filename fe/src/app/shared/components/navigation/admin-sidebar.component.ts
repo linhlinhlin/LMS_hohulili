@@ -30,7 +30,7 @@ interface NavigationItem {
           </div>
           <div>
             <h1 class="text-xl font-bold text-white">LMS Maritime</h1>
-            <p class="text-xs text-blue-100">Admin Portal</p>
+            <p class="text-xs text-white/80">Cổng Quản trị</p>
           </div>
         </div>
       </div>
@@ -41,13 +41,13 @@ interface NavigationItem {
           <div class="relative">
             <img [src]="authService.currentUser()?.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face'" 
                  [alt]="authService.userName()" 
-                 class="w-12 h-12 rounded-lg object-cover border-2 border-blue-200 shadow-sm">
+                 class="w-12 h-12 rounded-lg object-cover border-2 border-[#0056D2]/20 shadow-sm">
             <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
           </div>
           <div class="flex-1 min-w-0">
             <p class="text-sm font-semibold text-gray-900 truncate">{{ authService.userName() }}</p>
             <p class="text-xs text-gray-500 truncate">{{ authService.userEmail() }}</p>
-            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-blue-50 text-[#004BB5] mt-1">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-[#0056D2]/5 text-[#004BB5] mt-1">
               {{ authService.userRole() === 'org_admin' ? 'Chuyên viên' : 'System Admin' }}
             </span>
           </div>
@@ -482,7 +482,7 @@ export class AdminSidebarComponent {
   // All navigation items
   private readonly allNavigationItems: NavigationItem[] = [
     {
-      label: 'Dashboard',
+      label: 'Trang chủ',
       icon: 'home',
       route: '/admin/dashboard',
       isActive: false

@@ -1,4 +1,4 @@
-﻿
+
     <div class="min-h-screen bg-white">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <!-- Header -->
@@ -67,7 +67,7 @@
                 <p class="text-2xl font-bold text-gray-900">{{ recentlyActive() }}</p>
                 <p class="text-xs text-gray-600 mt-2">Trong 7 ngày qua</p>
               </div>
-              <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+              <div class="w-10 h-10 bg-[#0056D2]/5 rounded-lg flex items-center justify-center">
                 <svg class="w-5 h-5 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
                 </svg>
@@ -375,12 +375,12 @@
                     </h4>
                     <div class="space-y-3">
                       @for (course of coopCourses(); track course.id) {
-                        <div class="p-4 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors">
+                        <div class="p-4 bg-[#0056D2]/5 rounded-lg border border-[#0056D2]/20 hover:bg-[#0056D2]/10 transition-colors">
                           <div class="flex items-start justify-between">
                             <div class="flex-1 min-w-0">
                               <h4 class="font-medium text-gray-900">{{ course.title }}</h4>
                               <div class="flex flex-wrap items-center gap-2 mt-1">
-                                <span class="text-xs px-2 py-0.5 rounded-full bg-blue-200 text-blue-800">Cộng tác viên</span>
+                                <span class="text-xs px-2 py-0.5 rounded-full bg-[#0056D2]/20 text-[#004BB5]">Cộng tác viên</span>
                                 <span class="text-xs text-gray-500">Chủ sở hữu: {{ course.teacherName }}</span>
                                 <span class="text-xs px-2 py-0.5 rounded-full"
                                       [class]="course.status?.toUpperCase() === 'PUBLISHED' ? 'bg-green-100 text-green-700' : 
@@ -395,7 +395,7 @@
                           </div>
                           
                           <!-- Action buttons for co-op (no approve/reject) -->
-                          <div class="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-blue-200">
+                          <div class="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-[#0056D2]/20">
                             <a [routerLink]="['/admin/courses']" [queryParams]="{search: course.title}"
                                class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 rounded hover:bg-indigo-100 transition-colors">
                               <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -405,7 +405,7 @@
                               Chi tiết
                             </a>
                             <button (click)="openFullCourseView(course.id)"
-                                    class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-[#004BB5] bg-blue-100 rounded hover:bg-blue-200 transition-colors">
+                                    class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-[#004BB5] bg-[#0056D2]/10 rounded hover:bg-[#0056D2]/20 transition-colors">
                               <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
                               </svg>

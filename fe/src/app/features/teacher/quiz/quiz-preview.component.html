@@ -1,4 +1,4 @@
-﻿
+
     <div class="min-h-screen bg-gray-50">
       <!-- Top Header Bar -->
       <div class="bg-white border-b border-gray-200 sticky top-0 z-20">
@@ -15,7 +15,7 @@
                 <p class="text-xs text-gray-500">Chế độ xem trước</p>
               </div>
             </div>
-            <div class="hidden md:flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-lg">
+            <div class="hidden md:flex items-center gap-2 px-4 py-2 bg-[#0056D2]/5 rounded-lg">
               <svg class="w-5 h-5 text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
               </svg>
@@ -38,7 +38,7 @@
       @if (loading()) {
         <div class="flex items-center justify-center min-h-[60vh]">
           <div class="text-center">
-            <div class="w-16 h-16 border-4 border-blue-200 border-t-[#0056D2] rounded-full animate-spin mx-auto mb-4"></div>
+            <div class="w-16 h-16 border-4 border-[#0056D2]/20 border-t-[#0056D2] rounded-full animate-spin mx-auto mb-4"></div>
             <p class="text-gray-600">Đang tải bài kiểm tra...</p>
           </div>
         </div>
@@ -89,12 +89,12 @@
                     <button (click)="goToQuestion(i)"
                             class="w-10 h-10 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center"
                             [class.ring-2]="i >= currentPage() * QUESTIONS_PER_PAGE && i < (currentPage() + 1) * QUESTIONS_PER_PAGE"
-                            [class.ring-blue-400]="i >= currentPage() * QUESTIONS_PER_PAGE && i < (currentPage() + 1) * QUESTIONS_PER_PAGE"
+                            [class.ring-[#0056D2]]="i >= currentPage() * QUESTIONS_PER_PAGE && i < (currentPage() + 1) * QUESTIONS_PER_PAGE"
                             [class.bg-green-100]="showResults() && answers()[q.id] === q.correctOption"
                             [class.text-green-700]="showResults() && answers()[q.id] === q.correctOption"
                             [class.bg-red-100]="showResults() && answers()[q.id] && answers()[q.id] !== q.correctOption"
                             [class.text-red-700]="showResults() && answers()[q.id] && answers()[q.id] !== q.correctOption"
-                            [class.bg-blue-100]="!showResults() && answers()[q.id]"
+                            [class.bg-[#0056D2]/10]="!showResults() && answers()[q.id]"
                             [class.text-[#004BB5]]="!showResults() && answers()[q.id]"
                             [class.bg-gray-100]="!showResults() && !answers()[q.id]"
                             [class.text-gray-600]="!showResults() && !answers()[q.id]">
@@ -105,11 +105,11 @@
               </div>
               <div class="space-y-2 text-xs">
                 <div class="flex items-center gap-2">
-                  <div class="w-4 h-4 rounded bg-blue-100 ring-2 ring-blue-400"></div>
+                  <div class="w-4 h-4 rounded bg-[#0056D2]/10 ring-2 ring-[#0056D2]"></div>
                   <span class="text-gray-600">Trang hiện tại</span>
                 </div>
                 <div class="flex items-center gap-2">
-                  <div class="w-4 h-4 rounded bg-blue-100"></div>
+                  <div class="w-4 h-4 rounded bg-[#0056D2]/10"></div>
                   <span class="text-gray-600">Đã trả lời</span>
                 </div>
                 <div class="flex items-center gap-2">
@@ -163,10 +163,10 @@
                           <button (click)="selectAnswer(question.id, opt.key)"
                                   [disabled]="showResults()"
                                   class="w-full text-left p-4 rounded-xl border-2 transition-all duration-200 group"
-                                  [class.border-blue-500]="answers()[question.id] === opt.key && !showResults()"
-                                  [class.bg-blue-50]="answers()[question.id] === opt.key && !showResults()"
+                                  [class.border-[#0056D2]]="answers()[question.id] === opt.key && !showResults()"
+                                  [class.bg-[#0056D2]/5]="answers()[question.id] === opt.key && !showResults()"
                                   [class.border-gray-200]="answers()[question.id] !== opt.key && !showResults()"
-                                  [class.hover:border-blue-300]="!showResults() && answers()[question.id] !== opt.key"
+                                  [class.hover:border-[#0056D2]/30]="!showResults() && answers()[question.id] !== opt.key"
                                   [class.hover:bg-gray-50]="!showResults() && answers()[question.id] !== opt.key"
                                   [class.border-green-500]="showResults() && opt.key === question.correctOption"
                                   [class.bg-green-50]="showResults() && opt.key === question.correctOption"
@@ -178,7 +178,7 @@
                                     [class.text-white]="(answers()[question.id] === opt.key && !showResults()) || (showResults() && opt.key === question.correctOption)"
                                     [class.bg-gray-100]="answers()[question.id] !== opt.key && !showResults()"
                                     [class.text-gray-600]="answers()[question.id] !== opt.key && !showResults()"
-                                    [class.group-hover:bg-blue-100]="!showResults() && answers()[question.id] !== opt.key"
+                                    [class.group-hover:bg-[#0056D2]/10]="!showResults() && answers()[question.id] !== opt.key"
                                     [class.bg-green-600]="showResults() && opt.key === question.correctOption"
                                     [class.bg-red-500]="showResults() && answers()[question.id] === opt.key && opt.key !== question.correctOption">
                                 {{ opt.key }}
@@ -308,7 +308,7 @@
                     <div class="text-xs text-gray-700">Bỏ qua</div>
                   </div>
                 </div>
-                <div class="bg-blue-50 rounded-xl p-4 flex items-center justify-between mb-6">
+                <div class="bg-[#0056D2]/5 rounded-xl p-4 flex items-center justify-between mb-6">
                   <div class="flex items-center gap-3">
                     <svg class="w-5 h-5 text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>

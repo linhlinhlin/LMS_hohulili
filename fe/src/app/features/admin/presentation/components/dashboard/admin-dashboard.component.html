@@ -25,7 +25,7 @@
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
       <!-- Card 1: Tổng người dùng -->
       <div class="bg-white border border-gray-200 rounded-xl p-6 flex gap-5 shadow-sm hover:shadow-md transition-all">
-        <div class="w-12 h-12 bg-blue-100 text-[#0056D2] rounded-lg flex items-center justify-center shrink-0">
+        <div class="w-12 h-12 bg-[#0056D2]/10 text-[#0056D2] rounded-lg flex items-center justify-center shrink-0">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path>
           </svg>
@@ -141,7 +141,7 @@
         <div class="p-5 overflow-x-auto">
           @if (isLoadingPending()) {
             <div class="flex items-center justify-center py-12 gap-3 text-gray-500">
-              <div class="w-8 h-8 border-[3px] border-gray-200 border-t-blue-500 rounded-full animate-spin"></div>
+              <div class="w-8 h-8 border-[3px] border-gray-200 border-t-[#0056D2] rounded-full animate-spin"></div>
               <span>Đang tải...</span>
             </div>
           } @else {
@@ -172,7 +172,7 @@
                       <td class="px-4 py-3 text-sm text-gray-700 border-b border-gray-50">{{ approval.name }}</td>
                       <td class="px-4 py-3 text-sm border-b border-gray-50">
                         @if (approval.type === 'course') {
-                          <span class="inline-block px-2.5 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-md">Khóa học</span>
+                          <span class="inline-block px-2.5 py-1 text-xs font-medium bg-[#0056D2]/10 text-[#004BB5] rounded-md">Khóa học</span>
                         } @else {
                           <span class="inline-block px-2.5 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded-md">Giảng viên</span>
                         }

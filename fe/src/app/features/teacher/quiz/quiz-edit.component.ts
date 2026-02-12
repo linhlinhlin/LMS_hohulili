@@ -144,8 +144,8 @@ import { QuestionApi, Question } from '../../../api/endpoints/question.api';
                             <div class="space-y-2 max-h-64 overflow-y-auto">
                               @for (question of quizQuestions; track question) {
                                 <div
-                                  class="flex items-center p-3 border rounded-lg bg-blue-50"
-                                  [class.border-blue-500]="selectedQuestionIds.has(question.id)">
+                                  class="flex items-center p-3 border rounded-lg bg-[#0056D2]/5"
+                                  [class.border-[#0056D2]]="selectedQuestionIds.has(question.id)">
                                   <input
                                     type="checkbox"
                                     [checked]="selectedQuestionIds.has(question.id)"
@@ -183,7 +183,7 @@ import { QuestionApi, Question } from '../../../api/endpoints/question.api';
                                   @for (question of filteredQuestions; track question) {
                                     <div
                                       class="flex items-center p-3 border rounded-lg hover:bg-gray-50"
-                                      [class.border-blue-500]="selectedQuestionIds.has(question.id)">
+                                      [class.border-[#0056D2]]="selectedQuestionIds.has(question.id)">
                                       <input
                                         type="checkbox"
                                         [checked]="selectedQuestionIds.has(question.id)"
@@ -204,8 +204,8 @@ import { QuestionApi, Question } from '../../../api/endpoints/question.api';
                                   </div>
                                 </div>
                                 <!-- Selected Questions Summary -->
-                                <div class="bg-blue-50 rounded-lg p-4">
-                                  <div class="text-sm text-blue-800">
+                                <div class="bg-[#0056D2]/5 rounded-lg p-4">
+                                  <div class="text-sm text-[#004BB5]">
                                     Đã chọn <span class="font-semibold">{{ selectedQuestionIds.size }}</span> câu hỏi
                                   </div>
                                 </div>

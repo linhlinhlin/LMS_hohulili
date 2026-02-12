@@ -14,7 +14,7 @@ import { ToastService } from '../../../core/services/toast.service';
       <div class="max-w-6xl mx-auto">
         <!-- Header -->
         <div class="mb-6">
-          <a routerLink="/teacher/revenue" class="text-sm text-[#0056D2] hover:text-blue-800 flex items-center gap-1 mb-4">
+          <a routerLink="/teacher/revenue" class="text-sm text-[#0056D2] hover:text-[#004BB5] flex items-center gap-1 mb-4">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
             </svg>

@@ -30,7 +30,7 @@ import { LoadingComponent } from '../../../../../shared/components/loading/loadi
 
     <!-- Quiz Instructions (shown initially) -->
     @if (showInstructions() && quiz()) {
-      <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      <div class="min-h-screen bg-gradient-to-br from-slate-50 via-[#0056D2]/5 to-indigo-100">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div class="bg-white rounded-xl shadow-lg p-8">
             <div class="text-center mb-8">
@@ -39,8 +39,8 @@ import { LoadingComponent } from '../../../../../shared/components/loading/loadi
             </div>
 
             <!-- Quiz Info -->
-            <div class="bg-blue-50 rounded-lg p-6 mb-8">
-              <h3 class="text-lg font-semibold text-blue-900 mb-4">Thông tin bài thi</h3>
+            <div class="bg-[#0056D2]/5 rounded-lg p-6 mb-8">
+              <h3 class="text-lg font-semibold text-[#004BB5] mb-4">Thông tin bài thi</h3>
               <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                 <div>
                   <div class="text-2xl font-bold text-[#0056D2]">{{ quiz()!.questions.length }}</div>
@@ -100,7 +100,7 @@ import { LoadingComponent } from '../../../../../shared/components/loading/loadi
 
     <!-- Quiz Taking Interface -->
     @if (!showInstructions() && quiz() && attempt()) {
-      <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      <div class="min-h-screen bg-gradient-to-br from-slate-50 via-[#0056D2]/5 to-indigo-100">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div class="grid grid-cols-12 gap-6">
             <!-- Main Quiz Content -->

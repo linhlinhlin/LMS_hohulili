@@ -118,7 +118,7 @@ import { CourseSummary } from '../../../api/types/course.types';
                           Chi tiết
                         </a>
                         <button (click)="sendMessage(s.id)"
-                          class="px-3 py-1.5 bg-blue-50 text-[#0056D2] hover:bg-blue-100 rounded-md transition-colors text-xs font-medium inline-flex items-center gap-1">
+                          class="px-3 py-1.5 bg-[#0056D2]/5 text-[#0056D2] hover:bg-[#0056D2]/10 rounded-md transition-colors text-xs font-medium inline-flex items-center gap-1">
                           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                               d="M7 8h10M7 12h6m2 8l-4-4H7a3 3 0 01-3-3V7a3 3 0 013-3h10a3 3 0 013 3v6a3 3 0 01-3 3h-3l-4 4" />
@@ -126,7 +126,7 @@ import { CourseSummary } from '../../../api/types/course.types';
                             Nhắn tin
                           </button>
                           <!-- <a [routerLink]="['/teacher/students', s.id]" class="text-indigo-600 hover:text-indigo-900 mr-4">Chi tiết</a>
-                          <button (click)="sendMessage(s.id)" class="text-[#0056D2] hover:text-blue-900">Nhắn tin</button>-->
+                          <button (click)="sendMessage(s.id)" class="text-[#0056D2] hover:text-[#004BB5]">Nhắn tin</button>-->
                         </td>
                       </tr>
                     }

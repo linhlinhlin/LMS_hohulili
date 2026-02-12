@@ -106,7 +106,7 @@ export class CategoryCourseGridComponent {
       case 'indigo': return 'text-indigo-700 hover:text-indigo-800';
       case 'rose': return 'text-rose-700 hover:text-rose-800';
       case 'cyan': return 'text-cyan-700 hover:text-cyan-800';
-      default: return 'text-[#004BB5] hover:text-blue-800';
+      default: return 'text-[#004BB5] hover:text-[#004BB5]';
     }
   });
 }

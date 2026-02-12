@@ -8,7 +8,7 @@ import { UploadedFile } from '../../models/uploaded-file.model';
   imports: [],
   template: `
     <div class="file-upload-container">
-      <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+      <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-[#0056D2] transition-colors">
         <div class="space-y-4">
           <div class="mx-auto w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
             <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -20,7 +20,7 @@ import { UploadedFile } from '../../models/uploaded-file.model';
             <p class="text-sm text-gray-600">
               Kéo thả file vào đây hoặc
               <button type="button"
-                      class="text-[#0056D2] hover:text-blue-500 font-medium"
+                      class="text-[#0056D2] hover:text-[#004BB5] font-medium"
                       (click)="triggerFileInput()">
                 chọn file
               </button>

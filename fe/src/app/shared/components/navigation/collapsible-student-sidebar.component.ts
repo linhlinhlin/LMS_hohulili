@@ -58,7 +58,7 @@ interface NavigationItem {
                   <span class="text-white">LMS </span>
                   <span class="text-yellow-400">Maritime</span>
                 </h1>
-                <p class="text-xs text-blue-100/90 truncate font-medium tracking-wide">Student Portal</p>
+                <p class="text-xs text-white/80/90 truncate font-medium tracking-wide">Cổng Học viên</p>
               </div>
             }
           </div>
@@ -71,19 +71,19 @@ interface NavigationItem {
 
       <!-- User Profile Section - Collapsible -->
       @if (!isCollapsed()) {
-        <div class="p-6 border-b border-blue-100 bg-white">
+        <div class="p-6 border-b border-[#0056D2]/10 bg-white">
           <div class="flex items-center space-x-4">
             <div class="relative">
               <img [src]="authService.currentUser()?.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face'" 
                    [alt]="authService.userName()" 
-                   class="w-14 h-14 rounded-xl object-cover border-3 border-blue-200 shadow-lg">
+                   class="w-14 h-14 rounded-xl object-cover border-3 border-[#0056D2]/20 shadow-lg">
               <div class="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white shadow-md"></div>
             </div>
             <div class="flex-1 min-w-0">
               <p class="text-sm font-semibold text-gray-900 truncate">{{ authService.userName() }}</p>
               <p class="text-xs text-gray-500 truncate">{{ authService.userEmail() }}</p>
               <div class="flex items-center mt-1">
-                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#0056D2]/10 text-[#004BB5]">
                   Student
                 </span>
               </div>
@@ -150,7 +150,7 @@ interface NavigationItem {
                       </div>
                       @if (item.description) {
                         <div class="text-xs transition-colors duration-300 truncate"
-                             [class]="isActiveRoute(item.route) ? 'text-blue-100' : 'text-gray-500 group-hover:text-gray-600'">
+                             [class]="isActiveRoute(item.route) ? 'text-white/80' : 'text-gray-500 group-hover:text-gray-600'">
                           {{ item.description }}
                         </div>
                       }
@@ -178,7 +178,7 @@ interface NavigationItem {
                     <div class="absolute left-full ml-3 px-3 py-2 bg-[#0056D2] text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none whitespace-nowrap z-50 shadow-xl border border-yellow-400/30">
                       <div class="font-semibold text-sm">{{ item.label }}</div>
                       @if (item.description) {
-                        <div class="text-xs text-blue-100 mt-0.5">{{ item.description }}</div>
+                        <div class="text-xs text-white/80 mt-0.5">{{ item.description }}</div>
                       }
                       <!-- Enhanced Tooltip Arrow -->
                       <div class="absolute left-0 top-1/2 transform -translate-x-1 -translate-y-1/2 w-0 h-0 border-t-4 border-b-4 border-r-4 border-transparent border-r-[#0056D2]"></div>
@@ -211,7 +211,7 @@ interface NavigationItem {
         @if (!isCollapsed()) {
           <div class="text-center">
             <p class="text-xs text-gray-500 font-medium">© 2025 LMS Maritime</p>
-            <p class="text-xs text-gray-400 mt-0.5">Professional Student Portal</p>
+            <p class="text-xs text-gray-400 mt-0.5">Hệ thống Quản lý Học tập</p>
           </div>
         } @else {
           <div class="flex justify-center">
@@ -245,7 +245,7 @@ export class CollapsibleStudentSidebarComponent {
   // Enhanced Navigation items with maritime icons
   navigationItems = signal<NavigationItem[]>([
     {
-      label: 'Dashboard',
+      label: 'Trang chủ',
       iconKey: 'anchor',
       route: '/student/dashboard',
       description: 'Trang chủ sinh viên'

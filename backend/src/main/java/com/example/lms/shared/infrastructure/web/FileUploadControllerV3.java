@@ -67,7 +67,7 @@ public class FileUploadControllerV3 {
             if (!r2Enabled || r2StorageService.isEmpty()) {
                 return ResponseEntity.badRequest().body(Map.of(
                     "success", 0,
-                    "message", "File upload is not available: R2 storage is not configured"
+                    "message", "Không thể tải lên: R2 storage chưa được cấu hình"
                 ));
             }
 
@@ -102,7 +102,7 @@ public class FileUploadControllerV3 {
             log.error("File upload failed", e);
             return ResponseEntity.internalServerError().body(Map.of(
                 "success", 0,
-                "message", "Upload failed: " + e.getMessage()
+                "message", "Tải lên thất bại: " + e.getMessage()
             ));
         }
     }
@@ -117,19 +117,19 @@ public class FileUploadControllerV3 {
             if (!r2Enabled || r2StorageService.isEmpty()) {
                 return ResponseEntity.badRequest().body(Map.of(
                     "success", 0,
-                    "message", "Video upload is not available: R2 storage is not configured"
+                    "message", "Không thể tải video: R2 storage chưa được cấu hình"
                 ));
             }
 
             if (file == null || file.isEmpty()) {
-                return ResponseEntity.badRequest().body(Map.of("success", 0, "message", "File is empty"));
+                return ResponseEntity.badRequest().body(Map.of("success", 0, "message", "Tập tin rỗng"));
             }
             if (file.getSize() > MAX_VIDEO_SIZE) {
-                return ResponseEntity.badRequest().body(Map.of("success", 0, "message", "Video size exceeds maximum allowed size of 500MB"));
+                return ResponseEntity.badRequest().body(Map.of("success", 0, "message", "Video vượt quá dung lượng tối đa 500MB"));
             }
             String contentType = file.getContentType();
             if (contentType == null || !ALLOWED_VIDEO_TYPES.contains(contentType.toLowerCase())) {
-                return ResponseEntity.badRequest().body(Map.of("success", 0, "message", "Video type not allowed: " + contentType));
+                return ResponseEntity.badRequest().body(Map.of("success", 0, "message", "Loại video không được phép: " + contentType));
             }
 
             UUID uploadedBy = user != null ? user.getId() : UUID.fromString("00000000-0000-0000-0000-000000000000");
@@ -150,7 +150,7 @@ public class FileUploadControllerV3 {
             log.error("Video upload failed", e);
             return ResponseEntity.internalServerError().body(Map.of(
                 "success", 0,
-                "message", "Video upload failed: " + e.getMessage()
+                "message", "Tải video thất bại: " + e.getMessage()
             ));
         }
     }
@@ -163,7 +163,7 @@ public class FileUploadControllerV3 {
             if (!r2Enabled || r2StorageService.isEmpty()) {
                 return ResponseEntity.badRequest().body(Map.of(
                     "success", false,
-                    "message", "File deletion is not available: R2 storage is not configured"
+                    "message", "Không thể xóa: R2 storage chưa được cấu hình"
                 ));
             }
 
@@ -172,31 +172,31 @@ public class FileUploadControllerV3 {
 
             return ResponseEntity.ok(Map.of(
                 "success", true,
-                "message", "File deleted successfully"
+                "message", "Xóa tập tin thành công"
             ));
         } catch (RuntimeException e) {
             log.error("File deletion failed for key: {}", storageKey, e);
             return ResponseEntity.internalServerError().body(Map.of(
                 "success", false,
-                "message", "Delete failed: " + e.getMessage()
+                "message", "Xóa thất bại: " + e.getMessage()
             ));
         }
     }
 
     private String validateFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            return "File is empty";
+            return "Tập tin rỗng";
         }
         if (file.getSize() > MAX_FILE_SIZE) {
-            return "File size exceeds maximum allowed size of 50MB";
+            return "Tập tin vượt quá dung lượng tối đa 50MB";
         }
         String contentType = file.getContentType();
         if (contentType == null || !ALLOWED_MIME_TYPES.contains(contentType.toLowerCase())) {
-            return "File type not allowed: " + contentType;
+            return "Loại tập tin không được phép: " + contentType;
         }
         String originalName = file.getOriginalFilename();
         if (originalName != null && originalName.contains("..")) {
-            return "Invalid filename";
+            return "Tên tập tin không hợp lệ";
         }
         return null;
     }

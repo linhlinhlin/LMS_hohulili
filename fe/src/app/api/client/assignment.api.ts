@@ -44,9 +44,13 @@ export interface AssignmentSummary {
   dueDate?: string;
   courseId: string;
   courseTitle: string;
+  deliveryMode?: 'SELF_PACED' | 'INSTRUCTOR_LED';
   status: AssignmentStatus;
   submissionsCount: number;
   totalStudents: number;
+  gradedCount: number;
+  pendingCount: number;
+  averageScore?: number;
   createdAt: string;
   updatedAt?: string;
 }
@@ -151,7 +155,8 @@ export class AssignmentApi {
   getAssignmentsByCourse(courseId: string, params?: { page?: number; limit?: number }) {
     return this.api.getWithResponse<any>(`/api/v3/teacher/assignments/courses/${courseId}`, { params }).pipe(
       map((res: ApiResponse<any>) => {
-        const content: AssignmentSummary[] = res?.data?.content ?? [];
+        // BE returns List (not Page), so data is directly an array
+        const content: AssignmentSummary[] = Array.isArray(res?.data) ? res.data : (res?.data?.content ?? []);
         return {
           data: content,
           pagination: res?.pagination,
@@ -190,7 +195,8 @@ export class AssignmentApi {
   getSubmissionsByAssignment(assignmentId: string, params?: { page?: number; limit?: number; status?: string }) {
     return this.api.getWithResponse<any>(`/api/v3/assignments/${assignmentId}/submissions`, { params }).pipe(
       map((res: ApiResponse<any>) => {
-        const content: SubmissionSummary[] = res?.data?.content ?? [];
+        // BE returns List (not Page), so data is directly an array
+        const content: SubmissionSummary[] = Array.isArray(res?.data) ? res.data : (res?.data?.content ?? []);
         return {
           data: content,
           pagination: res?.pagination,
@@ -237,12 +243,16 @@ export class AssignmentApi {
     return this.api.getWithResponse<SubmissionDetail[]>(`/api/v3/submissions/pending`, { params });
   }
 
-  // Get all teacher assignments (for management view)  
-  // Note: This will need to aggregate from multiple courses
+  // Get all teacher assignments (for management view)
   getTeacherAssignments(params?: { page?: number; limit?: number; courseId?: string; status?: string }) {
-    // For now, we'll need to get assignments from all teacher's courses
-    // For now, we'll need to get assignments from all teacher's courses
-    // This is a temporary solution until backend provides a dedicated endpoint
     return this.api.getWithResponse<AssignmentSummary[]>(`/api/v3/teacher/assignments/summary`, { params });
+  }
+
+  // Batch grade multiple submissions
+  batchGradeSubmissions(assignmentId: string, items: { submissionId: string; grade: number; feedback?: string }[]) {
+    return this.api.patchWithResponse<{ gradedCount: number }>(
+      `/api/v3/assignments/${assignmentId}/submissions/batch-grade`,
+      items
+    );
   }
 }

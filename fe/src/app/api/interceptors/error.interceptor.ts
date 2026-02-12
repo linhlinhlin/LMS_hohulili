@@ -8,7 +8,7 @@ export class ErrorInterceptor implements HttpInterceptor {
   intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
     return next.handle(request).pipe(
       catchError((error: HttpErrorResponse) => {
-        let errorMessage = 'An unknown error occurred';
+        let errorMessage = 'Đã xảy ra lỗi không xác định';
 
         if (error.error instanceof ErrorEvent) {
           errorMessage = `Client Error: ${error.error.message}`;
@@ -31,7 +31,7 @@ export class ErrorInterceptor implements HttpInterceptor {
 export const errorInterceptor = (req: HttpRequest<any>, next: HttpHandlerFn): Observable<HttpEvent<any>> => {
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
-      let errorMessage = 'An unknown error occurred';
+      let errorMessage = 'Đã xảy ra lỗi không xác định';
 
       if (error.error instanceof ErrorEvent) {
         errorMessage = `Client Error: ${error.error.message}`;

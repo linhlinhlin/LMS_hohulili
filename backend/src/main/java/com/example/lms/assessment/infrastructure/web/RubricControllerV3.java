@@ -54,7 +54,7 @@ public class RubricControllerV3 {
                 .map(this::toResponse)
                 .collect(Collectors.toList());
 
-        return ResponseEntity.ok(ApiResponse.success(result, "Rubrics loaded"));
+        return ResponseEntity.ok(ApiResponse.success(result, "Danh sách rubric"));
     }
 
     @Operation(summary = "Get rubric by ID")
@@ -62,7 +62,7 @@ public class RubricControllerV3 {
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getRubric(@PathVariable UUID id) {
         Rubric rubric = rubricCrudUseCase.findById(id);
-        return ResponseEntity.ok(ApiResponse.success(toResponse(rubric), "Rubric loaded"));
+        return ResponseEntity.ok(ApiResponse.success(toResponse(rubric), "Đã tải rubric"));
     }
 
     @Operation(summary = "Update a rubric")
@@ -108,6 +108,18 @@ public class RubricControllerV3 {
         return ResponseEntity.ok(ApiResponse.success(toResponse(rubric), "Rubric đã được gán cho bài tập"));
     }
 
+    @Operation(summary = "Unassign rubric from an assignment")
+    @DeleteMapping("/assignment/{assignmentId}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> unassignRubric(
+            @AuthenticationPrincipal UserJpaEntity user,
+            @PathVariable UUID assignmentId) {
+
+        boolean isAdmin = isAdminRole(user);
+        rubricCrudUseCase.unassignFromAssignment(assignmentId, user.getId(), isAdmin);
+        return ResponseEntity.ok(ApiResponse.success(null, "Rubric đã được gỡ khỏi bài tập"));
+    }
+
     @Operation(summary = "Get rubric for an assignment")
     @GetMapping("/assignment/{assignmentId}")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN', 'STUDENT')")
@@ -115,7 +127,7 @@ public class RubricControllerV3 {
             @PathVariable UUID assignmentId) {
 
         Rubric rubric = rubricCrudUseCase.findByAssignment(assignmentId);
-        return ResponseEntity.ok(ApiResponse.success(toResponse(rubric), "Assignment rubric loaded"));
+        return ResponseEntity.ok(ApiResponse.success(toResponse(rubric), "Đã tải rubric của bài tập"));
     }
 
     // ============================================================

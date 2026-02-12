@@ -49,7 +49,7 @@ import { RichTextEditorComponent } from '../../../../../shared/components/rich-t
                     <button type="button" (click)="setDeliveryMode('SELF_PACED')"
                             class="flex items-center gap-3 p-3 rounded-lg border-2 transition-all text-left"
                             [class]="currentDeliveryMode() === 'SELF_PACED'
-                              ? 'border-[#0056D2] bg-blue-50/50'
+                              ? 'border-[#0056D2] bg-[#0056D2]/5/50'
                               : 'border-slate-200 hover:border-slate-300'">
                       <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                            [class]="currentDeliveryMode() === 'SELF_PACED' ? 'bg-[#0056D2] text-white' : 'bg-slate-100 text-slate-400'">

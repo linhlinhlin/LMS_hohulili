@@ -127,7 +127,7 @@ public class QuizControllerV3 {
                 .showCorrectAnswers(request.showCorrectAnswers())
                 .build();
         Quiz updated = quizManagementUseCase.updateQuizSettings(quizId, newSettings, request.title());
-        return ResponseEntity.ok(ApiResponse.success(toQuizMap(updated), "Quiz settings updated"));
+        return ResponseEntity.ok(ApiResponse.success(toQuizMap(updated), "Cập nhật cài đặt bài kiểm tra"));
     }
 
     @PutMapping("/{quizId}/questions")
@@ -159,7 +159,7 @@ public class QuizControllerV3 {
         }
         quizJpaRepository.save(quizEntity);
 
-        return ResponseEntity.ok(ApiResponse.success(null, "Quiz questions updated"));
+        return ResponseEntity.ok(ApiResponse.success(null, "Cập nhật câu hỏi bài kiểm tra"));
     }
 
     @PostMapping("/{quizId}/publish")
@@ -223,7 +223,7 @@ public class QuizControllerV3 {
         if (user.getRole() == UserJpaEntity.UserRole.STUDENT
                 && !result.getStudentId().equals(user.getId())) {
             return ResponseEntity.status(403)
-                    .body(ApiResponse.error("You can only view your own quiz attempts"));
+                    .body(ApiResponse.error("Bạn chỉ có thể xem bài làm của mình"));
         }
         return ResponseEntity.ok(ApiResponse.success(result));
     }
@@ -420,10 +420,10 @@ public class QuizControllerV3 {
     // ============ Request DTOs ============
 
     public record AddQuestionRequest(
-            @NotNull(message = "Question ID is required")
+            @NotNull(message = "Mã câu hỏi không được để trống")
             UUID questionId,
-            @NotNull(message = "Display order is required")
-            @PositiveOrZero(message = "Display order must be non-negative")
+            @NotNull(message = "Thứ tự hiển thị không được để trống")
+            @PositiveOrZero(message = "Thứ tự hiển thị không được âm")
             Integer displayOrder
     ) {}
 
@@ -439,7 +439,7 @@ public class QuizControllerV3 {
     ) {}
 
     public record UpdateQuizQuestionsRequest(
-            @NotNull(message = "Question IDs are required")
+            @NotNull(message = "Danh sách mã câu hỏi không được để trống")
             List<UUID> questionIds
     ) {}
 }

@@ -65,7 +65,7 @@ public class CourseReviewControllerV3 {
             return map;
         }).toList();
 
-        return ResponseEntity.ok(ApiResponse.success(result, "Reviews loaded"));
+        return ResponseEntity.ok(ApiResponse.success(result, "Danh sách đánh giá"));
     }
 
     @Operation(summary = "Get review summary for a course (public)")
@@ -74,7 +74,7 @@ public class CourseReviewControllerV3 {
             @PathVariable UUID courseId) {
 
         Map<String, Object> summary = reviewUseCase.getReviewSummary(courseId);
-        return ResponseEntity.ok(ApiResponse.success(summary, "Review summary loaded"));
+        return ResponseEntity.ok(ApiResponse.success(summary, "Tổng hợp đánh giá"));
     }
 
     @Operation(summary = "Get my review for a course")
@@ -86,8 +86,8 @@ public class CourseReviewControllerV3 {
 
         UUID studentId = currentUser.getId();
         return reviewUseCase.getMyReview(studentId, courseId)
-                .map(r -> ResponseEntity.ok(ApiResponse.success(toMap(r), "My review loaded")))
-                .orElse(ResponseEntity.ok(ApiResponse.success(null, "No review found")));
+                .map(r -> ResponseEntity.ok(ApiResponse.success(toMap(r), "Đánh giá của tôi")))
+                .orElse(ResponseEntity.ok(ApiResponse.success(null, "Chưa có đánh giá")));
     }
 
     @Operation(summary = "Delete own review")

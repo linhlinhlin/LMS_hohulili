@@ -27,6 +27,6 @@ public class TeacherAnalyticsControllerV3 {
     public ResponseEntity<ApiResponse<TeacherAnalyticsUseCase.TeacherAnalyticsResponse>> getAnalytics(
             @AuthenticationPrincipal UserJpaEntity user) {
         var analytics = analyticsUseCase.getAnalytics(user.getId());
-        return ResponseEntity.ok(ApiResponse.success(analytics, "Analytics loaded"));
+        return ResponseEntity.ok(ApiResponse.success(analytics, "Dữ liệu phân tích"));
     }
 }

@@ -80,7 +80,11 @@ interface AuditLogEntry {
         
         @if (auditLog().length === 0) {
           <div class="py-12 text-center text-gray-500">
-            <p>Chưa có thao tác nào được ghi lại</p>
+            <svg class="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <p class="font-medium">Chưa có hoạt động nào được ghi nhận</p>
+            <p class="text-sm mt-1">Lịch sử thao tác sẽ hiển thị khi có hoạt động chấm điểm</p>
           </div>
         }
       </div>
@@ -88,13 +92,13 @@ interface AuditLogEntry {
   `
 })
 export class AssignmentAuditLogComponent {
-  auditLog = signal<AuditLogEntry[]>(this.getMockAuditLog());
+  auditLog = signal<AuditLogEntry[]>([]);
 
   getActionBgClass(action: string): string {
     const classes: Record<string, string> = {
       'GRADE_CREATED': 'bg-green-100',
       'GRADE_UPDATED': 'bg-yellow-100',
-      'FEEDBACK_ADDED': 'bg-blue-100',
+      'FEEDBACK_ADDED': 'bg-[#0056D2]/10',
       'RUBRIC_CHANGED': 'bg-purple-100',
       'DEADLINE_EXTENDED': 'bg-orange-100',
       'ASSIGNMENT_DISTRIBUTED': 'bg-indigo-100'
@@ -130,14 +134,4 @@ export class AssignmentAuditLogComponent {
     return new Date(dateString).toLocaleString('vi-VN');
   }
 
-  private getMockAuditLog(): AuditLogEntry[] {
-    return [
-      { id: '1', action: 'ASSIGNMENT_DISTRIBUTED', userId: 't1', userName: 'GV. Nguyen Van X', studentName: '25 học viên', timestamp: '2025-11-20T09:00:00Z' },
-      { id: '2', action: 'DEADLINE_EXTENDED', userId: 't1', userName: 'GV. Nguyen Van X', studentName: 'Nguyen Van A', oldValue: '25/11/2025', newValue: '30/11/2025', reason: 'Học viên ốm', timestamp: '2025-11-24T10:00:00Z' },
-      { id: '3', action: 'GRADE_CREATED', userId: 't1', userName: 'GV. Nguyen Van X', studentName: 'Nguyen Van A', newValue: '85', timestamp: '2025-11-25T14:30:00Z' },
-      { id: '4', action: 'GRADE_UPDATED', userId: 't1', userName: 'GV. Nguyen Van X', studentName: 'Tran Thi B', oldValue: '70', newValue: '75', reason: 'Phuc khao', timestamp: '2025-11-25T15:00:00Z' },
-      { id: '5', action: 'GRADE_CREATED', userId: 't1', userName: 'GV. Nguyen Van X', studentName: 'Le Van C', newValue: '92', timestamp: '2025-11-25T15:30:00Z' },
-      { id: '6', action: 'FEEDBACK_ADDED', userId: 't1', userName: 'GV. Nguyen Van X', studentName: 'Pham Thi D', timestamp: '2025-11-25T16:00:00Z' }
-    ];
-  }
 }

@@ -120,8 +120,8 @@ export interface AssignTaskRequest {
               @for (assignment of filteredAssignments(); track assignment.id) {
                 <div 
                   class="border rounded-lg p-4 cursor-pointer transition-all"
-                  [class.border-blue-500]="selectedAssignment()?.id === assignment.id"
-                  [class.bg-blue-50]="selectedAssignment()?.id === assignment.id"
+                  [class.border-[#0056D2]]="selectedAssignment()?.id === assignment.id"
+                  [class.bg-[#0056D2]/5]="selectedAssignment()?.id === assignment.id"
                   [class.opacity-50]="assignment.alreadyAssigned"
                   [class.cursor-not-allowed]="assignment.alreadyAssigned"
                   (click)="!assignment.alreadyAssigned && selectAssignment(assignment)"

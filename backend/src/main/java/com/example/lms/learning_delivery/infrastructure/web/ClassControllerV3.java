@@ -52,7 +52,7 @@ public class ClassControllerV3 {
             @PathVariable UUID courseId) {
         var entities = classJpaRepository.findByCourseId(courseId);
         var result = entities.stream().map(this::toClassMap).toList();
-        return ResponseEntity.ok(ApiResponse.success(result, "Classes loaded"));
+        return ResponseEntity.ok(ApiResponse.success(result, "Danh sách lớp học"));
     }
 
     @Operation(summary = "Search classes for a course (paginated)")
@@ -97,7 +97,7 @@ public class ClassControllerV3 {
         result.put("pageNumber", pageResult.getNumber());
         result.put("pageSize", pageResult.getSize());
 
-        return ResponseEntity.ok(ApiResponse.success(result, "Classes loaded"));
+        return ResponseEntity.ok(ApiResponse.success(result, "Danh sách lớp học"));
     }
 
     private java.util.Map<String, Object> toClassMap(
@@ -154,7 +154,7 @@ public class ClassControllerV3 {
 
         UUID classId = createLearningClassUseCase.execute(command);
 
-        return ResponseEntity.ok(ApiResponse.success(classId, "Class created successfully"));
+        return ResponseEntity.ok(ApiResponse.success(classId, "Tạo lớp học thành công"));
     }
 
     @Operation(summary = "Update an existing learning class")
@@ -176,7 +176,7 @@ public class ClassControllerV3 {
 
         LearningClassResponse response = updateLearningClassUseCase.execute(command);
 
-        return ResponseEntity.ok(ApiResponse.success(response, "Class updated successfully"));
+        return ResponseEntity.ok(ApiResponse.success(response, "Cập nhật lớp học thành công"));
     }
 
     @Operation(summary = "Delete a learning class")
@@ -186,7 +186,7 @@ public class ClassControllerV3 {
             @PathVariable String classId
     ) {
         deleteLearningClassUseCase.execute(UUID.fromString(classId));
-        return ResponseEntity.ok(ApiResponse.success(null, "Class deleted successfully"));
+        return ResponseEntity.ok(ApiResponse.success(null, "Xóa lớp học thành công"));
     }
 
     @Operation(summary = "Get class by ID")
@@ -196,7 +196,7 @@ public class ClassControllerV3 {
             @PathVariable String classId
     ) {
         LearningClassResponse response = getLearningClassByIdUseCase.execute(UUID.fromString(classId));
-        return ResponseEntity.ok(ApiResponse.success(response, "Class loaded"));
+        return ResponseEntity.ok(ApiResponse.success(response, "Thông tin lớp học"));
     }
 
     // ================================================================================================
@@ -269,7 +269,7 @@ public class ClassControllerV3 {
         
         private String code; // Optional - auto generated if missing
         
-        @jakarta.validation.constraints.NotBlank(message = "Course ID không được để trống")
+        @jakarta.validation.constraints.NotBlank(message = "Mã khóa học không được để trống")
         private String courseId;
         
         private String startDate;

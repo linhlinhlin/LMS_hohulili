@@ -88,6 +88,20 @@ public class RubricCrudUseCase {
         return rubricRepository.save(rubric);
     }
 
+    @Transactional
+    public void unassignFromAssignment(UUID assignmentId, UUID teacherId, boolean isAdmin) {
+        Rubric rubric = rubricRepository.findByAssignmentId(assignmentId)
+                .orElseThrow(() -> new EntityNotFoundException("Rubric for assignment", assignmentId));
+
+        if (!isAdmin && !rubric.getTeacherId().equals(teacherId)) {
+            throw new BusinessRuleException("RUBRIC_ACCESS_DENIED", "Bạn không có quyền gỡ rubric này");
+        }
+
+        rubric.unassign();
+        rubricRepository.save(rubric);
+        log.info("Unassigned rubric {} from assignment {}", rubric.getId(), assignmentId);
+    }
+
     @Transactional(readOnly = true)
     public Rubric findByAssignment(UUID assignmentId) {
         return rubricRepository.findByAssignmentId(assignmentId)

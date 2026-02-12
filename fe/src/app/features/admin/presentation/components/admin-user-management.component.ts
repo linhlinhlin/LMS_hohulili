@@ -1,4 +1,4 @@
-﻿import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -90,7 +90,7 @@ import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.s
                 <p class="text-2xl font-bold text-gray-900">{{ recentlyActive() }}</p>
                 <p class="text-xs text-gray-600 mt-2">Trong 7 ngày qua</p>
               </div>
-              <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+              <div class="w-10 h-10 bg-[#0056D2]/5 rounded-lg flex items-center justify-center">
                 <svg class="w-5 h-5 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
                 </svg>

@@ -30,7 +30,7 @@ import { SectionEditorState, LessonItem, QuizQuestion } from '../../state/sectio
               <p class="text-2xl font-bold text-[#0056D2] mt-1">{{ lesson()?.quizTimeLimit || 30 }}</p>
               <p class="text-xs text-gray-400">phút</p>
             </div>
-            <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+            <div class="w-10 h-10 bg-[#0056D2]/5 rounded-lg flex items-center justify-center">
               <svg class="w-5 h-5 text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
               </svg>
@@ -113,7 +113,7 @@ import { SectionEditorState, LessonItem, QuizQuestion } from '../../state/sectio
         <!-- Loading -->
         @if (state.quizQuestionsLoading()) {
           <div class="p-8 text-center">
-            <div class="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-3"></div>
+            <div class="animate-spin w-8 h-8 border-4 border-[#0056D2] border-t-transparent rounded-full mx-auto mb-3"></div>
             <p class="text-gray-500">Đang tải câu hỏi...</p>
           </div>
         }
@@ -147,7 +147,7 @@ import { SectionEditorState, LessonItem, QuizQuestion } from '../../state/sectio
               <div class="p-4 hover:bg-gray-50 transition-colors">
                 <div class="flex items-start gap-4">
                   <!-- Number Badge -->
-                  <div class="flex-shrink-0 w-8 h-8 rounded-lg bg-blue-100 text-[#004BB5] flex items-center justify-center font-semibold text-sm">
+                  <div class="flex-shrink-0 w-8 h-8 rounded-lg bg-[#0056D2]/10 text-[#004BB5] flex items-center justify-center font-semibold text-sm">
                     {{ i + 1 }}
                   </div>
 

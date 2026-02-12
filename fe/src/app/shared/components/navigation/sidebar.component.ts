@@ -68,11 +68,11 @@ export class SidebarComponent {
     // Role-specific icon colors
     switch (role) {
       case 'student':
-        return `${baseClasses} text-blue-500`;
+        return `${baseClasses} text-[#0056D2]`;
       case 'teacher':
-        return `${baseClasses} text-blue-500`;
+        return `${baseClasses} text-[#0056D2]`;
       case 'admin':
-        return `${baseClasses} text-blue-500`;
+        return `${baseClasses} text-[#0056D2]`;
       default:
         return `${baseClasses} text-gray-500`;
     }

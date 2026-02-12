@@ -123,7 +123,7 @@ public class CourseEntityMapper {
             java.util.Set<String> tags;
             try {
                 tags = entity.getTags() != null ? new java.util.HashSet<>(entity.getTags()) : new java.util.HashSet<>();
-            } catch (Exception e) {
+            } catch (ClassCastException | org.hibernate.LazyInitializationException e) {
                 // Safety net: Hibernate 6.4 batch loading bugs (ClassCastException, LazyInitializationException)
                 tags = new java.util.HashSet<>();
             }
@@ -148,7 +148,7 @@ public class CourseEntityMapper {
             setField(course, "updatedAt", entity.getUpdatedAt());
 
             return course;
-        } catch (Exception e) {
+        } catch (ReflectiveOperationException e) {
             throw new RuntimeException("Failed to map CourseJpaEntity to Course domain model", e);
         }
     }
@@ -202,7 +202,7 @@ public class CourseEntityMapper {
     /**
      * Reflection helper to set private fields during domain object reconstruction.
      */
-    private void setField(Object target, String fieldName, Object value) throws Exception {
+    private void setField(Object target, String fieldName, Object value) throws ReflectiveOperationException {
         java.lang.reflect.Field field;
         try {
             // Try in Course class first

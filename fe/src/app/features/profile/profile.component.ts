@@ -195,7 +195,7 @@ import { AuthService } from '../../core/services/auth.service';
                 <p class="text-gray-600">{{ getRoleDisplayName(profileData.role) }}</p>
                 <button 
                   (click)="uploadAvatar()"
-                  class="mt-4 text-[#0056D2] hover:text-blue-800 text-sm">
+                  class="mt-4 text-[#0056D2] hover:text-[#004BB5] text-sm">
                   Thay đổi ảnh đại diện
                 </button>
               </div>

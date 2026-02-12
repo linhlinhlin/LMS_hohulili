@@ -42,7 +42,7 @@ public class PaymentControllerV3 {
             @Valid @RequestBody CheckoutRequest request
     ) {
         if (currentUser == null) {
-            return ResponseEntity.status(401).body(ApiResponse.error("Unauthorized"));
+            return ResponseEntity.status(401).body(ApiResponse.error("Không được phép truy cập"));
         }
 
         UUID courseId = UUID.fromString(request.courseId);
@@ -78,7 +78,7 @@ public class PaymentControllerV3 {
             @PathVariable String courseId
     ) {
         if (currentUser == null) {
-            return ResponseEntity.status(401).body(ApiResponse.error("Unauthorized"));
+            return ResponseEntity.status(401).body(ApiResponse.error("Không được phép truy cập"));
         }
 
         UUID courseUuid = UUID.fromString(courseId);
@@ -94,7 +94,7 @@ public class PaymentControllerV3 {
                     "transactionId", payment.getTransactionId(),
                     "paidAt", payment.getPaidAt().toString()
                 ),
-                "Payment status loaded"
+                "Trạng thái thanh toán"
             ));
         }
 
@@ -105,7 +105,7 @@ public class PaymentControllerV3 {
                 "status", "UNPAID",
                 "freeLessonsCount", 2
             ),
-            "Course not yet purchased"
+            "Khóa học chưa được mua"
         ));
     }
 
@@ -115,12 +115,12 @@ public class PaymentControllerV3 {
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getMyPayments(
             @AuthenticationPrincipal UserJpaEntity currentUser) {
         if (currentUser == null) {
-            return ResponseEntity.status(401).body(ApiResponse.error("Unauthorized"));
+            return ResponseEntity.status(401).body(ApiResponse.error("Không được phép truy cập"));
         }
 
         var payments = paymentRepository.findByStudentIdOrderByCreatedAtDesc(currentUser.getId());
         List<Map<String, Object>> result = payments.stream().map(this::toPaymentMap).toList();
-        return ResponseEntity.ok(ApiResponse.success(result, "Payment history loaded"));
+        return ResponseEntity.ok(ApiResponse.success(result, "Lịch sử thanh toán"));
     }
 
     @Operation(summary = "Check if student can access a lesson")
@@ -132,7 +132,7 @@ public class PaymentControllerV3 {
             @PathVariable int lessonIndex
     ) {
         if (currentUser == null) {
-            return ResponseEntity.status(401).body(ApiResponse.error("Unauthorized"));
+            return ResponseEntity.status(401).body(ApiResponse.error("Không được phép truy cập"));
         }
 
         UUID courseUuid = UUID.fromString(courseId);
@@ -147,9 +147,9 @@ public class PaymentControllerV3 {
                 "lessonIndex", lessonIndex,
                 "canAccess", canAccess,
                 "hasPaid", hasPaid,
-                "message", canAccess ? "Access granted" : "Payment required for this lesson"
+                "message", canAccess ? "Được phép truy cập" : "Cần thanh toán để xem bài học này"
             ),
-            canAccess ? "Access granted" : "Payment required"
+            canAccess ? "Được phép truy cập" : "Cần thanh toán"
         ));
     }
 
@@ -170,7 +170,7 @@ public class PaymentControllerV3 {
     // ==================== Request DTOs ====================
 
     public record CheckoutRequest(
-        @NotBlank(message = "Course ID is required")
+        @NotBlank(message = "Mã khóa học không được để trống")
         String courseId,
         Double amount,
         String paymentMethod

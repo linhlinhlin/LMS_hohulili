@@ -54,7 +54,7 @@ public class QuestionBankControllerV3 {
             @AuthenticationPrincipal UserJpaEntity user) {
         List<QuestionBank> banks = useCase.getMyBanks(user.getId());
         List<Map<String, Object>> result = banks.stream().map(this::toBankMap).toList();
-        return ResponseEntity.ok(ApiResponse.success(result, "Question banks loaded"));
+        return ResponseEntity.ok(ApiResponse.success(result, "Danh sách ngân hàng câu hỏi"));
     }
 
     @GetMapping("/{id}")
@@ -93,7 +93,7 @@ public class QuestionBankControllerV3 {
         );
 
         QuestionBank bank = useCase.createBank(command);
-        return ResponseEntity.ok(ApiResponse.success(toBankMap(bank), "Question bank created"));
+        return ResponseEntity.ok(ApiResponse.success(toBankMap(bank), "Tạo ngân hàng câu hỏi thành công"));
     }
 
     @PutMapping("/{id}")
@@ -114,7 +114,7 @@ public class QuestionBankControllerV3 {
         );
 
         QuestionBank bank = useCase.updateBank(id, command, user.getId());
-        return ResponseEntity.ok(ApiResponse.success(toBankMap(bank), "Question bank updated"));
+        return ResponseEntity.ok(ApiResponse.success(toBankMap(bank), "Cập nhật ngân hàng câu hỏi thành công"));
     }
 
     @PostMapping("/{id}/archive")
@@ -124,7 +124,7 @@ public class QuestionBankControllerV3 {
             @PathVariable UUID id,
             @AuthenticationPrincipal UserJpaEntity user) {
         useCase.archiveBank(id, user.getId());
-        return ResponseEntity.ok(ApiResponse.success("Question bank archived"));
+        return ResponseEntity.ok(ApiResponse.success("Kho câu hỏi đã được lưu trữ"));
     }
 
     // ============ Category CRUD ============
@@ -152,7 +152,7 @@ public class QuestionBankControllerV3 {
         );
 
         QuestionBankCategory category = useCase.addCategory(id, command, user.getId());
-        return ResponseEntity.ok(ApiResponse.success(toCategoryMap(category), "Category added"));
+        return ResponseEntity.ok(ApiResponse.success(toCategoryMap(category), "Thêm danh mục thành công"));
     }
 
     @PutMapping("/categories/{catId}")
@@ -168,7 +168,7 @@ public class QuestionBankControllerV3 {
         );
 
         QuestionBankCategory category = useCase.updateCategory(catId, command, user.getId());
-        return ResponseEntity.ok(ApiResponse.success(toCategoryMap(category), "Category updated"));
+        return ResponseEntity.ok(ApiResponse.success(toCategoryMap(category), "Cập nhật danh mục thành công"));
     }
 
     @DeleteMapping("/categories/{catId}")
@@ -178,7 +178,7 @@ public class QuestionBankControllerV3 {
             @PathVariable UUID catId,
             @AuthenticationPrincipal UserJpaEntity user) {
         useCase.deleteCategory(catId, user.getId());
-        return ResponseEntity.ok(ApiResponse.success("Category deleted"));
+        return ResponseEntity.ok(ApiResponse.success("Đã xóa danh mục"));
     }
 
     // ============ Questions ============
@@ -192,7 +192,7 @@ public class QuestionBankControllerV3 {
 
         List<Question> questions = useCase.getBankQuestions(id, categoryId);
         List<Map<String, Object>> result = questions.stream().map(this::toQuestionMap).toList();
-        return ResponseEntity.ok(ApiResponse.success(result, "Questions loaded"));
+        return ResponseEntity.ok(ApiResponse.success(result, "Danh sách câu hỏi"));
     }
 
     @PostMapping("/move-questions")
@@ -207,7 +207,7 @@ public class QuestionBankControllerV3 {
         );
 
         useCase.moveQuestionsToBank(command, user.getId());
-        return ResponseEntity.ok(ApiResponse.success("Questions moved successfully"));
+        return ResponseEntity.ok(ApiResponse.success("Đã di chuyển câu hỏi thành công"));
     }
 
     @GetMapping("/search")
@@ -223,7 +223,7 @@ public class QuestionBankControllerV3 {
     // ============ Request DTOs ============
 
     public record CreateBankRequest(
-            @NotBlank(message = "Bank name is required") String name,
+            @NotBlank(message = "Tên ngân hàng không được để trống") String name,
             String description,
             String subject,
             String bankType,
@@ -238,7 +238,7 @@ public class QuestionBankControllerV3 {
     ) {}
 
     public record AddCategoryRequest(
-            @NotBlank(message = "Category name is required") String name,
+            @NotBlank(message = "Tên danh mục không được để trống") String name,
             String description,
             UUID parentId,
             Integer sortOrder
@@ -251,8 +251,8 @@ public class QuestionBankControllerV3 {
     ) {}
 
     public record MoveQuestionsRequest(
-            @NotEmpty(message = "Question IDs are required") List<UUID> questionIds,
-            @NotNull(message = "Target bank ID is required") UUID targetBankId,
+            @NotEmpty(message = "Danh sách câu hỏi không được để trống") List<UUID> questionIds,
+            @NotNull(message = "Mã ngân hàng đích không được để trống") UUID targetBankId,
             UUID targetCategoryId
     ) {}
 
@@ -266,7 +266,7 @@ public class QuestionBankControllerV3 {
             @AuthenticationPrincipal UserJpaEntity user,
             @RequestParam("file") MultipartFile file) {
         var result = importExportUseCase.importFromCsv(bankId, user.getId(), file);
-        return ResponseEntity.ok(ApiResponse.success(result, result.imported() + " questions imported"));
+        return ResponseEntity.ok(ApiResponse.success(result, "Đã nhập thành công " + result.imported() + " câu hỏi"));
     }
 
     @GetMapping("/{bankId}/export")
@@ -298,7 +298,7 @@ public class QuestionBankControllerV3 {
             )).toList() : List.of());
             return map;
         }).toList();
-        return ResponseEntity.ok(ApiResponse.success(result, random.size() + " random questions"));
+        return ResponseEntity.ok(ApiResponse.success(result, "Lấy ngẫu nhiên " + random.size() + " câu hỏi"));
     }
 
     // ============ Response Mappers ============

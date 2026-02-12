@@ -39,7 +39,7 @@ import { AuthService } from '../../../core/services/auth.service';
             Nâng tầm sự nghiệp
             <span class="block text-yellow-400">Hàng hải của bạn</span>
           </h1>
-          <p #heroDescription class="text-xl md:text-2xl mb-8 text-blue-100 max-w-4xl mx-auto text-pretty opacity-0">
+          <p #heroDescription class="text-xl md:text-2xl mb-8 text-white/80 max-w-4xl mx-auto text-pretty opacity-0">
             Học hỏi từ các chuyên gia hàng đầu và nhận chứng chỉ được công nhận để vươn ra biển lớn
           </p>
           

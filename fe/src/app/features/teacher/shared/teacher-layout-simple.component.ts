@@ -59,7 +59,7 @@ import { ChatWidgetComponent } from '../../ai-chat/presentation/components/chat-
                       </svg>
                     </div>
                     <h1 class="text-lg font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
-                      Teacher Portal
+                      Cổng Giảng viên
                     </h1>
                   </div>
                 </div>
@@ -69,7 +69,7 @@ import { ChatWidgetComponent } from '../../ai-chat/presentation/components/chat-
                   <app-notification-bell></app-notification-bell>
                   <!-- User avatar and info -->
                   <div class="flex items-center space-x-2">
-                    <div class="w-8 h-8 bg-gradient-to-br from-indigo-500 to-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                    <div class="w-8 h-8 bg-[#0056D2] rounded-full flex items-center justify-center text-white text-sm font-medium">
                       {{ getUserInitials() }}
                     </div>
                     <div class="hidden sm:block">

@@ -145,7 +145,7 @@ interface NoteFilter {
                     <p class="text-sm font-medium text-gray-600 mb-1">Tổng ghi chú</p>
                     <p class="text-3xl font-bold text-gray-900">{{ notes().length }}</p>
                   </div>
-                  <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                  <div class="w-12 h-12 bg-[#0056D2]/10 rounded-xl flex items-center justify-center">
                     <svg class="w-6 h-6 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path>
                     </svg>
@@ -219,7 +219,7 @@ interface NoteFilter {
                   @if (note.tags.length > 0) {
                     <div class="flex flex-wrap gap-2 mb-4">
                       @for (tag of note.tags; track tag) {
-                        <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                        <span class="px-2 py-1 bg-[#0056D2]/10 text-[#004BB5] text-xs rounded-full">
                           {{ tag }}
                         </span>
                       }

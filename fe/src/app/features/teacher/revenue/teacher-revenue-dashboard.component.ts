@@ -47,7 +47,7 @@ import { ToastService } from '../../../core/services/toast.service';
                   </p>
                 }
               </div>
-              <div class="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
+              <div class="w-12 h-12 bg-[#0056D2]/5 rounded-lg flex items-center justify-center">
                 <svg class="w-6 h-6 text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
                 </svg>
@@ -95,7 +95,7 @@ import { ToastService } from '../../../core/services/toast.service';
         <div class="bg-white rounded-lg shadow p-4 mb-6 flex items-center justify-between">
           <div class="flex items-center gap-4">
             <a routerLink="/teacher/revenue/payouts" 
-               class="text-sm text-[#0056D2] hover:text-blue-800 flex items-center gap-1">
+               class="text-sm text-[#0056D2] hover:text-[#004BB5] flex items-center gap-1">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
               </svg>
@@ -181,8 +181,8 @@ import { ToastService } from '../../../core/services/toast.service';
           <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6" (click)="$event.stopPropagation()">
             <h3 class="text-lg font-semibold text-gray-900 mb-4">Yêu cầu rút tiền</h3>
             
-            <div class="mb-4 p-3 bg-blue-50 rounded-lg">
-              <p class="text-sm text-blue-800">
+            <div class="mb-4 p-3 bg-[#0056D2]/5 rounded-lg">
+              <p class="text-sm text-[#004BB5]">
                 Số dư có thể rút: <strong>{{ formatCurrency(payoutBalance()?.availableBalance || 0) }}</strong>
               </p>
             </div>

@@ -16,33 +16,33 @@ import { AuthService } from "../../../core/services/auth.service"
       <nav class="mt-6">
         <div class="px-6 space-y-1">
           @if (userRole() === 'student') {
-            <a routerLink="/dashboard/student" routerLinkActive="bg-blue-50 text-[#004BB5]" 
+            <a routerLink="/dashboard/student" routerLinkActive="bg-[#0056D2]/5 text-[#004BB5]" 
                class="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-gray-50">
               Trang chủ
             </a>
-            <a routerLink="/courses" routerLinkActive="bg-blue-50 text-[#004BB5]"
+            <a routerLink="/courses" routerLinkActive="bg-[#0056D2]/5 text-[#004BB5]"
                class="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-gray-50">
               Khóa học
             </a>
           }
           
           @if (userRole() === 'teacher') {
-            <a routerLink="/dashboard/teacher" routerLinkActive="bg-blue-50 text-[#004BB5]"
+            <a routerLink="/dashboard/teacher" routerLinkActive="bg-[#0056D2]/5 text-[#004BB5]"
                class="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-gray-50">
               Trang chủ
             </a>
-            <a routerLink="/courses/manage" routerLinkActive="bg-blue-50 text-[#004BB5]"
+            <a routerLink="/courses/manage" routerLinkActive="bg-[#0056D2]/5 text-[#004BB5]"
                class="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-gray-50">
               Quản lý khóa học
             </a>
           }
           
           @if (userRole() === 'admin' || userRole() === 'org_admin') {
-            <a routerLink="/dashboard/admin" routerLinkActive="bg-blue-50 text-[#004BB5]"
+            <a routerLink="/dashboard/admin" routerLinkActive="bg-[#0056D2]/5 text-[#004BB5]"
                class="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-gray-50">
               Trang chủ
             </a>
-            <a routerLink="/admin/users" routerLinkActive="bg-blue-50 text-[#004BB5]"
+            <a routerLink="/admin/users" routerLinkActive="bg-[#0056D2]/5 text-[#004BB5]"
                class="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-gray-50">
               Quản lý người dùng
             </a>

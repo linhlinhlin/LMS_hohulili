@@ -21,7 +21,7 @@ import { ConversationListItem, formatMessageTime } from './utils/message-utils';
     <button
       (click)="onSelect()"
       class="w-full flex items-center gap-3 p-4 hover:bg-gray-50 transition-colors text-left"
-      [class.bg-blue-50]="isSelected()"
+      [class.bg-[#0056D2]/5]="isSelected()"
       [class.border-l-4]="isSelected()"
       [class.border-l-[#0056D2]]="isSelected()"
     >

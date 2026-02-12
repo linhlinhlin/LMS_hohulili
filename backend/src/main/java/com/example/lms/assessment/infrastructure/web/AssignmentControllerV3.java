@@ -70,7 +70,7 @@ public class AssignmentControllerV3 {
                         .updatedAt(a.getUpdatedAt().toString())
                         .courseId(a.getCourseId().toString())
                         .build();
-                    return ResponseEntity.ok(ApiResponse.success(dto, "Assignment loaded"));
+                    return ResponseEntity.ok(ApiResponse.success(dto, "Thông tin bài tập"));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -99,7 +99,7 @@ public class AssignmentControllerV3 {
         // Use UseCase or Repository directly? UseCase expects lessonId but we relaxed it.
         // We need to inject CreateAssignmentUseCaseV3
         java.util.UUID id = createAssignmentUseCaseV3.execute(command);
-        return ResponseEntity.ok(ApiResponse.success(id, "Assignment created"));
+        return ResponseEntity.ok(ApiResponse.success(id, "Tạo bài tập thành công"));
     }
     
     @PutMapping("/{id}")
@@ -117,7 +117,7 @@ public class AssignmentControllerV3 {
                 request.maxScore()
         );
         updateAssignmentUseCaseV3.execute(id, command);
-        return ResponseEntity.ok(ApiResponse.success(null, "Assignment updated"));
+        return ResponseEntity.ok(ApiResponse.success(null, "Cập nhật bài tập thành công"));
     }
     
     @DeleteMapping("/{id}")
@@ -127,16 +127,16 @@ public class AssignmentControllerV3 {
             @PathVariable java.util.UUID id
     ) {
         deleteAssignmentUseCaseV3.execute(id);
-        return ResponseEntity.ok(ApiResponse.success(null, "Assignment deleted"));
+        return ResponseEntity.ok(ApiResponse.success(null, "Xóa bài tập thành công"));
     }
 
     public record CreateAssignmentRequest(
-        @NotBlank(message = "Title is required")
+        @NotBlank(message = "Tiêu đề không được để trống")
         String title,
         String description,
         String instructions,
         String dueDate,
-        @Positive(message = "Max score must be positive")
+        @Positive(message = "Điểm tối đa phải là số dương")
         Integer maxScore,
         String distributionType,
         java.util.List<java.util.UUID> studentIds

@@ -56,7 +56,7 @@ public class UpdateLessonProgressUseCase {
                         enrollment.getId(),
                         enrollment.getStudentId(),
                         enrollment.getLearningClass().getCourseId());
-            } catch (Exception e) {
+            } catch (IllegalArgumentException | IllegalStateException e) {
                 log.warn("Failed to auto-issue certificate for enrollment {}: {}",
                         command.enrollmentId(), e.getMessage());
             }

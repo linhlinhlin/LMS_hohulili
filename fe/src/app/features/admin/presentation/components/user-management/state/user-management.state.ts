@@ -435,7 +435,7 @@ export class UserManagementState {
       case 'ADMIN': return 'bg-orange-50 text-orange-700 border-orange-200';
       case 'ORG_ADMIN': return 'bg-teal-50 text-teal-700 border-teal-200';
       case 'TEACHER': return 'bg-purple-50 text-purple-700 border-purple-200';
-      case 'STUDENT': return 'bg-blue-50 text-[#004BB5] border-blue-200';
+      case 'STUDENT': return 'bg-[#0056D2]/5 text-[#004BB5] border-[#0056D2]/20';
       default: return 'bg-gray-50 text-gray-700 border-gray-200';
     }
   }

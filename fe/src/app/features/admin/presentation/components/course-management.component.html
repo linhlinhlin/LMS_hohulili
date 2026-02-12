@@ -1,9 +1,9 @@
 
     <!-- Loading State - Temporarily disabled -->
-    <!-- <app-loading 
-      [show]="adminService.isLoading()" 
-      text="�ang t?i d? li?u kh�a h?c..."
-      subtext="Vui l�ng ch? trong gi�y l�t"
+    <!-- <app-loading
+      [show]="adminService.isLoading()"
+      text="Đang tải dữ liệu khóa học..."
+      subtext="Vui lòng chờ trong giây lát"
       variant="overlay"
       color="red">
     </app-loading> -->
@@ -20,13 +20,13 @@
                   <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
                   <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
                 </svg>
-                Qu?n l� kh�a h?c h? th?ng
+                Quản lý khóa học hệ thống
               </h1>
-              <p class="text-gray-600">Ph� duy?t v� qu?n l� t?t c? kh�a h?c trong h? th?ng</p>
+              <p class="text-gray-600">Phê duyệt và quản lý tất cả khóa học trong hệ thống</p>
             </div>
             <div class="flex items-center space-x-4">
               <div class="text-right">
-                <div class="text-sm text-gray-600">Kh�a h?c ch? ph� duy?t</div>
+                <div class="text-sm text-gray-600">Khóa học chờ phê duyệt</div>
                 <div class="text-2xl font-bold text-red-600">{{ pendingCourses() }}</div>
               </div>
             </div>
@@ -39,11 +39,11 @@
           <div class="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
             <div class="flex items-start justify-between">
               <div class="flex-1">
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">T?ng kh�a h?c</p>
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Tổng khóa học</p>
                 <p class="text-2xl font-bold text-gray-900">{{ totalCourses() }}</p>
-                <p class="text-xs text-gray-600 mt-2">{{ approvedCourses() }} d� ph� duy?t</p>
+                <p class="text-xs text-gray-600 mt-2">{{ approvedCourses() }} đã phê duyệt</p>
               </div>
-              <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
+              <div class="w-10 h-10 bg-[#0056D2]/5 rounded-lg flex items-center justify-center flex-shrink-0">
                 <svg class="w-5 h-5 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
                   <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
@@ -56,9 +56,9 @@
           <div class="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
             <div class="flex items-start justify-between">
               <div class="flex-1">
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Ch? ph� duy?t</p>
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Chờ phê duyệt</p>
                 <p class="text-2xl font-bold text-gray-900">{{ pendingCourses() }}</p>
-                <p class="text-xs text-yellow-600 mt-2">C?n xem x�t</p>
+                <p class="text-xs text-yellow-600 mt-2">Cần xem xét</p>
               </div>
               <div class="w-10 h-10 bg-yellow-50 rounded-lg flex items-center justify-center flex-shrink-0">
                 <svg class="w-5 h-5 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
@@ -72,9 +72,9 @@
           <div class="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
             <div class="flex items-start justify-between">
               <div class="flex-1">
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">�� ph� duy?t</p>
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Đã phê duyệt</p>
                 <p class="text-2xl font-bold text-gray-900">{{ approvedCourses() }}</p>
-                <p class="text-xs text-green-600 mt-2">�ang ho?t d?ng</p>
+                <p class="text-xs text-green-600 mt-2">Đang hoạt động</p>
               </div>
               <div class="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center flex-shrink-0">
                 <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
@@ -88,9 +88,9 @@
           <div class="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
             <div class="flex items-start justify-between">
               <div class="flex-1">
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">T?ng doanh thu</p>
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Tổng doanh thu</p>
                 <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(totalRevenue()) }}</p>
-                <p class="text-xs text-gray-600 mt-2">T? c�c kh�a h?c</p>
+                <p class="text-xs text-gray-600 mt-2">Từ các khóa học</p>
               </div>
               <div class="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center flex-shrink-0">
                 <svg class="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
@@ -106,30 +106,30 @@
         <div class="bg-white rounded-lg border border-gray-200 p-4 mb-6">
           <div class="flex flex-col md:flex-row gap-4">
             <div class="flex-1">
-              <input type="text" 
+              <input type="text"
                      [(ngModel)]="searchQuery"
-                     placeholder="T�m ki?m kh�a h?c..."
+                     placeholder="Tìm kiếm khóa học..."
                      class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]">
             </div>
             <div class="flex gap-4">
-              <select [(ngModel)]="statusFilter" 
+              <select [(ngModel)]="statusFilter"
                       class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]">
-                <option value="">T?t c? tr?ng th�i</option>
-                <option value="pending">Ch? ph� duy?t</option>
-                <option value="approved">�� ph� duy?t</option>
-                <option value="rejected">B? t? ch?i</option>
-                <option value="active">�ang ho?t d?ng</option>
-                <option value="archived">Luu tr?</option>
+                <option value="">Tất cả trạng thái</option>
+                <option value="pending">Chờ phê duyệt</option>
+                <option value="approved">Đã phê duyệt</option>
+                <option value="rejected">Bị từ chối</option>
+                <option value="active">Đang hoạt động</option>
+                <option value="archived">Lưu trữ</option>
               </select>
-              <select [(ngModel)]="categoryFilter" 
+              <select [(ngModel)]="categoryFilter"
                       class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]">
-                <option value="">T?t c? danh m?c</option>
-                <option value="safety">An to�n h�ng h?i</option>
-                <option value="navigation">�i?u khi?n t�u</option>
-                <option value="engineering">K? thu?t t�u bi?n</option>
-                <option value="logistics">Qu?n l� c?ng</option>
-                <option value="law">Lu?t h�ng h?i</option>
-                <option value="certificates">Ch?ng ch?</option>
+                <option value="">Tất cả danh mục</option>
+                <option value="safety">An toàn hàng hải</option>
+                <option value="navigation">Điều khiển tàu</option>
+                <option value="engineering">Kỹ thuật tàu biển</option>
+                <option value="logistics">Quản lý cảng</option>
+                <option value="law">Luật hàng hải</option>
+                <option value="certificates">Chứng chỉ</option>
               </select>
             </div>
           </div>
@@ -142,7 +142,7 @@
               <div class="inline-block">
                 <div class="w-12 h-12 border-4 border-gray-200 border-t-[#0056D2] rounded-full animate-spin"></div>
               </div>
-              <p class="mt-4 text-sm text-gray-600">�ang t?i danh s�ch kh�a h?c...</p>
+              <p class="mt-4 text-sm text-gray-600">Đang tải danh sách khóa học...</p>
             </div>
           } @else if (filteredCourses().length > 0) {
             <div class="overflow-x-auto">
@@ -150,25 +150,25 @@
                 <thead class="bg-gray-50">
                   <tr>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      Kh�a h?c
+                      Khóa học
                     </th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      Gi?ng vi�n
+                      Giảng viên
                     </th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      Tr?ng th�i
+                      Trạng thái
                     </th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      Gi�
+                      Giá
                     </th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      H?c vi�n
+                      Học viên
                     </th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      Ng�y t?o
+                      Ngày tạo
                     </th>
                     <th class="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      Thao t�c
+                      Thao tác
                     </th>
                   </tr>
                 </thead>
@@ -178,12 +178,12 @@
                       <!-- Course Info -->
                       <td class="px-6 py-4">
                         <div class="flex items-center">
-                          <img [src]="course.thumbnail || '/assets/images/course-placeholder.png'" 
+                          <img [src]="course.thumbnail || '/assets/images/course-placeholder.png'"
                                [alt]="course.title"
                                class="w-12 h-12 rounded-lg object-cover mr-3 border border-gray-200">
                           <div class="max-w-xs">
                             <div class="text-sm font-medium text-gray-900 truncate">{{ course.title }}</div>
-                            <div class="text-xs text-gray-500 truncate">{{ course.shortDescription || 'Chua c� m� t?' }}</div>
+                            <div class="text-xs text-gray-500 truncate">{{ course.shortDescription || 'Chưa có mô tả' }}</div>
                             <div class="text-xs text-gray-400 mt-1">
                               <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
                                 {{ getLevelText(course.level || 'unknown') }}
@@ -195,7 +195,7 @@
                       <!-- Instructor -->
                       <td class="px-6 py-4 whitespace-nowrap">
                         <div class="flex items-center">
-                          <img src="/assets/images/default-avatar.png" 
+                          <img src="/assets/images/default-avatar.png"
                                [alt]="course.teacherName"
                                class="w-8 h-8 rounded-full border border-gray-200">
                           <div class="ml-3">
@@ -218,8 +218,8 @@
                       </td>
                       <!-- Price -->
                       <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm font-semibold text-gray-900">{{ course.price ? formatCurrency(course.price) : 'Mi?n ph�' }}</div>
-                        <div class="text-xs text-gray-500">{{ course.revenue ? formatCurrency(course.revenue) : '0 ?' }} doanh thu</div>
+                        <div class="text-sm font-semibold text-gray-900">{{ course.price ? formatCurrency(course.price) : 'Miễn phí' }}</div>
+                        <div class="text-xs text-gray-500">{{ course.revenue ? formatCurrency(course.revenue) : '0 ₫' }} doanh thu</div>
                       </td>
                       <!-- Students -->
                       <td class="px-6 py-4 whitespace-nowrap">
@@ -240,7 +240,7 @@
                       <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-600">
                         <div>{{ course.createdAt ? formatDate(course.createdAt) : 'N/A' }}</div>
                         @if (course.submittedAt) {
-                          <div class="text-gray-400 mt-1">N?p: {{ formatDate(course.submittedAt) }}</div>
+                          <div class="text-gray-400 mt-1">Nộp: {{ formatDate(course.submittedAt) }}</div>
                         }
                       </td>
                       <!-- Actions -->
@@ -250,14 +250,14 @@
                           @if (isPendingStatus(course.status)) {
                             <button (click)="approveCourse(course.id)"
                                     class="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded transition-colors"
-                                    title="Ph� duy?t">
+                                    title="Phê duyệt">
                               <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
                               </svg>
                             </button>
                             <button (click)="openRejectModal(course)"
                                     class="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors"
-                                    title="T? ch?i">
+                                    title="Từ chối">
                               <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
                               </svg>
@@ -267,15 +267,15 @@
                           @if (isApprovedStatus(course.status)) {
                             <button (click)="openRevokeModal(course.id)"
                                     class="p-2 text-orange-600 hover:text-orange-800 hover:bg-orange-50 rounded transition-colors"
-                                    title="Thu h?i ph� duy?t">
+                                    title="Thu hồi phê duyệt">
                               <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"></path>
                               </svg>
                             </button>
                           }
                           <button (click)="viewCourse(course.id)"
-                                  class="p-2 text-[#0056D2] hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
-                                  title="Xem chi ti?t">
+                                  class="p-2 text-[#0056D2] hover:text-[#004BB5] hover:bg-[#0056D2]/5 rounded transition-colors"
+                                  title="Xem chi tiết">
                             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                               <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path>
                               <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"></path>
@@ -283,7 +283,7 @@
                           </button>
                           <button (click)="editCourse(course.id)"
                                   class="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors"
-                                  title="Ch?nh s?a">
+                                  title="Chỉnh sửa">
                             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                               <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"></path>
                             </svg>
@@ -302,8 +302,8 @@
                 <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
                 <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
               </svg>
-              <h3 class="text-base font-medium text-gray-900 mb-2">Kh�ng c� kh�a h?c n�o</h3>
-              <p class="text-sm text-gray-600">Chua c� kh�a h?c n�o du?c n?p d? ph� duy?t ho?c ph� h?p v?i b? l?c</p>
+              <h3 class="text-base font-medium text-gray-900 mb-2">Không có khóa học nào</h3>
+              <p class="text-sm text-gray-600">Chưa có khóa học nào được nộp để phê duyệt hoặc phù hợp với bộ lọc</p>
             </div>
           }
         </div>
@@ -314,7 +314,7 @@
     @if (showRejectModal()) {
       <div class="fixed inset-0 z-50 overflow-y-auto" (click)="closeRejectModal()">
         <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-          
+
           <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full" (click)="$event.stopPropagation()">
             <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
               <div class="sm:flex sm:items-start">
@@ -325,40 +325,40 @@
                 </div>
                 <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
                   <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
-                    T? ch?i kh�a h?c
+                    Từ chối khóa học
                   </h3>
-                  
+
                   <div class="mb-4">
                     <div class="text-sm text-gray-600 mb-2">
                       <strong>{{ selectedCourse()?.title }}</strong>
                     </div>
                     <div class="text-sm text-gray-500">
-                      Gi?ng vi�n: {{ selectedCourse()?.teacherName || 'Kh�ng x�c d?nh' }}
+                      Giảng viên: {{ selectedCourse()?.teacherName || 'Không xác định' }}
                     </div>
                   </div>
-                  
+
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">L� do t? ch?i *</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Lý do từ chối *</label>
                     <textarea [(ngModel)]="rejectionReason"
                               name="rejectionReason"
                               rows="4"
                               required
-                              placeholder="Vui l�ng gi?i th�ch l� do t? ch?i kh�a h?c n�y..."
+                              placeholder="Vui lòng giải thích lý do từ chối khóa học này..."
                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[#0056D2] focus:border-[#0056D2]"></textarea>
                   </div>
                 </div>
               </div>
             </div>
-            
+
             <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
               <button (click)="rejectCourse()"
                       [disabled]="!rejectionReason()"
                       class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed">
-                T? ch?i kh�a h?c
+                Từ chối khóa học
               </button>
               <button (click)="closeRejectModal()"
                       class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
-                H?y
+                Hủy
               </button>
             </div>
           </div>
@@ -371,12 +371,12 @@
       <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
         <!-- Backdrop with blur -->
         <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" (click)="closeDetailModal()"></div>
-        
+
         <div class="flex min-h-full items-center justify-center p-4">
           <!-- Modal Panel -->
-          <div class="relative transform overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/5 transition-all w-full max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-200" 
+          <div class="relative transform overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/5 transition-all w-full max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-200"
                (click)="$event.stopPropagation()">
-            
+
             <!-- Header -->
             <div class="bg-white border-b border-gray-200 px-6 py-5">
               <div class="flex items-center justify-between">
@@ -387,7 +387,7 @@
                     </svg>
                   </div>
                   <div>
-                    <h3 class="text-xl font-semibold text-gray-900">Chi ti?t kh�a h?c</h3>
+                    <h3 class="text-xl font-semibold text-gray-900">Chi tiết khóa học</h3>
                     <p class="text-sm text-gray-500">{{ selectedCourse()?.title }}</p>
                   </div>
                 </div>
@@ -405,7 +405,7 @@
               <!-- Course Thumbnail -->
               @if (selectedCourse()?.thumbnail) {
                 <div class="relative overflow-hidden rounded-xl">
-                  <img [src]="selectedCourse()!.thumbnail" 
+                  <img [src]="selectedCourse()!.thumbnail"
                        [alt]="selectedCourse()!.title"
                        class="w-full h-52 object-cover">
                   <div class="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
@@ -414,7 +414,7 @@
 
               <!-- Stats Cards -->
               <div class="grid grid-cols-4 gap-4">
-                <div class="bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-xl p-4 ring-1 ring-blue-200/50">
+                <div class="bg-gradient-to-br from-[#0056D2]/5 to-[#0056D2]/10/50 rounded-xl p-4 ring-1 ring-[#0056D2]/20/50">
                   <div class="flex items-center gap-3">
                     <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0056D2] text-white">
                       <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -423,7 +423,7 @@
                     </div>
                     <div>
                       <div class="text-2xl font-bold text-[#004BB5]">{{ selectedCourse()?.sectionsCount || 0 }}</div>
-                      <div class="text-xs text-[#0056D2]/70 font-medium">Chuong</div>
+                      <div class="text-xs text-[#0056D2]/70 font-medium">Chương</div>
                     </div>
                   </div>
                 </div>
@@ -436,7 +436,7 @@
                     </div>
                     <div>
                       <div class="text-2xl font-bold text-green-700">{{ selectedCourse()?.lessonsCount || 0 }}</div>
-                      <div class="text-xs text-green-600/70 font-medium">B�i h?c</div>
+                      <div class="text-xs text-green-600/70 font-medium">Bài học</div>
                     </div>
                   </div>
                 </div>
@@ -449,7 +449,7 @@
                     </div>
                     <div>
                       <div class="text-2xl font-bold text-purple-700">{{ selectedCourse()?.assignmentsCount || 0 }}</div>
-                      <div class="text-xs text-purple-600/70 font-medium">B�i t?p</div>
+                      <div class="text-xs text-purple-600/70 font-medium">Bài tập</div>
                     </div>
                   </div>
                 </div>
@@ -462,7 +462,7 @@
                     </div>
                     <div>
                       <div class="text-2xl font-bold text-amber-700">{{ selectedCourse()?.enrolledCount || 0 }}</div>
-                      <div class="text-xs text-amber-600/70 font-medium">H?c vi�n</div>
+                      <div class="text-xs text-amber-600/70 font-medium">Học viên</div>
                     </div>
                   </div>
                 </div>
@@ -476,11 +476,11 @@
                     <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
-                    Th�ng tin co b?n
+                    Thông tin cơ bản
                   </h4>
                   <div class="space-y-3">
                     <div>
-                      <span class="text-xs text-slate-500 font-medium">Tr?ng th�i</span>
+                      <span class="text-xs text-slate-500 font-medium">Trạng thái</span>
                       <p class="mt-1">
                         <span class="px-2.5 py-1 rounded-full text-xs font-medium" [class]="getStatusClass(selectedCourse()?.status || '')">
                           {{ getStatusText(selectedCourse()?.status || '') }}
@@ -488,16 +488,16 @@
                       </p>
                     </div>
                     <div>
-                      <span class="text-xs text-slate-500 font-medium">Gi�</span>
-                      <p class="text-sm text-slate-900 font-semibold mt-1">{{ selectedCourse()?.price ? formatCurrency(selectedCourse()!.price!) : 'Mi?n ph�' }}</p>
+                      <span class="text-xs text-slate-500 font-medium">Giá</span>
+                      <p class="text-sm text-slate-900 font-semibold mt-1">{{ selectedCourse()?.price ? formatCurrency(selectedCourse()!.price!) : 'Miễn phí' }}</p>
                     </div>
                     <div>
-                      <span class="text-xs text-slate-500 font-medium">C?p d?</span>
+                      <span class="text-xs text-slate-500 font-medium">Cấp độ</span>
                       <p class="text-sm text-slate-900 mt-1">{{ getLevelText(selectedCourse()?.level || 'unknown') }}</p>
                     </div>
                     <div>
-                      <span class="text-xs text-slate-500 font-medium">Danh m?c</span>
-                      <p class="text-sm text-slate-900 mt-1">{{ selectedCourse()?.category || 'Chua ph�n lo?i' }}</p>
+                      <span class="text-xs text-slate-500 font-medium">Danh mục</span>
+                      <p class="text-sm text-slate-900 mt-1">{{ selectedCourse()?.category || 'Chưa phân loại' }}</p>
                     </div>
                   </div>
                 </div>
@@ -508,7 +508,7 @@
                     <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                     </svg>
-                    Gi?ng vi�n
+                    Giảng viên
                   </h4>
                   <div class="flex items-center gap-4">
                     <div class="h-14 w-14 rounded-full bg-[#0056D2] flex items-center justify-center text-white font-bold text-lg">
@@ -525,7 +525,7 @@
                           {{ selectedCourse()?.rating || 0 }}/5
                         </span>
                         <span class="text-xs text-slate-400">•</span>
-                        <span class="text-xs text-slate-600">{{ selectedCourse()?.enrolledCount || 0 }} h?c vi�n</span>
+                        <span class="text-xs text-slate-600">{{ selectedCourse()?.enrolledCount || 0 }} học viên</span>
                       </div>
                     </div>
                   </div>
@@ -539,7 +539,7 @@
                     <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/>
                     </svg>
-                    M� t?
+                    Mô tả
                   </h4>
                   <p class="text-sm text-slate-600 leading-relaxed">{{ selectedCourse()?.shortDescription }}</p>
                 </div>
@@ -551,23 +551,23 @@
                   <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                   </svg>
-                  Tr?ng th�i ph� duy?t
+                  Trạng thái phê duyệt
                 </h4>
                 <div class="grid grid-cols-2 gap-4">
                   <div>
-                    <span class="text-xs text-slate-500 font-medium">Ng�y n?p</span>
-                    <p class="text-sm text-slate-900 mt-1">{{ selectedCourse()?.submittedAt ? formatDate(selectedCourse()!.submittedAt!) : 'Chua n?p' }}</p>
+                    <span class="text-xs text-slate-500 font-medium">Ngày nộp</span>
+                    <p class="text-sm text-slate-900 mt-1">{{ selectedCourse()?.submittedAt ? formatDate(selectedCourse()!.submittedAt!) : 'Chưa nộp' }}</p>
                   </div>
                   @if (selectedCourse()?.approvedAt) {
                     <div>
-                      <span class="text-xs text-slate-500 font-medium">Ng�y ph� duy?t</span>
+                      <span class="text-xs text-slate-500 font-medium">Ngày phê duyệt</span>
                       <p class="text-sm text-slate-900 mt-1">{{ formatDate(selectedCourse()!.approvedAt!) }}</p>
                     </div>
                   }
                 </div>
                 @if (selectedCourse()?.rejectionReason) {
                   <div class="mt-4 p-3 bg-red-50 rounded-lg ring-1 ring-red-200/50">
-                    <span class="text-xs text-red-600 font-medium">L� do t? ch?i</span>
+                    <span class="text-xs text-red-600 font-medium">Lý do từ chối</span>
                     <p class="text-sm text-red-700 mt-1">{{ selectedCourse()!.rejectionReason }}</p>
                   </div>
                 }
@@ -577,8 +577,8 @@
               <div class="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl p-5 text-white">
                 <div class="flex items-center justify-between">
                   <div>
-                    <h4 class="text-sm font-medium text-white/80">T?ng doanh thu</h4>
-                    <p class="text-3xl font-bold mt-1">{{ selectedCourse()?.revenue ? formatCurrency(selectedCourse()!.revenue!) : '0 ?' }}</p>
+                    <h4 class="text-sm font-medium text-white/80">Tổng doanh thu</h4>
+                    <p class="text-3xl font-bold mt-1">{{ selectedCourse()?.revenue ? formatCurrency(selectedCourse()!.revenue!) : '0 ₫' }}</p>
                   </div>
                   <div class="h-14 w-14 rounded-full bg-white/20 flex items-center justify-center">
                     <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -588,19 +588,19 @@
                 </div>
               </div>
             </div>
-            
+
             <!-- Footer -->
             <div class="bg-slate-50 px-6 py-4 flex items-center justify-end gap-3 border-t border-slate-200">
               <button (click)="closeDetailModal()"
                       class="px-4 py-2 text-sm font-medium text-slate-700 bg-white rounded-lg ring-1 ring-slate-200 hover:bg-slate-50 transition-colors">
-                ��ng
+                Đóng
               </button>
               <button (click)="openFullCourseView(selectedCourse()!.id)"
                       class="px-4 py-2 text-sm font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors flex items-center gap-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
                 </svg>
-                Xem chi ti?t d?y d?
+                Xem chi tiết đầy đủ
               </button>
             </div>
           </div>
@@ -613,8 +613,8 @@
       <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
         <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
           <div class="px-6 py-4 border-b border-slate-100">
-            <h3 class="text-lg font-semibold text-slate-900">Thu h?i ph� duy?t</h3>
-            <p class="text-sm text-slate-500 mt-1">Nh?p l� do thu h?i ph� duy?t kh�a h?c</p>
+            <h3 class="text-lg font-semibold text-slate-900">Thu hồi phê duyệt</h3>
+            <p class="text-sm text-slate-500 mt-1">Nhập lý do thu hồi phê duyệt khóa học</p>
           </div>
           <div class="px-6 py-4">
             <textarea
@@ -623,22 +623,22 @@
               name="revokeReason"
               rows="3"
               class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 resize-none"
-              placeholder="Nh?p l� do thu h?i..."
+              placeholder="Nhập lý do thu hồi..."
             ></textarea>
           </div>
           <div class="px-6 py-3 bg-slate-50 flex justify-end gap-3">
             <button (click)="closeRevokeModal()"
                     class="px-4 py-2 text-sm font-medium text-slate-700 bg-white rounded-lg ring-1 ring-slate-200 hover:bg-slate-50 transition-colors">
-              H?y
+              Hủy
             </button>
             <button (click)="confirmRevokeCourse()"
                     [disabled]="!revokeReasonInput().trim()"
                     class="px-4 py-2 text-sm font-medium text-white bg-orange-600 rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-              Thu h?i
+              Thu hồi
             </button>
           </div>
         </div>
       </div>
     }
 
-  
+

@@ -204,7 +204,7 @@ import { AdminUser } from '../../../../../infrastructure/services/admin.service'
 
                   @for (page of state.getVisiblePages(); track page) {
                     <button (click)="state.goToPage(page)"
-                            [class]="page === state.pagination()!.page ? 'z-10 bg-blue-50 border-blue-500 text-[#0056D2] relative inline-flex items-center px-4 py-2 border text-sm font-medium' : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium'">
+                            [class]="page === state.pagination()!.page ? 'z-10 bg-[#0056D2]/5 border-[#0056D2] text-[#0056D2] relative inline-flex items-center px-4 py-2 border text-sm font-medium' : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium'">
                       {{ page }}
                     </button>
                   }

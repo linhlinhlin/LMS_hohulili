@@ -30,7 +30,7 @@ public class GamificationControllerV3 {
     public ResponseEntity<ApiResponse<GamificationUseCase.GamificationProfileResponse>> getProfile(
             @AuthenticationPrincipal UserJpaEntity user) {
         var profile = gamificationUseCase.getProfile(user.getId());
-        return ResponseEntity.ok(ApiResponse.success(profile, "Gamification profile loaded"));
+        return ResponseEntity.ok(ApiResponse.success(profile, "Hồ sơ thành tích"));
     }
 
     @Operation(summary = "Trigger streak update after learning activity")
@@ -38,7 +38,7 @@ public class GamificationControllerV3 {
     public ResponseEntity<ApiResponse<GamificationUseCase.StreakResponse>> checkStreak(
             @AuthenticationPrincipal UserJpaEntity user) {
         var streak = gamificationUseCase.updateStreak(user.getId());
-        return ResponseEntity.ok(ApiResponse.success(streak, "Streak updated"));
+        return ResponseEntity.ok(ApiResponse.success(streak, "Đã cập nhật chuỗi ngày học"));
     }
 
     @Operation(summary = "Check and award new achievements")
@@ -46,7 +46,7 @@ public class GamificationControllerV3 {
     public ResponseEntity<ApiResponse<List<GamificationUseCase.AchievementResponse>>> checkAchievements(
             @AuthenticationPrincipal UserJpaEntity user) {
         var newAchievements = gamificationUseCase.checkAndAwardAchievements(user.getId());
-        return ResponseEntity.ok(ApiResponse.success(newAchievements, "Achievements checked"));
+        return ResponseEntity.ok(ApiResponse.success(newAchievements, "Đã kiểm tra thành tích"));
     }
 
     @Operation(summary = "Get paginated notifications")
@@ -56,14 +56,14 @@ public class GamificationControllerV3 {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         var notifications = gamificationUseCase.getNotifications(user.getId(), page, size);
-        return ResponseEntity.ok(ApiResponse.success(notifications, "Notifications loaded"));
+        return ResponseEntity.ok(ApiResponse.success(notifications, "Danh sách thông báo"));
     }
 
     @Operation(summary = "Mark notification as read")
     @PatchMapping("/notifications/{id}/read")
     public ResponseEntity<ApiResponse<Void>> markNotificationRead(@PathVariable UUID id) {
         gamificationUseCase.markNotificationRead(id);
-        return ResponseEntity.ok(ApiResponse.success(null, "Notification marked as read"));
+        return ResponseEntity.ok(ApiResponse.success(null, "Đã đánh dấu đã đọc"));
     }
 
     @Operation(summary = "Get unread notification count")
@@ -71,6 +71,6 @@ public class GamificationControllerV3 {
     public ResponseEntity<ApiResponse<Map<String, Long>>> getUnreadCount(
             @AuthenticationPrincipal UserJpaEntity user) {
         long count = gamificationUseCase.getUnreadCount(user.getId());
-        return ResponseEntity.ok(ApiResponse.success(Map.of("count", count), "Unread count loaded"));
+        return ResponseEntity.ok(ApiResponse.success(Map.of("count", count), "Số thông báo chưa đọc"));
     }
 }

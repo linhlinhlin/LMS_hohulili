@@ -87,7 +87,7 @@ import katex from 'katex';
                  [class.bg-green-50]="isCorrect(option.key)"
                  [class.border-gray-200]="!isCorrect(option.key)"
                  [class.bg-white]="!isCorrect(option.key)"
-                 [class.hover:border-blue-300]="!isCorrect(option.key)">
+                 [class.hover:border-[#0056D2]/30]="!isCorrect(option.key)">
               
               <!-- Option Key Badge -->
               <div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"

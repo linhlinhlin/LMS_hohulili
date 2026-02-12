@@ -32,7 +32,7 @@
         </div>
 
         <!-- Center: Timer -->
-        <div class="hidden md:flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-lg">
+        <div class="hidden md:flex items-center gap-2 px-4 py-2 bg-[#0056D2]/5 rounded-lg">
           <svg class="w-5 h-5 text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -71,7 +71,7 @@
   @if (loading()) {
   <div class="flex items-center justify-center min-h-[60vh]">
     <div class="text-center">
-      <div class="w-16 h-16 border-4 border-blue-200 border-t-[#0056D2] rounded-full animate-spin mx-auto mb-4"></div>
+      <div class="w-16 h-16 border-4 border-[#0056D2]/20 border-t-[#0056D2] rounded-full animate-spin mx-auto mb-4"></div>
       <p class="text-gray-600">Đang tải bài kiểm tra...</p>
     </div>
   </div>
@@ -139,14 +139,14 @@
             <button (click)="goToQuestion(i)"
               class="w-10 h-10 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center"
               [class.ring-2]="isOnCurrentPage"
-              [class.ring-blue-400]="isOnCurrentPage"
+              [class.ring-[#0056D2]]="isOnCurrentPage"
               [class.bg-green-100]="showResults() && correctResult === true"
               [class.text-green-700]="showResults() && correctResult === true"
               [class.bg-red-100]="showResults() && correctResult === false"
               [class.text-red-700]="showResults() && correctResult === false"
               [class.bg-yellow-100]="showResults() && answered && correctResult === null"
               [class.text-yellow-700]="showResults() && answered && correctResult === null"
-              [class.bg-blue-100]="!showResults() && answered"
+              [class.bg-[#0056D2]/10]="!showResults() && answered"
               [class.text-[#004BB5]]="!showResults() && answered"
               [class.bg-gray-100]="!showResults() && !answered && !(showResults() && !answered)"
               [class.text-gray-600]="!showResults() && !answered">
@@ -159,11 +159,11 @@
         <!-- Legend -->
         <div class="space-y-2 text-xs">
           <div class="flex items-center gap-2">
-            <div class="w-4 h-4 rounded bg-blue-100 ring-2 ring-blue-400"></div>
+            <div class="w-4 h-4 rounded bg-[#0056D2]/10 ring-2 ring-[#0056D2]"></div>
             <span class="text-gray-600">Trang hiện tại</span>
           </div>
           <div class="flex items-center gap-2">
-            <div class="w-4 h-4 rounded bg-blue-100"></div>
+            <div class="w-4 h-4 rounded bg-[#0056D2]/10"></div>
             <span class="text-gray-600">Đã trả lời</span>
           </div>
           <div class="flex items-center gap-2">
@@ -245,10 +245,10 @@
                     @for (opt of question.options; track opt.key) {
                     <button (click)="selectAnswer(question.id, opt.key)" [disabled]="showResults()"
                       class="w-full text-left p-4 rounded-xl border-2 transition-all duration-200 group"
-                      [class.border-blue-500]="answers()[question.id] === opt.key && !showResults()"
-                      [class.bg-blue-50]="answers()[question.id] === opt.key && !showResults()"
+                      [class.border-[#0056D2]]="answers()[question.id] === opt.key && !showResults()"
+                      [class.bg-[#0056D2]/5]="answers()[question.id] === opt.key && !showResults()"
                       [class.border-gray-200]="answers()[question.id] !== opt.key && !showResults()"
-                      [class.hover:border-blue-300]="!showResults() && answers()[question.id] !== opt.key"
+                      [class.hover:border-[#0056D2]/30]="!showResults() && answers()[question.id] !== opt.key"
                       [class.hover:bg-gray-50]="!showResults() && answers()[question.id] !== opt.key"
                       [class.border-green-500]="showResults() && quizSettings().showCorrectAnswers && opt.key === question.correctOption"
                       [class.bg-green-50]="showResults() && quizSettings().showCorrectAnswers && opt.key === question.correctOption"
@@ -262,7 +262,7 @@
                           [class.text-white]="(answers()[question.id] === opt.key && !showResults()) || (showResults() && quizSettings().showCorrectAnswers && opt.key === question.correctOption)"
                           [class.border-gray-300]="answers()[question.id] !== opt.key && !showResults()"
                           [class.text-gray-600]="answers()[question.id] !== opt.key && !showResults()"
-                          [class.group-hover:border-blue-400]="!showResults() && answers()[question.id] !== opt.key"
+                          [class.group-hover:border-[#0056D2]]="!showResults() && answers()[question.id] !== opt.key"
                           [class.bg-green-600]="showResults() && quizSettings().showCorrectAnswers && opt.key === question.correctOption"
                           [class.border-green-600]="showResults() && quizSettings().showCorrectAnswers && opt.key === question.correctOption"
                           [class.bg-red-500]="showResults() && quizSettings().showCorrectAnswers && answers()[question.id] === opt.key && opt.key !== question.correctOption"
@@ -301,10 +301,10 @@
                     @let isSelected = isMultipleChoiceSelected(question.id, opt.key);
                     <button (click)="toggleMultipleChoice(question.id, opt.key)" [disabled]="showResults()"
                       class="w-full text-left p-4 rounded-xl border-2 transition-all duration-200 group"
-                      [class.border-blue-500]="isSelected && !showResults()"
-                      [class.bg-blue-50]="isSelected && !showResults()"
+                      [class.border-[#0056D2]]="isSelected && !showResults()"
+                      [class.bg-[#0056D2]/5]="isSelected && !showResults()"
                       [class.border-gray-200]="!isSelected && !showResults()"
-                      [class.hover:border-blue-300]="!showResults() && !isSelected"
+                      [class.hover:border-[#0056D2]/30]="!showResults() && !isSelected"
                       [class.hover:bg-gray-50]="!showResults() && !isSelected">
                       <div class="flex items-center gap-4">
                         <!-- Checkbox square indicator -->
@@ -314,7 +314,7 @@
                           [class.text-white]="isSelected && !showResults()"
                           [class.border-gray-300]="!isSelected && !showResults()"
                           [class.text-gray-600]="!isSelected && !showResults()"
-                          [class.group-hover:border-blue-400]="!showResults() && !isSelected">
+                          [class.group-hover:border-[#0056D2]]="!showResults() && !isSelected">
                           @if (isSelected) {
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
@@ -340,10 +340,10 @@
                     @for (opt of question.options; track opt.key) {
                     <button (click)="selectAnswer(question.id, opt.key)" [disabled]="showResults()"
                       class="w-full text-left p-4 rounded-xl border-2 transition-all duration-200 group"
-                      [class.border-blue-500]="answers()[question.id] === opt.key && !showResults()"
-                      [class.bg-blue-50]="answers()[question.id] === opt.key && !showResults()"
+                      [class.border-[#0056D2]]="answers()[question.id] === opt.key && !showResults()"
+                      [class.bg-[#0056D2]/5]="answers()[question.id] === opt.key && !showResults()"
                       [class.border-gray-200]="answers()[question.id] !== opt.key && !showResults()"
-                      [class.hover:border-blue-300]="!showResults() && answers()[question.id] !== opt.key"
+                      [class.hover:border-[#0056D2]/30]="!showResults() && answers()[question.id] !== opt.key"
                       [class.hover:bg-gray-50]="!showResults() && answers()[question.id] !== opt.key"
                       [class.border-green-500]="showResults() && quizSettings().showCorrectAnswers && opt.key === question.correctOption"
                       [class.bg-green-50]="showResults() && quizSettings().showCorrectAnswers && opt.key === question.correctOption"
@@ -395,7 +395,7 @@
                       (input)="updateTextAnswer(question.id, $any($event.target).value)"
                       [disabled]="showResults()"
                       placeholder="Nhập câu trả lời..."
-                      class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-gray-700 focus:border-[#0056D2] focus:ring-2 focus:ring-blue-200 transition-colors disabled:bg-gray-50 disabled:text-gray-500" />
+                      class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-gray-700 focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/20 transition-colors disabled:bg-gray-50 disabled:text-gray-500" />
                     @if (showResults() && quizSettings().showCorrectAnswers && question.correctOption) {
                     <p class="mt-2 text-sm text-green-700">
                       <span class="font-medium">Đáp án đúng:</span> {{ question.correctOption }}
@@ -412,7 +412,7 @@
                       (input)="updateTextAnswer(question.id, $any($event.target).value)"
                       [disabled]="showResults()"
                       placeholder="Nhập câu trả lời ngắn..."
-                      class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-gray-700 focus:border-[#0056D2] focus:ring-2 focus:ring-blue-200 transition-colors disabled:bg-gray-50 disabled:text-gray-500" />
+                      class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-gray-700 focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/20 transition-colors disabled:bg-gray-50 disabled:text-gray-500" />
                     @if (showResults() && quizSettings().showCorrectAnswers && question.correctOption) {
                     <p class="mt-2 text-sm text-green-700">
                       <span class="font-medium">Đáp án đúng:</span> {{ question.correctOption }}
@@ -430,7 +430,7 @@
                       [disabled]="showResults()"
                       placeholder="Viết bài tự luận của bạn..."
                       rows="8"
-                      class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-gray-700 focus:border-[#0056D2] focus:ring-2 focus:ring-blue-200 transition-colors resize-y disabled:bg-gray-50 disabled:text-gray-500">
+                      class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-gray-700 focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/20 transition-colors resize-y disabled:bg-gray-50 disabled:text-gray-500">
                     </textarea>
                     @if (showResults()) {
                     <p class="mt-2 text-sm text-yellow-700 bg-yellow-50 p-3 rounded-lg">
@@ -446,8 +446,8 @@
                     @for (opt of question.options; track opt.key) {
                     <button (click)="selectAnswer(question.id, opt.key)" [disabled]="showResults()"
                       class="w-full text-left p-4 rounded-xl border-2 transition-all duration-200 group"
-                      [class.border-blue-500]="answers()[question.id] === opt.key && !showResults()"
-                      [class.bg-blue-50]="answers()[question.id] === opt.key && !showResults()"
+                      [class.border-[#0056D2]]="answers()[question.id] === opt.key && !showResults()"
+                      [class.bg-[#0056D2]/5]="answers()[question.id] === opt.key && !showResults()"
                       [class.border-gray-200]="answers()[question.id] !== opt.key && !showResults()">
                       <div class="flex items-center gap-4">
                         <span class="w-10 h-10 rounded-xl flex items-center justify-center font-semibold text-sm"
@@ -610,7 +610,7 @@
         </div>
 
         <!-- Time Spent -->
-        <div class="bg-blue-50 rounded-xl p-4 flex items-center justify-between mb-6">
+        <div class="bg-[#0056D2]/5 rounded-xl p-4 flex items-center justify-between mb-6">
           <div class="flex items-center gap-3">
             <svg class="w-5 h-5 text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

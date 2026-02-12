@@ -25,7 +25,7 @@
         <div class="flex items-center justify-between px-4 py-3 border-b bg-gray-50">
             <h3 class="font-semibold text-gray-900">Thông báo</h3>
             @if (unreadCount() > 0) {
-            <button (click)="markAllAsRead()" class="text-sm text-[#0056D2] hover:text-blue-800">
+            <button (click)="markAllAsRead()" class="text-sm text-[#0056D2] hover:text-[#004BB5]">
                 Đánh dấu tất cả đã đọc
             </button>
             }
@@ -46,11 +46,11 @@
             @for (notification of recentNotifications(); track notification.id) {
             <div (click)="onNotificationClick(notification)"
                 class="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0 transition-colors"
-                [class.bg-blue-50]="!notification.isRead">
+                [class.bg-[#0056D2]/5]="!notification.isRead">
                 <div class="flex items-start gap-3">
                     <!-- Icon -->
                     <div class="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center"
-                        [class.bg-blue-100]="notification.type === 'ASSIGNMENT_NEW'"
+                        [class.bg-[#0056D2]/10]="notification.type === 'ASSIGNMENT_NEW'"
                         [class.bg-orange-100]="notification.type === 'ASSIGNMENT_REMINDER'"
                         [class.bg-green-100]="notification.type === 'GRADE_PUBLISHED'"
                         [class.bg-purple-100]="notification.type === 'DEADLINE_EXTENDED'"
@@ -122,7 +122,7 @@
         <!-- Footer -->
         @if (recentNotifications().length > 0) {
         <div class="px-4 py-3 border-t bg-gray-50 text-center">
-            <button (click)="viewAllNotifications()" class="text-sm text-[#0056D2] hover:text-blue-800 font-medium">
+            <button (click)="viewAllNotifications()" class="text-sm text-[#0056D2] hover:text-[#004BB5] font-medium">
                 Xem tất cả thông báo
             </button>
         </div>

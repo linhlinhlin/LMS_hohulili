@@ -59,7 +59,7 @@ public class CommunicationControllerV3 {
                 .map(conv -> mapConversation(conv, userId))
                 .toList();
 
-        return ResponseEntity.ok(ApiResponse.success(result, "Conversations loaded"));
+        return ResponseEntity.ok(ApiResponse.success(result, "Danh sách hội thoại"));
     }
 
     @Operation(summary = "Get conversation between two users")
@@ -75,7 +75,7 @@ public class CommunicationControllerV3 {
         }
         UUID currentUserId = currentUser.getId();
         return ResponseEntity.ok(ApiResponse.success(
-                mapConversation(conv.get(), currentUserId), "Conversation found"));
+                mapConversation(conv.get(), currentUserId), "Thông tin cuộc hội thoại"));
     }
 
     @Operation(summary = "Get messages in a conversation")
@@ -88,7 +88,7 @@ public class CommunicationControllerV3 {
                 .map(this::mapMessage)
                 .toList();
 
-        return ResponseEntity.ok(ApiResponse.success(result, "Messages loaded"));
+        return ResponseEntity.ok(ApiResponse.success(result, "Danh sách tin nhắn"));
     }
 
     // ============== Message Endpoints ==============
@@ -160,7 +160,7 @@ public class CommunicationControllerV3 {
         }
 
         Map<String, Object> result = Map.of("unreadCount", totalUnread);
-        return ResponseEntity.ok(ApiResponse.success(result, "Unread count loaded"));
+        return ResponseEntity.ok(ApiResponse.success(result, "Số tin nhắn chưa đọc"));
     }
 
     // ============== Helpers ==============
@@ -202,14 +202,14 @@ public class CommunicationControllerV3 {
     // ============== Request DTOs ==============
 
     public record SendMessageRequest(
-        @NotNull(message = "Recipient ID is required")
+        @NotNull(message = "Mã người nhận không được để trống")
         UUID recipientId,
-        @NotBlank(message = "Content is required")
+        @NotBlank(message = "Nội dung không được để trống")
         String content
     ) {}
 
     public record MarkAsReadRequest(
-        @NotEmpty(message = "Message IDs cannot be empty")
+        @NotEmpty(message = "Danh sách tin nhắn không được để trống")
         List<UUID> messageIds
     ) {}
 }

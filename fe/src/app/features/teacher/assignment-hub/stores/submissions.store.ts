@@ -162,12 +162,12 @@ export class SubmissionsStore {
     );
   }
 
-  // Batch grade update
+  // Batch grade update — persists to DB via batch API
   batchGrade(submissionIds: string[], score: number, feedback?: string): Observable<boolean> {
-    // For now, grade one by one - can be optimized with batch API
-    const updates = submissionIds.map(id => ({ submissionId: id, score, feedback }));
-    
-    // Update local state immediately for better UX
+    const assignmentId = this._currentAssignmentId();
+    if (!assignmentId) return of(false);
+
+    // Optimistic update for better UX
     this._submissions.update(submissions =>
       submissions.map(s => submissionIds.includes(s.id) ? {
         ...s,
@@ -183,7 +183,14 @@ export class SubmissionsStore {
       } : s)
     );
 
-    return of(true); // Batch grading: optimistic update, individual grades saved via SpeedGrader
+    const items = submissionIds.map(id => ({ submissionId: id, grade: score, feedback }));
+    return this.assignmentApi.batchGradeSubmissions(assignmentId, items).pipe(
+      map(() => true),
+      catchError(() => {
+        this._error.set('Không thể chấm điểm hàng loạt. Vui lòng thử lại.');
+        return of(false);
+      })
+    );
   }
 
   // Mark submission as graded (after SpeedGrader)

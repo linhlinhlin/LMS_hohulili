@@ -20,10 +20,10 @@ export interface FileUploadConfig {
       <!-- Drop Zone -->
       <div
         class="border-2 border-dashed rounded-lg p-6 text-center transition-colors duration-200"
-        [class.border-blue-300]="!isDragOver() && !hasError()"
-        [class.bg-blue-50]="!isDragOver() && !hasError()"
-        [class.border-blue-500]="isDragOver()"
-        [class.bg-blue-100]="isDragOver()"
+        [class.border-[#0056D2]/30]="!isDragOver() && !hasError()"
+        [class.bg-[#0056D2]/5]="!isDragOver() && !hasError()"
+        [class.border-[#0056D2]]="isDragOver()"
+        [class.bg-[#0056D2]/10]="isDragOver()"
         [class.border-red-300]="hasError()"
         [class.bg-red-50]="hasError()"
         (dragover)="onDragOver($event)"
@@ -135,7 +135,7 @@ export interface FileUploadConfig {
                         <a
                           [href]="file.url"
                           target="_blank"
-                          class="text-[#0056D2] hover:text-blue-800 text-sm">
+                          class="text-[#0056D2] hover:text-[#004BB5] text-sm">
                           Xem
                         </a>
                       }

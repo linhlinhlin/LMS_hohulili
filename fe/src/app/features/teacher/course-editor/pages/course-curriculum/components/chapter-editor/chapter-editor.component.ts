@@ -11,7 +11,7 @@ import { LessonDraftDTO } from '../../../../services/course-authoring.service';
     template: `
     <div class="bg-white shadow-sm border border-gray-200 flex-grow overflow-hidden">
       <div class="px-6 py-4 border-b border-gray-200 flex items-center gap-3">
-        <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+        <div class="w-10 h-10 bg-[#0056D2]/10 rounded-lg flex items-center justify-center">
           <svg class="w-5 h-5 text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
           </svg>
@@ -46,7 +46,7 @@ import { LessonDraftDTO } from '../../../../services/course-authoring.service';
                   <span class="text-sm text-gray-500 w-6">{{ i + 1 }}.</span>
                   <span class="text-sm text-gray-900 flex-1">{{ lesson.title }}</span>
                   <span class="text-xs px-2 py-0.5 rounded-full"
-                        [class.bg-blue-100]="state.getLessonType(lesson) === 'LECTURE'"
+                        [class.bg-[#0056D2]/10]="state.getLessonType(lesson) === 'LECTURE'"
                         [class.text-[#004BB5]]="state.getLessonType(lesson) === 'LECTURE'"
                         [class.bg-purple-100]="state.getLessonType(lesson) === 'QUIZ'"
                         [class.text-purple-700]="state.getLessonType(lesson) === 'QUIZ'"

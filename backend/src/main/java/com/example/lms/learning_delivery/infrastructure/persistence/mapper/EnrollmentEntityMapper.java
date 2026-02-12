@@ -93,7 +93,7 @@ public class EnrollmentEntityMapper {
                 if (data.getLastActivity() != null) {
                     try {
                         lastActivity = Instant.parse(data.getLastActivity());
-                    } catch (Exception ignored) {
+                    } catch (java.time.format.DateTimeParseException ignored) {
                         // Invalid Instant format — default to null
                     }
                 }

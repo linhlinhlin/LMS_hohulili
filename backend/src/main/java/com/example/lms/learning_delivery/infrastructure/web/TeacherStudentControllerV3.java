@@ -67,7 +67,7 @@ public class TeacherStudentControllerV3 {
         List<CourseJpaEntity> teacherCourses = courseRepository.findByTeacherId(teacherId);
         if (teacherCourses.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.success(
-                    new PageImpl<>(Collections.emptyList(), pageable, 0), "Students loaded"));
+                    new PageImpl<>(Collections.emptyList(), pageable, 0), "Danh sách học viên"));
         }
 
         List<UUID> courseIds = courseId != null
@@ -137,7 +137,7 @@ public class TeacherStudentControllerV3 {
                 ? students.subList(start, end) : Collections.emptyList();
 
         Page<StudentSummaryResponse> result = new PageImpl<>(pageContent, pageable, students.size());
-        return ResponseEntity.ok(ApiResponse.success(result, "Students loaded"));
+        return ResponseEntity.ok(ApiResponse.success(result, "Danh sách học viên"));
     }
 
     @Operation(summary = "Get detailed student information")
@@ -147,7 +147,7 @@ public class TeacherStudentControllerV3 {
     ) {
         Optional<UserJpaEntity> userOpt = userJpaRepository.findById(studentId);
         if (userOpt.isEmpty()) {
-            return ResponseEntity.ok(ApiResponse.error("Student not found"));
+            return ResponseEntity.ok(ApiResponse.error("Không tìm thấy học viên"));
         }
         UserJpaEntity user = userOpt.get();
 
@@ -174,7 +174,7 @@ public class TeacherStudentControllerV3 {
                 .assignmentSubmissions(Collections.emptyList())
                 .build();
 
-        return ResponseEntity.ok(ApiResponse.success(detail, "Student detail loaded"));
+        return ResponseEntity.ok(ApiResponse.success(detail, "Thông tin học viên"));
     }
 
     @Operation(summary = "Get student's assignment submissions")
@@ -211,7 +211,7 @@ public class TeacherStudentControllerV3 {
                 })
                 .toList();
 
-        return ResponseEntity.ok(ApiResponse.success(result, "Assignments loaded"));
+        return ResponseEntity.ok(ApiResponse.success(result, "Danh sách bài tập"));
     }
 
     @Operation(summary = "Get student analytics")
@@ -249,7 +249,7 @@ public class TeacherStudentControllerV3 {
                 .improvementAreas(Collections.emptyList())
                 .learningActivity(Collections.emptyList())
                 .build();
-        return ResponseEntity.ok(ApiResponse.success(analytics, "Analytics loaded"));
+        return ResponseEntity.ok(ApiResponse.success(analytics, "Dữ liệu phân tích"));
     }
 
     @Operation(summary = "Update student enrollment status in teacher's courses")
@@ -403,7 +403,7 @@ public class TeacherStudentControllerV3 {
     public record LearningActivityResponse() {}
 
     public static class StatusUpdateRequest {
-        @NotBlank(message = "Status is required")
+        @NotBlank(message = "Trạng thái không được để trống")
         private String status;
         public String getStatus() { return status; }
         public void setStatus(String status) { this.status = status; }
@@ -411,7 +411,7 @@ public class TeacherStudentControllerV3 {
 
     public static class MessageRequest {
         private String subject;
-        @NotBlank(message = "Content is required")
+        @NotBlank(message = "Nội dung không được để trống")
         private String content;
         public String getSubject() { return subject; }
         public void setSubject(String subject) { this.subject = subject; }

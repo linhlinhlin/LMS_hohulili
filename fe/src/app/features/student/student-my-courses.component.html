@@ -91,7 +91,7 @@
                 (clicked)="resumeCourse(course.id)">
                 {{ activeTab() === 'completed' ? 'Xem lại' : 'Tiếp tục học' }}
               </app-button>
-              <button class="dropdown-button" (click)="toggleModules(course.id)" aria-label="Show lessons">
+              <button class="dropdown-button" (click)="toggleModules(course.id)" aria-label="Hiển thị bài học">
                 <app-icon [name]="course.showModules ? 'chevron-up' : 'chevron-down'" size="sm" />
               </button>
             </div>

@@ -39,7 +39,7 @@ interface CertificateVerification {
   selector: 'app-certificate-view',
   imports: [RouterModule, IconComponent],
   template: `
-    <div class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 min-h-screen">
+    <div class="bg-gradient-to-br from-slate-50 via-[#0056D2]/5 to-indigo-100 min-h-screen">
       <!-- Header -->
       <div class="bg-white shadow-xl border-b border-gray-200">
         <div class="max-w-6xl mx-auto px-6 py-6">
@@ -91,7 +91,7 @@ interface CertificateVerification {
                   </svg>
                 </div>
                 <h1 class="text-3xl font-bold mb-2">CHỨNG CHỈ HOÀN THÀNH</h1>
-                <p class="text-blue-100 text-lg">Certificate of Completion</p>
+                <p class="text-white/80 text-lg">Certificate of Completion</p>
               </div>
 
               <!-- Certificate Content -->
@@ -126,7 +126,7 @@ interface CertificateVerification {
                     <h4 class="text-lg font-semibold text-gray-900 mb-4 text-center">Kỹ năng đạt được</h4>
                     <div class="flex flex-wrap justify-center gap-2">
                       @for (skill of certificate()!.skills; track skill) {
-                        <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                        <span class="px-3 py-1 bg-[#0056D2]/10 text-[#004BB5] rounded-full text-sm font-medium">
                           {{ skill }}
                         </span>
                       }
@@ -251,7 +251,7 @@ interface CertificateVerification {
               <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2"><app-icon name="zap" size="md"/> Thao tác</h3>
               <div class="space-y-3">
                 <button (click)="downloadCertificate()"
-                        class="w-full flex items-center space-x-3 p-3 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors">
+                        class="w-full flex items-center space-x-3 p-3 bg-[#0056D2]/5 rounded-xl hover:bg-[#0056D2]/10 transition-colors">
                   <svg class="w-5 h-5 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"></path>
                   </svg>

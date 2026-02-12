@@ -78,7 +78,7 @@ interface SocialLink {
       variant="overlay"
       color="blue">
     </app-loading>
-    <div class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+    <div class="bg-gradient-to-br from-slate-50 via-[#0056D2]/5 to-indigo-100">
       <!-- Profile Header -->
       <div class="bg-white shadow-xl border-b border-gray-200">
         <div class="max-w-7xl mx-auto px-6 py-8">
@@ -99,7 +99,7 @@ interface SocialLink {
                 <p class="text-gray-600 text-lg">{{ profile().studentId }}</p>
                 <p class="text-gray-500">{{ profile().email }}</p>
                 <div class="flex items-center space-x-4 mt-3">
-                  <span class="text-sm bg-blue-100 text-blue-800 px-3 py-1 rounded-full inline-flex items-center gap-1">
+                  <span class="text-sm bg-[#0056D2]/10 text-[#004BB5] px-3 py-1 rounded-full inline-flex items-center gap-1">
                     <app-icon name="graduation-cap" size="md"/> {{ profile().certificates.length }} chứng chỉ
                   </span>
                   <span class="text-sm bg-green-100 text-green-800 px-3 py-1 rounded-full inline-flex items-center gap-1">
@@ -180,8 +180,8 @@ interface SocialLink {
               <h3 class="text-xl font-bold text-gray-900 mb-6">Mục tiêu học tập</h3>
               <div class="space-y-4">
                 @for (goal of profile().learningGoals; track goal) {
-                  <div class="flex items-center space-x-3 p-4 bg-blue-50 rounded-xl">
-                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                  <div class="flex items-center space-x-3 p-4 bg-[#0056D2]/5 rounded-xl">
+                    <div class="w-8 h-8 bg-[#0056D2]/10 rounded-full flex items-center justify-center">
                       <svg class="w-4 h-4 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
                       </svg>
@@ -248,7 +248,7 @@ interface SocialLink {
                 }
               </div>
               <button (click)="viewAllAchievements()"
-                      class="w-full mt-4 text-[#0056D2] hover:text-blue-800 font-medium">
+                      class="w-full mt-4 text-[#0056D2] hover:text-[#004BB5] font-medium">
                 Xem tất cả thành tích →
               </button>
             </div>
@@ -267,7 +267,7 @@ interface SocialLink {
                         {{ certificate.isValid ? 'Còn hiệu lực' : 'Hết hạn' }}
                       </span>
                       <button (click)="viewCertificate(certificate.id)"
-                              class="text-[#0056D2] hover:text-blue-800 text-sm">
+                              class="text-[#0056D2] hover:text-[#004BB5] text-sm">
                         Xem chứng chỉ
                       </button>
                     </div>
@@ -275,7 +275,7 @@ interface SocialLink {
                 }
               </div>
               <button (click)="viewAllCertificates()"
-                      class="w-full mt-4 text-[#0056D2] hover:text-blue-800 font-medium">
+                      class="w-full mt-4 text-[#0056D2] hover:text-[#004BB5] font-medium">
                 Xem tất cả chứng chỉ →
               </button>
             </div>

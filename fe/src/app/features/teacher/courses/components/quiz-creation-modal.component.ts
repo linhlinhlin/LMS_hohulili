@@ -167,7 +167,7 @@ interface QuizMetadata {
                   </div>
                   <div class="flex gap-2">
                     <button (click)="selectAllQuestions()" 
-                            class="text-sm px-3 py-1 bg-blue-100 text-[#004BB5] rounded hover:bg-blue-200">
+                            class="text-sm px-3 py-1 bg-[#0056D2]/10 text-[#004BB5] rounded hover:bg-[#0056D2]/20">
                       Chọn tất cả
                     </button>
                     <button (click)="clearQuestionSelection()" 
@@ -193,7 +193,7 @@ interface QuizMetadata {
                           {{ question.difficulty === 'EASY' ? 'Dễ' : question.difficulty === 'MEDIUM' ? 'Trung bình' : 'Khó' }}
                         </span>
                         @if (question.tags) {
-                        <span class="text-xs px-2 py-0.5 bg-blue-100 text-[#004BB5] rounded">
+                        <span class="text-xs px-2 py-0.5 bg-[#0056D2]/10 text-[#004BB5] rounded">
                           {{ question.tags }}
                         </span>
                         }

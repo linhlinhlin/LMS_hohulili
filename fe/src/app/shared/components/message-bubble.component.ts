@@ -55,7 +55,7 @@ import {
                 target="_blank"
                 rel="noopener noreferrer"
                 class="underline hover:opacity-80"
-                [class.text-blue-200]="isOwnMessage"
+                [class.text-white/60]="isOwnMessage"
                 [class.text-[#0056D2]]="!isOwnMessage"
               >{{ segment.content }}</a>
             } @else {
@@ -69,14 +69,14 @@ import {
           <div
             class="mt-2 p-3 rounded-lg border"
             [class.bg-[#0056D2]]="isOwnMessage"
-            [class.border-blue-400]="isOwnMessage"
+            [class.border-[#0056D2]]="isOwnMessage"
             [class.bg-white]="!isOwnMessage"
             [class.border-gray-200]="!isOwnMessage"
           >
             <div class="flex items-center gap-2 mb-1">
               <svg
                 class="w-4 h-4"
-                [class.text-blue-200]="isOwnMessage"
+                [class.text-white/60]="isOwnMessage"
                 [class.text-[#0056D2]]="!isOwnMessage"
                 fill="none"
                 stroke="currentColor"
@@ -91,7 +91,7 @@ import {
               </svg>
               <span
                 class="text-xs font-medium"
-                [class.text-blue-200]="isOwnMessage"
+                [class.text-white/60]="isOwnMessage"
                 [class.text-gray-500]="!isOwnMessage"
               >
                 Bài tập đính kèm
@@ -107,7 +107,7 @@ import {
             </a>
             <p
               class="text-xs mt-1"
-              [class.text-blue-200]="isOwnMessage"
+              [class.text-white/60]="isOwnMessage"
               [class.text-gray-500]="!isOwnMessage"
             >
               {{ message().assignmentReference?.courseName }}
@@ -122,7 +122,7 @@ import {
         >
           <span
             class="text-xs"
-            [class.text-blue-200]="isOwnMessage"
+            [class.text-white/60]="isOwnMessage"
             [class.text-gray-400]="!isOwnMessage"
           >
             {{ formatTime() }}
@@ -130,7 +130,7 @@ import {
 
           <!-- Read status (only for own messages) -->
           @if (isOwnMessage) {
-            <span class="text-xs" [class.text-blue-200]="!message().isRead" [class.text-white]="message().isRead">
+            <span class="text-xs" [class.text-white/60]="!message().isRead" [class.text-white]="message().isRead">
               @if (message().isRead) {
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>

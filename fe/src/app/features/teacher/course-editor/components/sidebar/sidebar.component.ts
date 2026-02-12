@@ -47,7 +47,7 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
            (sidebarResize)="onSidebarResize($event)">
 
         <!-- Resize Handle -->
-        <div class="resize-handle absolute right-0 top-0 w-1 h-full cursor-col-resize hover:bg-blue-400/40 active:bg-[#E8F0FE]/60 transition-colors z-50"></div>
+        <div class="resize-handle absolute right-0 top-0 w-1 h-full cursor-col-resize hover:bg-[#0056D2]/40 active:bg-[#E8F0FE]/60 transition-colors z-50"></div>
 
         <!-- Header -->
         <div class="p-3.5 pb-2.5 border-b border-slate-200">

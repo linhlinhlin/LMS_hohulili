@@ -57,7 +57,7 @@ import { ConfirmDialogService } from '../../../core/services/confirm-dialog.serv
                       <!-- Permissions Preview -->
                       <div class="flex flex-wrap gap-2 mt-2">
                         @if (invitation.permissions.canEditContent) {
-                          <span class="px-2 py-0.5 text-xs bg-blue-50 text-[#004BB5] rounded">Chỉnh sửa nội dung</span>
+                          <span class="px-2 py-0.5 text-xs bg-[#0056D2]/5 text-[#004BB5] rounded">Chỉnh sửa nội dung</span>
                         }
                         @if (invitation.permissions.canManageStudents) {
                           <span class="px-2 py-0.5 text-xs bg-green-50 text-green-700 rounded">Quản lý học viên</span>

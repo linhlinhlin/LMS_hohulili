@@ -31,7 +31,7 @@ class AssignmentTest {
         @DisplayName("Should create assignment with defaults")
         void shouldCreateWithDefaults() {
             // When
-            Assignment assignment = Assignment.create(lessonId, "Essay 1", "Write an essay", "Instructions", null, null);
+            Assignment assignment = Assignment.create(UUID.randomUUID(), lessonId, "Essay 1", "Write an essay", "Instructions", null, null);
 
             // Then
             assertThat(assignment.getId()).isNotNull();
@@ -48,7 +48,7 @@ class AssignmentTest {
         @DisplayName("Should create with explicit type and maxScore")
         void shouldCreateWithExplicitTypeAndMaxScore() {
             // When
-            Assignment assignment = Assignment.create(lessonId, "Project 1", "desc", "instr",
+            Assignment assignment = Assignment.create(UUID.randomUUID(), lessonId, "Project 1", "desc", "instr",
                 Assignment.AssignmentType.PROJECT, 200);
 
             // Then
@@ -59,7 +59,7 @@ class AssignmentTest {
         @Test
         @DisplayName("Should throw on null title")
         void shouldThrowOnNullTitle() {
-            assertThatThrownBy(() -> Assignment.create(lessonId, null, "desc", "instr", null, null))
+            assertThatThrownBy(() -> Assignment.create(UUID.randomUUID(), lessonId, null, "desc", "instr", null, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("title");
         }
@@ -67,7 +67,7 @@ class AssignmentTest {
         @Test
         @DisplayName("Should throw on blank title")
         void shouldThrowOnBlankTitle() {
-            assertThatThrownBy(() -> Assignment.create(lessonId, "   ", "desc", "instr", null, null))
+            assertThatThrownBy(() -> Assignment.create(UUID.randomUUID(), lessonId, "   ", "desc", "instr", null, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("title");
         }
@@ -81,7 +81,7 @@ class AssignmentTest {
         @DisplayName("Should publish DRAFT assignment")
         void shouldPublishDraftAssignment() {
             // Given
-            Assignment assignment = Assignment.create(lessonId, "Task 1", "d", "i", null, null);
+            Assignment assignment = Assignment.create(UUID.randomUUID(), lessonId, "Task 1", "d", "i", null, null);
 
             // When
             assignment.publish();
@@ -94,7 +94,7 @@ class AssignmentTest {
         @DisplayName("Should throw publish when CLOSED")
         void shouldThrowPublishWhenClosed() {
             // Given
-            Assignment assignment = Assignment.create(lessonId, "Task 1", "d", "i", null, null);
+            Assignment assignment = Assignment.create(UUID.randomUUID(), lessonId, "Task 1", "d", "i", null, null);
             assignment.close();
 
             // When/Then
@@ -107,7 +107,7 @@ class AssignmentTest {
         @DisplayName("Should close any assignment")
         void shouldCloseAnyAssignment() {
             // Given
-            Assignment assignment = Assignment.create(lessonId, "Task 1", "d", "i", null, null);
+            Assignment assignment = Assignment.create(UUID.randomUUID(), lessonId, "Task 1", "d", "i", null, null);
             assignment.publish();
 
             // When
@@ -126,7 +126,7 @@ class AssignmentTest {
         @DisplayName("Should set future due date")
         void shouldSetFutureDueDate() {
             // Given
-            Assignment assignment = Assignment.create(lessonId, "Task 1", "d", "i", null, null);
+            Assignment assignment = Assignment.create(UUID.randomUUID(), lessonId, "Task 1", "d", "i", null, null);
             Instant future = Instant.now().plusSeconds(86400);
 
             // When
@@ -140,7 +140,7 @@ class AssignmentTest {
         @DisplayName("Should throw when setting past due date")
         void shouldThrowWhenSettingPastDueDate() {
             // Given
-            Assignment assignment = Assignment.create(lessonId, "Task 1", "d", "i", null, null);
+            Assignment assignment = Assignment.create(UUID.randomUUID(), lessonId, "Task 1", "d", "i", null, null);
             Instant past = Instant.now().minusSeconds(86400);
 
             // When/Then
@@ -153,7 +153,7 @@ class AssignmentTest {
         @DisplayName("Should allow null due date")
         void shouldAllowNullDueDate() {
             // Given
-            Assignment assignment = Assignment.create(lessonId, "Task 1", "d", "i", null, null);
+            Assignment assignment = Assignment.create(UUID.randomUUID(), lessonId, "Task 1", "d", "i", null, null);
 
             // When
             assignment.setDueDate(null);
@@ -166,7 +166,7 @@ class AssignmentTest {
         @DisplayName("isOpen should be true when published with future due date")
         void isOpenShouldBeTrueWhenPublishedWithFutureDueDate() {
             // Given
-            Assignment assignment = Assignment.create(lessonId, "Task 1", "d", "i", null, null);
+            Assignment assignment = Assignment.create(UUID.randomUUID(), lessonId, "Task 1", "d", "i", null, null);
             assignment.publish();
             assignment.setDueDate(Instant.now().plusSeconds(86400));
 
@@ -178,7 +178,7 @@ class AssignmentTest {
         @DisplayName("isOpen should be true when published with null due date")
         void isOpenShouldBeTrueWhenPublishedWithNullDueDate() {
             // Given
-            Assignment assignment = Assignment.create(lessonId, "Task 1", "d", "i", null, null);
+            Assignment assignment = Assignment.create(UUID.randomUUID(), lessonId, "Task 1", "d", "i", null, null);
             assignment.publish();
 
             // Then
@@ -188,7 +188,7 @@ class AssignmentTest {
         @Test
         @DisplayName("isOpen should be false when DRAFT")
         void isOpenShouldBeFalseWhenDraft() {
-            Assignment assignment = Assignment.create(lessonId, "Task 1", "d", "i", null, null);
+            Assignment assignment = Assignment.create(UUID.randomUUID(), lessonId, "Task 1", "d", "i", null, null);
             assertThat(assignment.isOpen()).isFalse();
         }
 
@@ -196,8 +196,8 @@ class AssignmentTest {
         @DisplayName("isEditable should be true only when DRAFT")
         void isEditableShouldBeTrueOnlyWhenDraft() {
             // Given
-            Assignment draft = Assignment.create(lessonId, "Task 1", "d", "i", null, null);
-            Assignment published = Assignment.create(lessonId, "Task 2", "d", "i", null, null);
+            Assignment draft = Assignment.create(UUID.randomUUID(), lessonId, "Task 1", "d", "i", null, null);
+            Assignment published = Assignment.create(UUID.randomUUID(), lessonId, "Task 2", "d", "i", null, null);
             published.publish();
 
             // Then
@@ -214,7 +214,7 @@ class AssignmentTest {
         @DisplayName("Should update non-null fields")
         void shouldUpdateNonNullFields() {
             // Given
-            Assignment assignment = Assignment.create(lessonId, "Old Title", "Old Desc", "Old Instr", null, null);
+            Assignment assignment = Assignment.create(UUID.randomUUID(), lessonId, "Old Title", "Old Desc", "Old Instr", null, null);
 
             // When
             assignment.updateInfo("New Title", "New Desc", "New Instr");
@@ -229,7 +229,7 @@ class AssignmentTest {
         @DisplayName("Should ignore null title in updateInfo")
         void shouldIgnoreNullTitleInUpdateInfo() {
             // Given
-            Assignment assignment = Assignment.create(lessonId, "Keep Me", "desc", "instr", null, null);
+            Assignment assignment = Assignment.create(UUID.randomUUID(), lessonId, "Keep Me", "desc", "instr", null, null);
 
             // When
             assignment.updateInfo(null, "New Desc", null);

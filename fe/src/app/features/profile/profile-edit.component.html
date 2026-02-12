@@ -1,5 +1,5 @@
 
-    <div class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 min-h-screen">
+    <div class="bg-gradient-to-br from-slate-50 via-[#0056D2]/5 to-indigo-100 min-h-screen">
       <!-- Header -->
       <div class="bg-white shadow-xl border-b border-gray-200">
         <div class="max-w-4xl mx-auto px-6 py-6">
@@ -10,11 +10,11 @@
                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"></path>
                 </svg>
-                <span>Quay l?i</span>
+                <span>Quay lại</span>
               </button>
               <div>
-                <h1 class="text-3xl font-bold text-gray-900">Ch?nh s?a h? so</h1>
-                <p class="text-gray-600">C?p nh?t th�ng tin c� nh�n v� t�y ch?n</p>
+                <h1 class="text-3xl font-bold text-gray-900">Chỉnh sửa hồ sơ</h1>
+                <p class="text-gray-600">Cập nhật thông tin cá nhân và tùy chọn</p>
               </div>
             </div>
           </div>
@@ -26,13 +26,13 @@
           <div class="space-y-8">
             <!-- Personal Information -->
             <div class="bg-white rounded-2xl shadow-lg p-8">
-              <h2 class="text-xl font-bold text-gray-900 mb-6">d��� Th�ng tin c� nh�n</h2>
-              
+              <h2 class="text-xl font-bold text-gray-900 mb-6">Thông tin cá nhân</h2>
+
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Full Name -->
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">H? v� t�n *</label>
-                  <input type="text" 
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Họ và tên *</label>
+                  <input type="text"
                          [ngModel]="profile().fullName"
                          (ngModelChange)="updateProfile('fullName', $event)"
                          name="fullName"
@@ -43,7 +43,7 @@
                 <!-- Email -->
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-2">Email *</label>
-                  <input type="email" 
+                  <input type="email"
                          [ngModel]="profile().email"
                          (ngModelChange)="updateProfile('email', $event)"
                          name="email"
@@ -53,8 +53,8 @@
 
                 <!-- Phone -->
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">S? di?n tho?i</label>
-                  <input type="tel" 
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Số điện thoại</label>
+                  <input type="tel"
                          [ngModel]="profile().phone"
                          (ngModelChange)="updateProfile('phone', $event)"
                          name="phone"
@@ -63,8 +63,8 @@
 
                 <!-- Date of Birth -->
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Ng�y sinh</label>
-                  <input type="date" 
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Ngày sinh</label>
+                  <input type="date"
                          [ngModel]="profile().dateOfBirth"
                          (ngModelChange)="updateProfile('dateOfBirth', $event)"
                          name="dateOfBirth"
@@ -73,8 +73,8 @@
 
                 <!-- Address -->
                 <div class="md:col-span-2">
-                  <label class="block text-sm font-medium text-gray-700 mb-2">�?a ch?</label>
-                  <textarea 
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Địa chỉ</label>
+                  <textarea
                     [ngModel]="profile().address"
                     (ngModelChange)="updateProfile('address', $event)"
                     name="address"
@@ -84,13 +84,13 @@
 
                 <!-- Bio -->
                 <div class="md:col-span-2">
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Gi?i thi?u b?n th�n</label>
-                  <textarea 
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Giới thiệu bản thân</label>
+                  <textarea
                     [ngModel]="profile().bio"
                     (ngModelChange)="updateProfile('bio', $event)"
                     name="bio"
                     rows="4"
-                    placeholder="Vi?t m?t v�i d�ng gi?i thi?u v? b?n th�n..."
+                    placeholder="Viết một vài dòng giới thiệu về bản thân..."
                     class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-transparent resize-none"></textarea>
                 </div>
               </div>
@@ -98,16 +98,16 @@
 
             <!-- Learning Preferences -->
             <div class="bg-white rounded-2xl shadow-lg p-8">
-              <h2 class="text-xl font-bold text-gray-900 mb-6">d�?� S? th�ch h?c t?p</h2>
-              
+              <h2 class="text-xl font-bold text-gray-900 mb-6">Sở thích học tập</h2>
+
               <div class="space-y-6">
                 <!-- Interests -->
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Linh v?c quan t�m</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Lĩnh vực quan tâm</label>
                   <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
                     @for (interest of availableInterests(); track interest) {
-                      <label class="flex items-center space-x-2 p-3 border border-gray-200 rounded-lg hover:bg-blue-50 cursor-pointer">
-                        <input type="checkbox" 
+                      <label class="flex items-center space-x-2 p-3 border border-gray-200 rounded-lg hover:bg-[#0056D2]/5 cursor-pointer">
+                        <input type="checkbox"
                                [value]="interest"
                                [checked]="profile().interests.includes(interest)"
                                (change)="toggleInterest(interest)"
@@ -120,16 +120,16 @@
 
                 <!-- Learning Goals -->
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">M?c ti�u h?c t?p</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Mục tiêu học tập</label>
                   <div class="space-y-3">
                     @for (goal of profile().learningGoals; track $index) {
                       <div class="flex items-center space-x-3">
-                        <input type="text" 
+                        <input type="text"
                                [ngModel]="profile().learningGoals[$index]"
                                (ngModelChange)="updateLearningGoal($index, $event)"
                                [name]="'goal-' + $index"
                                class="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-transparent">
-                        <button type="button" 
+                        <button type="button"
                                 (click)="removeLearningGoal($index)"
                                 class="p-3 text-red-600 hover:bg-red-100 rounded-lg transition-colors">
                           <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -138,21 +138,21 @@
                         </button>
                       </div>
                     }
-                    <button type="button" 
+                    <button type="button"
                             (click)="addLearningGoal()"
-                            class="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-600 hover:border-blue-400 hover:text-[#0056D2] transition-colors">
-                      + Th�m m?c ti�u h?c t?p
+                            class="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-600 hover:border-[#0056D2] hover:text-[#0056D2] transition-colors">
+                      + Thêm mục tiêu học tập
                     </button>
                   </div>
                 </div>
 
                 <!-- Preferred Subjects -->
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">M�n h?c ua th�ch</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Môn học ưa thích</label>
                   <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
                     @for (subject of availableSubjects(); track subject) {
                       <label class="flex items-center space-x-2 p-3 border border-gray-200 rounded-lg hover:bg-green-50 cursor-pointer">
-                        <input type="checkbox" 
+                        <input type="checkbox"
                                [value]="subject"
                                [checked]="profile().preferredSubjects.includes(subject)"
                                (change)="toggleSubject(subject)"
@@ -167,27 +167,27 @@
 
             <!-- Study Schedule -->
             <div class="bg-white rounded-2xl shadow-lg p-8">
-              <h2 class="text-xl font-bold text-gray-900 mb-6">d��� L?ch h?c t?p</h2>
-              
+              <h2 class="text-xl font-bold text-gray-900 mb-6">Lịch học tập</h2>
+
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Preferred Study Time -->
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Th?i gian h?c ua th�ch</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Thời gian học ưa thích</label>
                   <select [ngModel]="profile().studySchedule.preferredStudyTime"
-           (ngModelChange)="updateStudySchedule('preferredStudyTime', $event)" 
+           (ngModelChange)="updateStudySchedule('preferredStudyTime', $event)"
                           name="preferredStudyTime"
                           class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-transparent">
-                    <option value="morning">S�ng (6:00 - 12:00)</option>
-                    <option value="afternoon">Chi?u (12:00 - 18:00)</option>
-                    <option value="evening">T?i (18:00 - 24:00)</option>
-                    <option value="flexible">Linh ho?t</option>
+                    <option value="morning">Sáng (6:00 - 12:00)</option>
+                    <option value="afternoon">Chiều (12:00 - 18:00)</option>
+                    <option value="evening">Tối (18:00 - 24:00)</option>
+                    <option value="flexible">Linh hoạt</option>
                   </select>
                 </div>
 
                 <!-- Study Duration -->
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Th?i gian h?c m?i ng�y (gi?)</label>
-                  <input type="number" 
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Thời gian học mỗi ngày (giờ)</label>
+                  <input type="number"
                          [ngModel]="profile().studySchedule.studyDuration"
                          (ngModelChange)="updateStudySchedule('studyDuration', $event)"
                          name="studyDuration"
@@ -197,11 +197,11 @@
 
                 <!-- Study Days -->
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Ng�y h?c trong tu?n</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Ngày học trong tuần</label>
                   <div class="grid grid-cols-2 gap-2">
                     @for (day of studyDays(); track day.value) {
                       <label class="flex items-center space-x-2 p-2 border border-gray-200 rounded-lg hover:bg-purple-50 cursor-pointer">
-                        <input type="checkbox" 
+                        <input type="checkbox"
                                [value]="day.value"
                                [checked]="profile().studySchedule.studyDays.includes(day.value)"
                                (change)="toggleStudyDay(day.value)"
@@ -214,8 +214,8 @@
 
                 <!-- Break Interval -->
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Th?i gian ngh? (ph�t)</label>
-                <input type="number" 
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Thời gian nghỉ (phút)</label>
+                <input type="number"
                        [ngModel]="profile().studySchedule.breakInterval"
                        (ngModelChange)="updateStudySchedule('breakInterval', $event)"
                        name="breakInterval"
@@ -227,8 +227,8 @@
 
             <!-- Social Links -->
             <div class="bg-white rounded-2xl shadow-lg p-8">
-              <h2 class="text-xl font-bold text-gray-900 mb-6">d��� Li�n k?t x� h?i</h2>
-              
+              <h2 class="text-xl font-bold text-gray-900 mb-6">Liên kết xã hội</h2>
+
               <div class="space-y-4">
                  @for (link of profile().socialLinks; track $index) {
                   <div class="flex items-center space-x-4 p-4 bg-gray-50 rounded-xl">
@@ -251,21 +251,21 @@
                         <option [value]="platform.value">{{ platform.label }}</option>
                       }
                     </select>
-                    <input type="url" 
+                    <input type="url"
                            [ngModel]="link.url"
                            (ngModelChange)="updateSocialLink($index, 'url', $event)"
                            [name]="'url-' + $index"
                            placeholder="https://..."
                            class="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-transparent">
                     <label class="flex items-center space-x-2">
-                      <input type="checkbox" 
+                      <input type="checkbox"
                              [ngModel]="link.isPublic"
                              (ngModelChange)="updateSocialLink($index, 'isPublic', $event)"
                              [name]="'isPublic-' + $index"
                              class="w-4 h-4 text-[#0056D2] border-gray-300 rounded focus:ring-[#0056D2]">
-                      <span class="text-sm text-gray-700">C�ng khai</span>
+                      <span class="text-sm text-gray-700">Công khai</span>
                     </label>
-                    <button type="button" 
+                    <button type="button"
                             (click)="removeSocialLink($index)"
                             class="p-3 text-red-600 hover:bg-red-100 rounded-lg transition-colors">
                       <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -274,109 +274,109 @@
                     </button>
                   </div>
                 }
-                <button type="button" 
+                <button type="button"
                         (click)="addSocialLink()"
-                        class="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-600 hover:border-blue-400 hover:text-[#0056D2] transition-colors">
-                      + Th�m li�n k?t x� h?i
+                        class="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-600 hover:border-[#0056D2] hover:text-[#0056D2] transition-colors">
+                      + Thêm liên kết xã hội
                 </button>
               </div>
             </div>
 
             <!-- Notifications -->
             <div class="bg-white rounded-2xl shadow-lg p-8">
-              <h2 class="text-xl font-bold text-gray-900 mb-6">d��� Th�ng b�o</h2>
-              
+              <h2 class="text-xl font-bold text-gray-900 mb-6">Thông báo</h2>
+
               <div class="space-y-4">
                 <label class="flex items-center space-x-3">
-                  <input type="checkbox" 
+                  <input type="checkbox"
                          [ngModel]="profile().notifications.emailNotifications"
            (ngModelChange)="updateNotifications('emailNotifications', $event)"
                          name="emailNotifications"
                          class="w-4 h-4 text-[#0056D2] border-gray-300 rounded focus:ring-[#0056D2]">
-                  <span class="text-gray-700">Th�ng b�o qua email</span>
+                  <span class="text-gray-700">Thông báo qua email</span>
                 </label>
-                
+
                 <label class="flex items-center space-x-3">
-                  <input type="checkbox" 
+                  <input type="checkbox"
                          [ngModel]="profile().notifications.pushNotifications"
             (ngModelChange)="updateNotifications('pushNotifications', $event)"
                          name="pushNotifications"
                          class="w-4 h-4 text-[#0056D2] border-gray-300 rounded focus:ring-[#0056D2]">
-                  <span class="text-gray-700">Th�ng b�o d?y</span>
+                  <span class="text-gray-700">Thông báo đẩy</span>
                 </label>
-                
+
                 <label class="flex items-center space-x-3">
-                  <input type="checkbox" 
+                  <input type="checkbox"
                          [ngModel]="profile().notifications.assignmentReminders"
           (ngModelChange)="updateNotifications('assignmentReminders', $event)"
                          name="assignmentReminders"
                          class="w-4 h-4 text-[#0056D2] border-gray-300 rounded focus:ring-[#0056D2]">
-                  <span class="text-gray-700">Nh?c nh? b�i t?p</span>
+                  <span class="text-gray-700">Nhắc nhở bài tập</span>
                 </label>
-                
+
                 <label class="flex items-center space-x-3">
-                  <input type="checkbox" 
+                  <input type="checkbox"
                          [ngModel]="profile().notifications.courseUpdates"
                 (ngModelChange)="updateNotifications('courseUpdates', $event)"
                          name="courseUpdates"
                          class="w-4 h-4 text-[#0056D2] border-gray-300 rounded focus:ring-[#0056D2]">
-                  <span class="text-gray-700">C?p nh?t kh�a h?c</span>
+                  <span class="text-gray-700">Cập nhật khóa học</span>
                 </label>
-                
+
                 <label class="flex items-center space-x-3">
-                  <input type="checkbox" 
+                  <input type="checkbox"
                          [ngModel]="profile().notifications.forumUpdates"
                  (ngModelChange)="updateNotifications('forumUpdates', $event)"
                          name="forumUpdates"
                          class="w-4 h-4 text-[#0056D2] border-gray-300 rounded focus:ring-[#0056D2]">
-                  <span class="text-gray-700">C?p nh?t di?n d�n</span>
+                  <span class="text-gray-700">Cập nhật diễn đàn</span>
                 </label>
               </div>
             </div>
 
             <!-- Privacy Settings -->
             <div class="bg-white rounded-2xl shadow-lg p-8">
-              <h2 class="text-xl font-bold text-gray-900 mb-6">d��� Quy?n ri�ng tu</h2>
-              
+              <h2 class="text-xl font-bold text-gray-900 mb-6">Quyền riêng tư</h2>
+
               <div class="space-y-6">
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Hi?n th? h? so</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Hiển thị hồ sơ</label>
                   <select [ngModel]="profile().privacy.profileVisibility"
-                  (ngModelChange)="updatePrivacy('profileVisibility', $event)" 
+                  (ngModelChange)="updatePrivacy('profileVisibility', $event)"
                           name="profileVisibility"
                           class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-transparent">
-                    <option value="public">C�ng khai</option>
-                    <option value="friends">B?n b�</option>
-                    <option value="private">Ri�ng tu</option>
+                    <option value="public">Công khai</option>
+                    <option value="friends">Bạn bè</option>
+                    <option value="private">Riêng tư</option>
                   </select>
                 </div>
-                
+
                 <div class="space-y-4">
                   <label class="flex items-center space-x-3">
-                    <input type="checkbox" 
+                    <input type="checkbox"
                             [ngModel]="profile().privacy.showEmail"
                             (ngModelChange)="updatePrivacy('showEmail', $event)"
                            name="showEmail"
                            class="w-4 h-4 text-[#0056D2] border-gray-300 rounded focus:ring-[#0056D2]">
-                    <span class="text-gray-700">Hi?n th? email</span>
+                    <span class="text-gray-700">Hiển thị email</span>
                   </label>
-                  
+
                   <label class="flex items-center space-x-3">
-                    <input type="checkbox" 
+                    <input type="checkbox"
                             [ngModel]="profile().privacy.showPhone"
                             (ngModelChange)="updatePrivacy('showPhone', $event)"
                            name="showPhone"
                            class="w-4 h-4 text-[#0056D2] border-gray-300 rounded focus:ring-[#0056D2]">
-                    <span class="text-gray-700">Hi?n th? s? di?n tho?i</span>
+                    <span class="text-gray-700">Hiển thị số điện thoại</span>
                   </label>
-                  
+
                   <label class="flex items-center space-x-3">
-                    <input type="checkbox" 
+                    <input type="checkbox"
                            [ngModel]="profile().privacy.showProgress"
                        (ngModelChange)="updatePrivacy('showProgress', $event)"
                            name="showProgress"
                            class="w-4 h-4 text-[#0056D2] border-gray-300 rounded focus:ring-[#0056D2]">
-                    <span class="text-gray-700">Hi?n th? ti?n d? h?c t?p</span>
+                    <span class="text-gray-700">Hiển thị tiến độ học tập</span>
                   </label>
                 </div>
               </div>
@@ -386,19 +386,19 @@
             <div class="bg-white rounded-2xl shadow-lg p-8">
               <div class="flex items-center justify-between">
                 <div class="text-sm text-gray-600">
-                  <p>C�c thay d?i s? du?c luu t? d?ng</p>
-                  <p>Th�ng tin c� nh�n s? du?c b?o m?t</p>
+                  <p>Các thay đổi sẽ được lưu tự động</p>
+                  <p>Thông tin cá nhân sẽ được bảo mật</p>
                 </div>
-                
+
                 <div class="flex space-x-4">
-                  <button type="button" 
+                  <button type="button"
                           (click)="resetProfile()"
                           class="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                    �?t l?i
+                    Đặt lại
                   </button>
-                  <button type="submit" 
+                  <button type="submit"
                           class="px-6 py-3 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors">
-                    Luu thay d?i
+                    Lưu thay đổi
                   </button>
                 </div>
               </div>
@@ -407,4 +407,4 @@
         </form>
       </div>
     </div>
-  
+

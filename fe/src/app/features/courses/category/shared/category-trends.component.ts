@@ -82,7 +82,7 @@ export class CategoryTrendsComponent {
       case 'indigo': return 'bg-gradient-to-br from-indigo-50 to-indigo-100';
       case 'rose': return 'bg-gradient-to-br from-rose-50 to-rose-100';
       case 'cyan': return 'bg-gradient-to-br from-cyan-50 to-cyan-100';
-      default: return 'bg-gradient-to-br from-blue-50 to-blue-100';
+      default: return 'bg-gradient-to-br from-[#0056D2]/5 to-[#0056D2]/10';
     }
   });
 }

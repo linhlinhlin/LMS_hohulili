@@ -65,7 +65,7 @@ interface EnrolledStudent {
                 @if (!isLoadingStudents() && enrolledStudents().length > 0) {
                     <div class="max-h-[400px] overflow-y-auto space-y-2 pr-1">
                         @for (student of enrolledStudents(); track student.id; let i = $index) {
-                            <div class="flex items-center gap-3 p-3 bg-white border border-gray-100 rounded-xl hover:border-blue-200 hover:shadow-sm transition-all group">
+                            <div class="flex items-center gap-3 p-3 bg-white border border-gray-100 rounded-xl hover:border-[#0056D2]/20 hover:shadow-sm transition-all group">
                                 <!-- Avatar -->
                                 <div class="w-10 h-10 bg-[#0056D2] rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                                     {{ getInitials(student.fullName || student.email) }}
@@ -100,10 +100,10 @@ interface EnrolledStudent {
           <mat-tab label="Thêm học viên">
             <div class="pt-6 space-y-6">
                 <!-- Manual Email Input -->
-                <div class="p-5 bg-blue-50/50 rounded-2xl border border-blue-100 space-y-4">
+                <div class="p-5 bg-[#0056D2]/5/50 rounded-2xl border border-[#0056D2]/10 space-y-4">
                     <div class="flex items-center gap-2 mb-2">
                         <mat-icon class="text-[#0056D2]">person_add</mat-icon>
-                        <h4 class="text-sm font-black text-blue-800 uppercase tracking-wide">Nhập email thủ công</h4>
+                        <h4 class="text-sm font-black text-[#004BB5] uppercase tracking-wide">Nhập email thủ công</h4>
                     </div>
                     
                     <form [formGroup]="form" class="space-y-3">

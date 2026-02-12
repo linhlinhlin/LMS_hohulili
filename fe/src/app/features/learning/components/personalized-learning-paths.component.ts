@@ -41,7 +41,7 @@ import { LearningPath, LearningGoal, AdaptiveLearningRecommendation } from '../.
               <div class="bg-white rounded-xl shadow-lg p-6">
                 <div class="flex items-center justify-between mb-4">
                   <div class="flex items-center">
-                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                    <div class="w-12 h-12 bg-[#0056D2]/10 rounded-lg flex items-center justify-center mr-3">
                       <svg class="w-6 h-6 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
                       </svg>
@@ -183,7 +183,7 @@ import { LearningPath, LearningGoal, AdaptiveLearningRecommendation } from '../.
                     <h4 class="text-sm font-medium text-gray-900 mb-2">Kỹ năng sẽ học được:</h4>
                     <div class="flex flex-wrap gap-2">
                       @for (skill of path.skills; track skill) {
-                        <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                        <span class="px-2 py-1 bg-[#0056D2]/10 text-[#004BB5] rounded-full text-xs">
                           {{ skill }}
                         </span>
                       }

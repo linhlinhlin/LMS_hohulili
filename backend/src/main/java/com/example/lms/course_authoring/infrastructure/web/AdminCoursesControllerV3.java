@@ -80,7 +80,7 @@ public class AdminCoursesControllerV3 {
         }
 
         Page<CourseAdminResponse> response = enrichCourses(courses);
-        return ResponseEntity.ok(ApiResponse.success(response, "Courses loaded"));
+        return ResponseEntity.ok(ApiResponse.success(response, "Danh sách khóa học"));
     }
 
     @Operation(summary = "Get pending courses for review")
@@ -93,7 +93,7 @@ public class AdminCoursesControllerV3 {
         PageRequest pageable = PageRequest.of(page, Math.min(size, 100));
         Page<Course> courses = courseRepository.findByStatus(Course.CourseStatus.PENDING, pageable);
         Page<CourseAdminResponse> response = enrichCourses(courses);
-        return ResponseEntity.ok(ApiResponse.success(response, "Pending courses loaded"));
+        return ResponseEntity.ok(ApiResponse.success(response, "Danh sách khóa học chờ duyệt"));
     }
 
     @Operation(summary = "Get system analytics including courses, users, and enrollments")
@@ -140,7 +140,7 @@ public class AdminCoursesControllerV3 {
                 .monthlyRevenue(monthlyRevenue)
                 .build();
 
-        return ResponseEntity.ok(ApiResponse.success(analytics, "Analytics loaded"));
+        return ResponseEntity.ok(ApiResponse.success(analytics, "Dữ liệu phân tích"));
     }
 
     @Operation(summary = "Approve a course")
@@ -152,13 +152,13 @@ public class AdminCoursesControllerV3 {
             @AuthenticationPrincipal UserJpaEntity admin
     ) {
         UUID adminId = admin != null ? admin.getId() : UUID.randomUUID();
-        String comment = request != null ? request.getComment() : "Approved";
+        String comment = request != null ? request.getComment() : "Đã duyệt";
 
         return courseRepository.findById(courseId)
                 .map(course -> {
                     course.approve(adminId, comment);
                     courseRepository.save(course);
-                    return ResponseEntity.ok(ApiResponse.success(toAdminResponse(course), "Course approved"));
+                    return ResponseEntity.ok(ApiResponse.success(toAdminResponse(course), "Đã duyệt khóa học"));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -177,7 +177,7 @@ public class AdminCoursesControllerV3 {
                 .map(course -> {
                     course.reject(adminId, request.getReason());
                     courseRepository.save(course);
-                    return ResponseEntity.ok(ApiResponse.success(toAdminResponse(course), "Course rejected"));
+                    return ResponseEntity.ok(ApiResponse.success(toAdminResponse(course), "Đã từ chối khóa học"));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -192,11 +192,11 @@ public class AdminCoursesControllerV3 {
     ) {
         return courseRepository.findById(courseId)
                 .map(course -> {
-                    String reason = request != null ? request.getReason() : "Revoked by admin";
+                    String reason = request != null ? request.getReason() : "Bị thu hồi bởi quản trị viên";
                     UUID adminId = admin != null ? admin.getId() : UUID.randomUUID();
                     course.reject(adminId, reason);
                     courseRepository.save(course);
-                    return ResponseEntity.ok(ApiResponse.success(toAdminResponse(course), "Course revoked"));
+                    return ResponseEntity.ok(ApiResponse.success(toAdminResponse(course), "Đã thu hồi khóa học"));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -207,7 +207,7 @@ public class AdminCoursesControllerV3 {
     public ResponseEntity<ApiResponse<String>> deleteCourse(@PathVariable UUID courseId) {
         if (courseRepository.existsById(courseId)) {
             courseRepository.deleteById(courseId);
-            return ResponseEntity.ok(ApiResponse.success("Deleted", "Course deleted successfully"));
+            return ResponseEntity.ok(ApiResponse.success("Đã xóa", "Khóa học đã được xóa thành công"));
         }
         return ResponseEntity.notFound().build();
     }
@@ -389,13 +389,13 @@ public class AdminCoursesControllerV3 {
 
     @Data @NoArgsConstructor @AllArgsConstructor
     public static class ApprovalRequest {
-        @Size(max = 1000, message = "Comment must not exceed 1000 characters")
+        @Size(max = 1000, message = "Nhận xét không được vượt quá 1000 ký tự")
         private String comment;
     }
 
     @Data @NoArgsConstructor @AllArgsConstructor
     public static class RejectRequest {
-        @NotBlank(message = "Reason is required")
+        @NotBlank(message = "Lý do không được để trống")
         private String reason;
     }
 }

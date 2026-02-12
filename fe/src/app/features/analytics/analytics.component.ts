@@ -42,7 +42,7 @@ import { IconName } from '../../shared/components/icon/icon.component';
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <div class="bg-white rounded-lg shadow-lg p-6">
               <div class="flex items-center">
-                <div class="bg-blue-100 p-3 rounded-lg">
+                <div class="bg-[#0056D2]/10 p-3 rounded-lg">
                   <svg class="w-6 h-6 text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                   </svg>
@@ -238,7 +238,7 @@ import { IconName } from '../../shared/components/icon/icon.component';
                       <p class="text-sm text-gray-600 mb-2">{{ recommendation.description }}</p>
                       <button 
                         (click)="followRecommendation(recommendation.id)"
-                        class="text-[#0056D2] hover:text-blue-800 text-sm font-medium">
+                        class="text-[#0056D2] hover:text-[#004BB5] text-sm font-medium">
                         {{ recommendation.action }}
                       </button>
                     </div>

@@ -92,7 +92,7 @@ export class LoadingComponent {
         return 'border-purple-500';
       case 'blue':
       default:
-        return 'border-blue-500';
+        return 'border-[#0056D2]';
     }
   }
 }

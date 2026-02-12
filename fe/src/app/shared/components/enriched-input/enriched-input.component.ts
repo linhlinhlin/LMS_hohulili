@@ -33,11 +33,11 @@ import katex from 'katex';
 
       <!-- Preview Layer (Rendered output) -->
       @if (hasRichContent() && isFocused()) {
-        <div class="absolute bottom-full right-0 mb-2 p-3 bg-white rounded-lg shadow-xl border border-blue-200 z-50 min-w-[200px] max-w-sm pointer-events-none">
+        <div class="absolute bottom-full right-0 mb-2 p-3 bg-white rounded-lg shadow-xl border border-[#0056D2]/20 z-50 min-w-[200px] max-w-sm pointer-events-none">
            <div class="text-[10px] text-gray-400 mb-1 font-bold uppercase tracking-wider flex justify-between items-center">
              <span>Kết quả hiển thị</span>
              @if (isFormula()) {
-               <span class="text-[#0056D2] bg-blue-50 px-1.5 rounded font-mono">TeX</span>
+               <span class="text-[#0056D2] bg-[#0056D2]/5 px-1.5 rounded font-mono">TeX</span>
              }
              @if (hasImage()) {
                <span class="text-green-600 bg-green-50 px-1.5 rounded"><app-icon name="image" size="sm"/></span>
@@ -50,9 +50,9 @@ import katex from 'katex';
       <!-- Main Input Container -->
       <div class="relative border rounded-lg bg-white transition-all overflow-hidden"
            [class.border-gray-300]="!isInvalid() && !isFocused()"
-           [class.border-blue-500]="isFocused()"
+           [class.border-[#0056D2]]="isFocused()"
            [class.ring-2]="isFocused()"
-           [class.ring-blue-100]="isFocused()"
+           [class.ring-[#0056D2]/10]="isFocused()"
            [class.border-red-500]="isInvalid()">
         
         <!-- Content Display Area (Chips + Text Input) -->
@@ -60,7 +60,7 @@ import katex from 'katex';
           
           <!-- Image Chips (Click to expand) -->
           @for (img of imageChips(); track img.uuid; let i = $index) {
-            <div class="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 border border-blue-200 rounded-lg group/chip hover:shadow-md transition-all cursor-pointer"
+            <div class="inline-flex items-center gap-1 px-2 py-1 bg-[#0056D2]/5 border border-[#0056D2]/20 rounded-lg group/chip hover:shadow-md transition-all cursor-pointer"
                  (click)="expandImage(img)">
               <!-- Image Thumbnail -->
               <img [src]="img.url" 
@@ -113,16 +113,16 @@ import katex from 'katex';
         <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center space-x-1 text-gray-400">
            <!-- Image Upload Button -->
            <button type="button" (click)="fileInput.click()" 
-                   class="p-1.5 hover:text-[#0056D2] rounded-md hover:bg-blue-50 transition-colors relative group/btn"
+                   class="p-1.5 hover:text-[#0056D2] rounded-md hover:bg-[#0056D2]/5 transition-colors relative group/btn"
                    [class.text-[#0056D2]]="hasImage()"
-                   [class.bg-blue-50]="hasImage()">
+                   [class.bg-[#0056D2]/5]="hasImage()">
              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
              <div class="hidden group-hover/btn:block absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-gray-800 text-white text-[10px] rounded whitespace-nowrap z-50">Chèn ảnh</div>
            </button>
            
            <!-- Math Toggle Button -->
            <button type="button" (click)="insertMath()" 
-                   class="p-1.5 hover:text-[#0056D2] rounded-md hover:bg-blue-50 transition-colors relative group/btn"
+                   class="p-1.5 hover:text-[#0056D2] rounded-md hover:bg-[#0056D2]/5 transition-colors relative group/btn"
                    [class.text-amber-600]="isFormula()"
                    [class.bg-amber-50]="isFormula()">
              <span class="font-serif italic font-bold text-lg leading-none">Σ</span>

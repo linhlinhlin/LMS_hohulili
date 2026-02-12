@@ -93,7 +93,7 @@ import { ToastService } from '../../../../core/services/toast.service';
                 <input type="file"
                        multiple
                        (change)="onFileSelected($event)"
-                       class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-[#004BB5] hover:file:bg-blue-100">
+                       class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#0056D2]/5 file:text-[#004BB5] hover:file:bg-[#0056D2]/10">
 
                 @if (attachedFiles().length > 0) {
                   <div class="mt-3 space-y-2">

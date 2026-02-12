@@ -20,7 +20,7 @@ import { SectionEditorState, LessonItem } from '../../state/section-editor.state
         </thead>
         <tbody class="divide-y divide-gray-100">
           @for (lesson of state.lessons(); track lesson.id; let i = $index) {
-            <tr class="hover:bg-blue-50/50 transition-colors">
+            <tr class="hover:bg-[#0056D2]/5/50 transition-colors">
               <td class="px-6 py-2 text-sm text-gray-500 font-medium text-center">{{ i + 1 }}</td>
               <td class="px-6 py-2">
                 <div class="flex items-start gap-3">
@@ -36,7 +36,7 @@ import { SectionEditorState, LessonItem } from '../../state/section-editor.state
               </td>
               <td class="px-6 py-2 text-center">
                 <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium"
-                      [class.bg-blue-100]="!lesson.lessonType || lesson.lessonType === 'LECTURE'"
+                      [class.bg-[#0056D2]/10]="!lesson.lessonType || lesson.lessonType === 'LECTURE'"
                       [class.text-[#004BB5]]="!lesson.lessonType || lesson.lessonType === 'LECTURE'"
                       [class.bg-green-100]="lesson.lessonType === 'ASSIGNMENT'"
                       [class.text-green-700]="lesson.lessonType === 'ASSIGNMENT'"
@@ -55,7 +55,7 @@ import { SectionEditorState, LessonItem } from '../../state/section-editor.state
                 <div class="flex items-center justify-center gap-2">
                   <!-- View button -->
                   <button (click)="viewLesson.emit(lesson)"
-                          class="px-3 py-1.5 text-sm bg-blue-50 text-[#0056D2] rounded-md hover:bg-blue-100 transition-colors text-xs font-medium inline-flex items-center gap-1">
+                          class="px-3 py-1.5 text-sm bg-[#0056D2]/5 text-[#0056D2] rounded-md hover:bg-[#0056D2]/10 transition-colors text-xs font-medium inline-flex items-center gap-1">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>

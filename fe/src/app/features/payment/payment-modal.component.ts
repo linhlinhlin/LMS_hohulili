@@ -76,7 +76,7 @@ export interface CoursePaymentInfo {
             </div>
 
             <!-- Price Display -->
-            <div class="flex items-center justify-between mb-6 p-4 bg-blue-50 rounded-xl">
+            <div class="flex items-center justify-between mb-6 p-4 bg-[#0056D2]/5 rounded-xl">
               <span class="text-gray-700 font-medium">Tổng thanh toán</span>
               <div class="text-right">
                 @if (courseInfo().salePrice && (courseInfo().salePrice ?? 0) < courseInfo().price) {
@@ -100,8 +100,8 @@ export interface CoursePaymentInfo {
               <div class="space-y-2">
                 @for (method of paymentMethods; track method.code) {
                   <label class="flex items-center gap-3 p-3 border-2 rounded-xl cursor-pointer transition-all"
-                         [class.border-blue-500]="selectedMethod() === method.code"
-                         [class.bg-blue-50]="selectedMethod() === method.code"
+                         [class.border-[#0056D2]]="selectedMethod() === method.code"
+                         [class.bg-[#0056D2]/5]="selectedMethod() === method.code"
                          [class.border-gray-200]="selectedMethod() !== method.code"
                          [class.hover:border-gray-300]="selectedMethod() !== method.code">
                     <input type="radio" 

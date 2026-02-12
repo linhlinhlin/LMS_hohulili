@@ -51,7 +51,7 @@ public class LearningActivityControllerV3 {
                 request.timeSpentSeconds(),
                 request.contentType()
         );
-        return ResponseEntity.ok(ApiResponse.success(null, "Heartbeat recorded"));
+        return ResponseEntity.ok(ApiResponse.success(null, "Đã ghi nhận hoạt động"));
     }
 
     @Operation(summary = "Record reading progress for TEXT sections")
@@ -67,7 +67,7 @@ public class LearningActivityControllerV3 {
                 request.sectionId(),
                 request.scrollPercent()
         );
-        return ResponseEntity.ok(ApiResponse.success(null, "Reading progress recorded"));
+        return ResponseEntity.ok(ApiResponse.success(null, "Đã ghi nhận tiến độ đọc"));
     }
 
     @Operation(summary = "Get continue-where-you-left-off data (includes courseId)")
@@ -78,7 +78,7 @@ public class LearningActivityControllerV3 {
         UUID studentId = currentUser.getId();
         ContinueWhereLeftOffDTO result = useCase.getContinueWhereLeftOff(studentId);
         if (result == null) {
-            return ResponseEntity.ok(ApiResponse.success(null, "No recent activity"));
+            return ResponseEntity.ok(ApiResponse.success(null, "Không có hoạt động gần đây"));
         }
         // Resolve courseId from lessonId (single query)
         Map<String, Object> response = new LinkedHashMap<>();
@@ -92,7 +92,7 @@ public class LearningActivityControllerV3 {
             response.put("courseTitle", course.getTitle());
         });
 
-        return ResponseEntity.ok(ApiResponse.success(response, "Last activity found"));
+        return ResponseEntity.ok(ApiResponse.success(response, "Hoạt động gần nhất"));
     }
 
     @Operation(summary = "Get today's study time")
@@ -125,7 +125,7 @@ public class LearningActivityControllerV3 {
             entry.put("level", count == 0 ? 0 : count <= 3 ? 1 : count <= 7 ? 2 : count <= 15 ? 3 : 4);
             heatmap.add(entry);
         }
-        return ResponseEntity.ok(ApiResponse.success(heatmap, "Heatmap loaded"));
+        return ResponseEntity.ok(ApiResponse.success(heatmap, "Dữ liệu biểu đồ nhiệt"));
     }
 
     @Operation(summary = "Get weekly study time trends")
@@ -146,7 +146,7 @@ public class LearningActivityControllerV3 {
             entry.put("totalMinutes", totalSeconds / 60);
             trends.add(entry);
         }
-        return ResponseEntity.ok(ApiResponse.success(trends, "Study time trends loaded"));
+        return ResponseEntity.ok(ApiResponse.success(trends, "Xu hướng thời gian học"));
     }
 
 }

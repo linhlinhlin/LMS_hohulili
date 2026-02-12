@@ -101,7 +101,7 @@ export class CategoryHeroComponent {
       case 'indigo': return 'text-indigo-100';
       case 'rose': return 'text-rose-100';
       case 'cyan': return 'text-cyan-100';
-      default: return 'text-blue-100';
+      default: return 'text-white/80';
     }
   });
 

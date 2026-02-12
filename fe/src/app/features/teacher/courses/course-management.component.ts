@@ -93,7 +93,7 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
             </thead>
             <tbody class="divide-y divide-gray-100">
               @for (c of paged(); track c.id; let i = $index) {
-                <tr class="hover:bg-blue-50/40 transition-colors group">
+                <tr class="hover:bg-[#0056D2]/5/40 transition-colors group">
                   <!-- Col 1: Course info (thumbnail + title + desc + category) -->
                   <td class="px-5 py-3">
                     <div class="flex items-center gap-3">
@@ -115,7 +115,7 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
                         }
                         <div class="flex items-center gap-1.5 mt-1">
                           @if (c.categoryName) {
-                            <span class="inline-flex items-center bg-blue-50 text-[#0056D2] text-[10px] font-medium px-1.5 py-px rounded">{{ c.categoryName }}</span>
+                            <span class="inline-flex items-center bg-[#0056D2]/5 text-[#0056D2] text-[10px] font-medium px-1.5 py-px rounded">{{ c.categoryName }}</span>
                           }
                           @if (c.code) {
                             <span class="text-[10px] text-gray-400 font-mono">{{ c.code }}</span>
@@ -133,7 +133,7 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
                         Lớp học
                       </span>
                     } @else {
-                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-[#0056D2]">
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#0056D2]/5 text-[#0056D2]">
                         <app-icon name="video" size="xs" class="text-[#0056D2]"/>
                         Khóa học
                       </span>

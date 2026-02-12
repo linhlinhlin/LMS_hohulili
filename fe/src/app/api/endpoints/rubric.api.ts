@@ -74,4 +74,8 @@ export class RubricApi {
   getByAssignment(assignmentId: string): Observable<any> {
     return this.api.get(`${BASE}/assignment/${assignmentId}`);
   }
+
+  unassignFromAssignment(assignmentId: string): Observable<any> {
+    return this.api.delete(`${BASE}/assignment/${assignmentId}`);
+  }
 }

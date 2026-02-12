@@ -70,7 +70,7 @@ public class UserControllerV3 {
         }
 
         Page<UserResponse> response = users.map(this::toResponse);
-        return ResponseEntity.ok(ApiResponse.success(response, "Users loaded"));
+        return ResponseEntity.ok(ApiResponse.success(response, "Danh sách người dùng"));
     }
 
     @Operation(summary = "Get all users without pagination")
@@ -79,7 +79,7 @@ public class UserControllerV3 {
     public ResponseEntity<ApiResponse<List<UserResponse>>> getAllUsersNoPagination() {
         List<UserJpaEntity> users = userRepository.findAll();
         List<UserResponse> response = users.stream().map(this::toResponse).toList();
-        return ResponseEntity.ok(ApiResponse.success(response, "All users loaded"));
+        return ResponseEntity.ok(ApiResponse.success(response, "Danh sách tất cả người dùng"));
     }
 
     @Operation(summary = "Search users by role")
@@ -107,7 +107,7 @@ public class UserControllerV3 {
         }
 
         Page<UserResponse> response = users.map(this::toResponse);
-        return ResponseEntity.ok(ApiResponse.success(response, "Users found"));
+        return ResponseEntity.ok(ApiResponse.success(response, "Tìm thấy người dùng"));
     }
 
     @Operation(summary = "Get all instructors")
@@ -116,7 +116,7 @@ public class UserControllerV3 {
     public ResponseEntity<ApiResponse<List<UserResponse>>> getInstructors() {
         List<UserJpaEntity> instructors = userRepository.findByRole(UserJpaEntity.UserRole.TEACHER);
         List<UserResponse> response = instructors.stream().map(this::toResponse).toList();
-        return ResponseEntity.ok(ApiResponse.success(response, "Instructors loaded"));
+        return ResponseEntity.ok(ApiResponse.success(response, "Danh sách giảng viên"));
     }
 
     @Operation(summary = "Get user by ID")
@@ -124,7 +124,7 @@ public class UserControllerV3 {
     @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN')")
     public ResponseEntity<ApiResponse<UserResponse>> getUserById(@PathVariable UUID userId) {
         return userRepository.findById(userId)
-                .map(user -> ResponseEntity.ok(ApiResponse.success(toResponse(user), "User loaded")))
+                .map(user -> ResponseEntity.ok(ApiResponse.success(toResponse(user), "Thông tin người dùng")))
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -144,7 +144,7 @@ public class UserControllerV3 {
 
         if (userRepository.existsByEmail(request.getEmail())) {
             return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("Email already exists"));
+                    .body(ApiResponse.error("Email đã tồn tại"));
         }
 
         UserJpaEntity user = new UserJpaEntity(
@@ -160,7 +160,7 @@ public class UserControllerV3 {
         );
 
         UserJpaEntity saved = userRepository.save(user);
-        return ResponseEntity.ok(ApiResponse.success(toResponse(saved), "User created successfully"));
+        return ResponseEntity.ok(ApiResponse.success(toResponse(saved), "Tạo tài khoản thành công"));
     }
 
     @Operation(summary = "Update user")
@@ -196,7 +196,7 @@ public class UserControllerV3 {
                 request.getEnabled()
         );
         return updateUserUseCaseV3.execute(userId, command)
-                .map(user -> ResponseEntity.ok(ApiResponse.success(toResponse(user), "User updated")))
+                .map(user -> ResponseEntity.ok(ApiResponse.success(toResponse(user), "Cập nhật tài khoản thành công")))
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -216,7 +216,7 @@ public class UserControllerV3 {
                     }
                     user.setEnabled(!user.isEnabled());
                     UserJpaEntity saved = userRepository.save(user);
-                    return ResponseEntity.ok(ApiResponse.success(toResponse(saved), "User status toggled"));
+                    return ResponseEntity.ok(ApiResponse.success(toResponse(saved), "Đã thay đổi trạng thái tài khoản"));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -227,7 +227,7 @@ public class UserControllerV3 {
     public ResponseEntity<ApiResponse<String>> deleteUser(@PathVariable UUID userId) {
         if (userRepository.existsById(userId)) {
             userRepository.deleteById(userId);
-            return ResponseEntity.ok(ApiResponse.success("Deleted", "User deleted successfully"));
+            return ResponseEntity.ok(ApiResponse.success("Đã xóa", "Tài khoản đã được xóa thành công"));
         }
         return ResponseEntity.notFound().build();
     }
@@ -251,7 +251,7 @@ public class UserControllerV3 {
                     user.setEnabled(enabled);
                     UserJpaEntity saved = userRepository.save(user);
                     return ResponseEntity.ok(ApiResponse.success(toResponse(saved),
-                            "User status updated to " + request.getStatus()));
+                            "Trạng thái tài khoản đã cập nhật thành " + request.getStatus()));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -292,7 +292,7 @@ public class UserControllerV3 {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
-        return ResponseEntity.ok(ApiResponse.success(courses, "Enrolled courses loaded"));
+        return ResponseEntity.ok(ApiResponse.success(courses, "Danh sách khóa học đã đăng ký"));
     }
 
     @Operation(summary = "Get managed courses for a teacher (admin view)")
@@ -306,7 +306,7 @@ public class UserControllerV3 {
                 .map(this::toCourseMap)
                 .collect(Collectors.toList());
 
-        return ResponseEntity.ok(ApiResponse.success(courses, "Managed courses loaded"));
+        return ResponseEntity.ok(ApiResponse.success(courses, "Danh sách khóa học quản lý"));
     }
 
     @Operation(summary = "Get co-op courses for a teacher (admin view)")
@@ -316,7 +316,7 @@ public class UserControllerV3 {
             @PathVariable UUID userId
     ) {
         // Co-op course feature is basic - return empty list for now
-        return ResponseEntity.ok(ApiResponse.success(List.of(), "Co-op courses loaded"));
+        return ResponseEntity.ok(ApiResponse.success(List.of(), "Danh sách khóa học hợp tác"));
     }
 
     private Map<String, Object> toCourseMap(CourseJpaEntity course) {
@@ -410,19 +410,19 @@ public class UserControllerV3 {
 
     @Data @NoArgsConstructor @AllArgsConstructor
     public static class CreateUserRequest {
-        @NotBlank(message = "Email is required")
-        @Email(message = "Invalid email format")
+        @NotBlank(message = "Email không được để trống")
+        @Email(message = "Email không hợp lệ")
         private String email;
 
-        @NotBlank(message = "Full name is required")
-        @Size(max = 255, message = "Full name must not exceed 255 characters")
+        @NotBlank(message = "Họ tên không được để trống")
+        @Size(max = 255, message = "Họ tên không được quá 255 ký tự")
         private String fullName;
 
-        @NotBlank(message = "Password is required")
-        @Size(min = 6, message = "Password must be at least 6 characters")
+        @NotBlank(message = "Mật khẩu không được để trống")
+        @Size(min = 6, message = "Mật khẩu phải có ít nhất 6 ký tự")
         private String password;
 
-        @NotBlank(message = "Role is required")
+        @NotBlank(message = "Vai trò không được để trống")
         private String role;
 
         private String username;
@@ -430,7 +430,7 @@ public class UserControllerV3 {
 
     @Data @NoArgsConstructor @AllArgsConstructor
     public static class UpdateUserRequest {
-        @Size(max = 255, message = "Full name must not exceed 255 characters")
+        @Size(max = 255, message = "Họ tên không được quá 255 ký tự")
         private String fullName;
         private String role;
         private Boolean enabled;
@@ -438,7 +438,7 @@ public class UserControllerV3 {
 
     @Data @NoArgsConstructor @AllArgsConstructor
     public static class UpdateStatusRequest {
-        @NotBlank(message = "Status is required")
+        @NotBlank(message = "Trạng thái không được để trống")
         private String status; // ACTIVE, BLOCKED, RESTRICTED
         private String reason;
     }

@@ -14,7 +14,7 @@ import { firstValueFrom } from 'rxjs';
   selector: 'app-quiz-result',
   imports: [RouterModule],
   template: `
-    <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+    <div class="min-h-screen bg-gradient-to-br from-slate-50 via-[#0056D2]/5 to-indigo-100">
       <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         @if (isLoading()) {
           <div class="bg-white rounded-xl shadow-lg p-8 text-center">

@@ -267,7 +267,7 @@ export class AssignmentSubmissionsComponent implements OnInit {
   getSubmissionStatusClass(status: string): string {
     const classes: Record<string, string> = {
       'graded': 'bg-green-100 text-green-800', 'pending': 'bg-yellow-100 text-yellow-800',
-      'submitted': 'bg-blue-100 text-blue-800', 'late': 'bg-red-100 text-red-800'
+      'submitted': 'bg-[#0056D2]/10 text-[#004BB5]', 'late': 'bg-red-100 text-red-800'
     };
     return classes[status] || 'bg-gray-100 text-gray-800';
   }

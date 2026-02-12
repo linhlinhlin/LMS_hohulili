@@ -69,7 +69,7 @@ public class CourseAuthoringControllerV3 {
             isAdmin
         );
         UUID chapterId = createChapterUseCase.execute(command);
-        return ResponseEntity.ok(ApiResponse.success(chapterId, "Chapter created successfully"));
+        return ResponseEntity.ok(ApiResponse.success(chapterId, "Tạo chương thành công"));
     }
 
     @Operation(summary = "Create a new lesson in a chapter")
@@ -90,7 +90,7 @@ public class CourseAuthoringControllerV3 {
             request.isFree()
         );
         UUID lessonId = createLessonUseCase.execute(command);
-        return ResponseEntity.ok(ApiResponse.success(lessonId, "Lesson created successfully"));
+        return ResponseEntity.ok(ApiResponse.success(lessonId, "Tạo bài học thành công"));
     }
 
     @Operation(summary = "Update a chapter")
@@ -110,7 +110,7 @@ public class CourseAuthoringControllerV3 {
             isAdminRole(user)
         );
         ChapterResponse response = updateChapterUseCase.execute(command);
-        return ResponseEntity.ok(ApiResponse.success(response, "Chapter updated successfully"));
+        return ResponseEntity.ok(ApiResponse.success(response, "Cập nhật chương thành công"));
     }
 
     @Operation(summary = "Delete a chapter")
@@ -123,7 +123,7 @@ public class CourseAuthoringControllerV3 {
     ) {
         boolean isAdmin = isAdminRole(user);
         deleteChapterUseCase.execute(courseId, chapterId, user.getId(), isAdmin);
-        return ResponseEntity.ok(ApiResponse.success(null, "Chapter deleted successfully"));
+        return ResponseEntity.ok(ApiResponse.success(null, "Xóa chương thành công"));
     }
 
     @Operation(summary = "Update a lesson")
@@ -150,7 +150,7 @@ public class CourseAuthoringControllerV3 {
             isAdminRole(user)
         );
         LessonResponse response = updateLessonUseCase.execute(command);
-        return ResponseEntity.ok(ApiResponse.success(response, "Lesson updated successfully"));
+        return ResponseEntity.ok(ApiResponse.success(response, "Cập nhật bài học thành công"));
     }
 
     @Operation(summary = "Delete a lesson")
@@ -164,7 +164,7 @@ public class CourseAuthoringControllerV3 {
     ) {
         boolean isAdmin = isAdminRole(user);
         deleteLessonUseCase.execute(courseId, chapterId, lessonId, user.getId(), isAdmin);
-        return ResponseEntity.ok(ApiResponse.success(null, "Lesson deleted successfully"));
+        return ResponseEntity.ok(ApiResponse.success(null, "Xóa bài học thành công"));
     }
 
     // ================================================================================================
@@ -190,9 +190,9 @@ public class CourseAuthoringControllerV3 {
                 if (ch != null) ch.setOrderIndex(i);
             }
             chapterJpaRepository.saveAll(chapters);
-            return ResponseEntity.ok(ApiResponse.success(null, "Chapters reordered"));
+            return ResponseEntity.ok(ApiResponse.success(null, "Đã sắp xếp lại chương"));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error("Invalid UUID format"));
+            return ResponseEntity.badRequest().body(ApiResponse.error("Định dạng UUID không hợp lệ"));
         }
     }
 
@@ -215,9 +215,9 @@ public class CourseAuthoringControllerV3 {
                 if (l != null) l.setOrderIndex(i);
             }
             lessonJpaRepository.saveAll(lessons);
-            return ResponseEntity.ok(ApiResponse.success(null, "Lessons reordered"));
+            return ResponseEntity.ok(ApiResponse.success(null, "Đã sắp xếp lại bài học"));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error("Invalid UUID format"));
+            return ResponseEntity.badRequest().body(ApiResponse.error("Định dạng UUID không hợp lệ"));
         }
     }
 
@@ -240,9 +240,9 @@ public class CourseAuthoringControllerV3 {
                 if (block != null) reordered.add(block);
             }
             manageContentBlockUseCase.saveBlocks(lessonId, reordered);
-            return ResponseEntity.ok(ApiResponse.success(null, "Sections reordered"));
+            return ResponseEntity.ok(ApiResponse.success(null, "Đã sắp xếp lại phần học"));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error("Invalid UUID format"));
+            return ResponseEntity.badRequest().body(ApiResponse.error("Định dạng UUID không hợp lệ"));
         }
     }
 
@@ -268,7 +268,7 @@ public class CourseAuthoringControllerV3 {
         log.debug("Processing addSection for lesson: {}, type: {}", lessonId, type);
         boolean isAdmin = isAdminRole(user);
         com.example.lms.shared.domain.model.ContentBlock block = manageContentBlockUseCase.addBlock(lessonId, type, payload, user.getId(), isAdmin);
-        return ResponseEntity.ok(ApiResponse.success(block, "Section created successfully"));
+        return ResponseEntity.ok(ApiResponse.success(block, "Tạo phần học thành công"));
     }
 
     @Operation(summary = "Update a section (content block)")
@@ -287,7 +287,7 @@ public class CourseAuthoringControllerV3 {
 
         boolean isAdmin = isAdminRole(user);
         com.example.lms.shared.domain.model.ContentBlock block = manageContentBlockUseCase.updateBlock(lessonId, sectionId, payload, user.getId(), isAdmin);
-        return ResponseEntity.ok(ApiResponse.success(block, "Section updated successfully"));
+        return ResponseEntity.ok(ApiResponse.success(block, "Cập nhật phần học thành công"));
     }
 
     @Operation(summary = "Delete a section (content block)")
@@ -300,7 +300,7 @@ public class CourseAuthoringControllerV3 {
     ) {
         boolean isAdmin = isAdminRole(user);
         manageContentBlockUseCase.deleteBlock(lessonId, sectionId, user.getId(), isAdmin);
-        return ResponseEntity.ok(ApiResponse.success(null, "Section deleted successfully"));
+        return ResponseEntity.ok(ApiResponse.success(null, "Xóa phần học thành công"));
     }
 
     @Operation(summary = "Update course details")
@@ -332,7 +332,7 @@ public class CourseAuthoringControllerV3 {
             isAdminRole(user)
         );
         com.example.lms.course_authoring.application.dto.CourseResponse response = updateCourseUseCase.execute(command);
-        return ResponseEntity.ok(ApiResponse.success(response, "Course updated successfully"));
+        return ResponseEntity.ok(ApiResponse.success(response, "Cập nhật khóa học thành công"));
     }
     
     // --- Helpers ---
@@ -347,7 +347,7 @@ public class CourseAuthoringControllerV3 {
         var course = courseRepository.findById(courseId)
             .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Course", courseId));
         if (!course.getTeacherId().equals(user.getId())) {
-            throw new org.springframework.security.access.AccessDeniedException("You do not own this course");
+            throw new org.springframework.security.access.AccessDeniedException("Bạn không sở hữu khóa học này");
         }
     }
 
@@ -356,7 +356,7 @@ public class CourseAuthoringControllerV3 {
         var course = courseRepository.findByChapterId(chapterId)
             .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Course", chapterId));
         if (!course.getTeacherId().equals(user.getId())) {
-            throw new org.springframework.security.access.AccessDeniedException("You do not own this course");
+            throw new org.springframework.security.access.AccessDeniedException("Bạn không sở hữu khóa học này");
         }
     }
 
@@ -365,20 +365,20 @@ public class CourseAuthoringControllerV3 {
         var course = courseRepository.findByLessonId(lessonId)
             .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Course", lessonId));
         if (!course.getTeacherId().equals(user.getId())) {
-            throw new org.springframework.security.access.AccessDeniedException("You do not own this course");
+            throw new org.springframework.security.access.AccessDeniedException("Bạn không sở hữu khóa học này");
         }
     }
 
     // Request DTOs
     public record CreateChapterRequest(
-        @NotBlank(message = "Title is required")
+        @NotBlank(message = "Tiêu đề không được để trống")
         String title,
         String description,
         Integer orderIndex
     ) {}
 
     public record CreateLessonRequest(
-        @NotBlank(message = "Title is required")
+        @NotBlank(message = "Tiêu đề không được để trống")
         String title,
         String description,
         String type,
@@ -409,7 +409,7 @@ public class CourseAuthoringControllerV3 {
     ) {}
 
     public record UpdateCourseRequest(
-        @jakarta.validation.constraints.Size(max = 255, message = "Title must not exceed 255 characters") String title,
+        @jakarta.validation.constraints.Size(max = 255, message = "Tiêu đề không được quá 255 ký tự") String title,
         String description,
         String thumbnailUrl,
         UUID categoryId,
@@ -418,28 +418,28 @@ public class CourseAuthoringControllerV3 {
         String courseInformation,
         String benefits,
         String introVideoUrl,
-        @jakarta.validation.constraints.Min(value = 0, message = "Credits must be >= 0") @jakarta.validation.constraints.Max(value = 30, message = "Credits must be <= 30") Integer credits,
+        @jakarta.validation.constraints.Min(value = 0, message = "Số tín chỉ phải >= 0") @jakarta.validation.constraints.Max(value = 30, message = "Số tín chỉ phải <= 30") Integer credits,
         String visibility,
         String priceType,
-        @jakarta.validation.constraints.DecimalMin(value = "0", message = "Price must be >= 0") java.math.BigDecimal price,
-        @jakarta.validation.constraints.DecimalMin(value = "0", message = "Sale price must be >= 0") java.math.BigDecimal salePrice,
+        @jakarta.validation.constraints.DecimalMin(value = "0", message = "Giá phải >= 0") java.math.BigDecimal price,
+        @jakarta.validation.constraints.DecimalMin(value = "0", message = "Giá khuyến mãi phải >= 0") java.math.BigDecimal salePrice,
         String deliveryMode
     ) {}
 
     public record ReorderChaptersRequest(
-        @NotBlank(message = "Course ID is required") String courseId,
-        @jakarta.validation.constraints.NotEmpty(message = "Ordered IDs required") java.util.List<String> orderedIds
+        @NotBlank(message = "Mã khóa học không được để trống") String courseId,
+        @jakarta.validation.constraints.NotEmpty(message = "Danh sách ID không được để trống") java.util.List<String> orderedIds
     ) {}
 
     public record ReorderLessonsRequest(
-        @NotBlank(message = "Course ID is required") String courseId,
-        @NotBlank(message = "Chapter ID is required") String chapterId,
-        @jakarta.validation.constraints.NotEmpty(message = "Ordered IDs required") java.util.List<String> orderedIds
+        @NotBlank(message = "Mã khóa học không được để trống") String courseId,
+        @NotBlank(message = "Mã chương không được để trống") String chapterId,
+        @jakarta.validation.constraints.NotEmpty(message = "Danh sách ID không được để trống") java.util.List<String> orderedIds
     ) {}
 
     public record ReorderSectionsRequest(
-        @NotBlank(message = "Lesson ID is required") String lessonId,
-        @jakarta.validation.constraints.NotEmpty(message = "Ordered IDs required") java.util.List<String> orderedIds
+        @NotBlank(message = "Mã bài học không được để trống") String lessonId,
+        @jakarta.validation.constraints.NotEmpty(message = "Danh sách ID không được để trống") java.util.List<String> orderedIds
     ) {}
 }
 
@@ -459,7 +459,7 @@ class CourseAuthoringSupportControllerV3 {
         var categories = categoryJpaRepository.findAll().stream()
             .map(c -> new CategoryDTO(c.getId().toString(), c.getCode(), c.getName(), c.getPrefix()))
             .toList();
-        return ResponseEntity.ok(ApiResponse.success(categories, "Categories loaded"));
+        return ResponseEntity.ok(ApiResponse.success(categories, "Danh sách danh mục"));
     }
 
     // NOTE: getInstructors is now handled by UserControllerV3 at /api/v3/users/instructors

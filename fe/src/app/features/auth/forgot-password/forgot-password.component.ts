@@ -122,7 +122,7 @@ type ForgotPasswordForm = {
               </h2>
               
               <!-- Tagline -->
-              <p class="text-blue-200 text-sm leading-relaxed">
+              <p class="text-white/60 text-sm leading-relaxed">
                 Quy trình khôi phục an toàn và nhanh chóng
               </p>
             </div>

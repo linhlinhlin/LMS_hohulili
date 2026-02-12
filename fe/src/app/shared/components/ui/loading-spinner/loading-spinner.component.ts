@@ -134,7 +134,7 @@ export class LoadingSpinnerComponent {
   centered = input<boolean>(false);
   overlay = input<boolean>(false);
   inline = input<boolean>(false);
-  ariaLabel = input<string>('Loading');
+  ariaLabel = input<string>('Đang tải');
 
   containerClasses() {
     if (this.overlay()) return 'spinner-overlay';

@@ -45,7 +45,7 @@ import { CourseSummary } from '../../../api/types/course.types';
                         class="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                     } @else {
-                      <div class="w-full h-48 bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+                      <div class="w-full h-48 bg-gradient-to-br from-[#0056D2]/5 to-indigo-100 flex items-center justify-center">
                         <app-icon name="courses" size="xl" class="text-[#0056D2]/40"/>
                       </div>
                     }

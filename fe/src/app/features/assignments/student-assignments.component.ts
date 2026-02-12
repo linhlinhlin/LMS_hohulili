@@ -325,7 +325,7 @@ export class StudentAssignmentsComponent implements OnInit {
       case 'pending':
         return 'text-yellow-800 bg-yellow-100';
       case 'in-progress':
-        return 'text-blue-800 bg-blue-100';
+        return 'text-[#004BB5] bg-[#0056D2]/10';
       case 'submitted':
         return 'text-green-800 bg-green-100';
       case 'graded':

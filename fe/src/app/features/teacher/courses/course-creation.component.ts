@@ -26,7 +26,7 @@ import { ToastService } from '../../../core/services/toast.service';
             <div class="flex items-center gap-2">
               <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all"
                    [class]="currentStep() > s.num ? 'bg-green-500 text-white' :
-                            currentStep() === s.num ? 'bg-[#0056D2] text-white shadow-lg ring-4 ring-blue-100' :
+                            currentStep() === s.num ? 'bg-[#0056D2] text-white shadow-lg ring-4 ring-[#0056D2]/10' :
                             'bg-gray-200 text-gray-500'">
                 @if (currentStep() > s.num) {
                   <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
@@ -64,7 +64,7 @@ import { ToastService } from '../../../core/services/toast.service';
                 <button type="button" (click)="setDeliveryMode('SELF_PACED')"
                         class="relative flex flex-col items-start p-4 rounded-xl border-2 transition-all text-left"
                         [class]="selectedMode() === 'SELF_PACED'
-                          ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-200'
+                          ? 'border-[#0056D2] bg-[#0056D2]/5 ring-1 ring-[#0056D2]/20'
                           : 'border-gray-200 hover:border-gray-300 bg-white'">
                   <div class="flex items-center gap-2 mb-2">
                     <div class="w-8 h-8 rounded-lg flex items-center justify-center"
@@ -138,7 +138,7 @@ import { ToastService } from '../../../core/services/toast.service';
             </div>
 
             @if (selectedPrefix()) {
-              <div class="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 text-sm text-blue-800">
+              <div class="bg-[#0056D2]/5 border border-[#0056D2]/20 rounded-lg px-4 py-2 text-sm text-[#004BB5]">
                 Mã khóa học sẽ được tự động tạo: <strong>{{ selectedPrefix() }}-xxx</strong>
               </div>
             }
@@ -244,7 +244,7 @@ import { ToastService } from '../../../core/services/toast.service';
             <div class="bg-gray-50 rounded-xl border border-gray-200 divide-y divide-gray-200">
               <div class="p-4 flex items-center gap-3">
                 <div class="w-10 h-10 rounded-lg flex items-center justify-center"
-                     [class]="selectedMode() === 'INSTRUCTOR_LED' ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-100 text-[#0056D2]'">
+                     [class]="selectedMode() === 'INSTRUCTOR_LED' ? 'bg-emerald-100 text-emerald-600' : 'bg-[#0056D2]/10 text-[#0056D2]'">
                   @if (selectedMode() === 'INSTRUCTOR_LED') {
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
                   } @else {
@@ -290,11 +290,11 @@ import { ToastService } from '../../../core/services/toast.service';
             </div>
 
             <!-- Info Note -->
-            <div class="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <svg class="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <div class="flex items-start gap-3 p-4 bg-[#0056D2]/5 border border-[#0056D2]/20 rounded-lg">
+              <svg class="w-5 h-5 text-[#0056D2] flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
               </svg>
-              <div class="text-sm text-blue-800">
+              <div class="text-sm text-[#004BB5]">
                 <p class="font-medium">Sau khi tạo, bạn sẽ được chuyển đến trang chỉnh sửa để:</p>
                 <ul class="list-disc list-inside text-xs mt-1 space-y-0.5 text-[#004BB5]">
                   <li>Thêm chương và bài học</li>

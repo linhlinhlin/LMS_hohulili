@@ -61,7 +61,7 @@ import { NotificationService, Notification } from '../../services/notification.s
                 @if (notificationService.unreadCount() > 0) {
                   <button
                     (click)="markAllAsRead()"
-                    class="text-sm text-[#0056D2] hover:text-blue-800">
+                    class="text-sm text-[#0056D2] hover:text-[#004BB5]">
                     Đọc tất cả
                   </button>
                 }
@@ -90,7 +90,7 @@ import { NotificationService, Notification } from '../../services/notification.s
               @for (notification of notificationService.notifications(); track notification.id) {
                 <div
                   class="p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors"
-                  [class.bg-blue-50]="!notification.read"
+                  [class.bg-[#0056D2]/5]="!notification.read"
                   (click)="handleNotificationClick(notification)">
                   <div class="flex items-start space-x-3">
                     <!-- Icon -->
@@ -131,7 +131,7 @@ import { NotificationService, Notification } from '../../services/notification.s
                       @if (notification.action) {
                         <button
                           (click)="handleActionClick(notification, $event)"
-                          class="text-xs text-[#0056D2] hover:text-blue-800 mt-2">
+                          class="text-xs text-[#0056D2] hover:text-[#004BB5] mt-2">
                           {{ notification.action.label }}
                         </button>
                       }
@@ -168,7 +168,7 @@ import { NotificationService, Notification } from '../../services/notification.s
           <div class="p-4 border-t border-gray-800">
             <button
               (click)="viewAllNotifications()"
-              class="w-full text-center text-sm text-[#0056D2] hover:text-blue-800">
+              class="w-full text-center text-sm text-[#0056D2] hover:text-[#004BB5]">
               Xem tất cả thông báo
             </button>
           </div>

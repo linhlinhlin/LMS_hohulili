@@ -103,7 +103,7 @@ public class AuthControllerV3 {
     ) {
         if (currentUser == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ApiResponse.error("Unauthorized"));
+                .body(ApiResponse.error("Không được phép truy cập"));
         }
 
         UserResponse response = getCurrentUserUseCase.execute(currentUser.getId());
@@ -119,7 +119,7 @@ public class AuthControllerV3 {
     ) {
         if (currentUser == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ApiResponse.error("Unauthorized"));
+                .body(ApiResponse.error("Không được phép truy cập"));
         }
 
         UpdateProfileCommand command = new UpdateProfileCommand(
@@ -141,7 +141,7 @@ public class AuthControllerV3 {
     ) {
         if (currentUser == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ApiResponse.error("Unauthorized"));
+                .body(ApiResponse.error("Không được phép truy cập"));
         }
 
         changePasswordUseCase.execute(
@@ -172,57 +172,57 @@ public class AuthControllerV3 {
         // Always return success to prevent email enumeration
         return ResponseEntity.ok(ApiResponse.success(
             Map.of("message", "Nếu email tồn tại, bạn sẽ nhận được hướng dẫn đặt lại mật khẩu"),
-            "Password reset requested"));
+            "Yêu cầu đặt lại mật khẩu đã được gửi"));
     }
 
     // ==================== Request DTOs ====================
 
     public record ForgotPasswordRequest(
-            @NotBlank(message = "Email is required")
-            @Email(message = "Email must be valid")
+            @NotBlank(message = "Email không được để trống")
+            @Email(message = "Email không hợp lệ")
             String email
     ) {}
 
     public record RefreshTokenRequest(
-            @NotBlank(message = "Refresh token is required")
+            @NotBlank(message = "Refresh token không được để trống")
             String refreshToken
     ) {}
 
     public record RegisterRequest(
-        @NotBlank(message = "Username is required")
-        @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
+        @NotBlank(message = "Tên đăng nhập không được để trống")
+        @Size(min = 3, max = 50, message = "Tên đăng nhập phải từ 3 đến 50 ký tự")
         String username,
-        @NotBlank(message = "Email is required")
-        @Email(message = "Email must be valid")
+        @NotBlank(message = "Email không được để trống")
+        @Email(message = "Email không hợp lệ")
         String email,
-        @NotBlank(message = "Password is required")
-        @Size(min = 6, message = "Password must be at least 6 characters")
+        @NotBlank(message = "Mật khẩu không được để trống")
+        @Size(min = 6, message = "Mật khẩu phải có ít nhất 6 ký tự")
         String password,
-        @NotBlank(message = "Full name is required")
+        @NotBlank(message = "Họ tên không được để trống")
         String fullName,
         String role
     ) {}
 
     public record LoginRequest(
-        @NotBlank(message = "Email is required")
-        @Email(message = "Email must be valid")
+        @NotBlank(message = "Email không được để trống")
+        @Email(message = "Email không hợp lệ")
         String email,
-        @NotBlank(message = "Password is required")
+        @NotBlank(message = "Mật khẩu không được để trống")
         String password
     ) {}
 
     public record UpdateProfileRequest(
-        @Size(max = 255, message = "Full name must not exceed 255 characters")
+        @Size(max = 255, message = "Họ tên không được vượt quá 255 ký tự")
         String fullName,
-        @Email(message = "Email must be valid")
+        @Email(message = "Email không hợp lệ")
         String email
     ) {}
 
     public record ChangePasswordRequest(
-        @NotBlank(message = "Current password is required")
+        @NotBlank(message = "Mật khẩu hiện tại không được để trống")
         String currentPassword,
-        @NotBlank(message = "New password is required")
-        @Size(min = 6, message = "New password must be at least 6 characters")
+        @NotBlank(message = "Mật khẩu mới không được để trống")
+        @Size(min = 6, message = "Mật khẩu mới phải có ít nhất 6 ký tự")
         String newPassword
     ) {}
 }

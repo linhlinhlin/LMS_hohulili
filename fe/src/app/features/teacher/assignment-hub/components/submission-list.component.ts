@@ -24,7 +24,7 @@ import { ToastService } from '../../../../core/services/toast.service';
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
           <button (click)="setFilter('ALL')" 
-                  [class]="filter() === 'ALL' ? 'bg-blue-100 text-[#004BB5]' : 'bg-white'"
+                  [class]="filter() === 'ALL' ? 'bg-[#0056D2]/10 text-[#004BB5]' : 'bg-white'"
                   class="px-3 py-1.5 border rounded-lg text-sm transition-colors">Tất cả</button>
           <button (click)="setFilter('PENDING')"
                   [class]="filter() === 'PENDING' ? 'bg-orange-100 text-orange-700' : 'bg-white'"
@@ -94,7 +94,7 @@ import { ToastService } from '../../../../core/services/toast.service';
                   </td>
                   <td class="px-4 py-3">
                     <div class="flex items-center gap-3">
-                      <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-[#0056D2] text-sm font-medium">
+                      <div class="w-8 h-8 rounded-full bg-[#0056D2]/10 flex items-center justify-center text-[#0056D2] text-sm font-medium">
                         {{ getInitials(sub.studentName) }}
                       </div>
                       <div>
@@ -140,7 +140,7 @@ import { ToastService } from '../../../../core/services/toast.service';
                   </td>
                   <td class="px-4 py-3 text-right">
                     <a [routerLink]="['..', 'grade', sub.id]" 
-                       class="text-[#0056D2] hover:text-blue-800 text-sm font-medium">
+                       class="text-[#0056D2] hover:text-[#004BB5] text-sm font-medium">
                       {{ getGradeScore(sub.grade) !== undefined ? 'Xem/Sửa' : 'Chấm điểm' }} →
                     </a>
                   </td>

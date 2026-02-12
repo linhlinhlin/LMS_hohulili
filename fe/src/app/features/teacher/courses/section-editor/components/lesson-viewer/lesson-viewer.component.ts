@@ -14,7 +14,7 @@ import { QuizViewerComponent } from '../quiz-viewer/quiz-viewer.component';
         <!-- Header -->
         <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
           <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+            <div class="w-10 h-10 bg-[#0056D2]/10 rounded-lg flex items-center justify-center">
               <svg class="w-5 h-5 text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
@@ -60,7 +60,7 @@ import { QuizViewerComponent } from '../quiz-viewer/quiz-viewer.component';
                 <h4 class="font-semibold text-gray-900">Nội dung bài học (Sections)</h4>
                 <div class="flex gap-2">
                   <button type="button" (click)="openSmartEditor.emit(lesson.id)"
-                          class="px-3 py-1.5 text-xs font-medium text-[#004BB5] bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors flex items-center gap-1">
+                          class="px-3 py-1.5 text-xs font-medium text-[#004BB5] bg-[#0056D2]/5 hover:bg-[#0056D2]/10 border border-[#0056D2]/20 rounded-lg transition-colors flex items-center gap-1">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                     Thêm nội dung
                   </button>
@@ -70,10 +70,10 @@ import { QuizViewerComponent } from '../quiz-viewer/quiz-viewer.component';
               <!-- Sections List -->
               <div class="space-y-3">
                 @for (sec of lesson.sections || []; track sec.id) {
-                  <div class="group bg-white border border-gray-200 rounded-lg p-3 hover:border-blue-300 hover:shadow-sm transition-all flex items-center justify-between">
+                  <div class="group bg-white border border-gray-200 rounded-lg p-3 hover:border-[#0056D2]/30 hover:shadow-sm transition-all flex items-center justify-between">
                     <div class="flex items-center gap-3">
                       <div class="w-8 h-8 rounded-full flex items-center justify-center"
-                           [class.bg-blue-100]="sec.type === 'TEXT'"
+                           [class.bg-[#0056D2]/10]="sec.type === 'TEXT'"
                            [class.text-[#0056D2]]="sec.type === 'TEXT'"
                            [class.bg-indigo-100]="sec.type === 'VIDEO'"
                            [class.text-indigo-600]="sec.type === 'VIDEO'">
@@ -123,46 +123,46 @@ import { QuizViewerComponent } from '../quiz-viewer/quiz-viewer.component';
             @if (state.isAssignmentLesson()) {
               <ng-container>
                 <div class="font-semibold mb-1">Thông tin bài tập</div>
-                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
-                  <div class="bg-white rounded p-3 border border-blue-300">
-                    <h4 class="font-medium text-blue-900 mb-2">Mô tả bài tập</h4>
-                    <div class="text-blue-800 whitespace-pre-line">{{ lesson.content || 'Chưa có mô tả.' }}</div>
+                <div class="bg-[#0056D2]/5 border border-[#0056D2]/20 rounded-lg p-4 space-y-3">
+                  <div class="bg-white rounded p-3 border border-[#0056D2]/30">
+                    <h4 class="font-medium text-[#004BB5] mb-2">Mô tả bài tập</h4>
+                    <div class="text-[#004BB5] whitespace-pre-line">{{ lesson.content || 'Chưa có mô tả.' }}</div>
                   </div>
 
                   @if (lesson.assignment?.instructions) {
-                    <div class="bg-white rounded p-3 border border-blue-300">
-                      <h4 class="font-medium text-blue-900 mb-2">Hướng dẫn chi tiết</h4>
-                      <div class="text-blue-800 whitespace-pre-line">{{ lesson.assignment.instructions }}</div>
+                    <div class="bg-white rounded p-3 border border-[#0056D2]/30">
+                      <h4 class="font-medium text-[#004BB5] mb-2">Hướng dẫn chi tiết</h4>
+                      <div class="text-[#004BB5] whitespace-pre-line">{{ lesson.assignment.instructions }}</div>
                     </div>
                   }
 
                   <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div class="bg-white rounded p-3 text-center border border-blue-300">
+                    <div class="bg-white rounded p-3 text-center border border-[#0056D2]/30">
                       <div class="text-lg font-bold text-[#0056D2]">{{ getAssignmentStatus(lesson) }}</div>
-                      <div class="text-xs text-blue-500">Trạng thái</div>
+                      <div class="text-xs text-[#0056D2]">Trạng thái</div>
                     </div>
 
                     @if (getAssignmentMaxScore(lesson)) {
-                      <div class="bg-white rounded p-3 text-center border border-blue-300">
+                      <div class="bg-white rounded p-3 text-center border border-[#0056D2]/30">
                         <div class="text-lg font-bold text-green-600">{{ getAssignmentMaxScore(lesson) }}</div>
                         <div class="text-xs text-green-500">Điểm tối đa</div>
                       </div>
                     }
 
                     @if (getAssignmentDueDate(lesson)) {
-                      <div class="bg-white rounded p-3 text-center border border-blue-300">
+                      <div class="bg-white rounded p-3 text-center border border-[#0056D2]/30">
                         <div class="text-sm font-bold text-orange-600">{{ getAssignmentDueDate(lesson) }}</div>
                         <div class="text-xs text-orange-500">Hạn nộp</div>
                       </div>
                     }
 
-                    <div class="bg-white rounded p-3 text-center border border-blue-300">
+                    <div class="bg-white rounded p-3 text-center border border-[#0056D2]/30">
                       <div class="text-lg font-bold text-purple-600">{{ getAssignmentSubmissionCount(lesson) }}</div>
                       <div class="text-xs text-purple-500">Bài nộp</div>
                     </div>
                   </div>
 
-                  <div class="flex gap-2 pt-2 border-t border-blue-300">
+                  <div class="flex gap-2 pt-2 border-t border-[#0056D2]/30">
                     <button class="px-3 py-2 bg-[#0056D2] text-white text-sm rounded hover:bg-[#004BB5] flex items-center gap-2">
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>

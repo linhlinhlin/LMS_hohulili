@@ -1,5 +1,5 @@
-﻿
-    <div class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 min-h-screen">
+
+    <div class="bg-gradient-to-br from-slate-50 via-[#0056D2]/5 to-indigo-100 min-h-screen">
       <!-- Course Header -->
       <div class="bg-white shadow-xl border-b border-gray-200">
         <div class="max-w-7xl mx-auto px-6 py-6">
@@ -48,7 +48,7 @@
                     <p class="text-gray-600">{{ currentLesson()?.description }}</p>
                   </div>
                   <div class="flex items-center space-x-3">
-                    <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                    <span class="px-3 py-1 bg-[#0056D2]/10 text-[#004BB5] rounded-full text-sm font-medium">
                       {{ getLessonTypeText(currentLesson()?.type!) }}
                     </span>
                     <span class="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-sm font-medium">
@@ -83,14 +83,14 @@
 
                   @if (currentLesson()?.type === 'quiz') {
                     <!-- Quiz Content -->
-                    <div class="p-6 bg-blue-50 rounded-xl">
+                    <div class="p-6 bg-[#0056D2]/5 rounded-xl">
                       <div class="flex items-center space-x-3 mb-4">
                         <svg class="w-8 h-8 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
                           <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path>
                         </svg>
-                        <h3 class="text-lg font-semibold text-blue-900">Bài kiểm tra</h3>
+                        <h3 class="text-lg font-semibold text-[#004BB5]">Bài kiểm tra</h3>
                       </div>
-                      <p class="text-blue-800 mb-4">{{ currentLesson()?.description }}</p>
+                      <p class="text-[#004BB5] mb-4">{{ currentLesson()?.description }}</p>
                       <button (click)="startQuiz(currentLesson()?.id!)"
                               class="px-6 py-3 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors">
                         Bắt đầu làm bài
@@ -123,7 +123,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                       @for (resource of currentLesson()!.resources; track resource.id) {
                         <div class="flex items-center space-x-3 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
-                          <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <div class="w-10 h-10 bg-[#0056D2]/10 rounded-lg flex items-center justify-center">
                             <svg class="w-5 h-5 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
                               <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path>
                             </svg>
@@ -190,9 +190,9 @@
                 </div>
                 
                 <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div class="p-6 bg-blue-50 rounded-xl">
-                    <h3 class="font-semibold text-blue-900 mb-2">Thông tin khóa học</h3>
-                    <ul class="text-sm text-blue-800 space-y-1">
+                  <div class="p-6 bg-[#0056D2]/5 rounded-xl">
+                    <h3 class="font-semibold text-[#004BB5] mb-2">Thông tin khóa học</h3>
+                    <ul class="text-sm text-[#004BB5] space-y-1">
                       <li>Số module: {{ getTotalModules() }}</li>
                       <li>Tổng bài học: {{ getTotalLessons() }}</li>
                       <li>Thời gian: {{ formatDuration(course()?.totalDuration!) }}</li>

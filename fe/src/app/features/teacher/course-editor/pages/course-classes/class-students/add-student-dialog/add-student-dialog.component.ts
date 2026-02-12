@@ -40,14 +40,14 @@ import { ClassService } from '../../../../../../../state/class.service';
                 <mat-tab label="Tải lên từ Excel">
                   <div class="pt-6 space-y-4 pb-2">
                     <!-- Instructions -->
-                    <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                      <h4 class="text-xs font-bold text-blue-800 flex items-center gap-1 mb-2">
+                    <div class="bg-[#0056D2]/5 p-4 rounded-lg border border-[#0056D2]/10">
+                      <h4 class="text-xs font-bold text-[#004BB5] flex items-center gap-1 mb-2">
                         <mat-icon class="text-xs scale-90">info</mat-icon> HƯỚNG DẪN CẤU TRÚC FILE
                       </h4>
                       <p class="text-[11px] text-[#004BB5] leading-relaxed mb-3">
-                        File Excel (.xlsx) cần có tiêu đề cột là <span class="bg-blue-100 px-1 rounded font-bold">Email</span> ở Sheet đầu tiên.
+                        File Excel (.xlsx) cần có tiêu đề cột là <span class="bg-[#0056D2]/10 px-1 rounded font-bold">Email</span> ở Sheet đầu tiên.
                       </p>
-                      <div class="overflow-hidden rounded-md border border-blue-200">
+                      <div class="overflow-hidden rounded-md border border-[#0056D2]/20">
                         <table class="w-full text-xs bg-white text-center border-collapse">
                           <tr class="bg-gray-100 border-b">
                             <th class="p-1.5 border-r font-bold text-gray-700">Email (Bắt buộc)</th>
@@ -63,8 +63,8 @@ import { ClassService } from '../../../../../../../state/class.service';
         
                     <!-- Upload Zone -->
                     <div class="border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer group"
-                      [class.border-blue-500]="isDragging"
-                      [class.bg-blue-50]="isDragging"
+                      [class.border-[#0056D2]]="isDragging"
+                      [class.bg-[#0056D2]/5]="isDragging"
                       [class.border-gray-300]="!isDragging && !selectedFile"
                       [class.border-green-500]="selectedFile"
                       [class.bg-green-50]="selectedFile"
@@ -76,7 +76,7 @@ import { ClassService } from '../../../../../../../state/class.service';
         
                       <div class="flex flex-col items-center">
                         @if (!selectedFile) {
-                          <mat-icon class="text-5xl text-gray-300 mb-3 h-auto w-auto group-hover:text-blue-400">cloud_upload</mat-icon>
+                          <mat-icon class="text-5xl text-gray-300 mb-3 h-auto w-auto group-hover:text-[#0056D2]">cloud_upload</mat-icon>
                         }
                         @if (selectedFile) {
                           <mat-icon class="text-5xl text-green-500 mb-3 h-auto w-auto">description</mat-icon>

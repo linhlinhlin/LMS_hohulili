@@ -93,7 +93,7 @@ type CourseListItem = AdminCourseSummary | (PendingCourseSummary & { status: str
                         <div class="flex justify-center gap-2">
                           <button
                             (click)="viewDetails(course)"
-                            class="px-3 py-1 bg-blue-50 text-[#0056D2] hover:bg-blue-100 rounded text-xs font-medium">
+                            class="px-3 py-1 bg-[#0056D2]/5 text-[#0056D2] hover:bg-[#0056D2]/10 rounded text-xs font-medium">
                             Xem chi tiết
                           </button>
                           @if (course.status === 'PENDING') {
@@ -203,7 +203,7 @@ type CourseListItem = AdminCourseSummary | (PendingCourseSummary & { status: str
                     </div>
                     <!-- Course Stats -->
                     <div class="grid grid-cols-3 gap-4 mb-6">
-                      <div class="bg-blue-50 rounded-lg p-4 text-center">
+                      <div class="bg-[#0056D2]/5 rounded-lg p-4 text-center">
                         <div class="text-2xl font-bold text-[#0056D2]">{{ courseDetails.sectionsCount || 0 }}</div>
                         <div class="text-sm text-gray-600">Chương</div>
                       </div>

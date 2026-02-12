@@ -42,7 +42,7 @@ public class VideoProgressControllerV3 {
                 request.toSecond(),
                 request.lastPosition()
         );
-        return ResponseEntity.ok(ApiResponse.success(result, "Progress tracked"));
+        return ResponseEntity.ok(ApiResponse.success(result, "Đã ghi nhận tiến độ"));
     }
 
     @Operation(summary = "Get video progress for a section")
@@ -53,7 +53,7 @@ public class VideoProgressControllerV3 {
             @PathVariable String sectionId) {
         UUID studentId = currentUser.getId();
         var result = useCase.getProgress(studentId, sectionId);
-        return ResponseEntity.ok(ApiResponse.success(result, "Progress loaded"));
+        return ResponseEntity.ok(ApiResponse.success(result, "Tiến độ xem video"));
     }
 
     @Operation(summary = "Get all video progress for a lesson")
@@ -64,7 +64,7 @@ public class VideoProgressControllerV3 {
             @PathVariable UUID lessonId) {
         UUID studentId = currentUser.getId();
         var result = useCase.getLessonProgress(studentId, lessonId);
-        return ResponseEntity.ok(ApiResponse.success(result, "Lesson progress loaded"));
+        return ResponseEntity.ok(ApiResponse.success(result, "Tiến độ bài học"));
     }
 
     @Operation(summary = "Check if student can proceed past a video section")
@@ -75,7 +75,7 @@ public class VideoProgressControllerV3 {
             @PathVariable String sectionId) {
         UUID studentId = currentUser.getId();
         boolean canProceed = useCase.canProceed(studentId, sectionId);
-        return ResponseEntity.ok(ApiResponse.success(new CanProceedResponse(canProceed), "Check complete"));
+        return ResponseEntity.ok(ApiResponse.success(new CanProceedResponse(canProceed), "Kết quả kiểm tra"));
     }
 
     @Operation(summary = "Get resume position for a video section")
@@ -86,7 +86,7 @@ public class VideoProgressControllerV3 {
             @PathVariable String sectionId) {
         UUID studentId = currentUser.getId();
         double position = useCase.getResumePosition(studentId, sectionId);
-        return ResponseEntity.ok(ApiResponse.success(new ResumePositionResponse(position), "Resume position loaded"));
+        return ResponseEntity.ok(ApiResponse.success(new ResumePositionResponse(position), "Vị trí tiếp tục xem"));
     }
 
 }

@@ -104,7 +104,7 @@ export const FILE_TYPE_ICONS: Record<FileType, string> = {
  */
 export const FILE_TYPE_COLORS: Record<FileType, string> = {
   [FileType.PDF]: 'bg-red-100 text-red-800',
-  [FileType.WORD]: 'bg-blue-100 text-blue-800',
+  [FileType.WORD]: 'bg-[#0056D2]/10 text-[#004BB5]',
   [FileType.EXCEL]: 'bg-green-100 text-green-800',
   [FileType.POWERPOINT]: 'bg-orange-100 text-orange-800',
   [FileType.IMAGE]: 'bg-yellow-100 text-yellow-800',

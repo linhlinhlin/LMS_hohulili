@@ -21,7 +21,7 @@ public class AdminSettingsControllerV3 {
     @Operation(summary = "Get system settings")
     public ResponseEntity<ApiResponse<AdminSettingsUseCase.SettingsResponse>> getSettings() {
         var settings = settingsUseCase.getSettings();
-        return ResponseEntity.ok(ApiResponse.success(settings, "Settings loaded"));
+        return ResponseEntity.ok(ApiResponse.success(settings, "Cài đặt hệ thống"));
     }
 
     @PutMapping
@@ -29,6 +29,6 @@ public class AdminSettingsControllerV3 {
     public ResponseEntity<ApiResponse<AdminSettingsUseCase.SettingsResponse>> updateSettings(
             @RequestBody AdminSettingsUseCase.SettingsResponse settings) {
         var updated = settingsUseCase.updateSettings(settings);
-        return ResponseEntity.ok(ApiResponse.success(updated, "Settings updated"));
+        return ResponseEntity.ok(ApiResponse.success(updated, "Cập nhật cài đặt thành công"));
     }
 }

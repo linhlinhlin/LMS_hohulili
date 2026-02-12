@@ -14,11 +14,11 @@
                 </div>
                 <div>
                   <h1 class="text-4xl lg:text-5xl font-bold mb-2">{{ categoryInfo().name }}</h1>
-                  <p class="text-xl text-blue-100">{{ categoryInfo().shortDescription }}</p>
+                  <p class="text-xl text-white/80">{{ categoryInfo().shortDescription }}</p>
                 </div>
               </div>
               
-              <p class="text-lg text-blue-100 mb-8 leading-relaxed">
+              <p class="text-lg text-white/80 mb-8 leading-relaxed">
                 {{ categoryInfo().description }}
               </p>
 
@@ -26,19 +26,19 @@
               <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <div class="text-center">
                   <div class="text-3xl font-bold text-white">{{ categoryInfo().stats.courses }}</div>
-                  <div class="text-sm text-blue-200">Kh�a h?c</div>
+                  <div class="text-sm text-white/60">Khóa học</div>
                 </div>
                 <div class="text-center">
                   <div class="text-3xl font-bold text-white">{{ categoryInfo().stats.students }}+</div>
-                  <div class="text-sm text-blue-200">H?c vi�n</div>
+                  <div class="text-sm text-white/60">Học viên</div>
                 </div>
                 <div class="text-center">
                   <div class="text-3xl font-bold text-white">{{ categoryInfo().stats.instructors }}</div>
-                  <div class="text-sm text-blue-200">Gi?ng vi�n</div>
+                  <div class="text-sm text-white/60">Giảng viên</div>
                 </div>
                 <div class="text-center">
                   <div class="text-3xl font-bold text-white">{{ categoryInfo().stats.certificates }}</div>
-                  <div class="text-sm text-blue-200">Ch?ng ch?</div>
+                  <div class="text-sm text-white/60">Chứng chỉ</div>
                 </div>
               </div>
 
@@ -46,11 +46,11 @@
               <div class="flex flex-col sm:flex-row gap-4">
                 <a routerLink="#courses" 
                    class="bg-white text-[#0056D2] px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition-colors duration-200 text-center">
-                  Kh�m ph� kh�a h?c
+                  Khám phá khóa học
                 </a>
                 <a routerLink="#career" 
                    class="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold hover:bg-white hover:text-[#0056D2] transition-colors duration-200 text-center">
-                  Xem co h?i ngh? nghi?p
+                  Xem cơ hội nghề nghiệp
                 </a>
               </div>
             </div>
@@ -69,19 +69,19 @@
                     <span class="text-green-600 text-sm">✓</span>
                   </div>
                   <div>
-                    <div class="text-sm font-semibold text-gray-900">Ch?ng ch? qu?c t?</div>
+                    <div class="text-sm font-semibold text-gray-900">Chứng chỉ quốc tế</div>
                     <div class="text-xs text-gray-500">STCW, IMO</div>
                   </div>
                 </div>
               </div>
               <div class="absolute -bottom-4 -right-4 bg-white rounded-lg p-4 shadow-lg">
                 <div class="flex items-center space-x-2">
-                  <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                    <span class="text-[#0056D2] text-sm">d���‍d���</span>
+                  <div class="w-8 h-8 bg-[#0056D2]/10 rounded-full flex items-center justify-center">
+                    <span class="text-[#0056D2] text-sm">&#128104;&#8205;&#128187;</span>
                   </div>
                   <div>
-                    <div class="text-sm font-semibold text-gray-900">Gi?ng vi�n chuy�n m�n</div>
-                    <div class="text-xs text-gray-500">Kinh nghi?m th?c t?</div>
+                    <div class="text-sm font-semibold text-gray-900">Giảng viên chuyên môn</div>
+                    <div class="text-xs text-gray-500">Kinh nghiệm thực tế</div>
                   </div>
                 </div>
               </div>
@@ -94,9 +94,9 @@
       <section class="py-16 bg-white" id="learning-path">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="text-center mb-12">
-            <h2 class="text-3xl font-bold text-gray-900 mb-4">L? tr�nh h?c t?p</h2>
+            <h2 class="text-3xl font-bold text-gray-900 mb-4">Lộ trình học tập</h2>
             <p class="text-lg text-gray-600 max-w-3xl mx-auto">
-              B?t d?u t? co b?n v� ti?n l�n c�c c?p d? chuy�n s�u v?i l? tr�nh h?c t?p du?c thi?t k? khoa h?c
+              Bắt đầu từ cơ bản và tiến lên các cấp độ chuyên sâu với lộ trình học tập được thiết kế khoa học
             </p>
           </div>
 
@@ -105,11 +105,11 @@
             <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-8">
               <div class="flex items-center space-x-3 mb-6">
                 <div class="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center">
-                  <span class="text-white text-xl">d���</span>
+                  <span class="text-white text-xl">&#127793;</span>
                 </div>
                 <div>
-                  <h3 class="text-xl font-bold text-gray-900">Co b?n</h3>
-                  <p class="text-green-600 font-medium">B?t d?u h�nh tr�nh</p>
+                  <h3 class="text-xl font-bold text-gray-900">Cơ bản</h3>
+                  <p class="text-green-600 font-medium">Bắt đầu hành trình</p>
                 </div>
               </div>
               <div class="space-y-4">
@@ -118,7 +118,7 @@
                     <h4 class="font-semibold text-gray-900 mb-2">{{ course.title }}</h4>
                     <div class="flex items-center justify-between text-sm text-gray-600">
                       <span>{{ course.duration }}</span>
-                      <span>{{ course.students }}+ h?c vi�n</span>
+                      <span>{{ course.students }}+ học viên</span>
                     </div>
                   </div>
                 }
@@ -126,14 +126,14 @@
             </div>
 
             <!-- Intermediate -->
-            <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-8">
+            <div class="bg-gradient-to-br from-[#0056D2]/5 to-[#0056D2]/10 rounded-2xl p-8">
               <div class="flex items-center space-x-3 mb-6">
                 <div class="w-12 h-12 bg-[#0056D2] rounded-lg flex items-center justify-center">
-                  <span class="text-white text-xl">d�?�</span>
+                  <span class="text-white text-xl">&#128200;</span>
                 </div>
                 <div>
-                  <h3 class="text-xl font-bold text-gray-900">Trung c?p</h3>
-                  <p class="text-[#0056D2] font-medium">N�ng cao k? nang</p>
+                  <h3 class="text-xl font-bold text-gray-900">Trung cấp</h3>
+                  <p class="text-[#0056D2] font-medium">Nâng cao kỹ năng</p>
                 </div>
               </div>
               <div class="space-y-4">
@@ -142,7 +142,7 @@
                     <h4 class="font-semibold text-gray-900 mb-2">{{ course.title }}</h4>
                     <div class="flex items-center justify-between text-sm text-gray-600">
                       <span>{{ course.duration }}</span>
-                      <span>{{ course.students }}+ h?c vi�n</span>
+                      <span>{{ course.students }}+ học viên</span>
                     </div>
                   </div>
                 }
@@ -153,11 +153,11 @@
             <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-8">
               <div class="flex items-center space-x-3 mb-6">
                 <div class="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center">
-                  <span class="text-white text-xl">d���</span>
+                  <span class="text-white text-xl">&#127942;</span>
                 </div>
                 <div>
-                  <h3 class="text-xl font-bold text-gray-900">N�ng cao</h3>
-                  <p class="text-purple-600 font-medium">Tr? th�nh chuy�n gia</p>
+                  <h3 class="text-xl font-bold text-gray-900">Nâng cao</h3>
+                  <p class="text-purple-600 font-medium">Trở thành chuyên gia</p>
                 </div>
               </div>
               <div class="space-y-4">
@@ -166,7 +166,7 @@
                     <h4 class="font-semibold text-gray-900 mb-2">{{ course.title }}</h4>
                     <div class="flex items-center justify-between text-sm text-gray-600">
                       <span>{{ course.duration }}</span>
-                      <span>{{ course.students }}+ h?c vi�n</span>
+                      <span>{{ course.students }}+ học viên</span>
                     </div>
                   </div>
                 }
@@ -180,9 +180,9 @@
       <section class="py-16 bg-gray-50" id="courses">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="text-center mb-12">
-            <h2 class="text-3xl font-bold text-gray-900 mb-4">Kh�a h?c {{ categoryInfo().name }}</h2>
+            <h2 class="text-3xl font-bold text-gray-900 mb-4">Khóa học {{ categoryInfo().name }}</h2>
             <p class="text-lg text-gray-600 max-w-3xl mx-auto">
-              Kh�m ph� c�c kh�a h?c chuy�n s�u du?c thi?t k? b?i c�c chuy�n gia h�ng d?u trong linh v?c
+              Khám phá các khóa học chuyên sâu được thiết kế bởi các chuyên gia hàng đầu trong lĩnh vực
             </p>
           </div>
 
@@ -197,12 +197,12 @@
                        class="w-full h-48 object-cover">
                   @if (course.isPopular) {
                     <div class="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                      Ph? bi?n
+                      Phổ biến
                     </div>
                   }
                   @if (course.isNew) {
                     <div class="absolute top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                      M?i
+                      Mới
                     </div>
                   }
                 </div>
@@ -210,7 +210,7 @@
                 <!-- Course Content -->
                 <div class="p-6">
                   <div class="flex items-center justify-between mb-3">
-                    <span class="px-3 py-1 bg-blue-100 text-[#0056D2] rounded-full text-sm font-medium">
+                    <span class="px-3 py-1 bg-[#0056D2]/10 text-[#0056D2] rounded-full text-sm font-medium">
                       {{ course.level }}
                     </span>
                     <div class="flex items-center space-x-1">
@@ -236,7 +236,7 @@
                   <!-- Course Stats -->
                   <div class="flex items-center justify-between text-sm text-gray-600 mb-4">
                     <span>{{ course.duration }}</span>
-                    <span>{{ course.students }}+ h?c vi�n</span>
+                    <span>{{ course.students }}+ học viên</span>
                     <span>{{ course.curriculum.modules }} modules</span>
                   </div>
 
@@ -254,7 +254,7 @@
                     </div>
                     <a [routerLink]="['/courses', course.id]" 
                        class="bg-[#0056D2] text-white px-4 py-2 rounded-lg hover:bg-[#004BB5] transition-colors duration-200">
-                      Xem chi ti?t
+                      Xem chi tiết
                     </a>
                   </div>
                 </div>
@@ -268,9 +268,9 @@
       <section class="py-16 bg-white" id="career">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="text-center mb-12">
-            <h2 class="text-3xl font-bold text-gray-900 mb-4">Co h?i ngh? nghi?p</h2>
+            <h2 class="text-3xl font-bold text-gray-900 mb-4">Cơ hội nghề nghiệp</h2>
             <p class="text-lg text-gray-600 max-w-3xl mx-auto">
-              Kh�m ph� c�c v? tr� c�ng vi?c v� co h?i thang ti?n trong linh v?c {{ categoryInfo().name }}
+              Khám phá các vị trí công việc và cơ hội thăng tiến trong lĩnh vực {{ categoryInfo().name }}
             </p>
           </div>
 
@@ -281,7 +281,7 @@
                 <p class="text-gray-600 mb-4">{{ career.description }}</p>
                 <div class="text-lg font-semibold text-[#0056D2] mb-4">{{ career.salary }}</div>
                 <div class="space-y-2">
-                  <h4 class="font-medium text-gray-900">Y�u c?u:</h4>
+                  <h4 class="font-medium text-gray-900">Yêu cầu:</h4>
                   <ul class="space-y-1">
                     @for (req of career.requirements; track req) {
                       <li class="text-sm text-gray-600 flex items-center">

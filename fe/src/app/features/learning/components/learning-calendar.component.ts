@@ -34,12 +34,12 @@ interface CalendarDay {
   selector: 'app-learning-calendar',
   imports: [FormsModule, RouterModule, IconComponent],
   template: `
-    <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+    <div class="min-h-screen bg-gradient-to-br from-slate-50 via-[#0056D2]/5 to-indigo-100">
       <div class="max-w-7xl mx-auto px-6 py-8">
         <!-- Header -->
         <div class="flex items-center justify-between mb-8">
           <div>
-            <h1 class="text-3xl font-bold text-gray-900 mb-2 flex items-center"><app-icon name="calendar" size="md" class="text-gray-700 mr-2"/> Learning Calendar</h1>
+            <h1 class="text-3xl font-bold text-gray-900 mb-2 flex items-center"><app-icon name="calendar" size="md" class="text-gray-700 mr-2"/> Lịch học tập</h1>
             <p class="text-gray-600">Lịch học tập và sự kiện</p>
           </div>
           <div class="flex items-center space-x-4">
@@ -125,7 +125,7 @@ interface CalendarDay {
                     {{ day.date.getDate() }}
                   </span>
                   @if (day.events.length > 0) {
-                    <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                    <span class="text-xs bg-[#0056D2]/10 text-[#004BB5] px-2 py-1 rounded-full">
                       {{ day.events.length }}
                     </span>
                   }
@@ -339,15 +339,15 @@ export class LearningCalendarComponent implements OnInit {
   getDayClasses(day: CalendarDay): string {
     let classes = '';
     if (!day.isCurrentMonth) classes += 'bg-gray-50 text-gray-400 ';
-    if (day.isToday) classes += 'bg-blue-50 ';
-    if (day.isSelected) classes += 'bg-blue-100 ';
+    if (day.isToday) classes += 'bg-[#0056D2]/5 ';
+    if (day.isSelected) classes += 'bg-[#0056D2]/10 ';
     return classes;
   }
 
   getDateClasses(day: CalendarDay): string {
     if (!day.isCurrentMonth) return 'text-gray-400';
     if (day.isToday) return 'text-[#0056D2] font-bold';
-    if (day.isSelected) return 'text-blue-800 font-bold';
+    if (day.isSelected) return 'text-[#004BB5] font-bold';
     return 'text-gray-900';
   }
 
@@ -381,7 +381,7 @@ export class LearningCalendarComponent implements OnInit {
 
   getStatusClass(status: string): string {
     switch (status) {
-      case 'scheduled': return 'bg-blue-100 text-blue-800';
+      case 'scheduled': return 'bg-[#0056D2]/10 text-[#004BB5]';
       case 'in-progress': return 'bg-yellow-100 text-yellow-800';
       case 'completed': return 'bg-green-100 text-green-800';
       case 'cancelled': return 'bg-gray-100 text-gray-800';

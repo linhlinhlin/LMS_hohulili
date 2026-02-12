@@ -25,9 +25,9 @@ interface Assignment {
         <h1 class="text-2xl font-bold text-gray-900 mb-4">{{ assignment()?.title }}</h1>
         <p class="text-gray-600 mb-4">{{ assignment()?.description }}</p>
         
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-          <h3 class="font-semibold text-blue-900 mb-2">Yêu cầu nộp bài:</h3>
-          <ul class="text-sm text-blue-800 space-y-1">
+        <div class="bg-[#0056D2]/5 border border-[#0056D2]/20 rounded-lg p-4 mb-4">
+          <h3 class="font-semibold text-[#004BB5] mb-2">Yêu cầu nộp bài:</h3>
+          <ul class="text-sm text-[#004BB5] space-y-1">
             <li>• Hạn nộp: {{ formatDate(assignment()?.dueDate!) }}</li>
             <li>• Kích thước tối đa: {{ formatFileSize(assignment()?.maxFileSize!) }}</li>
             <li>• Số file tối đa: {{ assignment()?.maxFiles }}</li>

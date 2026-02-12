@@ -52,7 +52,7 @@ public class DataFixInitializer {
                 "CHECK (role IN ('ADMIN', 'ORG_ADMIN', 'TEACHER', 'STUDENT'))"
             );
             log.debug("Updated users_role_check constraint");
-        } catch (Exception e) {
+        } catch (org.springframework.dao.DataAccessException e) {
             log.trace("Could not update users_role_check: {}", e.getMessage());
         }
     }
@@ -66,7 +66,7 @@ public class DataFixInitializer {
                 "CHECK (type IN ('VIDEO', 'TEXT', 'QUIZ', 'FILE', 'ASSIGNMENT'))"
             );
             log.debug("Updated sections_type_check constraint");
-        } catch (Exception e) {
+        } catch (org.springframework.dao.DataAccessException e) {
             // Silently ignore - constraint may not exist or table may not exist
             log.trace("Could not update sections_type_check: {}", e.getMessage());
         }

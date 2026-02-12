@@ -93,6 +93,7 @@ public class Assignment {
     // ============ Factory Methods ============
 
     public static Assignment create(
+            UUID courseId,
             UUID lessonId,
             String title,
             String description,
@@ -100,12 +101,16 @@ public class Assignment {
             AssignmentType type,
             Integer maxScore
     ) {
+        if (courseId == null) {
+            throw new IllegalArgumentException("courseId là bắt buộc khi tạo bài tập");
+        }
         if (title == null || title.isBlank()) {
             throw new IllegalArgumentException("Assignment title is required");
         }
 
         return Assignment.builder()
             .id(AssignmentId.generate())
+            .courseId(courseId)
             .lessonId(lessonId)
             .title(title)
             .description(description)

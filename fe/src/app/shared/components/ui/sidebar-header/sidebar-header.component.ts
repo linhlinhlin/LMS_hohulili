@@ -14,11 +14,11 @@ import { MatTooltipModule } from '@angular/material/tooltip';
       <div class="flex items-center justify-between">
         <h2 class="text-[11px] font-black text-slate-400 uppercase tracking-widest px-1">Cấu trúc bài học</h2>
         <div class="flex items-center gap-2">
-          <span class="px-1.5 py-0.5 bg-blue-50 text-[#0056D2] text-[10px] font-bold rounded">
+          <span class="px-1.5 py-0.5 bg-[#0056D2]/5 text-[#0056D2] text-[10px] font-bold rounded">
             {{ publishedCount() }}/{{ totalCount() }}
           </span>
           <button (click)="toggleExpand()" 
-                  class="p-1 text-slate-400 hover:text-[#0056D2] hover:bg-blue-50 rounded transition-colors"
+                  class="p-1 text-slate-400 hover:text-[#0056D2] hover:bg-[#0056D2]/5 rounded transition-colors"
                   [matTooltip]="allExpanded() ? 'Thu gọn tất cả' : 'Mở rộng tất cả'">
             <mat-icon class="text-sm scale-75">{{ allExpanded() ? 'unfold_less' : 'unfold_more' }}</mat-icon>
           </button>
@@ -27,7 +27,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
       
       <!-- Global Filter: Slimmed down -->
       <div class="relative group px-1">
-        <mat-icon class="absolute left-3 top-2 text-slate-300 group-focus-within:text-blue-500 scale-75 transition-colors">search</mat-icon>
+        <mat-icon class="absolute left-3 top-2 text-slate-300 group-focus-within:text-[#0056D2] scale-75 transition-colors">search</mat-icon>
         <input 
           type="text" 
           [(ngModel)]="searchQuery"

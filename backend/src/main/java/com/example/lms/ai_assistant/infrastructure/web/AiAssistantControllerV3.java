@@ -54,7 +54,7 @@ public class AiAssistantControllerV3 {
             "aiServiceStatus", "available",
             "version", "3.0"
         );
-        return ResponseEntity.ok(ApiResponse.success(health, "AI service is healthy"));
+        return ResponseEntity.ok(ApiResponse.success(health, "Dịch vụ AI đang hoạt động"));
     }
 
     // ============== Session Management ==============
@@ -68,7 +68,7 @@ public class AiAssistantControllerV3 {
         log.info("Creating chat session for user: {}", user.getId());
         ChatSessionResponse response = chatSessionUseCase.createSession(user.getId(), command);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success(response, "Session created"));
+                .body(ApiResponse.success(response, "Tạo phiên trò chuyện thành công"));
     }
 
     @GetMapping("/sessions")
@@ -77,7 +77,7 @@ public class AiAssistantControllerV3 {
             @AuthenticationPrincipal UserJpaEntity user) {
 
         List<ChatSessionResponse> sessions = chatSessionUseCase.getUserSessions(user.getId());
-        return ResponseEntity.ok(ApiResponse.success(sessions, "Sessions loaded"));
+        return ResponseEntity.ok(ApiResponse.success(sessions, "Danh sách phiên trò chuyện"));
     }
 
     @GetMapping("/sessions/{sessionId}")
@@ -88,7 +88,7 @@ public class AiAssistantControllerV3 {
 
         ChatSessionResponse session = chatSessionUseCase.getSession(sessionId);
         verifySessionOwner(session, user.getId());
-        return ResponseEntity.ok(ApiResponse.success(session, "Session loaded"));
+        return ResponseEntity.ok(ApiResponse.success(session, "Thông tin phiên trò chuyện"));
     }
 
     @PutMapping("/sessions/{sessionId}/archive")
@@ -100,7 +100,7 @@ public class AiAssistantControllerV3 {
         ChatSessionResponse session = chatSessionUseCase.getSession(sessionId);
         verifySessionOwner(session, user.getId());
         chatSessionUseCase.archiveSession(sessionId);
-        return ResponseEntity.ok(ApiResponse.success(null, "Session archived"));
+        return ResponseEntity.ok(ApiResponse.success(null, "Đã lưu trữ phiên trò chuyện"));
     }
 
     @DeleteMapping("/sessions/{sessionId}")
@@ -112,7 +112,7 @@ public class AiAssistantControllerV3 {
         ChatSessionResponse session = chatSessionUseCase.getSession(sessionId);
         verifySessionOwner(session, user.getId());
         chatSessionUseCase.deleteSession(sessionId);
-        return ResponseEntity.ok(ApiResponse.success(null, "Session deleted"));
+        return ResponseEntity.ok(ApiResponse.success(null, "Đã xóa phiên trò chuyện"));
     }
 
     // ============== Chat Endpoints ==============
@@ -155,7 +155,7 @@ public class AiAssistantControllerV3 {
         response.put("aiResponse", Map.of(
                 "id", aiMsg.getId(), "content", aiResponse, "role", "ASSISTANT", "createdAt", Instant.now()));
 
-        return ResponseEntity.ok(ApiResponse.success(response, "Message sent"));
+        return ResponseEntity.ok(ApiResponse.success(response, "Đã gửi tin nhắn"));
     }
 
     @GetMapping("/sessions/{sessionId}/messages")
@@ -177,7 +177,7 @@ public class AiAssistantControllerV3 {
             return map;
         }).toList();
 
-        return ResponseEntity.ok(ApiResponse.success(result, "Messages loaded"));
+        return ResponseEntity.ok(ApiResponse.success(result, "Danh sách tin nhắn"));
     }
 
     @PostMapping("/chat")
@@ -196,7 +196,7 @@ public class AiAssistantControllerV3 {
             "response", aiResponse
         );
 
-        return ResponseEntity.ok(ApiResponse.success(response, "Chat response"));
+        return ResponseEntity.ok(ApiResponse.success(response, "Phản hồi trò chuyện"));
     }
 
     // ============== Context-Aware Chat ==============
@@ -219,7 +219,7 @@ public class AiAssistantControllerV3 {
             "context", "course"
         );
 
-        return ResponseEntity.ok(ApiResponse.success(response, "Course context response"));
+        return ResponseEntity.ok(ApiResponse.success(response, "Phản hồi ngữ cảnh khóa học"));
     }
 
     @PostMapping("/lessons/{lessonId}/explain")
@@ -240,14 +240,14 @@ public class AiAssistantControllerV3 {
             "context", "lesson"
         );
 
-        return ResponseEntity.ok(ApiResponse.success(response, "Lesson explanation"));
+        return ResponseEntity.ok(ApiResponse.success(response, "Giải thích bài học"));
     }
 
     // ============== Helpers ==============
 
     private void verifySessionOwner(ChatSessionResponse session, UUID currentUserId) {
         if (session.userId() != null && !session.userId().equals(currentUserId)) {
-            throw new AccessDeniedException("You do not have permission to access this session");
+            throw new AccessDeniedException("Bạn không có quyền truy cập phiên này");
         }
     }
 

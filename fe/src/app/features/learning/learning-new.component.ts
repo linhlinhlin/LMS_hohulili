@@ -19,7 +19,7 @@ import { StudentEnrollmentService } from '../student/services/enrollment.service
       variant="overlay"
       color="blue">
     </app-loading>
-    <div class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+    <div class="bg-gradient-to-br from-slate-50 via-[#0056D2]/5 to-indigo-100">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Header -->
         <div class="mb-8">
@@ -47,7 +47,7 @@ import { StudentEnrollmentService } from '../student/services/enrollment.service
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div class="bg-white rounded-xl shadow-lg p-6">
             <div class="flex items-center">
-              <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mr-4">
+              <div class="w-12 h-12 bg-[#0056D2]/10 rounded-xl flex items-center justify-center mr-4">
                 <svg class="w-6 h-6 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
                   <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
@@ -95,7 +95,7 @@ import { StudentEnrollmentService } from '../student/services/enrollment.service
           <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <button 
               routerLink="/student/quiz"
-              class="p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors text-left">
+              class="p-4 bg-[#0056D2]/5 rounded-lg hover:bg-[#0056D2]/10 transition-colors text-left">
               <div class="flex items-center space-x-3">
                 <svg class="w-6 h-6 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path>
@@ -278,7 +278,7 @@ export class LearningNewComponent implements OnInit {
   getStatusClass(status: string): string {
     switch (status) {
       case 'in-progress':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-[#0056D2]/10 text-[#004BB5]';
       case 'completed':
         return 'bg-green-100 text-green-800';
       case 'not-started':

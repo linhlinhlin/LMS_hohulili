@@ -14,7 +14,7 @@ import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.s
       <div class="px-6 py-4 border-b border-gray-200">
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-3">
-            <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+            <div class="w-8 h-8 bg-[#0056D2]/10 rounded-lg flex items-center justify-center">
               <svg class="w-5 h-5 text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zM4.868 12.683A17.925 17.925 0 0112 21c7.962 0 12-1.21 12-2.683m-12 2.683a17.925 17.925 0 01-7.132-8.317M12 21c4.411 0 8-4.03 8-9s-3.589-9-8-9-8 4.03-8 9a9.06 9.06 0 001.832 5.445L4 21l7.868-2.317z"></path>
               </svg>
@@ -34,7 +34,7 @@ import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.s
           <div class="flex items-center space-x-2">
             @if (unreadCount() > 0) {
               <button (click)="markAllAsRead()"
-                      class="px-3 py-1 text-sm text-[#0056D2] hover:text-blue-800 hover:bg-blue-50 rounded">
+                      class="px-3 py-1 text-sm text-[#0056D2] hover:text-[#004BB5] hover:bg-[#0056D2]/5 rounded">
                 Đánh dấu tất cả đã đọc
               </button>
             }
@@ -62,7 +62,7 @@ import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.s
             <div class="divide-y divide-gray-200">
               @for (notification of notifications(); track notification.id) {
                 <div class="px-6 py-4 hover:bg-gray-50 transition-colors"
-                     [class.bg-blue-50]="!notification.read">
+                     [class.bg-[#0056D2]/5]="!notification.read">
                   <div class="flex items-start space-x-3">
                     <!-- Notification Icon -->
                     <div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
@@ -99,7 +99,7 @@ import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.s
                         <div class="flex items-center space-x-2 ml-4">
                           @if (notification.actionUrl && notification.actionLabel) {
                             <button (click)="handleAction(notification)"
-                                    class="px-3 py-1 text-xs font-medium text-[#0056D2] bg-blue-50 border border-blue-200 rounded hover:bg-blue-100">
+                                    class="px-3 py-1 text-xs font-medium text-[#0056D2] bg-[#0056D2]/5 border border-[#0056D2]/20 rounded hover:bg-[#0056D2]/10">
                               {{ notification.actionLabel }}
                             </button>
                           }
@@ -213,7 +213,7 @@ export class AssignmentNotificationsComponent implements OnInit {
       case 'graded':
         return 'bg-green-100 text-green-600';
       case 'feedback_received':
-        return 'bg-blue-100 text-[#0056D2]';
+        return 'bg-[#0056D2]/10 text-[#0056D2]';
       case 'assignment_created':
         return 'bg-purple-100 text-purple-600';
       case 'assignment_updated':

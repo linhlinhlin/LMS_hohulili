@@ -16,7 +16,7 @@ import { ToastService } from '../../../core/services/toast.service';
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="text-center">
             <h2 class="text-3xl font-bold mb-4">Đăng ký nhận thông tin mới nhất</h2>
-            <p class="text-blue-100 mb-8 max-w-2xl mx-auto">
+            <p class="text-white/80 mb-8 max-w-2xl mx-auto">
               Cập nhật các khóa học mới, tin tức ngành hàng hải và cơ hội nghề nghiệp
             </p>
             <div class="max-w-md mx-auto flex gap-4">
@@ -29,7 +29,7 @@ import { ToastService } from '../../../core/services/toast.service';
               />
               <button
                 (click)="subscribeNewsletter()"
-                class="px-6 py-3 bg-yellow-400 text-blue-900 font-bold rounded-lg hover:bg-yellow-300 transition-colors duration-200 flex items-center"
+                class="px-6 py-3 bg-yellow-400 text-[#004BB5] font-bold rounded-lg hover:bg-yellow-300 transition-colors duration-200 flex items-center"
               >
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>

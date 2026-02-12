@@ -1,4 +1,4 @@
-﻿import { Component, signal, computed, inject, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
+import { Component, signal, computed, inject, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -206,7 +206,7 @@ export class AdvancedNotificationSystemComponent implements OnInit, OnDestroy {
   getNotificationIconClass(type: string): string {
     switch (type) {
       case 'assignment': return 'bg-orange-100 text-orange-600';
-      case 'course': return 'bg-blue-100 text-[#0056D2]';
+      case 'course': return 'bg-[#0056D2]/10 text-[#0056D2]';
       case 'system': return 'bg-gray-100 text-gray-600';
       case 'social': return 'bg-green-100 text-green-600';
       case 'announcement': return 'bg-purple-100 text-purple-600';

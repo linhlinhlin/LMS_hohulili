@@ -87,25 +87,25 @@ interface Partner {
               <div class="text-4xl font-bold mb-2 group-hover:scale-110 transition-transform duration-200">
                 10,000+
               </div>
-              <div class="text-blue-200">Học viên đã tốt nghiệp</div>
+              <div class="text-white/60">Học viên đã tốt nghiệp</div>
             </div>
             <div class="group">
               <div class="text-4xl font-bold mb-2 group-hover:scale-110 transition-transform duration-200">
                 50+
               </div>
-              <div class="text-blue-200">Khóa học chuyên nghiệp</div>
+              <div class="text-white/60">Khóa học chuyên nghiệp</div>
             </div>
             <div class="group">
               <div class="text-4xl font-bold mb-2 group-hover:scale-110 transition-transform duration-200">
                 95%
               </div>
-              <div class="text-blue-200">Tỷ lệ có việc làm</div>
+              <div class="text-white/60">Tỷ lệ có việc làm</div>
             </div>
             <div class="group">
               <div class="text-4xl font-bold mb-2 group-hover:scale-110 transition-transform duration-200">
                 15+
               </div>
-              <div class="text-blue-200">Năm kinh nghiệm</div>
+              <div class="text-white/60">Năm kinh nghiệm</div>
             </div>
           </div>
         </div>

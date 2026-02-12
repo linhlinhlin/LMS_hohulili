@@ -61,7 +61,7 @@ public class CourseQueryControllerV3 {
         }
         
         Page<CourseSummaryResponse> response = courses.map(this::toSummary);
-        return ResponseEntity.ok(ApiResponse.success(response, "Courses loaded"));
+        return ResponseEntity.ok(ApiResponse.success(response, "Danh sách khóa học"));
     }
 
     // my-courses moved to TeacherCourseControllerV3
@@ -74,7 +74,7 @@ public class CourseQueryControllerV3 {
         // FIX: Use findByIdWithContent to eagerly load chapters via JOIN FETCH
         // This prevents LazyInitializationException when open-in-view=false
         return courseRepository.findByIdWithContent(courseId)
-                .map(course -> ResponseEntity.ok(ApiResponse.success(toDetail(course), "Course loaded")))
+                .map(course -> ResponseEntity.ok(ApiResponse.success(toDetail(course), "Thông tin khóa học")))
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -88,7 +88,7 @@ public class CourseQueryControllerV3 {
         var chapterEntities = chapterRepository.findByCourseIdOrderByOrderIndex(courseId);
 
         if (chapterEntities.isEmpty()) {
-            return ResponseEntity.ok(ApiResponse.success(new ArrayList<>(), "Course has no content"));
+            return ResponseEntity.ok(ApiResponse.success(new ArrayList<>(), "Khóa học chưa có nội dung"));
         }
 
         List<ChapterResponse> chapters = new ArrayList<>();
@@ -136,7 +136,7 @@ public class CourseQueryControllerV3 {
                     .build());
         }
 
-        return ResponseEntity.ok(ApiResponse.success(chapters, "Course content loaded"));
+        return ResponseEntity.ok(ApiResponse.success(chapters, "Nội dung khóa học"));
     }
 
     @Operation(summary = "Get instructors for a course")
@@ -166,9 +166,9 @@ public class CourseQueryControllerV3 {
                             .revenueSharePercent(100)
                             .invitedAt(course.getCreatedAt() != null ? course.getCreatedAt().toString() : null)
                             .build();
-                    return ResponseEntity.ok(ApiResponse.success(List.of(instructor), "Instructors loaded"));
+                    return ResponseEntity.ok(ApiResponse.success(List.of(instructor), "Danh sách giảng viên"));
                 })
-                .orElse(ResponseEntity.ok(ApiResponse.success(List.of(), "Course not found")));
+                .orElse(ResponseEntity.ok(ApiResponse.success(List.of(), "Không tìm thấy khóa học")));
     }
 
     @lombok.Builder
@@ -201,7 +201,7 @@ public class CourseQueryControllerV3 {
         List<ClassInfoResponse> response = classes.stream()
                 .map(this::toClassInfoResponse)
                 .toList();
-        return ResponseEntity.ok(ApiResponse.success(response, "Classes loaded"));
+        return ResponseEntity.ok(ApiResponse.success(response, "Danh sách lớp học"));
     }
 
     private final com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository userRepository;
@@ -220,7 +220,7 @@ public class CourseQueryControllerV3 {
         PageRequest pageable = PageRequest.of(page, Math.min(size, 100));
         Page<LearningClass> classPage = learningClassRepository.searchByCourseId(courseId, search, status, pageable);
         Page<ClassInfoResponse> response = classPage.map(this::toClassInfoResponse);
-        return ResponseEntity.ok(ApiResponse.success(response, "Classes search completed"));
+        return ResponseEntity.ok(ApiResponse.success(response, "Tìm kiếm lớp học"));
     }
     
     private ClassInfoResponse toClassInfoResponse(LearningClass lc) {
@@ -310,7 +310,7 @@ public class CourseQueryControllerV3 {
                                             .isPreview(lesson.getIsFree() != null && lesson.getIsFree())
                                             .sections(sectionResponses)
                                             .build();
-                                    return ResponseEntity.ok(ApiResponse.success(response, "Lesson loaded"));
+                                    return ResponseEntity.ok(ApiResponse.success(response, "Thông tin bài học"));
                                 })
                         )
                 )
@@ -337,7 +337,7 @@ public class CourseQueryControllerV3 {
                         .build())
                 .toList();
 
-        return ResponseEntity.ok(ApiResponse.success(response, "Lessons loaded"));
+        return ResponseEntity.ok(ApiResponse.success(response, "Danh sách bài học"));
     }
 
     @Operation(summary = "Get chapter details by ID")
@@ -354,7 +354,7 @@ public class CourseQueryControllerV3 {
                             .orderIndex(ch.getOrderIndex())
                             .lessons(new ArrayList<>()) // Details usually don't need full lesson list or lazy load
                             .build();
-                    return ResponseEntity.ok(ApiResponse.success(response, "Chapter loaded"));
+                    return ResponseEntity.ok(ApiResponse.success(response, "Thông tin chương"));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }

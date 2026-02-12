@@ -206,7 +206,7 @@ export class CourseManagementComponent implements OnInit {
       case 'rejected':
         return 'bg-red-100 text-red-800';
       case 'active':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-[#0056D2]/10 text-[#004BB5]';
       case 'archived':
         return 'bg-gray-100 text-gray-800';
       default:

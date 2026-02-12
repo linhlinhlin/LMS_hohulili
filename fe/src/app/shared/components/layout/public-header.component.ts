@@ -141,10 +141,10 @@ export class PublicHeaderComponent implements OnInit, OnDestroy {
   // Maritime search suggestions data
   private suggestions = [
     // Chuyên ngành nổi bật
-    'Điều hướng & Radar nâng cao â€“ Hợp tác với IMO',
-    'An toàn & Cứu sinh â€“ Chứng chỉ SOLAS',
-    'Quản lý cảng biển hiện đại â€“ ĐH Hàng hải VN',
-    'GMDSS â€“ Thông tin liên lạc tàu biển â€“ Bộ GTVT',
+    'Điều hướng & Radar nâng cao — Hợp tác với IMO',
+    'An toàn & Cứu sinh — Chứng chỉ SOLAS',
+    'Quản lý cảng biển hiện đại — ĐH Hàng hải VN',
+    'GMDSS — Thông tin liên lạc tàu biển — Bộ GTVT',
 
     // Đang phổ biến hiện nay
     'ECDIS',
@@ -154,7 +154,7 @@ export class PublicHeaderComponent implements OnInit, OnDestroy {
     'MARPOL',
 
     // CTA định hướng
-    'Không chắc nên bắt đầu từ đâu? â†’ Làm bài kiểm tra định hướng lộ trình học'
+    'Không chắc nên bắt đầu từ đâu? → Làm bài kiểm tra định hướng lộ trình học'
   ];
 
   onSearch(event: Event): void {
@@ -206,16 +206,16 @@ export class PublicHeaderComponent implements OnInit, OnDestroy {
   private navigateToSearch(query: string): void {
     // Map suggestions to specific routes
     const suggestionRoutes: { [key: string]: string } = {
-      'Điều hướng & Radar nâng cao â€“ Hợp tác với IMO': '/courses/navigation',
-      'An toàn & Cứu sinh â€“ Chứng chỉ SOLAS': '/courses/safety',
-      'Quản lý cảng biển hiện đại â€“ ĐH Hàng hải VN': '/courses/logistics',
-      'GMDSS â€“ Thông tin liên lạc tàu biển â€“ Bộ GTVT': '/courses/navigation',
+      'Điều hướng & Radar nâng cao — Hợp tác với IMO': '/courses/navigation',
+      'An toàn & Cứu sinh — Chứng chỉ SOLAS': '/courses/safety',
+      'Quản lý cảng biển hiện đại — ĐH Hàng hải VN': '/courses/logistics',
+      'GMDSS — Thông tin liên lạc tàu biển — Bộ GTVT': '/courses/navigation',
       'ECDIS': '/courses/navigation',
       'Radar ARPA': '/courses/navigation',
       'STCW cơ bản': '/courses/safety',
       'Quản lý đội tàu': '/courses/logistics',
       'MARPOL': '/courses/law',
-      'Không chắc nên bắt đầu từ đâu? â†’ Làm bài kiểm tra định hướng lộ trình học': '/assessment'
+      'Không chắc nên bắt đầu từ đâu? → Làm bài kiểm tra định hướng lộ trình học': '/assessment'
     };
 
     const route = suggestionRoutes[query];

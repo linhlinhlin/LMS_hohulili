@@ -51,12 +51,12 @@ interface StudyPlan {
   selector: 'app-study-planner',
   imports: [FormsModule, RouterModule, IconComponent],
   template: `
-    <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+    <div class="min-h-screen bg-gradient-to-br from-slate-50 via-[#0056D2]/5 to-indigo-100">
       <div class="max-w-7xl mx-auto px-6 py-8">
         <!-- Header -->
         <div class="flex items-center justify-between mb-8">
           <div>
-            <h1 class="text-3xl font-bold text-gray-900 mb-2 flex items-center"><app-icon name="calendar" size="lg" class="mr-2"/> Study Planner</h1>
+            <h1 class="text-3xl font-bold text-gray-900 mb-2 flex items-center"><app-icon name="calendar" size="lg" class="mr-2"/> Kế hoạch học tập</h1>
             <p class="text-gray-600">Lập kế hoạch học tập và theo dõi tiến độ</p>
           </div>
           <div class="flex items-center space-x-4">
@@ -85,7 +85,7 @@ interface StudyPlan {
                 <p class="text-sm font-medium text-gray-600">Tổng kế hoạch</p>
                 <p class="text-2xl font-bold text-gray-900">{{ stats().totalPlans }}</p>
               </div>
-              <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+              <div class="w-12 h-12 bg-[#0056D2]/10 rounded-xl flex items-center justify-center">
                 <svg class="w-6 h-6 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path>
                 </svg>
@@ -144,7 +144,7 @@ interface StudyPlan {
               @for (session of todaySessions(); track session.id) {
                 <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
                   <div class="flex items-center space-x-4">
-                    <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                    <div class="w-12 h-12 bg-[#0056D2]/10 rounded-xl flex items-center justify-center">
                       <svg class="w-6 h-6 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
                         <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
@@ -251,7 +251,7 @@ interface StudyPlan {
                   <div class="space-y-3">
                     @for (goal of plan.goals.slice(0, 3); track goal.id) {
                       <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                        <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <div class="w-8 h-8 bg-[#0056D2]/10 rounded-full flex items-center justify-center">
                           <svg class="w-4 h-4 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
                           </svg>
@@ -268,7 +268,7 @@ interface StudyPlan {
                     }
                     @if (plan.goals.length > 3) {
                       <button (click)="viewAllGoals(plan.id)"
-                              class="w-full text-[#0056D2] hover:text-blue-800 font-medium text-sm">
+                              class="w-full text-[#0056D2] hover:text-[#004BB5] font-medium text-sm">
                         Xem thêm {{ plan.goals.length - 3 }} mục tiêu khác →
                       </button>
                     }
@@ -281,7 +281,7 @@ interface StudyPlan {
                     </div>
                     <div class="flex items-center space-x-3">
                       <button (click)="viewPlanDetails(plan.id)"
-                              class="px-4 py-2 text-[#0056D2] hover:text-blue-800 font-medium">
+                              class="px-4 py-2 text-[#0056D2] hover:text-[#004BB5] font-medium">
                         Xem chi tiết
                       </button>
                       @if (plan.status === 'active') {
@@ -435,7 +435,7 @@ export class StudyPlannerComponent implements OnInit {
   getStatusClass(status: string): string {
     switch (status) {
       case 'active': return 'bg-green-100 text-green-800';
-      case 'completed': return 'bg-blue-100 text-blue-800';
+      case 'completed': return 'bg-[#0056D2]/10 text-[#004BB5]';
       case 'paused': return 'bg-yellow-100 text-yellow-800';
       default: return 'bg-gray-100 text-gray-800';
     }

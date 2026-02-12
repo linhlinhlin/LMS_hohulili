@@ -91,7 +91,7 @@ import { AssignmentFilters, AssignmentStatus, AssignmentType, PriorityLevel, Dea
           <!-- Quick Filters -->
           <div class="flex items-center space-x-2">
             <button (click)="applyQuickFilter('upcoming')"
-                    [class.bg-blue-100]="activeQuickFilter() === 'upcoming'"
+                    [class.bg-[#0056D2]/10]="activeQuickFilter() === 'upcoming'"
                     [class.text-[#004BB5]]="activeQuickFilter() === 'upcoming'"
                     class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]">
               Sắp đến hạn
@@ -125,7 +125,7 @@ import { AssignmentFilters, AssignmentStatus, AssignmentType, PriorityLevel, Dea
 
           <!-- Advanced Filters Toggle -->
           <button (click)="toggleAdvancedFilters()"
-                  [class.bg-blue-100]="showAdvancedFilters()"
+                  [class.bg-[#0056D2]/10]="showAdvancedFilters()"
                   [class.text-[#004BB5]]="showAdvancedFilters()"
                   class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]">
             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -201,9 +201,9 @@ import { AssignmentFilters, AssignmentStatus, AssignmentType, PriorityLevel, Dea
           <span class="text-sm text-gray-600">Bộ lọc đang áp dụng:</span>
 
           @if (filters().searchQuery) {
-            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-[#0056D2]/10 text-[#004BB5]">
               Tìm kiếm: "{{ filters().searchQuery }}"
-              <button (click)="removeSearchFilter()" class="ml-1 text-[#0056D2] hover:text-blue-800">
+              <button (click)="removeSearchFilter()" class="ml-1 text-[#0056D2] hover:text-[#004BB5]">
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>

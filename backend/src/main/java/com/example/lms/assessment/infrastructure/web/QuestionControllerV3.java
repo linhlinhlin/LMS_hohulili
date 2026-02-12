@@ -96,7 +96,7 @@ public class QuestionControllerV3 {
     @Operation(summary = "Get question by ID")
     public ResponseEntity<ApiResponse<QuestionDetailResponse>> getQuestionById(@PathVariable UUID id) {
         Question question = questionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Question not found: " + id));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy câu hỏi: " + id));
 
         return ResponseEntity.ok(ApiResponse.success(toDetailResponse(question)));
     }
@@ -129,7 +129,7 @@ public class QuestionControllerV3 {
         updateQuestionUseCase.execute(id, command);
 
         return ResponseEntity.ok(ApiResponse.success(
-                Map.of("id", id.toString(), "message", "Question updated successfully")));
+                Map.of("id", id.toString(), "message", "Cập nhật câu hỏi thành công")));
     }
 
     public record UpdateQuestionRequest(
@@ -148,11 +148,11 @@ public class QuestionControllerV3 {
     @Operation(summary = "Delete question by ID")
     public ResponseEntity<ApiResponse<Map<String, String>>> deleteQuestion(@PathVariable UUID id) {
         questionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Question not found: " + id));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy câu hỏi: " + id));
 
         questionRepository.deleteById(id);
 
-        return ResponseEntity.ok(ApiResponse.success(Map.of("message", "Question deleted successfully")));
+        return ResponseEntity.ok(ApiResponse.success(Map.of("message", "Xóa câu hỏi thành công")));
     }
 
     @PostMapping
@@ -252,7 +252,7 @@ public class QuestionControllerV3 {
             List<List<ContentBlock>> optionBlocks,
             QuestionJpaEntity.Difficulty difficulty,
             String tags,
-            @NotNull(message = "Package ID is required")
+            @NotNull(message = "Mã gói câu hỏi không được để trống")
             UUID packageId
     ) {}
 
@@ -340,11 +340,11 @@ public class QuestionControllerV3 {
                 }
             }
         } catch (java.io.IOException | org.apache.poi.ooxml.POIXMLException e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error("IMPORT_ERROR", "Failed to read Excel file: " + e.getMessage()));
+            return ResponseEntity.badRequest().body(ApiResponse.error("IMPORT_ERROR", "Không thể đọc file Excel: " + e.getMessage()));
         }
 
         ExcelImportResult result = new ExcelImportResult(successCount, failedCount, successCount + failedCount, errors,
-                successCount > 0 ? "Imported " + successCount + " questions successfully" : "No questions imported");
+                successCount > 0 ? "Đã nhập thành công " + successCount + " câu hỏi" : "Không có câu hỏi nào được nhập");
 
         return ResponseEntity.ok(ApiResponse.success(result, result.message()));
     }

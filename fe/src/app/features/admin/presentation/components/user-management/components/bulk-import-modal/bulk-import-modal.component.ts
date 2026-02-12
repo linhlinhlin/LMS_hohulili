@@ -14,7 +14,7 @@ import { UserManagementState } from '../../state/user-management.state';
           <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
             <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
               <div class="sm:flex sm:items-start">
-                <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-[#0056D2]/10 sm:mx-0 sm:h-10 sm:w-10">
                   <svg class="h-6 w-6 text-[#0056D2]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                   </svg>
@@ -23,9 +23,9 @@ import { UserManagementState } from '../../state/user-management.state';
                   <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Import người dùng từ Excel</h3>
 
                   <!-- Template Info -->
-                  <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                  <div class="bg-[#0056D2]/5 border border-[#0056D2]/20 rounded-lg p-4 mb-4">
                     <div class="flex">
-                      <svg class="w-5 h-5 text-blue-400 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <svg class="w-5 h-5 text-[#0056D2] mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
                       </svg>
                       <div class="text-sm text-[#004BB5]">
@@ -37,12 +37,12 @@ import { UserManagementState } from '../../state/user-management.state';
                           <li>Cột D: Password (tùy chọn) - Mật khẩu</li>
                           <li>Cột E: Department (tùy chọn) - Phòng ban/Khoa</li>
                         </ul>
-                        <div class="bg-blue-100 border border-blue-300 rounded p-2 mb-2">
+                        <div class="bg-[#0056D2]/10 border border-[#0056D2]/30 rounded p-2 mb-2">
                           <p class="text-xs font-medium">Mật khẩu mặc định: <span class="font-bold">Password123!</span></p>
                           <p class="text-xs mt-1">Nếu file Excel không có cột Password, tất cả tài khoản sẽ dùng mật khẩu này.</p>
                         </div>
                         <button (click)="downloadTemplate.emit()"
-                                class="text-[#0056D2] hover:text-blue-800 underline text-xs font-medium">
+                                class="text-[#0056D2] hover:text-[#004BB5] underline text-xs font-medium">
                           Tải template mẫu
                         </button>
                       </div>
@@ -69,7 +69,7 @@ import { UserManagementState } from '../../state/user-management.state';
                   <div class="space-y-4">
                     <div>
                       <label class="block text-sm font-medium text-gray-700 mb-2">Chọn file Excel (.xlsx hoặc .xls)</label>
-                      <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-blue-400 transition-colors">
+                      <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-[#0056D2] transition-colors">
                         @if (state.selectedFile()) {
                           <div class="text-center">
                             <svg class="mx-auto h-12 w-12 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -92,7 +92,7 @@ import { UserManagementState } from '../../state/user-management.state';
                             <div class="mt-4">
                               <label for="file-upload" class="cursor-pointer">
                                 <span class="mt-2 block text-sm font-medium text-gray-900">Kéo thả file vào đây hoặc</span>
-                                <span class="mt-1 block text-sm text-[#0056D2] hover:text-blue-500">chọn file từ máy tính</span>
+                                <span class="mt-1 block text-sm text-[#0056D2] hover:text-[#004BB5]">chọn file từ máy tính</span>
                               </label>
                               <input id="file-upload" name="file-upload" type="file" class="sr-only" accept=".xlsx,.xls" (change)="state.onFileSelected($event)">
                             </div>

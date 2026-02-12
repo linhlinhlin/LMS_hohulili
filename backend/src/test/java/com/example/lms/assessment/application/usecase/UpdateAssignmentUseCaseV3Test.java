@@ -40,7 +40,7 @@ class UpdateAssignmentUseCaseV3Test {
     @BeforeEach
     void setUp() {
         assignmentId = UUID.randomUUID();
-        existingAssignment = Assignment.create(UUID.randomUUID(), "Old Title", "Old Desc", "Old Instr", null, null);
+        existingAssignment = Assignment.create(UUID.randomUUID(), UUID.randomUUID(), "Old Title", "Old Desc", "Old Instr", null, null);
     }
 
     @Nested

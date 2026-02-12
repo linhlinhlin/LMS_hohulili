@@ -36,7 +36,7 @@ export class StudentSidebarComponent {
   // Navigation items với thiết kế chuyên nghiệp - CORRECTED ROUTES
   navigationItems = signal<NavigationItem[]>([
     {
-      label: 'Dashboard',
+      label: 'Trang chủ',
       icon: 'home',
       route: '/student/dashboard',
       isActive: false

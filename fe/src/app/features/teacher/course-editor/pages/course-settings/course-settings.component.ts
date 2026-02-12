@@ -33,7 +33,7 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
             <!-- Public Card -->
             <div class="border rounded-lg p-4 cursor-pointer transition-all group"
               [class]="visibility() === 'public'
-                ? 'border-[#0056D2] bg-blue-50/50'
+                ? 'border-[#0056D2] bg-[#0056D2]/5/50'
                 : 'border-slate-200 hover:border-slate-300'"
               (click)="visibility.set('public')">
               <div class="flex items-center justify-between mb-1.5">
@@ -46,7 +46,7 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
             <!-- Private Card -->
             <div class="border rounded-lg p-4 cursor-pointer transition-all group"
               [class]="visibility() === 'private'
-                ? 'border-[#0056D2] bg-blue-50/50'
+                ? 'border-[#0056D2] bg-[#0056D2]/5/50'
                 : 'border-slate-200 hover:border-slate-300'"
               (click)="visibility.set('private')">
               <div class="flex items-center justify-between mb-1.5">
@@ -95,8 +95,8 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
             <label class="block text-sm font-medium text-slate-700">Điều kiện học học phần</label>
             <div class="space-y-2">
               <label class="flex items-start gap-3 cursor-pointer group p-3 rounded-lg border border-transparent hover:bg-slate-50 transition-colors"
-                [class.bg-blue-50/50]="progressionMode() === 'free'"
-                [class.border-blue-200]="progressionMode() === 'free'">
+                [class.bg-[#0056D2]/5/50]="progressionMode() === 'free'"
+                [class.border-[#0056D2]/20]="progressionMode() === 'free'">
                 <input type="radio" name="progression" value="free"
                   [ngModel]="progressionMode()" (ngModelChange)="progressionMode.set($event)"
                   class="mt-0.5 w-4 h-4 text-[#0056D2] focus:ring-[#0056D2]">
@@ -106,8 +106,8 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
                 </div>
               </label>
               <label class="flex items-start gap-3 cursor-pointer group p-3 rounded-lg border border-transparent hover:bg-slate-50 transition-colors"
-                [class.bg-blue-50/50]="progressionMode() === 'linear'"
-                [class.border-blue-200]="progressionMode() === 'linear'">
+                [class.bg-[#0056D2]/5/50]="progressionMode() === 'linear'"
+                [class.border-[#0056D2]/20]="progressionMode() === 'linear'">
                 <input type="radio" name="progression" value="linear"
                   [ngModel]="progressionMode()" (ngModelChange)="progressionMode.set($event)"
                   class="mt-0.5 w-4 h-4 text-[#0056D2] focus:ring-[#0056D2]">
@@ -124,8 +124,8 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
             <label class="block text-sm font-medium text-slate-700">Lịch trình mở bài học</label>
             <div class="space-y-2">
               <label class="flex items-center gap-3 cursor-pointer p-3 rounded-lg border border-transparent hover:bg-slate-50 transition-colors"
-                [class.bg-blue-50/50]="dripType() === 'instant'"
-                [class.border-blue-200]="dripType() === 'instant'">
+                [class.bg-[#0056D2]/5/50]="dripType() === 'instant'"
+                [class.border-[#0056D2]/20]="dripType() === 'instant'">
                 <input type="radio" name="drip" value="instant"
                   [ngModel]="dripType()" (ngModelChange)="dripType.set($event)"
                   class="w-4 h-4 text-[#0056D2] focus:ring-[#0056D2]">
@@ -133,8 +133,8 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
               </label>
 
               <label class="flex items-start gap-3 cursor-pointer p-3 rounded-lg border border-transparent hover:bg-slate-50 transition-colors"
-                [class.bg-blue-50/50]="dripType() === 'date'"
-                [class.border-blue-200]="dripType() === 'date'">
+                [class.bg-[#0056D2]/5/50]="dripType() === 'date'"
+                [class.border-[#0056D2]/20]="dripType() === 'date'">
                 <input type="radio" name="drip" value="date"
                   [ngModel]="dripType()" (ngModelChange)="dripType.set($event)"
                   class="mt-2 w-4 h-4 text-[#0056D2] focus:ring-[#0056D2]">
@@ -153,8 +153,8 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
               </label>
 
               <label class="flex items-start gap-3 cursor-pointer p-3 rounded-lg border border-transparent hover:bg-slate-50 transition-colors"
-                [class.bg-blue-50/50]="dripType() === 'complete'"
-                [class.border-blue-200]="dripType() === 'complete'">
+                [class.bg-[#0056D2]/5/50]="dripType() === 'complete'"
+                [class.border-[#0056D2]/20]="dripType() === 'complete'">
                 <input type="radio" name="drip" value="complete"
                   [ngModel]="dripType()" (ngModelChange)="dripType.set($event)"
                   class="mt-2 w-4 h-4 text-[#0056D2] focus:ring-[#0056D2]">
