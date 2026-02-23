@@ -8,21 +8,22 @@ import { ConfirmDialogService } from './confirm-dialog.service';
 
 @Injectable({ providedIn: 'root' })
 export class SwUpdateService {
-  private readonly swUpdate = inject(SwUpdate);
+  private readonly swUpdate = inject(SwUpdate, { optional: true });
   private readonly toast = inject(ToastService);
   private readonly storage = inject(StorageManagerService);
   private readonly confirmDialog = inject(ConfirmDialogService);
 
   initialize(): void {
-    if (!this.swUpdate.isEnabled) return;
+    if (!this.swUpdate?.isEnabled) return;
+    const sw = this.swUpdate;
 
     // Check for updates every 6 hours (maritime connectivity windows)
     interval(6 * 60 * 60 * 1000).pipe(
-      switchMap(() => from(this.swUpdate.checkForUpdate())),
+      switchMap(() => from(sw.checkForUpdate())),
     ).subscribe();
 
     // Prompt user when new version ready (prevents data loss during quiz/assignment)
-    this.swUpdate.versionUpdates.pipe(
+    sw.versionUpdates.pipe(
       filter((evt): evt is VersionReadyEvent => evt.type === 'VERSION_READY'),
     ).subscribe(async () => {
       const confirmed = await this.confirmDialog.confirm({
@@ -41,7 +42,7 @@ export class SwUpdateService {
     });
 
     // Handle unrecoverable state
-    this.swUpdate.unrecoverable.subscribe(() => {
+    sw.unrecoverable.subscribe(() => {
       this.toast.error('Ứng dụng gặp lỗi. Đang tải lại...');
       document.location.reload();
     });
