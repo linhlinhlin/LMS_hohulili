@@ -12,11 +12,11 @@ Read this instead of re-auditing the codebase.
 | Metric | Value |
 |--------|-------|
 | Framework | Angular 20.3+ (standalone, signals) |
-| TypeScript Files | 508 |
-| Components | 236 |
+| TypeScript Files | 510 |
+| Components | 237 |
 | Services (@Injectable) | ~56 |
 | Total TypeScript LOC | ~47,000+ |
-| OnPush Coverage | **236/236 (100%)** |
+| OnPush Coverage | **237/237 (100%)** |
 | Legacy Patterns | **0** (*ngIf, *ngFor, standalone:true, @Input, @Output, @ViewChild) |
 | console.log/warn/debug | **0** in production code |
 | English text in UI | **0** (all Vietnamese) |
@@ -57,7 +57,7 @@ fe/src/app/
 │   ├── learning/           # 13 components - Course learning interface
 │   ├── courses/            # 10+ components - Course browsing, categories
 │   ├── assignments/        # 12 components - Student assignment work
-│   ├── auth/               # 3 components - Login, register, forgot-password
+│   ├── auth/               # 4 components - Login, register, forgot-password, reset-password
 │   ├── communication/      # 2 components - Notifications
 │   ├── payment/            # 4 components - VNPay integration
 │   ├── profile/            # 2 components - User profile
@@ -86,7 +86,7 @@ fe/src/app/
 | `viewChild()` / `viewChild.required()` | 23 | Standard |
 | `effect()` | 29 (21 files) | Where needed |
 | `@if` / `@for` / `@switch` | 234 files (2,117 instances) | Standard |
-| `ChangeDetectionStrategy.OnPush` | 236/236 (100%) | Enforced |
+| `ChangeDetectionStrategy.OnPush` | 237/237 (100%) | Enforced |
 | `takeUntilDestroyed(DestroyRef)` | Standard | Cleanup pattern |
 
 ### Legacy Patterns (All Eliminated)
@@ -113,7 +113,7 @@ fe/src/app/
 | Admin | 22 | Feature-based |
 | Assignments | 12 | Full DDD |
 | Student | 12 | Feature-based |
-| Auth | 3 | Flat |
+| Auth | 4 | Flat |
 | Communication | 2 | Flat (forum removed S38) |
 | Payment | 4 | Flat |
 
@@ -290,7 +290,7 @@ student/
 /courses/:id ──── Course detail (UUID validation)
 /courses/safety, /navigation, /engineering, /logistics, /law, /certificates
 
-/auth ─────────── Login, Register, Forgot-password
+/auth ─────────── Login, Register, Forgot-password, Reset-password
 
 /teacher ──────── (teacherOnlyGuard - blocks admin)
   /dashboard
@@ -590,6 +590,25 @@ items = toSignal(this.service.data$, { initialValue: [] });
 ---
 
 ## Modernization Changelog
+
+### 2026-02-23 Session 63 (VNPay + Email + Password Reset)
+
+**Score: 10/10 (maintained)**
+
+| Task | Detail |
+|------|--------|
+| Reset Password page | New `ResetPasswordComponent` with password+confirm form, token from URL query param, auto-redirect to login |
+| Auth routes update | Added `/auth/reset-password` lazy-loaded route |
+| VNPay payment flow | `PaymentApi.createVnPayUrl()` + `PaymentService` VNPay redirect (`window.location.href`) |
+| Component count | 236 → 237 (auth: 3→4) |
+
+### 2026-02-23 Session 62 (PWA Download-First Hardening)
+
+**Score: 10/10 (maintained)**
+
+| Task | Detail |
+|------|--------|
+| 12 fixes | NetworkStatusService maritime default, offline interceptor auth whitelist, sync dedup+backoff, download resume, speed-grader responsive, beforeunload warning |
 
 ### 2026-02-23 Session 61 (PWA Download-First + Data Sync)
 

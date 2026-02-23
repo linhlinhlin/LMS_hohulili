@@ -107,6 +107,19 @@ export class PaymentService {
         this._error.set(null);
 
         try {
+            // VNPay redirect flow
+            if (method === 'VNPAY') {
+                const vnpayResponse = await firstValueFrom(this.paymentApi.createVnPayUrl(courseId, amount));
+                if (vnpayResponse.success && vnpayResponse.data.paymentUrl) {
+                    window.location.href = vnpayResponse.data.paymentUrl;
+                    // Will redirect — return a placeholder (never reached)
+                    return {} as PaymentResponse;
+                } else {
+                    throw new Error(vnpayResponse.message || 'Không thể tạo liên kết thanh toán VNPay');
+                }
+            }
+
+            // Simulated / other payment methods
             const request: CheckoutRequest = {
                 courseId,
                 amount,

@@ -63,6 +63,18 @@ app:
     secret: ${APP_JWT_SECRET}
     expiration: ${APP_JWT_EXPIRATION:86400000}
     refresh-expiration: ${APP_JWT_REFRESH_EXPIRATION:604800000}
+  email:
+    from: "LMS Maritime <noreply@maritime.edu>"
+    base-url: "${APP_BASE_URL:https://lms.maritime.edu}"
+  resend:
+    api-key: "${RESEND_API_KEY}"
+  vnpay:
+    tmn-code: "${VNPAY_TMN_CODE}"
+    hash-secret: "${VNPAY_HASH_SECRET}"
+    pay-url: "https://pay.vnpay.vn/vpcpay.html"
+    return-url: "${APP_BASE_URL:https://lms.maritime.edu}/payment/result"
+    ipn-url: "${APP_BASE_URL:https://lms.maritime.edu}/api/v3/payments/vnpay-ipn"
+    expire-minutes: 15
 
 # R2 Storage
 cloudflare:

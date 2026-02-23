@@ -38,6 +38,9 @@ services:
       - SPRING_DATASOURCE_USERNAME=lms
       - SPRING_DATASOURCE_PASSWORD=lms
       - SPRING_AI_SERVICE_URL=https://maritime-ai-chatbot.onrender.com
+      - MAIL_USERNAME=${MAIL_USERNAME:-}
+      - MAIL_PASSWORD=${MAIL_PASSWORD:-}
+      - MAIL_FROM=${MAIL_FROM:-}
     depends_on:
       db:
         condition: service_healthy

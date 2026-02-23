@@ -85,7 +85,10 @@ public class SecurityConfig {
                     // Public question bank search
                     "/api/v3/question-banks/search",
                     // Wiii AI integration (service-to-service, auth via WiiiServiceAuthFilter)
-                    "/api/v3/integration/**"
+                    "/api/v3/integration/**",
+                    // VNPay callbacks (server-to-server IPN + browser return)
+                    "/api/v3/payments/vnpay-ipn",
+                    "/api/v3/payments/vnpay-return"
                 ).permitAll()
                 .anyRequest().authenticated()
             )

@@ -4,6 +4,7 @@ import com.example.lms.identity.application.dto.*;
 import com.example.lms.identity.application.usecase.*;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
+import com.example.lms.shared.application.port.EmailServicePort;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -57,6 +58,10 @@ public class AuthControllerV3 {
     @Qualifier("refreshTokenUseCaseV2")
     private final RefreshTokenUseCaseV2 refreshTokenUseCase;
 
+    private final RequestPasswordResetUseCase requestPasswordResetUseCase;
+    private final ResetPasswordUseCase resetPasswordUseCase;
+    private final EmailServicePort emailService;
+
     @PostMapping("/register")
     @Operation(summary = "Đăng ký tài khoản mới (DDD)")
     public ResponseEntity<ApiResponse<AuthResponse>> register(
@@ -71,6 +76,14 @@ public class AuthControllerV3 {
         );
 
         AuthResponse response = registerUseCase.execute(command);
+
+        // Send welcome email (async, non-blocking)
+        try {
+            emailService.sendWelcome(request.email(), request.fullName());
+        } catch (Exception e) {
+            log.warn("Failed to send welcome email to {}: {}", request.email(), e.getMessage());
+        }
+
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(ApiResponse.success(response, "Đăng ký thành công"));
     }
@@ -165,14 +178,19 @@ public class AuthControllerV3 {
     @Operation(summary = "Yêu cầu đặt lại mật khẩu")
     public ResponseEntity<ApiResponse<Map<String, String>>> forgotPassword(
             @RequestBody @Valid ForgotPasswordRequest request) {
-        var user = userJpaRepository.findByEmail(request.email());
-        if (user.isPresent()) {
-            log.info("Password reset requested for: {}", request.email());
-        }
+        requestPasswordResetUseCase.execute(request.email());
         // Always return success to prevent email enumeration
         return ResponseEntity.ok(ApiResponse.success(
             Map.of("message", "Nếu email tồn tại, bạn sẽ nhận được hướng dẫn đặt lại mật khẩu"),
             "Yêu cầu đặt lại mật khẩu đã được gửi"));
+    }
+
+    @PostMapping("/reset-password")
+    @Operation(summary = "Đặt lại mật khẩu bằng token")
+    public ResponseEntity<ApiResponse<String>> resetPassword(
+            @RequestBody @Valid ResetPasswordRequest request) {
+        resetPasswordUseCase.execute(request.token(), request.newPassword());
+        return ResponseEntity.ok(ApiResponse.success("Mật khẩu đã được đặt lại thành công"));
     }
 
     // ==================== Request DTOs ====================
@@ -181,6 +199,14 @@ public class AuthControllerV3 {
             @NotBlank(message = "Email không được để trống")
             @Email(message = "Email không hợp lệ")
             String email
+    ) {}
+
+    public record ResetPasswordRequest(
+            @NotBlank(message = "Token không được để trống")
+            String token,
+            @NotBlank(message = "Mật khẩu mới không được để trống")
+            @Size(min = 6, message = "Mật khẩu mới phải có ít nhất 6 ký tự")
+            String newPassword
     ) {}
 
     public record RefreshTokenRequest(

@@ -44,6 +44,18 @@ public class PaymentTransactionJpaEntity {
     @Column(name = "paid_at")
     private Instant paidAt;
 
+    @Column(name = "vnp_transaction_no", length = 50)
+    private String vnpTransactionNo;
+
+    @Column(name = "vnp_bank_code", length = 20)
+    private String vnpBankCode;
+
+    @Column(name = "vnp_response_code", length = 5)
+    private String vnpResponseCode;
+
+    @Column(name = "vnp_card_type", length = 20)
+    private String vnpCardType;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -94,9 +106,18 @@ public class PaymentTransactionJpaEntity {
     public Instant getPaidAt() { return paidAt; }
     public Instant getCreatedAt() { return createdAt; }
 
+    public String getVnpTransactionNo() { return vnpTransactionNo; }
+    public String getVnpBankCode() { return vnpBankCode; }
+    public String getVnpResponseCode() { return vnpResponseCode; }
+    public String getVnpCardType() { return vnpCardType; }
+
     // Setters
     public void setStatus(PaymentStatus status) { this.status = status; }
     public void setPaidAt(Instant paidAt) { this.paidAt = paidAt; }
+    public void setVnpTransactionNo(String vnpTransactionNo) { this.vnpTransactionNo = vnpTransactionNo; }
+    public void setVnpBankCode(String vnpBankCode) { this.vnpBankCode = vnpBankCode; }
+    public void setVnpResponseCode(String vnpResponseCode) { this.vnpResponseCode = vnpResponseCode; }
+    public void setVnpCardType(String vnpCardType) { this.vnpCardType = vnpCardType; }
 
     public enum PaymentStatus {
         PENDING, COMPLETED, FAILED, REFUNDED

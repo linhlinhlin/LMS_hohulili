@@ -1,6 +1,6 @@
 # Maritime LMS Backend
 
-> **Spring Boot 3.2.6 + Java 21 + PostgreSQL 16** | Clean Architecture / DDD | 381 source files | 522 tests | 215 endpoints
+> **Spring Boot 3.2.6 + Java 21 + PostgreSQL 16** | Clean Architecture / DDD | 397 source files | 550 tests | 219 endpoints
 
 ## Quick Start
 
@@ -18,7 +18,7 @@ docker compose logs api --tail=100
 | Service | URL | Credentials |
 |---------|-----|-------------|
 | API | http://localhost:8088/api/v3 | JWT Bearer |
-| **Swagger UI** | **http://localhost:8088/swagger-ui** | - (215 endpoints documented) |
+| **Swagger UI** | **http://localhost:8088/swagger-ui** | - (219 endpoints documented) |
 | OpenAPI Spec | http://localhost:8088/v3/api-docs | - |
 | pgAdmin | http://localhost:8081 | `admin@devmail.net` / `S3cure!Passw0rd` |
 | PostgreSQL | localhost:5432/lms | `lms` / `lms` |
@@ -46,7 +46,7 @@ com.example.lms/
 ├── assessment/            # Assignment, Quiz, Question, Submission, Rubric, QuestionBank
 ├── communication/         # Messages, Conversations
 ├── ai_assistant/          # AI Chat integration (streaming SSE)
-├── shared/                # Value objects, domain events, exceptions, file service, payment, admin settings
+├── shared/                # Value objects, domain events, exceptions, file service, payment, email, VNPay, admin settings
 └── config/                # Security, CORS, JWT filter, rate limiting, R2 storage
 ```
 
@@ -158,10 +158,10 @@ docker compose ps
 
 ```bash
 mvn test -B
-# Expected: Tests run: 522, Failures: 0, Errors: 0
+# Expected: Tests run: 550, Failures: 0, Errors: 0
 ```
 
-**Coverage**: ~49% (target: 60%+)
+**Coverage**: ~50% (target: 60%+)
 
 ---
 
@@ -172,7 +172,7 @@ mvn test -B
 **Access**: http://localhost:8088/swagger-ui
 
 **Features:**
-- ✅ **215 endpoints** fully documented with request/response schemas
+- ✅ **219 endpoints** fully documented with request/response schemas
 - ✅ **29 API tags** organized by domain module
 - ✅ **Try it out** - Test endpoints directly from browser
 - ✅ **JWT Authentication** - Built-in authorization testing
@@ -182,7 +182,7 @@ mvn test -B
 
 | Module | Endpoints | Description |
 |--------|-----------|-------------|
-| **Authentication V3** | 8 | Login, register, JWT refresh, profile, forgot-password |
+| **Authentication V3** | 9 | Login, register, JWT refresh, profile, forgot-password, reset-password |
 | **User Management V3** | 13 | User CRUD, role change, enable/disable (ADMIN/ORG_ADMIN) |
 | **Course Authoring V3** | 14 | Create/update courses, chapters, lessons, content blocks |
 | **Course Query V3** | 9 | Public course browsing, search, categories |
@@ -209,7 +209,7 @@ mvn test -B
 | **Communication V3** | 6 | Messaging between users |
 | **AI Assistant V3** | 11 | AI chatbot, sessions, knowledge management |
 | **File Upload V3** | 3 | File upload/download (R2/local) |
-| **Payment V3** | 4 | VNPay integration, payment callbacks |
+| **Payment V3** | 7 | VNPay redirect flow (create-url, IPN, return), payment callbacks, checkout |
 | **Admin Settings V3** | 2 | System settings (ADMIN-only) |
 
 ### OpenAPI Specification
@@ -300,17 +300,17 @@ curl -X POST http://localhost:8088/api/v3/teacher/courses \
 
 | Metric | Count |
 |--------|-------|
-| Java source files | 381 |
+| Java source files | 397 |
 | Bounded contexts (modules) | 8 |
 | Domain models | 38 |
-| Use cases | 64 |
+| Use cases | 66 |
 | REST controllers | 29 |
-| REST endpoints | 215 |
-| JPA entities | 39 |
-| Repository ports | 33 |
-| Flyway migrations | V1 (reference) + V26-V43 (18 incremental) |
+| REST endpoints | 219 |
+| JPA entities | 40 |
+| Repository ports | 34 |
+| Flyway migrations | V1 (reference) + V26-V47 (22 incremental) |
 | Test files | 50 |
-| Test cases | 522 (0 failures) |
+| Test cases | 550 (0 failures) |
 | Domain events | 11 |
 | @PreAuthorize annotations | 163 |
 
@@ -318,30 +318,33 @@ curl -X POST http://localhost:8088/api/v3/teacher/courses \
 
 | Module | Domain Models | Use Cases | Controllers | Endpoints |
 |--------|--------------|-----------|-------------|-----------|
-| identity | 2 (User, Role) | 7 | 2 (Auth, User) | 21 |
+| identity | 2 (User, Role) | 9 | 2 (Auth, User) | 22 |
 | course_authoring | 6 (Course, Chapter, Lesson, ContentBlock, Category, CourseReview) | 23 | 6 (Authoring, Query, Package, AdminCourses, TeacherCourses, CourseReview) | 53 |
 | learning_delivery | 9 (LearningClass, Enrollment, Certificate, VideoProgress, LearningStreak, Achievement, etc.) | 17 | 10 (Class, Enrollment, TeacherStudent, Gamification, Activity, Video, Analytics x2, Revenue, Invitation) | 51 |
 | assessment | 11 (Assignment, Quiz, Question, Submission, Rubric, QuestionBank, etc.) | 14 | 6 (Assignment, Submission, Quiz, Question, QuestionBank, Rubric) | 59 |
 | communication | 4 (Conversation, Message, etc.) | 1 | 1 | 6 |
 | ai_assistant | 3 (ChatSession, KnowledgeDocument, etc.) | 1 | 1 | 11 |
-| shared | 3 (ContentBlock, FileMetadata, PaymentTransaction) | 1 | 3 (FileUpload, Payment, AdminSettings) | 9 |
+| shared | 3 (ContentBlock, FileMetadata, PaymentTransaction) | 1 | 3 (FileUpload, Payment, AdminSettings) | 12 |
 | config | - | - | - | - |
-| **TOTAL** | **38** | **64** | **29** | **215** |
+| **TOTAL** | **38** | **66** | **29** | **219** |
 
 ---
 
-## API Reference (215 Endpoints)
+## API Reference (219 Endpoints)
 
 ### Identity Module
 
 #### AuthControllerV3 (`/api/v3/auth`)
 ```
-POST   /api/v3/auth/register           # User registration
+POST   /api/v3/auth/register           # User registration (+ welcome email)
 POST   /api/v3/auth/login              # Login → JWT tokens
 POST   /api/v3/auth/logout             # Logout
 POST   /api/v3/auth/refresh            # Refresh JWT token
-GET    /api/v3/auth/profile            # Get current user profile
+GET    /api/v3/auth/me                 # Get current user
 PUT    /api/v3/auth/profile            # Update profile
+PUT    /api/v3/auth/password           # Change password
+POST   /api/v3/auth/forgot-password    # Request password reset (anti-enumeration)
+POST   /api/v3/auth/reset-password     # Reset password with token (OWASP)
 ```
 
 #### UserControllerV3 (`/api/v3/users`)
@@ -648,10 +651,13 @@ POST   /api/v3/files/upload-multiple                                 # Upload mu
 
 #### PaymentControllerV3 (`/api/v3/payments`)
 ```
-POST   /api/v3/payments/create                                      # Create payment (VNPay)
-GET    /api/v3/payments/callback/vnpay                               # VNPay callback
+POST   /api/v3/payments/create                                      # Create payment (simulated)
+POST   /api/v3/payments/checkout                                     # Checkout (simulated)
 GET    /api/v3/payments/my                                           # My payments
 GET    /api/v3/payments/{id}                                        # Payment detail
+POST   /api/v3/payments/vnpay/create-url                             # Create VNPay redirect URL
+GET    /api/v3/payments/vnpay-ipn                                    # VNPay IPN callback (public)
+GET    /api/v3/payments/vnpay-return                                 # VNPay browser return (public)
 ```
 
 #### AdminSettingsControllerV3 (`/api/v3/admin/settings`) — ADMIN-only
@@ -766,7 +772,9 @@ Enrollment ──┬── status: ACTIVE → COMPLETED/DROPPED/SUSPENDED
 ```java
 // Public (no auth required)
 /api/v3/auth/login, /api/v3/auth/register, /api/v3/auth/refresh
+/api/v3/auth/forgot-password, /api/v3/auth/reset-password
 /api/v3/courses (GET), /api/v3/courses/{id} (GET)
+/api/v3/payments/vnpay-ipn, /api/v3/payments/vnpay-return
 /swagger-ui/**, /v3/api-docs/**
 
 // Authenticated (any role)
@@ -810,6 +818,8 @@ Port: 5432 (Docker) / 5432 (local)
 | V42 | Teacher revenue + payout tables |
 | V43 | Teacher invitations |
 | V44 | Seed TEACHER + STUDENT test accounts |
+| V46 | Password reset tokens table (SHA-256 hash, expiry, single-use) |
+| V47 | VNPay payment fields (vnp_transaction_no, bank_code, response_code, card_type) |
 
 **Note**: Migrations V1-V25 exist in production database history but SQL files are managed externally. V26+ are in `src/main/resources/db/migration/`.
 
@@ -830,6 +840,8 @@ Port: 5432 (Docker) / 5432 (local)
 | questions | assessment | package_id, difficulty |
 | conversations | communication | participant IDs |
 | chat_sessions | ai_assistant | user_id |
+| password_reset_tokens | identity | user_id, token_hash (unique), expires_at |
+| payment_transactions | shared | transaction_id, student_id, course_id, vnp_* fields |
 
 ---
 
@@ -853,6 +865,8 @@ Port: 5432 (Docker) / 5432 (local)
 | Hypersistence Utils | 3.7.0 | JSONB column support |
 | AWS SDK S3 | 2.25.0 | Cloudflare R2 file storage |
 | Apache POI | 5.2.4 | Document parsing (Word, Excel, PPT) |
+| Spring Boot Mail | 3.2.x | SMTP email (dev profile) |
+| Resend Java SDK | 3.1.0 | Transactional email API (prod profile) |
 | Lombok | 1.18.32 | Code generation |
 | ArchUnit | 1.2.1 | Architecture testing |
 
@@ -925,6 +939,12 @@ docker compose down -v && docker compose up -d
 | `R2_SECRET_KEY` | - | Cloudflare R2 secret key |
 | `R2_BUCKET_NAME` | - | R2 bucket name |
 | `R2_ENDPOINT` | - | R2 endpoint URL |
+| `MAIL_USERNAME` | - | SMTP username (Gmail email) |
+| `MAIL_PASSWORD` | - | SMTP password (Gmail App Password) |
+| `MAIL_FROM` | LMS Maritime | Email sender display name |
+| `RESEND_API_KEY` | - | Resend API key (prod profile) |
+| `VNPAY_TMN_CODE` | DEMOV210 | VNPay merchant code |
+| `VNPAY_HASH_SECRET` | DEMOSECRET | VNPay HMAC-SHA512 secret |
 
 ---
 
@@ -1177,12 +1197,12 @@ public ResponseEntity<?> create(@Valid @RequestBody CreateCourseCommand cmd) {
 
 ### Step 4: Database
 1. Create Flyway migration in `src/main/resources/db/migration/V{N}__description.sql`
-2. Version must be next sequential number after V44
+2. Version must be next sequential number after V47
 
 ### Step 5: Testing
 1. Domain model tests (pure logic, no mocks)
 2. Use case tests (@Mock repos, @InjectMocks use case)
-3. Run `mvn test -B` to verify all 522+ tests pass
+3. Run `mvn test -B` to verify all 550+ tests pass
 
 ### Checklist
 - [ ] Domain model has NO framework annotations
@@ -1233,4 +1253,4 @@ docker inspect lms-backend --format='{{.State.Health.Status}}'
 
 ---
 
-*Last updated: 2026-02-12 | 381 files | 522 tests | 215 endpoints | 8 modules | 29 controllers*
+*Last updated: 2026-02-23 | 397 files | 550 tests | 219 endpoints | 8 modules | 29 controllers*

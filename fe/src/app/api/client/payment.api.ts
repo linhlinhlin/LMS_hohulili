@@ -103,4 +103,19 @@ export class PaymentApi {
             `${this.baseUrl}/can-access/${courseId}/lesson/${lessonIndex}`
         );
     }
+
+    /**
+     * Create VNPay payment URL (redirect flow)
+     */
+    createVnPayUrl(courseId: string, amount: number): Observable<ApiResponse<VnPayUrlResponse>> {
+        return this.http.post<ApiResponse<VnPayUrlResponse>>(`${this.baseUrl}/vnpay/create-url`, {
+            courseId,
+            amount
+        });
+    }
+}
+
+export interface VnPayUrlResponse {
+    paymentUrl: string;
+    transactionId: string;
 }
