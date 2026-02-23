@@ -16,7 +16,7 @@ interface CourseDetail {
   description: string;
   teacherName: string;
   enrolledCount: number;
-  chaptersCount: number;
+  chapterCount: number;
   progress?: number;
   price?: number; // Thêm giá khóa học
 }
@@ -144,7 +144,7 @@ export class CourseDetailComponent implements OnInit {
           description: detail?.description || '',
           teacherName: detail?.teacherName || '',
           enrolledCount: detail?.enrolledCount || 0,
-          chaptersCount: detail?.chaptersCount || 0,
+          chapterCount: detail?.chapterCount || 0,
           price: detail?.price || 500000 // Default price
         });
       },

@@ -314,7 +314,7 @@ export class CourseService {
         description: 'Chứng chỉ hoàn thành'
       },
       curriculum: {
-        modules: course.chaptersCount || 0,
+        modules: course.chapterCount || 0,
         lessons: 0,
         duration: '30 giờ'
       },
