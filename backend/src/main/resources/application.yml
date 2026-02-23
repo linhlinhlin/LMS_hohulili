@@ -1,6 +1,10 @@
 # ==== Common ====
 server:
   shutdown: graceful
+  compression:
+    enabled: true
+    mime-types: text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json,text/event-stream
+    min-response-size: 256
 
 spring:
   application:
@@ -62,16 +66,17 @@ app:
     expiration: ${APP_JWT_EXPIRATION:86400000}  # 24 hours in milliseconds
     refresh-expiration: ${APP_JWT_REFRESH_EXPIRATION:604800000}  # 7 days in milliseconds
 
-# AI Service Configuration
-# Updated: 10/12/2025 - API Key từ Team AI
-ai:
-  service:
-    url: ${AI_SERVICE_URL:https://maritime-ai-chatbot.onrender.com}
-    api-key: ${AI_SERVICE_API_KEY:}
-    timeout: ${AI_SERVICE_TIMEOUT:90}  # seconds
-    retry:
-      max-attempts: ${AI_SERVICE_RETRY_MAX:2}
-      delay: ${AI_SERVICE_RETRY_DELAY:1000}  # milliseconds
+# Wiii AI Integration (Sprint 175: "Cắm Phích Cắm")
+wiii:
+  webhook:
+    url: ${WIII_WEBHOOK_URL:http://localhost:8000/api/v1/lms/webhook/maritime-lms}
+    secret: ${WIII_WEBHOOK_SECRET:}
+    enabled: ${WIII_WEBHOOK_ENABLED:false}
+    timeout: ${WIII_WEBHOOK_TIMEOUT:10}
+    retry-max: ${WIII_WEBHOOK_RETRY_MAX:2}
+  token-exchange:
+    url: ${WIII_TOKEN_EXCHANGE_URL:http://localhost:8000/api/v1/auth/lms/token}
+  service-token: ${WIII_SERVICE_TOKEN:}
 
 # Cloudflare R2 Storage Configuration - Externalized for security
 # R2 is S3-compatible object storage with zero egress fees

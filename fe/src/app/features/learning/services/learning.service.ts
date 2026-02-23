@@ -1,5 +1,6 @@
-import { Injectable, signal, computed, inject } from '@angular/core';
-import { forkJoin, of, Observable } from 'rxjs';
+import { Injectable, signal, computed, inject, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { forkJoin, of, Observable, Subscription } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { CourseApi } from '../../../api/client/course.api';
 import { LessonApi } from '../../../api/client/lesson.api';
@@ -16,7 +17,9 @@ import {
   SectionContent,
   ErrorType
 } from '../models/learning.models';
-import { getLessonTypeFromTitle } from '../models/lesson-types.enum';
+import { getLessonTypeFromTitle, LessonType } from '../models/lesson-types.enum';
+import { CourseDownloadService } from '../../../core/services/course-download.service';
+import { NetworkStatusService } from '../../../core/services/network-status.service';
 
 /**
  * Learning Service
@@ -31,6 +34,13 @@ export class LearningService {
   private courseApi = inject(CourseApi);
   private lessonApi = inject(LessonApi);
   private api = inject(ApiClient);
+  private courseDownload = inject(CourseDownloadService);
+  private network = inject(NetworkStatusService);
+  private destroyRef = inject(DestroyRef);
+
+  private bgCourseRefreshSub: Subscription | null = null;
+  private bgLessonRefreshSub: Subscription | null = null;
+  private currentCourseId: string | null = null;
 
   // Private state signals
   private courseState = signal<CourseState>({
@@ -171,101 +181,59 @@ export class LearningService {
   }
 
   /**
-   * Load course data including course info and content structure
+   * Load course data — Download-First pattern.
+   *
+   * If course was previously downloaded:
+   *   → Load from IndexedDB instantly (no loading spinner)
+   *   → Background refresh from server if online (stale-while-revalidate)
+   *
+   * If not downloaded:
+   *   → Standard server-first flow with loading spinner
+   *   → On network error + offline → fall back to IndexedDB
    */
   loadCourse(courseId: string): void {
-    // Set loading state
+    // Clear lesson cache when switching courses
+    this.lessonCache.clear();
+    this.currentCourseId = courseId;
+
+    // Download-First: if course is downloaded, show local data instantly
+    if (this.courseDownload.isDownloadedSync(courseId)) {
+      this.loadCourseOffline(courseId).then(() => {
+        // Background refresh from server if online (non-blocking)
+        if (this.network.online()) {
+          this.backgroundRefreshCourse(courseId);
+        }
+      });
+      return;
+    }
+
+    // Not downloaded → standard server-first flow
     this.courseState.update(state => ({
       ...state,
       loading: true,
       error: null
     }));
 
-    // Clear lesson cache when switching courses
-    this.lessonCache.clear();
-
-    // Load course info, content, and progress in parallel
     forkJoin({
       courseInfo: this.courseApi.getCourseById(courseId).pipe(
-        catchError(() => {
-          return of(null);
-        })
+        catchError(() => of(null))
       ),
       courseContent: this.courseApi.getCourseContent(courseId).pipe(
-        catchError(() => {
-          return of(null);
-        })
+        catchError(() => of(null))
       ),
       courseProgress: this.getCourseProgress(courseId).pipe(
-        catchError(() => {
-          return of(null);
-        })
+        catchError(() => of(null))
       )
     }).subscribe({
       next: ({ courseInfo, courseContent, courseProgress }) => {
-        if (!courseInfo || !courseContent) {
-          this.courseState.update(state => ({
-            ...state,
-            loading: false,
-            error: 'Failed to load course data'
-          }));
-          return;
-        }
-
-        // Map course info
-        const courseData = courseInfo?.data;
-        const course: CourseOverview = {
-          id: courseData?.id || courseId,
-          title: courseData?.title || '',
-          description: courseData?.description || '',
-          instructor: courseData?.teacherName || 'Unknown',
-          thumbnail: '',
-          sectionsCount: courseData?.chaptersCount || 0,
-          lessonsCount: this.countLessons(courseContent.data || []),
-          duration: this.calculateTotalDuration(courseContent.data || []),
-          isEnrolled: true // If we can fetch content, assume enrolled
-        };
-
-        // Map sections
-        const sections = this.mapSections(courseContent.data || []);
-
-        // Merge progress data
-        const mergedSections = this.mergeProgressIntoSections(sections, courseProgress);
-
-        // Update state
-        this.courseState.set({
-          course,
-          sections: mergedSections,
-          loading: false,
-          error: null
-        });
-
-        // Update progress state từ backend
-        if (courseProgress?.completedLessonIds && Array.isArray(courseProgress.completedLessonIds)) {
-          const completedLessonIds = courseProgress.completedLessonIds;
-
-          this.progressState.update(state => ({
-            ...state,
-            completedLessons: new Set(completedLessonIds)
-          }));
-
-          const total = this.totalLessons();
-          const completed = completedLessonIds.length;
-          const progressPercentage = total > 0
-            ? Math.round((completed / total) * 100)
-            : 0;
-
-          this.progressState.update(state => ({
-            ...state,
-            progressPercentage
-          }));
-        } else {
-          this.loadProgressFromStorage(courseId);
-        }
-
-
+        this.applyCourseData(courseId, courseInfo, courseContent, courseProgress);
       },
       error: (err) => {
+        // If offline, try loading from IndexedDB directly
+        if (!this.network.online()) {
+          this.loadCourseOffline(courseId);
+          return;
+        }
         const errorMessage = this.getErrorMessage(err);
         this.courseState.update(state => ({
           ...state,
@@ -277,10 +245,233 @@ export class LearningService {
   }
 
   /**
-   * Load lesson details by ID
+   * Background refresh course data from server (stale-while-revalidate).
+   * Silently updates signals if server has newer data. Never shows loading spinner.
+   */
+  private backgroundRefreshCourse(courseId: string): void {
+    this.bgCourseRefreshSub?.unsubscribe();
+    this.bgCourseRefreshSub = forkJoin({
+      courseInfo: this.courseApi.getCourseById(courseId).pipe(
+        catchError(() => of(null))
+      ),
+      courseContent: this.courseApi.getCourseContent(courseId).pipe(
+        catchError(() => of(null))
+      ),
+      courseProgress: this.getCourseProgress(courseId).pipe(
+        catchError(() => of(null))
+      )
+    }).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
+      next: ({ courseInfo, courseContent, courseProgress }) => {
+        // Guard: only apply if still viewing the same course
+        if (this.currentCourseId === courseId && courseInfo && courseContent) {
+          this.applyCourseData(courseId, courseInfo, courseContent, courseProgress);
+        }
+      },
+      // Silently ignore errors — stale local data is already showing
+    });
+  }
+
+  /**
+   * Apply fetched course data to state signals.
+   * Shared by both server-first and background refresh flows.
+   */
+  private applyCourseData(
+    courseId: string,
+    courseInfo: any,
+    courseContent: any,
+    courseProgress: any,
+  ): void {
+    if (!courseInfo || !courseContent) {
+      this.courseState.update(state => ({
+        ...state,
+        loading: false,
+        error: 'Failed to load course data'
+      }));
+      return;
+    }
+
+    const courseData = courseInfo?.data;
+    const course: CourseOverview = {
+      id: courseData?.id || courseId,
+      title: courseData?.title || '',
+      description: courseData?.description || '',
+      instructor: courseData?.teacherName || 'Unknown',
+      thumbnail: '',
+      sectionsCount: courseData?.chaptersCount || 0,
+      lessonsCount: this.countLessons(courseContent.data || []),
+      duration: this.calculateTotalDuration(courseContent.data || []),
+      isEnrolled: true
+    };
+
+    const sections = this.mapSections(courseContent.data || []);
+    const mergedSections = this.mergeProgressIntoSections(sections, courseProgress);
+
+    this.courseState.set({
+      course,
+      sections: mergedSections,
+      loading: false,
+      error: null
+    });
+
+    if (courseProgress?.completedLessonIds && Array.isArray(courseProgress.completedLessonIds)) {
+      const completedLessonIds = courseProgress.completedLessonIds;
+      this.progressState.update(state => ({
+        ...state,
+        completedLessons: new Set(completedLessonIds)
+      }));
+
+      const total = this.totalLessons();
+      const completed = completedLessonIds.length;
+      const progressPercentage = total > 0
+        ? Math.round((completed / total) * 100)
+        : 0;
+
+      this.progressState.update(state => ({
+        ...state,
+        progressPercentage
+      }));
+    } else {
+      this.loadProgressFromStorage(courseId);
+    }
+  }
+
+  /**
+   * Load course data from IndexedDB (download-first).
+   * Uses real chapter titles from IndexedDB instead of generic "Chương X".
+   */
+  private async loadCourseOffline(courseId: string): Promise<void> {
+    try {
+      const [offlineLessons, offlineChapters, offlineCourse] = await Promise.all([
+        this.courseDownload.getOfflineLessons(courseId),
+        this.courseDownload.getOfflineChapters(courseId),
+        this.courseDownload.getOfflineCourse(courseId),
+      ]);
+
+      if (offlineLessons.length === 0) {
+        this.courseState.update(s => ({
+          ...s, loading: false,
+          error: 'Khóa học chưa được tải xuống. Kết nối mạng và tải khóa học để xem ngoại tuyến.',
+        }));
+        return;
+      }
+
+      // Build chapter title lookup
+      const chapterTitleMap = new Map(offlineChapters.map(ch => [ch.id, ch.title]));
+
+      // Build course overview from offline data
+      const courseData = this.courseDownload.downloadedCourses().find(c => c.id === courseId);
+
+      const course: CourseOverview = {
+        id: courseId,
+        title: offlineCourse?.title || courseData?.title || 'Khóa học ngoại tuyến',
+        description: offlineCourse?.description || '',
+        instructor: 'LMS Maritime',
+        thumbnail: '',
+        sectionsCount: offlineChapters.length,
+        lessonsCount: offlineLessons.length,
+        duration: '',
+        isEnrolled: true,
+      };
+
+      // Group lessons by chapter (preserve chapter order from offlineChapters)
+      const lessonsByChapter = new Map<string, typeof offlineLessons>();
+      for (const lesson of offlineLessons) {
+        const group = lessonsByChapter.get(lesson.chapterId) || [];
+        group.push(lesson);
+        lessonsByChapter.set(lesson.chapterId, group);
+      }
+
+      // Build sections using real chapter order and titles
+      const sections: Section[] = offlineChapters.map((ch, idx) => ({
+        id: ch.id,
+        title: chapterTitleMap.get(ch.id) || `Chương ${idx + 1}`,
+        description: '',
+        orderIndex: ch.sortOrder ?? idx,
+        lessons: (lessonsByChapter.get(ch.id) || [])
+          .sort((a, b) => a.sortOrder - b.sortOrder)
+          .map((l, i) => ({
+            id: l.id,
+            title: l.title,
+            description: '',
+            lessonType: l.videoManifestUrl ? LessonType.LECTURE : LessonType.READING,
+            duration: 0,
+            orderIndex: l.sortOrder ?? i,
+            isCompleted: false,
+          })),
+      }));
+
+      // Merge progress from localStorage
+      this.courseState.set({ course, sections, loading: false, error: null });
+      this.loadProgressFromStorage(courseId);
+    } catch {
+      this.courseState.update(s => ({
+        ...s, loading: false,
+        error: 'Không thể tải dữ liệu ngoại tuyến',
+      }));
+    }
+  }
+
+  /**
+   * Load lesson from IndexedDB when offline.
+   */
+  private async loadLessonOffline(lessonId: string): Promise<void> {
+    try {
+      const offlineLesson = await this.courseDownload.getOfflineLesson(lessonId);
+      if (!offlineLesson) {
+        this.lessonState.update(s => ({
+          ...s, loading: false,
+          error: 'Bài học chưa được tải xuống cho chế độ ngoại tuyến',
+        }));
+        return;
+      }
+
+      const lessonDetail: LessonDetail = {
+        id: offlineLesson.id,
+        title: offlineLesson.title,
+        description: '',
+        lessonType: offlineLesson.videoManifestUrl ? LessonType.LECTURE : LessonType.READING,
+        duration: 0,
+        orderIndex: offlineLesson.sortOrder,
+        content: offlineLesson.contentHtml,
+        videoUrl: offlineLesson.videoOfflineUri || offlineLesson.videoManifestUrl,
+        thumbnail: '',
+        attachments: [],
+        sectionId: offlineLesson.chapterId,
+        sectionTitle: '',
+        courseId: offlineLesson.courseId,
+        courseTitle: '',
+        durationMinutes: 0,
+        sections: offlineLesson.contentHtml ? [{
+          id: `${offlineLesson.id}-text`,
+          title: offlineLesson.title,
+          type: 'TEXT' as const,
+          content: offlineLesson.contentHtml,
+          orderIndex: 0,
+          isRequired: true,
+        }] : [],
+      };
+
+      this.lessonCache.set(lessonId, lessonDetail);
+      this.lessonState.set({ currentLesson: lessonDetail, loading: false, error: null });
+      this.updateLastAccessedLesson(lessonId);
+    } catch {
+      this.lessonState.update(s => ({
+        ...s, loading: false,
+        error: 'Không thể tải bài học ngoại tuyến',
+      }));
+    }
+  }
+
+  /**
+   * Load lesson details — Download-First pattern.
+   *
+   * Priority: memory cache → IndexedDB (if downloaded) → API → offline fallback.
+   * For downloaded courses, IndexedDB read is instant (no spinner).
    */
   loadLesson(lessonId: string): void {
-    // Check cache first
+    // 1. Check memory cache first (instant)
     const cached = this.lessonCache.get(lessonId);
     if (cached) {
       this.lessonState.set({
@@ -292,14 +483,34 @@ export class LearningService {
       return;
     }
 
-    // Set loading state
+    // 2. Download-First: check if lesson's course is downloaded
+    const courseId = this.course()?.id;
+    if (courseId && this.courseDownload.isDownloadedSync(courseId)) {
+      // Load from IndexedDB instantly (no loading spinner)
+      this.loadLessonOffline(lessonId).then(() => {
+        // Background refresh from API if online
+        if (this.network.online()) {
+          this.backgroundRefreshLesson(lessonId);
+        }
+      });
+      return;
+    }
+
+    // 3. Not downloaded → standard API-first flow
     this.lessonState.update(state => ({
       ...state,
       loading: true,
       error: null
     }));
 
-    // Fetch from API
+    this.fetchLessonFromApi(lessonId);
+  }
+
+  /**
+   * Fetch lesson from API and update state.
+   * Shared by both API-first and background refresh flows.
+   */
+  private fetchLessonFromApi(lessonId: string): void {
     this.lessonApi.getLessonById(lessonId).subscribe({
       next: (response) => {
         const data = response?.data;
@@ -312,60 +523,21 @@ export class LearningService {
           return;
         }
 
-        // Map sections from API response
-        let mappedSections: SectionContent[] = (data.sections || []).map((s: any) => ({
-          id: s.id,
-          title: s.title,
-          type: s.type as 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT',
-          content: s.content,
-          videoUrl: s.videoUrl,
-          fileUrl: s.fileUrl,
-          duration: s.duration,
-          orderIndex: s.orderIndex ?? 0,
-          isRequired: s.isRequired ?? false
-        }));
-
-        // If API returned no sections, try to find them from course content cache
-        if (mappedSections.length === 0) {
-          const fromCourseContent = this.findSectionsFromCourseContent(data.id);
-          if (fromCourseContent && fromCourseContent.length > 0) {
-            mappedSections = fromCourseContent;
-          }
-        }
-
-        const lessonDetail: LessonDetail = {
-          id: data.id,
-          title: data.title,
-          description: data.description || '',
-          lessonType: (data.lessonType as any) || getLessonTypeFromTitle(data.title),
-          duration: data.durationMinutes || 0,
-          orderIndex: 0, // Will be set from section data
-          content: data.content || '',
-          videoUrl: data.videoUrl,
-          thumbnail: '',
-          attachments: (data.attachments || []) as any,
-          sectionId: data.sectionId,
-          sectionTitle: data.sectionTitle || '',
-          courseId: data.courseId,
-          courseTitle: data.courseTitle || '',
-          durationMinutes: data.durationMinutes,
-          sections: mappedSections
-        };
-
-        // Cache the lesson
+        const lessonDetail = this.mapLessonResponse(data);
         this.lessonCache.set(lessonId, lessonDetail);
 
-        // Update state
         this.lessonState.set({
           currentLesson: lessonDetail,
           loading: false,
           error: null
         });
-
-        // Update last accessed
         this.updateLastAccessedLesson(lessonId);
       },
       error: (err) => {
+        if (!this.network.online()) {
+          this.loadLessonOffline(lessonId);
+          return;
+        }
         const errorMessage = this.getErrorMessage(err);
         this.lessonState.update(state => ({
           ...state,
@@ -374,6 +546,77 @@ export class LearningService {
         }));
       }
     });
+  }
+
+  /**
+   * Background refresh lesson from API (stale-while-revalidate).
+   * Silently updates cache and state if server has newer data.
+   */
+  private backgroundRefreshLesson(lessonId: string): void {
+    this.bgLessonRefreshSub?.unsubscribe();
+    this.bgLessonRefreshSub = this.lessonApi.getLessonById(lessonId).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
+      next: (response) => {
+        const data = response?.data;
+        if (data) {
+          const lessonDetail = this.mapLessonResponse(data);
+          this.lessonCache.set(lessonId, lessonDetail);
+          // Only update if this is still the current lesson
+          if (this.currentLesson()?.id === lessonId) {
+            this.lessonState.set({
+              currentLesson: lessonDetail,
+              loading: false,
+              error: null
+            });
+          }
+        }
+      },
+      // Silently ignore errors — stale local data is already showing
+    });
+  }
+
+  /**
+   * Map API lesson response to LessonDetail model.
+   */
+  private mapLessonResponse(data: any): LessonDetail {
+    let mappedSections: SectionContent[] = (data.sections || []).map((s: any) => ({
+      id: s.id,
+      title: s.title,
+      type: s.type as 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT',
+      content: s.content,
+      videoUrl: s.videoUrl,
+      fileUrl: s.fileUrl,
+      duration: s.duration,
+      orderIndex: s.orderIndex ?? 0,
+      isRequired: s.isRequired ?? false
+    }));
+
+    if (mappedSections.length === 0) {
+      const fromCourseContent = this.findSectionsFromCourseContent(data.id);
+      if (fromCourseContent && fromCourseContent.length > 0) {
+        mappedSections = fromCourseContent;
+      }
+    }
+
+    return {
+      id: data.id,
+      title: data.title,
+      description: data.description || '',
+      lessonType: (data.lessonType as any) || getLessonTypeFromTitle(data.title),
+      duration: data.durationMinutes || 0,
+      orderIndex: 0,
+      content: data.content || '',
+      videoUrl: data.videoUrl,
+      thumbnail: '',
+      attachments: (data.attachments || []) as any,
+      sectionId: data.sectionId,
+      sectionTitle: data.sectionTitle || '',
+      courseId: data.courseId,
+      courseTitle: data.courseTitle || '',
+      durationMinutes: data.durationMinutes,
+      sections: mappedSections
+    };
   }
 
   /**
@@ -467,6 +710,12 @@ export class LearningService {
    * Reset all state
    */
   reset(): void {
+    this.bgCourseRefreshSub?.unsubscribe();
+    this.bgLessonRefreshSub?.unsubscribe();
+    this.bgCourseRefreshSub = null;
+    this.bgLessonRefreshSub = null;
+    this.currentCourseId = null;
+
     this.courseState.set({
       course: null,
       sections: [],

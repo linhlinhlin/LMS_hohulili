@@ -12,6 +12,7 @@ import { StudentEnrollmentService } from '../student/services/enrollment.service
 import { PaymentModalComponent, CoursePaymentInfo } from '../payment/payment-modal.component';
 import { PaymentService } from '../payment/payment.service';
 import { ToastService } from '../../core/services/toast.service';
+import { CourseDownloadButtonComponent } from '../../shared/components/course-download-button/course-download-button.component';
 
 /**
  * CourseDetailComponent - Coursera/Udemy-inspired Design (Dec 2025 SOTA)
@@ -25,7 +26,7 @@ import { ToastService } from '../../core/services/toast.service';
  */
 @Component({
   selector: 'app-course-detail',
-  imports: [CommonModule, RouterModule, PaymentModalComponent],
+  imports: [CommonModule, RouterModule, PaymentModalComponent, CourseDownloadButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './course-detail.component.html'
 })

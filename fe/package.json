@@ -54,6 +54,7 @@
     "@types/video.js": "^7.3.58",
     "chart.js": "^4.5.1",
     "ckeditor5": "^47.3.0",
+    "dexie": "^4.3.0",
     "dompurify": "^3.3.1",
     "express": "^5.1.0",
     "gsap": "^3.13.0",
@@ -61,6 +62,7 @@
     "katex": "^0.16.27",
     "lucide-angular": "^0.544.0",
     "rxjs": "~7.8.0",
+    "shaka-player": "^4.16.18",
     "tslib": "^2.3.0",
     "video.js": "^8.23.4",
     "xlsx": "^0.18.5"

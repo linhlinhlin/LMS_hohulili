@@ -1,4 +1,4 @@
-import { Component, input, output, model, computed, ChangeDetectionStrategy, inject, effect, ElementRef, viewChild, AfterViewInit } from '@angular/core';
+import { Component, input, output, model, signal, computed, ChangeDetectionStrategy, inject, effect, ElementRef, viewChild, AfterViewInit } from '@angular/core';
 
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -10,6 +10,7 @@ import { HeartbeatTracker } from '../../services/heartbeat-tracker.service';
 import { ReadingProgressTracker } from '../../services/reading-progress-tracker.service';
 import { VideoProgressApi } from '../../../../api/client/video-progress.api';
 import { YouTubePlayerComponent } from '../youtube-player/youtube-player.component';
+import { OfflineVideoService } from '../../../../core/services/offline-video.service';
 
 /**
  * Lesson Content Component
@@ -33,6 +34,7 @@ export class LessonContentComponent implements AfterViewInit {
   private heartbeat = inject(HeartbeatTracker);
   private readingTracker = inject(ReadingProgressTracker);
   private videoProgressApi = inject(VideoProgressApi);
+  private offlineVideo = inject(OfflineVideoService);
 
   /** Reference to text content container for scroll tracking */
   readonly textContentRef = viewChild<ElementRef>('textContent');
@@ -193,6 +195,34 @@ export class LessonContentComponent implements AfterViewInit {
       },
       error: () => {} // Ignore — fresh start is fine
     });
+  }
+
+  /** Resolved video URL — uses offline blob URL if available */
+  readonly resolvedVideoUrl = signal<string | null>(null);
+
+  private resolveVideoEffect = effect(() => {
+    const lesson = this.lesson();
+    if (lesson?.id) {
+      this.resolveOfflineVideoUrl(lesson.id);
+    }
+  });
+
+  private async resolveOfflineVideoUrl(lessonId: string): Promise<void> {
+    if (this.offlineVideo.isAvailableOffline(lessonId)) {
+      const blobUrl = await this.offlineVideo.getVideoUrl(lessonId);
+      if (blobUrl) {
+        this.resolvedVideoUrl.set(blobUrl);
+        return;
+      }
+    }
+    this.resolvedVideoUrl.set(null);
+  }
+
+  /**
+   * Get the best video URL — offline blob URL or original URL
+   */
+  getVideoSrc(originalUrl: string | undefined): string | undefined {
+    return this.resolvedVideoUrl() || originalUrl;
   }
 
   isYouTubeUrl(url: string | undefined): boolean {

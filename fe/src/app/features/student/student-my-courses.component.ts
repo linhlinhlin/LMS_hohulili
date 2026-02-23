@@ -13,6 +13,7 @@ import { CardComponent } from '../../shared/components/ui/card/card.component';
 import { ProgressBarComponent } from '../../shared/components/ui/progress-bar/progress-bar.component';
 import { TabsComponent, Tab } from '../../shared/components/ui/tabs/tabs.component';
 import { ToastService } from '../../core/services/toast.service';
+import { CourseDownloadButtonComponent } from '../../shared/components/course-download-button/course-download-button.component';
 
 // Enhanced course with modules
 interface LessonSection {
@@ -54,7 +55,8 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
     FormsModule,
     RouterModule,
     IconComponent,
-    ButtonComponent
+    ButtonComponent,
+    CourseDownloadButtonComponent,
 ],
   template: `
     <div class="my-courses-container">
@@ -151,11 +153,12 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
 
                 <!-- Action Buttons -->
                 <div class="action-buttons">
-                  <app-button 
-                    variant="primary" 
+                  <app-button
+                    variant="primary"
                     (clicked)="resumeCourse(course.id)">
                     {{ activeTab() === 'completed' ? 'Xem lại' : 'Tiếp tục học' }}
                   </app-button>
+                  <app-course-download-button [courseId]="course.id" [courseTitle]="course.title" />
                   <button class="dropdown-button" (click)="toggleModules(course.id)" aria-label="Show lessons">
                     <app-icon [name]="course.showModules ? 'chevron-up' : 'chevron-down'" size="sm" />
                   </button>

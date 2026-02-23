@@ -242,6 +242,10 @@
                       </svg>
                       <span>Tiếp tục học</span>
                     </button>
+                    <!-- Offline Download -->
+                    <div class="flex justify-center mb-3">
+                      <app-course-download-button [courseId]="course()!.id" [courseTitle]="course()!.title" />
+                    </div>
                   } @else if (isEnrolled() && !isPaid() && course()?.price && course()!.price > 0) {
                     <!-- Enrolled + NOT Paid + Paid course = Show Payment Button -->
                     <button (click)="openPaymentModal()" 

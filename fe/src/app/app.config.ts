@@ -11,6 +11,7 @@ import { provideServiceWorker } from '@angular/service-worker';
 import { authInterceptor } from './api/interceptors/auth.interceptor';
 import { errorInterceptor } from './api/interceptors/error.interceptor';
 import { baseUrlInterceptor } from './api/interceptors/base-url.interceptor';
+import { offlineInterceptor } from './api/interceptors/offline.interceptor';
 import { AuthService } from './core/services/auth.service';
 import {
   LucideAngularModule,
@@ -71,7 +72,7 @@ export const appConfig: ApplicationConfig = {
     provideAnimationsAsync(),
     provideHttpClient(
       withFetch(),
-      withInterceptors([baseUrlInterceptor, authInterceptor, errorInterceptor])
+      withInterceptors([baseUrlInterceptor, authInterceptor, offlineInterceptor, errorInterceptor])
     ),
     // Set default locale to Vietnamese for pipes like CurrencyPipe, DatePipe, etc.
     { provide: LOCALE_ID, useValue: 'vi' },

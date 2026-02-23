@@ -18,14 +18,16 @@ import {
   HistoryResponse,
   StreamEvent,
 } from '../../domain/types';
+import { AiTokenService } from './ai-token.service';
 
 /**
  * API Configuration
  */
 export const AI_CHAT_CONFIG = {
   baseUrl: '/api/v3/ai', // LMS Backend Proxy
-  timeout: 60000, // 60 seconds
+  timeout: 180000, // 180 seconds (maritime latency)
   coldStartThreshold: 10000, // 10 seconds indicates cold start
+  streamTimeout: 180000, // 3 minutes for SSE streams
 } as const;
 
 /**
@@ -54,6 +56,7 @@ export interface RequestTiming {
 export class ChatApiClient {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
+  private readonly aiTokenService = inject(AiTokenService);
   private lastRequestTiming: RequestTiming | null = null;
   private isServerAwake = false;
 
@@ -303,6 +306,9 @@ export class ChatApiClient {
       ? localStorage.getItem('lms_access_token')
       : null;
 
+    // Get AI service token (if available, for enhanced auth)
+    const aiToken = await this.aiTokenService.getToken();
+
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'Accept': 'text/event-stream',
@@ -313,7 +319,10 @@ export class ChatApiClient {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-
+    // Add AI token for direct AI service auth (backend can forward or use)
+    if (aiToken) {
+      headers['X-AI-Token'] = aiToken;
+    }
 
     const response = await fetch(`${AI_CHAT_CONFIG.baseUrl}/chat/stream`, {
       method: 'POST',

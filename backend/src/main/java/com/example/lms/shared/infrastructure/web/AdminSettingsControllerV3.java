@@ -3,6 +3,7 @@ package com.example.lms.shared.infrastructure.web;
 import com.example.lms.shared.application.usecase.AdminSettingsUseCase;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -27,7 +28,7 @@ public class AdminSettingsControllerV3 {
     @PutMapping
     @Operation(summary = "Update system settings")
     public ResponseEntity<ApiResponse<AdminSettingsUseCase.SettingsResponse>> updateSettings(
-            @RequestBody AdminSettingsUseCase.SettingsResponse settings) {
+            @Valid @RequestBody AdminSettingsUseCase.SettingsResponse settings) {
         var updated = settingsUseCase.updateSettings(settings);
         return ResponseEntity.ok(ApiResponse.success(updated, "Cập nhật cài đặt thành công"));
     }

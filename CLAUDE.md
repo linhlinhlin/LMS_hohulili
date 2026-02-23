@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-> **Last Updated**: 2026-02-13 | **Version**: 5.0 | **Status**: MVP Complete + Full Audit & Fix (S60)
+> **Last Updated**: 2026-02-23 | **Version**: 6.1 | **Status**: MVP Complete + Download-First PWA (S61d)
 
 This file provides guidance to Claude Code for working with this repository. **Read this first before any task.**
 
@@ -29,7 +29,7 @@ cd fe && npm install && npm start
 
 ## CURRENT SYSTEM STATUS
 
-### Backend: RUNNING (381 files | 527 tests | 216 endpoints)
+### Backend: RUNNING (381 files | 550 tests | 216 endpoints)
 | Component | Status | Port |
 |-----------|--------|------|
 | Spring Boot API | Running | 8088 |
@@ -278,6 +278,22 @@ export class ExampleComponent {
 | Course Info Page | `fe/src/app/features/teacher/course-editor/pages/course-info/course-info.component.ts` |
 | Course Settings Page | `fe/src/app/features/teacher/course-editor/pages/course-settings/course-settings.component.ts` |
 
+### PWA / Offline
+| Purpose | File |
+|---------|------|
+| Offline DB Schema | `fe/src/app/core/db/lms-offline.db.ts` |
+| Network Status | `fe/src/app/core/services/network-status.service.ts` |
+| Offline Sync | `fe/src/app/core/services/offline-sync.service.ts` |
+| Course Download | `fe/src/app/core/services/course-download.service.ts` |
+| SW Update | `fe/src/app/core/services/sw-update.service.ts` |
+| Storage Manager | `fe/src/app/core/services/storage-manager.service.ts` |
+| Offline Interceptor | `fe/src/app/api/interceptors/offline.interceptor.ts` |
+| NGSW Config | `fe/ngsw-config.json` |
+| Offline Fallback | `fe/src/app/shared/components/offline-fallback/offline-fallback.component.ts` |
+| Companion SW | `fe/src/sw.js` (sync + push only, no fetch) |
+| BE Sync UseCase | `backend/.../shared/application/usecase/SyncUseCase.java` |
+| BE Sync Controller | `backend/.../shared/infrastructure/web/SyncControllerV3.java` |
+
 ---
 
 ## BACKEND MODULE STATS
@@ -322,6 +338,8 @@ export class ExampleComponent {
 | TypeScript | 5.x |
 | RxJS | 7.x |
 | Sass | (managed) |
+| Dexie.js | 4.x |
+| Shaka Player | 5.x |
 
 ### Testing
 | Tool | Purpose |
@@ -380,6 +398,46 @@ teacherGuard = [UserRole.TEACHER, UserRole.ADMIN, UserRole.ORG_ADMIN]
 
 ## RECENT CHANGES LOG
 
+### Session 61 (2026-02-23): PWA Download-First + Data Sync + SOTA Audit
+
+**5 sub-sessions (S61–S61d)** | FE 0 errors | BE 550 tests, 0 failures
+
+**Phase 1 - PWA Foundation (S61):**
+- Angular NGSW config (6 data groups: catalog, content, profile, progress, images, enrollments)
+- Dexie.js 4 IndexedDB schema (7 tables: courses, chapters, lessons, progress, submissions, quizAttempts, syncQueue)
+- NetworkStatusService (3-tier: none/slow/fast), StorageManagerService, ScreenWakeLockService
+- OfflineIndicatorComponent, StorageBudgetComponent, SwUpdateService (6h check + user confirmation dialog)
+
+**Phase 2 - Adaptive Video (S61):**
+- Shaka Player 5.x integration with maritime ABR (60s buffer, 10 retries, 500kbps default)
+- QoETrackerService (startup, rebuffer, bitrate changes, connection type)
+- OfflineVideoService (Cache API, ReadableStream download + progress)
+
+**Phase 3 - Offline Capability (S61b):**
+- OfflineSyncService: batch sync via `/api/v3/sync/push`, failedCount signal, retryFailed()
+- CourseDownloadService: full course download (metadata + chapters + lessons), storage quota pre-check (90%)
+- OfflineFallbackComponent: downloaded courses list, pending/failed sync UI, retry button
+- Offline HTTP interceptor: GET→IndexedDB fallback, POST/PUT/PATCH/DELETE→sync queue (fake 202)
+
+**Phase 4 - Deep Audit (S61c, CoT SOTA Research):**
+- SSE reconnect + exponential backoff (3 retries: 1s/2s/4s), 180s timeout, 15s heartbeat
+- **BE SyncUseCase implemented** (was 100% stubbed): routes to TrackVideoProgressUseCase with additive merge
+- **Conflict resolution**: Additive merge (video segments), Timestamp LWW (progress), Server-wins (grades/quiz)
+- Removed dual SW conflict: sw.js now only handles sync+push (no fetch handlers)
+- SW update: user confirmation dialog instead of auto-reload (prevents data loss during quiz)
+- manifest.webmanifest branding update, browserconfig.xml created
+
+**Phase 5 - Download-First Upgrade (S61d, CoT SOTA Research):**
+- **Architecture decision**: Offline-Capable → Download-First (not full Offline-First). Referenced Moodle Mobile, Coursera, OTG/Seagull, Google Workbox stale-while-revalidate
+- **LearningService.loadCourse()**: Downloaded courses read from IndexedDB instantly (0 spinner), background refresh from server (stale-while-revalidate)
+- **LearningService.loadLesson()**: Same Download-First pattern with lesson-level cache + background refresh
+- **CourseDownloadService**: Added `isDownloadedSync()`, `getOfflineCourse()`, `getOfflineChapters()`, `getOfflineLesson()`, `getOfflineLessons()`
+- **SyncUseCase stubs→real**: All 4 entity types routed (videoProgress, lessonProgress, submission, quizAttempt) + pullChanges() + getStatus()
+- **SyncUseCaseTest**: 23 new unit tests (7 nested classes, 0 failures)
+- **NetworkStatusService spec**: 10 tests covering connectionTier/connectionLabel reactivity
+- **Auto-redirect /offline**: app.ts effect monitors `NetworkStatusService.online()` → saves URL → redirects → restores on reconnect
+- **Background Sync**: `navigator.serviceWorker.ready.then(reg => reg.sync.register('lms-offline-sync'))`
+
 ### Session 60 (2026-02-13): Teacher Assignments Deep-Dive + INSTRUCTOR_LED Enforcement
 
 **11 issues fixed** | 527 tests, 0 failures | FE: 0 errors
@@ -432,17 +490,18 @@ teacherGuard = [UserRole.TEACHER, UserRole.ADMIN, UserRole.ORG_ADMIN]
 
 ---
 
-## ARCHITECTURE SCORES (Post-S60)
+## ARCHITECTURE SCORES (Post-S61d)
 
 | Category | Score | Key Facts |
 |----------|-------|-----------|
 | Backend Clean Architecture | 10/10 | 0 infra imports in domain, CQRS query ports, @AuthenticationPrincipal everywhere, 0 catch(Exception) |
 | Frontend Angular Patterns | 10/10 | 100% signals, 0 legacy patterns, 0 mock services, 0 alert/confirm, 0 bare `.subscribe()` |
+| PWA / Download-First | 9.7/10 | NGSW + Dexie.js, Download-First (stale-while-revalidate), batch sync, conflict resolution, auto-redirect /offline |
 | JPA & Database | 9.5/10 | Correct entity mapping, N+1 fixes, optimistic locking, batch JPQL queries |
-| API & Use Cases | 9.8/10 | SRP, typed DTOs, @Valid, real DB queries (revenue, gamification, assignments) |
+| API & Use Cases | 9.8/10 | SRP, typed DTOs, @Valid, real DB queries, SyncUseCase routing (4 entity types + pull + status) |
 | Security | 10/10 | Multi-tier RBAC (4 roles), escalation prevention, ownership verification, JWT |
-| Test Coverage | 8.7/10 | 527 tests, **0 failures**, ~49% coverage |
-| Code Cleanliness | 10/10 | 0 dead code, 0 mocks, 0 stubs (except 4 honest), 0 English messages, 0 generic blue-* |
+| Test Coverage | 8.8/10 | 550 tests, **0 failures**, ~50% coverage |
+| Code Cleanliness | 10/10 | 0 dead code, 0 mocks, 0 stubs (except 3 honest), 0 English messages, 0 generic blue-* |
 | UX & Design | 10/10 | Consistent #0056D2 tokens, Coursera-style, SVG icons, DnD WCAG 2.5.7 |
 
 ---

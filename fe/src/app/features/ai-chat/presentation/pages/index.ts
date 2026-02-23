@@ -1,4 +1,4 @@
 /**
  * Presentation Pages barrel export
  */
-export { ChatPageComponent } from './chat-page/chat-page.component';
+export { AiChatFullPageComponent } from './ai-chat-full-page/ai-chat-full-page.component';

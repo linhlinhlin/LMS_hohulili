@@ -8,6 +8,7 @@ import com.example.lms.ai_assistant.infrastructure.persistence.ChatMessageJpaRep
 import com.example.lms.ai_assistant.infrastructure.persistence.entity.ChatMessageJpaEntity;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
+import com.example.lms.ai_assistant.application.port.AiChatService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -16,19 +17,24 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.time.Instant;
 import java.util.*;
 
 /**
  * REST Controller for AI Assistant functionality.
- * MVP: Uses template-based responses (no external AI API required).
+ *
+ * <p>Proxies chat requests to Wiii AI service for real AI responses.
+ * Session management (create, list, archive, delete) stays local.
+ * SSE streaming endpoint at {@code /chat/stream} forwards Wiii's SSE events.
  */
 @RestController
 @RequestMapping("/api/v3/ai")
@@ -42,6 +48,7 @@ public class AiAssistantControllerV3 {
 
     private final ChatSessionUseCaseV3 chatSessionUseCase;
     private final ChatMessageJpaRepository chatMessageRepository;
+    private final AiChatService aiChatService;
 
     // ============== Health Check ==============
 
@@ -137,8 +144,8 @@ public class AiAssistantControllerV3 {
                 .build();
         chatMessageRepository.save(userMsg);
 
-        // Generate template-based AI response
-        String aiResponse = generateResponse(command.content(), session.contextType());
+        // Call Wiii AI for real response (fallback to template if unavailable)
+        String aiResponse = getAiResponse(user, command.content(), sessionId.toString());
 
         // Save AI response
         ChatMessageJpaEntity aiMsg = ChatMessageJpaEntity.builder()
@@ -182,13 +189,12 @@ public class AiAssistantControllerV3 {
 
     @PostMapping("/chat")
     @Operation(summary = "Quick chat without session (stateless)")
-    @Transactional
     public ResponseEntity<ApiResponse<Map<String, Object>>> quickChat(
             @AuthenticationPrincipal UserJpaEntity user,
             @RequestBody @Valid SendChatMessageCommand command) {
 
         log.info("Quick chat from user: {}", user.getId());
-        String aiResponse = generateResponse(command.content(), "GENERAL");
+        String aiResponse = getAiResponse(user, command.content(), null);
 
         Map<String, Object> response = Map.of(
             "userId", user.getId(),
@@ -199,18 +205,38 @@ public class AiAssistantControllerV3 {
         return ResponseEntity.ok(ApiResponse.success(response, "Phản hồi trò chuyện"));
     }
 
+    // ============== SSE Streaming ==============
+
+    @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(summary = "Stream AI response via Server-Sent Events")
+    public SseEmitter streamChat(
+            @AuthenticationPrincipal UserJpaEntity user,
+            @RequestBody @Valid SendChatMessageCommand command) {
+
+        log.info("SSE stream from user: {}", user.getId());
+        return aiChatService.streamChat(
+                user.getId().toString(),
+                user.getEmail(),
+                user.getDisplayName(),
+                user.getRole().name(),
+                command.content(),
+                null,   // session derived by Wiii
+                "maritime"
+        );
+    }
+
     // ============== Context-Aware Chat ==============
 
     @PostMapping("/courses/{courseId}/ask")
     @Operation(summary = "Ask AI about a specific course")
-    @Transactional
     public ResponseEntity<ApiResponse<Map<String, Object>>> askAboutCourse(
             @AuthenticationPrincipal UserJpaEntity user,
             @PathVariable UUID courseId,
             @RequestBody @Valid SendChatMessageCommand command) {
 
         log.info("Course context question for course: {}", courseId);
-        String aiResponse = generateResponse(command.content(), "COURSE");
+        String contextMessage = "[Ngữ cảnh: Khóa học ID=" + courseId + "] " + command.content();
+        String aiResponse = getAiResponse(user, contextMessage, null);
 
         Map<String, Object> response = Map.of(
             "courseId", courseId,
@@ -224,14 +250,14 @@ public class AiAssistantControllerV3 {
 
     @PostMapping("/lessons/{lessonId}/explain")
     @Operation(summary = "Get AI explanation for a lesson")
-    @Transactional
     public ResponseEntity<ApiResponse<Map<String, Object>>> explainLesson(
             @AuthenticationPrincipal UserJpaEntity user,
             @PathVariable UUID lessonId,
             @Valid @RequestBody(required = false) SendChatMessageCommand command) {
 
         String query = command != null ? command.content() : "Giải thích bài học này";
-        String aiResponse = generateResponse(query, "LESSON");
+        String contextMessage = "[Ngữ cảnh: Bài học ID=" + lessonId + "] " + query;
+        String aiResponse = getAiResponse(user, contextMessage, null);
 
         Map<String, Object> response = Map.of(
             "lessonId", lessonId,
@@ -252,63 +278,38 @@ public class AiAssistantControllerV3 {
     }
 
     /**
-     * Template-based AI response for MVP (no external AI API needed).
-     * Returns contextual responses based on user query and context type.
+     * Get AI response from Wiii, with template fallback.
+     *
+     * <p>Tries Wiii proxy first. If Wiii is unavailable (no config, network error,
+     * timeout), falls back to template responses so the app remains functional.
      */
-    private String generateResponse(String userQuery, String contextType) {
-        String query = userQuery.toLowerCase();
-
-        // Maritime/Navigation context
-        if (query.contains("hàng hải") || query.contains("navigation") || query.contains("tàu") || query.contains("ship")) {
-            return "Hàng hải là một lĩnh vực quan trọng bao gồm việc điều hướng và vận hành tàu biển. " +
-                    "Để nắm vững kiến thức này, bạn cần học về: quy tắc phòng ngừa đâm va trên biển (COLREG), " +
-                    "hải đồ và định vị, khí tượng hải dương, và an toàn hàng hải theo STCW 2026. " +
-                    "Bạn có muốn tìm hiểu thêm về chủ đề nào cụ thể không?";
+    private String getAiResponse(UserJpaEntity user, String message, String sessionId) {
+        try {
+            Optional<String> wiiiResponse = aiChatService.chat(
+                    user.getId().toString(),
+                    user.getEmail(),
+                    user.getDisplayName(),
+                    user.getRole().name(),
+                    message,
+                    sessionId,
+                    "maritime"
+            );
+            if (wiiiResponse.isPresent() && !wiiiResponse.get().isBlank()) {
+                return wiiiResponse.get();
+            }
+        } catch (Exception e) {
+            log.warn("Wiii proxy failed, using fallback: {}", e.getMessage());
         }
 
-        // Safety context
-        if (query.contains("an toàn") || query.contains("safety") || query.contains("stcw")) {
-            return "An toàn hàng hải là ưu tiên hàng đầu trên mọi tàu biển. Theo Công ước STCW 2026, " +
-                    "tất cả thuyền viên phải được đào tạo về: cứu sinh, phòng cháy chữa cháy, " +
-                    "sơ cấp cứu, và an ninh hàng hải. Hãy đảm bảo bạn hoàn thành tất cả " +
-                    "các khóa huấn luyện bắt buộc để đạt chứng chỉ năng lực.";
-        }
+        return fallbackResponse(message);
+    }
 
-        // Quiz/Exam help
-        if (query.contains("quiz") || query.contains("bài kiểm tra") || query.contains("thi") || query.contains("exam")) {
-            return "Để chuẩn bị tốt cho bài kiểm tra, hãy: " +
-                    "1) Xem lại tất cả bài học trong khóa học, " +
-                    "2) Làm lại các bài tập thực hành, " +
-                    "3) Ghi chú các điểm quan trọng, " +
-                    "4) Thử làm bài quiz luyện tập để quen với dạng câu hỏi. " +
-                    "Chúc bạn làm bài tốt!";
-        }
-
-        // Course-related
-        if ("COURSE".equals(contextType)) {
-            return "Đây là một khóa học được thiết kế để giúp bạn nắm vững kiến thức chuyên ngành. " +
-                    "Hãy hoàn thành từng bài học theo thứ tự và làm bài tập sau mỗi phần. " +
-                    "Nếu gặp khó khăn, hãy xem lại video bài giảng hoặc đặt câu hỏi cho giảng viên.";
-        }
-
-        // Lesson-related
-        if ("LESSON".equals(contextType)) {
-            return "Bài học này cung cấp kiến thức nền tảng quan trọng. " +
-                    "Hãy đọc kỹ nội dung, xem video minh họa và hoàn thành phần bài tập. " +
-                    "Ghi chú lại những điểm chính để ôn tập sau này.";
-        }
-
-        // Greeting
-        if (query.contains("xin chào") || query.contains("hello") || query.contains("hi")) {
-            return "Xin chào! Tôi là trợ lý AI của Hệ thống Đào tạo Hàng hải. " +
-                    "Tôi có thể giúp bạn với các câu hỏi về khóa học, bài học, " +
-                    "và kiến thức hàng hải. Bạn cần hỗ trợ gì?";
-        }
-
-        // Default response
-        return "Cảm ơn câu hỏi của bạn. Hệ thống AI đang trong giai đoạn MVP " +
-                "và sẽ được nâng cấp để cung cấp câu trả lời chính xác hơn. " +
-                "Trong lúc chờ đợi, bạn có thể tham khảo nội dung bài học " +
-                "hoặc liên hệ giảng viên để được hỗ trợ chi tiết.";
+    /**
+     * Fallback response when Wiii is unavailable.
+     * Simple acknowledgment — no longer pretends to be a real AI.
+     */
+    private String fallbackResponse(String userQuery) {
+        return "Hệ thống AI đang tạm thời không khả dụng. " +
+                "Vui lòng thử lại sau ít phút hoặc liên hệ giảng viên để được hỗ trợ.";
     }
 }

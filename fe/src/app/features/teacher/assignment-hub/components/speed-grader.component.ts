@@ -48,9 +48,9 @@ import { ToastService } from '../../../../core/services/toast.service';
 
       <!-- Main Content -->
       @if (currentSubmission(); as sub) {
-        <div class="flex-1 flex overflow-hidden">
+        <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
           <!-- Left: Submission Content -->
-          <div class="w-1/2 xl:w-3/5 border-r bg-white overflow-y-auto p-6">
+          <div class="w-full md:w-1/2 xl:w-3/5 border-r bg-white overflow-y-auto p-6">
             @if (sub.content) {
               <div class="prose max-w-none">
                 <h3 class="text-lg font-semibold text-gray-900 mb-4">Nội dung bài nộp</h3>
@@ -86,7 +86,7 @@ import { ToastService } from '../../../../core/services/toast.service';
           </div>
 
           <!-- Right: Grading Form -->
-          <div class="w-1/2 xl:w-2/5 bg-white flex flex-col">
+          <div class="w-full md:w-1/2 xl:w-2/5 bg-white flex flex-col">
             <!-- Student Info -->
             <div class="p-4 border-b">
               <div class="flex items-center gap-3">

@@ -1,6 +1,6 @@
 # Frontend Architecture Reference
 
-> **Last Updated**: 2026-02-12 | **Angular**: 20.3 | **Score**: 10/10
+> **Last Updated**: 2026-02-23 | **Angular**: 20.3 | **Score**: 10/10
 
 This document is the **single source of truth** for the LMS frontend architecture.
 Read this instead of re-auditing the codebase.
@@ -43,10 +43,11 @@ fe/src/app/
 │   ├── client/             # ApiClient + domain-specific clients (18 files)
 │   ├── endpoints/          # URL constant definitions (23 files)
 │   ├── types/              # TypeScript interfaces for all DTOs (19 files)
-│   ├── interceptors/       # Auth, base-url, error interceptors (3 files)
+│   ├── interceptors/       # Auth, base-url, error, offline interceptors (4 files)
 │   └── operators/          # RxJS operators (unwrapSpringPage)
 ├── core/                   # Singleton services & guards
-│   ├── services/           # Auth, messaging, notification, etc. (15 services)
+│   ├── services/           # Auth, messaging, notification, PWA offline, etc. (21 services)
+│   ├── db/                 # lms-offline.db.ts (Dexie.js 4 - 7 tables)
 │   └── guards/             # auth.guard, role.guard, enrollment.guard (5 guard fns in 3 files)
 ├── features/               # Feature modules (lazy-loaded)
 │   ├── admin/              # 22 components - Admin dashboard
@@ -384,7 +385,7 @@ api/
 │   ├── common.types.ts   # ApiResponse<T>, Pagination
 │   ├── course.types.ts   # Course, CourseDTO
 │   └── ... (all domain types)
-├── interceptors/    # Auth token, base-url, error handling (3 files)
+├── interceptors/    # Auth token, base-url, error handling, offline fallback (4 files)
 └── operators/
     └── unwrap-spring-page.ts  # unwrapSpringPage<T>() RxJS operator
 ```
@@ -405,7 +406,7 @@ ApiClient.delete<T> / deleteWithResponse<T>
 
 ## Core Module
 
-### Services (15)
+### Services (21)
 
 | Service | LOC | Purpose |
 |---------|-----|---------|
@@ -413,16 +414,22 @@ ApiClient.delete<T> / deleteWithResponse<T>
 | `notification.service.ts` | 479 | Browser notifications |
 | `messaging.service.ts` | 433 | Real-time messaging (WebSocket) |
 | `toast.service.ts` | ~100 | Toast notifications |
-| `reminder.service.ts` | ~200 | Reminder scheduling |
+| `confirm-dialog.service.ts` | ~100 | Confirm dialog (replaces native confirm) |
 | `user.service.ts` | ~150 | User profile management |
 | `distribution.service.ts` | 577 | Content distribution |
 | `learning-path.service.ts` | ~200 | Learning path management |
-| `maritime-compliance.service.ts` | ~150 | Compliance tracking |
 | `api-cache.service.ts` | ~100 | API response caching |
 | `pwa.service.ts` | ~80 | Progressive Web App |
-| `offline-storage.service.ts` | ~100 | Offline data |
 | `image-lifecycle.service.ts` | ~100 | Image handling |
 | `content-identity.service.ts` | ~100 | Content identification |
+| **`network-status.service.ts`** | ~120 | **3-tier network detection (none/slow/fast)** |
+| **`storage-manager.service.ts`** | ~100 | **Storage quota, formatBytes, persistent storage** |
+| **`offline-sync.service.ts`** | ~250 | **Sync queue, batch push, failedCount, retryFailed** |
+| **`course-download.service.ts`** | ~200 | **Full course download to IndexedDB** |
+| **`sw-update.service.ts`** | ~50 | **SW update (6h check, user confirmation dialog)** |
+| **`screen-wake-lock.service.ts`** | ~80 | **Screen Wake Lock API (video playback)** |
+| **`qoe-tracker.service.ts`** | ~100 | **QoE metrics (startup, rebuffer, bitrate)** |
+| **`offline-video.service.ts`** | ~150 | **Video download via Cache API** |
 
 ### Guards (5 functions in 3 files)
 
@@ -485,7 +492,7 @@ ApiClient.delete<T> / deleteWithResponse<T>
 | chat.service.ts | 1,265 | Reduced from 1,451 (extracted classifier) |
 | admin.service.ts | 809 | Consider splitting |
 | admin.service.ts (infra) | 675 | Active |
-| learning.service.ts | 666 | Active |
+| learning.service.ts | ~850 | Active (Download-First refactor S61d) |
 | communication.service.ts | 609 | Active |
 | teacher.service.ts | 581 | Active |
 | distribution.service.ts | 577 | Active |
@@ -510,6 +517,9 @@ ApiClient.delete<T> / deleteWithResponse<T>
 | VNPay | Payment gateway (Vietnamese) |
 | WebSocket | Real-time chat/notifications |
 | Cloudflare R2 | File storage |
+| Dexie.js 4 | IndexedDB offline storage (7 tables) |
+| Shaka Player 5.x | Adaptive video (maritime ABR) |
+| Angular Service Worker | PWA caching (ngsw-config.json) |
 
 ---
 
@@ -580,6 +590,27 @@ items = toSignal(this.service.data$, { initialValue: [] });
 ---
 
 ## Modernization Changelog
+
+### 2026-02-23 Session 61 (PWA Download-First + Data Sync)
+
+**Score: 10/10 (maintained) | PWA: 9.7/10 (NEW)**
+
+| Task | Detail |
+|------|--------|
+| PWA Foundation | NGSW config (6 data groups), Dexie.js 4 (7 tables), NetworkStatusService (3-tier) |
+| Adaptive Video | Shaka Player 5.x (maritime ABR: 60s buffer, 10 retries), QoETrackerService, OfflineVideoService |
+| Offline Sync | OfflineSyncService (batch sync, failedCount, retryFailed), offline HTTP interceptor (GET→IndexedDB, mutations→queue) |
+| Course Download | CourseDownloadService (metadata+chapters+lessons), 90% quota pre-check, unsynced progress warning |
+| SW Update safety | User confirmation dialog instead of auto-reload (prevents data loss during quiz/assignment) |
+| Dual SW fix | Removed custom sw.js fetch handlers + registration from main.ts → NGSW sole cache owner |
+| BE SyncUseCase | Implemented routing (was 100% stubbed): additive merge (video), server-wins (grades/quiz) |
+| Offline Fallback | OfflineFallbackComponent: downloaded courses list, pending/failed sync UI, retry button |
+| New shared components | OfflineIndicatorComponent, StorageBudgetComponent, VideoPlayerAdaptiveComponent |
+| New interceptor | offline.interceptor.ts (4th interceptor, after auth/baseUrl/error) |
+| **Download-First** | LearningService.loadCourse()/loadLesson() reads IndexedDB first for downloaded courses (stale-while-revalidate) |
+| **Background refresh** | Silent server refresh in background, no loading spinner, updates only if content changed |
+| **Auto-redirect /offline** | app.ts effect monitors network status → redirects to /offline → restores URL on reconnect |
+| **SyncUseCase tests** | 23 unit tests (7 nested classes), NetworkStatusService spec (10 tests) |
 
 ### 2026-02-12 Sessions 48-56 (System Audits + Final Polish)
 

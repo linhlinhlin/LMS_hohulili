@@ -198,7 +198,7 @@ public class AssignmentSubmissionControllerV3 {
     @Transactional
     public ResponseEntity<ApiResponse<Map<String, Object>>> submitAssignment(
             @PathVariable UUID assignmentId,
-            @RequestBody SubmitRequest request,
+            @Valid @RequestBody SubmitRequest request,
             @AuthenticationPrincipal UserJpaEntity user) {
 
         // Check if already submitted

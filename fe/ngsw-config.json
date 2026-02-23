@@ -3,8 +3,9 @@
   "index": "/index.html",
   "assetGroups": [
     {
-      "name": "app",
+      "name": "app-shell",
       "installMode": "prefetch",
+      "updateMode": "prefetch",
       "resources": {
         "files": [
           "/favicon.ico",
@@ -22,6 +23,7 @@
       "updateMode": "prefetch",
       "resources": {
         "files": [
+          "/assets/**",
           "/**/*.(svg|cur|jpg|jpeg|png|apng|webp|avif|gif|otf|ttf|woff|woff2)"
         ]
       }
@@ -29,28 +31,89 @@
   ],
   "dataGroups": [
     {
-      "name": "images",
+      "name": "course-catalog",
       "urls": [
-        "/api/v1/files/view/**"
+        "/api/v3/courses",
+        "/api/v3/courses?*",
+        "/api/v3/categories",
+        "/api/v3/categories/**"
       ],
       "cacheConfig": {
         "maxSize": 100,
+        "maxAge": "6h",
+        "strategy": "freshness",
+        "timeout": "3s"
+      }
+    },
+    {
+      "name": "course-content",
+      "urls": [
+        "/api/v3/courses/*/chapters",
+        "/api/v3/courses/*/chapters/**",
+        "/api/v3/courses/*/lessons/**"
+      ],
+      "cacheConfig": {
+        "maxSize": 500,
         "maxAge": "30d",
         "strategy": "performance"
       }
     },
     {
-      "name": "api-read",
+      "name": "user-profile",
       "urls": [
-        "/api/v1/courses/**",
-        "/api/v1/questions/**"
+        "/api/v3/auth/me",
+        "/api/v3/users/me/**"
+      ],
+      "cacheConfig": {
+        "maxSize": 5,
+        "maxAge": "1d",
+        "strategy": "freshness",
+        "timeout": "5s"
+      }
+    },
+    {
+      "name": "progress-data",
+      "urls": [
+        "/api/v3/progress/**",
+        "/api/v3/enrollments/*/progress",
+        "/api/v3/video-progress/**"
+      ],
+      "cacheConfig": {
+        "maxSize": 200,
+        "maxAge": "7d",
+        "strategy": "freshness",
+        "timeout": "3s"
+      }
+    },
+    {
+      "name": "images",
+      "urls": [
+        "/api/v3/files/view/**"
+      ],
+      "cacheConfig": {
+        "maxSize": 200,
+        "maxAge": "30d",
+        "strategy": "performance"
+      }
+    },
+    {
+      "name": "enrollments",
+      "urls": [
+        "/api/v3/enrollments",
+        "/api/v3/enrollments?*",
+        "/api/v3/enrollments/**"
       ],
       "cacheConfig": {
         "maxSize": 50,
         "maxAge": "1d",
         "strategy": "freshness",
-        "timeout": "5s"
+        "timeout": "3s"
       }
     }
+  ],
+  "navigationUrls": [
+    "/**",
+    "!/__**",
+    "!/api/**"
   ]
 }

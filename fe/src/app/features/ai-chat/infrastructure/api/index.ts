@@ -7,3 +7,4 @@ export {
   type ClientApiError,
   type RequestTiming,
 } from './chat-api.client';
+export { AiTokenService } from './ai-token.service';

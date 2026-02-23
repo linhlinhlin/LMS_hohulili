@@ -54,6 +54,11 @@ public interface EnrollmentRepository {
     long countByClassId(UUID classId);
 
     /**
+     * Find enrollment by student and course.
+     */
+    Optional<Enrollment> findByStudentIdAndCourseId(UUID studentId, UUID courseId);
+
+    /**
      * Delete an enrollment.
      */
     void delete(Enrollment enrollment);

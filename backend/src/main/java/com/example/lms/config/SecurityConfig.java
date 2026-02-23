@@ -83,7 +83,9 @@ public class SecurityConfig {
                     // Actuator health check (Docker HEALTHCHECK)
                     "/actuator/health",
                     // Public question bank search
-                    "/api/v3/question-banks/search"
+                    "/api/v3/question-banks/search",
+                    // Wiii AI integration (service-to-service, auth via WiiiServiceAuthFilter)
+                    "/api/v3/integration/**"
                 ).permitAll()
                 .anyRequest().authenticated()
             )

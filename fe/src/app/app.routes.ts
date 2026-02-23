@@ -163,6 +163,15 @@ export const routes: Routes = [
 
 
   // ========================================
+  // OFFLINE ROUTE
+  // ========================================
+  {
+    path: 'offline',
+    loadComponent: () => import('./shared/components/offline-fallback/offline-fallback.component').then(m => m.OfflineFallbackComponent),
+    title: 'Ngoại tuyến - LMS Maritime'
+  },
+
+  // ========================================
   // FALLBACK ROUTE
   // ========================================
 

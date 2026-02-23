@@ -1,9 +1,14 @@
 {
-  "name": "lms-angular",
-  "short_name": "lms-angular",
+  "name": "LMS Maritime - Hệ thống quản lý học tập",
+  "short_name": "LMS Maritime",
+  "description": "Hệ thống quản lý học tập chuyên về ngành hàng hải",
   "display": "standalone",
   "scope": "./",
   "start_url": "./",
+  "theme_color": "#0056D2",
+  "background_color": "#FAFAFA",
+  "lang": "vi",
+  "categories": ["education"],
   "icons": [
     {
       "src": "icons/icon-72x72.png",

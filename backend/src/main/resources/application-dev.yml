@@ -68,4 +68,15 @@ cloudflare:
   r2:
     enabled: false
 
+# Wiii AI Integration (Sprint 175: "Cắm Phích Cắm")
+# Secrets loaded from environment variables — NEVER hardcode in git
+# Set these in your shell/IDE run config:
+#   export WIII_WEBHOOK_SECRET=your-shared-secret
+#   export WIII_SERVICE_TOKEN=your-service-token
+#   export WIII_WEBHOOK_ENABLED=true
+wiii:
+  webhook:
+    enabled: ${WIII_WEBHOOK_ENABLED:false}
+  # secret and service-token already defined in application.yml with ${} placeholders
+
 

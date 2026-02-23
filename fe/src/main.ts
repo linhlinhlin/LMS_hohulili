@@ -29,17 +29,4 @@ const config: ApplicationConfig = {
 };
 
 bootstrapApplication(App, config)
-  .then(() => {
-    // Register service worker for PWA functionality
-    if ('serviceWorker' in navigator && environment.production) {
-      navigator.serviceWorker
-        .register('/sw.js')
-        .then((registration) => {
-          console.log('Service Worker registered successfully:', registration);
-        })
-        .catch((error) => {
-          console.log('Service Worker registration failed:', error);
-        });
-    }
-  })
   .catch((err) => console.error(err));

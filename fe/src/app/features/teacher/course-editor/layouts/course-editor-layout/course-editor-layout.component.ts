@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, computed, signal, effect, untracked, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, OnInit, computed, signal, effect, untracked, ChangeDetectionStrategy, DestroyRef } from '@angular/core';
 
 import { RouterOutlet, RouterModule, ActivatedRoute, Router, NavigationEnd } from '@angular/router';
 import { CourseEditorSidebarComponent } from '../../components/sidebar/sidebar.component';
@@ -152,6 +152,7 @@ export class CourseEditorLayoutComponent implements OnInit {
   store = inject(CourseEditorStore);
   private selectionService = inject(CurriculumSelectionService);
   private authService = inject(AuthService);
+  private destroyRef = inject(DestroyRef);
 
   /** Sidebar collapsed state - auto-managed by route */
   sidebarCollapsed = signal(false);
@@ -198,6 +199,15 @@ export class CourseEditorLayoutComponent implements OnInit {
         }
       }
     }, { allowSignalWrites: true });
+
+    // Warn before leaving with unsaved changes
+    const beforeUnloadHandler = (e: BeforeUnloadEvent) => {
+      if (this.store.saveStatus() === 'unsaved') {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('beforeunload', beforeUnloadHandler);
+    this.destroyRef.onDestroy(() => window.removeEventListener('beforeunload', beforeUnloadHandler));
   }
 
   toggleSidebar() {

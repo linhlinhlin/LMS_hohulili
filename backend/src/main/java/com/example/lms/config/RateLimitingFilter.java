@@ -17,10 +17,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Simple rate limiting filter for authentication endpoints.
- * Limits requests per IP to prevent brute-force attacks.
+ * Rate limiting filter for authentication and AI chat endpoints.
+ * Limits requests per IP to prevent brute-force and abuse.
  *
- * Default: 10 requests per minute per IP on /api/v3/auth/** endpoints.
+ * <ul>
+ *   <li>/api/v3/auth/** — 10 req/min per IP (brute-force prevention)
+ *   <li>/api/v3/ai/** — 10 req/min per IP (AI abuse prevention)
+ * </ul>
+ *
  * Expired entries are cleaned up every 5 minutes to prevent memory leaks.
  */
 @Slf4j
@@ -39,8 +43,8 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 
         String path = request.getRequestURI();
 
-        // Only rate limit auth endpoints
-        if (!path.startsWith("/api/v3/auth")) {
+        // Only rate limit auth and AI endpoints
+        if (!path.startsWith("/api/v3/auth") && !path.startsWith("/api/v3/ai")) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -62,7 +66,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
             response.setContentType("application/json");
             response.getWriter().write(
-                "{\"success\":false,\"errorCode\":\"RATE_LIMITED\",\"message\":\"Too many requests. Please try again later.\"}"
+                "{\"success\":false,\"errorCode\":\"RATE_LIMITED\",\"message\":\"Quá nhiều yêu cầu. Vui lòng thử lại sau.\"}"
             );
             return;
         }

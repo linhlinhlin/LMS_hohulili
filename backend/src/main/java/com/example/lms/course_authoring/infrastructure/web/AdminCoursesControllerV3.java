@@ -187,7 +187,7 @@ public class AdminCoursesControllerV3 {
     @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN')")
     public ResponseEntity<ApiResponse<CourseAdminResponse>> revokeCourse(
             @PathVariable UUID courseId,
-            @RequestBody(required = false) RejectRequest request,
+            @Valid @RequestBody(required = false) RejectRequest request,
             @AuthenticationPrincipal UserJpaEntity admin
     ) {
         return courseRepository.findById(courseId)
