@@ -61,10 +61,10 @@ public class Conversation {
      */
     public static Conversation create(UUID participant1Id, UUID participant2Id) {
         if (participant1Id == null || participant2Id == null) {
-            throw new IllegalArgumentException("Both participants are required");
+            throw new IllegalArgumentException("Cần có cả hai người tham gia");
         }
         if (participant1Id.equals(participant2Id)) {
-            throw new IllegalArgumentException("Cannot create a conversation with oneself");
+            throw new IllegalArgumentException("Không thể tạo cuộc hội thoại với chính mình");
         }
 
         return Conversation.builder()
@@ -131,7 +131,7 @@ public class Conversation {
     public UUID getOtherParticipant(UUID userId) {
         if (participant1Id.equals(userId)) return participant2Id;
         if (participant2Id.equals(userId)) return participant1Id;
-        throw new IllegalArgumentException("User is not a participant of this conversation");
+        throw new IllegalArgumentException("Người dùng không phải thành viên của cuộc hội thoại này");
     }
 
     /**

@@ -46,7 +46,7 @@ public class GradingService {
 
         GradingStrategy strategy = strategies.get(type);
         if (strategy == null) {
-            throw new IllegalArgumentException("No grading strategy for question type: " + type);
+            throw new IllegalArgumentException("Không có chiến lược chấm điểm cho loại câu hỏi: " + type);
         }
 
         GradingStrategy.GradeResult result = strategy.grade(question, studentAnswer);

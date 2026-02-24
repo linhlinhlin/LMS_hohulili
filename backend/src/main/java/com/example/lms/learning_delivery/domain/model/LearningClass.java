@@ -44,7 +44,7 @@ public class LearningClass {
 
     public void close() {
         if (this.status == ClassStatus.CANCELLED) {
-            throw new IllegalStateException("Cannot close a cancelled class");
+            throw new IllegalStateException("Không thể đóng lớp đã bị hủy");
         }
         this.status = ClassStatus.CLOSED;
         this.updatedAt = Instant.now();
@@ -57,7 +57,7 @@ public class LearningClass {
 
     public void cancel() {
         if (this.status == ClassStatus.CLOSED) {
-            throw new IllegalStateException("Cannot cancel a closed class");
+            throw new IllegalStateException("Không thể hủy lớp đã đóng");
         }
         this.status = ClassStatus.CANCELLED;
         this.updatedAt = Instant.now();
@@ -65,7 +65,7 @@ public class LearningClass {
 
     public void reopen() {
         if (this.status != ClassStatus.CLOSED && this.status != ClassStatus.ARCHIVED) {
-            throw new IllegalStateException("Can only reopen a closed or archived class");
+            throw new IllegalStateException("Chỉ có thể mở lại lớp đã đóng hoặc lưu trữ");
         }
         this.status = ClassStatus.OPEN;
         this.updatedAt = Instant.now();

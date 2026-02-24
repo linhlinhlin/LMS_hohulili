@@ -17,7 +17,7 @@ public record RegisterUserCommand(
     String email,
 
     @NotBlank(message = "Mật khẩu không được để trống")
-    @Size(min = 6, message = "Mật khẩu phải có ít nhất 6 ký tự")
+    @Size(min = 8, max = 128, message = "Mật khẩu phải có từ 8 đến 128 ký tự")
     String password,
 
     @NotBlank(message = "Họ tên không được để trống")

@@ -1,5 +1,6 @@
 package com.example.lms.identity.infrastructure.persistence;
 
+import com.example.lms.identity.domain.model.PasswordResetToken;
 import com.example.lms.identity.domain.repository.PasswordResetTokenRepository;
 import com.example.lms.identity.infrastructure.persistence.entity.PasswordResetTokenJpaEntity;
 import lombok.RequiredArgsConstructor;
@@ -17,14 +18,24 @@ public class PasswordResetTokenRepositoryAdapter implements PasswordResetTokenRe
     private final PasswordResetTokenJpaRepository jpaRepository;
 
     @Override
-    public PasswordResetTokenJpaEntity save(UUID userId, String tokenHash, Instant expiresAt) {
+    public PasswordResetToken save(UUID userId, String tokenHash, Instant expiresAt) {
         var entity = new PasswordResetTokenJpaEntity(userId, tokenHash, expiresAt);
-        return jpaRepository.save(entity);
+        var saved = jpaRepository.save(entity);
+        return toDomain(saved);
     }
 
     @Override
-    public Optional<PasswordResetTokenJpaEntity> findByTokenHash(String tokenHash) {
-        return jpaRepository.findByTokenHash(tokenHash);
+    public Optional<PasswordResetToken> findByTokenHash(String tokenHash) {
+        return jpaRepository.findByTokenHash(tokenHash).map(this::toDomain);
+    }
+
+    @Override
+    @Transactional
+    public void markUsedByTokenHash(String tokenHash) {
+        jpaRepository.findByTokenHash(tokenHash).ifPresent(entity -> {
+            entity.setUsedAt(Instant.now());
+            jpaRepository.save(entity);
+        });
     }
 
     @Override
@@ -37,5 +48,16 @@ public class PasswordResetTokenRepositoryAdapter implements PasswordResetTokenRe
     @Transactional
     public void deleteExpired() {
         jpaRepository.deleteByExpiresAtBefore(Instant.now());
+    }
+
+    private PasswordResetToken toDomain(PasswordResetTokenJpaEntity entity) {
+        return new PasswordResetToken(
+                entity.getId(),
+                entity.getUserId(),
+                entity.getTokenHash(),
+                entity.getExpiresAt(),
+                entity.getUsedAt(),
+                entity.getCreatedAt()
+        );
     }
 }

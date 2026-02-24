@@ -82,15 +82,19 @@ export class AssignmentApplicationService {
     return this.getAssignmentsUseCase.execute(studentId).pipe(
       map(assignmentList => {
         const stats = assignmentList.stats;
+        const gradedAssignments = assignmentList.assignments.filter(a => a.grade != null);
+        const avgGrade = gradedAssignments.length > 0
+          ? gradedAssignments.reduce((sum, a) => sum + (a.grade ?? 0), 0) / gradedAssignments.length
+          : 0;
         return {
           totalAssignments: stats.total,
           completedAssignments: stats.completed,
           inProgressAssignments: stats.inProgress,
           overdueAssignments: stats.overdue,
-          averageGrade: 85, // Mock data
+          averageGrade: Math.round(avgGrade * 100) / 100,
           completionRate: stats.completionRate,
-          averageTimeSpent: 120, // Mock data in minutes
-          streakDays: 5 // Mock data
+          averageTimeSpent: 0,
+          streakDays: 0
         };
       })
     );
@@ -100,27 +104,20 @@ export class AssignmentApplicationService {
    * Get assignment recommendations for a student
    */
   getAssignmentRecommendations(studentId: StudentId): Observable<AssignmentRecommendation[]> {
-    // Would use domain service to generate recommendations
-    // For now, return mock data
-    return new Observable(observer => {
-      const recommendations: AssignmentRecommendation[] = [
-        {
-          assignmentId: 'assignment-1',
-          priority: 'high',
-          reason: 'Due in 3 days',
-          suggestedAction: 'Continue working'
-        },
-        {
-          assignmentId: 'assignment-3',
-          priority: 'urgent',
-          reason: 'Overdue - submit immediately',
-          suggestedAction: 'Submit now'
-        }
-      ];
-
-      observer.next(recommendations);
-      observer.complete();
-    });
+    // Generate recommendations from actual assignment data
+    return this.getStudentAssignments(studentId).pipe(
+      map(result => {
+        return result.assignments
+          .filter(a => a.submissionStatus === 'not_submitted')
+          .map(a => ({
+            assignmentId: a.id,
+            priority: a.isOverdue ? 'urgent' : (a.daysUntilDue <= 3 ? 'high' : 'medium'),
+            reason: a.isOverdue ? 'Quá hạn - cần nộp ngay' : `Còn ${a.daysUntilDue} ngày`,
+            suggestedAction: a.isOverdue ? 'Nộp ngay' : 'Tiếp tục làm bài'
+          }) as AssignmentRecommendation)
+          .slice(0, 5);
+      })
+    );
   }
 }
 

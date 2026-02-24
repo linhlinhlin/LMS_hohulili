@@ -127,8 +127,7 @@ export class AssignmentDomainService {
     submission: any, // Would be AssignmentSubmission
     rubricScores: Map<string, number>
   ): { score: number; percentage: number; feedback: string } {
-    // This would use the rubric to calculate grades
-    // For now, return a mock calculation
+    // Calculate grades from rubric scores
     const totalScore = Array.from(rubricScores.values()).reduce((sum, score) => sum + score, 0);
     const maxScore = 100; // Would come from rubric
     const percentage = (totalScore / maxScore) * 100;

@@ -224,8 +224,8 @@ export class CourseDetailService {
       averageRating: course.rating,
       totalStudents: course.studentsCount,
       totalReviews: course.reviews,
-      completionRate: 85, // Mock data
-      satisfactionRate: 92 // Mock data
+      completionRate: 0,
+      satisfactionRate: 0
     };
   });
 

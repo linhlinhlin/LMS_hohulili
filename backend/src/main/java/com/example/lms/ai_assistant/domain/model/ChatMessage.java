@@ -139,7 +139,7 @@ public class ChatMessage {
 
     private static void validateContent(String content) {
         if (content == null || content.isBlank()) {
-            throw new IllegalArgumentException("Message content cannot be empty");
+            throw new IllegalArgumentException("Nội dung tin nhắn không được để trống");
         }
     }
 }

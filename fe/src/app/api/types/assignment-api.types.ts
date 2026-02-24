@@ -92,7 +92,7 @@ export interface AssignmentDetailView {
     dueDate?: string;       // ISO 8601
     maxScore: number;
     status: AssignmentPublishStatus;
-    submissionCount: number;
+    submissionsCount: number;
     totalStudents: number;
     courseTitle?: string;
     courseId?: string;
@@ -115,7 +115,7 @@ export interface AssignmentListItem {
     courseName?: string;
     dueDate?: string;        // ISO 8601
     status: AssignmentPublishStatus;
-    submissionCount: number;
+    submissionsCount: number;
     totalStudents: number;
     averageScore?: number;
     createdAt: string;       // ISO 8601
@@ -133,7 +133,7 @@ export interface AssignmentFilterCriteria {
 
 /** Sort configuration */
 export interface AssignmentSortConfig {
-    field: 'title' | 'dueDate' | 'createdAt' | 'submissionCount';
+    field: 'title' | 'dueDate' | 'createdAt' | 'submissionsCount';
     direction: 'asc' | 'desc';
 }
 

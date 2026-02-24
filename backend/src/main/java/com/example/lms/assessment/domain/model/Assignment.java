@@ -20,13 +20,18 @@ public class Assignment {
     private AssignmentStatus status;
     private Instant dueDate;
     private Integer maxScore;
+    private Integer passingScore;
+    private Integer maxAttempts;
+    private Boolean allowLateSubmission;
     private Instant createdAt;
     private Instant updatedAt;
 
     // Private constructor for Builder
     private Assignment(AssignmentId id, UUID lessonId, UUID courseId, String title, String description,
                       String instructions, AssignmentType type, AssignmentStatus status,
-                      Instant dueDate, Integer maxScore, Instant createdAt, Instant updatedAt) {
+                      Instant dueDate, Integer maxScore, Integer passingScore,
+                      Integer maxAttempts, Boolean allowLateSubmission,
+                      Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.lessonId = lessonId;
         this.courseId = courseId;
@@ -37,6 +42,9 @@ public class Assignment {
         this.status = status;
         this.dueDate = dueDate;
         this.maxScore = maxScore;
+        this.passingScore = passingScore;
+        this.maxAttempts = maxAttempts;
+        this.allowLateSubmission = allowLateSubmission;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -56,6 +64,9 @@ public class Assignment {
         private AssignmentStatus status;
         private Instant dueDate;
         private Integer maxScore;
+        private Integer passingScore;
+        private Integer maxAttempts;
+        private Boolean allowLateSubmission;
         private Instant createdAt;
         private Instant updatedAt;
 
@@ -69,11 +80,14 @@ public class Assignment {
         public Builder status(AssignmentStatus status) { this.status = status; return this; }
         public Builder dueDate(Instant dueDate) { this.dueDate = dueDate; return this; }
         public Builder maxScore(Integer maxScore) { this.maxScore = maxScore; return this; }
+        public Builder passingScore(Integer passingScore) { this.passingScore = passingScore; return this; }
+        public Builder maxAttempts(Integer maxAttempts) { this.maxAttempts = maxAttempts; return this; }
+        public Builder allowLateSubmission(Boolean allowLateSubmission) { this.allowLateSubmission = allowLateSubmission; return this; }
         public Builder createdAt(Instant createdAt) { this.createdAt = createdAt; return this; }
         public Builder updatedAt(Instant updatedAt) { this.updatedAt = updatedAt; return this; }
 
         public Assignment build() {
-            return new Assignment(id, lessonId, courseId, title, description, instructions, type, status, dueDate, maxScore, createdAt, updatedAt);
+            return new Assignment(id, lessonId, courseId, title, description, instructions, type, status, dueDate, maxScore, passingScore, maxAttempts, allowLateSubmission, createdAt, updatedAt);
         }
     }
 
@@ -81,13 +95,16 @@ public class Assignment {
         ESSAY,
         FILE_UPLOAD,
         PROJECT,
-        PRESENTATION
+        PRESENTATION,
+        TEXT,
+        QUIZ
     }
 
     public enum AssignmentStatus {
         DRAFT,
         PUBLISHED,
-        CLOSED
+        CLOSED,
+        ARCHIVED
     }
 
     // ============ Factory Methods ============
@@ -105,7 +122,7 @@ public class Assignment {
             throw new IllegalArgumentException("courseId là bắt buộc khi tạo bài tập");
         }
         if (title == null || title.isBlank()) {
-            throw new IllegalArgumentException("Assignment title is required");
+            throw new IllegalArgumentException("Tiêu đề bài tập là bắt buộc");
         }
 
         return Assignment.builder()
@@ -118,6 +135,9 @@ public class Assignment {
             .type(type != null ? type : AssignmentType.ESSAY)
             .status(AssignmentStatus.DRAFT)
             .maxScore(maxScore != null ? maxScore : 100)
+            .passingScore(60)
+            .maxAttempts(1)
+            .allowLateSubmission(false)
             .createdAt(Instant.now())
             .updatedAt(Instant.now())
             .build();
@@ -134,6 +154,9 @@ public class Assignment {
             AssignmentStatus status,
             Instant dueDate,
             Integer maxScore,
+            Integer passingScore,
+            Integer maxAttempts,
+            Boolean allowLateSubmission,
             Instant createdAt,
             Instant updatedAt
     ) {
@@ -148,6 +171,9 @@ public class Assignment {
             .status(status)
             .dueDate(dueDate)
             .maxScore(maxScore)
+            .passingScore(passingScore)
+            .maxAttempts(maxAttempts)
+            .allowLateSubmission(allowLateSubmission)
             .createdAt(createdAt)
             .updatedAt(updatedAt)
             .build();
@@ -157,7 +183,7 @@ public class Assignment {
 
     public void publish() {
         if (this.status == AssignmentStatus.CLOSED) {
-            throw new IllegalStateException("Cannot publish a closed assignment");
+            throw new IllegalStateException("Không thể xuất bản bài tập đã đóng");
         }
         this.status = AssignmentStatus.PUBLISHED;
         this.updatedAt = Instant.now();
@@ -170,7 +196,7 @@ public class Assignment {
 
     public void setDueDate(Instant dueDate) {
         if (dueDate != null && dueDate.isBefore(Instant.now())) {
-            throw new IllegalArgumentException("Due date must be in the future");
+            throw new IllegalArgumentException("Hạn nộp phải ở tương lai");
         }
         this.dueDate = dueDate;
         this.updatedAt = Instant.now();
@@ -209,6 +235,9 @@ public class Assignment {
     public AssignmentStatus getStatus() { return status; }
     public Instant getDueDate() { return dueDate; }
     public Integer getMaxScore() { return maxScore; }
+    public Integer getPassingScore() { return passingScore; }
+    public Integer getMaxAttempts() { return maxAttempts; }
+    public Boolean getAllowLateSubmission() { return allowLateSubmission; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 }

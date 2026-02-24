@@ -1,5 +1,6 @@
 package com.example.lms.shared.infrastructure.service;
 
+import com.example.lms.shared.application.port.FileManagementPort;
 import com.example.lms.shared.domain.model.ContentBlock;
 import com.example.lms.shared.infrastructure.persistence.entity.FileAttachmentJpaEntity;
 import com.example.lms.shared.infrastructure.persistence.repository.FileAttachmentJpaRepository;
@@ -16,7 +17,7 @@ import java.util.UUID;
 
 @Service
 @Slf4j
-public class FileManagementService {
+public class FileManagementService implements FileManagementPort {
 
     private final Optional<R2StorageService> r2StorageService;
     private final FileAttachmentJpaRepository fileRepository;
@@ -64,6 +65,7 @@ public class FileManagementService {
      * Scans content blocks for file URLs and links them to the entity.
      * This handles the "Hybrid" logic: content has URL, DB has metadata.
      */
+    @Override
     @Transactional
     public void linkFilesToEntity(List<ContentBlock> blocks, UUID entityId, String entityType) {
         if (blocks == null || blocks.isEmpty()) return;

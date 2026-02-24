@@ -62,7 +62,7 @@ type ForgotPasswordForm = {
         font-size: 12px;
         color: #0288D1;
         font-weight: 600;
-        background: #EFF6FF;
+        background: rgba(0, 86, 210, 0.03);
         padding: 3px 12px;
         border-radius: 16px;
         box-shadow: 0 0 0 1px #BFDBFE;

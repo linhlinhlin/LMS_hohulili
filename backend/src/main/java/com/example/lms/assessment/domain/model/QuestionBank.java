@@ -42,10 +42,10 @@ public class QuestionBank {
     public static QuestionBank create(String name, String description, String subject,
                                        UUID ownerId, BankType bankType, Visibility visibility) {
         if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("Bank name cannot be blank");
+            throw new IllegalArgumentException("Tên ngân hàng câu hỏi không được để trống");
         }
         if (ownerId == null) {
-            throw new IllegalArgumentException("Owner ID is required");
+            throw new IllegalArgumentException("ID chủ sở hữu là bắt buộc");
         }
         return new QuestionBank(
                 UUID.randomUUID(), name, description, subject, ownerId,
@@ -58,7 +58,7 @@ public class QuestionBank {
 
     public void rename(String newName) {
         if (newName == null || newName.isBlank()) {
-            throw new IllegalArgumentException("Bank name cannot be blank");
+            throw new IllegalArgumentException("Tên ngân hàng câu hỏi không được để trống");
         }
         this.name = newName;
         this.updatedAt = Instant.now();
@@ -81,7 +81,7 @@ public class QuestionBank {
 
     public void archive() {
         if (this.status == Status.ARCHIVED) {
-            throw new IllegalStateException("Bank is already archived");
+            throw new IllegalStateException("Ngân hàng câu hỏi đã được lưu trữ");
         }
         this.status = Status.ARCHIVED;
         this.updatedAt = Instant.now();
@@ -89,7 +89,7 @@ public class QuestionBank {
 
     public void activate() {
         if (this.status == Status.ACTIVE) {
-            throw new IllegalStateException("Bank is already active");
+            throw new IllegalStateException("Ngân hàng câu hỏi đã hoạt động");
         }
         this.status = Status.ACTIVE;
         this.updatedAt = Instant.now();

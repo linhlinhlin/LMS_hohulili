@@ -9,7 +9,7 @@ public record ConversationId(UUID value) {
     
     public ConversationId {
         if (value == null) {
-            throw new IllegalArgumentException("Conversation ID cannot be null");
+            throw new IllegalArgumentException("ID cuộc hội thoại không được null");
         }
     }
 

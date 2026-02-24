@@ -79,7 +79,7 @@ public class QuizAttemptUseCase {
                 .orElseThrow(() -> new EntityNotFoundException("QuizAttempt", attemptId));
 
         if (attempt.getStatus() != QuizAttempt.AttemptStatus.IN_PROGRESS) {
-             throw new IllegalStateException("Attempt is already submitted or timed out");
+             throw new IllegalStateException("Lần làm bài đã được nộp hoặc hết thời gian");
         }
 
         // 1. Submit to Domain (marks status as SUBMITTED)

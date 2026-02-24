@@ -1,7 +1,7 @@
 package com.example.lms.identity.application.usecase;
 
 import com.example.lms.identity.domain.repository.PasswordResetTokenRepository;
-import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
+import com.example.lms.identity.domain.repository.UserRepository;
 import com.example.lms.shared.application.port.EmailServicePort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,7 +27,7 @@ import java.util.HexFormat;
 @RequiredArgsConstructor
 public class RequestPasswordResetUseCase {
 
-    private final UserJpaRepository userRepository;
+    private final UserRepository userRepository;
     private final PasswordResetTokenRepository tokenRepository;
     private final EmailServicePort emailService;
 
@@ -48,7 +48,7 @@ public class RequestPasswordResetUseCase {
         var user = userOpt.get();
 
         // Delete any existing unused tokens for this user
-        tokenRepository.deleteUnusedByUserId(user.getId());
+        tokenRepository.deleteUnusedByUserId(user.getId().value());
 
         // Generate cryptographically secure token
         byte[] randomBytes = new byte[32];
@@ -58,11 +58,11 @@ public class RequestPasswordResetUseCase {
         // Store SHA-256 hash (never store raw token)
         String tokenHash = sha256(rawToken);
         Instant expiresAt = Instant.now().plus(TOKEN_EXPIRY_MINUTES, ChronoUnit.MINUTES);
-        tokenRepository.save(user.getId(), tokenHash, expiresAt);
+        tokenRepository.save(user.getId().value(), tokenHash, expiresAt);
 
         // Send reset email
         String resetLink = baseUrl + "/auth/reset-password?token=" + rawToken;
-        emailService.sendPasswordReset(user.getEmail(), user.getFullName(), resetLink);
+        emailService.sendPasswordReset(user.getEmail().getValue(), user.getFullName(), resetLink);
 
         log.info("Password reset token created for user: {}", user.getId());
     }

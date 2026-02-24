@@ -165,7 +165,10 @@ public class AssignmentRepositoryAdapter implements AssignmentRepository {
             .type(mapType(assignment.getType()))
             .status(mapStatus(assignment.getStatus()))
             .maxScore(assignment.getMaxScore() != null ? java.math.BigDecimal.valueOf(assignment.getMaxScore()) : null)
+            .passingScore(assignment.getPassingScore())
             .dueDate(assignment.getDueDate())
+            .maxAttempts(assignment.getMaxAttempts())
+            .allowLateSubmission(assignment.getAllowLateSubmission())
             .createdAt(assignment.getCreatedAt())
             .updatedAt(assignment.getUpdatedAt())
             .build();
@@ -183,6 +186,9 @@ public class AssignmentRepositoryAdapter implements AssignmentRepository {
             mapStatus(entity.getStatus()),
             entity.getDueDate(),
             entity.getMaxScore() != null ? entity.getMaxScore().intValue() : null,
+            entity.getPassingScore(),
+            entity.getMaxAttempts(),
+            entity.getAllowLateSubmission(),
             entity.getCreatedAt(),
             entity.getUpdatedAt()
         );
@@ -194,7 +200,9 @@ public class AssignmentRepositoryAdapter implements AssignmentRepository {
             case ESSAY -> AssignmentJpaEntity.AssignmentType.ESSAY;
             case FILE_UPLOAD -> AssignmentJpaEntity.AssignmentType.FILE_UPLOAD;
             case PROJECT -> AssignmentJpaEntity.AssignmentType.PROJECT;
-            case PRESENTATION -> AssignmentJpaEntity.AssignmentType.FILE_UPLOAD; // Map to closest
+            case PRESENTATION -> AssignmentJpaEntity.AssignmentType.PRESENTATION;
+            case TEXT -> AssignmentJpaEntity.AssignmentType.TEXT;
+            case QUIZ -> AssignmentJpaEntity.AssignmentType.QUIZ;
         };
     }
 
@@ -204,7 +212,9 @@ public class AssignmentRepositoryAdapter implements AssignmentRepository {
             case ESSAY -> Assignment.AssignmentType.ESSAY;
             case FILE_UPLOAD -> Assignment.AssignmentType.FILE_UPLOAD;
             case PROJECT -> Assignment.AssignmentType.PROJECT;
-            case TEXT, QUIZ -> Assignment.AssignmentType.ESSAY; // Map to closest
+            case PRESENTATION -> Assignment.AssignmentType.PRESENTATION;
+            case TEXT -> Assignment.AssignmentType.TEXT;
+            case QUIZ -> Assignment.AssignmentType.QUIZ;
         };
     }
 
@@ -214,6 +224,7 @@ public class AssignmentRepositoryAdapter implements AssignmentRepository {
             case DRAFT -> AssignmentJpaEntity.AssignmentStatus.DRAFT;
             case PUBLISHED -> AssignmentJpaEntity.AssignmentStatus.PUBLISHED;
             case CLOSED -> AssignmentJpaEntity.AssignmentStatus.CLOSED;
+            case ARCHIVED -> AssignmentJpaEntity.AssignmentStatus.ARCHIVED;
         };
     }
 
@@ -222,7 +233,8 @@ public class AssignmentRepositoryAdapter implements AssignmentRepository {
         return switch (status) {
             case DRAFT -> Assignment.AssignmentStatus.DRAFT;
             case PUBLISHED -> Assignment.AssignmentStatus.PUBLISHED;
-            case CLOSED, ARCHIVED -> Assignment.AssignmentStatus.CLOSED;
+            case CLOSED -> Assignment.AssignmentStatus.CLOSED;
+            case ARCHIVED -> Assignment.AssignmentStatus.ARCHIVED;
         };
     }
 }

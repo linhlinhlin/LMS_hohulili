@@ -1,15 +1,15 @@
 package com.example.lms.identity.application.usecase;
 
 import com.example.lms.identity.domain.repository.PasswordResetTokenRepository;
-import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
+import com.example.lms.identity.domain.repository.UserRepository;
+import com.example.lms.identity.domain.valueobject.PasswordPolicy;
+import com.example.lms.shared.domain.valueobject.UserId;
 import com.example.lms.shared.exception.BusinessRuleException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.Instant;
 
 /**
  * Validates reset token and updates user password.
@@ -21,37 +21,43 @@ import java.time.Instant;
 public class ResetPasswordUseCase {
 
     private final PasswordResetTokenRepository tokenRepository;
-    private final UserJpaRepository userRepository;
+    private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Transactional
     public void execute(String rawToken, String newPassword) {
         String tokenHash = RequestPasswordResetUseCase.sha256(rawToken);
 
-        var tokenEntity = tokenRepository.findByTokenHash(tokenHash)
+        var token = tokenRepository.findByTokenHash(tokenHash)
                 .orElseThrow(() -> new BusinessRuleException("Liên kết đặt lại mật khẩu không hợp lệ"));
 
-        if (tokenEntity.isUsed()) {
+        if (token.isUsed()) {
             throw new BusinessRuleException("Liên kết đặt lại mật khẩu đã được sử dụng");
         }
 
-        if (tokenEntity.isExpired()) {
+        if (token.isExpired()) {
             throw new BusinessRuleException("Liên kết đặt lại mật khẩu đã hết hạn");
         }
 
-        // Update user password
-        var user = userRepository.findById(tokenEntity.getUserId())
+        // Validate new password (NIST 800-63B-4)
+        String policyError = PasswordPolicy.validate(newPassword);
+        if (policyError != null) {
+            throw new BusinessRuleException(policyError);
+        }
+
+        // Update user password via domain model
+        var user = userRepository.findById(UserId.of(token.getUserId()))
                 .orElseThrow(() -> new BusinessRuleException("Người dùng không tồn tại"));
 
-        user.setPassword(passwordEncoder.encode(newPassword));
+        user.changePassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
 
-        // Mark token as used
-        tokenEntity.setUsedAt(Instant.now());
+        // Mark token as used (persisted via port)
+        tokenRepository.markUsedByTokenHash(tokenHash);
 
         // Delete all other tokens for this user
-        tokenRepository.deleteUnusedByUserId(user.getId());
+        tokenRepository.deleteUnusedByUserId(token.getUserId());
 
-        log.info("Password reset completed for user: {}", user.getId());
+        log.info("Password reset completed for user: {}", token.getUserId());
     }
 }

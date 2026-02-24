@@ -277,7 +277,7 @@ export class PerformanceOptimizationService {
   
   getScoreColor(score: number): string {
     if (score >= 90) return '#10B981'; // green
-    if (score >= 80) return '#3B82F6'; // blue
+    if (score >= 80) return '#0056D2'; // blue
     if (score >= 70) return '#F59E0B'; // yellow
     return '#EF4444'; // red
   }

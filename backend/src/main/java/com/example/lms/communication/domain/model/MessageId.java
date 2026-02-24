@@ -9,7 +9,7 @@ public record MessageId(UUID value) {
     
     public MessageId {
         if (value == null) {
-            throw new IllegalArgumentException("Message ID cannot be null");
+            throw new IllegalArgumentException("ID tin nhắn không được null");
         }
     }
 

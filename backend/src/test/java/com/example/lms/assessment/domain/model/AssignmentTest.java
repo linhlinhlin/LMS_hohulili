@@ -61,7 +61,7 @@ class AssignmentTest {
         void shouldThrowOnNullTitle() {
             assertThatThrownBy(() -> Assignment.create(UUID.randomUUID(), lessonId, null, "desc", "instr", null, null))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("title");
+                .hasMessageContaining("Tiêu đề");
         }
 
         @Test
@@ -69,7 +69,7 @@ class AssignmentTest {
         void shouldThrowOnBlankTitle() {
             assertThatThrownBy(() -> Assignment.create(UUID.randomUUID(), lessonId, "   ", "desc", "instr", null, null))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("title");
+                .hasMessageContaining("Tiêu đề");
         }
     }
 
@@ -100,7 +100,7 @@ class AssignmentTest {
             // When/Then
             assertThatThrownBy(assignment::publish)
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("closed");
+                .hasMessageContaining("đã đóng");
         }
 
         @Test
@@ -146,7 +146,7 @@ class AssignmentTest {
             // When/Then
             assertThatThrownBy(() -> assignment.setDueDate(past))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("future");
+                .hasMessageContaining("tương lai");
         }
 
         @Test

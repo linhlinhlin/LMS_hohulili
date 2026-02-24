@@ -13,6 +13,8 @@ public interface CertificateJpaRepository extends JpaRepository<CertificateJpaEn
 
     List<CertificateJpaEntity> findByStudentIdOrderByIssuedAtDesc(UUID studentId);
 
+    long countByStudentId(UUID studentId);
+
     Optional<CertificateJpaEntity> findByVerificationToken(UUID token);
 
     Optional<CertificateJpaEntity> findByEnrollmentId(UUID enrollmentId);

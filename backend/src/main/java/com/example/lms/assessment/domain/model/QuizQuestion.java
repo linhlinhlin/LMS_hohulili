@@ -21,7 +21,7 @@ public class QuizQuestion {
 
     public static QuizQuestion create(UUID quizId, UUID questionId, Integer displayOrder) {
         if (quizId == null || questionId == null) {
-            throw new IllegalArgumentException("QuizID and QuestionID are required");
+            throw new IllegalArgumentException("QuizID và QuestionID là bắt buộc");
         }
         return QuizQuestion.builder()
                 .quizId(quizId)

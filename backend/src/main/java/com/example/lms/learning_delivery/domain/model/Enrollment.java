@@ -36,7 +36,7 @@ public class Enrollment {
 
     public void drop() {
         if (this.status == EnrollmentStatus.COMPLETED) {
-            throw new IllegalStateException("Cannot drop a completed enrollment");
+            throw new IllegalStateException("Không thể hủy đăng ký đã hoàn thành");
         }
         this.status = EnrollmentStatus.DROPPED;
         this.lastAccessedAt = Instant.now();
@@ -51,14 +51,14 @@ public class Enrollment {
 
     public void suspend() {
         if (this.status != EnrollmentStatus.ACTIVE) {
-            throw new IllegalStateException("Can only suspend an active enrollment");
+            throw new IllegalStateException("Chỉ có thể tạm ngưng đăng ký đang hoạt động");
         }
         this.status = EnrollmentStatus.SUSPENDED;
     }
 
     public void reactivate() {
         if (this.status != EnrollmentStatus.SUSPENDED && this.status != EnrollmentStatus.DROPPED) {
-            throw new IllegalStateException("Can only reactivate suspended or dropped enrollments");
+            throw new IllegalStateException("Chỉ có thể kích hoạt lại đăng ký bị tạm ngưng hoặc đã hủy");
         }
         this.status = EnrollmentStatus.ACTIVE;
     }

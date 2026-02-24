@@ -70,22 +70,7 @@ export class StudentAnalyticsComponent implements OnInit {
     performanceTrend: []
   });
 
-  learningGoals = signal<LearningGoal[]>([
-    {
-      id: 'goal-1',
-      title: 'Hoàn thành chứng chỉ STCW',
-      description: 'Đạt được chứng chỉ an toàn hàng hải quốc tế',
-      targetDate: new Date('2026-12-31'),
-      progress: 60,
-      category: 'certification',
-      milestones: [
-        { id: 'm1', title: 'Hoàn thành khóa An toàn', completed: true, completedAt: new Date('2026-01-15') },
-        { id: 'm2', title: 'Thi đậu bài kiểm tra', completed: true, completedAt: new Date('2026-02-01') },
-        { id: 'm3', title: 'Thực hành tại cảng', completed: false },
-        { id: 'm4', title: 'Nộp hồ sơ chứng chỉ', completed: false }
-      ]
-    }
-  ]);
+  learningGoals = signal<LearningGoal[]>([]);
 
   ngOnInit(): void {
     this.loadAnalytics();

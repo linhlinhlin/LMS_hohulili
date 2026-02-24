@@ -147,9 +147,11 @@ public class UserControllerV3 {
                     .body(ApiResponse.error("Email đã tồn tại"));
         }
 
+        String username = (request.getUsername() != null && !request.getUsername().isBlank())
+                ? request.getUsername() : request.getEmail();
         UserJpaEntity user = new UserJpaEntity(
                 UUID.randomUUID(),
-                request.getEmail(),
+                username,
                 request.getEmail(),
                 passwordEncoder.encode(request.getPassword()),
                 request.getFullName(),
@@ -419,7 +421,7 @@ public class UserControllerV3 {
         private String fullName;
 
         @NotBlank(message = "Mật khẩu không được để trống")
-        @Size(min = 6, message = "Mật khẩu phải có ít nhất 6 ký tự")
+        @Size(min = 8, max = 128, message = "Mật khẩu phải có từ 8 đến 128 ký tự")
         private String password;
 
         @NotBlank(message = "Vai trò không được để trống")

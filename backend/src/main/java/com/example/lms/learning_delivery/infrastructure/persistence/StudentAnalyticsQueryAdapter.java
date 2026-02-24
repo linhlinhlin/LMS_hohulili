@@ -35,7 +35,7 @@ public class StudentAnalyticsQueryAdapter implements StudentAnalyticsQueryPort {
 
     @Override
     public long countActiveCourses(UUID studentId) {
-        return enrollmentRepository.findActiveByStudentId(studentId).size();
+        return enrollmentRepository.countActiveByStudentId(studentId);
     }
 
     @Override
@@ -60,7 +60,7 @@ public class StudentAnalyticsQueryAdapter implements StudentAnalyticsQueryPort {
 
     @Override
     public long countCertificates(UUID studentId) {
-        return certificateRepository.findByStudentIdOrderByIssuedAtDesc(studentId).size();
+        return certificateRepository.countByStudentId(studentId);
     }
 
     @Override

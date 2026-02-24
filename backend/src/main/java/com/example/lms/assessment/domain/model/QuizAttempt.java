@@ -98,7 +98,7 @@ public class QuizAttempt {
 
     public void submit(List<AttemptAnswer> answers, Integer passingScore) {
         if (this.status != AttemptStatus.IN_PROGRESS) {
-             throw new IllegalStateException("Attempt already submitted");
+             throw new IllegalStateException("Lần làm bài đã được nộp");
         }
 
         this.endTime = Instant.now();

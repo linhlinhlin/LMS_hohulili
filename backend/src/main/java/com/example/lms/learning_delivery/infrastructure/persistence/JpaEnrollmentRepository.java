@@ -93,7 +93,26 @@ public interface JpaEnrollmentRepository extends JpaRepository<EnrollmentJpaEnti
             @Param("courseId") UUID courseId
     );
 
+    /**
+     * Check if student is enrolled in a course (boolean only, avoids loading entity into persistence context).
+     * Use this in write transactions to prevent @UpdateTimestamp dirty-check issues.
+     */
+    @Query("""
+        SELECT COUNT(e) > 0 FROM EnrollmentJpaEntity e
+        JOIN e.learningClass lc
+        WHERE e.studentId = :studentId
+        AND lc.courseId = :courseId
+        AND e.status = 'ACTIVE'
+    """)
+    boolean existsByStudentIdAndCourseId(
+            @Param("studentId") UUID studentId,
+            @Param("courseId") UUID courseId
+    );
+
     // === Analytics queries ===
+
+    @Query("SELECT COUNT(e) FROM EnrollmentJpaEntity e WHERE e.studentId = :studentId AND e.status = 'ACTIVE'")
+    long countActiveByStudentId(@Param("studentId") UUID studentId);
 
     @Query("SELECT COUNT(e) FROM EnrollmentJpaEntity e WHERE e.studentId = :studentId AND e.status = 'COMPLETED'")
     long countCompletedByStudentId(@Param("studentId") UUID studentId);

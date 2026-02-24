@@ -24,8 +24,7 @@ import java.util.stream.Collectors;
 public class CreateQuestionUseCaseV3 {
 
     private final QuestionRepository questionRepository;
-    // Pragmatic compromise: application layer depends on infrastructure file utility (shared cross-cutting concern)
-    private final com.example.lms.shared.infrastructure.service.FileManagementService fileManagementService;
+    private final com.example.lms.shared.application.port.FileManagementPort fileManagementService;
 
     @Transactional
     public UUID execute(Command command) {

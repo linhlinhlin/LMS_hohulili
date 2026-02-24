@@ -9,7 +9,7 @@ public record ChatSessionId(UUID value) {
     
     public ChatSessionId {
         if (value == null) {
-            throw new IllegalArgumentException("ChatSession ID cannot be null");
+            throw new IllegalArgumentException("ID phiên chat không được null");
         }
     }
 

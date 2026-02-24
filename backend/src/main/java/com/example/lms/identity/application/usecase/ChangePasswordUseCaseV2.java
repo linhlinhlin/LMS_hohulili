@@ -2,6 +2,7 @@ package com.example.lms.identity.application.usecase;
 
 import com.example.lms.identity.domain.model.User;
 import com.example.lms.identity.domain.repository.UserRepository;
+import com.example.lms.identity.domain.valueobject.PasswordPolicy;
 import com.example.lms.shared.domain.valueobject.UserId;
 import com.example.lms.shared.exception.EntityNotFoundException;
 import com.example.lms.shared.exception.ValidationException;
@@ -38,9 +39,10 @@ public class ChangePasswordUseCaseV2 {
             throw new ValidationException("currentPassword", "Mật khẩu hiện tại không đúng");
         }
 
-        // Validate new password
-        if (newPassword == null || newPassword.length() < 6) {
-            throw new ValidationException("newPassword", "Mật khẩu mới phải có ít nhất 6 ký tự");
+        // Validate new password (NIST 800-63B-4)
+        String policyError = PasswordPolicy.validate(newPassword);
+        if (policyError != null) {
+            throw new ValidationException("newPassword", policyError);
         }
 
         // Change password using domain model's business method

@@ -16,7 +16,7 @@ import { IAssignmentRepository } from '../../domain/repositories/assignment.repo
 import { Assignment, AssignmentMetadata } from '../../domain/entities/assignment.entity';
 import { AssignmentSpecifications } from '../../domain/value-objects/assignment-specifications';
 import { Rubric, RubricCriterion } from '../../domain/value-objects/rubric';
-import { AssignmentApi, AssignmentDetail, AssignmentSummary } from '../../../../api/client/assignment.api';
+import { AssignmentApi, AssignmentDetail, AssignmentSummary, StudentAssignmentResponse } from '../../../../api/client/assignment.api';
 
 /**
  * Infrastructure Repository: Assignment Repository Implementation
@@ -47,14 +47,11 @@ export class AssignmentRepositoryImpl implements IAssignmentRepository {
     filters?: AssignmentFilters,
     sort?: AssignmentSortOptions
   ): Observable<Assignment[]> {
-    // Use teacher-summary endpoint and filter client-side for now
-    // TODO: Backend should provide student-specific endpoint
-    return this.assignmentApi.getTeacherAssignments({
-      status: filters?.status?.[0]
-    }).pipe(
+    // Use student-specific endpoint (BE: StudentAssignmentControllerV3)
+    return this.assignmentApi.getStudentAssignments().pipe(
       map(response => {
         if (!response.data) return [];
-        let assignments = response.data.map(item => this.mapSummaryToEntity(item));
+        let assignments = response.data.map(item => this.mapStudentResponseToEntity(item));
 
         // Apply client-side filters if needed
         if (filters) {
@@ -249,6 +246,52 @@ export class AssignmentRepositoryImpl implements IAssignmentRepository {
           completionRate: total > 0 ? Math.round((completed / total) * 100) : 0
         };
       })
+    );
+  }
+
+  // Helper: Map Student Assignment API response to Domain Entity
+  private mapStudentResponseToEntity(item: StudentAssignmentResponse): Assignment {
+    const now = new Date();
+    const dueDate = item.dueDate
+      ? new Date(item.dueDate)
+      : new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const safeDueDate = dueDate > now ? dueDate : new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+    const specifications = new AssignmentSpecifications(
+      AssignmentType.ASSIGNMENT,
+      safeDueDate,
+      item.maxScore || 100,
+      item.maxAttempts || 1,
+      undefined,
+      undefined,
+      PriorityLevel.MEDIUM
+    );
+
+    const defaultCriterion = new RubricCriterion('default', 'Điểm tổng', item.maxScore || 100, 1);
+    const rubric = new Rubric([defaultCriterion]);
+
+    const submittedAt = item.submittedAt ? new Date(item.submittedAt) : undefined;
+    const metadata: AssignmentMetadata = {
+      createdAt: submittedAt || now,
+      updatedAt: submittedAt || now,
+      createdBy: 'unknown' as InstructorId,
+      version: 1,
+      tags: [],
+      isActive: true
+    };
+
+    return new Assignment(
+      item.id as AssignmentId,
+      item.title,
+      item.description || item.instructions || 'Không có mô tả',
+      item.courseId as CourseId,
+      'unknown' as InstructorId,
+      specifications,
+      rubric,
+      AssignmentStatus.PUBLISHED,
+      item.instructions || 'Xem chi tiết bài tập',
+      [],
+      metadata
     );
   }
 

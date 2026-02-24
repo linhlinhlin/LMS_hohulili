@@ -1,4 +1,4 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../../environments/environment';
 
@@ -30,7 +30,7 @@ export class AiTokenService {
     return token !== null && Date.now() < expires;
   });
 
-  constructor(private http: HttpClient) {}
+  private http = inject(HttpClient);
 
   /**
    * Get a valid AI token, exchanging if needed.
@@ -62,8 +62,8 @@ export class AiTokenService {
         this._expiresAt.set(Date.now() + 14 * 60 * 1000);
         return response.data.access_token;
       }
-    } catch (error) {
-      console.error('AI token exchange failed:', error);
+    } catch {
+      // Token exchange failed - return null
     }
     return null;
   }

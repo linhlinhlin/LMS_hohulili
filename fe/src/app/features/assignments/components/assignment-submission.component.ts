@@ -1,18 +1,9 @@
-import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
-
+import { Component, signal, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FileUploadComponent } from '../../../shared/components/file-upload/file-upload.component';
-
-interface Assignment {
-  id: string;
-  title: string;
-  description: string;
-  dueDate: Date;
-  maxFileSize: number;
-  maxFiles: number;
-  allowedFileTypes: string[];
-  instructions: string;
-}
+import { AssignmentApi, StudentAssignmentResponse } from '../../../api/client/assignment.api';
+import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -21,56 +12,67 @@ interface Assignment {
   template: `
     <div class="max-w-4xl mx-auto p-6">
       <!-- Assignment Info -->
-      <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
-        <h1 class="text-2xl font-bold text-gray-900 mb-4">{{ assignment()?.title }}</h1>
-        <p class="text-gray-600 mb-4">{{ assignment()?.description }}</p>
-        
-        <div class="bg-[#0056D2]/5 border border-[#0056D2]/20 rounded-lg p-4 mb-4">
-          <h3 class="font-semibold text-[#004BB5] mb-2">Yêu cầu nộp bài:</h3>
-          <ul class="text-sm text-[#004BB5] space-y-1">
-            <li>• Hạn nộp: {{ formatDate(assignment()?.dueDate!) }}</li>
-            <li>• Kích thước tối đa: {{ formatFileSize(assignment()?.maxFileSize!) }}</li>
-            <li>• Số file tối đa: {{ assignment()?.maxFiles }}</li>
-            <li>• Định dạng cho phép: {{ assignment()?.allowedFileTypes?.join(', ') || 'N/A' }}</li>
-          </ul>
+      @if (assignment()) {
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+          <h1 class="text-2xl font-bold text-gray-900 mb-4">{{ assignment()!.title }}</h1>
+          <p class="text-gray-600 mb-4">{{ assignment()!.description || assignment()!.instructions }}</p>
+
+          <div class="bg-[#0056D2]/5 border border-[#0056D2]/20 rounded-lg p-4 mb-4">
+            <h3 class="font-semibold text-[#004BB5] mb-2">Thông tin bài tập:</h3>
+            <ul class="text-sm text-[#004BB5] space-y-1">
+              <li>• Khóa học: {{ assignment()!.courseName }}</li>
+              @if (assignment()!.dueDate) {
+                <li>• Hạn nộp: {{ formatDate(assignment()!.dueDate!) }}</li>
+              }
+              <li>• Điểm tối đa: {{ assignment()!.maxScore }}</li>
+              @if (assignment()!.allowLateSubmission) {
+                <li>• Cho phép nộp muộn</li>
+              }
+            </ul>
+          </div>
         </div>
-      </div>
+      } @else if (isLoadingAssignment()) {
+        <div class="bg-white rounded-xl shadow-lg p-12 mb-6 text-center">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0056D2] mx-auto mb-4"></div>
+          <p class="text-gray-600">Đang tải bài tập...</p>
+        </div>
+      }
 
       <!-- Submission Form -->
       <div class="bg-white rounded-xl shadow-lg p-6">
         <h2 class="text-xl font-semibold text-gray-900 mb-6">Nộp bài tập</h2>
-        
+
         <form [formGroup]="submissionForm" (ngSubmit)="onSubmit()">
+          <!-- Content -->
+          <div class="mb-6">
+            <label for="content" class="block text-sm font-medium text-gray-700 mb-2">
+              Nội dung bài làm
+            </label>
+            <textarea
+              id="content"
+              formControlName="content"
+              rows="8"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-transparent"
+              placeholder="Nhập nội dung bài làm của bạn...">
+            </textarea>
+          </div>
+
           <!-- File Upload -->
           <div class="mb-6">
             <label class="block text-sm font-medium text-gray-700 mb-2">
-              Tải lên file bài làm
+              Tải lên file bài làm (tùy chọn)
             </label>
             <app-file-upload>
             </app-file-upload>
-          </div>
-
-          <!-- Comments -->
-          <div class="mb-6">
-            <label for="comments" class="block text-sm font-medium text-gray-700 mb-2">
-              Nhận xét (tùy chọn)
-            </label>
-            <textarea
-              id="comments"
-              formControlName="comments"
-              rows="4"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-transparent"
-              placeholder="Nhập nhận xét hoặc ghi chú về bài làm của bạn...">
-            </textarea>
           </div>
 
           <!-- Submit Button -->
           <div class="flex justify-end space-x-4">
             <button
               type="button"
-              (click)="saveDraft()"
+              (click)="goBack()"
               class="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#0056D2]">
-              Lưu nháp
+              Quay lại
             </button>
             <button
               type="submit"
@@ -96,10 +98,15 @@ interface Assignment {
 })
 export class AssignmentSubmissionComponent implements OnInit {
   private fb = inject(FormBuilder);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private assignmentApi = inject(AssignmentApi);
+  private toast = inject(ToastService);
 
-  assignment = signal<Assignment | null>(null);
+  assignment = signal<StudentAssignmentResponse | null>(null);
   submissionForm!: FormGroup;
-  isSubmitting = signal<boolean>(false);
+  isSubmitting = signal(false);
+  isLoadingAssignment = signal(false);
 
   ngOnInit(): void {
     this.initializeForm();
@@ -108,51 +115,56 @@ export class AssignmentSubmissionComponent implements OnInit {
 
   private initializeForm(): void {
     this.submissionForm = this.fb.group({
-      comments: ['', [Validators.maxLength(1000)]]
+      content: ['', [Validators.required, Validators.minLength(10)]]
     });
   }
 
   private loadAssignment(): void {
-    // Mock assignment data
-    const mockAssignment: Assignment = {
-      id: '1',
-      title: 'Bài tập Kỹ thuật Tàu biển',
-      description: 'Thiết kế hệ thống động lực cho tàu container 5000 TEU',
-      dueDate: new Date('2024-02-15'),
-      maxFileSize: 10 * 1024 * 1024, // 10MB
-      maxFiles: 5,
-      allowedFileTypes: ['pdf', 'doc', 'docx', 'jpg', 'png'],
-      instructions: 'Vui lòng đọc kỹ yêu cầu và nộp bài đúng hạn'
-    };
-    
-    this.assignment.set(mockAssignment);
+    const assignmentId = this.route.snapshot.paramMap.get('id');
+    if (!assignmentId) return;
+
+    this.isLoadingAssignment.set(true);
+    this.assignmentApi.getStudentAssignmentDetail(assignmentId).subscribe({
+      next: (response) => {
+        if (response.data) {
+          this.assignment.set(response.data);
+        }
+        this.isLoadingAssignment.set(false);
+      },
+      error: () => {
+        this.isLoadingAssignment.set(false);
+        this.toast.error('Không thể tải bài tập');
+      }
+    });
   }
 
   onSubmit(): void {
-    if (this.submissionForm.valid) {
-      this.isSubmitting.set(true);
-      
-      // Mock submission
-      setTimeout(() => {
+    if (this.submissionForm.invalid) return;
+
+    const assignmentId = this.route.snapshot.paramMap.get('id');
+    if (!assignmentId) return;
+
+    this.isSubmitting.set(true);
+    const content = this.submissionForm.get('content')?.value;
+
+    this.assignmentApi.submitStudentAssignment(assignmentId, { content }).subscribe({
+      next: () => {
         this.isSubmitting.set(false);
-        // Show success message
-      }, 2000);
-    }
+        this.toast.success('Nộp bài tập thành công!');
+        this.router.navigate(['/assignments']);
+      },
+      error: () => {
+        this.isSubmitting.set(false);
+        this.toast.error('Không thể nộp bài. Vui lòng thử lại.');
+      }
+    });
   }
 
-  saveDraft(): void {
-    // Mock save draft
+  goBack(): void {
+    this.router.navigate(['/assignments']);
   }
 
-  formatDate(date: Date): string {
-    return new Date(date).toLocaleDateString('vi-VN');
-  }
-
-  formatFileSize(bytes: number): string {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  formatDate(dateStr: string): string {
+    return new Date(dateStr).toLocaleDateString('vi-VN');
   }
 }

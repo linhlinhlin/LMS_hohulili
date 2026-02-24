@@ -4,6 +4,7 @@ import { RouterModule, Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
 import { ToastService } from '../../core/services/toast.service';
+import { ApiClient } from '../../api/client/api-client';
 
 interface StudentProfileForm {
   fullName: string;
@@ -39,6 +40,7 @@ export class StudentProfileEditComponent implements OnInit {
   private router = inject(Router);
   private fb = inject(FormBuilder);
   private toast = inject(ToastService);
+  private apiClient = inject(ApiClient);
 
   profileForm: FormGroup;
   isSaving = signal(false);
@@ -87,34 +89,30 @@ export class StudentProfileEditComponent implements OnInit {
   }
 
   private loadProfileData(): void {
-    // Load existing profile data
-    const mockProfile: StudentProfileForm = {
-      fullName: 'Nguyễn Văn Hải',
-      email: 'student@demo.com',
-      phone: '0123456789',
-      dateOfBirth: '1995-06-15',
-      address: '123 Đường ABC, Quận 1, TP.HCM',
-      bio: 'Tôi là sinh viên năm 3 chuyên ngành Hàng hải...',
-      interests: ['An toàn hàng hải', 'Điều khiển tàu', 'Kỹ thuật tàu biển'],
-      learningGoals: ['Hoàn thành chứng chỉ STCW', 'Đạt được chứng chỉ thuyền trưởng hạng 2'],
-      preferredSubjects: ['An toàn hàng hải', 'Điều khiển tàu'],
-      studySchedule: {
-        preferredStudyTime: '18:00-21:00',
-        studyDays: ['monday', 'wednesday', 'friday'],
-        studyDuration: 3,
-        breakInterval: 15
+    // Load profile from real API (GET /api/v3/auth/me)
+    this.apiClient.getWithResponse<any>('/api/v3/auth/me').subscribe({
+      next: (response) => {
+        const user = response.data;
+        if (user) {
+          this.profileForm.patchValue({
+            fullName: user.fullName || '',
+            email: user.email || '',
+            phone: user.phone || '',
+            dateOfBirth: user.dateOfBirth || '',
+            address: user.address || '',
+            bio: user.bio || ''
+          });
+          if (user.fullName) {
+            this.avatarPreview.set(
+              `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=0056D2&color=ffffff&size=150`
+            );
+          }
+        }
       },
-      socialLinks: [
-        { platform: 'LinkedIn', url: 'https://linkedin.com/in/nguyenvanhai', isPublic: true },
-        { platform: 'Facebook', url: 'https://facebook.com/nguyenvanhai', isPublic: false }
-      ]
-    };
-
-    this.profileForm.patchValue(mockProfile);
-    this.learningGoalsArray.set(mockProfile.learningGoals);
-    this.interestsArray.set(mockProfile.interests);
-    this.socialLinksArray.set(mockProfile.socialLinks);
-    this.selectedStudyDays.set(mockProfile.studySchedule.studyDays);
+      error: () => {
+        this.toast.error('Không thể tải thông tin hồ sơ');
+      }
+    });
   }
 
   // Learning Goals Management
@@ -259,16 +257,22 @@ export class StudentProfileEditComponent implements OnInit {
       }
     };
 
-    // Simulate API call
-    setTimeout(() => {
-      this.isSaving.set(false);
-      this.saveStatus.set('Hồ sơ đã được cập nhật thành công!');
-      
-      // Clear status after 3 seconds
-      setTimeout(() => {
-        this.saveStatus.set(null);
-      }, 3000);
-    }, 2000);
+    // Save profile via real API (PUT /api/v3/auth/profile)
+    this.apiClient.putWithResponse<any>('/api/v3/auth/profile', {
+      fullName: formData.fullName,
+      email: formData.email
+    }).subscribe({
+      next: () => {
+        this.isSaving.set(false);
+        this.saveStatus.set('Hồ sơ đã được cập nhật thành công!');
+        this.toast.success('Hồ sơ đã được cập nhật');
+        setTimeout(() => this.saveStatus.set(null), 3000);
+      },
+      error: () => {
+        this.isSaving.set(false);
+        this.toast.error('Không thể cập nhật hồ sơ. Vui lòng thử lại.');
+      }
+    });
   }
 
   cancelEdit(): void {

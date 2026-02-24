@@ -303,7 +303,7 @@ export class TeacherService {
         description: a.description || '',
         dueDate: a.dueDate || '',
         status: a.status?.toLowerCase() || 'pending',
-        submissions: a.submissionCount || 0,
+        submissions: a.submissionsCount || 0,
         totalStudents: a.totalStudents || 0,
         averageScore: a.averageScore || 0,
         createdAt: a.createdAt || '',

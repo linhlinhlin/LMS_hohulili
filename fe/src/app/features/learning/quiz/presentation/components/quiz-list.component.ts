@@ -213,8 +213,17 @@ export class QuizListComponent implements OnInit {
       this.getQuizListUseCase.execute().subscribe({
         next: (quizzes) => {
           this.quizzes.set(quizzes);
+          // Derive available courses from loaded quizzes
+          const courseMap = new Map<string, string>();
+          quizzes.forEach(q => {
+            if (q.courseId && !courseMap.has(q.courseId)) {
+              courseMap.set(q.courseId, q.courseName || `Khóa học ${q.courseId.substring(0, 8)}`);
+            }
+          });
+          this.availableCourses.set(
+            Array.from(courseMap.entries()).map(([id, title]) => ({ id, title }))
+          );
           this.applyFilters();
-          this.errorService.showSuccess('Danh sách quiz đã được tải thành công!', 'quiz');
         },
         error: (error) => {
           this.errorService.handleApiError(error, 'quiz');
@@ -223,12 +232,6 @@ export class QuizListComponent implements OnInit {
           this.isLoading.set(false);
         }
       });
-
-      // Mock courses data - in real app, this would come from course service
-      this.availableCourses.set([
-        { id: 'course-1', title: 'Kỹ thuật Tàu biển Cơ bản' },
-        { id: 'course-2', title: 'An toàn Hàng hải' }
-      ]);
 
     } catch (error) {
       this.errorService.handleApiError(error, 'quiz');

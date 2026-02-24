@@ -10,7 +10,7 @@ public record QuizId(UUID value) {
     
     public QuizId {
         if (value == null) {
-            throw new IllegalArgumentException("Quiz ID cannot be null");
+            throw new IllegalArgumentException("ID bài kiểm tra không được null");
         }
     }
 

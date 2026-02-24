@@ -8,6 +8,7 @@ import { CourseCurriculumComponent } from './components/course-curriculum.compon
 import { CourseInstructorComponent } from './components/course-instructor.component';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { ToastService } from '../../../core/services/toast.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-course-detail-enhanced',
@@ -28,6 +29,7 @@ export class CourseDetailEnhancedComponent implements OnInit, OnDestroy {
   private title = inject(Title);
   private meta = inject(Meta);
   private toast = inject(ToastService);
+  private authService = inject(AuthService);
 
   private openFAQs = new Set<string>();
 
@@ -107,7 +109,7 @@ export class CourseDetailEnhancedComponent implements OnInit, OnDestroy {
     if (!course) return;
 
     try {
-      const userId = 'current-user-id'; // Mock user ID
+      const userId = this.authService.getCurrentUser()?.id || '';
       await this.courseDetailService.enrollInCourse(course.id, userId);
     } catch (error) {
       this.toast.error('Đăng ký khóa học thất bại');

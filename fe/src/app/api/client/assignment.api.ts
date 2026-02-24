@@ -255,4 +255,52 @@ export class AssignmentApi {
       items
     );
   }
+
+  // ===================== Student Endpoints =====================
+
+  // Get student's assignments across enrolled courses
+  getStudentAssignments() {
+    return this.api.getWithResponse<StudentAssignmentResponse[]>('/api/v3/student/assignments');
+  }
+
+  // Get student assignment detail
+  getStudentAssignmentDetail(assignmentId: string) {
+    return this.api.getWithResponse<StudentAssignmentResponse>(`/api/v3/student/assignments/${assignmentId}`);
+  }
+
+  // Submit assignment (student)
+  submitStudentAssignment(assignmentId: string, payload: { content?: string; fileUrl?: string; fileName?: string }) {
+    return this.api.postWithResponse<{ submissionId: string; status: string }>(
+      `/api/v3/student/assignments/${assignmentId}/submit`,
+      payload
+    );
+  }
+
+  // Get my submission for specific assignment (student)
+  getStudentSubmission(assignmentId: string) {
+    return this.api.getWithResponse<any>(`/api/v3/student/assignments/${assignmentId}/submission`);
+  }
+}
+
+export interface StudentAssignmentResponse {
+  id: string;
+  title: string;
+  description?: string;
+  instructions?: string;
+  courseName: string;
+  courseId: string;
+  dueDate?: string;
+  maxScore: number;
+  status: string; // NOT_SUBMITTED, SUBMITTED, GRADED, LATE, RESUBMITTED
+  isLate: boolean;
+  score?: number;
+  feedback?: string;
+  submittedAt?: string;
+  gradedAt?: string;
+  fileUrl?: string;
+  fileName?: string;
+  content?: string;
+  submissionId?: string;
+  allowLateSubmission: boolean;
+  maxAttempts: number;
 }

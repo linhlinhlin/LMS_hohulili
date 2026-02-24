@@ -48,7 +48,7 @@ public class QuestionBankCategory {
 
     public static QuestionBankCategory createChild(UUID bankId, UUID parentId, String name, String description, int sortOrder) {
         if (parentId == null) {
-            throw new IllegalArgumentException("Child category must have a parentId");
+            throw new IllegalArgumentException("Danh mục con phải có parentId");
         }
         return new QuestionBankCategory(
                 UUID.randomUUID(), bankId, parentId, name, description, sortOrder, 0,
@@ -60,7 +60,7 @@ public class QuestionBankCategory {
 
     public void rename(String newName) {
         if (newName == null || newName.isBlank()) {
-            throw new IllegalArgumentException("Category name cannot be blank");
+            throw new IllegalArgumentException("Tên danh mục không được để trống");
         }
         this.name = newName;
         this.updatedAt = Instant.now();

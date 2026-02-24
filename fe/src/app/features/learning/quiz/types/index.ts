@@ -56,6 +56,7 @@ export interface Quiz {
   title: string;
   description: string;
   courseId: string;
+  courseName?: string;
   instructorId: string;
   questions: Question[];
   timeLimit?: number; // in minutes
