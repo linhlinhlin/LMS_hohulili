@@ -1,233 +1,174 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, of } from 'rxjs';
+import { Observable, of, map, catchError } from 'rxjs';
 import { AssignmentFilters, StudentId, DeadlineStatus, PriorityLevel } from '../../domain/types';
-import { AssignmentDomainService } from '../../domain/services/assignment-domain.service';
+import { AssignmentApi, StudentAssignmentResponse } from '../../../../api/client/assignment.api';
 
 /**
  * Use Case: Get Student Assignments
- * Orchestrates the retrieval of assignments for a student with progress and submission data
- *
- * Note: In a full implementation, this would inject repository interfaces.
- * For now, using mock data to demonstrate the pattern.
+ * Retrieves assignments from real backend API (StudentAssignmentControllerV3).
  */
 @Injectable({
   providedIn: 'root'
 })
 export class GetStudentAssignmentsUseCase {
-  private assignmentDomainService = inject(AssignmentDomainService);
-
+  private assignmentApi = inject(AssignmentApi);
 
   /**
    * Execute the use case - Get all assignments for a student
    */
   execute(studentId: StudentId, filters?: AssignmentFilters): Observable<AssignmentListView> {
-    // Mock data - in real implementation, this would come from repositories
-    const mockAssignments = this.getMockAssignments();
+    return this.assignmentApi.getStudentAssignments().pipe(
+      map(response => {
+        const items = response.data || [];
+        let assignmentViews = items.map(item => this.transformToAssignmentView(item));
 
-    // Apply filters
-    let filteredAssignments = mockAssignments;
-    if (filters) {
-      filteredAssignments = this.applyFilters(mockAssignments, filters);
-    }
+        // Apply client-side filters
+        if (filters) {
+          assignmentViews = this.applyFilters(assignmentViews, filters);
+        }
 
-    // Transform to view models
-    const assignmentViews = filteredAssignments.map(assignment =>
-      this.transformToAssignmentView(assignment)
+        const stats = this.calculateAssignmentStats(assignmentViews);
+
+        return {
+          assignments: assignmentViews,
+          stats,
+          filters: filters || {},
+          totalCount: assignmentViews.length
+        };
+      }),
+      catchError(() => of({
+        assignments: [],
+        stats: this.emptyStats(),
+        filters: filters || {},
+        totalCount: 0
+      }))
     );
-
-    // Calculate statistics
-    const stats = this.calculateAssignmentStats(assignmentViews);
-
-    return of({
-      assignments: assignmentViews,
-      stats,
-      filters: filters || {},
-      totalCount: assignmentViews.length
-    });
   }
 
   /**
    * Get assignments with upcoming deadlines
    */
   getUpcomingDeadlines(studentId: StudentId, daysAhead: number = 7): Observable<AssignmentListView> {
-    const mockAssignments = this.getMockAssignments();
-    const upcomingAssignments = mockAssignments.filter(assignment => {
-      const daysUntilDue = assignment.daysUntilDue;
-      return daysUntilDue >= 0 && daysUntilDue <= daysAhead;
-    });
-
-    const assignmentViews = upcomingAssignments.map(assignment =>
-      this.transformToAssignmentView(assignment)
+    return this.execute(studentId).pipe(
+      map(result => {
+        const upcoming = result.assignments.filter(a => {
+          return a.daysUntilDue >= 0 && a.daysUntilDue <= daysAhead;
+        });
+        return {
+          assignments: upcoming,
+          stats: this.calculateAssignmentStats(upcoming),
+          filters: { deadlineStatus: [DeadlineStatus.DUE_SOON] },
+          totalCount: upcoming.length
+        };
+      })
     );
-
-    return of({
-      assignments: assignmentViews,
-      stats: this.calculateAssignmentStats(assignmentViews),
-      filters: { deadlineStatus: [DeadlineStatus.DUE_SOON] },
-      totalCount: assignmentViews.length
-    });
   }
 
   /**
    * Get overdue assignments
    */
   getOverdueAssignments(studentId: StudentId): Observable<AssignmentListView> {
-    const mockAssignments = this.getMockAssignments();
-    const overdueAssignments = mockAssignments.filter(assignment => assignment.isOverdue);
-
-    const assignmentViews = overdueAssignments.map(assignment =>
-      this.transformToAssignmentView(assignment)
+    return this.execute(studentId).pipe(
+      map(result => {
+        const overdue = result.assignments.filter(a => a.isOverdue);
+        return {
+          assignments: overdue,
+          stats: this.calculateAssignmentStats(overdue),
+          filters: { deadlineStatus: [DeadlineStatus.OVERDUE] },
+          totalCount: overdue.length
+        };
+      })
     );
-
-    return of({
-      assignments: assignmentViews,
-      stats: this.calculateAssignmentStats(assignmentViews),
-      filters: { deadlineStatus: [DeadlineStatus.OVERDUE] },
-      totalCount: assignmentViews.length
-    });
   }
 
   /**
    * Get high priority assignments
    */
   getHighPriorityAssignments(studentId: StudentId): Observable<AssignmentListView> {
-    const mockAssignments = this.getMockAssignments();
-    const highPriorityAssignments = mockAssignments.filter(assignment =>
-      assignment.priority === 'high' || assignment.priority === 'urgent'
+    return this.execute(studentId).pipe(
+      map(result => {
+        const highPriority = result.assignments.filter(a =>
+          a.priority === 'high' || a.priority === 'urgent'
+        );
+        return {
+          assignments: highPriority,
+          stats: this.calculateAssignmentStats(highPriority),
+          filters: { priority: [PriorityLevel.HIGH, PriorityLevel.URGENT] },
+          totalCount: highPriority.length
+        };
+      })
     );
-
-    const assignmentViews = highPriorityAssignments.map(assignment =>
-      this.transformToAssignmentView(assignment)
-    );
-
-    return of({
-      assignments: assignmentViews,
-      stats: this.calculateAssignmentStats(assignmentViews),
-      filters: { priority: [PriorityLevel.HIGH, PriorityLevel.URGENT] },
-      totalCount: assignmentViews.length
-    });
   }
 
   /**
-   * Transform assignment entity to view model
+   * Transform API response to view model
    */
-  private transformToAssignmentView(assignment: any): AssignmentView {
+  private transformToAssignmentView(item: StudentAssignmentResponse): AssignmentView {
+    const now = new Date();
+    const dueDate = item.dueDate ? new Date(item.dueDate) : null;
+    const daysUntilDue = dueDate
+      ? Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+      : 999;
+    const isOverdue = item.isLate || (dueDate !== null && dueDate < now && item.status === 'NOT_SUBMITTED');
+
+    // Map BE status to FE submission status
+    const submissionStatus = this.mapSubmissionStatus(item.status);
+
+    // Calculate priority based on deadline proximity
+    let priority: 'low' | 'medium' | 'high' | 'urgent' = 'medium';
+    if (isOverdue) priority = 'urgent';
+    else if (daysUntilDue <= 2) priority = 'high';
+    else if (daysUntilDue <= 7) priority = 'medium';
+    else priority = 'low';
+
     return {
-      id: assignment.id,
-      title: assignment.title,
-      description: assignment.description,
-      courseId: assignment.courseId,
-      courseName: assignment.courseName,
-      instructorName: assignment.instructorName,
-      type: assignment.type,
-      status: assignment.status,
-      priority: assignment.priority,
-      dueDate: assignment.dueDate,
-      daysUntilDue: assignment.daysUntilDue,
-      isOverdue: assignment.isOverdue,
-      urgencyLevel: assignment.urgencyLevel,
-      maxGrade: assignment.maxGrade,
-      timeLimit: assignment.timeLimit,
-      wordCount: assignment.wordCount,
-      progressPercentage: assignment.progressPercentage,
-      submissionStatus: assignment.submissionStatus,
-      grade: assignment.grade,
-      submittedAt: assignment.submittedAt,
-      lastAccessed: assignment.lastAccessed,
-      attachmentsCount: assignment.attachmentsCount,
-      hasRubric: assignment.hasRubric
+      id: item.id,
+      title: item.title,
+      description: item.description || item.instructions || '',
+      courseId: item.courseId,
+      courseName: item.courseName,
+      instructorName: '',
+      type: 'assignment',
+      status: 'published',
+      priority,
+      dueDate: dueDate || new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),
+      daysUntilDue,
+      isOverdue,
+      urgencyLevel: priority,
+      maxGrade: item.maxScore,
+      progressPercentage: submissionStatus === 'graded' ? 100 : submissionStatus === 'submitted' ? 80 : 0,
+      submissionStatus,
+      grade: item.score,
+      submittedAt: item.submittedAt ? new Date(item.submittedAt) : undefined,
+      lastAccessed: undefined,
+      attachmentsCount: 0,
+      hasRubric: false
     };
   }
 
-  /**
-   * Get mock assignments data
-   */
-  private getMockAssignments(): any[] {
-    const now = new Date();
-    return [
-      {
-        id: 'assignment-1',
-        title: 'Bài tập về Cấu trúc Tàu biển',
-        description: 'Phân tích cấu trúc tàu container và trình bày báo cáo chi tiết',
-        courseId: 'course-1',
-        courseName: 'Kỹ thuật Tàu biển Cơ bản',
-        instructorName: 'ThS. Nguyễn Văn Hải',
-        type: 'assignment',
-        status: 'published',
-        priority: 'high',
-        dueDate: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000), // 3 days from now
-        daysUntilDue: 3,
-        isOverdue: false,
-        urgencyLevel: 'high',
-        maxGrade: 100,
-        timeLimit: 120,
-        wordCount: 2000,
-        progressPercentage: 75,
-        submissionStatus: 'submitted',
-        submittedAt: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
-        lastAccessed: new Date(),
-        attachmentsCount: 2,
-        hasRubric: true
-      },
-      {
-        id: 'assignment-2',
-        title: 'Quiz về An toàn Hàng hải',
-        description: 'Bài kiểm tra kiến thức an toàn hàng hải cơ bản',
-        courseId: 'course-2',
-        courseName: 'An toàn Hàng hải Quốc tế',
-        instructorName: 'TS. Phạm Văn Nam',
-        type: 'quiz',
-        status: 'published',
-        priority: 'medium',
-        dueDate: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-        daysUntilDue: 7,
-        isOverdue: false,
-        urgencyLevel: 'medium',
-        maxGrade: 100,
-        timeLimit: 45,
-        progressPercentage: 0,
-        submissionStatus: 'not_submitted',
-        attachmentsCount: 0,
-        hasRubric: false
-      },
-      {
-        id: 'assignment-3',
-        title: 'Dự án Quản lý Cảng biển',
-        description: 'Thiết kế hệ thống quản lý container tại cảng biển',
-        courseId: 'course-3',
-        courseName: 'Quản lý Cảng biển',
-        instructorName: 'ThS. Trần Thị Lan',
-        type: 'project',
-        status: 'published',
-        priority: 'urgent',
-        dueDate: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000), // 2 days ago (overdue)
-        daysUntilDue: -2,
-        isOverdue: true,
-        urgencyLevel: 'critical',
-        maxGrade: 100,
-        timeLimit: 300,
-        wordCount: 5000,
-        progressPercentage: 30,
-        submissionStatus: 'in_progress',
-        lastAccessed: new Date(now.getTime() - 1 * 60 * 60 * 1000), // 1 hour ago
-        attachmentsCount: 3,
-        hasRubric: true
-      }
-    ];
+  private mapSubmissionStatus(status: string): string {
+    switch (status) {
+      case 'GRADED': return 'graded';
+      case 'SUBMITTED':
+      case 'RESUBMITTED': return 'submitted';
+      case 'LATE': return 'late';
+      case 'NOT_SUBMITTED':
+      default: return 'not_submitted';
+    }
   }
 
   /**
    * Apply filters to assignments
    */
-  private applyFilters(assignments: any[], filters: AssignmentFilters): any[] {
+  private applyFilters(assignments: AssignmentView[], filters: AssignmentFilters): AssignmentView[] {
     return assignments.filter(assignment => {
-      if (filters.status && !filters.status.includes(assignment.status)) {
+      if (filters.status && !filters.status.includes(assignment.status as any)) {
         return false;
       }
-      if (filters.type && !filters.type.includes(assignment.type)) {
+      if (filters.type && !filters.type.includes(assignment.type as any)) {
         return false;
       }
-      if (filters.priority && !filters.priority.includes(assignment.priority)) {
+      if (filters.priority && !filters.priority.includes(assignment.priority as any)) {
         return false;
       }
       return true;
@@ -240,9 +181,9 @@ export class GetStudentAssignmentsUseCase {
   private calculateAssignmentStats(assignments: AssignmentView[]): AssignmentStats {
     const total = assignments.length;
     const completed = assignments.filter(a => a.submissionStatus === 'graded').length;
-    const inProgress = assignments.filter(a => a.progressPercentage > 0 && a.progressPercentage < 100).length;
+    const inProgress = assignments.filter(a => a.submissionStatus === 'submitted' || a.submissionStatus === 'late').length;
     const overdue = assignments.filter(a => a.isOverdue).length;
-    const submitted = assignments.filter(a => a.submissionStatus === 'submitted' || a.submissionStatus === 'graded').length;
+    const submitted = assignments.filter(a => a.submissionStatus !== 'not_submitted').length;
 
     return {
       total,
@@ -254,6 +195,10 @@ export class GetStudentAssignmentsUseCase {
       submissionRate: total > 0 ? Math.round((submitted / total) * 100) : 0,
       overdueRate: total > 0 ? Math.round((overdue / total) * 100) : 0
     };
+  }
+
+  private emptyStats(): AssignmentStats {
+    return { total: 0, completed: 0, inProgress: 0, overdue: 0, submitted: 0, completionRate: 0, submissionRate: 0, overdueRate: 0 };
   }
 }
 
@@ -287,7 +232,7 @@ export interface AssignmentView {
   wordCount?: number;
   progressPercentage: number;
   submissionStatus: string;
-  grade?: any; // Would be Grade type
+  grade?: any;
   submittedAt?: Date;
   lastAccessed?: Date;
   attachmentsCount: number;

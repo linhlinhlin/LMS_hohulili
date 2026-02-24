@@ -131,10 +131,10 @@ public class Quiz {
      */
     public static Quiz create(UUID lessonId, String title, String description, QuizSettings settings) {
         if (lessonId == null) {
-            throw new IllegalArgumentException("Lesson ID is required");
+            throw new IllegalArgumentException("ID bài học là bắt buộc");
         }
         if (title == null || title.isBlank()) {
-            throw new IllegalArgumentException("Quiz title is required");
+            throw new IllegalArgumentException("Tiêu đề bài kiểm tra là bắt buộc");
         }
 
         return Quiz.builder()
@@ -182,7 +182,7 @@ public class Quiz {
      */
     public void publish() {
         if (this.status == QuizStatus.ARCHIVED) {
-            throw new IllegalStateException("Cannot publish an archived quiz");
+            throw new IllegalStateException("Không thể phát hành bài kiểm tra đã lưu trữ");
         }
         this.status = QuizStatus.PUBLISHED;
         this.updatedAt = Instant.now();
@@ -237,7 +237,7 @@ public class Quiz {
 
     public void addQuestion(UUID questionId, Integer displayOrder) {
         if (!isEditable()) {
-            throw new IllegalStateException("Cannot add questions to a published/archived quiz");
+            throw new IllegalStateException("Không thể thêm câu hỏi vào bài kiểm tra đã phát hành/lưu trữ");
         }
         if (this.questions == null) {
             this.questions = new java.util.ArrayList<>();
@@ -247,7 +247,7 @@ public class Quiz {
         boolean exists = this.questions.stream()
             .anyMatch(q -> q.getQuestionId().equals(questionId));
         if (exists) {
-            throw new IllegalArgumentException("Question already exists in this quiz");
+            throw new IllegalArgumentException("Câu hỏi này đã tồn tại trong bài kiểm tra");
         }
 
         this.questions.add(QuizQuestion.create(this.id.value(), questionId, displayOrder));
@@ -256,7 +256,7 @@ public class Quiz {
 
     public void removeQuestion(UUID questionId) {
         if (!isEditable()) {
-            throw new IllegalStateException("Cannot remove questions from a published/archived quiz");
+            throw new IllegalStateException("Không thể xóa câu hỏi từ bài kiểm tra đã phát hành/lưu trữ");
         }
         if (this.questions == null) return;
 

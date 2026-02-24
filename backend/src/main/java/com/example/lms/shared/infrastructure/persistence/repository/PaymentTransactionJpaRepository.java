@@ -18,6 +18,8 @@ public interface PaymentTransactionJpaRepository extends JpaRepository<PaymentTr
 
     Optional<PaymentTransactionJpaEntity> findByStudentIdAndCourseId(UUID studentId, UUID courseId);
 
+    Optional<PaymentTransactionJpaEntity> findByTransactionId(String transactionId);
+
     List<PaymentTransactionJpaEntity> findByStudentIdOrderByCreatedAtDesc(UUID studentId);
 
     boolean existsByStudentIdAndCourseId(UUID studentId, UUID courseId);

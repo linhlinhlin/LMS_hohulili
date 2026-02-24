@@ -293,7 +293,7 @@ export class CourseRepositoryImpl implements CourseRepository {
         d.price ?? 0, // Use actual price from backend
         [],
         CertificateType.COMPLETION,
-        d.chaptersCount ?? 1, // Use chapters count from backend
+        d.chapterCount ?? 1, // Use chapters count from backend
         1
       ),
       CourseStatus.PUBLISHED,

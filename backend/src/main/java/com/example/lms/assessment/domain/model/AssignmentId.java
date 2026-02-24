@@ -9,7 +9,7 @@ public record AssignmentId(UUID value) {
     
     public AssignmentId {
         if (value == null) {
-            throw new IllegalArgumentException("Assignment ID cannot be null");
+            throw new IllegalArgumentException("ID bài tập không được null");
         }
     }
 

@@ -17,10 +17,10 @@ public class CourseReview {
     protected CourseReview() {}
 
     public static CourseReview create(UUID courseId, UUID studentId, int rating, String comment) {
-        Objects.requireNonNull(courseId, "courseId is required");
-        Objects.requireNonNull(studentId, "studentId is required");
+        Objects.requireNonNull(courseId, "ID khóa học là bắt buộc");
+        Objects.requireNonNull(studentId, "ID học viên là bắt buộc");
         if (rating < 1 || rating > 5) {
-            throw new IllegalArgumentException("Rating must be between 1 and 5");
+            throw new IllegalArgumentException("Đánh giá phải từ 1 đến 5");
         }
 
         CourseReview review = new CourseReview();
@@ -36,7 +36,7 @@ public class CourseReview {
 
     public void update(int rating, String comment) {
         if (rating < 1 || rating > 5) {
-            throw new IllegalArgumentException("Rating must be between 1 and 5");
+            throw new IllegalArgumentException("Đánh giá phải từ 1 đến 5");
         }
         this.rating = rating;
         this.comment = comment;

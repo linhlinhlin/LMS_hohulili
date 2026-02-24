@@ -148,7 +148,7 @@ class ChangePasswordUseCaseV2Test {
             // When/Then
             assertThatThrownBy(() -> useCase.execute(userId, CURRENT_PASSWORD, "12345"))
                 .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("Mật khẩu mới phải có ít nhất 6 ký tự");
+                .hasMessageContaining("ít nhất 8 ký tự");
 
             verify(userRepository, never()).save(any());
         }

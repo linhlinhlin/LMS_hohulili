@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.UUID;
 
 /**
@@ -35,7 +36,11 @@ public class UpdateAssignmentUseCaseV3 {
         assignment.updateInfo(command.title(), command.description(), command.instructions());
 
         if (command.dueDate() != null) {
-            assignment.setDueDate(Instant.parse(command.dueDate()));
+            try {
+                assignment.setDueDate(Instant.parse(command.dueDate()));
+            } catch (DateTimeParseException e) {
+                throw new IllegalArgumentException("Định dạng ngày không hợp lệ, yêu cầu ISO-8601: " + command.dueDate());
+            }
         }
 
         assignmentRepository.save(assignment);

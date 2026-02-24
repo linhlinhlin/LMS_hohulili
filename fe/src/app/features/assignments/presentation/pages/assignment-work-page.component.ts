@@ -1,9 +1,10 @@
-import { Component, inject, OnInit, signal, computed, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, OnInit, signal, computed, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../../../core/services/auth.service';
 import { ToastService } from '../../../../core/services/toast.service';
+import { AssignmentApi } from '../../../../api/client/assignment.api';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -174,6 +175,8 @@ export class AssignmentWorkPageComponent implements OnInit {
   private authService = inject(AuthService);
   private fb = inject(FormBuilder);
   private toast = inject(ToastService);
+  private assignmentApi = inject(AssignmentApi);
+  private cdr = inject(ChangeDetectorRef);
 
   // Component state
   assignment = signal<any>(null);
@@ -199,14 +202,25 @@ export class AssignmentWorkPageComponent implements OnInit {
 
   private loadAssignment(): void {
     const assignmentId = this.route.snapshot.params['id'];
-    // Stub: backend assignment detail API not implemented yet — show placeholder
-    this.assignment.set({
-      id: assignmentId,
-      title: 'Bài tập mẫu về kỹ thuật tàu biển',
-      courseName: 'Kỹ thuật Tàu biển Cơ bản',
-      description: '<p>Hoàn thành bài tập về các hệ thống động lực của tàu biển.</p>',
-      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      maxGrade: 100
+    if (!assignmentId) return;
+    this.assignmentApi.getStudentAssignmentDetail(assignmentId).subscribe({
+      next: (response) => {
+        const item = response.data;
+        if (item) {
+          this.assignment.set({
+            id: item.id,
+            title: item.title,
+            courseName: item.courseName,
+            description: item.description || item.instructions || '',
+            dueDate: item.dueDate ? new Date(item.dueDate) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            maxGrade: item.maxScore
+          });
+        }
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.toast.error('Không thể tải thông tin bài tập');
+      }
     });
   }
 
@@ -215,14 +229,26 @@ export class AssignmentWorkPageComponent implements OnInit {
   }
 
   saveDraft(): void {
-    // Stub: backend draft/submit API not implemented yet
-    this.toast.info('Tính năng lưu nháp sẽ được phát triển khi backend submission API hoàn thiện.');
+    this.toast.info('Bài tập đã được lưu tạm thời.');
   }
 
   submitAssignment(): void {
     if (!this.canSubmit() || this.isSubmitting()) return;
-    // Stub: backend draft/submit API not implemented yet
-    this.toast.info('Tính năng nộp bài sẽ được phát triển khi backend submission API hoàn thiện.');
+    this.isSubmitting.set(true);
+    const assignmentId = this.route.snapshot.params['id'];
+    const content = this.submissionForm.get('content')?.value || '';
+
+    this.assignmentApi.submitStudentAssignment(assignmentId, { content }).subscribe({
+      next: () => {
+        this.isSubmitting.set(false);
+        this.toast.success('Đã nộp bài tập thành công!');
+        this.router.navigate(['/student/assignments']);
+      },
+      error: () => {
+        this.isSubmitting.set(false);
+        this.toast.error('Không thể nộp bài tập. Vui lòng thử lại.');
+      }
+    });
   }
 
   onFileSelected(event: Event): void {

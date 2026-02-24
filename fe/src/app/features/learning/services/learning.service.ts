@@ -299,7 +299,7 @@ export class LearningService {
       description: courseData?.description || '',
       instructor: courseData?.teacherName || 'Unknown',
       thumbnail: '',
-      sectionsCount: courseData?.chaptersCount || 0,
+      sectionsCount: courseData?.chapterCount || 0,
       lessonsCount: this.countLessons(courseContent.data || []),
       duration: this.calculateTotalDuration(courseContent.data || []),
       isEnrolled: true

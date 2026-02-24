@@ -68,6 +68,18 @@
         <artifactId>spring-kafka</artifactId>
     </dependency>
     
+    <!-- SMTP Email (dev profile) -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-mail</artifactId>
+    </dependency>
+    <!-- Resend API (prod profile) -->
+    <dependency>
+        <groupId>com.resend</groupId>
+        <artifactId>resend-java</artifactId>
+        <version>3.1.0</version>
+    </dependency>
+
     <!-- SOTA Caching (Dec 2025) - Caffeine is fastest local cache -->
     <!-- Reference: Netflix/Google tech blogs recommend Caffeine over Guava -->
     <dependency>

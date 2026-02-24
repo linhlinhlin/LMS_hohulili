@@ -47,7 +47,7 @@ export interface CourseDetail {
   teacherId: string;
   teacherName: string;
   enrolledCount: number;
-  chaptersCount: number;
+  chapterCount: number;
   createdAt: string;
   updatedAt: string | null;
 

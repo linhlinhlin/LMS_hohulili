@@ -159,13 +159,13 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+            background: linear-gradient(135deg, #0056D2 0%, #004BB5 100%);
             color: white;
         }
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+            box-shadow: 0 4px 12px rgba(0, 86, 210, 0.4);
         }
 
         .btn-secondary {

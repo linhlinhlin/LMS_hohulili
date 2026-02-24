@@ -57,7 +57,7 @@ class LearningClassTest {
             // When/Then
             assertThatThrownBy(openClass::close)
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("cancelled");
+                .hasMessageContaining("hủy");
         }
 
         @Test
@@ -89,7 +89,7 @@ class LearningClassTest {
             // When/Then
             assertThatThrownBy(openClass::cancel)
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("closed");
+                .hasMessageContaining("đã đóng");
         }
 
         @Test
@@ -123,7 +123,7 @@ class LearningClassTest {
         void shouldThrowReopenWhenOpen() {
             assertThatThrownBy(openClass::reopen)
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("closed or archived");
+                .hasMessageContaining("đã đóng hoặc lưu trữ");
         }
 
         @Test

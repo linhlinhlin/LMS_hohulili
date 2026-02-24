@@ -53,7 +53,7 @@ class EnrollmentTest {
             // When/Then
             assertThatThrownBy(activeEnrollment::drop)
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("completed");
+                .hasMessageContaining("hoàn thành");
         }
 
         @Test
@@ -87,7 +87,7 @@ class EnrollmentTest {
             // When/Then
             assertThatThrownBy(activeEnrollment::suspend)
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("active");
+                .hasMessageContaining("hoạt động");
         }
     }
 
@@ -126,7 +126,7 @@ class EnrollmentTest {
         void shouldThrowReactivateWhenActive() {
             assertThatThrownBy(activeEnrollment::reactivate)
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("suspended or dropped");
+                .hasMessageContaining("tạm ngưng");
         }
 
         @Test

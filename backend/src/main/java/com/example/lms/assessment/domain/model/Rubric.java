@@ -27,9 +27,9 @@ public class Rubric {
     // Factory method
     public static Rubric create(UUID teacherId, String title, String description,
                                 Double maxPoints, List<Criterion> criteria) {
-        if (teacherId == null) throw new IllegalArgumentException("teacherId is required");
-        if (title == null || title.isBlank()) throw new IllegalArgumentException("title is required");
-        if (criteria == null || criteria.isEmpty()) throw new IllegalArgumentException("At least one criterion is required");
+        if (teacherId == null) throw new IllegalArgumentException("ID giáo viên là bắt buộc");
+        if (title == null || title.isBlank()) throw new IllegalArgumentException("Tiêu đề là bắt buộc");
+        if (criteria == null || criteria.isEmpty()) throw new IllegalArgumentException("Cần có ít nhất một tiêu chí");
 
         Rubric rubric = new Rubric();
         rubric.id = UUID.randomUUID();
@@ -62,8 +62,8 @@ public class Rubric {
 
     // Commands
     public void update(String title, String description, Double maxPoints, List<Criterion> criteria) {
-        if (title == null || title.isBlank()) throw new IllegalArgumentException("title is required");
-        if (criteria == null || criteria.isEmpty()) throw new IllegalArgumentException("At least one criterion is required");
+        if (title == null || title.isBlank()) throw new IllegalArgumentException("Tiêu đề là bắt buộc");
+        if (criteria == null || criteria.isEmpty()) throw new IllegalArgumentException("Cần có ít nhất một tiêu chí");
 
         this.title = title;
         this.description = description;
@@ -73,7 +73,7 @@ public class Rubric {
     }
 
     public void assignTo(UUID assignmentId) {
-        if (assignmentId == null) throw new IllegalArgumentException("assignmentId is required");
+        if (assignmentId == null) throw new IllegalArgumentException("ID bài tập là bắt buộc");
         this.assignmentId = assignmentId;
         this.updatedAt = Instant.now();
     }
@@ -101,13 +101,13 @@ public class Rubric {
     // Value objects
     public record Criterion(String name, String description, Double maxPoints, List<Level> levels) {
         public Criterion {
-            if (name == null || name.isBlank()) throw new IllegalArgumentException("Criterion name is required");
+            if (name == null || name.isBlank()) throw new IllegalArgumentException("Tên tiêu chí là bắt buộc");
         }
     }
 
     public record Level(String label, String description, Double points) {
         public Level {
-            if (label == null || label.isBlank()) throw new IllegalArgumentException("Level label is required");
+            if (label == null || label.isBlank()) throw new IllegalArgumentException("Nhãn mức độ là bắt buộc");
         }
     }
 }

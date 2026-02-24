@@ -29,14 +29,14 @@ class QuestionBankTest {
     void create_shouldRejectBlankName() {
         assertThatThrownBy(() -> QuestionBank.create("", "desc", "sub", ownerId, null, null))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("blank");
+                .hasMessageContaining("trống");
     }
 
     @Test
     void create_shouldRejectNullOwner() {
         assertThatThrownBy(() -> QuestionBank.create("Bank", "desc", "sub", null, null, null))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Owner");
+                .hasMessageContaining("chủ sở hữu");
     }
 
     @Test
@@ -68,7 +68,7 @@ class QuestionBankTest {
         bank.archive();
         assertThatThrownBy(bank::archive)
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("already archived");
+                .hasMessageContaining("đã được lưu trữ");
     }
 
     @Test

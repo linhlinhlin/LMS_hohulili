@@ -1,9 +1,10 @@
-﻿import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
-
+import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { ConfirmDialogService } from '../../../core/services/confirm-dialog.service';
+import { ToastService } from '../../../core/services/toast.service';
+import { BookmarkApi, BookmarkResponse } from '../../../api/client/bookmark.api';
 
 interface Bookmark {
   id: string;
@@ -51,9 +52,12 @@ export class BookmarkSystemComponent implements OnInit {
   protected authService = inject(AuthService);
   private router = inject(Router);
   private confirmDialog = inject(ConfirmDialogService);
+  private toast = inject(ToastService);
+  private bookmarkApi = inject(BookmarkApi);
 
-  // Bookmarks — loaded from API when backend support is available
+  // Bookmarks — loaded from real API
   bookmarks = signal<Bookmark[]>([]);
+  isLoading = signal(false);
 
   folders = signal<BookmarkFolder[]>([]);
 
@@ -74,7 +78,7 @@ export class BookmarkSystemComponent implements OnInit {
       id: bookmark.courseId,
       name: bookmark.courseName
     }));
-    return courses.filter((course, index, self) => 
+    return courses.filter((course, index, self) =>
       index === self.findIndex(c => c.id === course.id)
     );
   });
@@ -98,7 +102,7 @@ export class BookmarkSystemComponent implements OnInit {
     // Apply search filter
     if (this.filters.search) {
       const searchTerm = this.filters.search.toLowerCase();
-      bookmarks = bookmarks.filter(bookmark => 
+      bookmarks = bookmarks.filter(bookmark =>
         bookmark.title.toLowerCase().includes(searchTerm) ||
         bookmark.description.toLowerCase().includes(searchTerm) ||
         bookmark.tags.some(tag => tag.toLowerCase().includes(searchTerm))
@@ -118,7 +122,7 @@ export class BookmarkSystemComponent implements OnInit {
     // Apply sorting
     bookmarks.sort((a, b) => {
       let aValue: any, bValue: any;
-      
+
       switch (this.filters.sortBy) {
         case 'title':
           aValue = a.title;
@@ -136,17 +140,17 @@ export class BookmarkSystemComponent implements OnInit {
       }
 
       if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return this.filters.sortOrder === 'desc' 
+        return this.filters.sortOrder === 'desc'
           ? bValue.localeCompare(aValue)
           : aValue.localeCompare(bValue);
       }
-      
+
       if (aValue instanceof Date && bValue instanceof Date) {
-        return this.filters.sortOrder === 'desc' 
+        return this.filters.sortOrder === 'desc'
           ? bValue.getTime() - aValue.getTime()
           : aValue.getTime() - bValue.getTime();
       }
-      
+
       return 0;
     });
 
@@ -154,12 +158,42 @@ export class BookmarkSystemComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    // Load bookmarks
     this.loadBookmarks();
   }
 
   private loadBookmarks(): void {
-    // In real implementation, load from API
+    this.isLoading.set(true);
+    this.bookmarkApi.getBookmarks().subscribe({
+      next: (response) => {
+        const items = (response.data || []).map(item => this.mapToBookmark(item));
+        this.bookmarks.set(items);
+        this.isLoading.set(false);
+      },
+      error: () => {
+        this.isLoading.set(false);
+      }
+    });
+  }
+
+  private mapToBookmark(item: BookmarkResponse): Bookmark {
+    const metadata = item.metadata || {};
+    return {
+      id: item.id,
+      title: item.title,
+      description: metadata['description'] || '',
+      url: item.url,
+      courseId: item.courseId,
+      courseName: metadata['courseName'] || 'Khóa học',
+      lessonId: item.lessonId,
+      lessonTitle: metadata['lessonTitle'],
+      timestamp: metadata['timestamp'],
+      type: metadata['type'] || 'lesson',
+      tags: metadata['tags'] || [],
+      isPublic: metadata['isPublic'] || false,
+      createdAt: item.createdAt ? new Date(item.createdAt) : new Date(),
+      updatedAt: item.createdAt ? new Date(item.createdAt) : new Date(),
+      thumbnail: metadata['thumbnail']
+    };
   }
 
   applyFilters(): void {
@@ -206,15 +240,20 @@ export class BookmarkSystemComponent implements OnInit {
   }
 
   createNewFolder(): void {
-    // Navigate to folder creation
+    this.toast.info('Tính năng tạo thư mục sẽ được phát triển trong phiên bản tiếp theo');
   }
 
   addBookmark(): void {
-    // Navigate to bookmark creation
+    this.toast.info('Sử dụng nút "Đánh dấu" trên trang bài học để thêm dấu trang mới');
   }
 
   editBookmark(bookmarkId: string): void {
-    // Navigate to bookmark editor
+    // Inline edit through API
+    const bookmark = this.bookmarks().find(b => b.id === bookmarkId);
+    if (!bookmark) return;
+
+    // For now, navigate to the bookmarked content
+    this.router.navigateByUrl(bookmark.url);
   }
 
   async deleteBookmark(bookmarkId: string): Promise<void> {
@@ -225,7 +264,15 @@ export class BookmarkSystemComponent implements OnInit {
       variant: 'danger'
     });
     if (confirmed) {
-      this.bookmarks.update(bookmarks => bookmarks.filter(bookmark => bookmark.id !== bookmarkId));
+      this.bookmarkApi.deleteBookmark(bookmarkId).subscribe({
+        next: () => {
+          this.bookmarks.update(bookmarks => bookmarks.filter(b => b.id !== bookmarkId));
+          this.toast.success('Đã xóa dấu trang');
+        },
+        error: () => {
+          this.toast.error('Không thể xóa dấu trang');
+        }
+      });
     }
   }
 
@@ -247,4 +294,3 @@ export class BookmarkSystemComponent implements OnInit {
     return date.toLocaleDateString('vi-VN');
   }
 }
-

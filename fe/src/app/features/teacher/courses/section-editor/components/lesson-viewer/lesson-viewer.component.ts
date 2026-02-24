@@ -308,7 +308,7 @@ export class LessonViewerComponent {
     if (lesson.lessonType !== 'ASSIGNMENT' || !lesson.assignment) {
       return '0';
     }
-    const submissionCount = lesson.assignment.submissionCount || 0;
+    const submissionCount = lesson.assignment.submissionsCount || 0;
     const totalStudents = lesson.assignment.totalStudents || 0;
     return `${submissionCount}/${totalStudents}`;
   }

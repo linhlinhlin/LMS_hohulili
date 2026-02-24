@@ -4,6 +4,7 @@ import { RouterModule } from '@angular/router';
 import { ExtendedCourse } from '../../../../shared/types/course.types';
 import { CourseDetailService } from '../services/course-detail.service';
 import { ToastService } from '../../../../core/services/toast.service';
+import { AuthService } from '../../../../core/services/auth.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -16,6 +17,7 @@ export class CourseHeroComponent {
 
   protected courseDetailService = inject(CourseDetailService);
   private toast = inject(ToastService);
+  private authService = inject(AuthService);
 
   getCategoryName(category: string): string {
     const categoryNames: Record<string, string> = {
@@ -45,8 +47,7 @@ export class CourseHeroComponent {
     if (!course) return;
 
     try {
-      // Mock user ID - trong thực tế sẽ lấy từ auth service
-      const userId = 'current-user-id';
+      const userId = this.authService.getCurrentUser()?.id || '';
       await this.courseDetailService.enrollInCourse(course.id, userId);
     } catch (error) {
       this.toast.error('Đăng ký khóa học thất bại');

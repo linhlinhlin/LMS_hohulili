@@ -122,11 +122,11 @@ public class Message {
 
     private static void validateContent(String content) {
         if (content == null || content.isBlank()) {
-            throw new IllegalArgumentException("Message content cannot be empty");
+            throw new IllegalArgumentException("Nội dung tin nhắn không được để trống");
         }
         if (content.length() > MAX_CONTENT_LENGTH) {
             throw new IllegalArgumentException(
-                "Message content cannot exceed " + MAX_CONTENT_LENGTH + " characters"
+                "Nội dung tin nhắn không được vượt quá " + MAX_CONTENT_LENGTH + " ký tự"
             );
         }
     }

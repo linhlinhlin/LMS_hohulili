@@ -28,12 +28,12 @@ public class User {
     public User(UserId id, String username, Email email, String password, 
                 String fullName, Role role, boolean enabled, 
                 Instant createdAt, Instant updatedAt) {
-        this.id = Objects.requireNonNull(id, "User ID cannot be null");
-        this.username = Objects.requireNonNull(username, "Username cannot be null");
-        this.email = Objects.requireNonNull(email, "Email cannot be null");
-        this.password = Objects.requireNonNull(password, "Password cannot be null");
-        this.fullName = Objects.requireNonNull(fullName, "Full name cannot be null");
-        this.role = Objects.requireNonNull(role, "Role cannot be null");
+        this.id = Objects.requireNonNull(id, "ID người dùng không được null");
+        this.username = Objects.requireNonNull(username, "Tên đăng nhập không được null");
+        this.email = Objects.requireNonNull(email, "Email không được null");
+        this.password = Objects.requireNonNull(password, "Mật khẩu không được null");
+        this.fullName = Objects.requireNonNull(fullName, "Họ tên không được null");
+        this.role = Objects.requireNonNull(role, "Vai trò không được null");
         this.enabled = enabled;
         this.createdAt = createdAt != null ? createdAt : Instant.now();
         this.updatedAt = updatedAt;
@@ -57,13 +57,13 @@ public class User {
     
     // Business methods
     public void updateProfile(String fullName, Email email) {
-        this.fullName = Objects.requireNonNull(fullName, "Full name cannot be null");
-        this.email = Objects.requireNonNull(email, "Email cannot be null");
+        this.fullName = Objects.requireNonNull(fullName, "Họ tên không được null");
+        this.email = Objects.requireNonNull(email, "Email không được null");
         this.updatedAt = Instant.now();
     }
     
     public void changePassword(String newEncodedPassword) {
-        this.password = Objects.requireNonNull(newEncodedPassword, "Password cannot be null");
+        this.password = Objects.requireNonNull(newEncodedPassword, "Mật khẩu không được null");
         this.updatedAt = Instant.now();
     }
     
@@ -78,7 +78,7 @@ public class User {
     }
     
     public void changeRole(Role newRole) {
-        this.role = Objects.requireNonNull(newRole, "Role cannot be null");
+        this.role = Objects.requireNonNull(newRole, "Vai trò không được null");
         this.updatedAt = Instant.now();
     }
     

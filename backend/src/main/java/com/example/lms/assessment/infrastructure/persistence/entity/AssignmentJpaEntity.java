@@ -125,7 +125,7 @@ public class AssignmentJpaEntity {
     public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
 
     public enum AssignmentType {
-        FILE_UPLOAD, TEXT, QUIZ, PROJECT, ESSAY
+        FILE_UPLOAD, TEXT, QUIZ, PROJECT, ESSAY, PRESENTATION
     }
 
     public enum AssignmentStatus {

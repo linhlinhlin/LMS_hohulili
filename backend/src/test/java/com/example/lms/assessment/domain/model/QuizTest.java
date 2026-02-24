@@ -65,7 +65,7 @@ class QuizTest {
         void shouldThrowWhenLessonIdIsNull() {
             assertThatThrownBy(() -> Quiz.create(null, "Quiz 1", "desc", null))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Lesson ID");
+                .hasMessageContaining("bài học");
         }
 
         @Test
@@ -73,7 +73,7 @@ class QuizTest {
         void shouldThrowWhenTitleIsBlank() {
             assertThatThrownBy(() -> Quiz.create(lessonId, "  ", "desc", null))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("title");
+                .hasMessageContaining("Tiêu đề");
         }
 
         @Test
@@ -112,7 +112,7 @@ class QuizTest {
             // When/Then
             assertThatThrownBy(quiz::publish)
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("archived");
+                .hasMessageContaining("lưu trữ");
         }
 
         @Test
@@ -172,7 +172,7 @@ class QuizTest {
             // When/Then
             assertThatThrownBy(() -> quiz.addQuestion(questionId, 2))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("already exists");
+                .hasMessageContaining("đã tồn tại");
         }
 
         @Test

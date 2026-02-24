@@ -67,13 +67,13 @@ public class ChatSession {
      */
     public static ChatSession create(UUID userId, String title, ContextType contextType, UUID contextId) {
         if (userId == null) {
-            throw new IllegalArgumentException("User ID is required");
+            throw new IllegalArgumentException("ID người dùng là bắt buộc");
         }
 
         return ChatSession.builder()
             .id(ChatSessionId.generate())
             .userId(userId)
-            .title(title != null ? title : "New Chat")
+            .title(title != null ? title : "Cuộc trò chuyện mới")
             .contextType(contextType != null ? contextType : ContextType.GENERAL)
             .contextId(contextId)
             .isArchived(false)

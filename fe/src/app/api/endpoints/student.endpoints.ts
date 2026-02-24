@@ -29,4 +29,12 @@ export const STUDENT_ENDPOINTS = {
 
     // Analytics (BE: StudentAnalyticsControllerV3)
     ANALYTICS: '/api/v3/student/analytics',
+
+    // Assignments - Submission (BE: StudentAssignmentControllerV3)
+    SUBMIT_ASSIGNMENT: (assignmentId: string) => `/api/v3/student/assignments/${assignmentId}/submit`,
+    MY_SUBMISSION: (assignmentId: string) => `/api/v3/student/assignments/${assignmentId}/submission`,
+
+    // Bookmarks (BE: BookmarkControllerV3)
+    BOOKMARKS: '/api/v3/bookmarks',
+    BOOKMARK_DETAIL: (bookmarkId: string) => `/api/v3/bookmarks/${bookmarkId}`,
 } as const;

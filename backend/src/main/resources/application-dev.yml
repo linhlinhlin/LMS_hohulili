@@ -18,7 +18,7 @@ spring:
     # Formula: pool-size = (cores × 2) + 1
     # Reference: https://github.com/brettwooldridge/HikariCP/wiki/About-Pool-Sizing
     hikari:
-      maximum-pool-size: 10           # ↑ from 2 (optimal for 4-8 core machine)
+      maximum-pool-size: 20           # ↑ from 10 (handle 15+ parallel FE requests in Docker)
       minimum-idle: 5                 # Fixed pool size recommended
       connection-timeout: 5000        # 5s "fail fast" strategy (↓ from 20s)
       idle-timeout: 300000            # 5 minutes
@@ -45,6 +45,15 @@ spring:
     # CRITICAL: Disable Open Session In View anti-pattern
     # Reference: Netflix/Google explicitly disable this
     open-in-view: false
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+      mail.smtp.starttls.required: true
   flyway:
     enabled: true
     baseline-on-migrate: true
@@ -54,6 +63,11 @@ spring:
     out-of-order: true
     clean-disabled: false
 
+management:
+  health:
+    mail:
+      enabled: false
+
 logging:
   level:
     org.springframework.web: DEBUG
@@ -62,6 +76,25 @@ logging:
 
 server:
   port: ${SERVER_PORT:8080}  # Unified: 8080 everywhere for consistency
+  tomcat:
+    threads:
+      max: 300              # ↑ from default 200 (handle parallel FE API calls)
+      min-spare: 10
+    accept-count: 200       # Queue size when all threads busy
+    connection-timeout: 5000
+
+# Email config
+app:
+  email:
+    from: "${MAIL_FROM:LMS Maritime <noreply@maritime.edu>}"
+    base-url: "http://localhost:4200"
+  vnpay:
+    tmn-code: "${VNPAY_TMN_CODE:DEMOV210}"
+    hash-secret: "${VNPAY_HASH_SECRET:DEMOSECRET}"
+    pay-url: "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"
+    return-url: "http://localhost:4200/payment/result"
+    ipn-url: "http://localhost:8088/api/v3/payments/vnpay-ipn"
+    expire-minutes: 15
 
 # Disable Cloudflare R2 in dev (requires credentials)
 cloudflare:

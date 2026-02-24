@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
 import { ErrorHandlingService } from '../../shared/services/error-handling.service';
 import { LoadingComponent } from '../../shared/components/loading/loading.component';
+import { AssignmentApi, StudentAssignmentResponse } from '../../api/client/assignment.api';
 
 interface Assignment {
   id: string;
@@ -78,106 +79,12 @@ export class StudentAssignmentsComponent implements OnInit {
   private router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
   private errorService = inject(ErrorHandlingService);
+  private assignmentApi = inject(AssignmentApi);
 
   // Loading state
   isLoading = signal<boolean>(true);
 
-  // Mock assignments data
-  assignments = signal<Assignment[]>([
-    {
-      id: 'assignment-1',
-      title: 'Bài tập về Cấu trúc Tàu',
-      description: 'Phân tích cấu trúc tàu container và trình bày báo cáo chi tiết về các thành phần chính.',
-      courseId: 'course-1',
-      courseName: 'Kỹ thuật Tàu biển Cơ bản',
-      instructor: {
-        name: 'ThS. Nguyễn Văn Hải',
-        avatar: 'https://via.placeholder.com/150'
-      },
-      type: 'assignment',
-      status: 'pending',
-      priority: 'high',
-      dueDate: new Date('2024-09-20'),
-      maxGrade: 100,
-      attachments: [
-        {
-          id: 'att-1',
-          name: 'Hướng dẫn bài tập.pdf',
-          url: '/attachments/assignment-1-guide.pdf',
-          type: 'pdf',
-          size: 1024000
-        }
-      ],
-      instructions: 'Viết báo cáo phân tích cấu trúc tàu container với tối thiểu 2000 từ, bao gồm hình ảnh minh họa và tài liệu tham khảo.',
-      attempts: 0,
-      maxAttempts: 3,
-      wordCount: 2000,
-      fileUploads: []
-    },
-    {
-      id: 'assignment-2',
-      title: 'Quiz An toàn Hàng hải',
-      description: 'Kiểm tra kiến thức về quy định an toàn hàng hải quốc tế.',
-      courseId: 'course-2',
-      courseName: 'An toàn Hàng hải',
-      instructor: {
-        name: 'TS. Phạm Văn Nam',
-        avatar: 'https://via.placeholder.com/150'
-      },
-      type: 'quiz',
-      status: 'graded',
-      priority: 'medium',
-      dueDate: new Date('2024-09-15'),
-      submittedAt: new Date('2024-09-14'),
-      gradedAt: new Date('2024-09-16'),
-      grade: 85,
-      maxGrade: 100,
-      feedback: 'Bạn đã làm tốt bài quiz này. Cần chú ý thêm về các quy định STCW mới nhất.',
-      attachments: [],
-      instructions: 'Trả lời 20 câu hỏi trắc nghiệm trong thời gian 30 phút.',
-      attempts: 1,
-      maxAttempts: 2,
-      timeLimit: 30,
-      fileUploads: []
-    },
-    {
-      id: 'assignment-3',
-      title: 'Dự án Quản lý Cảng',
-      description: 'Thiết kế hệ thống quản lý cảng biển hiện đại.',
-      courseId: 'course-3',
-      courseName: 'Quản lý Cảng biển',
-      instructor: {
-        name: 'ThS. Trần Thị Lan',
-        avatar: 'https://via.placeholder.com/150'
-      },
-      type: 'project',
-      status: 'in-progress',
-      priority: 'high',
-      dueDate: new Date('2024-09-25'),
-      maxGrade: 100,
-      attachments: [
-        {
-          id: 'att-2',
-          name: 'Template dự án.docx',
-          url: '/attachments/project-template.docx',
-          type: 'doc',
-          size: 512000
-        }
-      ],
-      instructions: 'Thiết kế hệ thống quản lý cảng với các module chính: quản lý tàu, quản lý hàng hóa, quản lý nhân viên.',
-      attempts: 1,
-      maxAttempts: 1,
-      fileUploads: [
-        {
-          id: 'file-1',
-          name: 'Báo cáo tiến độ.docx',
-          url: '/uploads/progress-report.docx',
-          uploadedAt: new Date('2024-09-10'),
-          size: 256000
-        }
-      ]
-    }
-  ]);
+  assignments = signal<Assignment[]>([]);
 
   filters: AssignmentFilter = {
     status: [],
@@ -273,8 +180,65 @@ export class StudentAssignmentsComponent implements OnInit {
   }
 
   private loadAssignments(): void {
-    // Stub: assignments are hardcoded — backend student assignment list API not implemented yet
-    this.isLoading.set(false);
+    this.isLoading.set(true);
+    this.assignmentApi.getStudentAssignments().subscribe({
+      next: (response) => {
+        const items = response.data || [];
+        this.assignments.set(items.map(item => this.mapToAssignment(item)));
+        this.isLoading.set(false);
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.errorService.addError({ message: 'Không thể tải danh sách bài tập', type: 'error', context: 'assignment' });
+        this.isLoading.set(false);
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  private mapToAssignment(item: StudentAssignmentResponse): Assignment {
+    const now = new Date();
+    const dueDate = item.dueDate ? new Date(item.dueDate) : new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const daysUntilDue = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    const isOverdue = item.isLate || (dueDate < now && item.status === 'NOT_SUBMITTED');
+
+    let status: Assignment['status'] = 'pending';
+    switch (item.status) {
+      case 'GRADED': status = 'graded'; break;
+      case 'SUBMITTED': case 'RESUBMITTED': status = 'submitted'; break;
+      case 'LATE': status = 'submitted'; break;
+      case 'OVERDUE': status = 'overdue'; break;
+      case 'NOT_SUBMITTED': status = isOverdue ? 'overdue' : 'pending'; break;
+    }
+
+    let priority: Assignment['priority'] = 'medium';
+    if (isOverdue) priority = 'high';
+    else if (daysUntilDue <= 3) priority = 'high';
+    else if (daysUntilDue <= 7) priority = 'medium';
+    else priority = 'low';
+
+    return {
+      id: item.id,
+      title: item.title,
+      description: item.description || item.instructions || '',
+      courseId: item.courseId,
+      courseName: item.courseName,
+      instructor: { name: '', avatar: '' },
+      type: 'assignment',
+      status,
+      priority,
+      dueDate,
+      submittedAt: item.submittedAt ? new Date(item.submittedAt) : undefined,
+      gradedAt: item.gradedAt ? new Date(item.gradedAt) : undefined,
+      grade: item.score,
+      maxGrade: item.maxScore,
+      feedback: item.feedback,
+      attachments: [],
+      instructions: item.instructions || item.description || '',
+      attempts: 0,
+      maxAttempts: item.maxAttempts || 1,
+      fileUploads: item.fileUrl ? [{ id: '1', name: item.fileName || 'file', url: item.fileUrl, uploadedAt: new Date(), size: 0 }] : []
+    };
   }
 
   applyFilters(): void {

@@ -34,7 +34,7 @@ class CourseReviewTest {
     void create_ratingTooLow_throws() {
         assertThatThrownBy(() -> CourseReview.create(courseId, studentId, 0, "Bad"))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Rating must be between 1 and 5");
+                .hasMessageContaining("1 đến 5");
     }
 
     @Test
@@ -42,7 +42,7 @@ class CourseReviewTest {
     void create_ratingTooHigh_throws() {
         assertThatThrownBy(() -> CourseReview.create(courseId, studentId, 6, "Too high"))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Rating must be between 1 and 5");
+                .hasMessageContaining("1 đến 5");
     }
 
     @Test
@@ -50,7 +50,7 @@ class CourseReviewTest {
     void create_nullCourseId_throws() {
         assertThatThrownBy(() -> CourseReview.create(null, studentId, 3, "Comment"))
                 .isInstanceOf(NullPointerException.class)
-                .hasMessageContaining("courseId is required");
+                .hasMessageContaining("khóa học");
     }
 
     @Test
@@ -58,7 +58,7 @@ class CourseReviewTest {
     void create_nullStudentId_throws() {
         assertThatThrownBy(() -> CourseReview.create(courseId, null, 3, "Comment"))
                 .isInstanceOf(NullPointerException.class)
-                .hasMessageContaining("studentId is required");
+                .hasMessageContaining("học viên");
     }
 
     @Test
@@ -81,7 +81,7 @@ class CourseReviewTest {
 
         assertThatThrownBy(() -> review.update(0, "Invalid"))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Rating must be between 1 and 5");
+                .hasMessageContaining("1 đến 5");
     }
 
     @Test

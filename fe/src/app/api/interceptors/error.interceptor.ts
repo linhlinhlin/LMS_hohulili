@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpInterceptor, HttpRequest, HttpHandler, HttpEvent, HttpErrorResponse, HttpHandlerFn } from '@angular/common/http';
-import { Observable, throwError } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { Observable, throwError, timer } from 'rxjs';
+import { catchError, retry } from 'rxjs/operators';
 
 @Injectable()
 export class ErrorInterceptor implements HttpInterceptor {
@@ -30,6 +30,7 @@ export class ErrorInterceptor implements HttpInterceptor {
 
 export const errorInterceptor = (req: HttpRequest<any>, next: HttpHandlerFn): Observable<HttpEvent<any>> => {
   return next(req).pipe(
+    retry({ count: 1, delay: (error) => error.status >= 500 ? timer(1000) : throwError(() => error) }),
     catchError((error: HttpErrorResponse) => {
       let errorMessage = 'Đã xảy ra lỗi không xác định';
 

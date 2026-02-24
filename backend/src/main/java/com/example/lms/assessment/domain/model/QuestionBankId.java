@@ -10,7 +10,7 @@ public record QuestionBankId(UUID value) {
 
     public QuestionBankId {
         if (value == null) {
-            throw new IllegalArgumentException("QuestionBankId cannot be null");
+            throw new IllegalArgumentException("ID ngân hàng câu hỏi không được null");
         }
     }
 
