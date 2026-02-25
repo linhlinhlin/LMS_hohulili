@@ -114,13 +114,22 @@ export class CourseDownloadService {
           await offlineDb.chapters.put(chapterRecord);
 
           for (const l of chapterLessons) {
+            // Build contentHtml from sections (content endpoint nests content inside sections)
+            let contentHtml = l.content || l.contentHtml || '';
+            if (!contentHtml && l.sections?.length) {
+              contentHtml = l.sections
+                .map((s: any) => s.content || '')
+                .filter((c: string) => c.length > 0)
+                .join('\n');
+            }
+
             const lesson: OfflineLesson = {
               id: l.id,
               courseId,
               chapterId: l.chapterId,
               title: l.title || l.name,
-              contentHtml: l.content || l.contentHtml || '',
-              videoManifestUrl: l.videoUrl,
+              contentHtml,
+              videoManifestUrl: l.sections?.[0]?.videoUrl || l.videoUrl,
               sortOrder: l.sortOrder ?? l.orderIndex ?? l.order ?? 0,
               downloadedAt: new Date(),
             };
