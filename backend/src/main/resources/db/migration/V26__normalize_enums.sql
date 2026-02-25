@@ -67,14 +67,25 @@ END $$;
 
 -- =====================================================
 -- ASSIGNMENTS TABLE (only if exists)
+-- V1 schema uses assignment_type; legacy DB may have type
 -- =====================================================
 DO $$
 BEGIN
     IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'assignments') THEN
-        UPDATE assignments SET type = 'FILE_UPLOAD' WHERE LOWER(type) IN ('file_submission', 'file_upload') AND type NOT IN ('FILE_UPLOAD');
-        UPDATE assignments SET type = 'ESSAY' WHERE LOWER(type) = 'essay' AND type != 'ESSAY';
-        UPDATE assignments SET type = 'QUIZ' WHERE LOWER(type) = 'quiz' AND type != 'QUIZ';
-        UPDATE assignments SET type = 'PROJECT' WHERE LOWER(type) = 'project' AND type != 'PROJECT';
+        -- Normalize assignment_type (V1 schema column name)
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'assignments' AND column_name = 'assignment_type') THEN
+            UPDATE assignments SET assignment_type = 'FILE_UPLOAD' WHERE LOWER(assignment_type) IN ('file_submission', 'file_upload') AND assignment_type NOT IN ('FILE_UPLOAD');
+            UPDATE assignments SET assignment_type = 'ESSAY' WHERE LOWER(assignment_type) = 'essay' AND assignment_type != 'ESSAY';
+            UPDATE assignments SET assignment_type = 'QUIZ' WHERE LOWER(assignment_type) = 'quiz' AND assignment_type != 'QUIZ';
+            UPDATE assignments SET assignment_type = 'PROJECT' WHERE LOWER(assignment_type) = 'project' AND assignment_type != 'PROJECT';
+        END IF;
+        -- Fallback: legacy column name "type"
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'assignments' AND column_name = 'type') THEN
+            UPDATE assignments SET type = 'FILE_UPLOAD' WHERE LOWER(type) IN ('file_submission', 'file_upload') AND type NOT IN ('FILE_UPLOAD');
+            UPDATE assignments SET type = 'ESSAY' WHERE LOWER(type) = 'essay' AND type != 'ESSAY';
+            UPDATE assignments SET type = 'QUIZ' WHERE LOWER(type) = 'quiz' AND type != 'QUIZ';
+            UPDATE assignments SET type = 'PROJECT' WHERE LOWER(type) = 'project' AND type != 'PROJECT';
+        END IF;
 
         UPDATE assignments SET status = 'DRAFT' WHERE LOWER(status) = 'draft' AND status != 'DRAFT';
         UPDATE assignments SET status = 'PUBLISHED' WHERE LOWER(status) = 'published' AND status != 'PUBLISHED';
