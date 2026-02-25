@@ -1,11 +1,11 @@
 package com.example.lms.shared.infrastructure.web;
 
+import com.example.lms.shared.infrastructure.service.LocalStorageService;
 import com.example.lms.shared.infrastructure.service.R2StorageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -20,7 +20,7 @@ import java.util.*;
 @Slf4j
 @RestController
 @RequestMapping("/api/v3/files")
-@Tag(name = "File Upload V3", description = "File Management (V3) - Cloudflare R2")
+@Tag(name = "File Upload V3", description = "File Management (V3) - R2 / Local Storage")
 public class FileUploadControllerV3 {
 
     private static final Set<String> ALLOWED_MIME_TYPES = Set.of(
@@ -43,31 +43,35 @@ public class FileUploadControllerV3 {
     );
 
     private final Optional<R2StorageService> r2StorageService;
+    private final Optional<LocalStorageService> localStorageService;
     private final com.example.lms.shared.infrastructure.service.FileManagementService fileManagementService;
-
-    @Value("${cloudflare.r2.enabled:false}")
-    private boolean r2Enabled;
 
     @Autowired
     public FileUploadControllerV3(
             @Autowired(required = false) R2StorageService r2StorageService,
+            @Autowired(required = false) LocalStorageService localStorageService,
             com.example.lms.shared.infrastructure.service.FileManagementService fileManagementService) {
         this.r2StorageService = Optional.ofNullable(r2StorageService);
+        this.localStorageService = Optional.ofNullable(localStorageService);
         this.fileManagementService = fileManagementService;
+    }
+
+    private boolean isStorageAvailable() {
+        return r2StorageService.isPresent() || localStorageService.isPresent();
     }
 
     @PostMapping(value = "/upload/editor", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
-    @Operation(summary = "Upload file to Cloudflare R2 for EditorJS")
+    @Operation(summary = "Upload file for EditorJS (R2 or local storage)")
     public ResponseEntity<Map<String, Object>> uploadForEditor(
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "folder", defaultValue = "question-images") String folder,
             @AuthenticationPrincipal UserJpaEntity user) {
         try {
-            if (!r2Enabled || r2StorageService.isEmpty()) {
+            if (!isStorageAvailable()) {
                 return ResponseEntity.badRequest().body(Map.of(
                     "success", 0,
-                    "message", "Không thể tải lên: R2 storage chưa được cấu hình"
+                    "message", "Không thể tải lên: chưa cấu hình storage"
                 ));
             }
 
@@ -109,15 +113,15 @@ public class FileUploadControllerV3 {
 
     @PostMapping(value = "/upload/video", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
-    @Operation(summary = "Upload video file to Cloudflare R2")
+    @Operation(summary = "Upload video file (R2 or local storage)")
     public ResponseEntity<Map<String, Object>> uploadVideo(
             @RequestParam("file") MultipartFile file,
             @AuthenticationPrincipal UserJpaEntity user) {
         try {
-            if (!r2Enabled || r2StorageService.isEmpty()) {
+            if (!isStorageAvailable()) {
                 return ResponseEntity.badRequest().body(Map.of(
                     "success", 0,
-                    "message", "Không thể tải video: R2 storage chưa được cấu hình"
+                    "message", "Không thể tải video: chưa cấu hình storage"
                 ));
             }
 
@@ -157,20 +161,24 @@ public class FileUploadControllerV3 {
 
     @DeleteMapping("/{storageKey}")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
-    @Operation(summary = "Delete file from Cloudflare R2")
+    @Operation(summary = "Delete file from storage (R2 or local)")
     public ResponseEntity<Map<String, Object>> deleteFile(
             @AuthenticationPrincipal UserJpaEntity user,
             @PathVariable String storageKey) {
         try {
-            if (!r2Enabled || r2StorageService.isEmpty()) {
+            if (!isStorageAvailable()) {
                 return ResponseEntity.badRequest().body(Map.of(
                     "success", false,
-                    "message", "Không thể xóa: R2 storage chưa được cấu hình"
+                    "message", "Không thể xóa: chưa cấu hình storage"
                 ));
             }
 
             String sanitizedKey = sanitizePath(storageKey);
-            r2StorageService.get().delete(sanitizedKey);
+            if (r2StorageService.isPresent()) {
+                r2StorageService.get().delete(sanitizedKey);
+            } else if (localStorageService.isPresent()) {
+                localStorageService.get().delete(sanitizedKey);
+            }
             log.info("[File] Xóa tập tin '{}' bởi user {}", sanitizedKey,
                     user != null ? user.getId() : "unknown");
 

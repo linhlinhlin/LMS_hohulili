@@ -20,31 +20,34 @@ import java.util.UUID;
 public class FileManagementService implements FileManagementPort {
 
     private final Optional<R2StorageService> r2StorageService;
+    private final Optional<LocalStorageService> localStorageService;
     private final FileAttachmentJpaRepository fileRepository;
 
     @Autowired
     public FileManagementService(
             @Autowired(required = false) R2StorageService r2StorageService,
+            @Autowired(required = false) LocalStorageService localStorageService,
             FileAttachmentJpaRepository fileRepository) {
         this.r2StorageService = Optional.ofNullable(r2StorageService);
+        this.localStorageService = Optional.ofNullable(localStorageService);
         this.fileRepository = fileRepository;
     }
 
     /**
-     * Uploads a file to R2 and creates a metadata record in DB.
+     * Uploads a file to storage (R2 or local) and creates a metadata record in DB.
      * The record is initially "orphan" (no entity linked).
-     *
-     * If R2 storage is not configured, throws an exception.
+     * Priority: R2 (prod) → Local (dev) → throw
      */
     @Transactional
     public FileAttachmentJpaEntity uploadFile(MultipartFile file, String folder, UUID uploadedBy) throws IOException {
-        // Check if R2 is available
-        if (r2StorageService.isEmpty()) {
-            throw new IllegalStateException("File upload is not available: R2 storage is not configured");
+        R2StorageService.UploadResult result;
+        if (r2StorageService.isPresent()) {
+            result = r2StorageService.get().upload(file, folder);
+        } else if (localStorageService.isPresent()) {
+            result = localStorageService.get().upload(file, folder);
+        } else {
+            throw new IllegalStateException("File upload is not available: no storage service configured");
         }
-
-        // 1. Upload to R2
-        R2StorageService.UploadResult result = r2StorageService.get().upload(file, folder);
 
         // 2. Save metadata to DB
         FileAttachmentJpaEntity attachment = FileAttachmentJpaEntity.builder()

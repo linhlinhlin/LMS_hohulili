@@ -91,7 +91,7 @@ import { ConfirmDialogService } from '../../../core/services/confirm-dialog.serv
 
     .icon-info {
       background: #eff6ff;
-      color: #2563eb;
+      color: #0056D2;
     }
 
     .confirm-title {
@@ -153,12 +153,12 @@ import { ConfirmDialogService } from '../../../core/services/confirm-dialog.serv
     }
 
     .btn-info {
-      background: #2563eb;
+      background: #0056D2;
       color: white;
     }
 
     .btn-info:hover {
-      background: #1d4ed8;
+      background: #004BB5;
     }
 
     @keyframes fadeIn {

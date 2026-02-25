@@ -1,6 +1,6 @@
-import { Component, input, output, signal, computed, inject, ChangeDetectionStrategy } from '@angular/core';
-
-import { R2StorageApi } from '../../../api/client/r2-storage.api';
+import { Component, input, output, signal, computed, inject, ChangeDetectionStrategy, ElementRef, viewChild } from '@angular/core';
+import { HttpClient, HttpEventType } from '@angular/common/http';
+import { environment } from '../../../../environments/environment';
 
 export interface VideoUploadResult {
   objectKey: string;
@@ -26,7 +26,7 @@ export interface VideoUploadResult {
           <div class="upload-content">
             <div class="icon-wrapper">
               <svg class="upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                       d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
               </svg>
               <svg class="video-icon" fill="currentColor" viewBox="0 0 20 20">
@@ -137,7 +137,7 @@ export interface VideoUploadResult {
     }
 
     .upload-zone:hover, .upload-zone.drag-over {
-      border-color: #3b82f6;
+      border-color: #0056D2;
       background-color: #eff6ff;
     }
 
@@ -166,7 +166,7 @@ export interface VideoUploadResult {
       right: 0;
       width: 1.5rem;
       height: 1.5rem;
-      color: #3b82f6;
+      color: #0056D2;
       background: white;
       border-radius: 50%;
       padding: 0.125rem;
@@ -179,13 +179,13 @@ export interface VideoUploadResult {
     }
 
     .upload-link {
-      color: #3b82f6;
+      color: #0056D2;
       font-weight: 600;
       cursor: pointer;
     }
 
     .upload-link:hover {
-      color: #2563eb;
+      color: #004BB5;
     }
 
     .upload-hint {
@@ -215,7 +215,7 @@ export interface VideoUploadResult {
     .progress-icon svg {
       width: 2rem;
       height: 2rem;
-      color: #3b82f6;
+      color: #0056D2;
     }
 
     .progress-info {
@@ -246,7 +246,7 @@ export interface VideoUploadResult {
 
     .progress-bar {
       height: 100%;
-      background-color: #3b82f6;
+      background-color: #0056D2;
       transition: width 0.3s ease;
     }
 
@@ -254,7 +254,7 @@ export interface VideoUploadResult {
       text-align: right;
       font-size: 0.875rem;
       font-weight: 600;
-      color: #3b82f6;
+      color: #0056D2;
       margin: 0;
     }
 
@@ -377,7 +377,7 @@ export interface VideoUploadResult {
   `]
 })
 export class VideoUploadComponent {
-  private r2StorageApi = inject(R2StorageApi);
+  private http = inject(HttpClient);
 
   // Inputs
   maxFileSize = input<number>(500 * 1024 * 1024); // 500MB default
@@ -388,11 +388,14 @@ export class VideoUploadComponent {
   videoUploaded = output<VideoUploadResult>();
   videoRemoved = output<void>();
 
+  // Template ref for file input
+  fileInputRef = viewChild<ElementRef<HTMLInputElement>>('fileInput');
+
   // State
   videoUrl = signal<string>('');
   videoFileName = signal<string>('');
   videoFileSize = signal<number>(0);
-  videoObjectKey = signal<string>('');
+  videoStorageKey = signal<string>('');
   isUploading = signal<boolean>(false);
   uploadProgress = signal<number>(0);
   uploadingFileName = signal<string>('');
@@ -411,8 +414,7 @@ export class VideoUploadComponent {
 
   triggerFileInput(): void {
     if (this.disabled()) return;
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    fileInput?.click();
+    this.fileInputRef()?.nativeElement.click();
   }
 
   onFileSelected(event: Event): void {
@@ -476,29 +478,42 @@ export class VideoUploadComponent {
     this.uploadingFileName.set(file.name);
     this.errorMessage.set('');
 
-    this.r2StorageApi.uploadToR2WithProgress(
-      file,
-      (progress) => this.uploadProgress.set(progress),
-      file.type
-    ).subscribe({
-      next: (result) => {
-        this.isUploading.set(false);
-        this.videoUrl.set(result.publicUrl);
-        this.videoFileName.set(file.name);
-        this.videoFileSize.set(file.size);
-        this.videoObjectKey.set(result.objectKey);
+    const formData = new FormData();
+    formData.append('file', file);
 
-        // Emit result
-        this.videoUploaded.emit({
-          objectKey: result.objectKey,
-          publicUrl: result.publicUrl,
-          fileName: file.name,
-          fileSize: file.size
-        });
+    this.http.post<{ success: number; file: { url: string; id: string; uuid: string; storageKey: string } }>(
+      `${environment.apiUrl}/api/v3/files/upload/video`,
+      formData,
+      { reportProgress: true, observe: 'events' }
+    ).subscribe({
+      next: (event) => {
+        if (event.type === HttpEventType.UploadProgress && event.total) {
+          this.uploadProgress.set(Math.round(100 * event.loaded / event.total));
+        } else if (event.type === HttpEventType.Response) {
+          const body = event.body;
+          if (body && body.success === 1 && body.file) {
+            this.isUploading.set(false);
+            this.videoUrl.set(body.file.url);
+            this.videoFileName.set(file.name);
+            this.videoFileSize.set(file.size);
+            this.videoStorageKey.set(body.file.storageKey);
+
+            this.videoUploaded.emit({
+              objectKey: body.file.storageKey,
+              publicUrl: body.file.url,
+              fileName: file.name,
+              fileSize: file.size
+            });
+          } else {
+            this.isUploading.set(false);
+            this.errorMessage.set('Upload video thất bại. Phản hồi không hợp lệ.');
+          }
+        }
       },
-      error: (error) => {
+      error: (err) => {
         this.isUploading.set(false);
-        this.errorMessage.set('Upload video thất bại. Vui lòng thử lại.');
+        const msg = err.error?.message || 'Upload video thất bại. Vui lòng thử lại.';
+        this.errorMessage.set(msg);
       }
     });
   }
@@ -506,16 +521,14 @@ export class VideoUploadComponent {
   removeVideo(): void {
     if (this.disabled()) return;
 
-    const objectKey = this.videoObjectKey();
-    if (objectKey) {
-      // Delete from R2
-      this.r2StorageApi.deleteObject(objectKey).subscribe({
+    const storageKey = this.videoStorageKey();
+    if (storageKey) {
+      this.http.delete(`${environment.apiUrl}/api/v3/files/${encodeURIComponent(storageKey)}`).subscribe({
         next: () => {
           this.resetVideo();
           this.videoRemoved.emit();
         },
         error: () => {
-          // Reset anyway
           this.resetVideo();
           this.videoRemoved.emit();
         }
@@ -530,7 +543,7 @@ export class VideoUploadComponent {
     this.videoUrl.set('');
     this.videoFileName.set('');
     this.videoFileSize.set(0);
-    this.videoObjectKey.set('');
+    this.videoStorageKey.set('');
     this.uploadProgress.set(0);
     this.errorMessage.set('');
   }

@@ -20,6 +20,7 @@ import {
 } from '../../features/student/assignments/utils/task-utils';
 import { AllocationApi, AllocationResponse, AllocationStatsResponse } from '../../api/client/allocation.api';
 import { AssignmentApi } from '../../api/client/assignment.api';
+import { ApiClient } from '../../api/client/api-client';
 
 /**
  * Distribution Service
@@ -34,6 +35,7 @@ import { AssignmentApi } from '../../api/client/assignment.api';
 export class DistributionService {
   private allocationApi = inject(AllocationApi);
   private assignmentApi = inject(AssignmentApi);
+  private apiClient = inject(ApiClient);
 
   // State
   private allocations = signal<AssignmentAllocation[]>([]);
@@ -341,20 +343,6 @@ export class DistributionService {
   }
 
   /**
-   * Load allocations for a course
-   */
-  loadAllocations(courseId: string): Observable<AssignmentAllocation[]> {
-    this.loading.set(true);
-
-    return of([]).pipe(
-      tap((result) => {
-        this.allocations.set(result);
-        this.loading.set(false);
-      })
-    );
-  }
-
-  /**
    * Clear all state (for logout/cleanup)
    */
   clearState(): void {
@@ -368,8 +356,43 @@ export class DistributionService {
    * Get student tasks (simplified version for StudentAssignmentsComponent)
    */
   getStudentTasks(studentId: string): Observable<StudentTask[]> {
-    this.loading.set(false);
-    return of([]);
+    this.loading.set(true);
+
+    return this.apiClient.get<any>(`/api/v3/teacher/students/${studentId}/assignments`).pipe(
+      map((response: any) => {
+        const items = response?.data || [];
+        return items.map((item: any) => ({
+          id: item.id,
+          assignmentId: item.assignmentId || item.id,
+          title: item.title,
+          courseId: item.courseId || '',
+          courseName: item.courseName || '',
+          dueDate: item.dueDate || new Date().toISOString(),
+          status: this.mapBackendStatus(item.status),
+          submittedAt: item.submittedAt,
+          grade: item.grade,
+          maxScore: item.maxGrade || 100,
+          feedback: item.feedback,
+          isIndividual: false,
+        } as StudentTask));
+      }),
+      tap(() => this.loading.set(false)),
+      catchError(() => {
+        this.loading.set(false);
+        return of([]);
+      })
+    );
+  }
+
+  private mapBackendStatus(status: string): TaskStatus {
+    switch (status?.toUpperCase()) {
+      case 'GRADED': return 'GRADED';
+      case 'SUBMITTED':
+      case 'RESUBMITTED':
+      case 'LATE': return 'SUBMITTED';
+      case 'NOT_SUBMITTED': return 'NOT_STARTED';
+      default: return 'NOT_STARTED';
+    }
   }
 
   /**

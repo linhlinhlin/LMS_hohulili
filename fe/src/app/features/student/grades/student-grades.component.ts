@@ -171,7 +171,7 @@ interface CourseGrade {
             @for (cert of certificates(); track cert.id) {
               <div class="cert-card">
                 <div class="cert-icon">
-                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2">
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#0056D2" stroke-width="2">
                     <path d="M12 15l-3 3m0 0l-3-3m3 3V9m12 3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                   </svg>
                 </div>
@@ -327,14 +327,14 @@ interface CourseGrade {
       display: inline-block;
       margin-top: 16px;
       padding: 8px 24px;
-      background: #3b82f6;
+      background: #0056D2;
       color: #fff;
       border-radius: 8px;
       text-decoration: none;
       font-weight: 500;
       transition: background 0.2s;
 
-      &:hover { background: #2563eb; }
+      &:hover { background: #004BB5; }
     }
 
     /* Summary Grid */
@@ -369,7 +369,7 @@ interface CourseGrade {
       margin-top: 4px;
     }
 
-    .text-blue { color: #3b82f6; }
+    .text-blue { color: #0056D2; }
     .text-green { color: #10b981; }
     .text-amber { color: #f59e0b; }
 
@@ -421,7 +421,7 @@ interface CourseGrade {
     }
 
     .course-link {
-      color: #3b82f6;
+      color: #0056D2;
       text-decoration: none;
       font-weight: 500;
 
@@ -472,7 +472,7 @@ interface CourseGrade {
     .progress-fill {
       height: 100%;
       border-radius: 3px;
-      background: #3b82f6;
+      background: #0056D2;
       transition: width 0.3s;
 
       &.completed { background: #10b981; }
@@ -567,7 +567,7 @@ interface CourseGrade {
     .cert-view-btn {
       flex-shrink: 0;
       padding: 8px 20px;
-      background: #3b82f6;
+      background: #0056D2;
       color: #fff;
       border-radius: 8px;
       text-decoration: none;
@@ -575,7 +575,7 @@ interface CourseGrade {
       font-size: 14px;
       transition: background 0.2s;
 
-      &:hover { background: #2563eb; }
+      &:hover { background: #004BB5; }
     }
 
     /* Responsive table */

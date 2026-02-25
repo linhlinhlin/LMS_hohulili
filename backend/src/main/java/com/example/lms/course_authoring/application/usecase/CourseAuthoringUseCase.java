@@ -5,6 +5,7 @@ import com.example.lms.course_authoring.application.dto.CourseDTOs;
 import com.example.lms.course_authoring.domain.model.Category;
 import com.example.lms.course_authoring.domain.model.Course;
 import com.example.lms.course_authoring.domain.repository.CategoryRepository;
+import com.example.lms.course_authoring.domain.repository.ChapterRepositoryPort;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
 import com.example.lms.shared.domain.valueobject.CourseCode;
 import com.example.lms.shared.exception.BusinessRuleException;
@@ -25,6 +26,7 @@ public class CourseAuthoringUseCase {
 
     private final CourseRepository courseRepository;
     private final CategoryRepository categoryRepository;
+    private final ChapterRepositoryPort chapterRepository;
     private final GetCourseDraftUseCase getCourseDraftUseCase;
 
     private static final int MAX_CODE_RETRY = 3;
@@ -106,6 +108,14 @@ public class CourseAuthoringUseCase {
     public void submitForApproval(UUID courseId) {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new EntityNotFoundException("Khóa học", courseId));
+
+        // Cross-aggregate validation: chapters exist in separate aggregate
+        long chapterCount = chapterRepository.countByCourseId(courseId);
+        if (chapterCount == 0) {
+            throw new BusinessRuleException("NO_CHAPTERS",
+                "Khóa học phải có ít nhất 1 chương trước khi gửi duyệt");
+        }
+
         course.submitForApproval();
         courseRepository.save(course);
     }

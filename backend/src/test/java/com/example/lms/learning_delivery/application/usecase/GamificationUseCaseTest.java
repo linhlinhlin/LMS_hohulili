@@ -349,4 +349,50 @@ class GamificationUseCaseTest {
         assertThat(count).isEqualTo(7L);
         verify(notificationRepository).countByUserIdAndIsReadFalse(studentId);
     }
+
+    @Test
+    @DisplayName("markAllNotificationsRead calls repository batch update")
+    void markAllNotificationsRead_callsRepository() {
+        useCase.markAllNotificationsRead(studentId);
+
+        verify(notificationRepository).markAllReadByUserId(studentId);
+    }
+
+    @Test
+    @DisplayName("markAllNotificationsRead is idempotent — safe to call when all already read")
+    void markAllNotificationsRead_idempotent() {
+        useCase.markAllNotificationsRead(studentId);
+        useCase.markAllNotificationsRead(studentId);
+
+        verify(notificationRepository, times(2)).markAllReadByUserId(studentId);
+    }
+
+    @Test
+    @DisplayName("deleteNotification removes notification owned by user")
+    void deleteNotification_ownerDeletes_success() {
+        UUID notificationId = UUID.randomUUID();
+        Notification notification = new Notification(notificationId, studentId, "ACHIEVEMENT",
+                "Test", "Test message", null, false, Instant.now());
+
+        when(notificationRepository.findById(notificationId)).thenReturn(Optional.of(notification));
+
+        useCase.deleteNotification(notificationId, studentId);
+
+        verify(notificationRepository).deleteById(notificationId);
+    }
+
+    @Test
+    @DisplayName("deleteNotification throws AccessDeniedException for wrong user")
+    void deleteNotification_wrongUser_throwsAccessDenied() {
+        UUID notificationId = UUID.randomUUID();
+        UUID otherUserId = UUID.randomUUID();
+        Notification notification = new Notification(notificationId, studentId, "ACHIEVEMENT",
+                "Test", "Test message", null, false, Instant.now());
+
+        when(notificationRepository.findById(notificationId)).thenReturn(Optional.of(notification));
+
+        assertThatThrownBy(() -> useCase.deleteNotification(notificationId, otherUserId))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        verify(notificationRepository, never()).deleteById(any());
+    }
 }

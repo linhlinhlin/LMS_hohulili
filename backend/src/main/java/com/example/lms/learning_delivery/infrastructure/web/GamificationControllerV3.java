@@ -68,6 +68,23 @@ public class GamificationControllerV3 {
         return ResponseEntity.ok(ApiResponse.success(null, "Đã đánh dấu đã đọc"));
     }
 
+    @Operation(summary = "Mark all notifications as read")
+    @PatchMapping("/notifications/read-all")
+    public ResponseEntity<ApiResponse<Void>> markAllNotificationsRead(
+            @AuthenticationPrincipal UserJpaEntity user) {
+        gamificationUseCase.markAllNotificationsRead(user.getId());
+        return ResponseEntity.ok(ApiResponse.success(null, "Đã đánh dấu tất cả đã đọc"));
+    }
+
+    @Operation(summary = "Delete notification")
+    @DeleteMapping("/notifications/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteNotification(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        gamificationUseCase.deleteNotification(id, user.getId());
+        return ResponseEntity.ok(ApiResponse.success(null, "Đã xóa thông báo"));
+    }
+
     @Operation(summary = "Get unread notification count")
     @GetMapping("/notifications/unread-count")
     public ResponseEntity<ApiResponse<Map<String, Long>>> getUnreadCount(

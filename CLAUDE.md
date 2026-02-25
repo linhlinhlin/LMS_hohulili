@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-> **Last Updated**: 2026-02-25 | **Version**: 8.0 | **Status**: Production Ready + Deep Audit (788 tests, 0 failures) (S82 Admin Course Mgmt Audit)
+> **Last Updated**: 2026-02-25 | **Version**: 8.2 | **Status**: Production Ready + Pre-Deployment Audit (806 tests, 0 failures) (S87 Flows+Storage+Stubs)
 
 This file provides guidance to Claude Code for working with this repository. **Read this first before any task.**
 
@@ -29,7 +29,7 @@ cd fe && npm install && npm start
 
 ## CURRENT SYSTEM STATUS
 
-### Backend: RUNNING (420+ files | 788 tests | 260+ endpoints)
+### Backend: RUNNING (420+ files | 806 tests | 260+ endpoints)
 | Component | Status | Port |
 |-----------|--------|------|
 | Spring Boot API | Running | 8088 |
@@ -424,6 +424,88 @@ teacherGuard = [UserRole.TEACHER, UserRole.ADMIN, UserRole.ORG_ADMIN]
 ---
 
 ## RECENT CHANGES LOG
+
+### Session 87 (2026-02-25): Pre-Deployment Comprehensive Audit — Flows, Storage, Stubs, Architecture
+
+**P1** | BE: 806 tests, 0 failures (+4 new) | FE: 0 errors | 1 dead file deleted + ~7 modified files
+
+**Phase 1 - Backend: New Notification Endpoints:**
+- `GamificationControllerV3`: Added `PATCH /api/v3/gamification/notifications/read-all` (mark all read) and `DELETE /api/v3/gamification/notifications/{id}` (delete with ownership check)
+- `GamificationUseCase`: Added `markAllNotificationsRead()` (batch update) and `deleteNotification()` (IDOR-safe with `AccessDeniedException` for wrong user)
+- `NotificationJpaRepository`: Added `@Modifying @Query` batch update `markAllReadByUserId()` (single UPDATE instead of N individual saves)
+- `NotificationRepository` domain port + `NotificationRepositoryAdapter`: Added `markAllReadByUserId()` and `deleteById()` methods
+
+**Phase 2 - FE: Wire Notification Service to Real API:**
+- `notification.service.ts`: Replaced `of(undefined).pipe(delay(100))` mock with real API calls for `markAsRead()` (`PATCH .../notifications/{id}/read`), `markAllAsRead()` (`PATCH .../notifications/read-all`), `deleteNotification()` (`DELETE .../notifications/{id}`)
+- Kept optimistic local state updates for instant UX, API call fires in background with `catchError` fallback
+- `sendNotification()` left as local-only (correct design — server creates notifications via domain events)
+
+**Phase 3 - FE: Wire Student Tasks + Dead Code Cleanup:**
+- `distribution.service.ts`: Replaced `getStudentTasks()` `of([])` stub with real API call to `GET /api/v3/teacher/students/{studentId}/assignments`. Added `mapBackendStatus()` helper to map BE status (SUBMITTED/RESUBMITTED/LATE/GRADED/NOT_SUBMITTED) to FE TaskStatus enum.
+- Deleted `loadAllocations()` stub (0 callers, returned `of([])`)
+- Deleted `storage.endpoints.ts` (0 imports, dead R2 presigned URL constants from pre-S83)
+- `gamification.endpoints.ts`: Added `markAllNotificationsRead` and `deleteNotification` endpoint constants
+
+**Phase 4 - New Tests (4 tests):**
+- `GamificationUseCaseTest`: `markAllNotificationsRead` happy path + idempotent, `deleteNotification` owner success + wrong user `AccessDeniedException`
+
+**Verified — NOT Issues:**
+- Storage architecture (R2→Local fallback) — correct (S83)
+- `sendNotification()` mock — correct design (server creates notifications via domain events)
+- Quiz module — fully production-ready (S69-S73)
+- Security — 130+ `@PreAuthorize`, all IDORs fixed (S72-S85)
+- Clean Architecture — 0 violations
+- Design tokens — 0 violations after S86
+
+### Session 86 (2026-02-25): Deep Audit — Quiz, Video Upload, Lesson Content, Dead Code Cleanup
+
+**P0+P1** | BE: 802 tests, 0 failures (no BE changes) | FE: 0 errors | 5 dead files deleted + ~15 modified files
+
+**Phase 1 - P0: Rewire VideoUploadComponent (broken upload):**
+- `shared/components/video-upload/video-upload.component.ts`: Replaced `R2StorageApi.uploadToR2WithProgress()` (presign endpoint doesn't exist in BE → all video uploads silently failed) with direct server-side upload to `POST /api/v3/files/upload/video` using `HttpClient` with `reportProgress` + `observe: 'events'`
+- Progress tracking via `HttpEventType.UploadProgress`, response parsing: `{success: 1, file: {url, storageKey, uuid}}`
+- Delete uses `DELETE /api/v3/files/{storageKey}` instead of R2 delete
+- Fixed `triggerFileInput()`: `document.querySelector` → `viewChild` ref (correct Angular pattern, avoids selecting wrong input when multiple instances)
+- `VideoUploadResult` interface preserved (objectKey, publicUrl, fileName, fileSize) — zero breaking changes for callers
+
+**Phase 2 - P1: Delete Dead Legacy VideoUploadComponent:**
+- Deleted `features/teacher/course-editor/components/video-upload/video-upload.component.ts` — 0 imports anywhere, broken endpoint `/files/upload` (doesn't exist), superseded by shared version
+
+**Phase 3 - P1: Fix 37 Design Token Violations (9 files):**
+- Shared VideoUploadComponent: 7 violations (`#3b82f6` → `#0056D2`, `#2563eb` → `#004BB5`)
+- admin-sidebar: 9 violations (`#2563eb`, `#1d4ed8`, `#3b82f6`, `#4f46e5` → design tokens)
+- floating-chat-bubble: 3 violations (gradient + rgba shadows)
+- chat-panel: 2 violations
+- confirm-dialog: 3 violations
+- student-grades: 8 violations + 2 hover fixes (`#0056D2` → `#004BB5` for hover states)
+- assignment-list-page: 1 violation
+- add-student-drawer: 2 violations
+- math-block-tool: 2 violations
+
+**Phase 4 - P1: Remove Dead Quiz API Method:**
+- Deleted `getQuizAttempts(lessonId)` from `quiz.api.ts` — 0 callers, non-paginated, superseded by paginated `getStudentAttempts()`/`getMyAttempts()`
+- Deleted `LESSON_ATTEMPTS` endpoint constant from `quiz.endpoints.ts`
+
+**Phase 5 - P1: PWA Hardening (6 fixes):**
+- `offline-sync.service.ts`: Removed `createdAt: new Date()` from dedup update — was resetting timestamp, breaking sync ordering
+- `offline.interceptor.ts`: Added `/api/v3/sync/` to `NEVER_INTERCEPT_PREFIXES` — sync endpoint was being intercepted offline, breaking batch sync
+- `offline-video.service.ts`: Deferred blob URL revoke with `setTimeout(500ms)` — prevents video player interruption when same lesson requested twice
+- `learning.service.ts`: Removed `backgroundRefreshCourse()` for downloaded courses — was overwriting offline progress with stale server data before sync completes
+- `ngsw-config.json`: Course-content cache changed from `performance` (cache-first) to `freshness` with `8s` timeout — maritime satellite consistency (was showing stale course content)
+- `lms-offline.db.ts`: Version 3 migration adds `[syncStatus+createdAt]` compound index on syncQueue — O(log N) range query for pending items
+
+**Phase 6 - P1: Dead Code Cleanup (4 files deleted):**
+- Deleted `r2-storage.api.ts` — 0 callers (last caller removed in Phase 1)
+- Deleted `storage.api.ts` — 0 callers (R2 logic now in backend LocalStorageService)
+- Deleted `document.service.ts` — 0 injections, no matching BE endpoint
+- Deleted `video-player-tracked/` component — 0 imports, replaced by `VideoPlayerAdaptiveComponent` (S73)
+
+**Verified — NOT Bugs:**
+- VideoProgressControllerV3: All 5 endpoints use `@AuthenticationPrincipal` + userId ownership — no IDOR
+- Quiz backend: Production-ready (S69-S73 hardening intact)
+- Quiz frontend: Auto-save, timer, essay grading, availability all wired
+- FileUploadControllerV3: R2→Local fallback chain working (S83)
+- Lesson endpoints: `LIST_BY_COURSE` maps to correct `CourseQueryControllerV3`
 
 ### Session 82 (2026-02-25): Admin Course Management Deep Audit — Fix All P0/P1
 
@@ -936,19 +1018,19 @@ teacherGuard = [UserRole.TEACHER, UserRole.ADMIN, UserRole.ORG_ADMIN]
 
 ---
 
-## ARCHITECTURE SCORES (Post-S73 Audit)
+## ARCHITECTURE SCORES (Post-S87 Audit)
 
 | Category | Score | Key Facts |
 |----------|-------|-----------|
 | Backend Clean Architecture | 10/10 | 0 infra imports in domain/application, CQRS query ports, HashUtil shared utility, @AuthenticationPrincipal everywhere |
 | Frontend Angular Patterns | 10/10 | 100% signals, 0 legacy patterns, 0 @Input/@Output, 0 alert/confirm, 0 standalone:true, 100% OnPush, AuthService signal wrappers |
-| PWA / Download-First | 9.7/10 | Streaming video download (zero RAM), persistent offline banner (Google OHS), cancel download, persistent storage, periodic network probe, satellite-tuned NGSW timeouts, crash-safe per-chapter DB write, real offline progress, probe 403 fix, SW background sync listener, syncQueue cleanup on delete, pullChanges batch query |
+| PWA / Download-First | 9.8/10 | S86: sync dedup order fix, /sync/ interceptor whitelist, blob URL deferred revoke, no bg-refresh overwrite for downloaded courses, freshness cache for course-content, compound sync index. Prior: streaming video (zero RAM), persistent banner, cancel download, satellite timeouts, crash-safe DB write, probe 403 fix |
 | JPA & Database | 9.5/10 | 53 tables, correct entity mapping, N+1 fixes (CourseReview batch), optimistic locking, batch JPQL, paginated queries |
 | API & Use Cases | 10/10 | SRP, typed DTOs, @Valid, real DB queries, 260+ endpoint mappings, Canvas-style student APIs, quiz SOTA |
 | Security | 10/10 | 14 IDOR fixes (S72), multi-tier RBAC, OWASP password reset, PasswordPolicy on registration, secret masking, privilege escalation blocked |
-| Test Coverage | 9.8/10 | 788 tests, **0 failures**, 90+ test files, ArchUnit clean |
-| Code Cleanliness | 10/10 | 0 dead code, 0 mock data, 0 English messages, 0 generic blue-*, dead ErrorInterceptor class removed |
-| UX & Design | 10/10 | Consistent #0056D2 tokens, Coursera-style, SVG icons, DnD WCAG 2.5.7, full Vietnamese |
+| Test Coverage | 9.8/10 | 806 tests, **0 failures**, 90+ test files, ArchUnit clean |
+| Code Cleanliness | 10/10 | S87: 1 dead file (storage.endpoints.ts) + 1 dead method (loadAllocations) removed. 3 FE stubs→real API. 0 mock data, 0 English messages |
+| UX & Design | 10/10 | S86: 37 design token violations fixed across 9 files (0 remaining #3b82f6/#2563eb/#1d4ed8). Consistent #0056D2 tokens, full Vietnamese |
 
 ---
 

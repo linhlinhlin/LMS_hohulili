@@ -132,7 +132,7 @@ interface NavigationItem {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(to bottom right, #2563eb, #4f46e5);
+      background: linear-gradient(to bottom right, #0056D2, #004BB5);
       box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
     }
 
@@ -193,21 +193,21 @@ interface NavigationItem {
     /* Active state — matches teacher/student: light blue bg + blue text + right border */
     .nav-item.active {
       background-color: #eff6ff;
-      color: #1d4ed8;
-      border-right: 2px solid #3b82f6;
+      color: #004BB5;
+      border-right: 2px solid #0056D2;
     }
 
     .nav-item.active .nav-icon {
-      color: #1d4ed8;
+      color: #004BB5;
     }
 
     .parent-active {
       background-color: #f9fafb;
-      color: #1d4ed8;
+      color: #004BB5;
     }
 
     .parent-active .nav-icon {
-      color: #1d4ed8;
+      color: #004BB5;
     }
 
     /* Nav icon — small, no background box, matches teacher/student */
@@ -294,8 +294,8 @@ interface NavigationItem {
 
     .sub-menu-item.active {
       background-color: #eff6ff;
-      color: #1d4ed8;
-      border-right: 2px solid #3b82f6;
+      color: #004BB5;
+      border-right: 2px solid #0056D2;
     }
 
     .sub-icon {
@@ -309,7 +309,7 @@ interface NavigationItem {
     }
 
     .sub-menu-item.active .sub-icon {
-      color: #1d4ed8;
+      color: #004BB5;
     }
 
     /* Footer — matches teacher/student: simple, no border/background on button */

@@ -133,6 +133,17 @@ export class LmsOfflineDatabase extends Dexie {
       syncQueue: '++id, entityType, syncStatus, createdAt',
       downloadCheckpoints: 'courseId',
     });
+
+    this.version(3).stores({
+      courses: 'id, downloadedAt',
+      chapters: 'id, courseId, [courseId+sortOrder]',
+      lessons: 'id, courseId, chapterId, [courseId+sortOrder]',
+      progress: '++id, lessonId, courseId, userId, syncStatus, updatedAt',
+      submissions: '++id, assignmentId, userId, syncStatus, submittedAt',
+      quizAttempts: '++id, quizId, userId, syncStatus, submittedAt',
+      syncQueue: '++id, entityType, [syncStatus+createdAt], createdAt',
+      downloadCheckpoints: 'courseId',
+    });
   }
 }
 

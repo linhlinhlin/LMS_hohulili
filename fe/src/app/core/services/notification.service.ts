@@ -353,17 +353,17 @@ export class NotificationService {
    * Mark notification as read
    */
   markAsRead(notificationId: string): Observable<void> {
-    return of(undefined).pipe(
-      delay(100),
-      tap(() => {
-        this.notifications.update((current) =>
-          current.map((n) =>
-            n.id === notificationId
-              ? { ...n, isRead: true, readAt: new Date().toISOString() }
-              : n
-          )
-        );
-      })
+    // Optimistic local update
+    this.notifications.update((current) =>
+      current.map((n) =>
+        n.id === notificationId
+          ? { ...n, isRead: true, readAt: new Date().toISOString() }
+          : n
+      )
+    );
+
+    return this.apiClient.patch<void>(`/api/v3/gamification/notifications/${notificationId}/read`, {}).pipe(
+      catchError(() => of(undefined as unknown as void))
     );
   }
 
@@ -371,14 +371,14 @@ export class NotificationService {
    * Mark all notifications as read
    */
   markAllAsRead(): Observable<void> {
-    return of(undefined).pipe(
-      delay(100),
-      tap(() => {
-        const now = new Date().toISOString();
-        this.notifications.update((current) =>
-          current.map((n) => (n.isRead ? n : { ...n, isRead: true, readAt: now }))
-        );
-      })
+    // Optimistic local update
+    const now = new Date().toISOString();
+    this.notifications.update((current) =>
+      current.map((n) => (n.isRead ? n : { ...n, isRead: true, readAt: now }))
+    );
+
+    return this.apiClient.patch<void>('/api/v3/gamification/notifications/read-all', {}).pipe(
+      catchError(() => of(undefined as unknown as void))
     );
   }
 
@@ -386,13 +386,13 @@ export class NotificationService {
    * Delete notification
    */
   deleteNotification(notificationId: string): Observable<void> {
-    return of(undefined).pipe(
-      delay(100),
-      tap(() => {
-        this.notifications.update((current) =>
-          current.filter((n) => n.id !== notificationId)
-        );
-      })
+    // Optimistic local remove
+    this.notifications.update((current) =>
+      current.filter((n) => n.id !== notificationId)
+    );
+
+    return this.apiClient.delete<void>(`/api/v3/gamification/notifications/${notificationId}`).pipe(
+      catchError(() => of(undefined as unknown as void))
     );
   }
 

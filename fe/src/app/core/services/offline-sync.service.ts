@@ -69,7 +69,6 @@ export class OfflineSyncService {
     if (existing?.id != null) {
       await offlineDb.syncQueue.update(existing.id, {
         payload,
-        createdAt: new Date(),
       });
     } else {
       await offlineDb.syncQueue.add({

@@ -91,11 +91,10 @@ class CourseTest {
     class StatusLifecycleTests {
 
         @Test
-        @DisplayName("Should submit for approval from DRAFT with chapters")
+        @DisplayName("Should submit for approval from DRAFT (status-only check)")
         void shouldSubmitForApprovalFromDraft() {
-            // Given
+            // Given — domain method only checks status, chapter validation in use case
             Course course = Course.create(validCode, "Title", "desc", teacherId);
-            course.addChapter("Chapter 1", "desc");
 
             // When
             course.submitForApproval();
@@ -105,14 +104,16 @@ class CourseTest {
         }
 
         @Test
-        @DisplayName("Should throw submitForApproval when no chapters")
-        void shouldThrowWhenNoChapters() {
-            // Given
+        @DisplayName("Should submit for approval from DRAFT even without chapters (cross-aggregate check in use case)")
+        void shouldSubmitWithoutChaptersInDomain() {
+            // Given — chapter validation moved to application layer (cross-aggregate concern)
             Course course = Course.create(validCode, "Title", "desc", teacherId);
 
-            // When/Then
-            assertThatThrownBy(course::submitForApproval)
-                .isInstanceOf(BusinessRuleException.class);
+            // When
+            course.submitForApproval();
+
+            // Then — domain allows it; use case layer checks DB for chapters
+            assertThat(course.getStatus()).isEqualTo(Course.CourseStatus.PENDING);
         }
 
         @Test
@@ -120,7 +121,6 @@ class CourseTest {
         void shouldThrowSubmitWhenPending() {
             // Given
             Course course = Course.create(validCode, "Title", "desc", teacherId);
-            course.addChapter("Ch1", "d");
             course.submitForApproval();
 
             // When/Then
@@ -133,7 +133,6 @@ class CourseTest {
         void shouldThrowSubmitWhenApproved() {
             // Given
             Course course = Course.create(validCode, "Title", "desc", teacherId);
-            course.addChapter("Ch1", "d");
             course.submitForApproval();
             course.approve(UUID.randomUUID(), "Good");
 
@@ -147,7 +146,6 @@ class CourseTest {
         void shouldResubmitFromRejected() {
             // Given
             Course course = Course.create(validCode, "Title", "desc", teacherId);
-            course.addChapter("Ch1", "d");
             course.submitForApproval();
             course.reject(UUID.randomUUID(), "Needs improvement");
 
@@ -356,7 +354,7 @@ class CourseTest {
 
     private Course createPendingCourse() {
         Course course = Course.create(validCode, "Title", "desc", teacherId);
-        course.addChapter("Chapter 1", "description");
+        // Domain submitForApproval only checks status (chapter validation in use case layer)
         course.submitForApproval();
         return course;
     }

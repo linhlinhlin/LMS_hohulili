@@ -187,6 +187,21 @@ public class GamificationUseCase {
         });
     }
 
+    @Transactional
+    public void markAllNotificationsRead(UUID userId) {
+        notificationRepository.markAllReadByUserId(userId);
+    }
+
+    @Transactional
+    public void deleteNotification(UUID notificationId, UUID userId) {
+        notificationRepository.findById(notificationId).ifPresent(n -> {
+            if (!userId.equals(n.getUserId())) {
+                throw new org.springframework.security.access.AccessDeniedException("Thông báo không thuộc về bạn");
+            }
+            notificationRepository.deleteById(notificationId);
+        });
+    }
+
     @Transactional(readOnly = true)
     public long getUnreadCount(UUID userId) {
         return notificationRepository.countByUserIdAndIsReadFalse(userId);

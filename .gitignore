@@ -36,6 +36,7 @@ Thumbs.db
 
 # === App uploads (không commit dữ liệu người dùng) ===
 backend-lms-postgres/uploads/**
+backend/uploads/
 
 # === Build & deps chung ===
 node_modules/

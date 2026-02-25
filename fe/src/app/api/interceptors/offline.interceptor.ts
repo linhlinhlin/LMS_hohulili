@@ -8,7 +8,7 @@ import { NetworkStatusService } from '../../core/services/network-status.service
 import { OfflineSyncService } from '../../core/services/offline-sync.service';
 
 /** Paths that must never be intercepted offline (auth, health checks) */
-const NEVER_INTERCEPT_PREFIXES = ['/api/v3/auth/', '/actuator/'];
+const NEVER_INTERCEPT_PREFIXES = ['/api/v3/auth/', '/api/v3/sync/', '/actuator/'];
 
 /**
  * Offline interceptor — catches network errors and falls back to IndexedDB.

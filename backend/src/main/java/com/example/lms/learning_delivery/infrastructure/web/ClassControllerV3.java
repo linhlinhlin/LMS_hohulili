@@ -52,7 +52,9 @@ public class ClassControllerV3 {
     @GetMapping("/by-course/{courseId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<java.util.List<java.util.Map<String, Object>>>> getClassesByCourse(
-            @PathVariable UUID courseId) {
+            @PathVariable UUID courseId,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        verifyCourseOwnership(courseId, user);
         var entities = classJpaRepository.findByCourseId(courseId);
         var result = entities.stream().map(this::toClassMap).toList();
         return ResponseEntity.ok(ApiResponse.success(result, "Danh sách lớp học"));
@@ -63,11 +65,14 @@ public class ClassControllerV3 {
     @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<java.util.Map<String, Object>>> searchClassesByCourse(
             @PathVariable UUID courseId,
+            @AuthenticationPrincipal UserJpaEntity user,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String semester,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
+
+        verifyCourseOwnership(courseId, user);
 
         // Use simple findByCourseId when no filters, to avoid JPQL null parameter issues
         String searchParam = (search != null && !search.isBlank()) ? search : null;
@@ -207,8 +212,10 @@ public class ClassControllerV3 {
     @GetMapping("/{classId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<LearningClassResponse>> getClassById(
-            @PathVariable String classId
+            @PathVariable String classId,
+            @AuthenticationPrincipal UserJpaEntity user
     ) {
+        verifyClassOwnership(UUID.fromString(classId), user);
         LearningClassResponse response = getLearningClassByIdUseCase.execute(UUID.fromString(classId));
         return ResponseEntity.ok(ApiResponse.success(response, "Thông tin lớp học"));
     }
@@ -246,8 +253,10 @@ public class ClassControllerV3 {
     public ResponseEntity<ApiResponse<PageResponse<EnrollmentResponse>>> getClassStudents(
             @PathVariable String classId,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "1000") int size
+            @RequestParam(defaultValue = "1000") int size,
+            @AuthenticationPrincipal UserJpaEntity user
     ) {
+        verifyClassOwnership(UUID.fromString(classId), user);
         PageResponse<EnrollmentResponse> students = getClassStudentsUseCase.execute(
                 UUID.fromString(classId),
                 PageRequest.of(page, size)

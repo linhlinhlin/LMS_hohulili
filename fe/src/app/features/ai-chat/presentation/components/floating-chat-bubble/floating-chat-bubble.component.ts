@@ -91,18 +91,18 @@ import {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+      background: linear-gradient(135deg, #0056D2 0%, #004BB5 100%);
       color: white;
       border: none;
       border-radius: 50%;
       cursor: pointer;
-      box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
+      box-shadow: 0 4px 20px rgba(0, 86, 210, 0.4);
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .floating-bubble:hover {
       transform: scale(1.08);
-      box-shadow: 0 6px 24px rgba(59, 130, 246, 0.5);
+      box-shadow: 0 6px 24px rgba(0, 86, 210, 0.5);
     }
 
     .floating-bubble:active {

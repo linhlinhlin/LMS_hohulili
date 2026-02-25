@@ -67,7 +67,7 @@ export default class MathBlockTool {
             transition: border-color 0.2s;
         `;
         this.input.addEventListener('focus', () => {
-            this.input!.style.borderColor = '#3b82f6';
+            this.input!.style.borderColor = '#0056D2';
             this.toolbar!.style.display = 'flex';
         });
         this.input.addEventListener('blur', () => {
@@ -170,7 +170,7 @@ export default class MathBlockTool {
                 `;
                 btn.addEventListener('mouseenter', () => {
                     btn.style.background = '#eff6ff';
-                    btn.style.borderColor = '#3b82f6';
+                    btn.style.borderColor = '#0056D2';
                 });
                 btn.addEventListener('mouseleave', () => {
                     btn.style.background = 'white';

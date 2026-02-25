@@ -377,15 +377,6 @@ export class QuizApi {
   // ============================================
 
   /**
-   * Get quiz attempts (for teacher view)
-   */
-  getQuizAttempts(lessonId: string) {
-    return this.apiClient.get<QuizAttemptResponse[]>(
-      QUIZ_ENDPOINTS.LESSON_ATTEMPTS(lessonId)
-    );
-  }
-
-  /**
    * Get quiz statistics
    */
   getQuizStatistics(lessonId: string) {

@@ -106,10 +106,10 @@ export class OfflineVideoService {
     const response = await cache.match(`/offline-video/${lessonId}`);
     if (!response) return null;
 
-    // Revoke previous blob URL for this lesson
+    // Defer revoke of previous blob URL to allow video player to finish streaming
     const previousUrl = this.blobUrls.get(lessonId);
     if (previousUrl) {
-      URL.revokeObjectURL(previousUrl);
+      setTimeout(() => URL.revokeObjectURL(previousUrl), 500);
     }
 
     const blob = await response.blob();

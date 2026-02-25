@@ -10,4 +10,6 @@ public interface ChapterRepositoryPort {
     UUID save(UUID courseId, String title, String description, Integer orderIndex);
 
     void deleteById(UUID id);
+
+    long countByCourseId(UUID courseId);
 }

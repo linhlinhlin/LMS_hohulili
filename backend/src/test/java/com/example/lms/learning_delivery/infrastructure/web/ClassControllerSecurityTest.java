@@ -18,6 +18,9 @@ import org.springframework.security.access.AccessDeniedException;
 import java.util.Optional;
 import java.util.UUID;
 
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
@@ -53,11 +56,11 @@ class ClassControllerSecurityTest {
         otherTeacherId = UUID.randomUUID();
 
         otherTeacher = mock(UserJpaEntity.class);
-        when(otherTeacher.getId()).thenReturn(otherTeacherId);
-        when(otherTeacher.getRole()).thenReturn(UserJpaEntity.UserRole.TEACHER);
+        lenient().when(otherTeacher.getId()).thenReturn(otherTeacherId);
+        lenient().when(otherTeacher.getRole()).thenReturn(UserJpaEntity.UserRole.TEACHER);
 
         course = mock(CourseJpaEntity.class);
-        when(course.getTeacherId()).thenReturn(teacherId);
+        lenient().when(course.getTeacherId()).thenReturn(teacherId);
     }
 
     @Test
@@ -102,5 +105,81 @@ class ClassControllerSecurityTest {
         assertThatThrownBy(() -> controller.deleteClass(classId.toString(), otherTeacher))
                 .isInstanceOf(AccessDeniedException.class)
                 .hasMessageContaining("Bạn không sở hữu khóa học này");
+    }
+
+    // ================================================================================================
+    // S85: Read endpoint IDOR tests
+    // ================================================================================================
+
+    @Test
+    @DisplayName("getClassesByCourse: Từ chối khi teacher không sở hữu khóa học")
+    void getClassesByCourse_rejectsNonOwner() {
+        when(courseJpaRepository.findById(courseId)).thenReturn(Optional.of(course));
+
+        assertThatThrownBy(() -> controller.getClassesByCourse(courseId, otherTeacher))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("Bạn không sở hữu khóa học này");
+    }
+
+    @Test
+    @DisplayName("searchClassesByCourse: Từ chối khi teacher không sở hữu khóa học")
+    void searchClassesByCourse_rejectsNonOwner() {
+        when(courseJpaRepository.findById(courseId)).thenReturn(Optional.of(course));
+
+        assertThatThrownBy(() -> controller.searchClassesByCourse(courseId, otherTeacher, null, null, null, 0, 10))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("Bạn không sở hữu khóa học này");
+    }
+
+    @Test
+    @DisplayName("getClassById: Từ chối khi teacher không sở hữu khóa học")
+    void getClassById_rejectsNonOwner() {
+        UUID classId = UUID.randomUUID();
+        var classEntity = mock(LearningClassJpaEntity.class);
+        when(classEntity.getCourseId()).thenReturn(courseId);
+        when(classJpaRepository.findById(classId)).thenReturn(Optional.of(classEntity));
+        when(courseJpaRepository.findById(courseId)).thenReturn(Optional.of(course));
+
+        assertThatThrownBy(() -> controller.getClassById(classId.toString(), otherTeacher))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("Bạn không sở hữu khóa học này");
+    }
+
+    @Test
+    @DisplayName("getClassStudents: Từ chối khi teacher không sở hữu khóa học")
+    void getClassStudents_rejectsNonOwner() {
+        UUID classId = UUID.randomUUID();
+        var classEntity = mock(LearningClassJpaEntity.class);
+        when(classEntity.getCourseId()).thenReturn(courseId);
+        when(classJpaRepository.findById(classId)).thenReturn(Optional.of(classEntity));
+        when(courseJpaRepository.findById(courseId)).thenReturn(Optional.of(course));
+
+        assertThatThrownBy(() -> controller.getClassStudents(classId.toString(), 0, 10, otherTeacher))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("Bạn không sở hữu khóa học này");
+    }
+
+    @Test
+    @DisplayName("getClassesByCourse: ADMIN bỏ qua kiểm tra quyền sở hữu")
+    void getClassesByCourse_allowsAdmin() {
+        var admin = mock(UserJpaEntity.class);
+        when(admin.getRole()).thenReturn(UserJpaEntity.UserRole.ADMIN);
+        when(classJpaRepository.findByCourseId(courseId)).thenReturn(List.of());
+
+        assertThatCode(() -> controller.getClassesByCourse(courseId, admin))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("getClassesByCourse: Chủ sở hữu khóa học được truy cập")
+    void getClassesByCourse_allowsOwner() {
+        var owner = mock(UserJpaEntity.class);
+        when(owner.getId()).thenReturn(teacherId);
+        when(owner.getRole()).thenReturn(UserJpaEntity.UserRole.TEACHER);
+        when(courseJpaRepository.findById(courseId)).thenReturn(Optional.of(course));
+        when(classJpaRepository.findByCourseId(courseId)).thenReturn(List.of());
+
+        assertThatCode(() -> controller.getClassesByCourse(courseId, owner))
+                .doesNotThrowAnyException();
     }
 }

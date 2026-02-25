@@ -35,4 +35,9 @@ public class ChapterRepositoryAdapter implements ChapterRepositoryPort {
     public void deleteById(UUID id) {
         jpaRepository.deleteById(id);
     }
+
+    @Override
+    public long countByCourseId(UUID courseId) {
+        return jpaRepository.countByCourseId(courseId);
+    }
 }

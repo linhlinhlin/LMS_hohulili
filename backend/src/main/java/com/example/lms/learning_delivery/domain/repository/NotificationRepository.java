@@ -12,4 +12,6 @@ public interface NotificationRepository {
     Optional<Notification> findById(UUID id);
     Page<Notification> findByUserIdOrderByCreatedAtDesc(UUID userId, Pageable pageable);
     long countByUserIdAndIsReadFalse(UUID userId);
+    void markAllReadByUserId(UUID userId);
+    void deleteById(UUID id);
 }

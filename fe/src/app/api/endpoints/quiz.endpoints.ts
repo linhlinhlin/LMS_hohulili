@@ -33,9 +33,6 @@ export const QUIZ_ENDPOINTS = {
   // === Manual Grading (Teacher) ===
   MANUAL_GRADE: (attemptId: string) => `/api/v3/quizzes/attempts/${attemptId}/grade`,
 
-  // === Quiz Attempts (Teacher View) ===
-  LESSON_ATTEMPTS: (lessonId: string) => `/api/v3/quizzes/lessons/${lessonId}/attempts`,
-
   // === Quiz Statistics ===
   QUIZ_STATISTICS: (lessonId: string) => `/api/v3/quizzes/lessons/${lessonId}/statistics`,
 

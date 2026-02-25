@@ -83,8 +83,12 @@ server:
     accept-count: 200       # Queue size when all threads busy
     connection-timeout: 5000
 
-# Email config
+# App config
 app:
+  storage:
+    local:
+      base-path: uploads
+      base-url: http://localhost:8088/uploads
   email:
     from: "${MAIL_FROM:LMS Maritime <noreply@maritime.edu>}"
     base-url: "http://localhost:4200"
@@ -96,7 +100,7 @@ app:
     ipn-url: "http://localhost:8088/api/v3/payments/vnpay-ipn"
     expire-minutes: 15
 
-# Disable Cloudflare R2 in dev (requires credentials)
+# Disable Cloudflare R2 in dev — LocalStorageService activates as fallback
 cloudflare:
   r2:
     enabled: false

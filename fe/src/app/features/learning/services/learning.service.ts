@@ -198,12 +198,10 @@ export class LearningService {
 
     // Download-First: if course is downloaded, show local data instantly
     if (this.courseDownload.isDownloadedSync(courseId)) {
-      this.loadCourseOffline(courseId).then(() => {
-        // Background refresh from server if online (non-blocking)
-        if (this.network.online()) {
-          this.backgroundRefreshCourse(courseId);
-        }
-      });
+      this.loadCourseOffline(courseId);
+      // Skip background refresh for downloaded courses to prevent overwriting
+      // offline progress with stale server data before sync completes.
+      // User will see fresh data after sync + next page load.
       return;
     }
 

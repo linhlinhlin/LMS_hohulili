@@ -172,14 +172,12 @@ public class Course extends AggregateRoot {
                 "Chỉ có thể gửi duyệt khóa học ở trạng thái Bản nháp hoặc Bị từ chối");
         }
 
-        if (chapters.isEmpty()) {
-            throw new BusinessRuleException("NO_CHAPTERS",
-                "Khóa học phải có ít nhất 1 chương trước khi gửi duyệt");
-        }
+        // Cross-aggregate chapter validation moved to application layer (use case)
+        // because chapters are a separate aggregate loaded independently from DB
 
         this.status = CourseStatus.PENDING;
         clearReviewInfo();
-        
+
         registerEvent(new CourseSubmittedForApprovalEvent(getId(), code.getValue()));
     }
 

@@ -27,7 +27,7 @@ import { AssignmentLoadingComponent } from '../components/assignment-loading.com
   styles: [`
     input[type="checkbox"]:indeterminate {
       background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M4 8h8'/%3e%3c/svg%3e");
-      background-color: #3b82f6;
+      background-color: #0056D2;
       background-size: 16px 16px;
       background-position: center;
       background-repeat: no-repeat;

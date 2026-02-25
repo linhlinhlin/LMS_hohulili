@@ -171,7 +171,7 @@ import { IconComponent } from '../../../../../shared/components/icon/icon.compon
       align-items: center;
       justify-content: space-between;
       padding: 16px;
-      background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+      background: linear-gradient(135deg, #0056D2 0%, #004BB5 100%);
       color: white;
     }
 
@@ -306,7 +306,7 @@ import { IconComponent } from '../../../../../shared/components/icon/icon.compon
 
     .extended-loading .time {
       font-weight: 600;
-      color: #3b82f6;
+      color: #0056D2;
     }
 
     @media (max-width: 767px) {

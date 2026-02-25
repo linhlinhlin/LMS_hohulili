@@ -233,9 +233,9 @@ interface EnrolledStudent {
     `,
     styles: [`
         :host { display: block; }
-        ::ng-deep .mat-mdc-tab-group { --mdc-tab-indicator-active-indicator-color: #2563eb; }
+        ::ng-deep .mat-mdc-tab-group { --mdc-tab-indicator-active-indicator-color: #0056D2; }
         ::ng-deep .mat-mdc-tab .mdc-tab__text-label { font-weight: 800; text-transform: uppercase; font-size: 10px; letter-spacing: 0.05em; color: #64748b; }
-        ::ng-deep .mat-mdc-tab.mdc-tab--active .mdc-tab__text-label { color: #2563eb; }
+        ::ng-deep .mat-mdc-tab.mdc-tab--active .mdc-tab__text-label { color: #0056D2; }
     `]
 })
 export class AddStudentDrawerComponent {
