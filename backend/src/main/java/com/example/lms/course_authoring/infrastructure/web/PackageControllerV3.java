@@ -53,6 +53,7 @@ public class PackageControllerV3 {
 
     @Operation(summary = "Get package by ID")
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<PackageDTO>> getPackageById(@PathVariable java.util.UUID id) {
         return packageRepository.findById(id)
                 .map(pkg -> ResponseEntity.ok(ApiResponse.success(toDTO(pkg))))
@@ -87,8 +88,10 @@ public class PackageControllerV3 {
     @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<PackageDTO>> updatePackage(
             @PathVariable java.util.UUID id,
-            @Valid @RequestBody UpdatePackageRequest request) {
-        
+            @Valid @RequestBody UpdatePackageRequest request,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
+
+        verifyPackageOwnership(id, user);
         return packageRepository.findById(id)
                 .map(entity -> {
                     if (request.getName() != null) entity.setName(request.getName());
@@ -107,7 +110,10 @@ public class PackageControllerV3 {
     @Operation(summary = "Delete package")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
-    public ResponseEntity<ApiResponse<String>> deletePackage(@PathVariable java.util.UUID id) {
+    public ResponseEntity<ApiResponse<String>> deletePackage(
+            @PathVariable java.util.UUID id,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
+        verifyPackageOwnership(id, user);
         if (packageRepository.existsById(id)) {
             packageRepository.deleteById(id);
             return ResponseEntity.ok(ApiResponse.success("Đã xóa", "Gói câu hỏi đã được xóa"));
@@ -117,6 +123,7 @@ public class PackageControllerV3 {
 
     @Operation(summary = "Get questions in package")
     @GetMapping("/{id}/questions")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getQuestionsInPackage(@PathVariable java.util.UUID id) {
         var questions = questionRepository.findByPackageId(id);
         List<Map<String, Object>> result = questions.stream().map(q -> {
@@ -157,23 +164,38 @@ public class PackageControllerV3 {
     @Operation(summary = "Move questions to package")
     @PostMapping("/move-questions")
     @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
-    public ResponseEntity<ApiResponse<String>> moveQuestions(@Valid @RequestBody MoveQuestionsRequest request) {
+    public ResponseEntity<ApiResponse<String>> moveQuestions(
+            @Valid @RequestBody MoveQuestionsRequest request,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
         if (request.getQuestionIds() == null || request.getQuestionIds().isEmpty()) {
              return ResponseEntity.badRequest().body(ApiResponse.error("400", "Chưa chọn câu hỏi"));
         }
         java.util.UUID targetId = java.util.UUID.fromString(request.getTargetPackageId());
-        
-        List<com.example.lms.assessment.infrastructure.persistence.entity.QuestionJpaEntity> questions = 
+
+        // Verify target package ownership
+        verifyPackageOwnership(targetId, user);
+
+        List<com.example.lms.assessment.infrastructure.persistence.entity.QuestionJpaEntity> questions =
             questionRepository.findAllById(request.getQuestionIds().stream().map(java.util.UUID::fromString).toList());
-            
+
+        // Verify source package ownership (deduplicated)
+        if (!isAdminRole(user)) {
+            questions.stream()
+                .map(q -> q.getPackageId())
+                .filter(pkgId -> pkgId != null)
+                .distinct()
+                .forEach(srcId -> verifyPackageOwnership(srcId, user));
+        }
+
         questions.forEach(q -> q.setPackageId(targetId));
         questionRepository.saveAll(questions);
-        
+
         return ResponseEntity.ok(ApiResponse.success("Đã di chuyển", "Câu hỏi đã được di chuyển thành công"));
     }
     
     @Operation(summary = "Search packages")
     @GetMapping("/search")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<List<PackageDTO>>> searchPackages(@RequestParam(required = false) String keyword) {
         if (keyword == null || keyword.isBlank()) {
              return ResponseEntity.ok(ApiResponse.success(List.of()));
@@ -184,6 +206,22 @@ public class PackageControllerV3 {
             
         List<PackageDTO> dtos = page.getContent().stream().map(this::toDTO).toList();
         return ResponseEntity.ok(ApiResponse.success(dtos, "Kết quả tìm kiếm"));
+    }
+
+    // === Ownership Helpers ===
+
+    private boolean isAdminRole(com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
+        return user.getRole() == com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity.UserRole.ADMIN
+            || user.getRole() == com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity.UserRole.ORG_ADMIN;
+    }
+
+    private void verifyPackageOwnership(java.util.UUID packageId, com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
+        if (isAdminRole(user)) return;
+        var pkg = packageRepository.findById(packageId)
+            .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Gói câu hỏi", packageId));
+        if (!pkg.getOwnerId().equals(user.getId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Bạn không sở hữu gói câu hỏi này");
+        }
     }
 
     // === Helpers ===

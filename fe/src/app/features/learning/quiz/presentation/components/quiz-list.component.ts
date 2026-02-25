@@ -1,5 +1,5 @@
-import { Component, signal, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
-
+import { Component, signal, inject, OnInit, ChangeDetectionStrategy, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { GetQuizListUseCase } from '../../application/use-cases/get-quiz-list.use-case';
@@ -140,16 +140,34 @@ import { LoadingComponent } from '../../../../../shared/components/loading/loadi
                         <span>Hạn nộp: {{ formatDate(quiz.dueDate) }}</span>
                       </div>
                     }
+                    @if (isNotYetAvailable(quiz)) {
+                      <div class="flex items-center text-sm">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                          Mở lúc: {{ formatDate(quiz.availableFrom!) }}
+                        </span>
+                      </div>
+                    }
+                    @if (isLocked(quiz)) {
+                      <div class="flex items-center text-sm">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                          Đã đóng
+                        </span>
+                      </div>
+                    }
                   </div>
 
                   <!-- Action Buttons -->
                   <div class="flex space-x-3">
                     <button
                       (click)="startQuiz(quiz.id)"
-                      [disabled]="!quiz.isActive"
+                      [disabled]="!quiz.isActive || isNotYetAvailable(quiz) || isLocked(quiz)"
                       class="flex-1 bg-[#0056D2] text-white px-4 py-2 rounded-md hover:bg-[#004BB5] disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors duration-200"
                     >
-                      @if (quiz.isActive) {
+                      @if (isLocked(quiz)) {
+                        Đã đóng
+                      } @else if (isNotYetAvailable(quiz)) {
+                        Chưa mở
+                      } @else if (quiz.isActive) {
                         Bắt đầu làm
                       } @else {
                         Đã đóng
@@ -189,11 +207,12 @@ export class QuizListComponent implements OnInit {
   private takeQuizUseCase = inject(TakeQuizUseCase);
   private router = inject(Router);
   private errorService = inject(ErrorHandlingService);
+  private destroyRef = inject(DestroyRef);
 
   // Signals
   quizzes = signal<Quiz[]>([]);
   filteredQuizzes = signal<Quiz[]>([]);
-  availableCourses = signal<any[]>([]); // Would be populated from course service
+  availableCourses = signal<{ id: string; title: string }[]>([]);
   isLoading = signal(false);
 
   // Filter properties
@@ -210,7 +229,7 @@ export class QuizListComponent implements OnInit {
       this.isLoading.set(true);
 
       // Load quizzes using the use case
-      this.getQuizListUseCase.execute().subscribe({
+      this.getQuizListUseCase.execute().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (quizzes) => {
           this.quizzes.set(quizzes);
           // Derive available courses from loaded quizzes
@@ -322,11 +341,21 @@ export class QuizListComponent implements OnInit {
     this.errorService.showSuccess('Tính năng xem trước quiz sẽ được phát triển trong phiên bản tiếp theo', 'quiz');
   }
 
-  formatDate(date: Date): string {
+  formatDate(date: Date | string): string {
     return new Date(date).toLocaleDateString('vi-VN', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
     });
+  }
+
+  isNotYetAvailable(quiz: Quiz): boolean {
+    if (!quiz.availableFrom) return false;
+    return new Date(quiz.availableFrom).getTime() > Date.now();
+  }
+
+  isLocked(quiz: Quiz): boolean {
+    if (!quiz.lockAt) return false;
+    return new Date(quiz.lockAt).getTime() < Date.now();
   }
 }

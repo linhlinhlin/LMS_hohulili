@@ -20,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Use case for offline sync operations.
@@ -110,38 +109,22 @@ public class SyncUseCase {
         UUID studentId = UUID.fromString(userId);
         List<Map<String, Object>> changes = new ArrayList<>();
 
-        // Pull video progress changes
-        List<Enrollment> enrollments = enrollmentRepository.findActiveByStudentId(studentId);
-        for (Enrollment enrollment : enrollments) {
-            if (enrollment.getLearningClass() == null) continue;
+        // Single batch query replaces O(enrollments × lessons) N+1 loop
+        Instant effectiveSince = since != null ? since : Instant.EPOCH;
+        List<VideoProgress> videoChanges = videoProgressRepository
+                .findByStudentIdAndUpdatedAtAfter(studentId, effectiveSince);
 
-            // Get all video progress for this student's courses
-            // Collect lesson IDs from enrollment progress
-            if (enrollment.getProgress() != null) {
-                for (String lessonIdStr : enrollment.getProgress().keySet()) {
-                    try {
-                        UUID lessonId = UUID.fromString(lessonIdStr);
-                        List<VideoProgress> vpList = videoProgressRepository
-                                .findByStudentAndLesson(studentId, lessonId);
-                        for (VideoProgress vp : vpList) {
-                            if (vp.getUpdatedAt() != null && vp.getUpdatedAt().isAfter(since)) {
-                                changes.add(Map.of(
-                                        "entityType", "videoProgress",
-                                        "sectionId", vp.getSectionId(),
-                                        "lessonId", vp.getLessonId().toString(),
-                                        "progressPercent", vp.getProgressPercent(),
-                                        "watchedSeconds", vp.getWatchedSeconds(),
-                                        "completed", vp.isCompleted(),
-                                        "lastPosition", vp.getLastPosition(),
-                                        "updatedAt", vp.getUpdatedAt().toString()
-                                ));
-                            }
-                        }
-                    } catch (IllegalArgumentException ignored) {
-                        // lessonId might not be a valid UUID
-                    }
-                }
-            }
+        for (VideoProgress vp : videoChanges) {
+            changes.add(Map.of(
+                    "entityType", "videoProgress",
+                    "sectionId", vp.getSectionId(),
+                    "lessonId", vp.getLessonId().toString(),
+                    "progressPercent", vp.getProgressPercent(),
+                    "watchedSeconds", vp.getWatchedSeconds(),
+                    "completed", vp.isCompleted(),
+                    "lastPosition", vp.getLastPosition(),
+                    "updatedAt", vp.getUpdatedAt().toString()
+            ));
         }
 
         return new SyncResponse.PullResult(Instant.now(), changes);

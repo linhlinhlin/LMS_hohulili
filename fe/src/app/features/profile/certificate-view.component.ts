@@ -337,30 +337,10 @@ export class CertificateViewComponent implements OnInit {
           });
           return;
         }
-      } catch { /* fallback to mock */ }
+      } catch {
+        this.toast.error('Không thể tải thông tin chứng chỉ');
+      }
     }
-
-    // Fallback: mock data for development
-    this.certificate.set({
-      id: 'cert-1',
-      courseId: 'course-1',
-      courseName: 'Kỹ thuật Tàu biển Cơ bản',
-      studentName: this.authService.currentUser()?.fullName || 'Học viên',
-      studentId: this.authService.currentUser()?.id || 'SV2024001',
-      instructorName: 'ThS. Nguyễn Văn Hải',
-      issuedAt: new Date(),
-      certificateNumber: 'CERT-2024-001',
-      certificateUrl: '',
-      isValid: true,
-      grade: 85,
-      maxGrade: 100,
-      completionDate: new Date(),
-      duration: '30 giờ',
-      description: 'Khóa học cung cấp kiến thức cơ bản về kỹ thuật tàu biển.',
-      skills: ['Kỹ thuật tàu biển', 'An toàn hàng hải'],
-      verificationCode: 'VER-2024-001',
-      qrCode: ''
-    });
   }
 
   formatDate(date: Date): string {
@@ -368,8 +348,10 @@ export class CertificateViewComponent implements OnInit {
   }
 
   downloadCertificate(): void {
-    // Mock download functionality
-    this.toast.success('Tải xuống chứng chỉ PDF thành công!');
+    const cert = this.certificate();
+    if (cert?.id) {
+      window.open(`/api/v3/student/certificates/${cert.id}/download`, '_blank');
+    }
   }
 
   shareCertificate(): void {

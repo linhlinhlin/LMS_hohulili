@@ -1,6 +1,7 @@
 package com.example.lms.shared.application.dto;
 
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.Size;
 import java.util.List;
 import java.util.Map;
 
@@ -9,6 +10,7 @@ import java.util.Map;
  */
 public record SyncPushRequest(
         @NotEmpty(message = "Danh sách thao tác không được trống")
+        @Size(max = 500, message = "Tối đa 500 thao tác đồng bộ mỗi lần")
         List<SyncOperation> operations
 ) {
     /**

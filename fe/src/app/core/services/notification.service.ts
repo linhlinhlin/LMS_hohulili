@@ -11,8 +11,9 @@
  *
  * @requirements 7.1, 7.2, 7.3
  */
-import { Injectable, signal, computed } from '@angular/core';
-import { Observable, of, delay, tap, interval, Subject } from 'rxjs';
+import { Injectable, signal, computed, inject } from '@angular/core';
+import { Observable, of, delay, tap, interval, Subject, map, catchError } from 'rxjs';
+import { ApiClient } from '../../api/client/api-client';
 
 export type NotificationType =
   | 'ASSIGNMENT_NEW'
@@ -68,6 +69,8 @@ export interface SendNotificationRequest {
   providedIn: 'root',
 })
 export class NotificationService {
+  private apiClient = inject(ApiClient);
+
   // State
   private notifications = signal<Notification[]>([]);
   private loading = signal(false);
@@ -100,18 +103,39 @@ export class NotificationService {
   }
 
   /**
-   * Load notifications for current user
+   * Load notifications for current user from gamification API
    */
   loadNotifications(): Observable<Notification[]> {
     this.loading.set(true);
 
-    // Real notifications handled by GamificationApi + notification-bell
-    const notifications: Notification[] = [];
-
-    return of(notifications).pipe(
+    return this.apiClient.get<any>('/api/v3/gamification/notifications?page=0&size=20').pipe(
+      map((response: any) => {
+        const items = response?.data?.content || response?.data || [];
+        return items.map((n: any) => ({
+          id: n.id || n.notificationId || '',
+          type: n.type || 'MESSAGE_RECEIVED',
+          title: n.title || '',
+          message: n.message || '',
+          recipientId: n.recipientId || n.userId || '',
+          senderId: n.senderId,
+          senderName: n.senderName,
+          relatedEntityId: n.relatedEntityId,
+          relatedEntityType: n.relatedEntityType,
+          priority: n.priority || 'MEDIUM',
+          isRead: n.isRead ?? n.read ?? false,
+          createdAt: n.createdAt || new Date().toISOString(),
+          readAt: n.readAt,
+          actionUrl: n.actionUrl,
+          metadata: n.metadata,
+        } as Notification));
+      }),
       tap((result) => {
         this.notifications.set(result);
         this.loading.set(false);
+      }),
+      catchError(() => {
+        this.loading.set(false);
+        return of([]);
       })
     );
   }
@@ -402,12 +426,17 @@ export class NotificationService {
     });
   }
 
-  /**
-   * Check for new notifications (mock implementation)
-   */
   private checkForNewNotifications(): void {
-    // In production, this would be an API call
-    // For now, just a placeholder
+    this.apiClient.get<{ data: { unreadCount: number } }>('/api/v3/messages/unread-count')
+      .subscribe({
+        next: (response: any) => {
+          const count = response?.data?.unreadCount ?? response?.unreadCount ?? 0;
+          if (count > this.unreadCount()) {
+            this.loadNotifications();
+          }
+        },
+        error: () => { /* silently ignore polling errors */ }
+      });
   }
 
   /**

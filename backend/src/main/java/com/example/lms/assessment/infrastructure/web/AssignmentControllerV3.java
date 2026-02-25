@@ -3,6 +3,7 @@ package com.example.lms.assessment.infrastructure.web;
 import com.example.lms.assessment.application.usecase.GetTeacherAssignmentsSummaryUseCase;
 import com.example.lms.assessment.application.usecase.GetAssignmentsByCourseUseCase;
 import com.example.lms.assessment.application.dto.CreateAssignmentCommand;
+import com.example.lms.course_authoring.infrastructure.persistence.JpaCourseRepository;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,6 +12,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import jakarta.validation.Valid;
@@ -28,6 +30,7 @@ public class AssignmentControllerV3 {
     private final com.example.lms.assessment.application.usecase.CreateAssignmentUseCaseV3 createAssignmentUseCaseV3;
     private final com.example.lms.assessment.application.usecase.DeleteAssignmentUseCaseV3 deleteAssignmentUseCaseV3;
     private final com.example.lms.assessment.application.usecase.UpdateAssignmentUseCaseV3 updateAssignmentUseCaseV3;
+    private final JpaCourseRepository courseJpaRepository;
 
     @GetMapping("/summary")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
@@ -53,10 +56,13 @@ public class AssignmentControllerV3 {
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Operation(summary = "Get assignment detail by ID")
     public ResponseEntity<ApiResponse<com.example.lms.assessment.application.dto.AssignmentDTOs.AssignmentDetail>> getAssignmentById(
-            @PathVariable java.util.UUID id
+            @PathVariable java.util.UUID id,
+            @AuthenticationPrincipal UserJpaEntity user
     ) {
         return assignmentRepository.findById(id)
                 .map(a -> {
+                    // P0-8: Verify teacher ownership
+                    verifyAssignmentOwnership(a, user);
                     // Map entity to DTO
                     var dto = com.example.lms.assessment.application.dto.AssignmentDTOs.AssignmentDetail.builder()
                         .id(a.getId().toString())
@@ -80,8 +86,11 @@ public class AssignmentControllerV3 {
     @Operation(summary = "Create new assignment")
     public ResponseEntity<ApiResponse<java.util.UUID>> createAssignment(
             @PathVariable java.util.UUID courseId,
-            @Valid @RequestBody CreateAssignmentRequest request
+            @Valid @RequestBody CreateAssignmentRequest request,
+            @AuthenticationPrincipal UserJpaEntity user
     ) {
+        // P0-8: Verify teacher ownership of the course
+        verifyCourseOwnership(courseId, user);
         var command = new CreateAssignmentCommand(
             null, // lessonId is optional now
             courseId,
@@ -107,8 +116,15 @@ public class AssignmentControllerV3 {
     @Operation(summary = "Update assignment")
     public ResponseEntity<ApiResponse<Void>> updateAssignment(
             @PathVariable java.util.UUID id,
-            @Valid @RequestBody UpdateAssignmentRequest request
+            @Valid @RequestBody UpdateAssignmentRequest request,
+            @AuthenticationPrincipal UserJpaEntity user
     ) {
+        // P0-8: Verify teacher ownership
+        var assignmentOpt = assignmentRepository.findById(id);
+        if (assignmentOpt.isEmpty()) {
+            throw new com.example.lms.shared.exception.EntityNotFoundException("Assignment", id);
+        }
+        verifyAssignmentOwnership(assignmentOpt.get(), user);
         var command = new com.example.lms.assessment.application.usecase.UpdateAssignmentUseCaseV3.Command(
                 request.title(),
                 request.description(),
@@ -124,8 +140,15 @@ public class AssignmentControllerV3 {
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Operation(summary = "Delete assignment")
     public ResponseEntity<ApiResponse<Void>> deleteAssignment(
-            @PathVariable java.util.UUID id
+            @PathVariable java.util.UUID id,
+            @AuthenticationPrincipal UserJpaEntity user
     ) {
+        // P0-8: Verify teacher ownership
+        var assignmentOpt2 = assignmentRepository.findById(id);
+        if (assignmentOpt2.isEmpty()) {
+            throw new com.example.lms.shared.exception.EntityNotFoundException("Assignment", id);
+        }
+        verifyAssignmentOwnership(assignmentOpt2.get(), user);
         deleteAssignmentUseCaseV3.execute(id);
         return ResponseEntity.ok(ApiResponse.success(null, "Xóa bài tập thành công"));
     }
@@ -149,4 +172,27 @@ public class AssignmentControllerV3 {
         String dueDate,
         Integer maxScore
     ) {}
+
+    // === Ownership Helpers ===
+
+    private boolean isAdminRole(UserJpaEntity user) {
+        return user.getRole() == UserJpaEntity.UserRole.ADMIN
+            || user.getRole() == UserJpaEntity.UserRole.ORG_ADMIN;
+    }
+
+    private void verifyCourseOwnership(java.util.UUID courseId, UserJpaEntity user) {
+        if (isAdminRole(user)) return;
+        courseJpaRepository.findById(courseId).ifPresent(course -> {
+            if (course.getTeacherId() == null || !course.getTeacherId().equals(user.getId())) {
+                throw new AccessDeniedException("Bạn không sở hữu khóa học này");
+            }
+        });
+    }
+
+    private void verifyAssignmentOwnership(
+            com.example.lms.assessment.infrastructure.persistence.entity.AssignmentJpaEntity assignment,
+            UserJpaEntity user) {
+        if (isAdminRole(user)) return;
+        verifyCourseOwnership(assignment.getCourseId(), user);
+    }
 }

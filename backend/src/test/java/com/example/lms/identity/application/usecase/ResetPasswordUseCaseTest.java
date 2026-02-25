@@ -61,7 +61,7 @@ class ResetPasswordUseCaseTest {
         @DisplayName("Should reject invalid/non-existent token")
         void shouldRejectInvalidToken() {
             String rawToken = "invalid-token-that-does-not-exist";
-            String tokenHash = RequestPasswordResetUseCase.sha256(rawToken);
+            String tokenHash = com.example.lms.shared.domain.util.HashUtil.sha256(rawToken);
             when(tokenRepository.findByTokenHash(tokenHash)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> useCase.execute(rawToken, "newStrongPassword123"))
@@ -73,7 +73,7 @@ class ResetPasswordUseCaseTest {
         @DisplayName("Should reject expired token")
         void shouldRejectExpiredToken() {
             String rawToken = "expired-token-value";
-            String tokenHash = RequestPasswordResetUseCase.sha256(rawToken);
+            String tokenHash = com.example.lms.shared.domain.util.HashUtil.sha256(rawToken);
 
             var expiredToken = new PasswordResetToken(
                     UUID.randomUUID(), UUID.randomUUID(), tokenHash,
@@ -91,7 +91,7 @@ class ResetPasswordUseCaseTest {
         @DisplayName("Should reject already-used token (single-use enforcement)")
         void shouldRejectUsedToken() {
             String rawToken = "used-token-value";
-            String tokenHash = RequestPasswordResetUseCase.sha256(rawToken);
+            String tokenHash = com.example.lms.shared.domain.util.HashUtil.sha256(rawToken);
 
             var usedToken = new PasswordResetToken(
                     UUID.randomUUID(), UUID.randomUUID(), tokenHash,
@@ -164,7 +164,7 @@ class ResetPasswordUseCaseTest {
         void shouldMarkTokenAsUsed() {
             String rawToken = "valid-token-value";
             var token = validToken(rawToken);
-            String tokenHash = RequestPasswordResetUseCase.sha256(rawToken);
+            String tokenHash = com.example.lms.shared.domain.util.HashUtil.sha256(rawToken);
 
             when(tokenRepository.findByTokenHash(tokenHash)).thenReturn(Optional.of(token));
             when(passwordEncoder.encode(any())).thenReturn("$2a$10$encoded");
@@ -214,7 +214,7 @@ class ResetPasswordUseCaseTest {
         return new PasswordResetToken(
                 UUID.randomUUID(),
                 UUID.randomUUID(),
-                RequestPasswordResetUseCase.sha256(rawToken),
+                com.example.lms.shared.domain.util.HashUtil.sha256(rawToken),
                 Instant.now().plus(30, ChronoUnit.MINUTES), // Not expired
                 null,                                        // Not used
                 Instant.now().minus(5, ChronoUnit.MINUTES)); // Created 5 min ago

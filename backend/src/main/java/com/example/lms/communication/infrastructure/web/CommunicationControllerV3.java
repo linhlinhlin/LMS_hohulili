@@ -69,11 +69,16 @@ public class CommunicationControllerV3 {
             @RequestParam UUID userId1,
             @RequestParam UUID userId2
     ) {
+        // P0-5: Verify current user is one of the participants
+        UUID currentUserId = currentUser.getId();
+        if (!currentUserId.equals(userId1) && !currentUserId.equals(userId2)) {
+            return ResponseEntity.status(403).body(ApiResponse.error("Bạn không phải thành viên của cuộc hội thoại này"));
+        }
+
         Optional<Conversation> conv = conversationRepository.findByParticipants(userId1, userId2);
         if (conv.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.success(null, "Không tìm thấy cuộc hội thoại"));
         }
-        UUID currentUserId = currentUser.getId();
         return ResponseEntity.ok(ApiResponse.success(
                 mapConversation(conv.get(), currentUserId), "Thông tin cuộc hội thoại"));
     }
@@ -81,8 +86,19 @@ public class CommunicationControllerV3 {
     @Operation(summary = "Get messages in a conversation")
     @GetMapping("/conversations/{conversationId}/messages")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getMessages(
-            @PathVariable UUID conversationId
+            @PathVariable UUID conversationId,
+            @AuthenticationPrincipal UserJpaEntity user
     ) {
+        // P0-3: Verify user is participant of this conversation
+        Conversation conv = conversationRepository.findById(ConversationId.of(conversationId))
+                .orElse(null);
+        if (conv == null) {
+            return ResponseEntity.status(404).body(ApiResponse.error("Không tìm thấy cuộc hội thoại"));
+        }
+        if (!conv.hasParticipant(user.getId())) {
+            return ResponseEntity.status(403).body(ApiResponse.error("Bạn không phải thành viên của cuộc hội thoại này"));
+        }
+
         List<Message> messages = messageRepository.findByConversationId(ConversationId.of(conversationId));
         List<Map<String, Object>> result = messages.stream()
                 .map(this::mapMessage)
@@ -100,6 +116,11 @@ public class CommunicationControllerV3 {
             @Valid @RequestBody SendMessageRequest request
     ) {
         UUID senderId = user.getId();
+
+        // Prevent self-messaging
+        if (senderId.equals(request.recipientId())) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("400", "Không thể gửi tin nhắn cho chính mình"));
+        }
 
         var command = new SendMessageUseCaseV3.SendMessageCommand(
             senderId,
@@ -129,6 +150,7 @@ public class CommunicationControllerV3 {
     @PatchMapping("/mark-read")
     @Transactional
     public ResponseEntity<ApiResponse<Void>> markAsRead(
+            @AuthenticationPrincipal UserJpaEntity user,
             @Valid @RequestBody MarkAsReadRequest request
     ) {
         int count = 0;
@@ -136,8 +158,12 @@ public class CommunicationControllerV3 {
             Optional<Message> msgOpt = messageRepository.findById(MessageId.of(msgId));
             if (msgOpt.isPresent()) {
                 Message msg = msgOpt.get();
-                msg.markAsRead();
-                messageRepository.save(msg);
+                // P0-4: Verify user is participant of this message's conversation
+                conversationRepository.findById(msg.getConversationId()).ifPresent(conv -> {
+                    if (!conv.hasParticipant(user.getId())) return;
+                    msg.markAsRead();
+                    messageRepository.save(msg);
+                });
                 count++;
             }
         }

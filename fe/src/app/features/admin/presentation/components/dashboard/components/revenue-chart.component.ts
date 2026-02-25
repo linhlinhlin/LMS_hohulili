@@ -35,6 +35,8 @@ export class RevenueChartComponent implements OnInit {
     labels: [],
     data: []
   });
+
+  chartLabel = input<string>('Doanh thu (VNĐ)');
   
   private chart: Chart | null = null;
   private isInitialized = signal(false);
@@ -65,7 +67,7 @@ export class RevenueChartComponent implements OnInit {
       data: {
         labels: data.labels,
         datasets: [{
-          label: 'Doanh thu (VNĐ)',
+          label: this.chartLabel(),
           data: data.data,
           borderColor: '#0056D2',
           backgroundColor: 'rgba(0, 86, 210, 0.1)',
@@ -110,7 +112,7 @@ export class RevenueChartComponent implements OnInit {
               label: (context) => {
                 const value = context.parsed.y;
                 if (typeof value === 'number') {
-                  return `Doanh thu: ${this.formatCurrency(value)}`;
+                  return `${this.chartLabel()}: ${this.formatCurrency(value)}`;
                 }
                 return '';
               }

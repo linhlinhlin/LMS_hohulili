@@ -6,7 +6,6 @@ import com.example.lms.learning_delivery.application.dto.UpdateLessonProgressCom
 import com.example.lms.learning_delivery.application.usecase.TrackVideoProgressUseCase;
 import com.example.lms.learning_delivery.application.usecase.UpdateLessonProgressUseCase;
 import com.example.lms.learning_delivery.domain.model.Enrollment;
-import com.example.lms.learning_delivery.domain.model.LearningClass;
 import com.example.lms.learning_delivery.domain.model.VideoProgress;
 import com.example.lms.learning_delivery.domain.repository.EnrollmentRepository;
 import com.example.lms.learning_delivery.domain.repository.VideoProgressRepository;
@@ -404,9 +403,10 @@ class SyncUseCaseTest {
     class PullChangesTests {
 
         @Test
-        @DisplayName("Should return empty when no active enrollments")
-        void shouldReturnEmptyWhenNoEnrollments() {
-            when(enrollmentRepository.findActiveByStudentId(STUDENT_ID)).thenReturn(List.of());
+        @DisplayName("Should return empty when no video progress changes")
+        void shouldReturnEmptyWhenNoChanges() {
+            when(videoProgressRepository.findByStudentIdAndUpdatedAtAfter(eq(STUDENT_ID), any(Instant.class)))
+                    .thenReturn(List.of());
 
             SyncResponse.PullResult result = useCase.pullChanges(USER_ID, Instant.now().minusSeconds(3600));
 
@@ -415,23 +415,12 @@ class SyncUseCaseTest {
         }
 
         @Test
-        @DisplayName("Should return video progress changes since timestamp")
+        @DisplayName("Should return video progress changes since timestamp via batch query")
         void shouldReturnVideoProgressChanges() {
             UUID lessonId = UUID.randomUUID();
             Instant since = Instant.now().minusSeconds(3600);
             Instant updatedAt = Instant.now().minusSeconds(100);
 
-            // Setup enrollment
-            Enrollment enrollment = mock(Enrollment.class);
-            LearningClass lc = mock(LearningClass.class);
-            when(enrollment.getLearningClass()).thenReturn(lc);
-            Map<String, Enrollment.LessonProgress> progress = Map.of(
-                    lessonId.toString(), mock(Enrollment.LessonProgress.class));
-            when(enrollment.getProgress()).thenReturn(progress);
-            when(enrollmentRepository.findActiveByStudentId(STUDENT_ID))
-                    .thenReturn(List.of(enrollment));
-
-            // Setup video progress
             VideoProgress vp = mock(VideoProgress.class);
             when(vp.getUpdatedAt()).thenReturn(updatedAt);
             when(vp.getSectionId()).thenReturn("section-1");
@@ -440,7 +429,7 @@ class SyncUseCaseTest {
             when(vp.getWatchedSeconds()).thenReturn(180);
             when(vp.isCompleted()).thenReturn(false);
             when(vp.getLastPosition()).thenReturn(45.5);
-            when(videoProgressRepository.findByStudentAndLesson(STUDENT_ID, lessonId))
+            when(videoProgressRepository.findByStudentIdAndUpdatedAtAfter(STUDENT_ID, since))
                     .thenReturn(List.of(vp));
 
             SyncResponse.PullResult result = useCase.pullChanges(USER_ID, since);
@@ -454,40 +443,15 @@ class SyncUseCaseTest {
         }
 
         @Test
-        @DisplayName("Should skip video progress older than since timestamp")
-        void shouldSkipOldProgress() {
-            UUID lessonId = UUID.randomUUID();
-            Instant since = Instant.now().minusSeconds(100);
-            Instant oldUpdate = Instant.now().minusSeconds(3600); // older than since
+        @DisplayName("Should use Instant.EPOCH when since is null")
+        void shouldUseEpochWhenSinceNull() {
+            when(videoProgressRepository.findByStudentIdAndUpdatedAtAfter(eq(STUDENT_ID), eq(Instant.EPOCH)))
+                    .thenReturn(List.of());
 
-            Enrollment enrollment = mock(Enrollment.class);
-            when(enrollment.getLearningClass()).thenReturn(mock(LearningClass.class));
-            when(enrollment.getProgress()).thenReturn(Map.of(
-                    lessonId.toString(), mock(Enrollment.LessonProgress.class)));
-            when(enrollmentRepository.findActiveByStudentId(STUDENT_ID))
-                    .thenReturn(List.of(enrollment));
-
-            VideoProgress vp = mock(VideoProgress.class);
-            when(vp.getUpdatedAt()).thenReturn(oldUpdate);
-            when(videoProgressRepository.findByStudentAndLesson(STUDENT_ID, lessonId))
-                    .thenReturn(List.of(vp));
-
-            SyncResponse.PullResult result = useCase.pullChanges(USER_ID, since);
+            SyncResponse.PullResult result = useCase.pullChanges(USER_ID, null);
 
             assertThat(result.changes()).isEmpty();
-        }
-
-        @Test
-        @DisplayName("Should skip enrollments with null LearningClass")
-        void shouldSkipNullLearningClass() {
-            Enrollment enrollment = mock(Enrollment.class);
-            when(enrollment.getLearningClass()).thenReturn(null);
-            when(enrollmentRepository.findActiveByStudentId(STUDENT_ID))
-                    .thenReturn(List.of(enrollment));
-
-            SyncResponse.PullResult result = useCase.pullChanges(USER_ID, Instant.now().minusSeconds(3600));
-
-            assertThat(result.changes()).isEmpty();
+            verify(videoProgressRepository).findByStudentIdAndUpdatedAtAfter(STUDENT_ID, Instant.EPOCH);
         }
     }
 

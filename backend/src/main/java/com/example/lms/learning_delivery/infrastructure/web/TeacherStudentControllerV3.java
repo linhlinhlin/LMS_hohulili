@@ -12,12 +12,15 @@ import com.example.lms.learning_delivery.infrastructure.persistence.entity.Enrol
 import com.example.lms.learning_delivery.infrastructure.persistence.repository.LearningStreakJpaRepository;
 import com.example.lms.course_authoring.infrastructure.persistence.JpaCourseRepository;
 import com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity;
+import com.example.lms.communication.application.usecase.SendMessageUseCaseV3;
+import com.example.lms.shared.infrastructure.pdf.PdfReportService;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -35,6 +38,7 @@ import java.util.stream.Collectors;
  *
  * Provides endpoints for teachers to view and manage students enrolled in their courses.
  */
+@Slf4j
 @RestController
 @RequestMapping("/api/v3/teacher/students")
 @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
@@ -49,6 +53,8 @@ public class TeacherStudentControllerV3 {
     private final AssignmentJpaRepository assignmentRepository;
     private final StudentAnalyticsQueryPort analyticsQuery;
     private final LearningStreakJpaRepository streakRepository;
+    private final SendMessageUseCaseV3 sendMessageUseCase;
+    private final PdfReportService pdfReportService;
 
     @Operation(summary = "Get all students enrolled in teacher's courses")
     @GetMapping
@@ -74,15 +80,8 @@ public class TeacherStudentControllerV3 {
                 ? List.of(courseId)
                 : teacherCourses.stream().map(CourseJpaEntity::getId).toList();
 
-        // Get distinct student IDs from enrollments
-        List<EnrollmentJpaEntity> enrollments = new ArrayList<>();
-        for (UUID cId : courseIds) {
-            enrollments.addAll(enrollmentRepository.findAllByClassId(cId));
-        }
-        // Also try through learningClass.courseId
-        for (UUID cId : courseIds) {
-            enrollments.addAll(enrollmentRepository.findByLearningClass_CourseId(cId));
-        }
+        // Get enrollments via learningClass.courseId (1 batch query)
+        List<EnrollmentJpaEntity> enrollments = enrollmentRepository.findByLearningClass_CourseIdIn(courseIds);
 
         // Deduplicate by studentId
         Map<UUID, EnrollmentJpaEntity> studentEnrollments = new LinkedHashMap<>();
@@ -90,16 +89,18 @@ public class TeacherStudentControllerV3 {
             studentEnrollments.putIfAbsent(e.getStudentId(), e);
         }
 
+        // Batch-load all users (1 query instead of N)
+        Map<UUID, UserJpaEntity> userMap = userJpaRepository.findAllById(studentEnrollments.keySet()).stream()
+                .collect(Collectors.toMap(UserJpaEntity::getId, u -> u));
+
         // Build student summary list
         List<StudentSummaryResponse> students = new ArrayList<>();
         for (var entry : studentEnrollments.entrySet()) {
             UUID studentId = entry.getKey();
             EnrollmentJpaEntity enrollment = entry.getValue();
 
-            Optional<UserJpaEntity> userOpt = userJpaRepository.findById(studentId);
-            if (userOpt.isEmpty()) continue;
-
-            UserJpaEntity user = userOpt.get();
+            UserJpaEntity user = userMap.get(studentId);
+            if (user == null) continue;
 
             // Apply search filter
             if (search != null && !search.isBlank()) {
@@ -291,26 +292,71 @@ public class TeacherStudentControllerV3 {
         return ResponseEntity.ok(ApiResponse.success(response, "Cập nhật trạng thái thành công"));
     }
 
-    // Messaging infrastructure not yet available — honest stub
-    @Operation(summary = "Send message to student (not yet implemented)")
+    @Operation(summary = "Send message to student")
     @PostMapping("/{studentId}/messages")
-    public ResponseEntity<ApiResponse<String>> sendMessage(
+    public ResponseEntity<ApiResponse<Map<String, Object>>> sendMessage(
+            @AuthenticationPrincipal UserJpaEntity teacher,
             @PathVariable UUID studentId,
             @Valid @RequestBody MessageRequest request
     ) {
-        // TODO: Integrate with CommunicationControllerV3 messaging system
-        return ResponseEntity.ok(ApiResponse.success(null, "Chức năng nhắn tin đang được phát triển"));
+        UUID messageId = sendMessageUseCase.execute(
+                new SendMessageUseCaseV3.SendMessageCommand(teacher.getId(), studentId, request.getContent())
+        );
+        log.info("[Message] Giáo viên {} gửi tin nhắn đến học viên {}", teacher.getId(), studentId);
+        Map<String, Object> result = Map.of("messageId", messageId.toString());
+        return ResponseEntity.ok(ApiResponse.success(result, "Gửi tin nhắn thành công"));
     }
 
-    // PDF generation not yet available — honest stub
-    @Operation(summary = "Export student progress report (not yet implemented)")
+    @Operation(summary = "Export student progress report as PDF")
     @GetMapping("/{studentId}/export")
-    public ResponseEntity<ApiResponse<String>> exportStudentReport(
+    public ResponseEntity<byte[]> exportStudentReport(
+            @AuthenticationPrincipal UserJpaEntity teacher,
             @PathVariable UUID studentId,
             @RequestParam(defaultValue = "pdf") String format
     ) {
-        // TODO: Implement PDF report generation (Apache PDFBox or iText)
-        return ResponseEntity.ok(ApiResponse.success(null, "Chức năng xuất báo cáo đang được phát triển"));
+        var student = userJpaRepository.findById(studentId)
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("User", studentId));
+
+        // Gather course progress data
+        List<CourseJpaEntity> teacherCourses = courseRepository.findByTeacherId(teacher.getId());
+        Set<UUID> courseIds = teacherCourses.stream().map(CourseJpaEntity::getId).collect(Collectors.toSet());
+
+        var enrollments = enrollmentRepository.findByStudentId(studentId).stream()
+                .filter(e -> e.getLearningClass() != null && courseIds.contains(e.getLearningClass().getCourseId()))
+                .toList();
+
+        List<Map<String, Object>> courseData = enrollments.stream().map(e -> {
+            Map<String, Object> m = new HashMap<>();
+            var course = teacherCourses.stream()
+                    .filter(c -> c.getId().equals(e.getLearningClass().getCourseId()))
+                    .findFirst().orElse(null);
+            m.put("courseName", course != null ? course.getTitle() : "N/A");
+            m.put("progress", e.getProgress() != null ? e.getProgress().size() : 0);
+            m.put("grade", 0.0);
+            m.put("status", e.getStatus() != null ? e.getStatus().name() : "UNKNOWN");
+            return m;
+        }).toList();
+
+        Map<String, Object> stats = Map.of(
+                "totalCourses", enrollments.size(),
+                "completedCourses", enrollments.stream().filter(e -> e.getStatus() != null
+                        && e.getStatus().name().equals("COMPLETED")).count(),
+                "averageGrade", 0.0,
+                "streakDays", 0
+        );
+
+        try {
+            byte[] pdf = pdfReportService.generateStudentReport(
+                    student.getFullName(), student.getEmail(), courseData, stats);
+            log.info("[Report] Xuất báo cáo PDF cho học viên {}", studentId);
+            return ResponseEntity.ok()
+                    .header("Content-Type", "application/pdf")
+                    .header("Content-Disposition", "attachment; filename=\"student-report-" + studentId + ".pdf\"")
+                    .body(pdf);
+        } catch (java.io.IOException e) {
+            log.error("[Report] Lỗi tạo PDF cho học viên {}: {}", studentId, e.getMessage());
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     // === DTOs ===

@@ -1,6 +1,6 @@
 # Frontend Architecture Reference
 
-> **Last Updated**: 2026-02-23 | **Angular**: 20.3 | **Score**: 10/10
+> **Last Updated**: 2026-02-24 | **Angular**: 20.3 | **Score**: 10/10
 
 This document is the **single source of truth** for the LMS frontend architecture.
 Read this instead of re-auditing the codebase.
@@ -13,10 +13,10 @@ Read this instead of re-auditing the codebase.
 |--------|-------|
 | Framework | Angular 20.3+ (standalone, signals) |
 | TypeScript Files | 510 |
-| Components | 237 |
+| Components | 235 |
 | Services (@Injectable) | ~56 |
 | Total TypeScript LOC | ~47,000+ |
-| OnPush Coverage | **237/237 (100%)** |
+| OnPush Coverage | **235/235 (100%)** |
 | Legacy Patterns | **0** (*ngIf, *ngFor, standalone:true, @Input, @Output, @ViewChild) |
 | console.log/warn/debug | **0** in production code |
 | English text in UI | **0** (all Vietnamese) |
@@ -54,7 +54,7 @@ fe/src/app/
 │   ├── teacher/            # 68 components - Course editor, assignments, grading
 │   ├── student/            # 12 components - Learning, enrollments
 │   ├── ai-chat/            # 15 components - AI assistant (full DDD)
-│   ├── learning/           # 13 components - Course learning interface
+│   ├── learning/           # 12 components - Course learning interface
 │   ├── courses/            # 10+ components - Course browsing, categories
 │   ├── assignments/        # 12 components - Student assignment work
 │   ├── auth/               # 4 components - Login, register, forgot-password, reset-password

@@ -98,24 +98,6 @@ export class CourseService {
     return this.createCourseUseCase.createAndPublish(courseData);
   }
 
-  /**
-   * Legacy methods for backward compatibility
-   * TODO: Remove these once all components are updated
-   */
-  getCoursesLegacy(params?: { page?: number; size?: number; category?: string }): Observable<PaginatedResult<Course>> {
-    const filters: CourseFilters = {};
-    if (params?.category) {
-      filters.category = [params.category];
-    }
-
-    const pagination: PaginationOptions = {
-      page: params?.page || 1,
-      limit: params?.size || 10
-    };
-
-    return this.getCourses(filters, undefined, pagination);
-  }
-
   getCourseById(id: CourseId): Observable<Course | null> {
     // This would need a specific use case for getting single course
     // For now, we'll use the repository directly

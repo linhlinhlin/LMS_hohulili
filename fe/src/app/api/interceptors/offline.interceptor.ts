@@ -161,18 +161,30 @@ async function getOfflineFallback(url: string): Promise<any | null> {
     if (path.includes('/enrollments')) {
       const courses = await offlineDb.courses.toArray();
       if (courses.length > 0) {
-        return {
-          success: true,
-          data: courses.map(c => ({
+        // Calculate real progress from local lesson progress data
+        const enrollments = await Promise.all(courses.map(async (c) => {
+          const progressRecords = await offlineDb.progress
+            .where('courseId').equals(c.id)
+            .toArray();
+          const completedLessons = progressRecords.filter(p => p.completedAt != null).length;
+          const totalLessons = c.totalLessons || 1;
+          const progress = totalLessons > 0
+            ? Math.round((completedLessons / totalLessons) * 100)
+            : 0;
+          return {
             courseId: c.id,
             courseTitle: c.title,
             courseThumbnail: c.thumbnailUrl,
-            status: 'in-progress',
-            progress: 0,
+            status: progress >= 100 ? 'completed' : 'in-progress',
+            progress,
             totalLessons: c.totalLessons,
-            completedLessons: 0,
+            completedLessons,
             _offline: true,
-          })),
+          };
+        }));
+        return {
+          success: true,
+          data: enrollments,
           _offline: true,
         };
       }

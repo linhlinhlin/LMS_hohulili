@@ -77,6 +77,10 @@ public interface JpaEnrollmentRepository extends JpaRepository<EnrollmentJpaEnti
     @Query("SELECT e FROM EnrollmentJpaEntity e JOIN FETCH e.learningClass lc WHERE lc.courseId = :courseId")
     List<EnrollmentJpaEntity> findByLearningClass_CourseId(@Param("courseId") UUID courseId);
 
+    // Batch: find all enrollments for multiple courses (1 query instead of N)
+    @Query("SELECT e FROM EnrollmentJpaEntity e JOIN FETCH e.learningClass lc WHERE lc.courseId IN :courseIds")
+    List<EnrollmentJpaEntity> findByLearningClass_CourseIdIn(@Param("courseIds") List<UUID> courseIds);
+
     /**
      * SOTA: Find enrollment by studentId and courseId in ONE query.
      * Eliminates N+1 loop pattern where we iterate classes to find enrollment.

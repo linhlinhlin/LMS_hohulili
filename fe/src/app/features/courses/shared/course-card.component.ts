@@ -173,40 +173,10 @@ export class CourseCardComponent {
     try {
       const success = await this.enrollmentService.enrollInCourse(courseId);
       if (success) {
-        this.handleEnrollmentSuccess(courseId);
+        this.router.navigate(['/student/learn/course', courseId]).catch(() => {});
       }
     } catch (error: any) {
-      // Handle multiple classes case
-      if (error.availableClasses && error.availableClasses.length > 0) {
-        this.showClassPicker(courseId, error.availableClasses);
-      } else {
-        this.toast.error(error.message || 'Không thể đăng ký khóa học. Vui lòng thử lại.');
-      }
-    }
-  }
-
-  private handleEnrollmentSuccess(courseId: string): void {
-    // Enrollment successful - update the course's isEnrolled property
-    // Note: With signal inputs, we can't mutate the input directly
-    // The parent component should handle this state change
-
-    // Navigate to learning page after successful enrollment
-    this.router.navigate(['/student/learn/course', courseId]).catch(error => {
-    });
-  }
-
-  private async showClassPicker(courseId: string, classes: any[]): Promise<void> {
-    // Auto-enroll in the first available class
-    if (classes.length > 0) {
-      const selectedClass = classes[0];
-      try {
-        const success = await this.enrollmentService.enrollInCourse(courseId, selectedClass.id);
-        if (success) {
-          this.handleEnrollmentSuccess(courseId);
-        }
-      } catch (err: any) {
-        this.toast.error(err.message || 'Không thể đăng ký. Vui lòng thử lại.');
-      }
+      this.toast.error(error.message || 'Không thể đăng ký khóa học. Vui lòng thử lại.');
     }
   }
 }

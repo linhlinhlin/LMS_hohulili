@@ -7,12 +7,11 @@ export const QUIZ_ENDPOINTS = {
   // === Quiz CRUD ===
   QUIZZES: '/api/v3/quizzes',
   QUIZ_BY_ID: (id: string) => `/api/v3/quizzes/${id}`,
-  QUIZZES_BY_COURSE: (courseId: string) => `/api/v3/courses/${courseId}/quizzes`,
   QUIZZES_BY_LESSON: (lessonId: string) => `/api/v3/quizzes/lessons/${lessonId}`,
 
   // === Quiz Actions ===
+  DELETE_QUIZ: (id: string) => `/api/v3/quizzes/${id}`,
   PUBLISH_QUIZ: (id: string) => `/api/v3/quizzes/${id}/publish`,
-  ARCHIVE_QUIZ: (id: string) => `/api/v3/quizzes/${id}/archive`,
 
   // === Quiz Questions (by quizId - matches QuizControllerV3) ===
   QUIZ_QUESTIONS: (quizId: string) => `/api/v3/quizzes/${quizId}/questions`,
@@ -27,7 +26,12 @@ export const QUIZ_ENDPOINTS = {
   QUIZ_ATTEMPTS: (quizId: string) => `/api/v3/quizzes/${quizId}/attempts`,
   START_ATTEMPT: (quizId: string) => `/api/v3/quizzes/${quizId}/attempts/start`,
   SUBMIT_ATTEMPT: (attemptId: string) => `/api/v3/quizzes/attempts/${attemptId}/submit`,
+  SAVE_ATTEMPT: (attemptId: string) => `/api/v3/quizzes/attempts/${attemptId}/save`,
   ATTEMPT_RESULT: (attemptId: string) => `/api/v3/quizzes/attempts/${attemptId}`,
+  STUDENT_ATTEMPTS: '/api/v3/quizzes/student/my-attempts',
+
+  // === Manual Grading (Teacher) ===
+  MANUAL_GRADE: (attemptId: string) => `/api/v3/quizzes/attempts/${attemptId}/grade`,
 
   // === Quiz Attempts (Teacher View) ===
   LESSON_ATTEMPTS: (lessonId: string) => `/api/v3/quizzes/lessons/${lessonId}/attempts`,
@@ -37,11 +41,4 @@ export const QUIZ_ENDPOINTS = {
 
   // === Teacher Quiz Management ===
   TEACHER_QUIZZES: '/api/v3/quizzes/teacher/quizzes',
-
-  // === Quiz Assignments ===
-  QUIZ_ASSIGNMENTS: (quizId: string) => `/api/v3/quizzes/${quizId}/assignments`,
-
-  // === Quiz Auto-populate ===
-  AUTO_POPULATE: (lessonId: string) => `/api/v3/quizzes/lessons/${lessonId}/auto-populate-questions`,
-  CREATE_SAMPLE: (lessonId: string) => `/api/v3/quizzes/lessons/${lessonId}/create-sample-questions`,
 } as const;

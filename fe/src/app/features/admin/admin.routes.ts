@@ -94,26 +94,12 @@ export const adminRoutes: Routes = [
         title: 'Cài đặt hệ thống'
       },
 
-      // Reports Routes
-      {
-        path: 'reports',
-        loadComponent: () => import('./presentation/components/admin-analytics.component').then(m => m.AdminAnalyticsComponent),
-        title: 'Báo cáo hệ thống'
-      },
-
-      // Notifications Routes
-      {
-        path: 'notifications',
-        loadComponent: () => import('./presentation/components/admin-analytics.component').then(m => m.AdminAnalyticsComponent),
-        title: 'Thông báo'
-      },
-
-      // Logs Routes - SYSTEM_ADMIN only
+      // Audit Logs Routes - SYSTEM_ADMIN only
       {
         path: 'logs',
-        loadComponent: () => import('./presentation/components/admin-analytics.component').then(m => m.AdminAnalyticsComponent),
+        loadComponent: () => import('./presentation/components/audit-logs.component').then(m => m.AuditLogsComponent),
         canActivate: [systemAdminGuard],
-        title: 'Nhật ký hệ thống'
+        title: 'Nhật ký kiểm toán'
       },
 
       // AI Chat - Trợ lý AI Hàng Hải
@@ -121,14 +107,6 @@ export const adminRoutes: Routes = [
         path: 'ai-chat',
         loadChildren: () => import('../ai-chat/ai-chat.routes').then(m => m.AI_CHAT_ROUTES),
         title: 'Trợ lý AI Hàng Hải'
-      },
-
-      // AI Knowledge Management - SYSTEM_ADMIN only
-      {
-        path: 'ai-knowledge',
-        loadComponent: () => import('./ai-knowledge/ai-knowledge-page.component').then(m => m.AiKnowledgePageComponent),
-        canActivate: [systemAdminGuard],
-        title: 'Quản lý Tri thức AI'
       }
     ]
   }

@@ -43,4 +43,7 @@ public interface AssignmentSubmissionJpaRepository extends JpaRepository<Assignm
 
     @Query("SELECT s.assignmentId, AVG(s.grade) FROM AssignmentSubmissionJpaEntity s WHERE s.assignmentId IN :ids AND s.grade IS NOT NULL GROUP BY s.assignmentId")
     List<Object[]> avgGradeByAssignmentIds(@Param("ids") List<UUID> ids);
+
+    @Query("SELECT s FROM AssignmentSubmissionJpaEntity s WHERE s.assignmentId IN :assignmentIds AND s.studentId = :studentId")
+    List<AssignmentSubmissionJpaEntity> findByAssignmentIdInAndStudentId(@Param("assignmentIds") List<UUID> assignmentIds, @Param("studentId") UUID studentId);
 }

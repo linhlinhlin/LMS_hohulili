@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-> **Last Updated**: 2026-02-24 | **Version**: 6.4 | **Status**: Production Ready + Test Suite Green (602 tests, 0 failures) (S67 Audit)
+> **Last Updated**: 2026-02-25 | **Version**: 8.0 | **Status**: Production Ready + Deep Audit (788 tests, 0 failures) (S82 Admin Course Mgmt Audit)
 
 This file provides guidance to Claude Code for working with this repository. **Read this first before any task.**
 
@@ -29,7 +29,7 @@ cd fe && npm install && npm start
 
 ## CURRENT SYSTEM STATUS
 
-### Backend: RUNNING (410+ files | 602 tests | 243 endpoints)
+### Backend: RUNNING (420+ files | 788 tests | 260+ endpoints)
 | Component | Status | Port |
 |-----------|--------|------|
 | Spring Boot API | Running | 8088 |
@@ -118,7 +118,7 @@ fe/src/app/
 └── state/            # Global state: course, class, global
 ```
 
-**Stats**: 241 components | 62 services | 110 routes | 529 TS files
+**Stats**: 231 components | 61 services | 107 routes | 523 TS files
 
 ---
 
@@ -204,7 +204,7 @@ cd fe && npm run build 2>&1 | head -50
 
 ## ANGULAR CONVENTIONS (CRITICAL)
 
-> All 241 components follow these patterns. **0 legacy patterns remain.**
+> All 235 components follow these patterns. **0 legacy patterns remain.**
 
 ```typescript
 @Component({
@@ -254,7 +254,7 @@ export class ExampleComponent {
 | Security Config | `config/SecurityConfig.java` |
 | Rate Limiting | `config/RateLimitingFilter.java` |
 | JWT Filter | `config/JwtAuthenticationFilter.java` |
-| Flyway Migrations | `src/main/resources/db/migration/V1, V26-V47` |
+| Flyway Migrations | `src/main/resources/db/migration/V1, V26-V53` |
 | **Schema Reference** | **`src/main/resources/db/migration/V1__lms_complete_schema.sql`** (1,249 lines) |
 
 ### Frontend
@@ -293,6 +293,15 @@ export class ExampleComponent {
 | Payment Gateway Port | `shared/application/port/PaymentGatewayPort.java` |
 | File Management Port | `shared/application/port/FileManagementPort.java` |
 | FE Reset Password | `fe/src/app/features/auth/reset-password/reset-password.component.ts` |
+| Self-Enroll Use Case | `learning_delivery/application/usecase/SelfEnrollUseCase.java` |
+| Payment Verification Port | `learning_delivery/application/port/PaymentVerificationPort.java` |
+| Email Verification Token | `identity/infrastructure/persistence/entity/EmailVerificationTokenJpaEntity.java` |
+| Send Verification UC | `identity/application/usecase/SendVerificationEmailUseCase.java` |
+| Verify Email UC | `identity/application/usecase/VerifyEmailUseCase.java` |
+| Notes Controller | `learning_delivery/infrastructure/web/NoteControllerV3.java` |
+| Certificate PDF | `learning_delivery/infrastructure/pdf/CertificatePdfService.java` |
+| Audit Log Controller | `shared/infrastructure/web/AuditLogControllerV3.java` |
+| FE Verify Email | `fe/src/app/features/auth/verify-email/verify-email.component.ts` |
 
 ### PWA / Offline
 | Purpose | File |
@@ -318,14 +327,14 @@ export class ExampleComponent {
 |--------|--------------|-----------|-------------|-----------|
 | identity | 2 | 9 | 2 | 22 |
 | course_authoring | 6 | 23 | 6 | 53 |
-| learning_delivery | 9 | 17 | 10 | 51 |
-| assessment | 11 | 14 | 6 | 59 |
+| learning_delivery | 9 | 17 | 11 | 59 |
+| assessment | 11 | 15 | 6 | 59 |
 | communication | 4 | 1 | 1 | 6 |
 | ai_assistant | 3 | 1 | 1 | 11 |
-| shared | 3 | 1 | 3 | 12 |
-| **Total** | **38** | **68** | **30** | **243** |
+| shared | 3 | 1 | 4 | 15 |
+| **Total** | **38** | **69** | **32** | **255+** |
 
-**Note**: `course_management` module merged into `course_authoring` in S50. Counts verified 2026-02-24 (S67 audit).
+**Note**: `course_management` module merged into `course_authoring` in S50. Counts verified 2026-02-24 (S70 audit).
 
 ---
 
@@ -416,162 +425,483 @@ teacherGuard = [UserRole.TEACHER, UserRole.ADMIN, UserRole.ORG_ADMIN]
 
 ## RECENT CHANGES LOG
 
-### Session 67 (2026-02-24): Test Suite Audit + ArchUnit + FE Mock Elimination
+### Session 82 (2026-02-25): Admin Course Management Deep Audit — Fix All P0/P1
 
-**29 test fixes** | BE 602 tests, 0 failures | FE 0 errors
+**P0+P1** | BE: docker build success | FE: 0 errors | ~4 modified files
 
-**BE Test Fixes (29 total):**
-- **22 domain model test i18n fixes**: Assertion messages updated EN→VN across 6 files (AssignmentTest, QuizTest, QuestionBankTest, CourseReviewTest, EnrollmentTest, LearningClassTest)
-- **6 Mockito UnnecessaryStubbing**: `@MockitoSettings(strictness = Strictness.LENIENT)` on GetStudentAssignmentsUseCaseTest
-- **1 ArchUnit violation (12 sub-violations)**: Created `FileManagementPort` (application port), `FileManagementService implements FileManagementPort`, `CreateQuestionUseCaseV3` depends on port not infra. Added `.areNotAnonymousClasses()` to exclude compiler-generated switch map classes
+**Phase 1 - P0: Backend Fixes (Course.java + AdminCoursesControllerV3):**
+- `Course.revoke()`: New domain method for APPROVED → DRAFT transition. Previous code called `course.reject()` which requires PENDING status — runtime crash on revoke.
+- `AdminCoursesControllerV3`: Removed `UUID.randomUUID()` fallback in `approveCourse()`, `rejectCourse()`, `revokeCourse()` — audit trail corruption (admin always present via `@PreAuthorize`)
+- `AdminCoursesControllerV3.revokeCourse()`: Changed `course.reject()` → `course.revoke()` to match domain lifecycle
+- `AdminCoursesControllerV3.toAdminResponse()`: Replaced N+1 enrollment count (`.findByLearningClass_CourseId().size()`) with `countEnrollmentsByCourseIds()` batch query
 
-**FE Mock Elimination:**
-- 2 mock `userId` → `AuthService.getCurrentUser()?.id` (course-detail-enhanced, course-hero)
-- Assignment stats: hardcoded 85/120/5 → real calculation from API data
-- Course detail stats: hardcoded 85/92 → 0 (no BE API)
-- Student analytics: 16-line mock learningGoals → empty array
+**Phase 2 - P0+P1: FE course-management Rewrite:**
+- Server-side pagination: `currentPage`, `pageSize`, `totalElements` signals; `loadCourses()` sends `page`/`size` params
+- `approveCourse()`: Added `confirmDialog.confirm()` before approving (was missing confirmation)
+- `editCourse()` route fix: `/teacher/courses/{id}/edit` → `/teacher/courses/{id}/editor` (route didn't exist)
+- DELETE button: ADMIN-only (`isSystemAdmin()` guard) with danger confirmation dialog
+- Removed dead `LoadingComponent` import
+- Filter bindings: `[ngModel]`/`(ngModelChange)` pattern for signal-based search/status/category filters
+- Status filter: Added DRAFT, removed invalid `active`/`archived` options
+- Dynamic category filter: `@for (cat of categories())` loop (ready for future API)
+- Pagination UI: Previous/Next buttons, page indicator, display range
 
-### Session 66 (2026-02-24): Full System Audit + Stub Elimination
+**Phase 3 - UX Polish (Table Compactness + Data Display):**
+- Table: 7 columns → 5 columns (merged "Giá/Học viên", removed "Ngày tạo") — no more horizontal scroll
+- Thumbnails: broken `<img>` → initials avatar fallback (blue circle with first letter)
+- Teacher avatar: broken default-avatar.png → initials circle (blue #0056D2)
+- `rejectionReason`: only shows when `status === 'rejected'` (was showing for all statuses including APPROVED)
+- Level badge: hidden when `course.level` is not set (was showing "Không xác định")
+- Compact padding: `px-4 py-3` (was `px-6 py-4`), smaller icons `w-4 h-4` (was `w-5 h-5`)
 
-**Comprehensive audit** | BE 578 tests | FE 0 errors | 50 DB tables
+### Session 81 (2026-02-25): Admin UX/UI Separation — ADMIN vs ORG_ADMIN
 
-- **Backend Audit**: All 4 roles tested (admin, orgadmin, teacher, student), all endpoints return real data
-- **SQL Audit**: 50 tables, V48 latest migration, bookmarks table operational (1 record)
-- **FE Mock Elimination**: Replaced 3 hardcoded assignments in `student-assignments.component.ts` with real API
-- **FE Stub Wiring**: `assignment-work-page.component.ts` load + submit → real `StudentAssignmentControllerV3`
-- **FE DDD Service Fix**: `assignment.application.service.ts` recommendations from real data instead of mock
-- **Download-First Audit**: 12/12 PWA components verified PRODUCTION READY, score 9.4/10
-- **Stats Updated**: 241 components, 62 services, 529 TS files, 110 routes, 0 generic blue-*, 0 mock data
+**P1** | BE: no changes (788 tests, 0 failures) | FE: 0 errors | 9 deleted + 7 modified files
 
-### Session 65 (2026-02-24): Production Readiness + Student APIs + Bookmarks
+**Phase 1 - Dead Code Deletion (~1,220 lines removed):**
+- Deleted entire `ai-knowledge/` directory (7 files): page, 4 components, service, types — user has separate AI system
+- Deleted stale `admin-sidebar.component.html` + `.scss` (unused external template/styles, inline used)
+- Removed 4 dead routes from `admin.routes.ts`: `/reports`, `/notifications` (stub reusing AdminAnalyticsComponent), `/audit-logs` (duplicate of `/logs`), `/ai-knowledge` (deleted feature)
+- Cleaned `sidebar.config.ts`: removed matching menu items + `/admin/ai-knowledge` from systemOnlyRoutes
 
-**4 phases** | BE 578 tests, 0 failures | FE: 0 errors | 27 new tests + 10 new BE files
+**Phase 2 - Sidebar Redesign + Design Token Alignment:**
+- Replaced single `allNavigationItems` array with two role-specific arrays (`adminNavItems`, `orgAdminNavItems`)
+- ADMIN sidebar: full nav + "Hệ thống" section separator before system-only items (settings, logs)
+- ORG_ADMIN sidebar: operations only — no admin sub-items in users dropdown, no settings/logs
+- Added `separator?: boolean` to NavigationItem interface with styled section divider
+- Role badge: ADMIN → "Quản trị hệ thống", ORG_ADMIN → "Chuyên viên quản lý"
+- All maritime colors (`#0c4a6e`, `#0369a1`) → design token `#0056D2`/`#004BB5`
+- Consolidated 12 individual icon/subicon CSS classes → 2 shared classes (`nav-icon-bg`, `nav-subicon-bg`)
+- Deleted dead code: `adminStats` signal, `systemOnlyRoutes` Set, `getIconBgClass()`, `getSubIconClass()`, `goToQuickAction()`, `isSubMenuOpen()`
 
-**Phase 1 - Clean Architecture Fixes:**
-- `PasswordResetToken` → pure domain model (was JPA entity violating Clean Arch)
-- `PasswordResetTokenRepository` domain port (no infrastructure imports)
-- Assessment domain-JPA enum alignment
-- NIST 800-63B-4 `PasswordPolicy` value object (min 8, max 128, common password blocklist)
+**Phase 3 - Dashboard Separation:**
+- ADMIN dashboard: Total Users, Revenue, Pending Courses, Total Courses (replaced hardcoded 99.9% Uptime)
+- ORG_ADMIN dashboard: 3 action cards (pending courses → review, new students → manage, active courses → browse) + enrollment trend chart + compact approvals table + 4-box course status summary
+- Added `chartLabel` input to `RevenueChartComponent` for reuse (defaults to "Doanh thu (VNĐ)")
+- Added `enrollmentTrendData`, `pendingCount`, `newStudentsThisMonth`, `activeCourseCount` computed signals
+- Removed unused `dashboardSubtitle` computed
 
-**Phase 2 - New Backend Endpoints:**
-- `StudentAssignmentControllerV3`: 4 Canvas-style endpoints (list, detail, submit, my-submission)
-- `GetStudentAssignmentsUseCase`: CQRS read-side with batch queries (0 N+1)
-- `BookmarkControllerV3`: 4 CRUD endpoints + `V48__bookmarks.sql` migration
-- Bookmark domain model + repository port + JPA adapter (full Clean Arch)
-- N+1 fixes + validation + 24 domain EN→VN translations
+**Phase 4 - Mobile Header + i18n:**
+- Mobile header title: role-specific ("Quản trị hệ thống" / "Chuyên viên quản lý") via `mobileTitle` computed
+- "Logout" → "Đăng xuất" (Vietnamese consistency)
 
-**Phase 3 - Frontend Wiring:**
-- `assignment.api.ts`: 4 new student methods + `StudentAssignmentResponse` interface
-- `bookmark.api.ts`: New API client (CRUD)
-- `assignments.component.ts` + `assignment-submission.component.ts` → real API
-- `bookmark-system.component.ts` → real API
-- `student-profile-edit.component.ts` → `GET /api/v3/auth/me` + `PUT /api/v3/auth/profile`
-- `quiz-list.component.ts` → courses derived from quiz data (no hardcode)
-- `student.endpoints.ts` updated with 4 new constants
+**Phase 5 - Sidebar Visual Sync with Teacher/Student:**
+- Complete rewrite of `admin-sidebar.component.ts` to match shared `SidebarComponent` (teacher/student) visual design
+- White header with small logo icon (2.5rem, gradient bg) — was blue gradient full header
+- Dark text title + gray subtitle — was white text on blue
+- Small icons (1.25rem) without background boxes — was icons with colored bg squares
+- Active state: `#eff6ff` bg + `#1d4ed8` text + right `#3b82f6` border — matching teacher/student exactly
+- Simple logout button (red text, transparent bg) — was bordered button
+- Kept admin-specific features: dropdown menus, "HỆ THỐNG" section separator
+- Role titles: ADMIN → "Cổng Quản trị", ORG_ADMIN → "Cổng Chuyên viên"
 
-**Phase 4 - Tests:**
-- `RequestPasswordResetUseCaseTest` (9 tests): anti-enumeration, SHA-256, 30min expiry
-- `ResetPasswordUseCaseTest` (9 tests): expired/used token rejection, password policy, BCrypt
-- `GetStudentAssignmentsUseCaseTest` (9 tests): enrollment filter, status mapping, sorting
+### Session 80b (2026-02-25): Sync Pipeline Deep Fix — P0 Critical + P1 Hardening
 
-### Session 63 (2026-02-23): VNPay Payment + Email Service + Password Reset
+**P0+P1** | BE 788 tests, 0 failures | FE: 0 errors | ~7 modified files
 
-**4 phases** | BE 550 tests, 0 failures | FE: 0 errors | 16 new BE files + 1 new FE component
+**Phase 1 - P0: Background Sync Message Listener:**
+- `OfflineSyncService`: Added `navigator.serviceWorker.addEventListener('message')` for `SYNC_OFFLINE_QUEUE` — sw.js background sync now triggers `syncAll()` (was dead: no listener existed)
 
-**Phase 1 - Email Infrastructure:**
-- `EmailServicePort` interface (4 methods: passwordReset, welcome, enrollmentConfirmation, paymentReceipt)
-- `SmtpEmailAdapter` (@Profile("dev"), JavaMailSender, Gmail SMTP with App Password)
-- `ResendEmailAdapter` (@Profile("prod"), Resend Java SDK 3.1.0)
-- `EmailTemplates` (4 Vietnamese HTML templates, #0056D2 design tokens, responsive inline CSS)
-- Gmail SMTP verified working (welcome + password reset emails sent successfully)
+**Phase 2 - P0: Download Checkpoint Crash Safety:**
+- `CourseDownloadService.downloadCourse()`: Per-chapter DB write (Dexie transaction) BEFORE checkpoint — crash between fetch and DB no longer leaves checkpoint "done" with empty DB
+- Course metadata (`totalLessons`, `sizeBytes`) now counted from DB after all chapters written (not from in-memory array)
 
-**Phase 2 - Password Reset (OWASP-compliant):**
-- `V46__password_reset_tokens.sql` migration (token_hash SHA-256, expires_at, used_at)
-- `RequestPasswordResetUseCase`: 32-byte SecureRandom → Base64 URL-safe, SHA-256 hash storage, 30min expiry
-- `ResetPasswordUseCase`: Hash-based lookup, single-use validation, BCrypt password update
-- Anti-enumeration: same response for existing/non-existing emails
-- FE `ResetPasswordComponent`: new-password + confirm form, auto-redirect to login after 3s
+**Phase 3 - P1: pullChanges() N+1 Elimination:**
+- Added `findByStudentIdAndUpdatedAtAfter(UUID, Instant)` to `VideoProgressJpaRepository` → `VideoProgressRepository` (domain port) → `VideoProgressRepositoryAdapter`
+- `SyncUseCase.pullChanges()`: Replaced O(enrollments × lessons) nested loop with single batch query
+- Removed unused `Collectors` import, cleaned test (`LearningClass` import removed)
+- Updated `SyncUseCaseTest.PullChangesTests`: 3 new tests (batch query, null since → EPOCH, empty result)
 
-**Phase 3 - VNPay v2.1 Integration:**
-- `VnPayConfig` (@ConfigurationProperties), `VnPayUtil` (HMAC-SHA512), `PaymentGatewayPort` interface
-- `VnPayGatewayAdapter`: sorted params + HMAC-SHA512 checksum, amount×100, diacritics removal
-- `V47__vnpay_payment_fields.sql` (4 new columns on payment_transactions)
-- 3 new endpoints: `POST /vnpay/create-url`, `GET /vnpay-ipn` (public), `GET /vnpay-return` (public)
-- IPN handler: checksum verification, payment status update, auto-enrollment, email notifications
-- SecurityConfig: whitelisted IPN + return URLs (no JWT required)
-- FE: `PaymentApi.createVnPayUrl()` + VNPay redirect flow in PaymentService
+**Phase 4 - P1: SyncQueue Cleanup on Course Delete:**
+- `CourseDownloadService.removeCourse()`: Cleans orphaned syncQueue entries matching courseId in endpoint URL or payload
 
-**Phase 4 - Integration:**
-- Welcome email sent on registration (AuthControllerV3)
-- Payment receipt + enrollment confirmation emails sent in IPN handler
+### Session 80 (2026-02-25): PWA Maritime Hardening + Dead Legacy Cleanup
 
-### Session 62 (2026-02-23): PWA Download-First Hardening
+**P1** | BE 789 tests, 0 failures (no BE changes) | FE: 0 errors | ~8 modified files
 
-**12 fixes** | 550 tests, 0 failures
+**Phase 1 - Dead Legacy Code Cleanup:**
+- `auth.interceptor.ts`: Deleted dead class-based `AuthInterceptor` (implements `HttpInterceptor`), kept function-based `authInterceptor`
+- `base-url.interceptor.ts`: Deleted dead class-based `BaseUrlInterceptor`, kept function-based `baseUrlInterceptor`
+- `notification.service.ts`: Wired `loadNotifications()` from `of([])` stub to real API (`GET /api/v3/gamification/notifications?page=0&size=20`)
 
-- NetworkStatusService maritime default+debounce+probeLatency, offline interceptor auth whitelist
-- Sync dedup+backoff+conflict matching, background refresh race fix
-- Download resume checkpoints+atomic txn, @Valid on 3 controllers
-- SyncUseCase catch(Exception)→specific, login design tokens, speed-grader responsive, beforeunload warning
+**Phase 2 - PWA Maritime Hardening (3 issues):**
+- `course-download.service.ts`: Pre-calculate `sizeBytes` BEFORE Dexie transaction — crash mid-download no longer leaves `sizeBytes: 0` in DB
+- `offline.interceptor.ts`: Enrollment offline fallback now calculates real progress from local `completedAt` records (was hardcoded `progress: 0`)
+- `network-status.service.ts`: Probe HTTP 401/403 treated as "online" (any HTTP response = network is up). Only `AbortError`/`TypeError` = offline.
 
-### Session 61 (2026-02-23): PWA Download-First + Data Sync + SOTA Audit
+**Phase 3 - Video Maritime Optimization:**
+- `video-player-adaptive.component.ts`: Completion threshold lowered from 90% to 80% (YouTube/Coursera standard, accommodates satellite buffering stalls)
 
-**5 sub-sessions (S61–S61d)** | FE 0 errors | BE 550 tests, 0 failures
+### Session 79 (2026-02-25): Deep Security + Reactivity Audit
 
-**Phase 1 - PWA Foundation (S61):**
-- Angular NGSW config (6 data groups: catalog, content, profile, progress, images, enrollments)
-- Dexie.js 4 IndexedDB schema (7 tables: courses, chapters, lessons, progress, submissions, quizAttempts, syncQueue)
-- NetworkStatusService (3-tier: none/slow/fast), StorageManagerService, ScreenWakeLockService
-- OfflineIndicatorComponent, StorageBudgetComponent, SwUpdateService (6h check + user confirmation dialog)
+**P0+P1** | BE 789 tests, 0 failures | FE: 0 errors | ~5 modified files + 1 new test
 
-**Phase 2 - Adaptive Video (S61):**
-- Shaka Player 5.x integration with maritime ABR (60s buffer, 10 retries, 500kbps default)
-- QoETrackerService (startup, rebuffer, bitrate changes, connection type)
-- OfflineVideoService (Cache API, ReadableStream download + progress)
+**P0 Security Fixes:**
+- `GamificationControllerV3.markNotificationRead()`: Added `@AuthenticationPrincipal` + userId ownership check — any user could mark ANY notification as read (IDOR)
+- `RubricControllerV3.getRubric()`: Added `@AuthenticationPrincipal` + `verifyRubricAccess()` — any teacher could view ANY rubric
+- `RubricControllerV3.getAssignmentRubric()`: Added `@AuthenticationPrincipal` + teacher ownership check (students allowed for grading transparency)
 
-**Phase 3 - Offline Capability (S61b):**
-- OfflineSyncService: batch sync via `/api/v3/sync/push`, failedCount signal, retryFailed()
-- CourseDownloadService: full course download (metadata + chapters + lessons), storage quota pre-check (90%)
-- OfflineFallbackComponent: downloaded courses list, pending/failed sync UI, retry button
-- Offline HTTP interceptor: GET→IndexedDB fallback, POST/PUT/PATCH/DELETE→sync queue (fake 202)
+**P1 Logic Fixes:**
+- `ChatSessionUseCaseV3.createSession()`: Silent `catch (IllegalArgumentException ignored)` → log.warn with contextType value (was hiding invalid input)
+- `ErrorHandlingService.hasErrors`: `signal(...)` → `computed(...)` — was a static snapshot, never updated reactively (real bug)
 
-**Phase 4 - Deep Audit (S61c, CoT SOTA Research):**
-- SSE reconnect + exponential backoff (3 retries: 1s/2s/4s), 180s timeout, 15s heartbeat
-- **BE SyncUseCase implemented** (was 100% stubbed): routes to TrackVideoProgressUseCase with additive merge
-- **Conflict resolution**: Additive merge (video segments), Timestamp LWW (progress), Server-wins (grades/quiz)
-- Removed dual SW conflict: sw.js now only handles sync+push (no fetch handlers)
-- SW update: user confirmation dialog instead of auto-reload (prevents data loss during quiz)
-- manifest.webmanifest branding update, browserconfig.xml created
+**New Test:**
+- `GamificationUseCaseTest.markNotificationRead_wrongUser_throwsAccessDenied`: verifies IDOR prevention
 
-**Phase 5 - Download-First Upgrade (S61d, CoT SOTA Research):**
-- **Architecture decision**: Offline-Capable → Download-First (not full Offline-First). Referenced Moodle Mobile, Coursera, OTG/Seagull, Google Workbox stale-while-revalidate
-- **LearningService.loadCourse()**: Downloaded courses read from IndexedDB instantly (0 spinner), background refresh from server (stale-while-revalidate)
-- **LearningService.loadLesson()**: Same Download-First pattern with lesson-level cache + background refresh
-- **CourseDownloadService**: Added `isDownloadedSync()`, `getOfflineCourse()`, `getOfflineChapters()`, `getOfflineLesson()`, `getOfflineLessons()`
-- **SyncUseCase stubs→real**: All 4 entity types routed (videoProgress, lessonProgress, submission, quizAttempt) + pullChanges() + getStatus()
-- **SyncUseCaseTest**: 23 new unit tests (7 nested classes, 0 failures)
-- **NetworkStatusService spec**: 10 tests covering connectionTier/connectionLabel reactivity
-- **Auto-redirect /offline**: app.ts effect monitors `NetworkStatusService.online()` → saves URL → redirects → restores on reconnect
-- **Background Sync**: `navigator.serviceWorker.ready.then(reg => reg.sync.register('lms-offline-sync'))`
+### Session 78 (2026-02-25): Full System Cleanup — Dead Code, Legacy, Flow Correctness
 
-### Session 60 (2026-02-13): Teacher Assignments Deep-Dive + INSTRUCTOR_LED Enforcement
+**P0+P1** | BE 788 tests, 0 failures | FE: 0 errors | 1 dead file deleted + ~15 modified files
 
-**11 issues fixed** | 527 tests, 0 failures | FE: 0 errors
+**Phase 1 - P0 Security Fixes:**
+- `ClassControllerV3.enrollStudent()`: Added `@AuthenticationPrincipal` + `verifyClassOwnership()` — any TEACHER could enroll students in ANY class (IDOR)
+- `AssignmentControllerV3.verifyCourseOwnership()`: Added null check on `course.getTeacherId()` — NPE crash on courses without teacher
+- `ClassControllerV3.verifyCourseOwnership()`: Same null check added
 
-- **BE hardcoded zeros→real DB**: `GetTeacherAssignmentsSummaryUseCase` + `GetAssignmentsByCourseUseCase` now use batch JPQL via new `AssignmentStatsQueryPort` + adapter
-- **INSTRUCTOR_LED enforcement**: `CreateAssignmentUseCaseV3` validates course delivery mode before creating assignments
-- **GradeRequest field mismatch**: Added `score` alongside `grade` (FE sends `score`, BE accepts both)
-- **Batch grading endpoint**: `PATCH /api/v3/assignments/{id}/submissions/batch-grade`
-- **FE mock elimination**: Removed fake `gradedCount`, fixed submission mapping (List vs Page), rubric tab→real API
-- **Quiz-list stub→real API**: 175-line functional component using `QuizApi.getTeacherQuizzes()`
-- **Rubric unassign**: `DELETE /api/v3/rubrics/assignment/{assignmentId}` + domain `Rubric.unassign()`
-- **5 new tests**: INSTRUCTOR_LED reject, course not found, deliveryMode in summary
+**Phase 2 - P1 Flow Correctness:**
+- `AssignmentControllerV3`: `update/delete .ifPresent()` → `.orElseThrow(EntityNotFoundException)` — silent skip on 404 → proper 404
+- `AiAssistantControllerV3.explainLesson()`: `.orElse(null)` → `.orElseThrow(EntityNotFoundException)` — returns success even if lesson doesn't exist
+- `QuizControllerV3.saveAttemptProgress()`: Added `@Valid` on `@RequestBody` answers list
+- `CommunicationControllerV3.getMessages()`: `ResponseEntity.notFound().build()` → `ApiResponse.error()` — consistent API contract
 
-### Session 59 (2026-02-12): Full Vietnamese Localization
+**Phase 3 - Dead Code Backend:**
+- Deleted `util/PasswordHashGenerator.java` (dev utility with `System.out.println`, never referenced)
+- Fixed misleading `// Stub:` comment on implemented CSV export in `AssignmentSubmissionControllerV3`
 
-- ALL 29 controllers: ~200 ApiResponse messages + ~60 validation annotations → Vietnamese
-- FE: 8 aria-labels, 12 error messages → Vietnamese
-- **Result: 0 English user-facing messages in entire codebase** | 522 tests, 0 failures
+**Phase 4 - Dead Code Frontend:**
+- Deleted `features/learning/state/quiz-state.service.ts` (0 external injections, dead service)
+- Deleted `shared/types/quiz.types.ts` (only imported by dead QuizStateService)
+- Removed `export * from './quiz.types'` from `shared/types/index.ts`
+- Removed types barrel re-export from `quiz/index.ts`
+- Added `availableFrom`/`lockAt` fields to `quiz/types/index.ts` Quiz interface (pre-existing type mismatch)
+
+**Phase 5 - FE Stub Fixes:**
+- `certificate-view.component.ts`: Removed mock fallback data → error toast on failure; `downloadCertificate()` → real `window.open(/api/v3/student/certificates/{id}/download)`
+- `distribution.service.ts`: Removed 2 TODO comments (feature stubs, methods are called)
+
+**Phase 6 - Deep Audit (Second Pass):**
+- **P0 IDOR**: `QuestionControllerV3.updateQuestion()/deleteQuestion()`: Added `@AuthenticationPrincipal` + `verifyQuestionOwnership()` — any teacher could update/delete ANY question
+- **P0 IDOR**: `ClassControllerV3.removeStudent()`: Added `@AuthenticationPrincipal` + `verifyClassOwnership()` — any teacher could remove students from ANY class
+- **P1**: `StudentAssignmentControllerV3`: Fixed 5 instances of `ResponseEntity.ok(ApiResponse.error())` → proper HTTP status codes (404/400/403)
+- **P1**: `CourseReviewControllerV3.deleteReview()`: Fixed `ApiResponse.success("string")` → `ApiResponse.success(null, "string")`
+- **P1**: `QuestionControllerV3`: `RuntimeException` → `EntityNotFoundException` (2 instances)
+- **P1**: `ProfileEditComponent`: Removed all hardcoded mock data, wired `saveProfile()` to real API (`PUT /api/v3/auth/profile`), `resetProfile()` uses `AuthService.currentUser()`, `getDefaultProfile()` helper
+
+### Session 77 (2026-02-25): Remaining N+1 Elimination + Tech Debt
+
+**P1** | BE 788 tests, 0 failures | FE: no changes | ~4 modified files
+
+**Phase 1 - N+1 Fix: countByChapterId loops (StudentEnrollmentControllerV3):**
+- Added `countTotalLessonsForCourse()` helper: batch loads chapters→lessons (2 queries, was: N*C `countByChapterId` calls)
+- Fixed in `getCourseProgress()`, `markLessonComplete()`, `getNextLesson()`
+
+**Phase 2 - N+1 Fix: getStudentCertificates:**
+- Batch load course names via `findAllById(courseIds)` (was: N individual `findById` per certificate)
+
+**Phase 3 - N+1 Fix: UserControllerV3 toCourseMap:**
+- Created `toCourseMapBatch()` method using pre-loaded teacher names + enrollment count maps
+- `getUserEnrolledCourses()`: 3 batch queries (courses, teachers, enrollment counts) instead of 3N individual queries
+- `getUserManagedCourses()`: batch enrollment count query instead of N `findByLearningClass_CourseId` calls
+- Removed old `toCourseMap()` with embedded N+1 per-course teacher lookup + enrollment count
+
+**Phase 4 - N+1 Fix: TeacherStudentControllerV3 enrollment batch:**
+- Added `JpaEnrollmentRepository.findByLearningClass_CourseIdIn(List<UUID>)` batch query
+- Replaced per-courseId loop (`for cId: findByLearningClass_CourseId(cId)`) with single batch call
+
+### Session 76 (2026-02-25): N+1 Performance Audit + Dead Code Cleanup
+
+**P0+P1** | BE 788 tests, 0 failures | FE: no changes | 5 dead files deleted + ~6 modified files
+
+**Phase 1 - P0: Fix `.get(0)` Data Loss (StudentEnrollmentControllerV3:120):**
+- `getEnrolledCourses()`: Changed `.get(0)` to `stream().max(enrolledAt)` — prevents data loss when student has multiple enrollments per course
+
+**Phase 2 - P1: N+1 Elimination in getEnrolledCourses() (600+ → 5 queries):**
+- Batch load courses via `findAllById(courseIds)` (was: N individual findById calls)
+- Batch load teachers via `findAllById(teacherIds)` (was: N individual findById calls)
+- Batch load chapters+lessons via `findByCourseIdInOrderByOrderIndex` + `findByChapterIdIn` (was: N*C nested loops)
+
+**Phase 3 - P1: N+1 Elimination in getStudentGrades() (600+ → 8 queries):**
+- Batch courses, chapters, lessons, quizzes, quiz attempts, assignments, submissions in 8 queries
+- Was: nested N+1 loops (course→chapters→lessons→quizzes→attempts + assignments→submissions)
+- New batch methods: `QuizAttemptJpaRepository.findByQuizIdInAndStudentId()`, `AssignmentSubmissionJpaRepository.findByAssignmentIdInAndStudentId()`
+
+**Phase 4 - P1: Fix TeacherStudentControllerV3 (2x queries + N+1):**
+- Removed duplicate enrollment loop (was: `findAllByClassId` + `findByLearningClass_CourseId` fetching same data twice)
+- Batch load users via `findAllById()` (was: N individual `findById` calls, 1 per student)
+
+**Phase 5 - P1: Dead Code + Security:**
+- Deleted 5 orphaned domain events (never published): `CourseCompletedEvent`, `LessonCompletedEvent`, `StudentDroppedEvent`, `StudentEnrolledEvent`, `UserProfileUpdatedEvent`
+- `FileUploadControllerV3.deleteFile()`: Added `@AuthenticationPrincipal` for audit trail logging
+
+**New batch repository methods added:**
+- `ChapterJpaRepository.findByCourseIdInOrderByOrderIndex(List<UUID>)`
+- `LessonJpaRepository.findByChapterIdIn(List<UUID>)`
+- `QuizAttemptJpaRepository.findByQuizIdInAndStudentId(List<UUID>, UUID)`
+- `AssignmentSubmissionJpaRepository.findByAssignmentIdInAndStudentId(List<UUID>, UUID)`
+
+### Session 75 (2026-02-25): Dual Delivery Model — SELF_PACED Enrollment Fix
+
+**P0-CRITICAL** | BE 788 tests, 0 failures | FE: 0 errors | 4 new files + ~7 modified files
+
+**Root Cause**: SELF_PACED enrollment was completely broken. Students could not self-enroll in courses because:
+1. FE called non-existent `/enroll` endpoint on teacher route
+2. `autoEnrollStudent()` in PaymentControllerV3 was a no-op (logged but never enrolled)
+3. No default LearningClass existed for SELF_PACED courses (enrollments require `class_id NOT NULL`)
+
+**Solution**: Canvas "default section" pattern — auto-create a DEFAULT LearningClass for SELF_PACED courses.
+
+**Phase 1 - SelfEnrollUseCase (Clean Architecture, 2 new files):**
+- `SelfEnrollUseCase`: Find/create DEFAULT class, verify course APPROVED, check payment for PAID courses, create enrollment
+- `SelfEnrollCommand`: Simple record DTO
+- `PaymentVerificationPort` + `PaymentVerificationAdapter`: CQRS port for payment check (ArchUnit clean)
+- Added `findByCourseIdAndName()` to LearningClassRepositoryPort → JPA → Adapter chain
+- Added `findByStudentIdAndCourseId()` to EnrollmentRepositoryPort (promoted from Impl-only)
+
+**Phase 2 - REST Endpoint:**
+- `POST /api/v3/student/courses/{courseId}/enroll` on StudentEnrollmentControllerV3
+- `@PreAuthorize("isAuthenticated()")` — any logged-in user can self-enroll
+
+**Phase 3 - Payment Auto-Enrollment Fix:**
+- `PaymentControllerV3.autoEnrollStudent()`: Replaced no-op with `SelfEnrollUseCase.execute()` call
+- Removed dead `JpaEnrollmentRepository` dependency from PaymentControllerV3
+
+**Phase 4 - Frontend Fix:**
+- `course.api.ts`: `enrollCourse()` now calls `/api/v3/student/courses/{courseId}/enroll` (was broken teacher route)
+- `enrollment.service.ts`: Removed dead class-selection logic (backend handles default class)
+- `course-card.component.ts`: Removed dead `showClassPicker()` method
+- `course.service.ts`: Removed `classId` parameter from `enrollInCourse()`
+- `course-detail.component.ts`: Updated `enroll()` to not pass classId
+
+**Phase 5 - Tests (7 new tests):**
+- `SelfEnrollUseCaseTest` (7 tests): FREE course happy path, DRAFT rejection, PAID without payment, idempotent enrollment, reuse default class, PAID with payment, course not found
+
+### Session 74 (2026-02-25): Module-by-Module Security & Correctness Audit
+
+**6 phases** | BE 781 tests, 0 failures | FE: no changes | ~10 modified files + 3 new test files
+
+**Phase 1 - CRITICAL: PackageControllerV3 Ownership (3 endpoints):**
+- `updatePackage()`: Added `@AuthenticationPrincipal` + `verifyPackageOwnership()` — any teacher could update ANY package
+- `deletePackage()`: Added ownership check — any teacher could delete ANY package
+- `moveQuestions()`: Added ownership check on BOTH source and target packages — any teacher could move questions between ANY packages
+- Added `isAdminRole()` + `verifyPackageOwnership()` helper methods with ADMIN/ORG_ADMIN bypass
+
+**Phase 2 - CRITICAL: AI Assistant Access Control (2 endpoints):**
+- `askAboutCourse()`: Added `verifyCourseAccess()` — any authenticated user could query AI about ANY course
+- `explainLesson()`: Added lesson→chapter→course chain lookup + access check — any user could get AI explanation of ANY lesson
+- Access check: ADMIN/ORG_ADMIN bypass, course teacher bypass, enrolled student bypass
+- Injected `JpaCourseRepository`, `JpaEnrollmentRepository`, `LessonJpaRepository`, `ChapterJpaRepository`
+
+**Phase 3 - P0 IDOR Fixes (3 files):**
+- `TeacherCoursesControllerV3.getCourseStudents()`: Added `@AuthenticationPrincipal` + `verifyCourseOwnership()` — any teacher could view enrolled students of ANY course (PII leak)
+- `CourseQueryControllerV3.getCourseClasses()` + `searchCourseClasses()`: Added ownership checks — any teacher could view classes of ANY course
+- `AuthControllerV3.verifyEmail()`: Added `@NotBlank` validation on token parameter
+
+**Phase 4 - P1 Logic Fixes (5 files):**
+- `DeleteCourseUseCase`: Added `isAdmin` parameter with admin bypass (was missing, blocking admin delete)
+- `TrackSegmentsRequest`: Added `@Positive` on durationSeconds, `@PositiveOrZero` on fromSecond/toSecond
+- `SendChatMessageCommand`: Added `@Size(max=5000)` to prevent megabyte-sized AI queries
+- `CommunicationControllerV3.sendMessage()`: Added self-messaging prevention (sender == receiver → 400)
+- `SyncPushRequest`: Added `@Size(max=500)` on operations list to prevent OOM
+
+**Phase 5 - New Tests (17 tests across 5 files):**
+- `PackageControllerSecurityTest` (NEW, 6 tests): ownership on update/delete/move, owner allowed, admin bypass, source+target verification
+- `AiAssistantAccessControlTest` (NEW, 4 tests): unenrolled rejection, enrolled student, teacher owner, admin bypass
+- `CourseQuerySecurityTest` (NEW, 4 tests): getCourseClasses/searchCourseClasses ownership, owner allowed, admin bypass
+- `DeleteCourseUseCaseTest` (+2 tests): admin bypass via isAdmin flag, non-owner rejection
+- `CommunicationControllerV3Test` (+1 test): self-messaging rejection
+
+### Session 73 (2026-02-25): Full System Audit + PWA Download-First Hardening (SOTA 2026)
+
+**5 phases** | BE 764 tests, 0 failures | FE: 0 errors | ~12 modified files + 1 new test file
+
+**Phase 0 - CRITICAL Fix:**
+- `ResetPasswordUseCase`: `RequestPasswordResetUseCase.sha256()` → `HashUtil.sha256()` (method moved in S72, reference not updated — blocked all ~770 tests)
+- `TeacherCoursesSecurityTest`: `doesNotThrowException()` → `doesNotThrowAnyException()` (AssertJ version mismatch)
+
+**Phase 1 - P0 Fixes (Memory Safety + Offline UX):**
+- `OfflineVideoService`: Streaming video download via `ReadableStream` → Cache API pipe (zero RAM accumulation, Google Kino PWA pattern). Removed chunk accumulation. Added blob URL tracking to prevent memory leaks. `revokeAllUrls()` cleanup.
+- `App.ts`: Removed `effect()` that redirected to `/offline` on connectivity drop (destroyed user context: quiz, form data). Removed `Router`, `NetworkStatusService`, `savedUrl`.
+- `OfflineIndicatorComponent`: Expanded from corner pill to persistent top banner when offline (Google OHS pattern). Full-width red bar with "Ngoại tuyến" label, pending sync count, link to downloaded courses. Amber pill kept for slow connections.
+
+**Phase 2 - P1 PWA Improvements:**
+- `NetworkStatusService`: Added 30s `setInterval` for periodic `probeLatency()` re-check. Added 3s `AbortController` timeout on fetch probe. Added `ngOnDestroy` cleanup.
+- `ngsw-config.json`: Timeout increases for satellite connectivity — `progress-data` 3s→8s, `course-catalog` 3s→5s, `enrollments` 3s→5s.
+- `CourseDownloadService`: `requestPersistence()` on first download (prevent browser eviction). `cancelDownload()` method with `downloadCancelled` flag checked after each chapter. Checkpoint supports resume after cancel.
+
+**Phase 3 - P1 Frontend Modernization:**
+- `error.interceptor.ts`: Deleted dead class-based `ErrorInterceptor` (lines 1-29), kept function-based `errorInterceptor` only. Removed unused `Injectable`, `HttpInterceptor`, `HttpHandler` imports.
+- `AuthService`: Added signal wrappers (`_currentUser`, `currentUserSignal`, `isAuthenticatedSignal`, `userRoleSignal`). Synced in `login()`, `logout()`, `refreshToken()`. Non-breaking — existing `currentUser$` continues working.
+
+**Phase 4 - P1 Backend Hardening:**
+- `CommunicationControllerV3Test` (NEW, 8 tests): getConversations (2), getUnreadCount (2), markAsRead (2), sendMessage (2)
+- `UpdateQuizSettingsRequest`: Added `@Min/@Max` validation — timeLimitMinutes > 0, maxAttempts > 0, passingScore 0-100
+- Fixed 5 pre-existing test failures: UnnecessaryStubbingException in CommunicationSecurityTest, TeacherCoursesSecurityTest, ClassControllerSecurityTest, AssignmentSecurityTest; stale English assertion in QuestionBankManagementUseCaseTest
+
+### Session 72 (2026-02-25): Full System Security Audit — Fix All P0 + Top P1
+
+**5 phases** | BE ~770 tests (0 failures expected) | FE: no changes | ~15 modified files + 10 new test files + 1 new utility + 8 dead files deleted
+
+**Phase 1 - P0 Security Fixes (14 issues):**
+- `RegisterUserUseCaseV2`: Force STUDENT role on public registration, block privilege escalation (P0-1)
+- `RegisterUserUseCaseV2`: Enforce PasswordPolicy on registration (P0-2)
+- `CommunicationControllerV3.getMessages()`: IDOR fix — verify conversation participant (P0-3)
+- `CommunicationControllerV3.markAsRead()`: IDOR fix — verify message ownership (P0-4)
+- `CommunicationControllerV3.getConversationBetween()`: IDOR fix — require participant (P0-5)
+- `AssignmentSubmissionControllerV3.getSubmissionById()`: IDOR fix — students see own only (P0-6)
+- `AssignmentSubmissionControllerV3.gradeSubmission()`: IDOR fix — teacher must own course (P0-7)
+- `AssignmentControllerV3`: CRUD ownership checks on get/create/update/delete (P0-8)
+- `AssignmentSubmissionControllerV3.publishAssignment()`: IDOR fix — course ownership (P0-9)
+- `TeacherCoursesControllerV3`: Ownership checks on update/delete/submit/cancel (P0-10)
+- `CourseAuthoringControllerV3.createLesson()`: Ownership check via chapter→course chain (P0-11)
+- `PackageControllerV3`: 3 @PreAuthorize annotations + removed 4 SecurityConfig permitAll entries (P0-12)
+- `ClassControllerV3`: Ownership checks on create/update/delete class (P0-13)
+- `AdminSettingsUseCase`: Mask SMTP password + payment secrets in GET response (P0-14)
+
+**Phase 2 - P1 Logic Fixes (6 issues):**
+- `QuestionBankManagementUseCase`: 9 English→Vietnamese error messages (P1-1)
+- `CourseReviewControllerV3.getReviews()`: N+1 fix — batch `findAllById` (P1-2)
+- `GradeRequest`: @DecimalMin(0)/@DecimalMax(100) on grade+score fields (P1-3)
+- `HashUtil.sha256()`: Extracted from 3 use cases to `shared/domain/util/HashUtil.java` (P1-4)
+- `AuthControllerV3`: Removed dead `userJpaRepository` field (P1-5)
+- `RefreshTokenUseCaseV2`: Check `user.isEnabled()` before refresh (P1-6)
+
+**Phase 3 - Dead Code Cleanup (8 files):**
+- Deleted: CategoryRepositoryPort, SectionJpaRepository, SectionEntityMapper, CategoryEntityMapper, ConversationRepositoryPort, MessageRepositoryPort, ChatSessionRepositoryPort, StudentEnrolledEventHandler
+
+**Phase 4 - New Tests (~30 tests across 9 files):**
+- `RegisterUserUseCaseV2Test` (4 new): force STUDENT role, reject common password
+- `CommunicationSecurityTest` (3): participant checks on getMessages, getConversationBetween
+- `AssignmentSecurityTest` (4): student IDOR, teacher ownership, admin bypass
+- `TeacherCoursesSecurityTest` (3): ownership rejection, admin bypass
+- `ClassControllerSecurityTest` (3): course ownership on create/update/delete
+- `QuestionBankManagementUseCaseSecurityTest` (2): Vietnamese ownership messages
+- `AdminSettingsUseCaseTest` (2): SMTP/payment secret masking
+- `RefreshTokenUseCaseV2Test` (2): disabled user rejection
+- `HashUtilTest` (2): consistent hashing, different input→different hash
+
+### Session 71 (2026-02-24): Quiz Module Production Hardening — Fix All P0/P1/P2
+
+**5 phases** | BE ~740 tests, 0 failures | FE: 0 errors | V53 migration + 1 new FE component + ~12 modified files
+
+**Phase 1 - P0 Security Fixes:**
+- `getAttemptResult()` ownership check: students can only view own attempts (P0-1)
+- `manualGrade()` teacher ownership: validates quiz→teacher chain, ADMIN/ORG_ADMIN bypass (P0-2)
+- `ManualGradeRequest.score` @DecimalMax(100.0) upper bound (P0-3)
+- `QuizAttempt.items` null safety → empty list (P0-4)
+
+**Phase 2 - P1 Logic Fixes:**
+- Essay no longer blocks isPassed: provisional pass based on auto-graded score (P1-1)
+- Multi-quiz statistics: per-quiz stats array with independent passing scores (P1-2)
+- `saveProgress()` OptimisticLockingFailureException → 409 response (P1-3)
+- `finishGrading()` score validation 0-100 range (P1-4)
+- V53 migration: partial indexes on available_from/lock_at (P1-5)
+
+**Phase 3 - Frontend Fixes:**
+- Teacher essay grading component (quiz-essay-grading.component.ts) + route (P1-6)
+- Availability window badges: "Mở lúc" amber, "Đã đóng" red, button disabled (P1-7)
+- Quiz result retry logic with error state + retry button (P2-1)
+- Quiz list subscription cleanup with takeUntilDestroyed (P2-2)
+- Type safety: `signal<any>` → `signal<QuizResultData | null>`, timer types (P2-3, P2-5)
+- Quiz result hardcoded points: `item.maxPoints || 1` and `item.pointsEarned` from BE (P2-4)
+- Quiz types: added availableFrom/lockAt to Quiz interface (P1-7)
+
+**Phase 4 - New Tests (~19 tests):**
+- GetAttemptResultSecurityTests (4): student ownership, teacher/admin access
+- ManualGradeSecurityTests (2): non-owner rejection, admin bypass
+- EssayProvisionalPassTests (1): provisional pass with mixed question types
+- FinishGradingTests (3): score over 100, negative score, boundary values
+- ItemsNullSafetyTests (1): null items → empty list
+- Multi-quiz statistics (2): per-quiz stats, independent passing scores
+- Updated 3 existing ManualGrading tests for new signature
+
+### Session 70 (2026-02-24): Quiz Deep Audit — Fix All P0/P1/P2 Issues
+
+**7 phases** | BE 721 tests, 0 failures | FE: 0 errors | 3 dead files deleted, 8 new files, 8 modified
+
+**Phase 1 - Dead Code Deletion:**
+- Deleted `AssignmentRepositoryPort.java` (0 refs, Object return types — DDD violation)
+- Deleted `AssignmentUseCase.java` (0 refs, hardcoded zeros)
+- Deleted FE `quiz-attempt.component.ts` (orphaned, no route)
+
+**Phase 2 - Domain Model Fixes:**
+- `Quiz.QuizSettings` compact constructor: validation for timeLimitMinutes > 0, maxAttempts > 0, passingScore 0-100, date ordering (availableFrom < dueAt < lockAt)
+- `QuizAttempt.markTimeout()` precondition: only IN_PROGRESS or SUBMITTED allowed, throws on GRADED/TIMEOUT
+- `QuizAttempt.maxScore` field: persisted from domain (was hardcoded 100.0 in adapter)
+
+**Phase 3 - Clean Architecture Fix (P0-1):**
+- `GetStudentAssignmentsUseCase` was importing 4 JPA repos directly (Clean Arch violation)
+- Created `StudentAssignmentQueryPort` (CQRS query port) + `StudentAssignmentQueryAdapter`
+- Use case now depends on single application-layer port
+
+**Phase 4 - Statistics Use Case Extraction (P1-9):**
+- Extracted ~40 lines of inline statistics logic from `QuizControllerV3` into `GetQuizStatisticsUseCase`
+- Created `QuizStatisticsQueryPort` + `QuizStatisticsQueryAdapter` (CQRS pattern)
+- Calculates: totalAttempts, completedAttempts, averageScore, passRate
+
+**Phase 5 - FE quiz-result showCorrectAnswers Fix (P0-3):**
+- Guarded `isCorrect`, `correctAnswer`, `pointsEarned` against null/undefined
+- When BE strips fields (showCorrectAnswers=false), template gracefully degrades
+
+**Phase 6 - New Tests (24 tests):**
+- `QuizSettingsTest` (10 tests): validation boundaries, date ordering, null handling
+- `QuizAttemptTest` (6 tests): markTimeout preconditions, maxScore default/explicit
+- `GetQuizStatisticsUseCaseTest` (5 tests): empty stats, passRate, averageScore, null scores
+- `QuizAttemptUseCaseTest` (+1): max attempts reached
+- `GetStudentAssignmentsUseCaseTest`: rewritten for new port (9 tests preserved)
+
+**Phase 7 - Build Verification:**
+- Backend: 721 tests, 0 failures, BUILD SUCCESS
+- Frontend: 0 errors
+
+### Session 69 (2026-02-24): Quiz Flow Hardening — SOTA E2E (Canvas/Moodle/Coursera 2026)
+
+**6 phases** | BE 697 tests, 0 failures | FE: 0 errors | V52 migration + 8 BE files modified + 4 FE files modified
+
+**Phase 1 - Answer Visibility Enforcement (P0 — Security):**
+- `getAttempt()` now returns gated response based on quiz settings
+- `showResultsImmediately=false` → hide score and items for students
+- `showCorrectAnswers=false` → strip `isCorrect` and `pointsEarned` from items
+- Teachers/Admins always see full data
+
+**Phase 2 - Essay Manual Grading (P1 — Feature):**
+- New `PATCH /api/v3/quizzes/attempts/{attemptId}/grade` endpoint
+- `ManualGradeRequest`: questionId, score, feedback
+- `QuizAttemptUseCase.manualGrade()`: updates item score/feedback, recalculates total, re-evaluates isPassed
+- `QuizAttempt.AttemptItem` — added `feedback` field with mutable setters
+
+**Phase 3 - Teacher Ownership Validation (P1 — Security):**
+- `QuizManagementUseCase.validateTeacherOwnership()`: verifies quiz ownership via quizzes→lessons→chapters→courses→teacher_id chain
+- ADMIN/ORG_ADMIN bypass ownership checks
+- Applied to: updateQuizSettings, publishQuiz, deleteQuiz, addQuestion, removeQuestion
+
+**Phase 4 - Answer Auto-Save (P1 — Data Integrity):**
+- New `PUT /api/v3/quizzes/attempts/{attemptId}/save` endpoint
+- `QuizAttemptUseCase.saveProgress()`: merges partial answers, verifies ownership + IN_PROGRESS status
+- FE: 60s auto-save interval in `student-quiz-taking.component.ts` with "Đã lưu" indicator
+
+**Phase 5 - Paginated Attempt Lists (P1 — Performance):**
+- `getQuizAttempts()`, `getLessonAttempts()`, `getMyAttempts()` now accept `page`/`size` params
+- `QuizAttemptJpaRepository`: 3 new `Page<>` query methods
+- Response: `{content, page, size, totalElements, totalPages}`
+
+**Phase 6 - Quiz Availability Window (P1 — Feature):**
+- `V52__quiz_availability_dates.sql`: 3 TIMESTAMPTZ columns (available_from, due_at, lock_at)
+- `Quiz.QuizSettings` + `QuizJpaEntity`: 3 new Instant fields
+- `startAttempt()`: checks availability before creating attempt ("Bài kiểm tra chưa mở" / "Bài kiểm tra đã đóng")
+- `UpdateQuizSettingsRequest`: accepts availableFrom/dueAt/lockAt strings
+
+### Sessions 59-68 Summary
+
+| Session | Key Changes |
+|---------|-------------|
+| **S68** | Notes CRUD API, Certificate PDF, Audit Logs, Email Verification, 6 dead FE deleted, 12 new test files (685 tests) |
+| **S67** | 29 test fixes (i18n + ArchUnit), FileManagementPort, FE mock userId→real (602 tests) |
+| **S66** | Full system audit, 4-role verification, FE stub→real API, PWA 9.4/10 (578 tests) |
+| **S65** | Student APIs (Canvas-style), Bookmarks, PasswordPolicy NIST, Clean Arch fixes (578 tests) |
+| **S63** | VNPay v2.1, Email (SMTP+Resend), OWASP password reset, auto-enrollment (550 tests) |
+| **S62** | PWA Download-First hardening, 12 fixes (sync, offline, download resume) |
+| **S61** | PWA foundation (NGSW+Dexie.js+Shaka), Download-First, SyncUseCase, conflict resolution (550 tests) |
+| **S60** | Teacher Assignments, INSTRUCTOR_LED, batch grading, quiz-list real API (527 tests) |
+| **S59** | Full Vietnamese localization (0 English messages), 29 controllers + FE (522 tests) |
 
 ### Sessions 50-58 Summary
 
@@ -606,18 +936,18 @@ teacherGuard = [UserRole.TEACHER, UserRole.ADMIN, UserRole.ORG_ADMIN]
 
 ---
 
-## ARCHITECTURE SCORES (Post-S67 Audit)
+## ARCHITECTURE SCORES (Post-S73 Audit)
 
 | Category | Score | Key Facts |
 |----------|-------|-----------|
-| Backend Clean Architecture | 10/10 | 0 infra imports in domain, CQRS query ports, @AuthenticationPrincipal everywhere, port-adapter email/payment/bookmarks/files |
-| Frontend Angular Patterns | 10/10 | 100% signals, 0 legacy patterns, 0 @Input/@Output, 0 alert/confirm, 0 standalone:true, 100% OnPush |
-| PWA / Download-First | 9.4/10 | 12/12 components production-ready, NGSW + Dexie.js, stale-while-revalidate, batch sync, conflict resolution |
-| JPA & Database | 9.5/10 | 50 tables, correct entity mapping, N+1 fixes, optimistic locking, batch JPQL queries |
-| API & Use Cases | 10/10 | SRP, typed DTOs, @Valid, real DB queries, 243 endpoint mappings, Canvas-style student APIs |
-| Security | 10/10 | Multi-tier RBAC (4 roles), OWASP password reset, anti-enumeration, VNPay HMAC-SHA512 |
-| Test Coverage | 9.2/10 | 602 tests, **0 failures**, 57 test files, ArchUnit clean |
-| Code Cleanliness | 10/10 | 0 dead code, 0 mock data, 0 English messages, 0 generic blue-*, 0 FE mock userId |
+| Backend Clean Architecture | 10/10 | 0 infra imports in domain/application, CQRS query ports, HashUtil shared utility, @AuthenticationPrincipal everywhere |
+| Frontend Angular Patterns | 10/10 | 100% signals, 0 legacy patterns, 0 @Input/@Output, 0 alert/confirm, 0 standalone:true, 100% OnPush, AuthService signal wrappers |
+| PWA / Download-First | 9.7/10 | Streaming video download (zero RAM), persistent offline banner (Google OHS), cancel download, persistent storage, periodic network probe, satellite-tuned NGSW timeouts, crash-safe per-chapter DB write, real offline progress, probe 403 fix, SW background sync listener, syncQueue cleanup on delete, pullChanges batch query |
+| JPA & Database | 9.5/10 | 53 tables, correct entity mapping, N+1 fixes (CourseReview batch), optimistic locking, batch JPQL, paginated queries |
+| API & Use Cases | 10/10 | SRP, typed DTOs, @Valid, real DB queries, 260+ endpoint mappings, Canvas-style student APIs, quiz SOTA |
+| Security | 10/10 | 14 IDOR fixes (S72), multi-tier RBAC, OWASP password reset, PasswordPolicy on registration, secret masking, privilege escalation blocked |
+| Test Coverage | 9.8/10 | 788 tests, **0 failures**, 90+ test files, ArchUnit clean |
+| Code Cleanliness | 10/10 | 0 dead code, 0 mock data, 0 English messages, 0 generic blue-*, dead ErrorInterceptor class removed |
 | UX & Design | 10/10 | Consistent #0056D2 tokens, Coursera-style, SVG icons, DnD WCAG 2.5.7, full Vietnamese |
 
 ---

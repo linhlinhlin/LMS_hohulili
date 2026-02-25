@@ -2,9 +2,8 @@ package com.example.lms.shared.infrastructure.web;
 
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
-import com.example.lms.learning_delivery.infrastructure.persistence.EnrollmentRepositoryImpl;
-import com.example.lms.learning_delivery.infrastructure.persistence.JpaEnrollmentRepository;
-import com.example.lms.learning_delivery.infrastructure.persistence.entity.EnrollmentJpaEntity;
+import com.example.lms.learning_delivery.application.dto.SelfEnrollCommand;
+import com.example.lms.learning_delivery.application.usecase.SelfEnrollUseCase;
 import com.example.lms.shared.application.port.EmailServicePort;
 import com.example.lms.shared.application.port.PaymentGatewayPort;
 import com.example.lms.shared.infrastructure.persistence.entity.PaymentTransactionJpaEntity;
@@ -45,7 +44,7 @@ public class PaymentControllerV3 {
     private final PaymentTransactionJpaRepository paymentRepository;
     private final PaymentGatewayPort paymentGateway;
     private final EmailServicePort emailService;
-    private final JpaEnrollmentRepository enrollmentRepository;
+    private final SelfEnrollUseCase selfEnrollUseCase;
     private final UserJpaRepository userRepository;
 
     @Operation(summary = "Checkout - simulate course payment")
@@ -304,21 +303,8 @@ public class PaymentControllerV3 {
 
     private void autoEnrollStudent(UUID studentId, UUID courseId) {
         try {
-            var existingEnrollment = enrollmentRepository.findByStudentIdAndCourseId(studentId, courseId);
-            if (existingEnrollment.isPresent()) {
-                log.info("[VNPay] Student {} already enrolled in course {}", studentId, courseId);
-                return;
-            }
-
-            // Find default learning class for the course
-            var classes = enrollmentRepository.findByLearningClass_CourseId(courseId);
-            if (!classes.isEmpty()) {
-                // Already enrolled via a class
-                log.info("[VNPay] Student already has enrollment in course via class");
-                return;
-            }
-
-            log.info("[VNPay] Auto-enrollment: student {} → course {} (manual enrollment needed - no default class)", studentId, courseId);
+            selfEnrollUseCase.execute(new SelfEnrollCommand(courseId, studentId));
+            log.info("[VNPay] Auto-enrolled student {} in course {}", studentId, courseId);
         } catch (Exception e) {
             log.error("[VNPay] Auto-enrollment failed for student {} course {}: {}", studentId, courseId, e.getMessage());
         }

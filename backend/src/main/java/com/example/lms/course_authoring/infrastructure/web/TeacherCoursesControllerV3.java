@@ -109,28 +109,39 @@ public class TeacherCoursesControllerV3 {
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     public ResponseEntity<ApiResponse<Object>> updateCourse(
             @PathVariable UUID courseId,
-            @Valid @RequestBody CourseDTOs.UpdateCourseRequest request) {
+            @Valid @RequestBody CourseDTOs.UpdateCourseRequest request,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        verifyCourseOwnership(courseId, user);
         courseAuthoringUseCase.updateCourse(courseId, request);
         return ResponseEntity.ok(ApiResponse.success("Cập nhật thành công"));
     }
 
     @DeleteMapping("/{courseId}")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
-    public ResponseEntity<ApiResponse<Object>> deleteCourse(@PathVariable UUID courseId) {
+    public ResponseEntity<ApiResponse<Object>> deleteCourse(
+            @PathVariable UUID courseId,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        verifyCourseOwnership(courseId, user);
         courseAuthoringUseCase.deleteCourse(courseId);
         return ResponseEntity.ok(ApiResponse.success("Xóa thành công"));
     }
 
     @PostMapping("/{courseId}/submit-for-approval")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
-    public ResponseEntity<ApiResponse<Object>> submitForApproval(@PathVariable UUID courseId) {
+    public ResponseEntity<ApiResponse<Object>> submitForApproval(
+            @PathVariable UUID courseId,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        verifyCourseOwnership(courseId, user);
         courseAuthoringUseCase.submitForApproval(courseId);
         return ResponseEntity.ok(ApiResponse.success("Đã gửi yêu cầu phê duyệt"));
     }
 
     @PostMapping("/{courseId}/cancel-approval")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
-    public ResponseEntity<ApiResponse<Object>> cancelApproval(@PathVariable UUID courseId) {
+    public ResponseEntity<ApiResponse<Object>> cancelApproval(
+            @PathVariable UUID courseId,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        verifyCourseOwnership(courseId, user);
         courseAuthoringUseCase.cancelApproval(courseId);
         return ResponseEntity.ok(ApiResponse.success("Đã hủy yêu cầu phê duyệt"));
     }
@@ -145,8 +156,10 @@ public class TeacherCoursesControllerV3 {
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Operation(summary = "Get enrolled students for a course")
     public ResponseEntity<ApiResponse<java.util.List<StudentInfoResponse>>> getCourseStudents(
-            @PathVariable UUID courseId
+            @PathVariable UUID courseId,
+            @AuthenticationPrincipal UserJpaEntity user
     ) {
+        verifyCourseOwnership(courseId, user);
         // Find all enrollments for the course
         var enrollments = enrollmentRepository.findByLearningClass_CourseId(courseId);
 
@@ -162,10 +175,10 @@ public class TeacherCoursesControllerV3 {
                     String fullName = "Unknown";
                     String email = "Unknown";
 
-                    UserJpaEntity user = studentMap.get(e.getStudentId());
-                    if (user != null) {
-                        fullName = user.getFullName();
-                        email = user.getEmail();
+                    UserJpaEntity student = studentMap.get(e.getStudentId());
+                    if (student != null) {
+                        fullName = student.getFullName();
+                        email = student.getEmail();
                     }
 
                     return StudentInfoResponse.builder()
@@ -180,6 +193,22 @@ public class TeacherCoursesControllerV3 {
                 .values().stream().toList();
 
         return ResponseEntity.ok(ApiResponse.success(response, "Danh sách học viên"));
+    }
+
+    // === Ownership Helpers ===
+
+    private boolean isAdminRole(UserJpaEntity user) {
+        return user.getRole() == UserJpaEntity.UserRole.ADMIN
+            || user.getRole() == UserJpaEntity.UserRole.ORG_ADMIN;
+    }
+
+    private void verifyCourseOwnership(UUID courseId, UserJpaEntity user) {
+        if (isAdminRole(user)) return;
+        jpaCourseRepository.findById(courseId).ifPresent(course -> {
+            if (!course.getTeacherId().equals(user.getId())) {
+                throw new org.springframework.security.access.AccessDeniedException("Bạn không sở hữu khóa học này");
+            }
+        });
     }
 
     @lombok.Builder

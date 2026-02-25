@@ -98,8 +98,13 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
   // Timer
   timeRemaining = signal(30 * 60); // 30 minutes default
   timeSpent = signal(0);
-  private timerInterval: any;
+  private timerInterval: ReturnType<typeof setInterval> | null = null;
   private startTime = 0;
+
+  // Auto-save (Moodle SOTA: saves every 60s)
+  private autoSaveInterval: ReturnType<typeof setInterval> | null = null;
+  autoSaveStatus = signal<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  private readonly AUTO_SAVE_INTERVAL_MS = 60_000; // 60 seconds
 
   // Computed for pagination
   totalPages = computed(() => Math.ceil(this.questions().length / this.QUESTIONS_PER_PAGE));
@@ -166,6 +171,7 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.stopTimer();
+    this.stopAutoSave();
   }
 
   async loadQuiz(): Promise<void> {
@@ -194,28 +200,14 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
         });
       }
 
-      // Step 2: Auto-populate quiz if it has no questions
-      if (this.quizId) {
-        try {
-          await firstValueFrom(this.quizApi.autoPopulateQuizQuestions(this.lessonId));
-        } catch {
-          // Continue - quiz might already have questions
-        }
-      }
-
-      // Step 3: Get quiz questions
+      // Step 2: Get quiz questions
       const questionSource = this.quizId || this.lessonId;
       const response = await firstValueFrom(this.quizApi.getQuizQuestions(questionSource));
       let questions = Array.isArray(response) ? response : (response as any).data || [];
 
       if (questions.length === 0) {
-        try {
-          await firstValueFrom(this.quizApi.createSampleQuestions(this.lessonId));
-          return this.loadQuiz();
-        } catch {
-          this.error.set('Bài kiểm tra này chưa có câu hỏi nào.');
-          return;
-        }
+        this.error.set('Bài kiểm tra này chưa có câu hỏi nào.');
+        return;
       }
 
       let mappedQuestions: QuizQuestion[] = questions.map((q: any) => {
@@ -282,6 +274,7 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
       }
 
       this.startTimer();
+      this.startAutoSave();
 
     } catch (err: any) {
       this.error.set(err?.message || 'Không thể tải bài kiểm tra');
@@ -434,6 +427,7 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
     if (this.submitting()) return;
     this.submitting.set(true);
     this.stopTimer();
+    this.stopAutoSave();
 
     // Persist quiz attempt to backend
     if (this.attemptId && this.quizId) {
@@ -514,6 +508,38 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
 
   toggleSidebar() {
     this.sidebarVisible.update(v => !v);
+  }
+
+  // ============ Auto-Save (Moodle SOTA: 60s interval) ============
+
+  startAutoSave() {
+    if (!this.attemptId) return;
+    this.autoSaveInterval = setInterval(() => this.doAutoSave(), this.AUTO_SAVE_INTERVAL_MS);
+  }
+
+  stopAutoSave() {
+    if (this.autoSaveInterval) {
+      clearInterval(this.autoSaveInterval);
+      this.autoSaveInterval = null;
+    }
+  }
+
+  private async doAutoSave() {
+    if (!this.attemptId || this.showResults() || this.submitting()) return;
+    const answersArray = this.buildAnswersForSubmission();
+    if (answersArray.length === 0) return;
+
+    this.autoSaveStatus.set('saving');
+    try {
+      await firstValueFrom(this.quizApi.saveAttemptProgress(this.attemptId, answersArray));
+      this.autoSaveStatus.set('saved');
+      // Reset indicator after 3 seconds
+      setTimeout(() => {
+        if (this.autoSaveStatus() === 'saved') this.autoSaveStatus.set('idle');
+      }, 3000);
+    } catch {
+      this.autoSaveStatus.set('error');
+    }
   }
 
   goBack() {

@@ -15,6 +15,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AdminSettingsUseCase {
 
+    private static final String MASKED = "********";
+
     @Transactional(readOnly = true)
     public SettingsResponse getSettings() {
         return new SettingsResponse(
@@ -25,19 +27,21 @@ public class AdminSettingsUseCase {
                         true,
                         false
                 ),
+                // P0-14: Mask SMTP password in response
                 new EmailSettings(
                         "smtp.gmail.com",
                         587,
                         "",
-                        "",
+                        MASKED,
                         "noreply@maritime.edu",
                         "Maritime LMS"
                 ),
+                // P0-14: Mask payment secrets in response
                 new PaymentSettings(
                         "",
+                        MASKED,
                         "",
-                        "",
-                        "",
+                        MASKED,
                         "VND"
                 ),
                 new SecuritySettings(

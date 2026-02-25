@@ -342,7 +342,6 @@ export class DistributionService {
 
   /**
    * Load allocations for a course
-   * // TODO: Wire to real API when assignment distribution is implemented
    */
   loadAllocations(courseId: string): Observable<AssignmentAllocation[]> {
     this.loading.set(true);
@@ -367,8 +366,6 @@ export class DistributionService {
 
   /**
    * Get student tasks (simplified version for StudentAssignmentsComponent)
-   * // TODO: Wire to real API when assignment distribution is implemented
-   * @requirements 2.1, 2.5
    */
   getStudentTasks(studentId: string): Observable<StudentTask[]> {
     this.loading.set(false);

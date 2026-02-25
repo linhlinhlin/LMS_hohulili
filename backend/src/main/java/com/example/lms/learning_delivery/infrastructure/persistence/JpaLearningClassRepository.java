@@ -35,6 +35,9 @@ public interface JpaLearningClassRepository extends JpaRepository<LearningClassJ
     @Query("SELECT COUNT(lc) FROM LearningClassJpaEntity lc WHERE lc.courseId = :courseId")
     long countByCourseId(@Param("courseId") UUID courseId);
 
+    @Query("SELECT lc FROM LearningClassJpaEntity lc WHERE lc.courseId = :courseId AND lc.name = :name")
+    Optional<LearningClassJpaEntity> findByCourseIdAndName(@Param("courseId") UUID courseId, @Param("name") String name);
+
     @Query("SELECT lc FROM LearningClassJpaEntity lc WHERE lc.courseId = :courseId " +
            "AND (:search IS NULL OR LOWER(lc.name) LIKE LOWER(CONCAT('%', :search, '%')) " +
            "OR LOWER(lc.code) LIKE LOWER(CONCAT('%', :search, '%'))) " +

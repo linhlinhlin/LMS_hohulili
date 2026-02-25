@@ -75,6 +75,8 @@ public class QuizAttemptRepositoryAdapter implements QuizAttemptRepository {
         }
         entity.setStatus(QuizAttemptJpaEntity.AttemptStatus.valueOf(domain.getStatus().name()));
         entity.setScore(domain.getScore());
+        entity.setMaxScore(domain.getMaxScore());
+        entity.setIsPassed(domain.getIsPassed());
         entity.setStartedAt(domain.getStartTime());
         entity.setSubmittedAt(domain.getEndTime());
         entity.setAnswers(answersMap);
@@ -96,10 +98,11 @@ public class QuizAttemptRepositoryAdapter implements QuizAttemptRepository {
             .studentId(domain.getStudentId())
             .status(QuizAttemptJpaEntity.AttemptStatus.valueOf(domain.getStatus().name()))
             .score(domain.getScore())
-            //.maxScore(100.0) // Needed? Domain score is usually %, or need raw points? Assuming % for now.
+            .maxScore(domain.getMaxScore())
+            .isPassed(domain.getIsPassed())
             .startedAt(domain.getStartTime())
             .submittedAt(domain.getEndTime())
-            .answers(answersMap) 
+            .answers(answersMap)
             .build();
     }
 
@@ -131,7 +134,8 @@ public class QuizAttemptRepositoryAdapter implements QuizAttemptRepository {
                 .startTime(entity.getStartedAt())
                 .endTime(entity.getSubmittedAt())
                 .score(entity.getScore())
-                .isPassed(entity.getScore() != null && entity.getScore() >= 60) // Logic actually in Domain/UseCase?
+                .maxScore(entity.getMaxScore() != null ? entity.getMaxScore() : 100.0)
+                .isPassed(Boolean.TRUE.equals(entity.getIsPassed()))
                 // Reconstruct items
                 .items(items)
                 .status(QuizAttempt.AttemptStatus.valueOf(entity.getStatus().name()))

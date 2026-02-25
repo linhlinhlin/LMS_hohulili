@@ -158,7 +158,9 @@ public class FileUploadControllerV3 {
     @DeleteMapping("/{storageKey}")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Operation(summary = "Delete file from Cloudflare R2")
-    public ResponseEntity<Map<String, Object>> deleteFile(@PathVariable String storageKey) {
+    public ResponseEntity<Map<String, Object>> deleteFile(
+            @AuthenticationPrincipal UserJpaEntity user,
+            @PathVariable String storageKey) {
         try {
             if (!r2Enabled || r2StorageService.isEmpty()) {
                 return ResponseEntity.badRequest().body(Map.of(
@@ -169,6 +171,8 @@ public class FileUploadControllerV3 {
 
             String sanitizedKey = sanitizePath(storageKey);
             r2StorageService.get().delete(sanitizedKey);
+            log.info("[File] Xóa tập tin '{}' bởi user {}", sanitizedKey,
+                    user != null ? user.getId() : "unknown");
 
             return ResponseEntity.ok(Map.of(
                 "success", true,

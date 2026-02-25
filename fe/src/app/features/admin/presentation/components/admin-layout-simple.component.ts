@@ -47,14 +47,14 @@ import { ChatWidgetComponent } from '../../../ai-chat/presentation/components/ch
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                     </svg>
                   </button>
-                  <h1 class="ml-3 text-lg font-semibold text-gray-900">Quản trị viên</h1>
+                  <h1 class="ml-3 text-lg font-semibold text-gray-900">{{ mobileTitle() }}</h1>
                 </div>
                 <div class="flex items-center space-x-3">
                   <span class="text-sm text-gray-600 hidden sm:inline">{{ authService.currentUser()?.fullName }}</span>
                   <button (click)="logout()"
                     class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm"
-                    aria-label="Logout">
-                    Logout
+                    aria-label="Đăng xuất">
+                    Đăng xuất
                   </button>
                 </div>
               </div>
@@ -105,6 +105,10 @@ export class AdminLayoutSimpleComponent implements OnInit, OnDestroy {
   protected authService = inject(AuthService);
   private router = inject(Router);
   protected isMobileSidebarOpen = signal(false);
+
+  protected mobileTitle = computed(() =>
+    this.authService.userRole() === 'admin' ? 'Quản trị hệ thống' : 'Chuyên viên quản lý'
+  );
 
   private sidebarHidden = signal<boolean>(false);
   private routerSubscription?: Subscription;

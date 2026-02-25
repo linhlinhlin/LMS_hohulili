@@ -36,6 +36,15 @@ export class OfflineSyncService {
       setTimeout(() => this.syncAll(), 2000);
     });
 
+    // Listen for SW background sync trigger (sw.js sends SYNC_OFFLINE_QUEUE)
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data?.type === 'SYNC_OFFLINE_QUEUE') {
+          this.syncAll();
+        }
+      });
+    }
+
     // Count pending + failed items on init
     this.refreshCounts();
   }

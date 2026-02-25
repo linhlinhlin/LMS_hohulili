@@ -157,35 +157,20 @@ const allAdminMenuItems: SidebarMenuItem[] = [
     icon: 'settings'
   },
   {
-    label: 'Báo cáo',
-    route: '/admin/reports',
+    label: 'Nhật ký kiểm toán',
+    route: '/admin/logs',
     icon: 'file-text'
-  },
-  {
-    label: 'Thông báo',
-    route: '/admin/notifications',
-    icon: 'bell'
   },
   {
     label: 'LMS AI',
     route: '/admin/ai-chat',
     icon: 'globe',
     badge: 'NEW'
-  },
-  {
-    label: 'Quản lý Tri thức AI',
-    route: '/admin/ai-knowledge',
-    icon: 'globe'
-  },
-  {
-    label: 'Nhật ký hệ thống',
-    route: '/admin/logs',
-    icon: 'file-text'
   }
 ];
 
 // Routes hidden from ORG_ADMIN (system-level only)
-const systemOnlyRoutes = new Set(['/admin/settings', '/admin/logs', '/admin/ai-knowledge']);
+const systemOnlyRoutes = new Set(['/admin/settings', '/admin/logs']);
 
 // System Admin sidebar (full access)
 export const adminSidebarConfig: SidebarConfig = {

@@ -36,4 +36,12 @@ public interface QuizJpaRepositoryV3 extends JpaRepository<QuizJpaEntity, UUID> 
            "WHERE c.teacher_id = CAST(:teacherId AS uuid) " +
            "ORDER BY q.created_at DESC", nativeQuery = true)
     List<QuizJpaEntity> findAllByTeacherId(@Param("teacherId") UUID teacherId);
+
+    @Query(value = "SELECT COUNT(*) > 0 FROM quizzes q " +
+           "JOIN lessons l ON q.lesson_id = l.id " +
+           "JOIN chapters ch ON l.chapter_id = ch.id " +
+           "JOIN courses c ON ch.course_id = c.id " +
+           "WHERE q.id = CAST(:quizId AS uuid) " +
+           "AND c.teacher_id = CAST(:teacherId AS uuid)", nativeQuery = true)
+    boolean isOwnedByTeacher(@Param("quizId") UUID quizId, @Param("teacherId") UUID teacherId);
 }

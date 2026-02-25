@@ -69,21 +69,18 @@ public class SecurityConfig {
                     "/api/v3/courses/chapters/*",
                     // Categories
                     "/api/v3/categories",
-                    // Public package endpoints (PackageControllerV3)
-                    "/api/v3/packages/*",
-                    "/api/v3/packages/*/questions",
-                    "/api/v3/packages/search",
+                    // Package endpoints now require authentication (P0-12)
                     // Uploaded files (static resources)
                     "/uploads/**",
                     // Certificate verification (public)
                     "/api/v3/student/certificates/*/verify",
+                    "/api/v3/certificates/verify/*",
                     // Course reviews (public read)
                     "/api/v3/courses/*/reviews",
                     "/api/v3/courses/*/reviews/summary",
                     // Actuator health check (Docker HEALTHCHECK)
                     "/actuator/health",
-                    // Public question bank search
-                    "/api/v3/question-banks/search",
+                    // Question bank search now requires authentication (P0-12)
                     // Wiii AI integration (service-to-service, auth via WiiiServiceAuthFilter)
                     "/api/v3/integration/**",
                     // VNPay callbacks (server-to-server IPN + browser return)

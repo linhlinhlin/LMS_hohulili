@@ -26,16 +26,6 @@ export const learningRoutes: Routes = [
     title: 'Bài học - LMS Maritime'
   },
   {
-    path: 'planner',
-    loadComponent: () => import('./components/study-planner.component').then(m => m.StudyPlannerComponent),
-    title: 'Kế hoạch học tập - LMS Maritime'
-  },
-  {
-    path: 'calendar',
-    loadComponent: () => import('./components/learning-calendar.component').then(m => m.LearningCalendarComponent),
-    title: 'Lịch học tập - LMS Maritime'
-  },
-  {
     path: 'notes',
     loadComponent: () => import('./components/note-taking.component').then(m => m.NoteTakingComponent),
     title: 'Ghi chú - LMS Maritime'
@@ -45,15 +35,4 @@ export const learningRoutes: Routes = [
     loadComponent: () => import('./components/bookmark-system.component').then(m => m.BookmarkSystemComponent),
     title: 'Dấu trang - LMS Maritime'
   },
-
-  {
-    path: 'learning-paths',
-    loadComponent: () => import('./components/personalized-learning-paths.component').then(m => m.PersonalizedLearningPathsComponent),
-    title: 'Lộ trình học tập - LMS Maritime'
-  },
-  {
-    path: 'learning-path/:id',
-    loadComponent: () => import('./components/learning-path-detail.component').then(m => m.LearningPathDetailComponent),
-    title: 'Chi tiết lộ trình - LMS Maritime'
-  }
 ];

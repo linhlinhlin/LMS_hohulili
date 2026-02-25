@@ -160,12 +160,12 @@ export class CourseDetailComponent implements OnInit {
     }
   }
 
-  private async enroll(classId: string) {
+  private async enroll(_classId?: string) {
     const user = this.authService.currentUser();
     if (!user || !this.course()) return;
 
     try {
-      await this.courseService.enrollInCourse(this.course()!.id, user.id, classId);
+      await this.courseService.enrollInCourse(this.course()!.id, user.id);
       this.toast.success('Đăng ký thành công! Chuyển đến trang học.');
       this.router.navigate(['/student/learn/course', this.course()!.id]);
     } catch (e: any) {

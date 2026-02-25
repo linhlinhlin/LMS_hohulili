@@ -3,6 +3,7 @@ package com.example.lms.identity.application.usecase;
 import com.example.lms.identity.domain.repository.PasswordResetTokenRepository;
 import com.example.lms.identity.domain.repository.UserRepository;
 import com.example.lms.identity.domain.valueobject.PasswordPolicy;
+import com.example.lms.shared.domain.util.HashUtil;
 import com.example.lms.shared.domain.valueobject.UserId;
 import com.example.lms.shared.exception.BusinessRuleException;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +27,7 @@ public class ResetPasswordUseCase {
 
     @Transactional
     public void execute(String rawToken, String newPassword) {
-        String tokenHash = RequestPasswordResetUseCase.sha256(rawToken);
+        String tokenHash = HashUtil.sha256(rawToken);
 
         var token = tokenRepository.findByTokenHash(tokenHash)
                 .orElseThrow(() -> new BusinessRuleException("Liên kết đặt lại mật khẩu không hợp lệ"));

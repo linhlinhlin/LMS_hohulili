@@ -9,14 +9,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import com.example.lms.shared.domain.util.HashUtil;
+
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
-import java.util.HexFormat;
 
 /**
  * Generates a password reset token and sends email.
@@ -56,7 +54,7 @@ public class RequestPasswordResetUseCase {
         String rawToken = Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
 
         // Store SHA-256 hash (never store raw token)
-        String tokenHash = sha256(rawToken);
+        String tokenHash = HashUtil.sha256(rawToken);
         Instant expiresAt = Instant.now().plus(TOKEN_EXPIRY_MINUTES, ChronoUnit.MINUTES);
         tokenRepository.save(user.getId().value(), tokenHash, expiresAt);
 
@@ -67,13 +65,4 @@ public class RequestPasswordResetUseCase {
         log.info("Password reset token created for user: {}", user.getId());
     }
 
-    static String sha256(String input) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(hash);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 not available", e);
-        }
-    }
 }

@@ -16,4 +16,6 @@ public interface ChapterJpaRepository extends JpaRepository<ChapterJpaEntity, UU
     List<ChapterJpaEntity> findByCourseIdOrderByOrderIndex(UUID courseId);
 
     long countByCourseId(UUID courseId);
+
+    List<ChapterJpaEntity> findByCourseIdInOrderByOrderIndex(List<UUID> courseIds);
 }

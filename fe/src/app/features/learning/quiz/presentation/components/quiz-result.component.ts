@@ -7,6 +7,32 @@ import { ErrorHandlingService } from '../../../../../shared/services/error-handl
 import { QuizApi } from '../../../../../api/endpoints/quiz.api';
 import { firstValueFrom } from 'rxjs';
 
+interface QuizQuestionResult {
+  questionId: string;
+  questionText: string;
+  userAnswer: string;
+  correctAnswer: string;
+  isCorrect: boolean | null | undefined;
+  points: number;
+  pointsEarned: number | null | undefined;
+}
+
+interface QuizResultData {
+  attemptId: string;
+  quizTitle: string;
+  score: number;
+  pointsEarned: number;
+  totalPoints: number;
+  passingScore: number;
+  passed: boolean;
+  totalQuestions: number;
+  correctAnswers: number;
+  incorrectAnswers: number;
+  timeSpent: string;
+  completedAt: Date;
+  questionResults: QuizQuestionResult[];
+}
+
 /**
  * Quiz Result Component - Shows quiz completion results
  */
@@ -85,36 +111,40 @@ import { firstValueFrom } from 'rxjs';
                     <div class="border border-gray-200 rounded-lg p-4">
                       <div class="flex items-start justify-between mb-2">
                         <h3 class="text-lg font-medium text-gray-900 flex-1">{{ questionResult.questionText }}</h3>
-                        <div class="ml-4">
-                          @if (questionResult.isCorrect) {
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                              <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                              </svg>
-                              Đúng
-                            </span>
-                          } @else {
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                              <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
-                              </svg>
-                              Sai
-                            </span>
-                          }
-                        </div>
+                        @if (questionResult.isCorrect !== undefined && questionResult.isCorrect !== null) {
+                          <div class="ml-4">
+                            @if (questionResult.isCorrect) {
+                              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                </svg>
+                                Đúng
+                              </span>
+                            } @else {
+                              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                </svg>
+                                Sai
+                              </span>
+                            }
+                          </div>
+                        }
                       </div>
 
                       <div class="text-sm text-gray-600 mb-2">
                         <strong>Câu trả lời của bạn:</strong> {{ questionResult.userAnswer || 'Không trả lời' }}
                       </div>
 
-                      @if (!questionResult.isCorrect) {
-                        <div class="text-sm text-green-600">
-                          <strong>Đáp án đúng:</strong> {{ questionResult.correctAnswer }}
-                        </div>
+                      @if (questionResult.correctAnswer) {
+                        @if (!questionResult.isCorrect) {
+                          <div class="text-sm text-green-600">
+                            <strong>Đáp án đúng:</strong> {{ questionResult.correctAnswer }}
+                          </div>
+                        }
                       }
 
-                      @if (questionResult.points > 0) {
+                      @if (questionResult.points > 0 && questionResult.pointsEarned !== undefined) {
                         <div class="text-sm text-[#0056D2] mt-1">
                           <strong>Điểm:</strong> {{ questionResult.pointsEarned }}/{{ questionResult.points }}
                         </div>
@@ -154,12 +184,21 @@ import { firstValueFrom } from 'rxjs';
               </svg>
             </div>
             <h2 class="text-2xl font-bold text-gray-900 mb-2">Không tìm thấy kết quả</h2>
-            <p class="text-gray-600 mb-6">Không thể tải kết quả bài thi. Vui lòng thử lại.</p>
-            <button
-              (click)="goToQuizList()"
-              class="px-6 py-3 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors font-medium">
-              Quay lại danh sách Quiz
-            </button>
+            <p class="text-gray-600 mb-6">{{ error() || 'Không thể tải kết quả bài thi. Vui lòng thử lại.' }}</p>
+            <div class="flex gap-4 justify-center">
+              @if (currentAttemptId) {
+                <button
+                  (click)="retryLoad()"
+                  class="px-6 py-3 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors font-medium">
+                  Thử lại
+                </button>
+              }
+              <button
+                (click)="goToQuizList()"
+                class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                Quay lại danh sách Quiz
+              </button>
+            </div>
           </div>
         }
       </div>
@@ -174,12 +213,15 @@ export class QuizResultComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private errorService = inject(ErrorHandlingService);
 
-  result = signal<any>(null);
+  result = signal<QuizResultData | null>(null);
   isLoading = signal(false);
+  error = signal<string | null>(null);
+  currentAttemptId = '';
 
   ngOnInit(): void {
     const attemptId = this.route.snapshot.queryParams['attemptId'];
     if (attemptId) {
+      this.currentAttemptId = attemptId;
       this.loadResult(attemptId);
     } else {
       this.errorService.addError({
@@ -191,8 +233,16 @@ export class QuizResultComponent implements OnInit {
     }
   }
 
+  retryLoad(): void {
+    if (this.currentAttemptId) {
+      this.error.set(null);
+      this.loadResult(this.currentAttemptId);
+    }
+  }
+
   private async loadResult(attemptId: string): Promise<void> {
     this.isLoading.set(true);
+    this.error.set(null);
 
     try {
       const response = await firstValueFrom(this.quizApi.getQuizResult(attemptId));
@@ -228,11 +278,12 @@ export class QuizResultComponent implements OnInit {
           userAnswer: item.selectedOption || 'Không trả lời',
           correctAnswer: item.correctOption || '',
           isCorrect: item.isCorrect,
-          points: 1,
-          pointsEarned: item.isCorrect ? 1 : 0
+          points: item.maxPoints || 1,
+          pointsEarned: item.pointsEarned ?? (item.isCorrect ? 1 : 0)
         }))
       });
     } catch {
+      this.error.set('Không thể tải kết quả. Vui lòng thử lại.');
       this.result.set(null);
     } finally {
       this.isLoading.set(false);

@@ -55,6 +55,12 @@ export const quizRoutes: Routes = [
       //   title: 'Giao Bài cho Học Viên'
       // },
       {
+        path: ':quizId/essay-grading',
+        loadComponent: () => import('./quiz-essay-grading.component').then(m => m.QuizEssayGradingComponent),
+        canActivate: [teacherGuard],
+        title: 'Chấm điểm tự luận'
+      },
+      {
         path: ':quizId/edit',
         loadComponent: () => import('./quiz-edit.component').then(m => m.QuizEditComponent),
         canActivate: [teacherGuard],

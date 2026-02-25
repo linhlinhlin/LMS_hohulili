@@ -1,6 +1,6 @@
 # Maritime LMS Backend
 
-> **Spring Boot 3.2.6 + Java 21 + PostgreSQL 16** | Clean Architecture / DDD | 397 source files | 550 tests | 219 endpoints
+> **Spring Boot 3.2.6 + Java 21 + PostgreSQL 16** | Clean Architecture / DDD | 420+ source files | 721 tests | 260+ endpoints
 
 ## Quick Start
 

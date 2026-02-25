@@ -226,20 +226,36 @@ public class Course extends AggregateRoot {
      */
     public void reject(UUID reviewerId, String reason) {
         if (status != CourseStatus.PENDING) {
-            throw new BusinessRuleException("INVALID_STATUS", 
+            throw new BusinessRuleException("INVALID_STATUS",
                 "Chỉ có thể từ chối khóa học đang chờ duyệt");
         }
-        
+
         if (reason == null || reason.isBlank()) {
             throw new IllegalArgumentException("Lý do từ chối không được để trống");
         }
-        
+
         this.status = CourseStatus.REJECTED;
         this.reviewedById = reviewerId;
         this.reviewComment = reason;
         this.reviewedAt = Instant.now();
-        
+
         registerEvent(new CourseRejectedEvent(getId(), code.getValue(), reviewerId, reason));
+    }
+
+    /**
+     * Revoke course approval — move back to DRAFT.
+     * Only allowed when status is APPROVED.
+     */
+    public void revoke(UUID reviewerId, String reason) {
+        if (status != CourseStatus.APPROVED) {
+            throw new BusinessRuleException("INVALID_STATUS",
+                "Chỉ có thể thu hồi khóa học đã được duyệt");
+        }
+
+        this.status = CourseStatus.DRAFT;
+        this.reviewedById = reviewerId;
+        this.reviewComment = reason != null ? reason : "Bị thu hồi bởi quản trị viên";
+        this.reviewedAt = Instant.now();
     }
 
     /**

@@ -3,7 +3,6 @@ package com.example.lms.identity.infrastructure.web;
 import com.example.lms.identity.application.dto.*;
 import com.example.lms.identity.application.usecase.*;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
-import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
 import com.example.lms.shared.application.port.EmailServicePort;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -38,8 +37,6 @@ import java.util.Map;
 @Tag(name = "Authentication v3", description = "API xác thực người dùng (Pure DDD)")
 public class AuthControllerV3 {
 
-    private final UserJpaRepository userJpaRepository;
-
     @Qualifier("registerUserUseCaseV2")
     private final RegisterUserUseCaseV2 registerUseCase;
     
@@ -60,6 +57,8 @@ public class AuthControllerV3 {
 
     private final RequestPasswordResetUseCase requestPasswordResetUseCase;
     private final ResetPasswordUseCase resetPasswordUseCase;
+    private final SendVerificationEmailUseCase sendVerificationEmailUseCase;
+    private final VerifyEmailUseCase verifyEmailUseCase;
     private final EmailServicePort emailService;
 
     @PostMapping("/register")
@@ -82,6 +81,13 @@ public class AuthControllerV3 {
             emailService.sendWelcome(request.email(), request.fullName());
         } catch (Exception e) {
             log.warn("Failed to send welcome email to {}: {}", request.email(), e.getMessage());
+        }
+
+        // Send email verification (async, non-blocking)
+        try {
+            sendVerificationEmailUseCase.execute(response.user().id());
+        } catch (Exception e) {
+            log.warn("Failed to send verification email to {}: {}", request.email(), e.getMessage());
         }
 
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -193,6 +199,25 @@ public class AuthControllerV3 {
         return ResponseEntity.ok(ApiResponse.success("Mật khẩu đã được đặt lại thành công"));
     }
 
+    @PostMapping("/verify-email")
+    @Operation(summary = "Xác nhận email bằng token")
+    public ResponseEntity<ApiResponse<String>> verifyEmail(
+            @RequestParam @NotBlank(message = "Token không được để trống") String token) {
+        verifyEmailUseCase.execute(token);
+        return ResponseEntity.ok(ApiResponse.success("Email đã được xác nhận thành công"));
+    }
+
+    @PostMapping("/resend-verification")
+    @Operation(summary = "Gửi lại email xác nhận")
+    public ResponseEntity<ApiResponse<Map<String, String>>> resendVerification(
+            @RequestBody @Valid ResendVerificationRequest request) {
+        sendVerificationEmailUseCase.resend(request.email());
+        // Always return success to prevent email enumeration
+        return ResponseEntity.ok(ApiResponse.success(
+            Map.of("message", "Nếu email tồn tại, bạn sẽ nhận được email xác nhận"),
+            "Yêu cầu gửi lại email xác nhận đã được xử lý"));
+    }
+
     // ==================== Request DTOs ====================
 
     public record ForgotPasswordRequest(
@@ -250,5 +275,11 @@ public class AuthControllerV3 {
         @NotBlank(message = "Mật khẩu mới không được để trống")
         @Size(min = 8, max = 128, message = "Mật khẩu mới phải có từ 8 đến 128 ký tự")
         String newPassword
+    ) {}
+
+    public record ResendVerificationRequest(
+        @NotBlank(message = "Email không được để trống")
+        @Email(message = "Email không hợp lệ")
+        String email
     ) {}
 }

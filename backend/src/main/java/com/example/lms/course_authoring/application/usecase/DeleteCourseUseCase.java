@@ -21,12 +21,17 @@ public class DeleteCourseUseCase {
 
     @Transactional
     public void execute(UUID courseId, UUID userId) {
+        execute(courseId, userId, false);
+    }
+
+    @Transactional
+    public void execute(UUID courseId, UUID userId, boolean isAdmin) {
         // Find course
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new EntityNotFoundException("Khóa học", courseId));
 
-        // Check ownership
-        if (!course.isOwnedBy(userId)) {
+        // Check ownership (admin bypasses)
+        if (!isAdmin && !course.isOwnedBy(userId)) {
             throw new UnauthorizedException("xóa", "khóa học này");
         }
 

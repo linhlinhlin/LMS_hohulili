@@ -23,6 +23,7 @@ import java.time.LocalDate;
 import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -317,10 +318,25 @@ class GamificationUseCaseTest {
         when(notificationRepository.findById(notificationId)).thenReturn(Optional.of(notification));
         when(notificationRepository.save(any(Notification.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        useCase.markNotificationRead(notificationId);
+        useCase.markNotificationRead(notificationId, studentId);
 
         assertThat(notification.isRead()).isTrue();
         verify(notificationRepository).save(notification);
+    }
+
+    @Test
+    @DisplayName("markNotificationRead throws AccessDeniedException for wrong user")
+    void markNotificationRead_wrongUser_throwsAccessDenied() {
+        UUID notificationId = UUID.randomUUID();
+        UUID otherUserId = UUID.randomUUID();
+        Notification notification = new Notification(notificationId, studentId, "ACHIEVEMENT",
+                "Test", "Test message", null, false, Instant.now());
+
+        when(notificationRepository.findById(notificationId)).thenReturn(Optional.of(notification));
+
+        assertThatThrownBy(() -> useCase.markNotificationRead(notificationId, otherUserId))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        verify(notificationRepository, never()).save(any());
     }
 
     @Test

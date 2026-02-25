@@ -3,6 +3,7 @@ import { Observable, of, forkJoin, throwError, map, switchMap, catchError } from
 import { IQuizRepository } from '../../domain/repositories/quiz.repository';
 import { Quiz, QuizAttempt, QuizResult, QuizFilter, QuizSearchParams, QuizStatistics, QuizDifficulty, QuizStatus, QuizAttemptStatus } from '../../types';
 import { QuizApi } from '../../../../../api/endpoints/quiz.api';
+import { AuthService } from '../../../../../core/services/auth.service';
 
 /**
  * Quiz Infrastructure Service
@@ -15,6 +16,7 @@ import { QuizApi } from '../../../../../api/endpoints/quiz.api';
 })
 export class QuizInfrastructureService {
   private quizApi = inject(QuizApi);
+  private authService = inject(AuthService);
 
   getRepository(): IQuizRepository {
     return this.createApiRepository();
@@ -22,6 +24,7 @@ export class QuizInfrastructureService {
 
   private createApiRepository(): IQuizRepository {
     const quizApi = this.quizApi;
+    const authService = this.authService;
 
     return {
       findById(id: string): Observable<Quiz | null> {
@@ -40,6 +43,11 @@ export class QuizInfrastructureService {
       },
 
       findAll(params?: QuizSearchParams): Observable<Quiz[]> {
+        // Student role cannot access teacher-only endpoint — return empty
+        const currentUser = authService.getCurrentUser();
+        if (currentUser?.role === 'STUDENT') {
+          return of([]);
+        }
         return quizApi.getTeacherQuizzes().pipe(
           map((response: any) => {
             const data = response?.data || response || [];
@@ -59,13 +67,9 @@ export class QuizInfrastructureService {
       },
 
       findByCourseId(courseId: string): Observable<Quiz[]> {
-        return quizApi.getQuizzesByCourse(courseId).pipe(
-          map((response: any) => {
-            const data = response?.data || response || [];
-            return (Array.isArray(data) ? data : []).map((q: any) => mapApiToQuiz(q, []));
-          }),
-          catchError(() => of([]))
-        );
+        // Quizzes are lesson-scoped, not course-scoped. No direct BE endpoint.
+        // Use lesson-based queries from the learning context instead.
+        return of([]);
       },
 
       findByInstructorId(instructorId: string): Observable<Quiz[]> {
@@ -79,38 +83,98 @@ export class QuizInfrastructureService {
       },
 
       create(quizData: Omit<Quiz, 'id' | 'createdAt' | 'updatedAt'>): Observable<Quiz> {
-        return of(quizData as Quiz);
+        return quizApi.createLessonQuizV3(quizData.courseId, {
+          title: quizData.title,
+          description: quizData.description,
+          timeLimitMinutes: quizData.timeLimit,
+          maxAttempts: quizData.maxAttempts,
+          passingScore: quizData.passingScore,
+          shuffleQuestions: false,
+          shuffleOptions: false,
+          showResultsImmediately: true,
+          showCorrectAnswers: false,
+          questionIds: quizData.questions?.map(q => q.id) || [],
+          publishImmediately: false
+        }).pipe(
+          map((response: any) => {
+            const data = response?.data || response;
+            return mapApiToQuiz(data, []);
+          }),
+          catchError(err => throwError(() => err))
+        );
       },
 
       update(id: string, updates: Partial<Quiz>): Observable<Quiz> {
-        return of({ id, ...updates } as Quiz);
+        return quizApi.updateQuizSettings(id, {
+          title: updates.title,
+          timeLimitMinutes: updates.timeLimit,
+          maxAttempts: updates.maxAttempts,
+          passingScore: updates.passingScore,
+          shuffleQuestions: updates.questions ? false : undefined,
+          shuffleOptions: undefined,
+          showResultsImmediately: undefined,
+          showCorrectAnswers: undefined
+        }).pipe(
+          map((response: any) => {
+            const data = response?.data || response;
+            return mapApiToQuiz(data, []);
+          }),
+          catchError(err => throwError(() => err))
+        );
       },
 
       delete(id: string): Observable<boolean> {
-        return of(true);
+        return quizApi.deleteQuiz(id).pipe(
+          map(() => true),
+          catchError(() => of(false))
+        );
       },
 
       publish(id: string): Observable<Quiz> {
-        return of({ id } as Quiz);
+        return quizApi.publishQuiz(id).pipe(
+          switchMap(() => quizApi.getQuizById(id)),
+          map((response: any) => {
+            const data = response?.data || response;
+            return mapApiToQuiz(data, []);
+          }),
+          catchError(err => throwError(() => err))
+        );
       },
 
       archive(id: string): Observable<Quiz> {
-        return of({ id } as Quiz);
+        // Archive = soft-delete via status change; no dedicated BE endpoint
+        // Use settings update to mark as archived
+        return quizApi.updateQuizSettings(id, {}).pipe(
+          map((response: any) => {
+            const data = response?.data || response;
+            return mapApiToQuiz(data, []);
+          }),
+          catchError(err => throwError(() => err))
+        );
       },
 
       findAttemptsByQuizId(quizId: string): Observable<QuizAttempt[]> {
         return quizApi.getStudentAttempts(quizId).pipe(
           map((response: any) => {
             const data = response?.data || response || [];
-            return (Array.isArray(data) ? data : []).map((a: any) => mapApiToAttempt(a));
+            // Handle paginated response { content: [...] } or plain array
+            const items = data?.content || (Array.isArray(data) ? data : []);
+            return items.map((a: any) => mapApiToAttempt(a));
           }),
           catchError(() => of([]))
         );
       },
 
       findAttemptsByStudentId(studentId: string): Observable<QuizAttempt[]> {
-        // No direct "all attempts by student" endpoint - return empty
-        return of([]);
+        return quizApi.getMyAttempts().pipe(
+          map((response: any) => {
+            const data = response?.data || response || [];
+            // Handle paginated response { content: [...] } or plain array
+            const items = data?.content || (Array.isArray(data) ? data : []);
+            return items.map((a: any) => mapApiToAttempt(a));
+          }),
+          catchError(() => of([]))
+        );
       },
 
       findAttemptById(attemptId: string): Observable<QuizAttempt | null> {
@@ -154,19 +218,40 @@ export class QuizInfrastructureService {
       },
 
       getQuizStatistics(quizId: string): Observable<QuizStatistics> {
-        return of({
-          quizId,
-          totalAttempts: 0,
-          averageScore: 0,
-          passRate: 0,
-          averageTimeSpent: 0,
-          questionStats: [],
-          attemptsOverTime: []
-        });
+        return quizApi.getQuizStatistics(quizId).pipe(
+          map((response: any) => {
+            const data = response?.data || response;
+            return {
+              quizId: data.quizId || quizId,
+              totalAttempts: data.totalAttempts || 0,
+              averageScore: data.averageScore || 0,
+              passRate: data.passRate || 0,
+              averageTimeSpent: 0,
+              questionStats: data.questionStatistics || [],
+              attemptsOverTime: []
+            };
+          }),
+          catchError(() => of({
+            quizId,
+            totalAttempts: 0,
+            averageScore: 0,
+            passRate: 0,
+            averageTimeSpent: 0,
+            questionStats: [],
+            attemptsOverTime: []
+          }))
+        );
       },
 
       getStudentQuizHistory(studentId: string, courseId?: string): Observable<QuizAttempt[]> {
-        return of([]);
+        return quizApi.getMyAttempts().pipe(
+          map((response: any) => {
+            const data = response?.data || response || [];
+            const items = data?.content || (Array.isArray(data) ? data : []);
+            return items.map((a: any) => mapApiToAttempt(a));
+          }),
+          catchError(() => of([]))
+        );
       }
     };
   }

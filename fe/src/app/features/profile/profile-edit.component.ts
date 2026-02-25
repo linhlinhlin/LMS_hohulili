@@ -3,9 +3,11 @@
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
+import { ApiClient } from '../../api/client/api-client';
 import { ConfirmDialogService } from '../../core/services/confirm-dialog.service';
 import { ToastService } from '../../core/services/toast.service';
 import { IconComponent, IconName } from '../../shared/components/icon/icon.component';
+import { firstValueFrom } from 'rxjs';
 
 interface ProfileEdit {
   fullName: string;
@@ -63,52 +65,14 @@ interface SocialPlatform {
 export class ProfileEditComponent implements OnInit {
   protected authService = inject(AuthService);
   private router = inject(Router);
+  private api = inject(ApiClient);
   private confirmDialog = inject(ConfirmDialogService);
   private toast = inject(ToastService);
 
   // Component state
-  profile = signal<ProfileEdit>({
-    fullName: 'Nguyễn Văn Hải',
-    email: 'student@demo.com',
-    phone: '0123456789',
-    dateOfBirth: '1995-06-15',
-    address: '123 Đường ABC, Quận 1, TP.HCM',
-    bio: 'Tôi là sinh viên năm 3 chuyên ngành Hàng hải tại Trường Đại học Hàng hải Việt Nam.',
-    interests: ['An toàn hàng hải', 'Điều khiển tàu'],
-    learningGoals: [
-      'Hoàn thành chứng chỉ STCW',
-      'Đạt được chứng chỉ thuyền trưởng hạng 2'
-    ],
-    preferredSubjects: ['An toàn hàng hải', 'Điều khiển tàu'],
-    studySchedule: {
-      preferredStudyTime: 'evening',
-      studyDays: ['monday', 'wednesday', 'friday', 'sunday'],
-      studyDuration: 3,
-      breakInterval: 15
-    },
-    socialLinks: [
-      {
-        platform: 'linkedin',
-        url: 'https://linkedin.com/in/nguyenvanhai',
-        isPublic: true
-      }
-    ],
-    notifications: {
-      emailNotifications: true,
-      pushNotifications: true,
-      assignmentReminders: true,
-      courseUpdates: true,
-      forumUpdates: false
-    },
-    privacy: {
-      profileVisibility: 'public',
-      showEmail: false,
-      showPhone: false,
-      showProgress: true
-    }
-  });
+  profile = signal<ProfileEdit>(this.getDefaultProfile());
 
-  // Mock data
+  // Reference data
   availableInterests = signal<string[]>([
     'An toàn hàng hải',
     'Điều khiển tàu',
@@ -153,6 +117,14 @@ export class ProfileEditComponent implements OnInit {
   ]);
 
   ngOnInit(): void {
+    const user = this.authService.currentUser();
+    if (user) {
+      this.profile.update(p => ({
+        ...p,
+        fullName: user.fullName || p.fullName,
+        email: user.email || p.email
+      }));
+    }
   }
 
   updateProfile(field: string, value: any): void {
@@ -275,56 +247,58 @@ export class ProfileEditComponent implements OnInit {
       variant: 'warning'
     });
     if (confirmed) {
-      // Reset to original values
-      this.profile.set({
-        fullName: 'Nguyễn Văn Hải',
-        email: 'student@demo.com',
-        phone: '0123456789',
-        dateOfBirth: '1995-06-15',
-        address: '123 Đường ABC, Quận 1, TP.HCM',
-        bio: 'Tôi là sinh viên năm 3 chuyên ngành Hàng hải tại Trường Đại học Hàng hải Việt Nam.',
-        interests: ['An toàn hàng hải', 'Điều khiển tàu'],
-        learningGoals: [
-          'Hoàn thành chứng chỉ STCW',
-          'Đạt được chứng chỉ thuyền trưởng hạng 2'
-        ],
-        preferredSubjects: ['An toàn hàng hải', 'Điều khiển tàu'],
-        studySchedule: {
-          preferredStudyTime: 'evening',
-          studyDays: ['monday', 'wednesday', 'friday', 'sunday'],
-          studyDuration: 3,
-          breakInterval: 15
-        },
-        socialLinks: [
-          {
-            platform: 'linkedin',
-            url: 'https://linkedin.com/in/nguyenvanhai',
-            isPublic: true
-          }
-        ],
-        notifications: {
-          emailNotifications: true,
-          pushNotifications: true,
-          assignmentReminders: true,
-          courseUpdates: true,
-          forumUpdates: false
-        },
-        privacy: {
-          profileVisibility: 'public',
-          showEmail: false,
-          showPhone: false,
-          showProgress: true
-        }
-      });
+      this.profile.set(this.getDefaultProfile());
+      this.toast.success('Đã đặt lại hồ sơ');
     }
   }
 
-  saveProfile(): void {
-    // Mock save functionality
-    this.toast.success('Đã lưu thông tin hồ sơ thành công!');
+  private getDefaultProfile(): ProfileEdit {
+    const user = this.authService.currentUser();
+    return {
+      fullName: user?.fullName || '',
+      email: user?.email || '',
+      phone: '',
+      dateOfBirth: '',
+      address: '',
+      bio: '',
+      interests: [],
+      learningGoals: [],
+      preferredSubjects: [],
+      studySchedule: {
+        preferredStudyTime: 'evening',
+        studyDays: [],
+        studyDuration: 2,
+        breakInterval: 15
+      },
+      socialLinks: [],
+      notifications: {
+        emailNotifications: true,
+        pushNotifications: true,
+        assignmentReminders: true,
+        courseUpdates: true,
+        forumUpdates: false
+      },
+      privacy: {
+        profileVisibility: 'public',
+        showEmail: false,
+        showPhone: false,
+        showProgress: true
+      }
+    };
+  }
 
-    // Navigate back to profile
-    this.router.navigate(['/student/profile']);
+  async saveProfile(): Promise<void> {
+    try {
+      const p = this.profile();
+      await firstValueFrom(this.api.put('/api/v3/auth/profile', {
+        fullName: p.fullName,
+        email: p.email
+      }));
+      this.toast.success('Đã lưu thông tin hồ sơ thành công!');
+      this.router.navigate(['/student/profile']);
+    } catch {
+      this.toast.error('Không thể lưu thông tin hồ sơ');
+    }
   }
 
   goBack(): void {

@@ -38,10 +38,12 @@ public class ChatSessionUseCaseV3 {
 
         // Parse context type from command
         ChatSession.ContextType contextType = ChatSession.ContextType.GENERAL;
-        if (command.contextType() != null) {
+        if (command.contextType() != null && !command.contextType().isBlank()) {
             try {
                 contextType = ChatSession.ContextType.valueOf(command.contextType());
-            } catch (IllegalArgumentException ignored) {}
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid context type '{}', defaulting to GENERAL", command.contextType());
+            }
         }
 
         // Create domain model using factory method

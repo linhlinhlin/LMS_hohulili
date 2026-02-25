@@ -1,4 +1,4 @@
-import { Injectable, signal, inject } from '@angular/core';
+import { Injectable, signal, computed, inject } from '@angular/core';
 import { Router } from '@angular/router';
 
 export interface AppError {
@@ -26,7 +26,7 @@ export class ErrorHandlingService {
   // Readonly signals
   readonly errors = this._errors.asReadonly();
   readonly isLoading = this._isLoading.asReadonly();
-  readonly hasErrors = signal(this._errors().length > 0);
+  readonly hasErrors = computed(() => this._errors().length > 0);
 
   /**
    * Add a new error to the error list

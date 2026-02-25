@@ -37,4 +37,9 @@ public interface QuizRepository {
      * Check if quiz exists.
      */
     boolean existsById(QuizId id);
+
+    /**
+     * Check if a quiz belongs to a teacher (via lesson→chapter→course→teacher_id).
+     */
+    boolean isOwnedByTeacher(QuizId quizId, UUID teacherId);
 }

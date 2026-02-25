@@ -69,11 +69,6 @@ export interface CreateAssignmentQuizRequest {
   publishImmediately: boolean;
 }
 
-export interface AssignQuizRequest {
-  studentIds: string[];
-  dueDate?: string;
-}
-
 // ============================================
 // Response DTOs
 // ============================================
@@ -199,24 +194,6 @@ export interface AssignmentQuizResponse extends BaseQuizResponse {
 
 export type QuizResponseV3 = LessonQuizResponse | AssignmentQuizResponse;
 
-export interface QuizAssignmentResponse {
-  id: string;
-  quizId: string;
-  quizTitle: string;
-  questionCount: number;
-  studentId: string;
-  studentName: string;
-  studentEmail: string;
-  status: 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'OVERDUE';
-  assignedAt: string;
-  dueDate?: string;
-  completedAt?: string;
-  attemptCount: number;
-  maxAttempts: number;
-  bestScore?: number;
-  isPassed?: boolean;
-}
-
 // ============================================
 // Quiz API Service - V3
 // ============================================
@@ -235,15 +212,6 @@ export class QuizApi {
   getQuizById(quizId: string) {
     return this.apiClient.get<QuizResponse>(
       QUIZ_ENDPOINTS.QUIZ_BY_ID(quizId)
-    );
-  }
-
-  /**
-   * Get quizzes by course ID
-   */
-  getQuizzesByCourse(courseId: string) {
-    return this.apiClient.get<QuizResponse[]>(
-      QUIZ_ENDPOINTS.QUIZZES_BY_COURSE(courseId)
     );
   }
 
@@ -358,11 +326,30 @@ export class QuizApi {
   }
 
   /**
-   * Get student attempts for a quiz
+   * Save attempt progress (auto-save every 60s)
    */
-  getStudentAttempts(quizId: string) {
-    return this.apiClient.get<QuizAttemptResponse[]>(
-      QUIZ_ENDPOINTS.QUIZ_ATTEMPTS(quizId)
+  saveAttemptProgress(attemptId: string, answers: AttemptAnswer[]) {
+    return this.apiClient.put<void>(
+      QUIZ_ENDPOINTS.SAVE_ATTEMPT(attemptId),
+      answers
+    );
+  }
+
+  /**
+   * Get student attempts for a quiz (paginated)
+   */
+  getStudentAttempts(quizId: string, page = 0, size = 20) {
+    return this.apiClient.get<{ content: QuizAttemptResponse[]; totalElements: number; totalPages: number }>(
+      `${QUIZ_ENDPOINTS.QUIZ_ATTEMPTS(quizId)}?page=${page}&size=${size}`
+    );
+  }
+
+  /**
+   * Get all attempts for current student across all quizzes (paginated)
+   */
+  getMyAttempts(page = 0, size = 20) {
+    return this.apiClient.get<{ content: QuizAttemptResponse[]; totalElements: number; totalPages: number }>(
+      `${QUIZ_ENDPOINTS.STUDENT_ATTEMPTS}?page=${page}&size=${size}`
     );
   }
 
@@ -372,6 +359,16 @@ export class QuizApi {
   getQuizResult(attemptId: string) {
     return this.apiClient.get<QuizResult>(
       QUIZ_ENDPOINTS.ATTEMPT_RESULT(attemptId)
+    );
+  }
+
+  /**
+   * Manual grade a question in an attempt (teacher essay grading)
+   */
+  manualGradeQuestion(attemptId: string, questionId: string, score: number, feedback?: string) {
+    return this.apiClient.patch<QuizResult>(
+      QUIZ_ENDPOINTS.MANUAL_GRADE(attemptId),
+      { questionId, score, feedback }
     );
   }
 
@@ -406,49 +403,21 @@ export class QuizApi {
     );
   }
 
-  // ============================================
-  // Quiz Assignments
-  // ============================================
-
   /**
-   * Assign quiz to students
+   * Delete a quiz
    */
-  assignQuizToStudents(quizId: string, request: AssignQuizRequest): Observable<QuizAssignmentResponse[]> {
-    return this.apiClient.post<QuizAssignmentResponse[]>(
-      QUIZ_ENDPOINTS.QUIZ_ASSIGNMENTS(quizId),
-      request
+  deleteQuiz(quizId: string) {
+    return this.apiClient.delete<void>(
+      QUIZ_ENDPOINTS.DELETE_QUIZ(quizId)
     );
   }
 
   /**
-   * Get quiz assignments
+   * Publish a quiz
    */
-  getQuizAssignments(quizId: string): Observable<QuizAssignmentResponse[]> {
-    return this.apiClient.get<QuizAssignmentResponse[]>(
-      QUIZ_ENDPOINTS.QUIZ_ASSIGNMENTS(quizId)
-    );
-  }
-
-  // ============================================
-  // Quiz Auto-populate & Sample Questions
-  // ============================================
-
-  /**
-   * Auto-populate quiz with available questions
-   */
-  autoPopulateQuizQuestions(lessonId: string) {
-    return this.apiClient.post<any>(
-      QUIZ_ENDPOINTS.AUTO_POPULATE(lessonId),
-      {}
-    );
-  }
-
-  /**
-   * Create sample questions for quiz
-   */
-  createSampleQuestions(lessonId: string) {
-    return this.apiClient.post<any>(
-      QUIZ_ENDPOINTS.CREATE_SAMPLE(lessonId),
+  publishQuiz(quizId: string) {
+    return this.apiClient.post<void>(
+      QUIZ_ENDPOINTS.PUBLISH_QUIZ(quizId),
       {}
     );
   }

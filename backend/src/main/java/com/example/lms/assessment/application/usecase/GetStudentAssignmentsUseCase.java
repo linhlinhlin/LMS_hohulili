@@ -1,21 +1,14 @@
 package com.example.lms.assessment.application.usecase;
 
 import com.example.lms.assessment.application.dto.StudentAssignmentResponse;
-import com.example.lms.assessment.infrastructure.persistence.entity.AssignmentJpaEntity;
-import com.example.lms.assessment.infrastructure.persistence.entity.AssignmentSubmissionJpaEntity;
-import com.example.lms.assessment.infrastructure.persistence.repository.AssignmentJpaRepository;
-import com.example.lms.assessment.infrastructure.persistence.repository.AssignmentSubmissionJpaRepository;
-import com.example.lms.course_authoring.infrastructure.persistence.JpaCourseRepository;
-import com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity;
-import com.example.lms.learning_delivery.infrastructure.persistence.JpaEnrollmentRepository;
-import com.example.lms.learning_delivery.infrastructure.persistence.entity.EnrollmentJpaEntity;
+import com.example.lms.assessment.application.port.StudentAssignmentQueryPort;
+import com.example.lms.assessment.application.port.StudentAssignmentQueryPort.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -31,49 +24,40 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class GetStudentAssignmentsUseCase {
 
-    private final JpaEnrollmentRepository enrollmentRepository;
-    private final AssignmentJpaRepository assignmentRepository;
-    private final AssignmentSubmissionJpaRepository submissionRepository;
-    private final JpaCourseRepository courseRepository;
+    private final StudentAssignmentQueryPort queryPort;
 
     @Transactional(readOnly = true)
     public List<StudentAssignmentResponse> execute(UUID studentId) {
-        // 1. Get student's active enrollments with class (single query with JOIN FETCH)
-        List<EnrollmentJpaEntity> enrollments = enrollmentRepository.findActiveWithClass(studentId);
-        if (enrollments.isEmpty()) {
+        // 1. Get student's active enrollments
+        List<EnrolledCourse> enrolledCourses = queryPort.findActiveEnrolledCourses(studentId);
+        if (enrolledCourses.isEmpty()) {
             return List.of();
         }
 
-        // 2. Extract course IDs from enrollments
-        List<UUID> courseIds = enrollments.stream()
-                .map(e -> e.getLearningClass().getCourseId())
+        // 2. Extract course IDs
+        List<UUID> courseIds = enrolledCourses.stream()
+                .map(EnrolledCourse::courseId)
                 .distinct()
                 .collect(Collectors.toList());
 
-        // 3. Get PUBLISHED assignments for enrolled courses (batch query)
-        List<AssignmentJpaEntity> assignments = assignmentRepository.findByCourseIdInAndStatus(
-                courseIds, AssignmentJpaEntity.AssignmentStatus.PUBLISHED);
+        // 3. Get PUBLISHED assignments (batch query)
+        List<AssignmentSummary> assignments = queryPort.findPublishedAssignmentsByCourseIds(courseIds);
         if (assignments.isEmpty()) {
             return List.of();
         }
 
-        // 4. Get student's submissions (batch query by studentId)
-        List<AssignmentSubmissionJpaEntity> submissions = submissionRepository.findByStudentId(studentId);
-        Map<UUID, AssignmentSubmissionJpaEntity> submissionByAssignment = submissions.stream()
-                .collect(Collectors.toMap(
-                        AssignmentSubmissionJpaEntity::getAssignmentId,
-                        Function.identity(),
-                        (a, b) -> a // In case of duplicates, keep first
-                ));
+        // 4. Get student's submissions (batch query)
+        Map<UUID, SubmissionInfo> submissionByAssignment = queryPort.findLatestSubmissionsByStudent(studentId);
 
-        // 5. Build course title map (batch - all courses loaded in one query)
-        List<CourseJpaEntity> courses = courseRepository.findAllById(courseIds);
-        Map<UUID, String> courseTitleMap = courses.stream()
-                .collect(Collectors.toMap(CourseJpaEntity::getId, CourseJpaEntity::getTitle));
+        // 5. Build course title map (batch)
+        Map<UUID, String> courseTitleMap = new HashMap<>();
+        for (UUID courseId : courseIds) {
+            queryPort.findCourseTitle(courseId).ifPresent(title -> courseTitleMap.put(courseId, title));
+        }
 
         // 6. Map to response DTOs
         return assignments.stream()
-                .map(a -> mapToResponse(a, submissionByAssignment.get(a.getId()), courseTitleMap))
+                .map(a -> mapToResponse(a, submissionByAssignment.get(a.id()), courseTitleMap))
                 .sorted(Comparator.comparing(StudentAssignmentResponse::dueDate,
                         Comparator.nullsLast(Comparator.naturalOrder())))
                 .collect(Collectors.toList());
@@ -84,29 +68,28 @@ public class GetStudentAssignmentsUseCase {
      */
     @Transactional(readOnly = true)
     public Optional<StudentAssignmentResponse> getById(UUID assignmentId, UUID studentId) {
-        return assignmentRepository.findById(assignmentId)
+        return queryPort.findAssignmentById(assignmentId)
                 .map(assignment -> {
-                    var submission = submissionRepository
-                            .findByAssignmentIdAndStudentId(assignmentId, studentId)
-                            .orElse(null);
+                    SubmissionInfo submission = queryPort.findSubmission(assignmentId, studentId).orElse(null);
 
-                    String courseName = null;
-                    if (assignment.getCourseId() != null) {
-                        courseName = courseRepository.findById(assignment.getCourseId())
-                                .map(CourseJpaEntity::getTitle)
-                                .orElse(null);
+                    Map<UUID, String> titleMap = new HashMap<>();
+                    if (assignment.courseId() != null) {
+                        queryPort.findCourseTitle(assignment.courseId())
+                                .ifPresent(title -> titleMap.put(assignment.courseId(), title));
                     }
 
-                    Map<UUID, String> titleMap = courseName != null
-                            ? Map.of(assignment.getCourseId(), courseName)
-                            : Map.of();
-                    return mapToResponse(assignment, submission, titleMap);
+                    return mapToResponse(
+                            new AssignmentSummary(
+                                    assignment.id(), assignment.title(), assignment.description(),
+                                    assignment.instructions(), assignment.courseId(), assignment.dueDate(),
+                                    assignment.maxScore(), assignment.allowLateSubmission(), assignment.maxAttempts()),
+                            submission, titleMap);
                 });
     }
 
     private StudentAssignmentResponse mapToResponse(
-            AssignmentJpaEntity assignment,
-            AssignmentSubmissionJpaEntity submission,
+            AssignmentSummary assignment,
+            SubmissionInfo submission,
             Map<UUID, String> courseTitleMap) {
 
         String status;
@@ -121,51 +104,52 @@ public class GetStudentAssignmentsUseCase {
         UUID submissionId = null;
 
         if (submission != null) {
-            submissionId = submission.getId();
-            submittedAt = submission.getSubmittedAt();
-            score = submission.getGrade();
-            feedback = submission.getFeedback();
-            gradedAt = submission.getGradedAt();
-            fileUrl = submission.getFileUrl();
-            fileName = submission.getFileName();
-            content = submission.getContent();
+            submissionId = submission.id();
+            submittedAt = submission.submittedAt();
+            score = submission.grade();
+            feedback = submission.feedback();
+            gradedAt = submission.gradedAt();
+            fileUrl = submission.fileUrl();
+            fileName = submission.fileName();
+            content = submission.content();
 
             // Compute isLate: submittedAt after dueDate
-            if (submittedAt != null && assignment.getDueDate() != null) {
-                isLate = submittedAt.isAfter(assignment.getDueDate());
+            if (submittedAt != null && assignment.dueDate() != null) {
+                isLate = submittedAt.isAfter(assignment.dueDate());
             }
 
             // Map submission status to student-facing status
-            status = switch (submission.getStatus()) {
-                case DRAFT -> "DRAFT";
-                case SUBMITTED -> isLate ? "LATE" : "SUBMITTED";
-                case LATE -> "LATE";
-                case GRADED -> "GRADED";
-                case RETURNED -> "RETURNED";
-                case RESUBMITTED -> "RESUBMITTED";
+            status = switch (submission.status()) {
+                case "DRAFT" -> "DRAFT";
+                case "SUBMITTED" -> isLate ? "LATE" : "SUBMITTED";
+                case "LATE" -> "LATE";
+                case "GRADED" -> "GRADED";
+                case "RETURNED" -> "RETURNED";
+                case "RESUBMITTED" -> "RESUBMITTED";
+                default -> submission.status();
             };
         } else {
             // No submission yet
-            if (assignment.getDueDate() != null && Instant.now().isAfter(assignment.getDueDate())) {
+            if (assignment.dueDate() != null && Instant.now().isAfter(assignment.dueDate())) {
                 status = "OVERDUE";
             } else {
                 status = "NOT_SUBMITTED";
             }
         }
 
-        String courseName = assignment.getCourseId() != null
-                ? courseTitleMap.getOrDefault(assignment.getCourseId(), null)
+        String courseName = assignment.courseId() != null
+                ? courseTitleMap.getOrDefault(assignment.courseId(), null)
                 : null;
 
         return new StudentAssignmentResponse(
-                assignment.getId(),
-                assignment.getTitle(),
-                assignment.getDescription(),
-                assignment.getInstructions(),
+                assignment.id(),
+                assignment.title(),
+                assignment.description(),
+                assignment.instructions(),
                 courseName,
-                assignment.getCourseId(),
-                assignment.getDueDate(),
-                assignment.getMaxScore() != null ? assignment.getMaxScore().intValue() : null,
+                assignment.courseId(),
+                assignment.dueDate(),
+                assignment.maxScore() != null ? assignment.maxScore().intValue() : null,
                 status,
                 isLate,
                 score,
@@ -176,8 +160,8 @@ public class GetStudentAssignmentsUseCase {
                 fileName,
                 content,
                 submissionId,
-                Boolean.TRUE.equals(assignment.getAllowLateSubmission()),
-                assignment.getMaxAttempts()
+                Boolean.TRUE.equals(assignment.allowLateSubmission()),
+                assignment.maxAttempts()
         );
     }
 }

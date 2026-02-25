@@ -59,6 +59,13 @@ public class SmtpEmailAdapter implements EmailServicePort {
         send(toEmail, "Biên lai thanh toán - LMS Maritime", html);
     }
 
+    @Override
+    @Async
+    public void sendEmailVerification(String toEmail, String fullName, String verificationLink) {
+        String html = EmailTemplates.emailVerification(fullName, verificationLink);
+        send(toEmail, "Xác nhận email - LMS Maritime", html);
+    }
+
     private void send(String to, String subject, String htmlBody) {
         if (mailUsername == null || mailUsername.isBlank()) {
             log.warn("[Email] SMTP not configured (MAIL_USERNAME empty). Would send '{}' to {}", subject, to);

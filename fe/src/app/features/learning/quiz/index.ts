@@ -4,9 +4,6 @@
  * Barrel export for the Quiz feature following clean architecture principles
  */
 
-// Types
-export * from './types';
-
 // Domain
 export {
   QuizEntity,
@@ -24,4 +21,3 @@ export * from './infrastructure/services/quiz.service';
 
 // Presentation
 export * from './presentation/components/quiz-list.component';
-export * from './presentation/components/quiz-attempt.component';

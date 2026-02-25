@@ -76,6 +76,18 @@ public final class EmailTemplates {
         return wrap("Ghi danh thành công", body);
     }
 
+    public static String emailVerification(String fullName, String verificationLink) {
+        String body = """
+            <p style="color:#475569;line-height:1.6;margin:0 0 16px">Xin chào <strong>%s</strong>,</p>
+            <p style="color:#475569;line-height:1.6;margin:0 0 24px">Cảm ơn bạn đã đăng ký tài khoản tại LMS Maritime. Vui lòng nhấn nút bên dưới để xác nhận địa chỉ email của bạn:</p>
+            <table width="100%%" cellpadding="0" cellspacing="0"><tr><td align="center">
+              <a href="%s" style="display:inline-block;padding:14px 32px;background:%s;color:#fff;text-decoration:none;border-radius:8px;font-weight:600;font-size:16px">Xác nhận email</a>
+            </td></tr></table>
+            <p style="color:#94a3b8;font-size:13px;margin:24px 0 0">Liên kết này sẽ hết hạn sau 24 giờ. Nếu bạn không đăng ký tài khoản, vui lòng bỏ qua email này.</p>
+            """.formatted(fullName, verificationLink, PRIMARY);
+        return wrap("Xác nhận email", body);
+    }
+
     public static String paymentReceipt(String fullName, String courseName, BigDecimal amount, String txnId) {
         NumberFormat nf = NumberFormat.getInstance(new Locale("vi", "VN"));
         String formattedAmount = nf.format(amount) + "₫";

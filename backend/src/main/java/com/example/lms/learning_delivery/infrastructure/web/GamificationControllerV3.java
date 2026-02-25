@@ -61,8 +61,10 @@ public class GamificationControllerV3 {
 
     @Operation(summary = "Mark notification as read")
     @PatchMapping("/notifications/{id}/read")
-    public ResponseEntity<ApiResponse<Void>> markNotificationRead(@PathVariable UUID id) {
-        gamificationUseCase.markNotificationRead(id);
+    public ResponseEntity<ApiResponse<Void>> markNotificationRead(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        gamificationUseCase.markNotificationRead(id, user.getId());
         return ResponseEntity.ok(ApiResponse.success(null, "Đã đánh dấu đã đọc"));
     }
 

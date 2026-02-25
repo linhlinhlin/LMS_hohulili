@@ -122,14 +122,6 @@ export const serverRoutes: ServerRoute[] = [
     renderMode: RenderMode.Client
   },
   {
-    path: 'student/learn/planner',
-    renderMode: RenderMode.Client
-  },
-  {
-    path: 'student/learn/calendar',
-    renderMode: RenderMode.Client
-  },
-  {
     path: 'student/learn/notes',
     renderMode: RenderMode.Client
   },

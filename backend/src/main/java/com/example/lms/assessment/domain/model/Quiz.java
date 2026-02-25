@@ -77,8 +77,32 @@ public class Quiz {
         Boolean shuffleQuestions,
         Boolean shuffleOptions,
         Boolean showResultsImmediately,
-        Boolean showCorrectAnswers
+        Boolean showCorrectAnswers,
+        Instant availableFrom,
+        Instant dueAt,
+        Instant lockAt
     ) {
+        public QuizSettings {
+            if (timeLimitMinutes != null && timeLimitMinutes <= 0) {
+                throw new IllegalArgumentException("Thời gian giới hạn phải lớn hơn 0");
+            }
+            if (maxAttempts != null && maxAttempts <= 0) {
+                throw new IllegalArgumentException("Số lần làm bài tối đa phải lớn hơn 0");
+            }
+            if (passingScore != null && (passingScore < 0 || passingScore > 100)) {
+                throw new IllegalArgumentException("Điểm đậu phải nằm trong khoảng 0-100");
+            }
+            if (availableFrom != null && lockAt != null && !availableFrom.isBefore(lockAt)) {
+                throw new IllegalArgumentException("Thời gian mở phải trước thời gian khóa");
+            }
+            if (dueAt != null && availableFrom != null && dueAt.isBefore(availableFrom)) {
+                throw new IllegalArgumentException("Hạn nộp phải sau thời gian mở");
+            }
+            if (dueAt != null && lockAt != null && dueAt.isAfter(lockAt)) {
+                throw new IllegalArgumentException("Hạn nộp phải trước thời gian khóa");
+            }
+        }
+
         public static Builder builder() {
             return new Builder();
         }
@@ -91,6 +115,9 @@ public class Quiz {
             private Boolean shuffleOptions;
             private Boolean showResultsImmediately;
             private Boolean showCorrectAnswers;
+            private Instant availableFrom;
+            private Instant dueAt;
+            private Instant lockAt;
 
             public Builder timeLimitMinutes(Integer timeLimitMinutes) { this.timeLimitMinutes = timeLimitMinutes; return this; }
             public Builder maxAttempts(Integer maxAttempts) { this.maxAttempts = maxAttempts; return this; }
@@ -99,9 +126,12 @@ public class Quiz {
             public Builder shuffleOptions(Boolean shuffleOptions) { this.shuffleOptions = shuffleOptions; return this; }
             public Builder showResultsImmediately(Boolean showResultsImmediately) { this.showResultsImmediately = showResultsImmediately; return this; }
             public Builder showCorrectAnswers(Boolean showCorrectAnswers) { this.showCorrectAnswers = showCorrectAnswers; return this; }
+            public Builder availableFrom(Instant availableFrom) { this.availableFrom = availableFrom; return this; }
+            public Builder dueAt(Instant dueAt) { this.dueAt = dueAt; return this; }
+            public Builder lockAt(Instant lockAt) { this.lockAt = lockAt; return this; }
 
             public QuizSettings build() {
-                return new QuizSettings(timeLimitMinutes, maxAttempts, passingScore, shuffleQuestions, shuffleOptions, showResultsImmediately, showCorrectAnswers);
+                return new QuizSettings(timeLimitMinutes, maxAttempts, passingScore, shuffleQuestions, shuffleOptions, showResultsImmediately, showCorrectAnswers, availableFrom, dueAt, lockAt);
             }
         }
 

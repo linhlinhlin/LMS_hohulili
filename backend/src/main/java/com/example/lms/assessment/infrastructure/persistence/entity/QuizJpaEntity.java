@@ -18,12 +18,12 @@ import java.util.UUID;
 public class QuizJpaEntity {
     // Manual boilerplate
     public QuizJpaEntity() {}
-    public QuizJpaEntity(UUID id, UUID lessonId, String title, String description, Integer timeLimitMinutes, Integer maxAttempts, Integer passingScore, Boolean shuffleQuestions, Boolean shuffleOptions, Boolean showResultsImmediately, Boolean showCorrectAnswers, QuizStatus status, java.util.List<QuizQuestionJpaEntity> questions, Instant createdAt, Instant updatedAt) {
-        this.id = id; this.lessonId = lessonId; this.title = title; this.description = description; this.timeLimitMinutes = timeLimitMinutes; this.maxAttempts = maxAttempts; this.passingScore = passingScore; this.shuffleQuestions = shuffleQuestions; this.shuffleOptions = shuffleOptions; this.showResultsImmediately = showResultsImmediately; this.showCorrectAnswers = showCorrectAnswers; this.status = status; this.questions = questions; this.createdAt = createdAt; this.updatedAt = updatedAt;
+    public QuizJpaEntity(UUID id, UUID lessonId, String title, String description, Integer timeLimitMinutes, Integer maxAttempts, Integer passingScore, Boolean shuffleQuestions, Boolean shuffleOptions, Boolean showResultsImmediately, Boolean showCorrectAnswers, QuizStatus status, java.util.List<QuizQuestionJpaEntity> questions, Instant createdAt, Instant updatedAt, Instant availableFrom, Instant dueAt, Instant lockAt) {
+        this.id = id; this.lessonId = lessonId; this.title = title; this.description = description; this.timeLimitMinutes = timeLimitMinutes; this.maxAttempts = maxAttempts; this.passingScore = passingScore; this.shuffleQuestions = shuffleQuestions; this.shuffleOptions = shuffleOptions; this.showResultsImmediately = showResultsImmediately; this.showCorrectAnswers = showCorrectAnswers; this.status = status; this.questions = questions; this.createdAt = createdAt; this.updatedAt = updatedAt; this.availableFrom = availableFrom; this.dueAt = dueAt; this.lockAt = lockAt;
     }
     public static Builder builder() { return new Builder(); }
     public static class Builder {
-        private UUID id; private UUID lessonId; private String title; private String description; private Integer timeLimitMinutes; private Integer maxAttempts = 3; private Integer passingScore = 60; private Boolean shuffleQuestions = false; private Boolean shuffleOptions = false; private Boolean showResultsImmediately = true; private Boolean showCorrectAnswers = true; private QuizStatus status = QuizStatus.DRAFT; private java.util.List<QuizQuestionJpaEntity> questions; private Instant createdAt; private Instant updatedAt;
+        private UUID id; private UUID lessonId; private String title; private String description; private Integer timeLimitMinutes; private Integer maxAttempts = 3; private Integer passingScore = 60; private Boolean shuffleQuestions = false; private Boolean shuffleOptions = false; private Boolean showResultsImmediately = true; private Boolean showCorrectAnswers = true; private QuizStatus status = QuizStatus.DRAFT; private java.util.List<QuizQuestionJpaEntity> questions; private Instant createdAt; private Instant updatedAt; private Instant availableFrom; private Instant dueAt; private Instant lockAt;
         public Builder id(UUID id) { this.id = id; return this; }
         public Builder lessonId(UUID lessonId) { this.lessonId = lessonId; return this; }
         public Builder title(String title) { this.title = title; return this; }
@@ -39,7 +39,10 @@ public class QuizJpaEntity {
         public Builder questions(java.util.List<QuizQuestionJpaEntity> questions) { this.questions = questions; return this; }
         public Builder createdAt(Instant createdAt) { this.createdAt = createdAt; return this; }
         public Builder updatedAt(Instant updatedAt) { this.updatedAt = updatedAt; return this; }
-        public QuizJpaEntity build() { return new QuizJpaEntity(id, lessonId, title, description, timeLimitMinutes, maxAttempts, passingScore, shuffleQuestions, shuffleOptions, showResultsImmediately, showCorrectAnswers, status, questions, createdAt, updatedAt); }
+        public Builder availableFrom(Instant availableFrom) { this.availableFrom = availableFrom; return this; }
+        public Builder dueAt(Instant dueAt) { this.dueAt = dueAt; return this; }
+        public Builder lockAt(Instant lockAt) { this.lockAt = lockAt; return this; }
+        public QuizJpaEntity build() { return new QuizJpaEntity(id, lessonId, title, description, timeLimitMinutes, maxAttempts, passingScore, shuffleQuestions, shuffleOptions, showResultsImmediately, showCorrectAnswers, status, questions, createdAt, updatedAt, availableFrom, dueAt, lockAt); }
     }
 
     @Id
@@ -93,6 +96,15 @@ public class QuizJpaEntity {
     @Column(name = "updated_at")
     private Instant updatedAt;
 
+    @Column(name = "available_from")
+    private Instant availableFrom;
+
+    @Column(name = "due_at")
+    private Instant dueAt;
+
+    @Column(name = "lock_at")
+    private Instant lockAt;
+
     // Getters/Setters
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
@@ -124,6 +136,12 @@ public class QuizJpaEntity {
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+    public Instant getAvailableFrom() { return availableFrom; }
+    public void setAvailableFrom(Instant availableFrom) { this.availableFrom = availableFrom; }
+    public Instant getDueAt() { return dueAt; }
+    public void setDueAt(Instant dueAt) { this.dueAt = dueAt; }
+    public Instant getLockAt() { return lockAt; }
+    public void setLockAt(Instant lockAt) { this.lockAt = lockAt; }
 
     public enum QuizStatus {
         DRAFT, PUBLISHED, ARCHIVED

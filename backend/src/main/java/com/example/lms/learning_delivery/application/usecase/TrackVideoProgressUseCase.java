@@ -105,8 +105,11 @@ public class TrackVideoProgressUseCase {
     public record TrackSegmentsRequest(
             UUID lessonId,
             String sectionId,
+            @jakarta.validation.constraints.Positive(message = "Thời lượng phải lớn hơn 0")
             int durationSeconds,
+            @jakarta.validation.constraints.PositiveOrZero(message = "Vị trí bắt đầu không được âm")
             int fromSecond,
+            @jakarta.validation.constraints.PositiveOrZero(message = "Vị trí kết thúc không được âm")
             int toSecond,
             double lastPosition
     ) {}

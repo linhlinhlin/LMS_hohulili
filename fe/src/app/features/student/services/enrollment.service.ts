@@ -159,33 +159,12 @@ export class StudentEnrollmentService {
    * Enroll vào một course
    * Nếu course có nhiều lớp, sẽ throw error để UI hiển thị class picker
    */
-  async enrollInCourse(courseId: string, classId?: string): Promise<boolean> {
+  async enrollInCourse(courseId: string): Promise<boolean> {
     this._isLoading.set(true);
     this._error.set(null);
 
     try {
-      // If no classId provided, check available classes first
-      if (!classId) {
-        const classesResponse = await firstValueFrom(this.courseApi.getAvailableClasses(courseId));
-        const classes = classesResponse?.data || [];
-
-        if (classes.length === 0) {
-          throw new Error('Không có lớp học nào đang mở đăng ký cho khóa học này');
-        }
-
-        if (classes.length === 1) {
-          // Auto-select the only available class
-          classId = classes[0].id;
-        } else {
-          // Multiple classes - throw special error with class info
-          const error: any = new Error('Khóa học có nhiều lớp học đang mở. Vui lòng chọn lớp.');
-          error.availableClasses = classes;
-          error.courseId = courseId;
-          throw error;
-        }
-      }
-
-      await firstValueFrom(this.courseApi.enrollCourse(courseId, classId));
+      await firstValueFrom(this.courseApi.enrollCourse(courseId));
 
       // Reload enrolled courses after successful enrollment
       await this.loadEnrolledCourses();
@@ -194,11 +173,6 @@ export class StudentEnrollmentService {
 
       return true;
     } catch (error: any) {
-      // If error has availableClasses, re-throw for UI to handle
-      if (error.availableClasses) {
-        throw error;
-      }
-
       const errorMessage = error?.message || 'Không thể đăng ký khóa học';
       this._error.set(errorMessage);
       this.errorService.handleApiError(error, 'enrollment');

@@ -60,8 +60,11 @@ public class RubricControllerV3 {
     @Operation(summary = "Get rubric by ID")
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> getRubric(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getRubric(
+            @AuthenticationPrincipal UserJpaEntity user,
+            @PathVariable UUID id) {
         Rubric rubric = rubricCrudUseCase.findById(id);
+        verifyRubricAccess(rubric, user);
         return ResponseEntity.ok(ApiResponse.success(toResponse(rubric), "Đã tải rubric"));
     }
 
@@ -124,9 +127,15 @@ public class RubricControllerV3 {
     @GetMapping("/assignment/{assignmentId}")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN', 'STUDENT')")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getAssignmentRubric(
+            @AuthenticationPrincipal UserJpaEntity user,
             @PathVariable UUID assignmentId) {
 
         Rubric rubric = rubricCrudUseCase.findByAssignment(assignmentId);
+        // Students can view rubrics for their assignments (grading criteria transparency)
+        // Teachers must own the rubric; ADMIN/ORG_ADMIN bypass
+        if (user.getRole() != UserJpaEntity.UserRole.STUDENT) {
+            verifyRubricAccess(rubric, user);
+        }
         return ResponseEntity.ok(ApiResponse.success(toResponse(rubric), "Đã tải rubric của bài tập"));
     }
 
@@ -206,5 +215,12 @@ public class RubricControllerV3 {
     private boolean isAdminRole(UserJpaEntity user) {
         return user.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_ORG_ADMIN"));
+    }
+
+    private void verifyRubricAccess(Rubric rubric, UserJpaEntity user) {
+        if (isAdminRole(user)) return;
+        if (rubric.getTeacherId() == null || !rubric.getTeacherId().equals(user.getId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Bạn không sở hữu rubric này");
+        }
     }
 }

@@ -1,7 +1,6 @@
 package com.example.lms.assessment.domain.event;
 
 import com.example.lms.shared.domain.event.AbstractDomainEvent;
-import com.example.lms.shared.domain.valueobject.CourseId;
 import com.example.lms.shared.domain.valueobject.StudentId;
 
 import java.util.UUID;
@@ -14,16 +13,16 @@ public class QuizSubmittedEvent extends AbstractDomainEvent {
 
     private final UUID quizId;
     private final StudentId studentId;
-    private final CourseId courseId;
+    private final UUID lessonId;
     private final double score;
     private final boolean passed;
 
-    public QuizSubmittedEvent(UUID attemptId, UUID quizId, StudentId studentId, 
-                              CourseId courseId, double score, boolean passed) {
+    public QuizSubmittedEvent(UUID attemptId, UUID quizId, StudentId studentId,
+                              UUID lessonId, double score, boolean passed) {
         super(attemptId);
         this.quizId = quizId;
         this.studentId = studentId;
-        this.courseId = courseId;
+        this.lessonId = lessonId;
         this.score = score;
         this.passed = passed;
     }
@@ -40,8 +39,8 @@ public class QuizSubmittedEvent extends AbstractDomainEvent {
         return studentId;
     }
 
-    public CourseId getCourseId() {
-        return courseId;
+    public UUID getLessonId() {
+        return lessonId;
     }
 
     public double getScore() {

@@ -49,6 +49,10 @@ public class AiAssistantControllerV3 {
     private final ChatSessionUseCaseV3 chatSessionUseCase;
     private final ChatMessageJpaRepository chatMessageRepository;
     private final AiChatService aiChatService;
+    private final com.example.lms.course_authoring.infrastructure.persistence.JpaCourseRepository jpaCourseRepository;
+    private final com.example.lms.learning_delivery.infrastructure.persistence.JpaEnrollmentRepository jpaEnrollmentRepository;
+    private final com.example.lms.course_authoring.infrastructure.persistence.repository.LessonJpaRepository lessonJpaRepository;
+    private final com.example.lms.course_authoring.infrastructure.persistence.repository.ChapterJpaRepository chapterJpaRepository;
 
     // ============== Health Check ==============
 
@@ -234,6 +238,7 @@ public class AiAssistantControllerV3 {
             @PathVariable UUID courseId,
             @RequestBody @Valid SendChatMessageCommand command) {
 
+        verifyCourseAccess(courseId, user);
         log.info("Course context question for course: {}", courseId);
         String contextMessage = "[Ngữ cảnh: Khóa học ID=" + courseId + "] " + command.content();
         String aiResponse = getAiResponse(user, contextMessage, null);
@@ -255,6 +260,13 @@ public class AiAssistantControllerV3 {
             @PathVariable UUID lessonId,
             @Valid @RequestBody(required = false) SendChatMessageCommand command) {
 
+        // Lookup lesson → chapter → course to verify access
+        var lesson = lessonJpaRepository.findById(lessonId)
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Bài học", lessonId));
+        var chapter = chapterJpaRepository.findById(lesson.getChapterId())
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Chương", lesson.getChapterId()));
+        verifyCourseAccess(chapter.getCourseId(), user);
+
         String query = command != null ? command.content() : "Giải thích bài học này";
         String contextMessage = "[Ngữ cảnh: Bài học ID=" + lessonId + "] " + query;
         String aiResponse = getAiResponse(user, contextMessage, null);
@@ -270,6 +282,21 @@ public class AiAssistantControllerV3 {
     }
 
     // ============== Helpers ==============
+
+    private boolean isAdminRole(UserJpaEntity user) {
+        return user.getRole() == UserJpaEntity.UserRole.ADMIN
+            || user.getRole() == UserJpaEntity.UserRole.ORG_ADMIN;
+    }
+
+    private void verifyCourseAccess(UUID courseId, UserJpaEntity user) {
+        if (isAdminRole(user)) return;
+        // Teacher who owns the course can access
+        var courseOpt = jpaCourseRepository.findById(courseId);
+        if (courseOpt.isPresent() && courseOpt.get().getTeacherId().equals(user.getId())) return;
+        // Enrolled student can access
+        if (jpaEnrollmentRepository.existsByStudentIdAndCourseId(user.getId(), courseId)) return;
+        throw new AccessDeniedException("Bạn không có quyền truy cập khóa học này");
+    }
 
     private void verifySessionOwner(ChatSessionResponse session, UUID currentUserId) {
         if (session.userId() != null && !session.userId().equals(currentUserId)) {

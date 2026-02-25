@@ -48,6 +48,9 @@ public class QuizAttemptJpaEntity {
     @Column(name = "max_score")
     private Double maxScore;
 
+    @Column(name = "is_passed")
+    private Boolean isPassed;
+
     @Column(name = "started_at")
     private Instant startedAt;
 

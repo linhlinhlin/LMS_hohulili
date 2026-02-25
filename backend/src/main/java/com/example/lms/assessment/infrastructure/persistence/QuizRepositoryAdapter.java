@@ -57,6 +57,11 @@ public class QuizRepositoryAdapter implements QuizRepository {
         return jpaRepository.existsById(id.value());
     }
 
+    @Override
+    public boolean isOwnedByTeacher(QuizId quizId, UUID teacherId) {
+        return jpaRepository.isOwnedByTeacher(quizId.value(), teacherId);
+    }
+
     // ============ Mapping Methods ============
 
     private QuizJpaEntity toEntity(Quiz quiz) {
@@ -72,6 +77,9 @@ public class QuizRepositoryAdapter implements QuizRepository {
             .shuffleOptions(quiz.getSettings().shuffleOptions())
             .showResultsImmediately(quiz.getSettings().showResultsImmediately())
             .showCorrectAnswers(quiz.getSettings().showCorrectAnswers())
+            .availableFrom(quiz.getSettings().availableFrom())
+            .dueAt(quiz.getSettings().dueAt())
+            .lockAt(quiz.getSettings().lockAt())
             .status(QuizJpaEntity.QuizStatus.valueOf(quiz.getStatus().name())) // Map Status
             .build();
 
@@ -102,6 +110,9 @@ public class QuizRepositoryAdapter implements QuizRepository {
             .shuffleOptions(entity.getShuffleOptions())
             .showResultsImmediately(entity.getShowResultsImmediately())
             .showCorrectAnswers(entity.getShowCorrectAnswers())
+            .availableFrom(entity.getAvailableFrom())
+            .dueAt(entity.getDueAt())
+            .lockAt(entity.getLockAt())
             .build();
 
         // Build questions list directly via builder (NOT addQuestion which validates isEditable)

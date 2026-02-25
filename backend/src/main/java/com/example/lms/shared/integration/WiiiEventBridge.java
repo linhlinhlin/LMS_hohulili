@@ -63,7 +63,7 @@ public class WiiiEventBridge {
      * QuizSubmittedEvent → quiz_completed webhook.
      *
      * <p>Expected event properties (accessed via reflection or casting):
-     * quizId, studentId, courseId, score, passed
+     * quizId, studentId, lessonId, score, passed
      */
     private void handleQuizSubmitted(DomainEvent event) {
         try {
@@ -72,12 +72,12 @@ public class WiiiEventBridge {
 
             Map<String, Object> payload = new HashMap<>();
             String studentId = quizEvent.getStudentId().value().toString();
-            String courseId = quizEvent.getCourseId() != null
-                    ? quizEvent.getCourseId().value().toString() : "";
+            String lessonId = quizEvent.getLessonId() != null
+                    ? quizEvent.getLessonId().toString() : "";
 
             payload.put("student_id", studentId);
             payload.put("quiz_id", quizEvent.getQuizId().toString());
-            payload.put("course_id", courseId);
+            payload.put("lesson_id", lessonId);
             payload.put("score", quizEvent.getScore());
             payload.put("max_score", 100.0);  // QuizAttempt normalizes to 0-100
             payload.put("quiz_name", "");  // Not in event, enriched by Wiii
@@ -87,7 +87,7 @@ public class WiiiEventBridge {
             // Also send as grade_saved (quiz score is a grade)
             Map<String, Object> gradePayload = new HashMap<>();
             gradePayload.put("student_id", studentId);
-            gradePayload.put("course_id", courseId);
+            gradePayload.put("lesson_id", lessonId);
             gradePayload.put("grade", quizEvent.getScore());
             gradePayload.put("max_grade", 100.0);
             gradePayload.put("assignment_name", "Quiz");

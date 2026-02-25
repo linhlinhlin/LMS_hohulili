@@ -77,8 +77,11 @@ public class CourseAuthoringControllerV3 {
     @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<UUID>> createLesson(
             @PathVariable UUID chapterId,
-            @Valid @RequestBody CreateLessonRequest request
+            @Valid @RequestBody CreateLessonRequest request,
+            @AuthenticationPrincipal UserJpaEntity user
     ) {
+        // P0-11: Verify teacher owns the course via chapter
+        verifyOwnershipByChapter(chapterId, user);
         var command = new CreateLessonUseCaseV3.CreateLessonCommand(
             chapterId,
             request.title(),

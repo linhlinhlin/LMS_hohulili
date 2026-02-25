@@ -18,7 +18,9 @@ import com.example.lms.assessment.infrastructure.persistence.repository.Assignme
 import com.example.lms.assessment.infrastructure.persistence.repository.AssignmentSubmissionJpaRepository;
 import com.example.lms.assessment.infrastructure.persistence.repository.QuizAttemptJpaRepository;
 import com.example.lms.assessment.infrastructure.persistence.repository.QuizJpaRepositoryV3;
+import com.example.lms.learning_delivery.application.dto.SelfEnrollCommand;
 import com.example.lms.learning_delivery.application.usecase.CertificateUseCase;
+import com.example.lms.learning_delivery.application.usecase.SelfEnrollUseCase;
 import com.example.lms.learning_delivery.infrastructure.persistence.CertificateJpaRepository;
 import com.example.lms.learning_delivery.infrastructure.persistence.EnrollmentRepositoryImpl;
 import com.example.lms.learning_delivery.infrastructure.persistence.entity.CertificateJpaEntity;
@@ -57,6 +59,7 @@ public class StudentEnrollmentControllerV3 {
     private final LessonJpaRepository lessonJpaRepository;
     private final CertificateJpaRepository certificateRepository;
     private final CertificateUseCase certificateUseCase;
+    private final SelfEnrollUseCase selfEnrollUseCase;
     private final AssignmentJpaRepository assignmentJpaRepository;
     private final AssignmentSubmissionJpaRepository submissionJpaRepository;
     private final QuizJpaRepositoryV3 quizJpaRepository;
@@ -89,32 +92,45 @@ public class StudentEnrollmentControllerV3 {
                 .filter(e -> e.getLearningClass() != null)
                 .collect(Collectors.groupingBy(e -> e.getLearningClass().getCourseId()));
         
-        // Batch-load course data and teacher names to avoid N+1
+        // Batch-load course data to avoid N+1 (SOTA: single query per entity type)
         Set<UUID> courseIds = courseEnrollments.keySet();
-        Map<UUID, CourseJpaEntity> courseMap = new HashMap<>();
-        Map<UUID, String> teacherNameMap = new HashMap<>();
-        Map<UUID, Long> lessonCountMap = new HashMap<>();
+        Map<UUID, CourseJpaEntity> courseMap = courseJpaRepository.findAllById(courseIds).stream()
+                .collect(Collectors.toMap(CourseJpaEntity::getId, c -> c));
 
-        for (UUID cId : courseIds) {
-            courseJpaRepository.findById(cId).ifPresent(c -> {
-                courseMap.put(cId, c);
-                if (c.getTeacherId() != null && !teacherNameMap.containsKey(c.getTeacherId())) {
-                    userJpaRepository.findById(c.getTeacherId())
-                            .ifPresent(u -> teacherNameMap.put(c.getTeacherId(), u.getFullName()));
+        // Batch-load teacher names
+        Set<UUID> teacherIds = courseMap.values().stream()
+                .map(CourseJpaEntity::getTeacherId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<UUID, String> teacherNameMap = userJpaRepository.findAllById(teacherIds).stream()
+                .collect(Collectors.toMap(UserJpaEntity::getId, UserJpaEntity::getFullName));
+
+        // Batch count lessons: chapters → lessons (2 queries instead of N*C)
+        List<ChapterJpaEntity> allChapters = chapterJpaRepository.findByCourseIdInOrderByOrderIndex(new ArrayList<>(courseIds));
+        List<UUID> chapterIds = allChapters.stream().map(ChapterJpaEntity::getId).toList();
+        Map<UUID, UUID> chapterToCourse = allChapters.stream()
+                .collect(Collectors.toMap(ChapterJpaEntity::getId, ChapterJpaEntity::getCourseId));
+        // Count lessons per course
+        Map<UUID, Long> lessonCountMap = new HashMap<>();
+        if (!chapterIds.isEmpty()) {
+            List<LessonJpaEntity> allLessons = lessonJpaRepository.findByChapterIdIn(chapterIds);
+            for (LessonJpaEntity lesson : allLessons) {
+                UUID cId = chapterToCourse.get(lesson.getChapterId());
+                if (cId != null) {
+                    lessonCountMap.merge(cId, 1L, Long::sum);
                 }
-            });
-            // Count lessons: chapters -> lessons
-            long totalLessons = chapterJpaRepository.findByCourseIdOrderByOrderIndex(cId).stream()
-                    .mapToLong(ch -> lessonJpaRepository.countByChapterId(ch.getId()))
-                    .sum();
-            lessonCountMap.put(cId, totalLessons);
+            }
         }
 
         // Build response with real course data
         List<EnrolledCourseResponse> courseResponses = courseEnrollments.entrySet().stream()
                 .map(entry -> {
                     UUID courseId = entry.getKey();
-                    Enrollment enrollment = entry.getValue().get(0);
+                    // Use most recent enrollment (by enrolledAt) instead of .get(0)
+                    Enrollment enrollment = entry.getValue().stream()
+                            .max(Comparator.comparing(
+                                    e -> e.getEnrolledAt() != null ? e.getEnrolledAt() : Instant.EPOCH))
+                            .orElse(entry.getValue().getFirst());
                     LearningClass lc = enrollment.getLearningClass();
                     CourseJpaEntity course = courseMap.get(courseId);
 
@@ -155,6 +171,27 @@ public class StudentEnrollmentControllerV3 {
         return ResponseEntity.ok(ApiResponse.success(pageResult, "Danh sách khóa học đã đăng ký"));
     }
 
+    @Operation(summary = "Self-enroll in a course (SELF_PACED / Coursera-style)")
+    @PostMapping("/courses/{courseId}/enroll")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> selfEnroll(
+            @AuthenticationPrincipal UserJpaEntity currentUser,
+            @PathVariable UUID courseId
+    ) {
+        if (currentUser == null) {
+            return ResponseEntity.status(401).body(ApiResponse.error("Người dùng chưa xác thực"));
+        }
+
+        UUID enrollmentId = selfEnrollUseCase.execute(
+                new SelfEnrollCommand(courseId, currentUser.getId())
+        );
+
+        return ResponseEntity.ok(ApiResponse.success(
+                Map.of("enrollmentId", enrollmentId.toString(), "courseId", courseId.toString()),
+                "Đăng ký khóa học thành công"
+        ));
+    }
+
     @Operation(summary = "Get course progress for student")
     @GetMapping("/progress/courses/{courseId}")
     @PreAuthorize("isAuthenticated()")
@@ -192,10 +229,8 @@ public class StudentEnrollmentControllerV3 {
         
         Enrollment enrollment = enrollmentOpt.get();
 
-        // Count actual lessons from course chapters
-        long totalLessons = chapterJpaRepository.findByCourseIdOrderByOrderIndex(courseId).stream()
-                .mapToLong(ch -> lessonJpaRepository.countByChapterId(ch.getId()))
-                .sum();
+        // Count total lessons (batch: 2 queries instead of N*C)
+        long totalLessons = countTotalLessonsForCourse(courseId);
 
         CourseProgressResponse progress = CourseProgressResponse.builder()
                 .courseId(courseId.toString())
@@ -278,10 +313,8 @@ public class StudentEnrollmentControllerV3 {
                 .build();
         enrollment.updateProgress(lessonId.toString(), lessonProgress);
 
-        // Recalculate completion percent based on actual lesson count
-        long totalLessons = chapterJpaRepository.findByCourseIdOrderByOrderIndex(courseId).stream()
-                .mapToLong(ch -> lessonJpaRepository.countByChapterId(ch.getId()))
-                .sum();
+        // Recalculate completion percent (batch: 2 queries instead of N*C)
+        long totalLessons = countTotalLessonsForCourse(courseId);
         if (totalLessons > 0 && enrollment.getProgress() != null) {
             int completedCount = enrollment.getProgress().size();
             int percent = (int) Math.min(100, Math.round((double) completedCount / totalLessons * 100));
@@ -431,14 +464,22 @@ public class StudentEnrollmentControllerV3 {
                 ? enrollment.getProgress().keySet()
                 : Set.of();
 
-            // Get ordered lesson IDs: chapters by orderIndex -> lessons by orderIndex
+            // Batch load all lessons ordered by chapter→lesson orderIndex (2 queries instead of N+1)
             List<ChapterJpaEntity> chapters = chapterJpaRepository.findByCourseIdOrderByOrderIndex(courseId);
-            for (ChapterJpaEntity chapter : chapters) {
-                List<LessonJpaEntity> lessons = lessonJpaRepository.findByChapterIdOrderByOrderIndex(chapter.getId());
-                for (LessonJpaEntity lesson : lessons) {
-                    if (!completedIds.contains(lesson.getId().toString())) {
-                        return ResponseEntity.ok(ApiResponse.success(
-                                lesson.getId().toString(), "Bài học tiếp theo"));
+            if (!chapters.isEmpty()) {
+                List<UUID> chapterIds = chapters.stream().map(ChapterJpaEntity::getId).toList();
+                List<LessonJpaEntity> allLessons = lessonJpaRepository.findByChapterIdIn(chapterIds);
+                // Group by chapterId preserving lesson order
+                Map<UUID, List<LessonJpaEntity>> lessonsByChapter = allLessons.stream()
+                        .collect(Collectors.groupingBy(LessonJpaEntity::getChapterId));
+                // Iterate in chapter order → lesson order
+                for (ChapterJpaEntity chapter : chapters) {
+                    List<LessonJpaEntity> lessons = lessonsByChapter.getOrDefault(chapter.getId(), List.of());
+                    for (LessonJpaEntity lesson : lessons) {
+                        if (!completedIds.contains(lesson.getId().toString())) {
+                            return ResponseEntity.ok(ApiResponse.success(
+                                    lesson.getId().toString(), "Bài học tiếp theo"));
+                        }
                     }
                 }
             }
@@ -460,12 +501,16 @@ public class StudentEnrollmentControllerV3 {
         }
 
         var certs = certificateRepository.findByStudentIdOrderByIssuedAtDesc(currentUser.getId());
+        // Batch load course names (1 query instead of N)
+        Set<UUID> courseIds = certs.stream().map(c -> c.getCourseId()).collect(Collectors.toSet());
+        Map<UUID, String> courseNameMap = courseJpaRepository.findAllById(courseIds).stream()
+                .collect(Collectors.toMap(CourseJpaEntity::getId, CourseJpaEntity::getTitle));
+
         List<Map<String, Object>> result = certs.stream().map(c -> {
             Map<String, Object> map = new LinkedHashMap<>();
             map.put("id", c.getId().toString());
             map.put("courseId", c.getCourseId().toString());
-            map.put("courseName", courseJpaRepository.findById(c.getCourseId())
-                    .map(CourseJpaEntity::getTitle).orElse(""));
+            map.put("courseName", courseNameMap.getOrDefault(c.getCourseId(), ""));
             map.put("verificationToken", c.getVerificationToken().toString());
             map.put("issuedAt", c.getIssuedAt().toString());
             return (Map<String, Object>) map;
@@ -569,74 +614,122 @@ public class StudentEnrollmentControllerV3 {
 
         // Get all active enrollments
         List<Enrollment> enrollments = enrollmentRepository.findActiveWithClass(studentId);
+        List<Enrollment> validEnrollments = enrollments.stream()
+                .filter(e -> e.getLearningClass() != null)
+                .toList();
 
-        for (Enrollment enrollment : enrollments) {
-            if (enrollment.getLearningClass() == null) continue;
+        if (validEnrollments.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.success(grades, "Bảng điểm học viên"));
+        }
+
+        // Batch load all data (SOTA: N+1 elimination)
+        List<UUID> courseIds = validEnrollments.stream()
+                .map(e -> e.getLearningClass().getCourseId()).distinct().toList();
+
+        // 1. Batch courses
+        Map<UUID, CourseJpaEntity> courseMap = courseJpaRepository.findAllById(courseIds).stream()
+                .collect(Collectors.toMap(CourseJpaEntity::getId, c -> c));
+
+        // 2. Batch chapters → lessons → quizzes (3 queries total)
+        List<ChapterJpaEntity> allChapters = chapterJpaRepository.findByCourseIdInOrderByOrderIndex(courseIds);
+        List<UUID> chapterIds = allChapters.stream().map(ChapterJpaEntity::getId).toList();
+        Map<UUID, UUID> chapterToCourse = allChapters.stream()
+                .collect(Collectors.toMap(ChapterJpaEntity::getId, ChapterJpaEntity::getCourseId));
+
+        List<LessonJpaEntity> allLessons = chapterIds.isEmpty()
+                ? List.of() : lessonJpaRepository.findByChapterIdIn(chapterIds);
+        // Map lessonId → courseId
+        Map<UUID, UUID> lessonToCourse = new HashMap<>();
+        for (LessonJpaEntity lesson : allLessons) {
+            UUID cId = chapterToCourse.get(lesson.getChapterId());
+            if (cId != null) lessonToCourse.put(lesson.getId(), cId);
+        }
+
+        List<UUID> allLessonIds = allLessons.stream().map(LessonJpaEntity::getId).toList();
+        List<QuizJpaEntity> allQuizzes = allLessonIds.isEmpty()
+                ? List.of() : quizJpaRepository.findByLessonIdIn(allLessonIds);
+
+        // 3. Batch quiz attempts (1 query)
+        List<UUID> allQuizIds = allQuizzes.stream().map(QuizJpaEntity::getId).toList();
+        List<QuizAttemptJpaEntity> allAttempts = allQuizIds.isEmpty()
+                ? List.of() : quizAttemptJpaRepository.findByQuizIdInAndStudentId(allQuizIds, studentId);
+        Map<UUID, List<QuizAttemptJpaEntity>> attemptsByQuiz = allAttempts.stream()
+                .collect(Collectors.groupingBy(QuizAttemptJpaEntity::getQuizId));
+
+        // Map quizzes by courseId
+        Map<UUID, List<QuizJpaEntity>> quizzesByCourse = new HashMap<>();
+        for (QuizJpaEntity quiz : allQuizzes) {
+            UUID cId = lessonToCourse.get(quiz.getLessonId());
+            if (cId != null) quizzesByCourse.computeIfAbsent(cId, k -> new ArrayList<>()).add(quiz);
+        }
+
+        // 4. Batch assignments + submissions (2 queries)
+        List<AssignmentJpaEntity> allAssignments = assignmentJpaRepository
+                .findByCourseIdInAndStatus(courseIds, AssignmentJpaEntity.AssignmentStatus.PUBLISHED);
+        Map<UUID, List<AssignmentJpaEntity>> assignmentsByCourse = allAssignments.stream()
+                .collect(Collectors.groupingBy(AssignmentJpaEntity::getCourseId));
+
+        List<UUID> allAssignmentIds = allAssignments.stream().map(AssignmentJpaEntity::getId).toList();
+        Map<UUID, AssignmentSubmissionJpaEntity> submissionByAssignment = allAssignmentIds.isEmpty()
+                ? Map.of()
+                : submissionJpaRepository.findByAssignmentIdInAndStudentId(allAssignmentIds, studentId).stream()
+                        .collect(Collectors.toMap(AssignmentSubmissionJpaEntity::getAssignmentId, s -> s, (a, b) -> a));
+
+        // 5. Build per-course grade response (zero additional queries)
+        for (Enrollment enrollment : validEnrollments) {
             UUID courseId = enrollment.getLearningClass().getCourseId();
+            CourseJpaEntity course = courseMap.get(courseId);
+            if (course == null) continue;
 
-            courseJpaRepository.findById(courseId).ifPresent(course -> {
-                Map<String, Object> courseGrade = new LinkedHashMap<>();
-                courseGrade.put("courseId", courseId.toString());
-                courseGrade.put("courseTitle", course.getTitle());
-                courseGrade.put("courseCode", course.getCode());
-                courseGrade.put("thumbnailUrl", course.getThumbnailUrl());
-                courseGrade.put("progress", enrollment.getCompletionPercent() != null ? enrollment.getCompletionPercent() : 0);
-                courseGrade.put("status", enrollment.getStatus().name());
+            Map<String, Object> courseGrade = new LinkedHashMap<>();
+            courseGrade.put("courseId", courseId.toString());
+            courseGrade.put("courseTitle", course.getTitle());
+            courseGrade.put("courseCode", course.getCode());
+            courseGrade.put("thumbnailUrl", course.getThumbnailUrl());
+            courseGrade.put("progress", enrollment.getCompletionPercent() != null ? enrollment.getCompletionPercent() : 0);
+            courseGrade.put("status", enrollment.getStatus().name());
 
-                // Quiz scores: find quizzes for this course via lesson chain
-                List<UUID> lessonIds = chapterJpaRepository.findByCourseIdOrderByOrderIndex(courseId).stream()
-                        .flatMap(ch -> lessonJpaRepository.findByChapterIdOrderByOrderIndex(ch.getId()).stream())
-                        .map(l -> l.getId())
-                        .toList();
-
-                List<Map<String, Object>> quizScores = new ArrayList<>();
-                if (!lessonIds.isEmpty()) {
-                    List<QuizJpaEntity> quizzes = quizJpaRepository.findByLessonIdIn(lessonIds);
-                    for (QuizJpaEntity quiz : quizzes) {
-                        List<QuizAttemptJpaEntity> attempts = quizAttemptJpaRepository.findByQuizIdAndStudentId(quiz.getId(), studentId);
-                        // Best score
-                        Double bestScore = attempts.stream()
-                                .filter(a -> a.getScore() != null)
-                                .mapToDouble(QuizAttemptJpaEntity::getScore)
-                                .max().orElse(-1);
-
-                        if (bestScore >= 0) {
-                            Map<String, Object> qs = new LinkedHashMap<>();
-                            qs.put("quizId", quiz.getId().toString());
-                            qs.put("quizTitle", quiz.getTitle());
-                            qs.put("bestScore", bestScore);
-                            qs.put("maxScore", 100); // Quiz scores are percentage-based (0-100)
-                            qs.put("attempts", attempts.size());
-                            quizScores.add(qs);
-                        }
-                    }
+            // Quiz scores from pre-loaded data
+            List<Map<String, Object>> quizScores = new ArrayList<>();
+            for (QuizJpaEntity quiz : quizzesByCourse.getOrDefault(courseId, List.of())) {
+                List<QuizAttemptJpaEntity> attempts = attemptsByQuiz.getOrDefault(quiz.getId(), List.of());
+                Double bestScore = attempts.stream()
+                        .filter(a -> a.getScore() != null)
+                        .mapToDouble(QuizAttemptJpaEntity::getScore)
+                        .max().orElse(-1);
+                if (bestScore >= 0) {
+                    Map<String, Object> qs = new LinkedHashMap<>();
+                    qs.put("quizId", quiz.getId().toString());
+                    qs.put("quizTitle", quiz.getTitle());
+                    qs.put("bestScore", bestScore);
+                    qs.put("maxScore", 100);
+                    qs.put("attempts", attempts.size());
+                    quizScores.add(qs);
                 }
-                courseGrade.put("quizScores", quizScores);
+            }
+            courseGrade.put("quizScores", quizScores);
 
-                // Assignment scores
-                List<AssignmentJpaEntity> assignments = assignmentJpaRepository
-                        .findByCourseIdInAndStatus(List.of(courseId), AssignmentJpaEntity.AssignmentStatus.PUBLISHED);
-                List<Map<String, Object>> assignmentScores = new ArrayList<>();
-                for (AssignmentJpaEntity assignment : assignments) {
-                    submissionJpaRepository.findByAssignmentIdAndStudentId(assignment.getId(), studentId)
-                            .ifPresent(sub -> {
-                                Map<String, Object> as = new LinkedHashMap<>();
-                                as.put("assignmentId", assignment.getId().toString());
-                                as.put("assignmentTitle", assignment.getTitle());
-                                as.put("grade", sub.getGrade());
-                                as.put("maxScore", assignment.getMaxScore());
-                                as.put("status", sub.getStatus().name());
-                                assignmentScores.add(as);
-                            });
+            // Assignment scores from pre-loaded data
+            List<Map<String, Object>> assignmentScores = new ArrayList<>();
+            for (AssignmentJpaEntity assignment : assignmentsByCourse.getOrDefault(courseId, List.of())) {
+                AssignmentSubmissionJpaEntity sub = submissionByAssignment.get(assignment.getId());
+                if (sub != null) {
+                    Map<String, Object> as = new LinkedHashMap<>();
+                    as.put("assignmentId", assignment.getId().toString());
+                    as.put("assignmentTitle", assignment.getTitle());
+                    as.put("grade", sub.getGrade());
+                    as.put("maxScore", assignment.getMaxScore());
+                    as.put("status", sub.getStatus().name());
+                    assignmentScores.add(as);
                 }
-                courseGrade.put("assignmentScores", assignmentScores);
+            }
+            courseGrade.put("assignmentScores", assignmentScores);
 
-                // Certificate status
-                boolean hasCertificate = certificateRepository.existsByEnrollmentId(enrollment.getId());
-                courseGrade.put("hasCertificate", hasCertificate);
+            // Certificate status
+            boolean hasCertificate = certificateRepository.existsByEnrollmentId(enrollment.getId());
+            courseGrade.put("hasCertificate", hasCertificate);
 
-                grades.add(courseGrade);
-            });
+            grades.add(courseGrade);
         }
 
         return ResponseEntity.ok(ApiResponse.success(grades, "Bảng điểm học viên"));
@@ -671,5 +764,16 @@ public class StudentEnrollmentControllerV3 {
         private Integer completedLessons;
         private Integer totalLessons;
         private String lastAccessedAt;
+    }
+
+    /**
+     * Count total lessons for a course in 2 queries (chapters + lessons batch).
+     * Replaces N*C pattern: chapters.stream().mapToLong(ch -> countByChapterId(ch.getId())).
+     */
+    private long countTotalLessonsForCourse(UUID courseId) {
+        List<ChapterJpaEntity> chapters = chapterJpaRepository.findByCourseIdOrderByOrderIndex(courseId);
+        if (chapters.isEmpty()) return 0;
+        List<UUID> chapterIds = chapters.stream().map(ChapterJpaEntity::getId).toList();
+        return lessonJpaRepository.findByChapterIdIn(chapterIds).size();
     }
 }

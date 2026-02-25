@@ -3,6 +3,7 @@ import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy } 
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
 import { ConfirmDialogService } from '../../../core/services/confirm-dialog.service';
+import { NoteApi, NoteResponse } from '../../../api/endpoints/note.api';
 
 interface Note {
   id: string;
@@ -268,8 +269,8 @@ interface NoteFilter {
 export class NoteTakingComponent implements OnInit {
   protected authService = inject(AuthService);
   private confirmDialog = inject(ConfirmDialogService);
+  private noteApi = inject(NoteApi);
 
-  // Notes — loaded from API when backend support is available
   notes = signal<Note[]>([]);
 
   filters: NoteFilter = {
@@ -369,7 +370,28 @@ export class NoteTakingComponent implements OnInit {
   }
 
   private loadNotes(): void {
-    // In real implementation, load from API
+    this.noteApi.listNotes().subscribe({
+      next: (response: any) => {
+        const data = response?.data || response || [];
+        const notes: Note[] = (Array.isArray(data) ? data : []).map((n: NoteResponse) => ({
+          id: n.id,
+          title: n.title,
+          content: n.content,
+          courseId: n.courseId,
+          courseName: '',
+          lessonId: n.lessonId || undefined,
+          lessonTitle: undefined,
+          tags: n.tags || [],
+          isPublic: n.isPublic || false,
+          createdAt: new Date(n.createdAt),
+          updatedAt: new Date(n.updatedAt),
+          wordCount: (n.content || '').split(/\s+/).filter(Boolean).length,
+          characterCount: (n.content || '').length
+        }));
+        this.notes.set(notes);
+      },
+      error: () => this.notes.set([])
+    });
   }
 
   applyFilters(): void {
@@ -402,11 +424,28 @@ export class NoteTakingComponent implements OnInit {
   }
 
   createNewNote(): void {
-    // Navigate to note editor
+    this.noteApi.createNote({
+      courseId: '00000000-0000-0000-0000-000000000000',
+      title: 'Ghi chú mới',
+      content: '',
+      tags: []
+    }).subscribe({
+      next: () => this.loadNotes(),
+      error: () => {}
+    });
   }
 
   editNote(noteId: string): void {
-    // Navigate to note editor
+    const note = this.notes().find(n => n.id === noteId);
+    if (!note) return;
+    this.noteApi.updateNote(noteId, {
+      title: note.title,
+      content: note.content,
+      tags: note.tags
+    }).subscribe({
+      next: () => this.loadNotes(),
+      error: () => {}
+    });
   }
 
   async deleteNote(noteId: string): Promise<void> {
@@ -417,7 +456,10 @@ export class NoteTakingComponent implements OnInit {
       variant: 'danger'
     });
     if (confirmed) {
-      this.notes.update(notes => notes.filter(note => note.id !== noteId));
+      this.noteApi.deleteNote(noteId).subscribe({
+        next: () => this.notes.update(notes => notes.filter(note => note.id !== noteId)),
+        error: () => {}
+      });
     }
   }
 

@@ -151,12 +151,11 @@ public class AdminCoursesControllerV3 {
             @Valid @RequestBody(required = false) ApprovalRequest request,
             @AuthenticationPrincipal UserJpaEntity admin
     ) {
-        UUID adminId = admin != null ? admin.getId() : UUID.randomUUID();
         String comment = request != null ? request.getComment() : "Đã duyệt";
 
         return courseRepository.findById(courseId)
                 .map(course -> {
-                    course.approve(adminId, comment);
+                    course.approve(admin.getId(), comment);
                     courseRepository.save(course);
                     return ResponseEntity.ok(ApiResponse.success(toAdminResponse(course), "Đã duyệt khóa học"));
                 })
@@ -171,11 +170,9 @@ public class AdminCoursesControllerV3 {
             @Valid @RequestBody RejectRequest request,
             @AuthenticationPrincipal UserJpaEntity admin
     ) {
-        UUID adminId = admin != null ? admin.getId() : UUID.randomUUID();
-
         return courseRepository.findById(courseId)
                 .map(course -> {
-                    course.reject(adminId, request.getReason());
+                    course.reject(admin.getId(), request.getReason());
                     courseRepository.save(course);
                     return ResponseEntity.ok(ApiResponse.success(toAdminResponse(course), "Đã từ chối khóa học"));
                 })
@@ -193,8 +190,7 @@ public class AdminCoursesControllerV3 {
         return courseRepository.findById(courseId)
                 .map(course -> {
                     String reason = request != null ? request.getReason() : "Bị thu hồi bởi quản trị viên";
-                    UUID adminId = admin != null ? admin.getId() : UUID.randomUUID();
-                    course.reject(adminId, reason);
+                    course.revoke(admin.getId(), reason);
                     courseRepository.save(course);
                     return ResponseEntity.ok(ApiResponse.success(toAdminResponse(course), "Đã thu hồi khóa học"));
                 })
@@ -309,10 +305,9 @@ public class AdminCoursesControllerV3 {
         }
 
         int enrolledCount = 0;
-        try {
-            enrolledCount = enrollmentRepository.findByLearningClass_CourseId(course.getId()).size();
-        } catch (org.springframework.dao.DataAccessException e) {
-            // Enrollment count unavailable — default to 0
+        List<Object[]> counts = enrollmentRepository.countEnrollmentsByCourseIds(List.of(course.getId()));
+        if (!counts.isEmpty()) {
+            enrolledCount = ((Long) counts.get(0)[1]).intValue();
         }
 
         return CourseAdminResponse.builder()

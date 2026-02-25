@@ -58,6 +58,13 @@ public class ResendEmailAdapter implements EmailServicePort {
         send(toEmail, "Biên lai thanh toán - LMS Maritime", html);
     }
 
+    @Override
+    @Async
+    public void sendEmailVerification(String toEmail, String fullName, String verificationLink) {
+        String html = EmailTemplates.emailVerification(fullName, verificationLink);
+        send(toEmail, "Xác nhận email - LMS Maritime", html);
+    }
+
     private void send(String to, String subject, String htmlBody) {
         try {
             CreateEmailOptions options = CreateEmailOptions.builder()

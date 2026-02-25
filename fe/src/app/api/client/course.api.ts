@@ -84,9 +84,8 @@ export class CourseApi {
     return this.api.getWithResponse<CourseContentChapter[]>(COURSE_ENDPOINTS.CONTENT(courseId));
   }
 
-  enrollCourse(courseId: string, classId?: string) {
-    const payload = classId ? { classId } : {};
-    return this.api.postWithResponse<string>(`${COURSE_ENDPOINTS.TEACHER.BY_ID(courseId)}/enroll`, payload);
+  enrollCourse(courseId: string) {
+    return this.api.postWithResponse<any>(`/api/v3/student/courses/${courseId}/enroll`, {});
   }
 
   enrollStudentAsTeacher(courseId: string, payload: EnrollStudentRequest) {

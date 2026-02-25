@@ -83,7 +83,7 @@ class QuestionBankManagementUseCaseTest {
 
         assertThatThrownBy(() -> useCase.updateBank(bank.getId(), command, otherUser))
                 .isInstanceOf(BusinessRuleException.class)
-                .hasMessageContaining("do not own");
+                .hasMessageContaining("Bạn không sở hữu ngân hàng câu hỏi này");
     }
 
     @Test

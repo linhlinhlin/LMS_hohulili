@@ -32,6 +32,11 @@ public class RefreshTokenUseCaseV2 {
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new BusinessRuleException("USER_NOT_FOUND", "Không tìm thấy người dùng"));
 
+        // P1-6: Reject disabled users
+        if (!user.isEnabled()) {
+            throw new BusinessRuleException("ACCOUNT_DISABLED", "Tài khoản đã bị vô hiệu hóa");
+        }
+
         if (!tokenService.isTokenValid(refreshToken, userEmail)) {
             throw new BusinessRuleException("TOKEN_VERIFICATION_FAILED", "Xác thực refresh token thất bại");
         }

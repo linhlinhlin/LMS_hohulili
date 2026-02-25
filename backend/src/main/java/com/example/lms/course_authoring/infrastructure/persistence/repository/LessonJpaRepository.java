@@ -16,4 +16,6 @@ public interface LessonJpaRepository extends JpaRepository<LessonJpaEntity, UUID
     List<LessonJpaEntity> findByChapterIdOrderByOrderIndex(UUID chapterId);
 
     long countByChapterId(UUID chapterId);
+
+    List<LessonJpaEntity> findByChapterIdIn(List<UUID> chapterIds);
 }

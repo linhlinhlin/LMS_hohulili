@@ -167,12 +167,12 @@ export class CourseService {
   /**
    * Enroll in a course via real API
    */
-  async enrollInCourse(courseId: string, userId: string, classId?: string): Promise<void> {
+  async enrollInCourse(courseId: string, userId: string): Promise<void> {
     this._isLoading.set(true);
     this._error.set(null);
 
     try {
-      await firstValueFrom(this.courseApi.enrollCourse(courseId, classId));
+      await firstValueFrom(this.courseApi.enrollCourse(courseId));
 
       // Update local progress state
       const existingProgress = this._progress().find(p => p.courseId === courseId && p.userId === userId);

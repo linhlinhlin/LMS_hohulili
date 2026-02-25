@@ -54,7 +54,7 @@ public class QuestionBankManagementUseCase {
                 .orElseThrow(() -> new EntityNotFoundException("QuestionBank", bankId));
 
         if (!bank.isOwnedBy(userId)) {
-            throw new BusinessRuleException("You do not own this question bank");
+            throw new BusinessRuleException("Bạn không sở hữu ngân hàng câu hỏi này");
         }
 
         if (command.name() != null) bank.rename(command.name());
@@ -71,7 +71,7 @@ public class QuestionBankManagementUseCase {
                 .orElseThrow(() -> new EntityNotFoundException("QuestionBank", bankId));
 
         if (!bank.isOwnedBy(userId)) {
-            throw new BusinessRuleException("You do not own this question bank");
+            throw new BusinessRuleException("Bạn không sở hữu ngân hàng câu hỏi này");
         }
 
         bank.archive();
@@ -103,7 +103,7 @@ public class QuestionBankManagementUseCase {
                 .orElseThrow(() -> new EntityNotFoundException("QuestionBank", bankId));
 
         if (!bank.isOwnedBy(userId)) {
-            throw new BusinessRuleException("You do not own this question bank");
+            throw new BusinessRuleException("Bạn không sở hữu ngân hàng câu hỏi này");
         }
 
         QuestionBankCategory category;
@@ -112,7 +112,7 @@ public class QuestionBankManagementUseCase {
             QuestionBankCategory parent = categoryRepository.findById(command.parentId())
                     .orElseThrow(() -> new EntityNotFoundException("QuestionBankCategory", command.parentId()));
             if (!parent.getBankId().equals(bankId)) {
-                throw new BusinessRuleException("Parent category does not belong to this bank");
+                throw new BusinessRuleException("Danh mục cha không thuộc ngân hàng này");
             }
             category = QuestionBankCategory.createChild(bankId, command.parentId(), command.name(), command.description(), command.sortOrder());
         } else {
@@ -131,7 +131,7 @@ public class QuestionBankManagementUseCase {
         QuestionBank bank = bankRepository.findById(category.getBankId())
                 .orElseThrow(() -> new EntityNotFoundException("QuestionBank", category.getBankId()));
         if (!bank.isOwnedBy(userId)) {
-            throw new BusinessRuleException("You do not own this question bank");
+            throw new BusinessRuleException("Bạn không sở hữu ngân hàng câu hỏi này");
         }
 
         if (command.name() != null) category.rename(command.name());
@@ -149,7 +149,7 @@ public class QuestionBankManagementUseCase {
         QuestionBank bank = bankRepository.findById(category.getBankId())
                 .orElseThrow(() -> new EntityNotFoundException("QuestionBank", category.getBankId()));
         if (!bank.isOwnedBy(userId)) {
-            throw new BusinessRuleException("You do not own this question bank");
+            throw new BusinessRuleException("Bạn không sở hữu ngân hàng câu hỏi này");
         }
 
         // Questions in this category will have category_id set to NULL (FK ON DELETE SET NULL)
@@ -190,12 +190,12 @@ public class QuestionBankManagementUseCase {
                 .orElseThrow(() -> new EntityNotFoundException("QuestionBank", command.targetBankId()));
 
         if (!targetBank.isOwnedBy(userId)) {
-            throw new BusinessRuleException("You do not own the target question bank");
+            throw new BusinessRuleException("Bạn không sở hữu ngân hàng câu hỏi đích");
         }
 
         List<Question> questions = questionRepository.findAllByIds(command.questionIds());
         if (questions.isEmpty()) {
-            throw new BusinessRuleException("No questions found with provided IDs");
+            throw new BusinessRuleException("Không tìm thấy câu hỏi với các ID cung cấp");
         }
 
         for (Question question : questions) {
@@ -218,7 +218,7 @@ public class QuestionBankManagementUseCase {
         QuestionBank bank = bankRepository.findById(category.getBankId())
                 .orElseThrow(() -> new EntityNotFoundException("QuestionBank", category.getBankId()));
         if (!bank.isOwnedBy(userId)) {
-            throw new BusinessRuleException("You do not own this question bank");
+            throw new BusinessRuleException("Bạn không sở hữu ngân hàng câu hỏi này");
         }
 
         List<Question> questions = questionRepository.findAllByIds(questionIds);

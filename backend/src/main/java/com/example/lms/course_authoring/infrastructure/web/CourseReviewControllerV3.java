@@ -50,13 +50,13 @@ public class CourseReviewControllerV3 {
 
         List<CourseReview> reviews = reviewUseCase.getReviewsByCourse(courseId);
 
-        // Batch load student names
+        // P1-2: Batch load student names (N+1 fix — single query instead of per-review)
         Set<UUID> studentIds = new HashSet<>();
         reviews.forEach(r -> studentIds.add(r.getStudentId()));
         Map<UUID, String> nameMap = new HashMap<>();
-        for (UUID sid : studentIds) {
-            userJpaRepository.findById(sid)
-                    .ifPresent(u -> nameMap.put(sid, u.getFullName()));
+        if (!studentIds.isEmpty()) {
+            userJpaRepository.findAllById(studentIds).forEach(u ->
+                    nameMap.put(u.getId(), u.getFullName()));
         }
 
         List<Map<String, Object>> result = reviews.stream().map(r -> {
@@ -100,7 +100,7 @@ public class CourseReviewControllerV3 {
 
         UUID studentId = currentUser.getId();
         reviewUseCase.deleteReview(studentId, reviewId);
-        return ResponseEntity.ok(ApiResponse.success("Đánh giá đã được xóa"));
+        return ResponseEntity.ok(ApiResponse.success(null, "Đánh giá đã được xóa"));
     }
 
     // ===== Helpers =====

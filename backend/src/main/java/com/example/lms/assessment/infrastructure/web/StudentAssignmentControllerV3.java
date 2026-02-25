@@ -74,7 +74,7 @@ public class StudentAssignmentControllerV3 {
 
         return getStudentAssignmentsUseCase.getById(id, user.getId())
                 .map(response -> ResponseEntity.ok(ApiResponse.success(response, "Chi tiết bài tập")))
-                .orElse(ResponseEntity.ok(ApiResponse.error("Không tìm thấy bài tập")));
+                .orElse(ResponseEntity.status(404).body(ApiResponse.error("Không tìm thấy bài tập")));
     }
 
     // =============================================
@@ -93,12 +93,12 @@ public class StudentAssignmentControllerV3 {
         // 1. Validate assignment exists and is PUBLISHED
         var assignmentOpt = assignmentRepository.findById(id);
         if (assignmentOpt.isEmpty()) {
-            return ResponseEntity.ok(ApiResponse.error("Không tìm thấy bài tập"));
+            return ResponseEntity.status(404).body(ApiResponse.error("Không tìm thấy bài tập"));
         }
         var assignment = assignmentOpt.get();
 
         if (assignment.getStatus() != AssignmentJpaEntity.AssignmentStatus.PUBLISHED) {
-            return ResponseEntity.ok(ApiResponse.error("Bài tập chưa được phát hành"));
+            return ResponseEntity.badRequest().body(ApiResponse.error("Bài tập chưa được phát hành"));
         }
 
         // 2. Verify student is enrolled in the assignment's course
@@ -107,14 +107,14 @@ public class StudentAssignmentControllerV3 {
         if (assignment.getCourseId() != null) {
             boolean enrolled = enrollmentRepository.existsByStudentIdAndCourseId(user.getId(), assignment.getCourseId());
             if (!enrolled) {
-                return ResponseEntity.ok(ApiResponse.error("Bạn chưa đăng ký khóa học này"));
+                return ResponseEntity.status(403).body(ApiResponse.error("Bạn chưa đăng ký khóa học này"));
             }
         }
 
         // 3. Determine if this is late
         boolean isLate = assignment.getDueDate() != null && Instant.now().isAfter(assignment.getDueDate());
         if (isLate && !Boolean.TRUE.equals(assignment.getAllowLateSubmission())) {
-            return ResponseEntity.ok(ApiResponse.error("Đã quá hạn nộp bài và bài tập không cho phép nộp muộn"));
+            return ResponseEntity.badRequest().body(ApiResponse.error("Đã quá hạn nộp bài và bài tập không cho phép nộp muộn"));
         }
 
         // 4. Check for existing submission (resubmission)
@@ -128,7 +128,7 @@ public class StudentAssignmentControllerV3 {
                 // If already graded and max attempts is 1, no resubmit
                 if (existing.getStatus() == AssignmentSubmissionJpaEntity.SubmissionStatus.GRADED
                         && assignment.getMaxAttempts() <= 1) {
-                    return ResponseEntity.ok(ApiResponse.error("Bài tập đã được chấm điểm, không thể nộp lại"));
+                    return ResponseEntity.badRequest().body(ApiResponse.error("Bài tập đã được chấm điểm, không thể nộp lại"));
                 }
             }
 

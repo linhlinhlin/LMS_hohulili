@@ -1,9 +1,11 @@
 package com.example.lms.assessment.application.usecase;
 
+import com.example.lms.assessment.domain.event.QuizSubmittedEvent;
 import com.example.lms.assessment.domain.model.*;
 import com.example.lms.assessment.domain.repository.QuestionRepository;
 import com.example.lms.assessment.domain.repository.QuizAttemptRepository;
 import com.example.lms.assessment.domain.repository.QuizRepository;
+import com.example.lms.shared.domain.event.DomainEventPublisher;
 import com.example.lms.shared.exception.BusinessRuleException;
 import com.example.lms.shared.exception.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,7 +25,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 /**
- * Unit tests for QuizAttemptUseCase - grading flow, batch fetch, strategy dispatch.
+ * Unit tests for QuizAttemptUseCase - grading flow, batch fetch, strategy dispatch,
+ * manual grading, availability window, auto-save.
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("QuizAttemptUseCase Tests")
@@ -37,6 +40,9 @@ class QuizAttemptUseCaseTest {
 
     @Mock
     private QuestionRepository questionRepository;
+
+    @Mock
+    private DomainEventPublisher eventPublisher;
 
     @InjectMocks
     private QuizAttemptUseCase useCase;
@@ -227,6 +233,108 @@ class QuizAttemptUseCaseTest {
             assertThatThrownBy(() -> useCase.startAttempt(quizId, studentId))
                     .isInstanceOf(BusinessRuleException.class);
         }
+
+        @Test
+        @DisplayName("Should throw MAX_ATTEMPTS_REACHED when student has used all attempts")
+        void shouldThrowWhenMaxAttemptsReached() {
+            Quiz quiz = Quiz.builder()
+                    .id(QuizId.of(quizId))
+                    .lessonId(UUID.randomUUID())
+                    .title("Limited Quiz")
+                    .settings(Quiz.QuizSettings.builder()
+                            .passingScore(70)
+                            .maxAttempts(2) // Only 2 attempts allowed
+                            .build())
+                    .status(Quiz.QuizStatus.PUBLISHED)
+                    .questions(List.of(QuizQuestion.create(quizId, q1Id, 0)))
+                    .build();
+
+            // Student already has 2 previous attempts
+            QuizAttempt prev1 = QuizAttempt.builder().id(UUID.randomUUID()).quizId(quizId)
+                    .studentId(studentId).status(QuizAttempt.AttemptStatus.SUBMITTED).items(List.of()).build();
+            QuizAttempt prev2 = QuizAttempt.builder().id(UUID.randomUUID()).quizId(quizId)
+                    .studentId(studentId).status(QuizAttempt.AttemptStatus.SUBMITTED).items(List.of()).build();
+
+            when(quizRepository.findById(QuizId.of(quizId))).thenReturn(Optional.of(quiz));
+            when(attemptRepository.findByQuizIdAndStudentId(quizId, studentId))
+                    .thenReturn(List.of(prev1, prev2));
+
+            assertThatThrownBy(() -> useCase.startAttempt(quizId, studentId))
+                    .isInstanceOf(BusinessRuleException.class)
+                    .hasMessageContaining("hết")
+                    .hasMessageContaining("2");
+        }
+
+        // Phase 6: Availability window tests
+        @Test
+        @DisplayName("Should throw QUIZ_NOT_YET_AVAILABLE when before availableFrom")
+        void shouldThrowWhenBeforeAvailableFrom() {
+            Quiz quiz = Quiz.builder()
+                    .id(QuizId.of(quizId))
+                    .lessonId(UUID.randomUUID())
+                    .title("Future Quiz")
+                    .settings(Quiz.QuizSettings.builder()
+                            .passingScore(70)
+                            .maxAttempts(3)
+                            .availableFrom(Instant.now().plusSeconds(3600)) // 1 hour in future
+                            .build())
+                    .status(Quiz.QuizStatus.PUBLISHED)
+                    .questions(List.of(QuizQuestion.create(quizId, q1Id, 0)))
+                    .build();
+
+            when(quizRepository.findById(QuizId.of(quizId))).thenReturn(Optional.of(quiz));
+
+            assertThatThrownBy(() -> useCase.startAttempt(quizId, studentId))
+                    .isInstanceOf(BusinessRuleException.class)
+                    .hasMessageContaining("chưa mở");
+        }
+
+        @Test
+        @DisplayName("Should throw QUIZ_LOCKED when after lockAt")
+        void shouldThrowWhenAfterLockAt() {
+            Quiz quiz = Quiz.builder()
+                    .id(QuizId.of(quizId))
+                    .lessonId(UUID.randomUUID())
+                    .title("Locked Quiz")
+                    .settings(Quiz.QuizSettings.builder()
+                            .passingScore(70)
+                            .maxAttempts(3)
+                            .lockAt(Instant.now().minusSeconds(3600)) // 1 hour in past
+                            .build())
+                    .status(Quiz.QuizStatus.PUBLISHED)
+                    .questions(List.of(QuizQuestion.create(quizId, q1Id, 0)))
+                    .build();
+
+            when(quizRepository.findById(QuizId.of(quizId))).thenReturn(Optional.of(quiz));
+
+            assertThatThrownBy(() -> useCase.startAttempt(quizId, studentId))
+                    .isInstanceOf(BusinessRuleException.class)
+                    .hasMessageContaining("đã đóng");
+        }
+
+        @Test
+        @DisplayName("Should allow attempt when within availability window")
+        void shouldAllowWhenWithinWindow() {
+            Quiz quiz = Quiz.builder()
+                    .id(QuizId.of(quizId))
+                    .lessonId(UUID.randomUUID())
+                    .title("Open Quiz")
+                    .settings(Quiz.QuizSettings.builder()
+                            .passingScore(70)
+                            .maxAttempts(3)
+                            .availableFrom(Instant.now().minusSeconds(3600)) // 1 hour ago
+                            .lockAt(Instant.now().plusSeconds(3600)) // 1 hour from now
+                            .build())
+                    .status(Quiz.QuizStatus.PUBLISHED)
+                    .questions(List.of(QuizQuestion.create(quizId, q1Id, 0)))
+                    .build();
+
+            when(quizRepository.findById(QuizId.of(quizId))).thenReturn(Optional.of(quiz));
+            when(attemptRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+            QuizAttempt attempt = useCase.startAttempt(quizId, studentId);
+            assertThat(attempt.getStatus()).isEqualTo(QuizAttempt.AttemptStatus.IN_PROGRESS);
+        }
     }
 
     // ============================================================
@@ -271,6 +379,7 @@ class QuizAttemptUseCaseTest {
             assertThat(result.getIsPassed()).isTrue();
             assertThat(result.getItems()).hasSize(2);
             verify(questionRepository).findAllByIds(any()); // batch fetch
+            verify(eventPublisher).publish(any(QuizSubmittedEvent.class)); // P1#7: event published
         }
 
         @Test
@@ -307,7 +416,7 @@ class QuizAttemptUseCaseTest {
         }
 
         @Test
-        @DisplayName("Should handle essay questions → not auto-passed")
+        @DisplayName("Should handle essay-only quiz → score 0% → not passed (provisional)")
         void shouldHandleEssayQuestions() {
             List<QuizQuestion> quizQuestions = List.of(
                     QuizQuestion.create(quizId, q1Id, 0));
@@ -334,8 +443,9 @@ class QuizAttemptUseCaseTest {
 
             QuizAttempt result = useCase.submitAttempt(attemptId, answers);
 
-            // Essay cannot auto-pass
+            // Essay-only: 0/1 points = 0% < 70% → not passed (will be updated after manual grading)
             assertThat(result.getIsPassed()).isFalse();
+            assertThat(result.getScore()).isCloseTo(0.0, within(0.1));
         }
 
         @Test
@@ -533,6 +643,468 @@ class QuizAttemptUseCaseTest {
             // Should be marked as TIMEOUT but still graded
             assertThat(result.getStatus()).isEqualTo(QuizAttempt.AttemptStatus.TIMEOUT);
             assertThat(result.getScore()).isNotNull(); // Still gets graded
+        }
+    }
+
+    // ============================================================
+    // Manual Grading Tests (Phase 2)
+    // ============================================================
+    @Nested
+    @DisplayName("Manual Grading")
+    class ManualGradingTests {
+
+        @Test
+        @DisplayName("Should manually grade an essay question and recalculate score")
+        void shouldManuallyGradeEssay() {
+            // Setup: attempt with 2 items — q1 auto-graded (correct), q2 essay (0 points)
+            List<QuizAttempt.AttemptItem> items = new ArrayList<>();
+            items.add(QuizAttempt.AttemptItem.builder()
+                    .questionId(q1Id)
+                    .studentAnswer(Map.of("selectedOption", "A"))
+                    .isCorrect(true)
+                    .pointsEarned(1.0)
+                    .build());
+            items.add(QuizAttempt.AttemptItem.builder()
+                    .questionId(q2Id)
+                    .studentAnswer(Map.of("textAnswer", "My essay"))
+                    .isCorrect(false)
+                    .pointsEarned(0.0)
+                    .build());
+
+            QuizAttempt attempt = QuizAttempt.builder()
+                    .id(attemptId)
+                    .quizId(quizId)
+                    .studentId(studentId)
+                    .status(QuizAttempt.AttemptStatus.SUBMITTED)
+                    .score(50.0) // 1/2 points
+                    .isPassed(false)
+                    .items(items)
+                    .build();
+
+            List<QuizQuestion> quizQuestions = List.of(
+                    QuizQuestion.create(quizId, q1Id, 0),
+                    QuizQuestion.create(quizId, q2Id, 1));
+            Quiz quiz = buildPublishedQuiz(quizQuestions, 70);
+
+            UUID teacherId = UUID.randomUUID();
+            when(attemptRepository.findById(attemptId)).thenReturn(Optional.of(attempt));
+            when(quizRepository.findById(QuizId.of(quizId))).thenReturn(Optional.of(quiz));
+            when(quizRepository.isOwnedByTeacher(QuizId.of(quizId), teacherId)).thenReturn(true);
+            when(attemptRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+            // Grade essay with full marks
+            QuizAttempt result = useCase.manualGrade(attemptId, q2Id, 1.0, "Bài viết tốt!", teacherId, "TEACHER");
+
+            assertThat(result.getScore()).isCloseTo(100.0, within(0.1)); // 2/2 points
+            assertThat(result.getIsPassed()).isTrue();
+
+            // Verify the essay item was updated
+            QuizAttempt.AttemptItem essayItem = result.getItems().stream()
+                    .filter(i -> q2Id.equals(i.getQuestionId()))
+                    .findFirst().orElseThrow();
+            assertThat(essayItem.getPointsEarned()).isCloseTo(1.0, within(0.01));
+            assertThat(essayItem.getIsCorrect()).isTrue();
+            assertThat(essayItem.getFeedback()).isEqualTo("Bài viết tốt!");
+        }
+
+        @Test
+        @DisplayName("Should throw when question not in attempt")
+        void shouldThrowWhenQuestionNotInAttempt() {
+            List<QuizAttempt.AttemptItem> items = new ArrayList<>();
+            items.add(QuizAttempt.AttemptItem.builder()
+                    .questionId(q1Id)
+                    .build());
+
+            QuizAttempt attempt = QuizAttempt.builder()
+                    .id(attemptId)
+                    .quizId(quizId)
+                    .studentId(studentId)
+                    .status(QuizAttempt.AttemptStatus.SUBMITTED)
+                    .items(items)
+                    .build();
+
+            Quiz quiz = buildPublishedQuiz(List.of(), 70);
+            UUID teacherId = UUID.randomUUID();
+            when(attemptRepository.findById(attemptId)).thenReturn(Optional.of(attempt));
+            when(quizRepository.findById(QuizId.of(quizId))).thenReturn(Optional.of(quiz));
+            when(quizRepository.isOwnedByTeacher(QuizId.of(quizId), teacherId)).thenReturn(true);
+
+            UUID unknownQuestionId = UUID.randomUUID();
+            assertThatThrownBy(() -> useCase.manualGrade(attemptId, unknownQuestionId, 5.0, null, teacherId, "TEACHER"))
+                    .isInstanceOf(BusinessRuleException.class)
+                    .hasMessageContaining("không thuộc lần làm bài");
+        }
+
+        @Test
+        @DisplayName("Should set isPassed=false when score below passing after manual grade")
+        void shouldSetFailedWhenBelowPassing() {
+            List<QuizAttempt.AttemptItem> items = new ArrayList<>();
+            items.add(QuizAttempt.AttemptItem.builder()
+                    .questionId(q1Id)
+                    .isCorrect(false)
+                    .pointsEarned(0.0)
+                    .build());
+
+            QuizAttempt attempt = QuizAttempt.builder()
+                    .id(attemptId)
+                    .quizId(quizId)
+                    .studentId(studentId)
+                    .status(QuizAttempt.AttemptStatus.SUBMITTED)
+                    .score(0.0)
+                    .isPassed(false)
+                    .items(items)
+                    .build();
+
+            List<QuizQuestion> quizQuestions = List.of(
+                    QuizQuestion.builder().quizId(quizId).questionId(q1Id).displayOrder(0).points(10).build());
+            Quiz quiz = buildPublishedQuiz(quizQuestions, 70);
+
+            UUID teacherId = UUID.randomUUID();
+            when(attemptRepository.findById(attemptId)).thenReturn(Optional.of(attempt));
+            when(quizRepository.findById(QuizId.of(quizId))).thenReturn(Optional.of(quiz));
+            when(quizRepository.isOwnedByTeacher(QuizId.of(quizId), teacherId)).thenReturn(true);
+            when(attemptRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+            // Give 5/10 points = 50% < 70% passing
+            QuizAttempt result = useCase.manualGrade(attemptId, q1Id, 5.0, null, teacherId, "TEACHER");
+
+            assertThat(result.getScore()).isCloseTo(50.0, within(0.1));
+            assertThat(result.getIsPassed()).isFalse();
+        }
+    }
+
+    // ============================================================
+    // Auto-Save Tests (Phase 4)
+    // ============================================================
+    @Nested
+    @DisplayName("Save Progress (Auto-Save)")
+    class SaveProgressTests {
+
+        @Test
+        @DisplayName("Should save partial answers without grading")
+        void shouldSavePartialAnswers() {
+            List<QuizAttempt.AttemptItem> items = new ArrayList<>();
+            items.add(QuizAttempt.AttemptItem.builder().questionId(q1Id).build());
+            items.add(QuizAttempt.AttemptItem.builder().questionId(q2Id).build());
+
+            QuizAttempt attempt = QuizAttempt.builder()
+                    .id(attemptId)
+                    .quizId(quizId)
+                    .studentId(studentId)
+                    .status(QuizAttempt.AttemptStatus.IN_PROGRESS)
+                    .items(items)
+                    .build();
+
+            when(attemptRepository.findById(attemptId)).thenReturn(Optional.of(attempt));
+            when(attemptRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+            List<QuizAttempt.AttemptAnswer> partialAnswers = List.of(
+                    QuizAttempt.AttemptAnswer.builder()
+                            .questionId(q1Id)
+                            .studentAnswer(Map.of("selectedOption", "A"))
+                            .build());
+
+            QuizAttempt result = useCase.saveProgress(attemptId, studentId, partialAnswers);
+
+            assertThat(result.getStatus()).isEqualTo(QuizAttempt.AttemptStatus.IN_PROGRESS);
+            // q1 should have answer, q2 should still be blank
+            QuizAttempt.AttemptItem q1Item = result.getItems().stream()
+                    .filter(i -> q1Id.equals(i.getQuestionId())).findFirst().orElseThrow();
+            assertThat(q1Item.getStudentAnswer()).containsEntry("selectedOption", "A");
+        }
+
+        @Test
+        @DisplayName("Should throw when attempt not IN_PROGRESS")
+        void shouldThrowWhenNotInProgress() {
+            QuizAttempt attempt = QuizAttempt.builder()
+                    .id(attemptId)
+                    .quizId(quizId)
+                    .studentId(studentId)
+                    .status(QuizAttempt.AttemptStatus.SUBMITTED)
+                    .items(new ArrayList<>())
+                    .build();
+
+            when(attemptRepository.findById(attemptId)).thenReturn(Optional.of(attempt));
+
+            assertThatThrownBy(() -> useCase.saveProgress(attemptId, studentId, List.of()))
+                    .isInstanceOf(BusinessRuleException.class)
+                    .hasMessageContaining("đã nộp");
+        }
+
+        @Test
+        @DisplayName("Should throw when student doesn't own the attempt")
+        void shouldThrowWhenNotOwner() {
+            UUID otherStudentId = UUID.randomUUID();
+            QuizAttempt attempt = QuizAttempt.builder()
+                    .id(attemptId)
+                    .quizId(quizId)
+                    .studentId(otherStudentId) // Different student
+                    .status(QuizAttempt.AttemptStatus.IN_PROGRESS)
+                    .items(new ArrayList<>())
+                    .build();
+
+            when(attemptRepository.findById(attemptId)).thenReturn(Optional.of(attempt));
+
+            assertThatThrownBy(() -> useCase.saveProgress(attemptId, studentId, List.of()))
+                    .isInstanceOf(BusinessRuleException.class)
+                    .hasMessageContaining("không có quyền");
+        }
+    }
+
+    // ============================================================
+    // getAttemptResult Security Tests (S71)
+    // ============================================================
+    @Nested
+    @DisplayName("Get Attempt Result Security")
+    class GetAttemptResultSecurityTests {
+
+        @Test
+        @DisplayName("Should throw when student views another student's attempt")
+        void shouldThrowWhenStudentViewsOtherStudentAttempt() {
+            UUID otherStudentId = UUID.randomUUID();
+            QuizAttempt attempt = QuizAttempt.builder()
+                    .id(attemptId)
+                    .quizId(quizId)
+                    .studentId(otherStudentId)
+                    .status(QuizAttempt.AttemptStatus.SUBMITTED)
+                    .items(new ArrayList<>())
+                    .build();
+
+            when(attemptRepository.findById(attemptId)).thenReturn(Optional.of(attempt));
+
+            assertThatThrownBy(() -> useCase.getAttemptResult(attemptId, studentId, "STUDENT"))
+                    .isInstanceOf(BusinessRuleException.class)
+                    .hasMessageContaining("bài làm của mình");
+        }
+
+        @Test
+        @DisplayName("Should allow student to view own attempt")
+        void shouldAllowStudentToViewOwnAttempt() {
+            QuizAttempt attempt = QuizAttempt.builder()
+                    .id(attemptId)
+                    .quizId(quizId)
+                    .studentId(studentId)
+                    .status(QuizAttempt.AttemptStatus.SUBMITTED)
+                    .items(new ArrayList<>())
+                    .build();
+
+            when(attemptRepository.findById(attemptId)).thenReturn(Optional.of(attempt));
+
+            QuizAttempt result = useCase.getAttemptResult(attemptId, studentId, "STUDENT");
+            assertThat(result.getId()).isEqualTo(attemptId);
+        }
+
+        @Test
+        @DisplayName("Should allow teacher to view any attempt")
+        void shouldAllowTeacherToViewAnyAttempt() {
+            UUID teacherId = UUID.randomUUID();
+            QuizAttempt attempt = QuizAttempt.builder()
+                    .id(attemptId)
+                    .quizId(quizId)
+                    .studentId(studentId)
+                    .status(QuizAttempt.AttemptStatus.SUBMITTED)
+                    .items(new ArrayList<>())
+                    .build();
+
+            when(attemptRepository.findById(attemptId)).thenReturn(Optional.of(attempt));
+
+            QuizAttempt result = useCase.getAttemptResult(attemptId, teacherId, "TEACHER");
+            assertThat(result.getId()).isEqualTo(attemptId);
+        }
+
+        @Test
+        @DisplayName("Should allow admin to view any attempt")
+        void shouldAllowAdminToViewAnyAttempt() {
+            UUID adminId = UUID.randomUUID();
+            QuizAttempt attempt = QuizAttempt.builder()
+                    .id(attemptId)
+                    .quizId(quizId)
+                    .studentId(studentId)
+                    .status(QuizAttempt.AttemptStatus.SUBMITTED)
+                    .items(new ArrayList<>())
+                    .build();
+
+            when(attemptRepository.findById(attemptId)).thenReturn(Optional.of(attempt));
+
+            QuizAttempt result = useCase.getAttemptResult(attemptId, adminId, "ADMIN");
+            assertThat(result.getId()).isEqualTo(attemptId);
+        }
+    }
+
+    // ============================================================
+    // Manual Grade Security Tests (S71)
+    // ============================================================
+    @Nested
+    @DisplayName("Manual Grade Security")
+    class ManualGradeSecurityTests {
+
+        @Test
+        @DisplayName("Should throw when teacher grades quiz they don't own")
+        void shouldThrowWhenTeacherGradesQuizTheyDontOwn() {
+            UUID teacherId = UUID.randomUUID();
+            List<QuizAttempt.AttemptItem> items = new ArrayList<>();
+            items.add(QuizAttempt.AttemptItem.builder()
+                    .questionId(q1Id)
+                    .pointsEarned(0.0)
+                    .build());
+
+            QuizAttempt attempt = QuizAttempt.builder()
+                    .id(attemptId)
+                    .quizId(quizId)
+                    .studentId(studentId)
+                    .status(QuizAttempt.AttemptStatus.SUBMITTED)
+                    .items(items)
+                    .build();
+
+            Quiz quiz = buildPublishedQuiz(List.of(QuizQuestion.create(quizId, q1Id, 0)), 70);
+
+            when(attemptRepository.findById(attemptId)).thenReturn(Optional.of(attempt));
+            when(quizRepository.findById(QuizId.of(quizId))).thenReturn(Optional.of(quiz));
+            when(quizRepository.isOwnedByTeacher(QuizId.of(quizId), teacherId)).thenReturn(false);
+
+            assertThatThrownBy(() -> useCase.manualGrade(attemptId, q1Id, 5.0, null, teacherId, "TEACHER"))
+                    .isInstanceOf(BusinessRuleException.class)
+                    .hasMessageContaining("không có quyền chấm");
+        }
+
+        @Test
+        @DisplayName("Should allow admin to grade any quiz")
+        void shouldAllowAdminToGradeAnyQuiz() {
+            UUID adminId = UUID.randomUUID();
+            List<QuizAttempt.AttemptItem> items = new ArrayList<>();
+            items.add(QuizAttempt.AttemptItem.builder()
+                    .questionId(q1Id)
+                    .pointsEarned(0.0)
+                    .isCorrect(false)
+                    .build());
+
+            QuizAttempt attempt = QuizAttempt.builder()
+                    .id(attemptId)
+                    .quizId(quizId)
+                    .studentId(studentId)
+                    .status(QuizAttempt.AttemptStatus.SUBMITTED)
+                    .items(items)
+                    .build();
+
+            List<QuizQuestion> quizQuestions = List.of(QuizQuestion.create(quizId, q1Id, 0));
+            Quiz quiz = buildPublishedQuiz(quizQuestions, 70);
+
+            when(attemptRepository.findById(attemptId)).thenReturn(Optional.of(attempt));
+            when(quizRepository.findById(QuizId.of(quizId))).thenReturn(Optional.of(quiz));
+            when(attemptRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+            // Admin should not need ownership check
+            QuizAttempt result = useCase.manualGrade(attemptId, q1Id, 1.0, "Tốt", adminId, "ADMIN");
+            assertThat(result).isNotNull();
+            verify(quizRepository, never()).isOwnedByTeacher(any(), any());
+        }
+    }
+
+    // ============================================================
+    // Essay Pass Provisional Tests (S71)
+    // ============================================================
+    @Nested
+    @DisplayName("Essay Provisional Pass")
+    class EssayProvisionalPassTests {
+
+        @Test
+        @DisplayName("Should pass provisionally when essay present but auto-graded score above threshold")
+        void shouldPassProvisionallyWhenEssayPresentButScoreAboveThreshold() {
+            // 2 questions: q1 single choice (correct), q2 essay (0 points auto)
+            List<QuizQuestion> quizQuestions = List.of(
+                    QuizQuestion.create(quizId, q1Id, 0),
+                    QuizQuestion.create(quizId, q2Id, 1));
+            // passingScore = 40 so that 50% (1/2) passes
+            Quiz quiz = buildPublishedQuiz(quizQuestions, 40);
+
+            QuizAttempt attempt = buildInProgressAttempt(List.of(q1Id, q2Id));
+
+            Question scQ = buildSingleChoiceQuestion(q1Id, "A");
+            Question essayQ = Question.builder()
+                    .id(q2Id)
+                    .questionType(Question.QuestionType.ESSAY)
+                    .status(Question.Status.ACTIVE)
+                    .build();
+
+            when(attemptRepository.findById(attemptId)).thenReturn(Optional.of(attempt));
+            when(quizRepository.findById(QuizId.of(quizId))).thenReturn(Optional.of(quiz));
+            when(questionRepository.findAllByIds(any())).thenReturn(List.of(scQ, essayQ));
+            when(attemptRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+            List<QuizAttempt.AttemptAnswer> answers = List.of(
+                    QuizAttempt.AttemptAnswer.builder()
+                            .questionId(q1Id)
+                            .studentAnswer(Map.of("selectedOption", "A"))
+                            .build(),
+                    QuizAttempt.AttemptAnswer.builder()
+                            .questionId(q2Id)
+                            .studentAnswer(Map.of("textAnswer", "Essay content"))
+                            .build());
+
+            QuizAttempt result = useCase.submitAttempt(attemptId, answers);
+
+            // 1/2 points = 50% >= 40% → provisional pass
+            assertThat(result.getIsPassed()).isTrue();
+            assertThat(result.getScore()).isCloseTo(50.0, within(0.1));
+        }
+    }
+
+    // ============================================================
+    // Ownership Validation Tests (Phase 3)
+    // ============================================================
+    @Nested
+    @DisplayName("Teacher Ownership Validation")
+    class OwnershipValidationTests {
+
+        @Test
+        @DisplayName("QuizManagementUseCase should reject non-owner teacher")
+        void shouldRejectNonOwnerTeacher() {
+            // This test validates the QuizManagementUseCase ownership check
+            // by verifying the QuizRepository.isOwnedByTeacher contract
+            QuizManagementUseCase mgmtUseCase = new QuizManagementUseCase(quizRepository);
+
+            Quiz quiz = buildPublishedQuiz(List.of(), 70);
+            UUID teacherId = UUID.randomUUID();
+
+            when(quizRepository.findById(QuizId.of(quizId))).thenReturn(Optional.of(quiz));
+            when(quizRepository.isOwnedByTeacher(QuizId.of(quizId), teacherId)).thenReturn(false);
+
+            assertThatThrownBy(() -> mgmtUseCase.deleteQuiz(quizId, teacherId, "TEACHER"))
+                    .isInstanceOf(BusinessRuleException.class)
+                    .hasMessageContaining("không có quyền");
+        }
+
+        @Test
+        @DisplayName("ADMIN should bypass ownership check")
+        void shouldBypassForAdmin() {
+            QuizManagementUseCase mgmtUseCase = new QuizManagementUseCase(quizRepository);
+
+            Quiz quiz = buildPublishedQuiz(List.of(), 70);
+            UUID adminId = UUID.randomUUID();
+
+            when(quizRepository.findById(QuizId.of(quizId))).thenReturn(Optional.of(quiz));
+
+            // Should NOT call isOwnedByTeacher — admin bypasses
+            mgmtUseCase.deleteQuiz(quizId, adminId, "ADMIN");
+
+            verify(quizRepository, never()).isOwnedByTeacher(any(), any());
+            verify(quizRepository).delete(quiz);
+        }
+
+        @Test
+        @DisplayName("ORG_ADMIN should bypass ownership check")
+        void shouldBypassForOrgAdmin() {
+            QuizManagementUseCase mgmtUseCase = new QuizManagementUseCase(quizRepository);
+
+            Quiz quiz = buildPublishedQuiz(List.of(), 70);
+            UUID orgAdminId = UUID.randomUUID();
+
+            when(quizRepository.findById(QuizId.of(quizId))).thenReturn(Optional.of(quiz));
+
+            mgmtUseCase.deleteQuiz(quizId, orgAdminId, "ORG_ADMIN");
+
+            verify(quizRepository, never()).isOwnedByTeacher(any(), any());
+            verify(quizRepository).delete(quiz);
         }
     }
 }

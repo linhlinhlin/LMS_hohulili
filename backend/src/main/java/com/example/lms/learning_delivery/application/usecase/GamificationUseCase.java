@@ -177,8 +177,11 @@ public class GamificationUseCase {
     }
 
     @Transactional
-    public void markNotificationRead(UUID notificationId) {
+    public void markNotificationRead(UUID notificationId, UUID userId) {
         notificationRepository.findById(notificationId).ifPresent(n -> {
+            if (!userId.equals(n.getUserId())) {
+                throw new org.springframework.security.access.AccessDeniedException("Thông báo không thuộc về bạn");
+            }
             n.markAsRead();
             notificationRepository.save(n);
         });

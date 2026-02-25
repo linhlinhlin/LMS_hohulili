@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import jakarta.validation.Valid;
@@ -96,7 +97,7 @@ public class QuestionControllerV3 {
     @Operation(summary = "Get question by ID")
     public ResponseEntity<ApiResponse<QuestionDetailResponse>> getQuestionById(@PathVariable UUID id) {
         Question question = questionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy câu hỏi: " + id));
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Câu hỏi", id));
 
         return ResponseEntity.ok(ApiResponse.success(toDetailResponse(question)));
     }
@@ -106,7 +107,11 @@ public class QuestionControllerV3 {
     @Operation(summary = "Update question by ID")
     public ResponseEntity<ApiResponse<Map<String, Object>>> updateQuestion(
             @PathVariable UUID id,
-            @Valid @RequestBody UpdateQuestionRequest request) {
+            @Valid @RequestBody UpdateQuestionRequest request,
+            @AuthenticationPrincipal UserJpaEntity user) {
+
+        // S78: Verify ownership — only creator or ADMIN/ORG_ADMIN can update
+        verifyQuestionOwnership(id, user);
 
         // Resolve question type
         Question.QuestionType questionType = null;
@@ -146,9 +151,11 @@ public class QuestionControllerV3 {
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Operation(summary = "Delete question by ID")
-    public ResponseEntity<ApiResponse<Map<String, String>>> deleteQuestion(@PathVariable UUID id) {
-        questionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy câu hỏi: " + id));
+    public ResponseEntity<ApiResponse<Map<String, String>>> deleteQuestion(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        // S78: Verify ownership — only creator or ADMIN/ORG_ADMIN can delete
+        verifyQuestionOwnership(id, user);
 
         questionRepository.deleteById(id);
 
@@ -427,5 +434,21 @@ public class QuestionControllerV3 {
             }
         }
         return sb.toString();
+    }
+
+    // ============== Ownership Helpers ==============
+
+    private boolean isAdminRole(UserJpaEntity user) {
+        return user.getRole() == UserJpaEntity.UserRole.ADMIN
+            || user.getRole() == UserJpaEntity.UserRole.ORG_ADMIN;
+    }
+
+    private void verifyQuestionOwnership(UUID questionId, UserJpaEntity user) {
+        if (isAdminRole(user)) return;
+        Question question = questionRepository.findById(questionId)
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Câu hỏi", questionId));
+        if (question.getCreatedBy() == null || !question.getCreatedBy().equals(user.getId())) {
+            throw new AccessDeniedException("Bạn không sở hữu câu hỏi này");
+        }
     }
 }

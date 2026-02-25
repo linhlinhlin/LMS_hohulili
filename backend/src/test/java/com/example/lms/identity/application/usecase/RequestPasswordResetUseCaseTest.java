@@ -177,16 +177,16 @@ class RequestPasswordResetUseCaseTest {
         @Test
         @DisplayName("Should produce consistent SHA-256 hash")
         void shouldProduceConsistentHash() {
-            String hash1 = RequestPasswordResetUseCase.sha256("test-input");
-            String hash2 = RequestPasswordResetUseCase.sha256("test-input");
+            String hash1 = com.example.lms.shared.domain.util.HashUtil.sha256("test-input");
+            String hash2 = com.example.lms.shared.domain.util.HashUtil.sha256("test-input");
             assertThat(hash1).isEqualTo(hash2);
         }
 
         @Test
         @DisplayName("Should produce different hashes for different inputs")
         void shouldProduceDifferentHashes() {
-            String hash1 = RequestPasswordResetUseCase.sha256("input-a");
-            String hash2 = RequestPasswordResetUseCase.sha256("input-b");
+            String hash1 = com.example.lms.shared.domain.util.HashUtil.sha256("input-a");
+            String hash2 = com.example.lms.shared.domain.util.HashUtil.sha256("input-b");
             assertThat(hash1).isNotEqualTo(hash2);
         }
     }

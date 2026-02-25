@@ -195,8 +195,10 @@ public class CourseQueryControllerV3 {
     @GetMapping("/{courseId}/classes")
     @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<List<ClassInfoResponse>>> getCourseClasses(
-            @PathVariable UUID courseId
+            @PathVariable UUID courseId,
+            @AuthenticationPrincipal UserJpaEntity user
     ) {
+        verifyCourseOwnership(courseId, user);
         List<LearningClass> classes = learningClassRepository.findByCourseId(courseId);
         List<ClassInfoResponse> response = classes.stream()
                 .map(this::toClassInfoResponse)
@@ -215,8 +217,10 @@ public class CourseQueryControllerV3 {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String semester,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "10") int size,
+            @AuthenticationPrincipal UserJpaEntity user
     ) {
+        verifyCourseOwnership(courseId, user);
         PageRequest pageable = PageRequest.of(page, Math.min(size, 100));
         Page<LearningClass> classPage = learningClassRepository.searchByCourseId(courseId, search, status, pageable);
         Page<ClassInfoResponse> response = classPage.map(this::toClassInfoResponse);
@@ -424,6 +428,22 @@ public class CourseQueryControllerV3 {
         return categoryJpaRepository.findById(categoryId)
                 .map(c -> c.getName())
                 .orElse(null);
+    }
+
+    // === Ownership Helpers ===
+
+    private boolean isAdminRole(UserJpaEntity user) {
+        return user.getRole() == UserJpaEntity.UserRole.ADMIN
+            || user.getRole() == UserJpaEntity.UserRole.ORG_ADMIN;
+    }
+
+    private void verifyCourseOwnership(UUID courseId, UserJpaEntity user) {
+        if (isAdminRole(user)) return;
+        courseRepository.findById(courseId).ifPresent(course -> {
+            if (!course.getTeacherId().equals(user.getId())) {
+                throw new org.springframework.security.access.AccessDeniedException("Bạn không sở hữu khóa học này");
+            }
+        });
     }
 
     // === Response DTOs ===

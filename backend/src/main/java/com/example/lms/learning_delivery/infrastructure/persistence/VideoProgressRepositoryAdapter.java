@@ -6,6 +6,7 @@ import com.example.lms.learning_delivery.infrastructure.persistence.entity.Video
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -25,6 +26,12 @@ public class VideoProgressRepositoryAdapter implements VideoProgressRepository {
     @Override
     public List<VideoProgress> findByStudentAndLesson(UUID studentId, UUID lessonId) {
         return jpaRepository.findByStudentIdAndLessonId(studentId, lessonId)
+                .stream().map(this::toDomain).toList();
+    }
+
+    @Override
+    public List<VideoProgress> findByStudentIdAndUpdatedAtAfter(UUID studentId, Instant since) {
+        return jpaRepository.findByStudentIdAndUpdatedAtAfter(studentId, since)
                 .stream().map(this::toDomain).toList();
     }
 

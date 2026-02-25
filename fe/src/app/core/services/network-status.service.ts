@@ -1,9 +1,9 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, OnDestroy } from '@angular/core';
 
 export type ConnectionTier = 'none' | 'slow' | 'fast';
 
 @Injectable({ providedIn: 'root' })
-export class NetworkStatusService {
+export class NetworkStatusService implements OnDestroy {
   readonly online = signal(typeof navigator !== 'undefined' ? navigator.onLine : true);
   readonly effectiveBandwidthMbps = signal(2);
 
@@ -21,6 +21,7 @@ export class NetworkStatusService {
   });
 
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
+  private probeInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
     if (typeof window === 'undefined') return;
@@ -35,6 +36,18 @@ export class NetworkStatusService {
 
     this.updateStatus();
     this.probeLatency();
+
+    // Periodic re-probe every 30s (maritime connections fluctuate)
+    this.probeInterval = setInterval(() => this.probeLatency(), 30_000);
+  }
+
+  ngOnDestroy(): void {
+    if (this.probeInterval) {
+      clearInterval(this.probeInterval);
+    }
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
+    }
   }
 
   private debouncedUpdate(): void {
@@ -58,14 +71,21 @@ export class NetworkStatusService {
   /**
    * Probe actual latency via HEAD to /actuator/health.
    * Estimates bandwidth tier from RTT (maritime: satellite ~600ms, VSAT ~300ms).
+   * Uses 3s AbortController timeout to prevent blocking.
    */
   private probeLatency(): void {
     if (!navigator.onLine) return;
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+
     const start = performance.now();
-    fetch('/actuator/health', { method: 'HEAD', cache: 'no-cache' })
-      .then(() => {
+    fetch('/actuator/health', { method: 'HEAD', cache: 'no-cache', signal: controller.signal })
+      .then((response) => {
+        clearTimeout(timeoutId);
         const rtt = performance.now() - start;
+        // Any HTTP response (including 401/403) means we're online
+        this.online.set(true);
         // Estimate: RTT > 500ms → satellite (~0.5 Mbps), > 200ms → slow (~1.5 Mbps)
         if (rtt > 500) {
           this.effectiveBandwidthMbps.set(0.5);
@@ -74,8 +94,14 @@ export class NetworkStatusService {
         }
         // Otherwise keep Network Information API value or default
       })
-      .catch(() => {
-        // Probe failed — keep existing value
+      .catch((err) => {
+        clearTimeout(timeoutId);
+        // AbortError = timeout, TypeError = network failure → offline
+        if (err?.name === 'AbortError' || err instanceof TypeError) {
+          this.online.set(false);
+          this.effectiveBandwidthMbps.set(0);
+        }
+        // Other errors — keep existing value
       });
   }
 }

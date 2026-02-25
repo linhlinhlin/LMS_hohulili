@@ -261,7 +261,7 @@ export class VideoPlayerAdaptiveComponent implements AfterViewInit, OnDestroy {
     const localProgress = this.tracker.getLocalProgress();
     if (localProgress > 0) {
       this.progressPercent.set(Math.floor(localProgress));
-      this.isCompleted.set(localProgress >= 90);
+      this.isCompleted.set(localProgress >= 80);
     }
   }
 

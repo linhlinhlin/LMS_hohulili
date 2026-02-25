@@ -30,8 +30,22 @@ export class CourseDownloadService {
 
   readonly downloadedCount = computed(() => this.downloadedCourses().length);
 
+  /** Set to true to cancel current download after the current chapter finishes */
+  private downloadCancelled = false;
+
   constructor() {
     this.refreshDownloadedCourses();
+  }
+
+  /**
+   * Cancel an in-progress download.
+   * Stops after the current chapter completes — checkpoint supports resume later.
+   */
+  cancelDownload(): void {
+    if (this.isDownloading()) {
+      this.downloadCancelled = true;
+      this.toast.info('Đang hủy tải xuống...');
+    }
   }
 
   /**
@@ -45,8 +59,15 @@ export class CourseDownloadService {
     this.currentDownloadId.set(courseId);
     this.downloadProgress.set(0);
 
+    this.downloadCancelled = false;
+
     try {
-      // 0. Check storage quota before downloading
+      // 0a. Request persistent storage on first download (prevent browser eviction)
+      if (!this.storage.isPersisted()) {
+        await this.storage.requestPersistence();
+      }
+
+      // 0b. Check storage quota before downloading
       const estimate = await this.storage.refresh();
       const percentUsed = estimate.percentUsed ?? 0;
       if (percentUsed > 90) {
@@ -70,28 +91,54 @@ export class CourseDownloadService {
       const checkpoint = await offlineDb.downloadCheckpoints.get(courseId);
       const completedChapterIds = new Set(checkpoint?.completedChapterIds || []);
 
-      // 4. Fetch lessons per chapter (skip already-downloaded chapters)
-      const allLessons: any[] = [];
+      // 4. Fetch lessons per chapter, write to DB per-chapter (crash-safe)
+      // Checkpoint only AFTER successful DB write — never "done" with empty DB
       for (let i = 0; i < chaptersData.length; i++) {
         const chapter = chaptersData[i];
 
         if (completedChapterIds.has(chapter.id)) {
-          // Skip — already downloaded in a previous attempt
+          // Skip — already downloaded and written to DB in a previous attempt
           this.downloadProgress.set(Math.round(((i + 1) / chaptersData.length) * 80));
           continue;
         }
 
+        let chapterLessons: any[] = [];
         try {
           const lessonsRes: any = await firstValueFrom(
             this.http.get(`${environment.apiUrl}/api/v3/courses/${courseId}/chapters/${chapter.id}/lessons`)
           );
           const lessons = lessonsRes.data || lessonsRes || [];
-          allLessons.push(...lessons.map((l: any) => ({ ...l, chapterId: chapter.id })));
+          chapterLessons = lessons.map((l: any) => ({ ...l, chapterId: chapter.id }));
         } catch {
           // Chapter may have no lessons
         }
 
-        // Save checkpoint after each chapter
+        // Write chapter + its lessons to DB BEFORE checkpointing
+        await offlineDb.transaction('rw', [offlineDb.chapters, offlineDb.lessons], async () => {
+          const chapterRecord: OfflineChapter = {
+            id: chapter.id,
+            courseId,
+            title: chapter.title || chapter.name,
+            sortOrder: chapter.sortOrder ?? chapter.order ?? 0,
+          };
+          await offlineDb.chapters.put(chapterRecord);
+
+          for (const l of chapterLessons) {
+            const lesson: OfflineLesson = {
+              id: l.id,
+              courseId,
+              chapterId: l.chapterId,
+              title: l.title || l.name,
+              contentHtml: l.content || l.contentHtml || '',
+              videoManifestUrl: l.videoUrl,
+              sortOrder: l.sortOrder ?? l.order ?? 0,
+              downloadedAt: new Date(),
+            };
+            await offlineDb.lessons.put(lesson);
+          }
+        });
+
+        // Checkpoint AFTER successful DB write — crash here is safe (data is in DB)
         completedChapterIds.add(chapter.id);
         await offlineDb.downloadCheckpoints.put({
           courseId,
@@ -102,58 +149,35 @@ export class CourseDownloadService {
         });
 
         this.downloadProgress.set(Math.round(((i + 1) / chaptersData.length) * 80));
+
+        // Check for cancel after each chapter (checkpoint supports resume later)
+        if (this.downloadCancelled) {
+          this.toast.info('Đã hủy tải xuống. Bạn có thể tiếp tục sau.');
+          return;
+        }
       }
 
-      // 5. Store in IndexedDB using atomic transaction
-      await offlineDb.transaction('rw', [offlineDb.courses, offlineDb.chapters, offlineDb.lessons], async () => {
-        // Store course
-        const course: OfflineCourse = {
-          id: courseId,
-          title: courseData.title || courseData.name,
-          description: courseData.description || '',
-          thumbnailUrl: courseData.thumbnailUrl,
-          totalLessons: allLessons.length,
-          downloadedAt: new Date(),
-          version: 1,
-          sizeBytes: 0,
-        };
-        await offlineDb.courses.put(course);
+      // 5. Count total lessons + size from DB (not memory — crash-safe)
+      const dbLessons = await offlineDb.lessons.where('courseId').equals(courseId).toArray();
+      let totalSize = 0;
+      for (const l of dbLessons) {
+        totalSize += new Blob([l.contentHtml || '']).size;
+      }
 
-        // Store chapters
-        for (const ch of chaptersData) {
-          const chapter: OfflineChapter = {
-            id: ch.id,
-            courseId,
-            title: ch.title || ch.name,
-            sortOrder: ch.sortOrder ?? ch.order ?? 0,
-          };
-          await offlineDb.chapters.put(chapter);
-        }
+      // 6. Write course metadata with DB-counted values
+      const course: OfflineCourse = {
+        id: courseId,
+        title: courseData.title || courseData.name,
+        description: courseData.description || '',
+        thumbnailUrl: courseData.thumbnailUrl,
+        totalLessons: dbLessons.length,
+        downloadedAt: new Date(),
+        version: 1,
+        sizeBytes: totalSize,
+      };
+      await offlineDb.courses.put(course);
 
-        // Store lessons
-        let totalSize = 0;
-        for (const l of allLessons) {
-          const contentSize = new Blob([l.content || l.contentHtml || '']).size;
-          totalSize += contentSize;
-
-          const lesson: OfflineLesson = {
-            id: l.id,
-            courseId,
-            chapterId: l.chapterId,
-            title: l.title || l.name,
-            contentHtml: l.content || l.contentHtml || '',
-            videoManifestUrl: l.videoUrl,
-            sortOrder: l.sortOrder ?? l.order ?? 0,
-            downloadedAt: new Date(),
-          };
-          await offlineDb.lessons.put(lesson);
-        }
-
-        // Update course size
-        await offlineDb.courses.update(courseId, { sizeBytes: totalSize });
-      });
-
-      // 6. Clean up checkpoint on successful completion
+      // 7. Clean up checkpoint on successful completion
       await offlineDb.downloadCheckpoints.delete(courseId);
 
       this.downloadProgress.set(100);
@@ -189,6 +213,19 @@ export class CourseDownloadService {
     await offlineDb.progress.where('courseId').equals(courseId).delete();
     await offlineDb.courses.delete(courseId);
     await offlineDb.downloadCheckpoints.delete(courseId);
+
+    // Clean orphaned syncQueue entries for this course
+    const allQueueItems = await offlineDb.syncQueue.toArray();
+    const relatedIds = allQueueItems
+      .filter(item =>
+        item.endpoint.includes(courseId) ||
+        (item.payload as any)?.courseId === courseId
+      )
+      .map(item => item.id!)
+      .filter(id => id != null);
+    if (relatedIds.length > 0) {
+      await offlineDb.syncQueue.bulkDelete(relatedIds);
+    }
 
     await this.refreshDownloadedCourses();
     await this.storage.refresh();

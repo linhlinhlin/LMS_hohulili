@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Observable, tap, throwError, map } from 'rxjs';
@@ -43,6 +43,12 @@ export class AuthService {
   private currentUserSubject = new BehaviorSubject<User | null>(this.getSavedUser());
   public currentUser$ = this.currentUserSubject.asObservable();
 
+  /** Signal-based wrappers (non-breaking, incremental migration) */
+  private readonly _currentUser = signal<User | null>(this.getSavedUser());
+  readonly currentUserSignal = this._currentUser.asReadonly();
+  readonly isAuthenticatedSignal = computed(() => !!this._currentUser());
+  readonly userRoleSignal = computed(() => this._currentUser()?.role || '');
+
   login(credentials: { email: string; password: string }): Observable<AuthResponse> {
     // Update expected type to ApiResponse<AuthResponse>
     const loginRequest = this.http.post<ApiResponse<AuthResponse>>(AUTH_ENDPOINTS.LOGIN, credentials);
@@ -61,6 +67,7 @@ export class AuthService {
         // Normalize role for currentUserSubject too
         const normalizedUser = { ...data.user, role: data.user.role?.toLowerCase() || '' };
         this.currentUserSubject.next(normalizedUser);
+        this._currentUser.set(normalizedUser);
       }),
       catchError(error => {
         throw error;
@@ -95,6 +102,7 @@ export class AuthService {
     }
 
     this.currentUserSubject.next(null);
+    this._currentUser.set(null);
 
     // Redirect to login page
     this.router.navigate(['/auth/login'], {
@@ -185,6 +193,7 @@ export class AuthService {
         // Normalize role for currentUserSubject too
         const normalizedUser = { ...response.user, role: response.user.role?.toLowerCase() || '' };
         this.currentUserSubject.next(normalizedUser);
+        this._currentUser.set(normalizedUser);
       })
     );
   }

@@ -106,6 +106,18 @@ public class AssignmentSubmissionControllerV3 {
 
         return submissionRepository.findById(submissionId)
                 .map(submission -> {
+                    // P0-7: Teacher must own the course that this assignment belongs to
+                    if (user.getRole() == UserJpaEntity.UserRole.TEACHER) {
+                        var assignment = assignmentRepository.findById(submission.getAssignmentId());
+                        if (assignment.isPresent()) {
+                            var course = courseJpaRepository.findById(assignment.get().getCourseId());
+                            if (course.isPresent() && !course.get().getTeacherId().equals(user.getId())) {
+                                return ResponseEntity.status(403)
+                                        .body(ApiResponse.<Map<String, Object>>error("Bạn không sở hữu bài tập này"));
+                            }
+                        }
+                    }
+
                     Double gradeValue = request.score() != null ? request.score() : request.grade();
                     if (gradeValue != null) {
                         submission.setGrade(gradeValue);
@@ -159,10 +171,19 @@ public class AssignmentSubmissionControllerV3 {
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN', 'STUDENT')")
     @Transactional(readOnly = true)
     public ResponseEntity<ApiResponse<Map<String, Object>>> getSubmissionById(
-            @PathVariable UUID submissionId) {
+            @PathVariable UUID submissionId,
+            @AuthenticationPrincipal UserJpaEntity user) {
 
         return submissionRepository.findById(submissionId)
-                .map(s -> ResponseEntity.ok(ApiResponse.success(toSubmissionDetailMap(s))))
+                .map(s -> {
+                    // P0-6: Students can only see their own submissions
+                    if (user.getRole() == UserJpaEntity.UserRole.STUDENT
+                            && !s.getStudentId().equals(user.getId())) {
+                        return ResponseEntity.status(403)
+                                .body(ApiResponse.<Map<String, Object>>error("Bạn không có quyền xem bài nộp này"));
+                    }
+                    return ResponseEntity.ok(ApiResponse.success(toSubmissionDetailMap(s)));
+                })
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -171,7 +192,7 @@ public class AssignmentSubmissionControllerV3 {
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Transactional(readOnly = true)
     public ResponseEntity<byte[]> exportSubmissions(@PathVariable UUID assignmentId) {
-        // Stub: return CSV with headers
+        // Export CSV with headers
         var submissions = submissionRepository.findByAssignmentId(assignmentId);
         StringBuilder csv = new StringBuilder();
         csv.append("Student ID,Status,Grade,Submitted At,Feedback\n");
@@ -251,9 +272,19 @@ public class AssignmentSubmissionControllerV3 {
     @PutMapping("/api/v3/assignments/{assignmentId}/publish")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Transactional
-    public ResponseEntity<ApiResponse<Void>> publishAssignment(@PathVariable UUID assignmentId) {
+    public ResponseEntity<ApiResponse<Void>> publishAssignment(
+            @PathVariable UUID assignmentId,
+            @AuthenticationPrincipal UserJpaEntity user) {
         return assignmentRepository.findById(assignmentId)
                 .map(a -> {
+                    // P0-9: Teacher must own the course
+                    if (user.getRole() == UserJpaEntity.UserRole.TEACHER) {
+                        var course = courseJpaRepository.findById(a.getCourseId());
+                        if (course.isPresent() && !course.get().getTeacherId().equals(user.getId())) {
+                            return ResponseEntity.status(403)
+                                    .body(ApiResponse.<Void>error("Bạn không sở hữu bài tập này"));
+                        }
+                    }
                     a.setStatus(AssignmentJpaEntity.AssignmentStatus.PUBLISHED);
                     assignmentRepository.save(a);
                     return ResponseEntity.ok(ApiResponse.<Void>success(null, "Đã phát hành bài tập"));
@@ -294,7 +325,15 @@ public class AssignmentSubmissionControllerV3 {
     // DTOs
     // =============================================
 
-    public record GradeRequest(Double grade, Double score, String feedback) {}
+    public record GradeRequest(
+        @jakarta.validation.constraints.DecimalMin(value = "0", message = "Điểm phải >= 0")
+        @jakarta.validation.constraints.DecimalMax(value = "100", message = "Điểm phải <= 100")
+        Double grade,
+        @jakarta.validation.constraints.DecimalMin(value = "0", message = "Điểm phải >= 0")
+        @jakarta.validation.constraints.DecimalMax(value = "100", message = "Điểm phải <= 100")
+        Double score,
+        String feedback
+    ) {}
     public record BatchGradeItem(UUID submissionId, Double grade, String feedback) {}
     public record SubmitRequest(String content, String fileUrl, String fileName) {}
 }

@@ -25,5 +25,7 @@ public interface EnrollmentRepositoryPort {
 
     long countByClassId(UUID classId);
 
+    Optional<Enrollment> findByStudentIdAndCourseId(UUID studentId, UUID courseId);
+
     void deleteById(UUID id);
 }

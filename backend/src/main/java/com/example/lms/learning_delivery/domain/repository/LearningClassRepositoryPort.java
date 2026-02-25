@@ -25,5 +25,7 @@ public interface LearningClassRepositoryPort {
 
     long countByCourseId(UUID courseId);
 
+    Optional<LearningClass> findByCourseIdAndName(UUID courseId, String name);
+
     void deleteById(UUID id);
 }

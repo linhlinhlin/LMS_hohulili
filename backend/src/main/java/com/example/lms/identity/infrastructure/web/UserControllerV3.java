@@ -277,19 +277,31 @@ public class UserControllerV3 {
             });
         }
 
+        // Batch load courses, teachers, enrollment counts (3 queries instead of 3N)
+        Set<UUID> courseIds = bestEnrollmentByCourse.keySet();
+        Map<UUID, CourseJpaEntity> courseMap = courseRepository.findAllById(courseIds).stream()
+                .collect(Collectors.toMap(CourseJpaEntity::getId, c -> c));
+        Set<UUID> teacherIds = courseMap.values().stream()
+                .map(CourseJpaEntity::getTeacherId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<UUID, String> teacherNameMap = userRepository.findAllById(teacherIds).stream()
+                .collect(Collectors.toMap(UserJpaEntity::getId, UserJpaEntity::getFullName));
+        Map<UUID, Long> enrollCountMap = new HashMap<>();
+        if (!courseIds.isEmpty()) {
+            enrollmentRepository.countEnrollmentsByCourseIds(new ArrayList<>(courseIds))
+                    .forEach(row -> enrollCountMap.put((UUID) row[0], (Long) row[1]));
+        }
+
         List<Map<String, Object>> courses = bestEnrollmentByCourse.entrySet().stream()
                 .map(entry -> {
                     UUID courseId = entry.getKey();
                     EnrollmentJpaEntity enrollment = entry.getValue();
-                    return courseRepository.findById(courseId)
-                            .map(course -> {
-                                Map<String, Object> map = toCourseMap(course);
-                                map.put("completionPercent", enrollment.getCompletionPercent() != null ? enrollment.getCompletionPercent() : 0);
-                                map.put("enrolledAt", enrollment.getEnrolledAt() != null ? enrollment.getEnrolledAt().toString() : null);
-                                map.put("enrollmentStatus", enrollment.getStatus() != null ? enrollment.getStatus().name() : "ACTIVE");
-                                return map;
-                            })
-                            .orElse(null);
+                    CourseJpaEntity course = courseMap.get(courseId);
+                    if (course == null) return null;
+                    Map<String, Object> map = toCourseMapBatch(course, teacherNameMap, enrollCountMap);
+                    map.put("completionPercent", enrollment.getCompletionPercent() != null ? enrollment.getCompletionPercent() : 0);
+                    map.put("enrolledAt", enrollment.getEnrolledAt() != null ? enrollment.getEnrolledAt().toString() : null);
+                    map.put("enrollmentStatus", enrollment.getStatus() != null ? enrollment.getStatus().name() : "ACTIVE");
+                    return map;
                 })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
@@ -304,8 +316,20 @@ public class UserControllerV3 {
             @PathVariable UUID userId
     ) {
         Page<CourseJpaEntity> page = courseRepository.findByTeacherId(userId, Pageable.unpaged());
-        List<Map<String, Object>> courses = page.getContent().stream()
-                .map(this::toCourseMap)
+        List<CourseJpaEntity> courseList = page.getContent();
+
+        // Batch load teacher name + enrollment counts (2 queries instead of 2N)
+        Map<UUID, String> teacherNameMap = new HashMap<>();
+        userRepository.findById(userId).ifPresent(t -> teacherNameMap.put(userId, t.getFullName()));
+        List<UUID> courseIds = courseList.stream().map(CourseJpaEntity::getId).toList();
+        Map<UUID, Long> enrollCountMap = new HashMap<>();
+        if (!courseIds.isEmpty()) {
+            enrollmentRepository.countEnrollmentsByCourseIds(courseIds)
+                    .forEach(row -> enrollCountMap.put((UUID) row[0], (Long) row[1]));
+        }
+
+        List<Map<String, Object>> courses = courseList.stream()
+                .map(c -> toCourseMapBatch(c, teacherNameMap, enrollCountMap))
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(ApiResponse.success(courses, "Danh sách khóa học quản lý"));
@@ -321,7 +345,9 @@ public class UserControllerV3 {
         return ResponseEntity.ok(ApiResponse.success(List.of(), "Danh sách khóa học hợp tác"));
     }
 
-    private Map<String, Object> toCourseMap(CourseJpaEntity course) {
+    private Map<String, Object> toCourseMapBatch(CourseJpaEntity course,
+                                                    Map<UUID, String> teacherNameMap,
+                                                    Map<UUID, Long> enrollCountMap) {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("id", course.getId().toString());
         map.put("code", course.getCode());
@@ -329,22 +355,14 @@ public class UserControllerV3 {
         map.put("status", course.getStatus() != null ? course.getStatus().name().toLowerCase() : "draft");
         map.put("createdAt", course.getCreatedAt() != null ? course.getCreatedAt().toString() : null);
 
-        // Enrich with teacher info
         if (course.getTeacherId() != null) {
-            userRepository.findById(course.getTeacherId()).ifPresent(teacher -> {
-                map.put("teacherName", teacher.getFullName());
-                map.put("teacherEmail", teacher.getEmail());
-            });
+            String teacherName = teacherNameMap.get(course.getTeacherId());
+            if (teacherName != null) {
+                map.put("teacherName", teacherName);
+            }
         }
 
-        // Enrollment count
-        try {
-            long enrolledCount = enrollmentRepository.findByLearningClass_CourseId(course.getId()).size();
-            map.put("enrolledCount", enrolledCount);
-        } catch (org.springframework.dao.DataAccessException e) {
-            map.put("enrolledCount", 0);
-        }
-
+        map.put("enrolledCount", enrollCountMap.getOrDefault(course.getId(), 0L));
         return map;
     }
 

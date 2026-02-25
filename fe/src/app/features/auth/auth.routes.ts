@@ -22,6 +22,11 @@ export const authRoutes: Routes = [
     title: 'Đặt lại mật khẩu - LMS Maritime'
   },
   {
+    path: 'verify-email',
+    loadComponent: () => import('./verify-email/verify-email.component').then(m => m.VerifyEmailComponent),
+    title: 'Xác nhận email - LMS Maritime'
+  },
+  {
     path: '',
     redirectTo: 'login',
     pathMatch: 'full'

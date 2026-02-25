@@ -17,6 +17,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.security.access.AccessDeniedException;
+
 import java.time.Instant;
 import java.util.UUID;
 
@@ -40,6 +42,7 @@ public class ClassControllerV3 {
     private final GetClassStudentsUseCase getClassStudentsUseCase;
     private final DropStudentUseCase dropStudentUseCase;
     private final com.example.lms.learning_delivery.infrastructure.persistence.JpaLearningClassRepository classJpaRepository;
+    private final com.example.lms.course_authoring.infrastructure.persistence.JpaCourseRepository courseJpaRepository;
 
     // ================================================================================================
     // Course-scoped Class Listing (FE: ClassService)
@@ -128,6 +131,9 @@ public class ClassControllerV3 {
             @jakarta.validation.Valid @RequestBody CreateClassRequest request,
             @AuthenticationPrincipal UserJpaEntity user
     ) {
+        // P0-13: Verify teacher owns the course
+        verifyCourseOwnership(UUID.fromString(request.getCourseId()), user);
+
         // Auto-generate code if missing
         String classCode = request.getCode();
         if (classCode == null || classCode.isBlank()) {
@@ -162,8 +168,12 @@ public class ClassControllerV3 {
     @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<LearningClassResponse>> updateClass(
             @PathVariable String classId,
-            @Valid @RequestBody UpdateClassRequest request
+            @Valid @RequestBody UpdateClassRequest request,
+            @AuthenticationPrincipal UserJpaEntity user
     ) {
+        // P0-13: Verify teacher owns the course via class
+        classJpaRepository.findById(UUID.fromString(classId))
+                .ifPresent(cls -> verifyCourseOwnership(cls.getCourseId(), user));
         var command = new UpdateLearningClassUseCase.UpdateClassCommand(
                 UUID.fromString(classId),
                 request.getName(),
@@ -183,8 +193,12 @@ public class ClassControllerV3 {
     @DeleteMapping("/{classId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<Void>> deleteClass(
-            @PathVariable String classId
+            @PathVariable String classId,
+            @AuthenticationPrincipal UserJpaEntity user
     ) {
+        // P0-13: Verify teacher owns the course via class
+        classJpaRepository.findById(UUID.fromString(classId))
+                .ifPresent(cls -> verifyCourseOwnership(cls.getCourseId(), user));
         deleteLearningClassUseCase.execute(UUID.fromString(classId));
         return ResponseEntity.ok(ApiResponse.success(null, "Xóa lớp học thành công"));
     }
@@ -208,8 +222,12 @@ public class ClassControllerV3 {
     @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<UUID>> enrollStudent(
             @PathVariable String classId,
-            @Valid @RequestBody EnrollStudentRequest request
+            @Valid @RequestBody EnrollStudentRequest request,
+            @AuthenticationPrincipal UserJpaEntity user
     ) {
+        // S78: IDOR fix — verify teacher owns the class's course
+        verifyClassOwnership(UUID.fromString(classId), user);
+
         if (request.getEmail() == null || request.getEmail().isBlank()) {
             throw new IllegalArgumentException("Email không được để trống");
         }
@@ -243,8 +261,12 @@ public class ClassControllerV3 {
     @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<Void>> removeStudent(
             @PathVariable String classId,
-            @PathVariable String studentId
+            @PathVariable String studentId,
+            @AuthenticationPrincipal UserJpaEntity user
     ) {
+        // S78: IDOR fix — verify teacher owns the class's course
+        verifyClassOwnership(UUID.fromString(classId), user);
+
         var command = new DropStudentCommand(
                 UUID.fromString(studentId),
                 UUID.fromString(classId),
@@ -301,5 +323,26 @@ public class ClassControllerV3 {
         @jakarta.validation.constraints.NotBlank(message = "Email không được để trống")
         @jakarta.validation.constraints.Email(message = "Email không hợp lệ")
         private String email;
+    }
+
+    // === Ownership Helpers ===
+
+    private boolean isAdminRole(com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
+        return user.getRole() == com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity.UserRole.ADMIN
+            || user.getRole() == com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity.UserRole.ORG_ADMIN;
+    }
+
+    private void verifyCourseOwnership(UUID courseId, com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
+        if (isAdminRole(user)) return;
+        courseJpaRepository.findById(courseId).ifPresent(course -> {
+            if (course.getTeacherId() == null || !course.getTeacherId().equals(user.getId())) {
+                throw new AccessDeniedException("Bạn không sở hữu khóa học này");
+            }
+        });
+    }
+
+    private void verifyClassOwnership(UUID classId, com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
+        if (isAdminRole(user)) return;
+        classJpaRepository.findById(classId).ifPresent(cls -> verifyCourseOwnership(cls.getCourseId(), user));
     }
 }

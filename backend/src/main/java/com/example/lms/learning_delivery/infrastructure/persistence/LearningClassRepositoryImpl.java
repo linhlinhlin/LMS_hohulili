@@ -83,6 +83,11 @@ public class LearningClassRepositoryImpl implements LearningClassRepository, Lea
     }
 
     @Override
+    public Optional<LearningClass> findByCourseIdAndName(UUID courseId, String name) {
+        return jpaRepository.findByCourseIdAndName(courseId, name).map(mapper::toDomain);
+    }
+
+    @Override
     public void deleteById(UUID id) {
         jpaRepository.deleteById(id);
     }

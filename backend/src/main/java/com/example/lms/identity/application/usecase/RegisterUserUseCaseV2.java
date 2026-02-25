@@ -10,6 +10,7 @@ import com.example.lms.identity.domain.model.User;
 import com.example.lms.identity.domain.repository.UserRepository;
 import com.example.lms.shared.domain.event.DomainEventPublisher;
 import com.example.lms.shared.domain.valueobject.Email;
+import com.example.lms.identity.domain.valueobject.PasswordPolicy;
 import com.example.lms.shared.exception.ValidationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -48,14 +49,13 @@ public class RegisterUserUseCaseV2 {
             throw new ValidationException("email", "Email đã tồn tại");
         }
 
-        // Determine role
+        // P0-1: Public registration always STUDENT (prevent privilege escalation)
         Role role = Role.STUDENT;
-        if (command.role() != null) {
-            try {
-                role = Role.valueOf(command.role().toUpperCase());
-            } catch (IllegalArgumentException e) {
-                throw new ValidationException("role", "Role không hợp lệ");
-            }
+
+        // P0-2: Enforce PasswordPolicy on registration
+        String passwordError = PasswordPolicy.validate(command.password());
+        if (passwordError != null) {
+            throw new ValidationException("password", passwordError);
         }
 
         // Create domain user using factory method

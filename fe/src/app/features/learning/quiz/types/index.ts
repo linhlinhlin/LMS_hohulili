@@ -68,6 +68,8 @@ export interface Quiz {
   totalPoints: number;
   instructions?: string;
   dueDate?: Date;
+  availableFrom?: string;
+  lockAt?: string;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
