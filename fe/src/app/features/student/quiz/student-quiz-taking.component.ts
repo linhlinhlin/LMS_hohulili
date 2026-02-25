@@ -182,6 +182,10 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
       // Step 1: Get quiz for this lesson to find quizId
       const quizResponse = await firstValueFrom(this.quizApi.getQuizByLessonId(this.lessonId));
       const quizzes = Array.isArray(quizResponse) ? quizResponse : (quizResponse as any)?.data || [];
+      if (!quizzes || quizzes.length === 0) {
+        this.error.set('Bài học này chưa có bài kiểm tra.');
+        return;
+      }
       if (quizzes.length > 0) {
         const quiz = quizzes[0];
         this.quizId = quiz.id;
@@ -268,8 +272,13 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
           if (attempt?.id) {
             this.attemptId = attempt.id;
           }
-        } catch {
-          // Non-blocking: quiz still works locally if attempt fails (e.g. max attempts exceeded)
+        } catch (attemptErr: any) {
+          const msg = attemptErr?.error?.message || attemptErr?.message || '';
+          if (msg.includes('tối đa') || msg.includes('max') || attemptErr?.status === 400) {
+            this.error.set('Bạn đã sử dụng hết số lần làm bài cho phép.');
+            return;
+          }
+          // Non-blocking for other errors: quiz works locally
         }
       }
 
@@ -447,7 +456,9 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
     }
 
     this.showResults.set(true);
-    this.showResultsModal.set(true);
+    if (this.quizSettings().showResultsImmediately) {
+      this.showResultsModal.set(true);
+    }
     this.submitting.set(false);
   }
 

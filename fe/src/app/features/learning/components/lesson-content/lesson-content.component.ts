@@ -107,12 +107,15 @@ export class LessonContentComponent implements AfterViewInit {
   }
 
   getSafeHtmlContent(): any {
-    return this.sanitizer.bypassSecurityTrustHtml(this.lesson()?.content || '');
+    const content = this.lesson()?.content;
+    if (!content || content === 'undefined' || content === 'null') return '';
+    return this.sanitizer.bypassSecurityTrustHtml(content);
   }
 
   // Get sanitized HTML for any content (used by template)
-  getSanitizedHtml(content: string | undefined): any {
-    return this.sanitizer.bypassSecurityTrustHtml(content || '');
+  getSanitizedHtml(content: string | undefined | null): any {
+    if (!content || content === 'undefined' || content === 'null') return '';
+    return this.sanitizer.bypassSecurityTrustHtml(content);
   }
 
   /** Reading progress percent (0-100) for current TEXT section */

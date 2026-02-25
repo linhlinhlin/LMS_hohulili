@@ -580,11 +580,11 @@ export class LearningService {
   private mapLessonResponse(data: any): LessonDetail {
     let mappedSections: SectionContent[] = (data.sections || []).map((s: any) => ({
       id: s.id,
-      title: s.title,
+      title: s.title || '',
       type: s.type as 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT',
-      content: s.content,
-      videoUrl: s.videoUrl,
-      fileUrl: s.fileUrl,
+      content: (s.content && s.content !== 'undefined' && s.content !== 'null') ? s.content : undefined,
+      videoUrl: (s.videoUrl && s.videoUrl !== 'undefined' && s.videoUrl !== 'null') ? s.videoUrl : undefined,
+      fileUrl: (s.fileUrl && s.fileUrl !== 'undefined' && s.fileUrl !== 'null') ? s.fileUrl : undefined,
       duration: s.duration,
       orderIndex: s.orderIndex ?? 0,
       isRequired: s.isRequired ?? false
