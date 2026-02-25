@@ -1,6 +1,6 @@
 # Maritime LMS Backend
 
-> **Spring Boot 3.2.6 + Java 21 + PostgreSQL 16** | Clean Architecture / DDD | 420+ source files | 721 tests | 260+ endpoints
+> **Spring Boot 3.2.6 + Java 21 + PostgreSQL 16** | Clean Architecture / DDD | 420+ source files | 806 tests | 260+ endpoints
 
 ## Quick Start
 
@@ -31,6 +31,11 @@ docker compose logs api --tail=100
 | ORG_ADMIN (Operations) | `orgadmin@maritime.edu` | `orgadmin123` | OrgAdmin User |
 | TEACHER | `teacher@maritime.edu` | `teacher123` | Teacher User |
 | STUDENT | `student@maritime.edu` | `student123` | Student User |
+
+**Seed Accounts** (V54/V55 migration — 10 STCW courses with full content):
+- 10 Teachers: `tranngocdai@maritime.edu`, `levanhung@maritime.edu`, etc. / `Maritime@2026`
+- 25 Students: `nguyenvanan@sv.maritime.edu`, `tranthibinh@sv.maritime.edu`, etc. / `Student@2026`
+- See `TEST_CHECKLIST.md` for full list.
 
 ---
 
