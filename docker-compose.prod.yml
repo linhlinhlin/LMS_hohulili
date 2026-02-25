@@ -15,8 +15,7 @@ services:
           memory: 256M
 
   backend:
-    ports:
-      - "8080:8080"
+    # NO ports exposed — Caddy proxies internally via lms-frontend network
     restart: always
     environment:
       SPRING_PROFILES_ACTIVE: prod
@@ -25,11 +24,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.0'
-          memory: 1G
+          cpus: '1.5'
+          memory: 1536M
         reservations:
           cpus: '0.5'
-          memory: 512M
+          memory: 768M
       restart_policy:
         condition: on-failure
         delay: 5s
@@ -37,11 +36,40 @@ services:
         window: 120s
 
   frontend:
-    ports:
-      - "80:80"
+    # NO ports exposed — Caddy proxies internally
     restart: always
     deploy:
       resources:
         limits:
           cpus: '0.5'
           memory: 256M
+
+  # ===== Caddy Reverse Proxy (Auto-HTTPS) =====
+  caddy:
+    image: caddy:2-alpine
+    container_name: lms-caddy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"   # HTTP/3 QUIC
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - backend
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+    networks:
+      - lms-frontend
+
+volumes:
+  caddy_data:
+    name: caddy_data
+  caddy_config:
+    name: caddy_config

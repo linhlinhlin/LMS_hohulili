@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-> **Last Updated**: 2026-02-25 | **Version**: 8.2 | **Status**: Production Ready + Pre-Deployment Audit (806 tests, 0 failures) (S87 Flows+Storage+Stubs)
+> **Last Updated**: 2026-02-25 | **Version**: 8.3 | **Status**: Production Deploy Ready (806 tests, 0 failures) (S88 Docker+Caddy+GCP)
 
 This file provides guidance to Claude Code for working with this repository. **Read this first before any task.**
 
@@ -17,6 +17,11 @@ cd backend && docker compose up -d
 # Frontend
 cd fe && npm install && npm start
 # App: http://localhost:4200
+
+# Production Deploy (GCP VM with auto-HTTPS)
+cp .env.prod.example .env.prod && nano .env.prod  # Fill real values
+chmod +x deploy.sh && ./deploy.sh
+# Site: https://holilihu.online
 ```
 
 **Test Accounts** (auto-created):
@@ -319,6 +324,20 @@ export class ExampleComponent {
 | BE Sync UseCase | `backend/.../shared/application/usecase/SyncUseCase.java` |
 | BE Sync Controller | `backend/.../shared/infrastructure/web/SyncControllerV3.java` |
 
+### Deployment / Infrastructure
+| Purpose | File |
+|---------|------|
+| Base Docker Compose | `docker-compose.yml` |
+| Production Overrides | `docker-compose.prod.yml` (Caddy, no port exposure) |
+| Caddy Reverse Proxy | `Caddyfile` (auto-HTTPS for holilihu.online) |
+| Backend Dockerfile | `backend/Dockerfile` (multi-stage, non-root) |
+| Frontend Dockerfile | `fe/Dockerfile` (multi-stage, nginx) |
+| nginx Config | `fe/nginx.conf` (PWA headers, API/uploads proxy) |
+| Prod Env Template | `.env.prod.example` |
+| Deploy Script | `deploy.sh` (one-command + GCP setup guide) |
+| Prod Spring Config | `backend/src/main/resources/application-prod.yml` |
+| FE Prod Environment | `fe/src/environments/environment.prod.ts` |
+
 ---
 
 ## BACKEND MODULE STATS
@@ -424,6 +443,31 @@ teacherGuard = [UserRole.TEACHER, UserRole.ADMIN, UserRole.ORG_ADMIN]
 ---
 
 ## RECENT CHANGES LOG
+
+### Session 88 (2026-02-25): Production Docker Deployment to GCP Compute Engine
+
+**INFRA** | BE: 806 tests, 0 failures (no test changes) | FE: 0 build errors | 3 new files + 7 modified files
+
+**Phase 1 - Fix Production Config Files:**
+- `environment.prod.ts`: `apiUrl` changed from `'https://api.lms-maritime.com'` → `''` (same-origin via Caddy reverse proxy)
+- `nginx.conf`: Added PWA headers (`Service-Worker-Allowed: /`, no-cache for `ngsw-worker.js`/`ngsw.json`), added `/uploads/` and `/actuator/` proxy blocks, SSE support for AI streaming, file upload size limit
+- `application-prod.yml`: Added `server.forward-headers-strategy: NATIVE` (trust Caddy X-Forwarded-*), `app.storage.local` config, defaults to `holilihu.online`, R2 disabled by default, empty-safe email/VNPay vars
+- `fe/Dockerfile`: Fixed `COPY --from=build` path (`dist/fe/browser` → `dist/lms-angular/browser` — pre-existing bug)
+
+**Phase 2 - Production Docker Infrastructure:**
+- `Caddyfile` (NEW): Auto-HTTPS reverse proxy for `holilihu.online` — routes `/api/*`, `/actuator/*`, `/uploads/*`, `/swagger-ui*`, `/v3/api-docs*` to backend:8080, catch-all to frontend:80. Security headers (HSTS, X-Frame-Options, X-Content-Type-Options). gzip+zstd compression. HTTP/3 QUIC support.
+- `docker-compose.yml`: Added `lms-uploads` named volume, mounted to backend, added email/VNPay/app-url env vars
+- `docker-compose.prod.yml`: Rewritten — backend/frontend NO port exposure (internal only), Caddy service with ports 80/443/443-udp, resource limits (backend 1.5 CPU/1.5GB, db 512MB, caddy 128MB), `caddy_data`/`caddy_config` volumes
+- `.env.prod.example` (NEW): Production env template with all required vars and generation instructions
+- `.env.example`: Updated with missing prod vars (APP_BASE_URL, APP_CORS_ORIGINS, email, VNPay)
+
+**Phase 3 - Deploy Script:**
+- `deploy.sh` (NEW): One-command deploy with `.env.prod` validation (checks POSTGRES_PASSWORD and JWT_SECRET not default), git pull, docker compose build+up, 30s health wait, curl health checks. GCP VM setup guide in header comments (e2-medium, asia-southeast1-b, Ubuntu 24.04, 50GB disk).
+
+**Phase 4 - Housekeeping:**
+- `.gitignore`: Added `caddy_data/`, `caddy_config/` (`.env.prod` already covered by `.env.*` pattern)
+
+**Architecture**: `Internet → Caddy (:443 auto-HTTPS) → nginx (FE) + backend:8080 (API/uploads/actuator/swagger)`
 
 ### Session 87 (2026-02-25): Pre-Deployment Comprehensive Audit — Flows, Storage, Stubs, Architecture
 

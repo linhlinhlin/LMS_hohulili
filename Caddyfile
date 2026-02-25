@@ -1,0 +1,45 @@
+# =============================================================================
+# LMS Maritime - Caddy Reverse Proxy Configuration
+# Auto-HTTPS via Let's Encrypt for holilihu.online
+# =============================================================================
+
+holilihu.online {
+    # Backend API
+    handle /api/* {
+        reverse_proxy backend:8080
+    }
+
+    # Health checks
+    handle /actuator/* {
+        reverse_proxy backend:8080
+    }
+
+    # File uploads (LocalStorageService)
+    handle /uploads/* {
+        reverse_proxy backend:8080
+    }
+
+    # Swagger UI (API docs)
+    handle /swagger-ui* {
+        reverse_proxy backend:8080
+    }
+    handle /v3/api-docs* {
+        reverse_proxy backend:8080
+    }
+
+    # Frontend (Angular SPA) — catch-all
+    handle {
+        reverse_proxy frontend:80
+    }
+
+    # Security headers
+    header {
+        X-Frame-Options "SAMEORIGIN"
+        X-Content-Type-Options "nosniff"
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+
+    # Compression
+    encode gzip zstd
+}
