@@ -44,11 +44,10 @@ server:
         order_inserts: true
         order_updates: true
 
-  # Flyway - ENABLED in production
+  # Flyway - ENABLED in production (fresh DB: runs all migrations from V1)
   flyway:
     enabled: true
-    baseline-on-migrate: true
-    baseline-version: 25
+    baseline-on-migrate: false
     locations: classpath:db/migration
     validate-on-migrate: true
 
