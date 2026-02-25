@@ -44,12 +44,16 @@ export class CourseRepositoryImpl implements CourseRepository {
     sort?: CourseSortOptions,
     pagination?: PaginationOptions
   ): Observable<PaginatedResult<Course>> {
-    const page = pagination?.page ?? 0;
+    const page = Math.max(0, (pagination?.page ?? 1) - 1);
     const size = pagination?.limit ?? 12;
-    const search = filters?.searchQuery ?? undefined;
+    const search = filters?.searchQuery || undefined;
     const teacher = filters?.instructorId?.[0] as unknown as string | undefined;
 
-    return this.api.publicCourses({ page, size, search, teacher }).pipe(
+    const params: Record<string, any> = { page, size };
+    if (search) params['search'] = search;
+    if (teacher) params['teacher'] = teacher;
+
+    return this.api.publicCourses(params).pipe(
       map((res: ApiResponse<any>) => {
         // The API response structure is: { data: { content: [...], pageable: {...}, ... }, pagination: {...} }
         // So res.data is the Spring Page object, not the courses array directly
