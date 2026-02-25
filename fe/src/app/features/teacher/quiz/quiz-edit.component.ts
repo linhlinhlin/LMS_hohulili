@@ -377,9 +377,7 @@ export class QuizEditComponent implements OnInit {
     this.quizApi.updateQuizQuestions(this.lessonId, {
       questionIds: Array.from(this.selectedQuestionIds)
     }).subscribe({
-      next: () => {
-        // DEBUG MODE: this.router.navigate(['../../quiz-bank'], { relativeTo: this.route });
-      },
+      next: () => {},
       error: () => {
         this.isLoading = false;
       },
@@ -390,6 +388,5 @@ export class QuizEditComponent implements OnInit {
   }
 
   onCancel(): void {
-    // DEBUG MODE: this.router.navigate(['../../quiz-bank'], { relativeTo: this.route });
   }
 }

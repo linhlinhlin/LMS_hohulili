@@ -51,8 +51,6 @@ export class CourseRepositoryImpl implements CourseRepository {
 
     return this.api.publicCourses({ page, size, search, teacher }).pipe(
       map((res: ApiResponse<any>) => {
-        // THÊM DEBUG Ở ĐÂY
-
         // The API response structure is: { data: { content: [...], pageable: {...}, ... }, pagination: {...} }
         // So res.data is the Spring Page object, not the courses array directly
         const pageData = res?.data;
