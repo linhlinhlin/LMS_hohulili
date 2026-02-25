@@ -81,37 +81,27 @@ export class CourseDownloadService {
       );
       const courseData = courseRes.data || courseRes;
 
-      // 2. Fetch chapters
-      const chaptersRes: any = await firstValueFrom(
-        this.http.get(`${environment.apiUrl}/api/v3/courses/${courseId}/chapters`)
+      // 2. Fetch chapters+lessons in one call via /content endpoint (accessible to all roles)
+      const contentRes: any = await firstValueFrom(
+        this.http.get(`${environment.apiUrl}/api/v3/courses/${courseId}/content`)
       );
-      const chaptersData = chaptersRes.data || chaptersRes || [];
+      const chaptersData = contentRes.data || contentRes || [];
 
       // 3. Check for existing checkpoint (resume support)
       const checkpoint = await offlineDb.downloadCheckpoints.get(courseId);
       const completedChapterIds = new Set(checkpoint?.completedChapterIds || []);
 
-      // 4. Fetch lessons per chapter, write to DB per-chapter (crash-safe)
-      // Checkpoint only AFTER successful DB write — never "done" with empty DB
+      // 4. Write chapters+lessons to DB per-chapter (crash-safe)
       for (let i = 0; i < chaptersData.length; i++) {
         const chapter = chaptersData[i];
 
         if (completedChapterIds.has(chapter.id)) {
-          // Skip — already downloaded and written to DB in a previous attempt
           this.downloadProgress.set(Math.round(((i + 1) / chaptersData.length) * 80));
           continue;
         }
 
-        let chapterLessons: any[] = [];
-        try {
-          const lessonsRes: any = await firstValueFrom(
-            this.http.get(`${environment.apiUrl}/api/v3/courses/${courseId}/chapters/${chapter.id}/lessons`)
-          );
-          const lessons = lessonsRes.data || lessonsRes || [];
-          chapterLessons = lessons.map((l: any) => ({ ...l, chapterId: chapter.id }));
-        } catch {
-          // Chapter may have no lessons
-        }
+        // Lessons are already included in the /content response
+        const chapterLessons = (chapter.lessons || []).map((l: any) => ({ ...l, chapterId: chapter.id }));
 
         // Write chapter + its lessons to DB BEFORE checkpointing
         await offlineDb.transaction('rw', [offlineDb.chapters, offlineDb.lessons], async () => {
@@ -119,7 +109,7 @@ export class CourseDownloadService {
             id: chapter.id,
             courseId,
             title: chapter.title || chapter.name,
-            sortOrder: chapter.sortOrder ?? chapter.order ?? 0,
+            sortOrder: chapter.sortOrder ?? chapter.orderIndex ?? chapter.order ?? 0,
           };
           await offlineDb.chapters.put(chapterRecord);
 
@@ -131,14 +121,14 @@ export class CourseDownloadService {
               title: l.title || l.name,
               contentHtml: l.content || l.contentHtml || '',
               videoManifestUrl: l.videoUrl,
-              sortOrder: l.sortOrder ?? l.order ?? 0,
+              sortOrder: l.sortOrder ?? l.orderIndex ?? l.order ?? 0,
               downloadedAt: new Date(),
             };
             await offlineDb.lessons.put(lesson);
           }
         });
 
-        // Checkpoint AFTER successful DB write — crash here is safe (data is in DB)
+        // Checkpoint AFTER successful DB write
         completedChapterIds.add(chapter.id);
         await offlineDb.downloadCheckpoints.put({
           courseId,
@@ -150,7 +140,6 @@ export class CourseDownloadService {
 
         this.downloadProgress.set(Math.round(((i + 1) / chaptersData.length) * 80));
 
-        // Check for cancel after each chapter (checkpoint supports resume later)
         if (this.downloadCancelled) {
           this.toast.info('Đã hủy tải xuống. Bạn có thể tiếp tục sau.');
           return;
