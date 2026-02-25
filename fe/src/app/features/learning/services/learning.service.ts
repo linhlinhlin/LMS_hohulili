@@ -581,7 +581,7 @@ export class LearningService {
     let mappedSections: SectionContent[] = (data.sections || []).map((s: any) => ({
       id: s.id,
       title: s.title || '',
-      type: s.type as 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT',
+      type: (s.type?.toUpperCase() || 'TEXT') as 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT',
       content: (s.content && s.content !== 'undefined' && s.content !== 'null') ? s.content : undefined,
       videoUrl: (s.videoUrl && s.videoUrl !== 'undefined' && s.videoUrl !== 'null') ? s.videoUrl : undefined,
       fileUrl: (s.fileUrl && s.fileUrl !== 'undefined' && s.fileUrl !== 'null') ? s.fileUrl : undefined,
@@ -792,7 +792,7 @@ export class LearningService {
               this.lessonSectionsCache.set(lesson.id, lesson.sections.map(s => ({
                 id: s.id,
                 title: s.title,
-                type: s.type as 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT',
+                type: (s.type?.toUpperCase() || 'TEXT') as 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT',
                 content: s.content,
                 videoUrl: s.videoUrl,
                 fileUrl: s.fileUrl,
@@ -811,7 +811,7 @@ export class LearningService {
               sections: (lesson.sections || []).map(s => ({
                 id: s.id,
                 title: s.title,
-                type: s.type as 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT',
+                type: (s.type?.toUpperCase() || 'TEXT') as 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT',
                 content: s.content,
                 videoUrl: s.videoUrl,
                 fileUrl: s.fileUrl,
