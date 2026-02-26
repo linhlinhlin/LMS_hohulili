@@ -37,11 +37,18 @@ export class StorageManagerService {
 
   async requestPersistence(): Promise<boolean> {
     if (!('storage' in navigator) || !('persist' in navigator.storage)) {
+      console.warn('[Storage] Persistence API not available');
       return false;
     }
-    const granted = await navigator.storage.persist();
-    this.isPersisted.set(granted);
-    return granted;
+    try {
+      const granted = await navigator.storage.persist();
+      this.isPersisted.set(granted);
+      console.info(`[Storage] Persistent storage ${granted ? 'GRANTED' : 'DENIED'}`);
+      return granted;
+    } catch {
+      console.warn('[Storage] Persistence request failed');
+      return false;
+    }
   }
 
   private async checkPersistence(): Promise<void> {
