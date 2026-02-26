@@ -376,11 +376,13 @@
             }
 
             .section-count {
-              display: none; // Hidden: reference uses clean chapter titles only
+              font-size: 0.6875rem;
+              color: #9ca3af;
+              font-weight: 500;
             }
 
             .chapter-progress {
-              display: none; // Hidden: reference has no per-chapter progress bars
+              display: none; // Hidden: clean look per reference
             }
           }
 
@@ -434,25 +436,36 @@
               &.active {
                 background: rgba(0, 86, 210, 0.1);
 
-                .lesson-status .status-icon {
-                  color: #0056D2;
+                .lesson-status {
+                  display: flex; // Show for active too
+                  .status-icon { color: #0056D2; }
                 }
 
                 .lesson-title {
-                  color: #0056D2;
+                  color: #0056D2 !important; // Override completed muting
                   font-weight: 600;
                 }
               }
 
               &.completed {
-                .status-icon {
-                  color: #10b981;
+                .lesson-status {
+                  display: flex; // Show micro-checkmark only when completed
+                }
+
+                .lesson-title {
+                  color: #6b7280; // Muted for completed (LinkedIn Learning pattern)
                 }
               }
 
               .lesson-status {
                 flex-shrink: 0;
-                display: none; // Hidden: reference uses clean icon+title only
+                display: none; // Hidden by default - shown only for completed
+
+                .status-icon {
+                  width: 16px;
+                  height: 16px;
+                  color: #10b981;
+                }
               }
 
               .lesson-content {
@@ -529,12 +542,21 @@
               }
 
               &.completed {
-                .section-status-icon.completed { color: #16a34a; }
+                .section-status-icon {
+                  display: flex; // Show micro-checkmark for completed
+                  &.completed { color: #16a34a; }
+                }
                 .section-title { color: #6b7280; }
               }
 
               .section-status-icon {
-                display: none; // Hidden: reference uses clean icon+title
+                display: none; // Hidden by default - shown for completed
+                width: 14px;
+                height: 14px;
+                margin-right: 4px;
+                flex-shrink: 0;
+
+                svg { width: 14px; height: 14px; }
               }
 
               .section-icon {

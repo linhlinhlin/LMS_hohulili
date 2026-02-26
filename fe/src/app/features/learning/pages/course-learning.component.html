@@ -112,14 +112,14 @@
                 [attr.aria-label]="lesson.title + ', ' + (learningService.isLessonCompleted(lesson.id)() ? 'Đã hoàn thành' : 'Chưa hoàn thành') + (lesson.duration > 0 ? ', ' + lesson.duration + ' phút' : '')">
                 <div class="lesson-status">
                   @if (learningService.isLessonCompleted(lesson.id)()) {
-                  <svg class="status-icon completed" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <svg class="status-icon completed" width="16" height="16" viewBox="0 0 20 20" fill="none">
                     <circle cx="10" cy="10" r="10" fill="currentColor" />
-                    <path d="M6 10l3 3 5-6" stroke="white" stroke-width="2" stroke-linecap="round"
+                    <path d="M6 10l3 3 5-6" stroke="white" stroke-width="2.5" stroke-linecap="round"
                       stroke-linejoin="round" />
                   </svg>
                   } @else {
-                  <svg class="status-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
-                    <circle cx="10" cy="10" r="9" stroke="currentColor" stroke-width="2" />
+                  <svg class="status-icon current-dot" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <circle cx="8" cy="8" r="5" fill="currentColor" />
                   </svg>
                   }
                 </div>
