@@ -196,10 +196,10 @@
       }
     }
 
-    // Search Box
+    // Search Box (subtle)
     .search-box {
-      padding: 0.75rem 1rem;
-      border-bottom: 1px solid #e5e7eb;
+      padding: 0.5rem 1rem;
+      border-bottom: none;
       position: relative;
       background: white;
 
@@ -268,26 +268,25 @@
       }
     }
 
-    // Course Structure Header
+    // Course Structure Header (Reference: blue uppercase label + count)
     .course-structure-header {
-      padding: 0.75rem 1rem;
-      border-bottom: 1px solid #e5e7eb;
+      padding: 1rem 1.25rem 0.75rem;
       display: flex;
-      align-items: center;
-      justify-content: space-between;
+      flex-direction: column;
+      gap: 0.125rem;
 
       .structure-label {
         font-size: 0.6875rem;
         font-weight: 700;
-        color: #6b7280;
+        color: #0056D2;
         text-transform: uppercase;
         letter-spacing: 0.08em;
       }
 
       .structure-count {
-        font-size: 0.6875rem;
-        color: #9ca3af;
-        font-weight: 500;
+        font-size: 0.75rem;
+        color: #6b7280;
+        font-weight: 400;
       }
     }
 
@@ -328,30 +327,28 @@
         }
       }
 
-      // Section Accordion
+      // Section Accordion (Reference: clean chapter rows)
       .section-accordion {
-        margin-bottom: 0.25rem;
-        border-bottom: 1px solid #f3f4f6;
+        margin-bottom: 0;
 
         .section-header {
           width: 100%;
-          padding: 0.75rem 1rem;
+          padding: 0.75rem 1.25rem;
           border: none;
           background: transparent;
           text-align: left;
           cursor: pointer;
           display: flex;
           align-items: center;
-          justify-content: space-between;
           gap: 0.625rem;
-          transition: all 0.2s;
+          transition: all 0.15s ease;
 
           &:hover {
             background: #f9fafb;
           }
 
           &.expanded {
-            background: #f9fafb;
+            background: transparent;
           }
 
           .folder-icon {
@@ -374,30 +371,16 @@
               font-size: 0.875rem;
               font-weight: 600;
               color: #1f2937;
-              margin: 0 0 0.25rem 0;
+              margin: 0;
               line-height: 1.4;
             }
 
             .section-count {
-              font-size: 0.725rem;
-              color: #6b7280;
-              font-weight: 500;
+              display: none; // Hidden: reference uses clean chapter titles only
             }
 
-            // Mini progress bar per chapter (Coursera pattern)
             .chapter-progress {
-              height: 3px;
-              background: #e5e7eb;
-              border-radius: 2px;
-              margin-top: 0.375rem;
-              overflow: hidden;
-
-              .chapter-progress-fill {
-                height: 100%;
-                background: #10b981;
-                border-radius: 2px;
-                transition: width 0.4s ease;
-              }
+              display: none; // Hidden: reference has no per-chapter progress bars
             }
           }
 
@@ -431,25 +414,29 @@
             }
 
             .lesson-item {
-              width: 100%;
-              padding: 0.5rem 0.5rem 0.5rem 0.5rem;
+              width: calc(100% - 1rem);
+              margin: 1px 0.5rem;
+              padding: 0.5rem 0.75rem;
               border: none;
               background: transparent;
               text-align: left;
               cursor: pointer;
               display: flex;
-              align-items: flex-start;
+              align-items: center;
               gap: 0.5rem;
-              transition: all 0.2s;
-              border-left: 2px solid transparent;
+              transition: all 0.15s ease;
+              border-radius: 8px;
 
               &:hover {
-                background: #f9fafb;
+                background: #f3f4f6;
               }
 
               &.active {
-                background: rgba(0, 86, 210, 0.08);
-                border-left: 3px solid #0056D2;
+                background: rgba(0, 86, 210, 0.1);
+
+                .lesson-status .status-icon {
+                  color: #0056D2;
+                }
 
                 .lesson-title {
                   color: #0056D2;
@@ -465,18 +452,7 @@
 
               .lesson-status {
                 flex-shrink: 0;
-                padding-top: 0.125rem;
-
-                .status-icon {
-                  width: 20px;
-                  height: 20px;
-                  color: #d1d5db;
-                  transition: color 0.2s;
-
-                  &.completed {
-                    color: #10b981;
-                  }
-                }
+                display: none; // Hidden: reference uses clean icon+title only
               }
 
               .lesson-content {
@@ -484,10 +460,10 @@
                 min-width: 0;
 
                 .lesson-title {
-                  font-size: 0.875rem;
+                  font-size: 0.8125rem;
                   color: #374151;
-                  line-height: 1.5;
-                  margin: 0 0 0.25rem 0;
+                  line-height: 1.4;
+                  margin: 0;
                   display: -webkit-box;
                   -webkit-line-clamp: 2;
                   -webkit-box-orient: vertical;
@@ -495,27 +471,7 @@
                 }
 
                 .lesson-meta {
-                  display: flex;
-                  align-items: center;
-                  gap: 0.5rem;
-                  font-size: 0.75rem;
-                  color: #6b7280;
-
-                  .lesson-type {
-                    font-weight: 500;
-                  }
-
-                  .lesson-duration {
-                    &::before {
-                      content: '•';
-                      margin-right: 0.5rem;
-                    }
-                  }
-
-                  .section-count {
-                    font-weight: 600;
-                    color: #0056D2;
-                  }
+                  display: none; // Hidden: reference shows only title
                 }
               }
 
@@ -547,8 +503,9 @@
             }
 
             .section-item {
-              width: 100% !important;
-              padding: 0.35rem 0.5rem 0.35rem 1.5rem !important;
+              width: calc(100% - 1.5rem) !important;
+              margin: 1px 0.5rem 1px 1rem !important;
+              padding: 0.375rem 0.625rem !important;
               border: none;
               background: transparent;
               text-align: left;
@@ -557,46 +514,27 @@
               align-items: center;
               transition: all 0.15s ease;
               font-size: 0.8rem;
-              margin: 0 !important;
-
-              // Ensure box model doesn't add unexpected space
+              border-radius: 6px;
               box-sizing: border-box;
 
               &:hover {
                 background: #f3f4f6;
-                color: #1f2937;
               }
 
               &.active {
-                background: rgba(0, 86, 210, 0.08);
-                color: #0056D2;
-                font-weight: 500;
-                border-left: 3px solid #0056D2;
+                background: rgba(0, 86, 210, 0.1);
+
+                .section-icon { color: #0056D2; }
+                .section-title { color: #0056D2; font-weight: 500; }
               }
 
-              // Completed section styling
               &.completed {
-                background: #f0fdf4;
-
-                .section-status-icon.completed {
-                  color: #16a34a;
-                }
-
-                .section-title {
-                  color: #6b7280;
-                }
+                .section-status-icon.completed { color: #16a34a; }
+                .section-title { color: #6b7280; }
               }
 
               .section-status-icon {
-                width: 16px;
-                height: 16px;
-                margin-right: 8px;
-                flex-shrink: 0;
-                color: #9ca3af;
-                
-                &.completed {
-                  color: #16a34a;
-                }
+                display: none; // Hidden: reference uses clean icon+title
               }
 
               .section-icon {
@@ -605,11 +543,10 @@
                 justify-content: center;
                 width: 20px;
                 height: 20px;
-                margin-right: 6px;
+                margin-right: 8px;
                 flex-shrink: 0;
                 color: #6b7280;
 
-                // Colored content-type icons
                 &.video-icon { color: #0056D2; }
                 &.text-icon { color: #6b7280; }
                 &.file-icon { color: #059669; }
@@ -624,10 +561,11 @@
                 .section-title {
                   font-size: 0.8rem;
                   line-height: 1.3;
+                  color: #4b5563;
                 }
 
                 .section-type-badge {
-                  display: none; // Hide badges for cleaner look
+                  display: none;
                 }
               }
             }
@@ -645,7 +583,7 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    background: white;
+    background: #f8fafc;
 
     // Mobile Menu Button - Always Visible
     .mobile-menu-btn {
@@ -843,10 +781,10 @@
       align-items: center;
       justify-content: space-between;
       gap: 1rem;
-      background: white;
-      position: static !important; // Không sticky/absolute
+      background: transparent;
+      position: static !important;
       z-index: auto;
-      clear: both; // Đảm bảo không đè lên nội dung nổi
+      clear: both;
 
       .nav-btn {
         padding: 0.5rem 1.25rem; // Reduced from 0.75rem 1.5rem
