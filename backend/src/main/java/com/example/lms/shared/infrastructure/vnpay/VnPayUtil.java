@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
@@ -33,13 +34,14 @@ public final class VnPayUtil {
     }
 
     /**
-     * Compute HMAC-SHA512 hash of fields using RAW (non-encoded) values.
+     * Compute HMAC-SHA512 hash of fields using URL-encoded values.
      * This matches VNPay's official hash algorithm:
      * 1. Sort fields alphabetically by key
-     * 2. Join as "key1=value1&key2=value2" (RAW values, NO URL encoding)
+     * 2. Join as "key1=URLEncode(value1)&key2=URLEncode(value2)"
      * 3. HMAC-SHA512 with merchant's hash secret
      *
-     * The URL query string encoding is handled separately in VnPayGatewayAdapter.
+     * Reference: VNPay official Java sample (vnpay_java) uses URLEncoder.encode()
+     * on values before building hash data string.
      */
     public static String hashAllFields(Map<String, String> fields, String secret) {
         List<String> fieldNames = new ArrayList<>(fields.keySet());
@@ -51,7 +53,9 @@ public final class VnPayUtil {
             String value = fields.get(name);
             if (value != null && !value.isEmpty()) {
                 if (hasAppended) sb.append('&');
-                sb.append(name).append('=').append(value);
+                sb.append(URLEncoder.encode(name, StandardCharsets.US_ASCII))
+                  .append('=')
+                  .append(URLEncoder.encode(value, StandardCharsets.US_ASCII));
                 hasAppended = true;
             }
         }
