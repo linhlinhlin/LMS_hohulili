@@ -9,8 +9,8 @@ holilihu.online {
         reverse_proxy backend:8080
     }
 
-    # Health checks
-    handle /actuator/* {
+    # Health check only (other actuator endpoints not exposed)
+    handle /actuator/health {
         reverse_proxy backend:8080
     }
 

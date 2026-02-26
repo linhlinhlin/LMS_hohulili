@@ -29,12 +29,10 @@ export const authInterceptor = (req: HttpRequest<any>, next: HttpHandlerFn): Obs
       const status = error?.status;
 
       if (status === 401) {
+        // logout() already navigates to /auth/login via Router
         authService.logout();
-        if (typeof window !== 'undefined') {
-          window.location.href = '/login';
-        }
       }
-      return throwError(error);
+      return throwError(() => error);
     })
   );
 };

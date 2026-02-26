@@ -343,15 +343,17 @@ public class ClassControllerV3 {
 
     private void verifyCourseOwnership(UUID courseId, com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
         if (isAdminRole(user)) return;
-        courseJpaRepository.findById(courseId).ifPresent(course -> {
-            if (course.getTeacherId() == null || !course.getTeacherId().equals(user.getId())) {
-                throw new AccessDeniedException("Bạn không sở hữu khóa học này");
-            }
-        });
+        var course = courseJpaRepository.findById(courseId)
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Khóa học", courseId));
+        if (course.getTeacherId() == null || !course.getTeacherId().equals(user.getId())) {
+            throw new AccessDeniedException("Bạn không sở hữu khóa học này");
+        }
     }
 
     private void verifyClassOwnership(UUID classId, com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
         if (isAdminRole(user)) return;
-        classJpaRepository.findById(classId).ifPresent(cls -> verifyCourseOwnership(cls.getCourseId(), user));
+        var cls = classJpaRepository.findById(classId)
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Lớp học", classId));
+        verifyCourseOwnership(cls.getCourseId(), user);
     }
 }

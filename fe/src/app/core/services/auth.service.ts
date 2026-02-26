@@ -152,7 +152,13 @@ export class AuthService {
       return null;
     }
     const userStr = localStorage.getItem(this.userKey);
-    return userStr ? JSON.parse(userStr) : null;
+    if (!userStr) return null;
+    try {
+      return JSON.parse(userStr);
+    } catch {
+      localStorage.removeItem(this.userKey);
+      return null;
+    }
   }
 
   getCurrentUser(): User | null {

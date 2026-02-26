@@ -459,11 +459,11 @@ public class CourseQueryControllerV3 {
 
     private void verifyCourseOwnership(UUID courseId, UserJpaEntity user) {
         if (isAdminRole(user)) return;
-        courseRepository.findById(courseId).ifPresent(course -> {
-            if (!course.getTeacherId().equals(user.getId())) {
-                throw new org.springframework.security.access.AccessDeniedException("Bạn không sở hữu khóa học này");
-            }
-        });
+        var course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Khóa học", courseId));
+        if (!course.getTeacherId().equals(user.getId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Bạn không sở hữu khóa học này");
+        }
     }
 
     // === Response DTOs ===

@@ -3,20 +3,7 @@ spring:
     activate:
       on-profile: prod
 
-server:
-  port: 8080
-
-  # Trust Caddy reverse proxy headers (X-Forwarded-For, X-Forwarded-Proto)
-  forward-headers-strategy: NATIVE
-
-  # Production: Graceful shutdown
-  shutdown: graceful
-  tomcat:
-    connection-timeout: 5000
-    max-connections: 200
-    accept-count: 100
-
-# Database
+  # Database
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/lms}
     username: ${SPRING_DATASOURCE_USERNAME}
@@ -59,6 +46,17 @@ server:
     multipart:
       max-file-size: 50MB
       max-request-size: 60MB
+
+server:
+  port: 8080
+  # Trust Caddy reverse proxy headers (X-Forwarded-For, X-Forwarded-Proto)
+  forward-headers-strategy: NATIVE
+  # Production: Graceful shutdown
+  shutdown: graceful
+  tomcat:
+    connection-timeout: 5000
+    max-connections: 200
+    accept-count: 100
 
 # App Configuration
 app:

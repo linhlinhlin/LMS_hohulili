@@ -96,7 +96,10 @@ public class QuestionControllerV3 {
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Transactional(readOnly = true)
     @Operation(summary = "Get question by ID")
-    public ResponseEntity<ApiResponse<QuestionDetailResponse>> getQuestionById(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<QuestionDetailResponse>> getQuestionById(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        verifyQuestionOwnership(id, user);
         Question question = questionRepository.findById(id)
                 .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Câu hỏi", id));
 

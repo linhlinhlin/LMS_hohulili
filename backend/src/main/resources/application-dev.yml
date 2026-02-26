@@ -28,7 +28,7 @@ spring:
   jpa:
     show-sql: true
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
@@ -61,7 +61,7 @@ spring:
     locations: classpath:db/migration
     validate-on-migrate: false
     out-of-order: true
-    clean-disabled: false
+    clean-disabled: true
 
 management:
   health:

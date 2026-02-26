@@ -14,9 +14,9 @@ COPY package*.json ./
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --prefer-offline --no-audit
 
-# Build production bundle
+# Build production bundle (ng build defaults to production; fix-ngsw.js removes phantom files)
 COPY . .
-RUN npm run build -- --configuration=production
+RUN npx ng build --configuration=production && node scripts/fix-ngsw.js
 
 # ----- Stage 2: Serve with nginx -----
 FROM nginx:1.25-alpine
