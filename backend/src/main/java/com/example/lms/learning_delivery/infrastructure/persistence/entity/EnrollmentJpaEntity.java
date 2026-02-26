@@ -65,6 +65,10 @@ public class EnrollmentJpaEntity {
     @Column(name = "last_accessed_at")
     private Instant lastAccessedAt;
 
+    // Managed by DB trigger trg_enrollments_updated_at (fn_set_updated_at)
+    @Column(name = "updated_at", insertable = false, updatable = false)
+    private Instant updatedAt;
+
     public enum EnrollmentStatus {
         ACTIVE("Đang học"),
         COMPLETED("Hoàn thành"),
