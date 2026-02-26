@@ -88,6 +88,55 @@
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
 <body>
+  <script>
+    // PWA Recovery — fixes broken Service Worker on client devices
+    // Usage: visit holilihu.online/?reset-sw to force-clear broken SW
+    // Also auto-recovers: if SW exists but fails to serve the page, clears on next load
+    (function() {
+      if (!('serviceWorker' in navigator)) return;
+
+      // Manual reset: ?reset-sw in URL
+      if (location.search.includes('reset-sw')) {
+        navigator.serviceWorker.getRegistrations().then(function(regs) {
+          regs.forEach(function(r) { r.unregister(); });
+        });
+        caches.keys().then(function(names) {
+          names.forEach(function(n) { caches.delete(n); });
+        });
+        // Reload clean (remove ?reset-sw param)
+        setTimeout(function() {
+          location.href = location.pathname;
+        }, 500);
+        return;
+      }
+
+      // Auto-recovery: detect broken SW state
+      // If the page loaded but SW has no controller, it may be broken
+      // Set a flag and if it persists across 2 loads, force reset
+      var key = 'sw-health';
+      try {
+        if (navigator.serviceWorker.controller) {
+          // SW is healthy, clear flag
+          sessionStorage.removeItem(key);
+        } else if (navigator.onLine) {
+          var fails = parseInt(sessionStorage.getItem(key) || '0', 10);
+          if (fails >= 2) {
+            // SW broken for 3+ loads while online — force reset
+            sessionStorage.removeItem(key);
+            navigator.serviceWorker.getRegistrations().then(function(regs) {
+              regs.forEach(function(r) { r.unregister(); });
+            });
+            caches.keys().then(function(names) {
+              names.forEach(function(n) { caches.delete(n); });
+            });
+            setTimeout(function() { location.reload(); }, 500);
+          } else {
+            sessionStorage.setItem(key, String(fails + 1));
+          }
+        }
+      } catch(e) { /* sessionStorage not available */ }
+    })();
+  </script>
   <app-root>
     <!-- Loading indicator shown until Angular bootstraps -->
     <div class="app-loading">
