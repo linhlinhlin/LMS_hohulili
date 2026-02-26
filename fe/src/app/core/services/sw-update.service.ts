@@ -41,10 +41,14 @@ export class SwUpdateService {
       }
     });
 
-    // Handle unrecoverable state
+    // Handle unrecoverable state — NEVER reload when offline (iOS kills SW after ~5min)
     sw.unrecoverable.subscribe(() => {
-      this.toast.error('Ứng dụng gặp lỗi. Đang tải lại...');
-      document.location.reload();
+      if (navigator.onLine) {
+        this.toast.error('Ứng dụng gặp lỗi. Đang tải lại...');
+        document.location.reload();
+      } else {
+        this.toast.info('Ứng dụng sẽ cập nhật khi có kết nối mạng');
+      }
     });
 
     // Request persistent storage on first load

@@ -35,10 +35,16 @@ export class NetworkStatusService implements OnDestroy {
     }
 
     this.updateStatus();
-    this.probeLatency();
 
-    // Periodic re-probe every 30s (maritime connections fluctuate)
-    this.probeInterval = setInterval(() => this.probeLatency(), 30_000);
+    // Only probe when online (avoid waking iOS SW unnecessarily)
+    if (navigator.onLine) {
+      this.probeLatency();
+    }
+
+    // Periodic re-probe every 2 minutes (was 30s — too aggressive for iOS SW keepalive)
+    this.probeInterval = setInterval(() => {
+      if (navigator.onLine) this.probeLatency();
+    }, 120_000);
   }
 
   ngOnDestroy(): void {
@@ -69,39 +75,43 @@ export class NetworkStatusService implements OnDestroy {
   }
 
   /**
-   * Probe actual latency via HEAD to /actuator/health.
-   * Estimates bandwidth tier from RTT (maritime: satellite ~600ms, VSAT ~300ms).
-   * Uses 3s AbortController timeout to prevent blocking.
+   * Probe actual latency via HEAD to favicon (cached by SW).
+   * Uses /favicon.ico which is in the app-shell prefetch group,
+   * so it works even when served from SW cache.
+   *
+   * IMPORTANT: Does NOT use cache: 'no-cache' — allows SW to serve
+   * cached responses. We only set offline when the fetch truly fails
+   * (TypeError = no network AND no SW cache).
+   *
+   * On iOS: SW can be evicted after ~5min background. If that happens,
+   * we rely solely on navigator.onLine events (no aggressive probe).
    */
   private probeLatency(): void {
     if (!navigator.onLine) return;
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000);
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
 
     const start = performance.now();
-    fetch('/actuator/health', { method: 'HEAD', cache: 'no-cache', signal: controller.signal })
-      .then((response) => {
+    fetch('/favicon.ico', { method: 'HEAD', signal: controller.signal })
+      .then(() => {
         clearTimeout(timeoutId);
         const rtt = performance.now() - start;
-        // Any HTTP response (including 401/403) means we're online
         this.online.set(true);
-        // Estimate: RTT > 500ms → satellite (~0.5 Mbps), > 200ms → slow (~1.5 Mbps)
         if (rtt > 500) {
           this.effectiveBandwidthMbps.set(0.5);
         } else if (rtt > 200) {
           this.effectiveBandwidthMbps.set(1.5);
         }
-        // Otherwise keep Network Information API value or default
       })
       .catch((err) => {
         clearTimeout(timeoutId);
-        // AbortError = timeout, TypeError = network failure → offline
-        if (err?.name === 'AbortError' || err instanceof TypeError) {
+        // Only mark offline on genuine network failure, not abort timeout
+        if (err instanceof TypeError) {
           this.online.set(false);
           this.effectiveBandwidthMbps.set(0);
         }
-        // Other errors — keep existing value
+        // AbortError (timeout) → keep existing state (might be slow, not offline)
       });
   }
 }
