@@ -90,7 +90,7 @@ Expected: Trả về `accessToken` và `refreshToken` (JWT tokens).
 
 | Layer | Technology |
 |-------|------------|
-| **Frontend** | Angular 20.3 + Signals + OnPush (257 components) |
+| **Frontend** | Angular 20.3 + Signals + OnPush (236 components) |
 | **Backend** | Spring Boot 3.2.6 + Java 21 |
 | **Database** | PostgreSQL 16 |
 | **Architecture** | Clean Architecture / DDD (9 modules) |

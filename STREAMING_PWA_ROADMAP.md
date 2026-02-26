@@ -1,7 +1,7 @@
 # STREAMING & PWA OFFLINE-FIRST ROADMAP
 ## LMS Hang Hai — Session 61+
 
-> **Created**: 2026-02-23 | **Updated**: 2026-02-26 | **Status**: Phase 1-6 Done (iOS Hardened, 7d cache) | **Owner**: Dev Team
+> **Created**: 2026-02-23 | **Updated**: 2026-02-26 | **Status**: Phase 1-6 Done (iOS Hardened, 7d cache, esbuild fix) | **Owner**: Dev Team
 
 ---
 
@@ -268,6 +268,7 @@ Student Browser (Angular 20 PWA)
 - [x] 6.5 Network probe: `/actuator/health` → `/favicon.ico` (in SW prefetch cache), 30s → 120s interval
 - [x] 6.6 Only `TypeError` marks offline (not `AbortError`/timeout)
 - [x] 6.7 NGSW dataGroup maxAge extended to 7d: `course-catalog` 6h→7d, `user-profile` 1d→7d, `enrollments` 1d→7d
+- [x] 6.8 **S94**: `fix-ngsw.js` post-build script — removes phantom CSS chunks from ngsw.json (Angular 20 esbuild bug: merged chunks still referenced → 404 → SW install fails)
 
 ### Cross-platform offline resilience:
 
@@ -286,6 +287,8 @@ Student Browser (Angular 20 PWA)
 | `network-status.service.ts` | Probe endpoint, interval, error handling |
 | `storage-manager.service.ts` | Persistence logging |
 | `ngsw-config.json` | All maxAge → 7d |
+| `scripts/fix-ngsw.js` | NEW: Post-build script removes phantom file references from ngsw.json |
+| `package.json` | Build script: `ng build && node scripts/fix-ngsw.js` |
 
 ---
 

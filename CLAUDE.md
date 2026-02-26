@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-> **Last Updated**: 2026-02-26 | **Version**: 10.0 | **Status**: Production Ready + Seed Data (806 tests, 0 failures)
+> **Last Updated**: 2026-02-26 | **Version**: 10.1 | **Status**: Production Ready + Seed Data (806 tests, 0 failures)
 
 This file provides guidance to Claude Code for working with this repository. **Read this first before any task.**
 
@@ -197,6 +197,22 @@ cd backend && docker compose build api 2>&1 | tail -50
 cd fe && npm run build 2>&1 | head -50
 ```
 
+### 6. Production Deploy — Backend Crashes with "password authentication failed"
+**Cause**: Running `docker compose up` without `--env-file .env.prod`. Backend gets default password `lms` but postgres has the production password.
+**Fix**: Always use `deploy.sh` or the full command:
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.prod up -d --build
+```
+If postgres password is out of sync:
+```bash
+docker exec lms-postgres psql -U lms -d lms -c "ALTER USER lms WITH PASSWORD '<password-from-env-prod>';"
+docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.prod restart backend
+```
+
+### 7. PWA Service Worker Won't Install (404 on prefetch)
+**Cause**: Angular 20 esbuild merges CSS chunks into main bundle but still lists original chunk name in `ngsw.json`. Missing file → 404 → NGSW install fails completely.
+**Fix**: Already handled by `fe/scripts/fix-ngsw.js` post-build script (runs automatically via `npm run build`).
+
 ---
 
 ## ANGULAR CONVENTIONS (CRITICAL)
@@ -272,6 +288,7 @@ export class ExampleComponent {
 | Production Overrides | `docker-compose.prod.yml` |
 | Caddy Reverse Proxy | `Caddyfile` (auto-HTTPS for holilihu.online) |
 | Deploy Script | `deploy.sh` |
+| PWA Build Fix | `fe/scripts/fix-ngsw.js` (removes phantom CSS from ngsw.json) |
 | Test Checklist | `TEST_CHECKLIST.md` |
 
 ---
@@ -328,6 +345,21 @@ teacherGuard = [UserRole.TEACHER, UserRole.ADMIN, UserRole.ORG_ADMIN]
 ---
 
 ## RECENT CHANGES LOG
+
+### Session 94 (2026-02-26): PWA esbuild Fix + Production Audit
+
+**BUGFIX + DEVOPS** | BE: no changes | FE: 2 files (1 new script + package.json)
+
+- **PWA completely broken**: Angular 20 esbuild builder merges CSS chunks into main bundle but `ngsw.json` still references phantom chunk name → 404 on prefetch → NGSW install fails
+  - Root cause: `chunk-4OWYFWXQ.css` listed in ngsw.json but file doesn't exist (same SHA1 as `main-LFY2DEVF.css`)
+  - Fix: Created `fe/scripts/fix-ngsw.js` — post-build script removes phantom file references from ngsw.json
+  - Updated `package.json`: `"build": "ng build && node scripts/fix-ngsw.js"`
+- **Production backend down**: `docker compose up` was run without `--env-file .env.prod`
+  - Postgres password mismatch (default `lms` vs .env.prod password)
+  - JWT_SECRET had illegal base64 characters (`-` in default value)
+  - Fix: Restarted with `--env-file .env.prod` + synced postgres password via `ALTER USER`
+- **Full system audit**: All 4 containers healthy, 6 pages tested (0 console errors), all 6 account types login OK, PWA SW active
+- Added COMMON ERRORS #6 (deploy password) and #7 (PWA phantom CSS) to CLAUDE.md
 
 ### Session 93 (2026-02-26): Student Lesson Viewer UX + PWA iOS Hardening
 
@@ -429,7 +461,7 @@ Architecture: `Internet → Caddy (:443) → nginx (FE) + backend:8080 (API)`
 
 ---
 
-## ARCHITECTURE SCORES (Post-S93)
+## ARCHITECTURE SCORES (Post-S94)
 
 | Category | Score |
 |----------|-------|

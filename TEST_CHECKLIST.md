@@ -208,3 +208,37 @@ curl -X POST http://localhost:8088/api/v3/auth/login \
 - **Video**: Cần upload video thật để test player (Shaka Player adaptive streaming)
 - **PWA Offline**: Test trên Chrome → DevTools → Network → Offline
 - **Swagger UI**: http://localhost:8088/swagger-ui → thử API trực tiếp với JWT token
+
+---
+
+## 9. Deploy Production
+
+### Lệnh deploy chuẩn
+```bash
+cd /home/Admin/lms
+./deploy.sh
+```
+
+### Lưu ý quan trọng
+- **LUÔN** dùng `deploy.sh` hoặc lệnh đầy đủ với `--env-file .env.prod`
+- **KHÔNG** chạy `docker compose up` thiếu `--env-file .env.prod` — backend sẽ crash do sai password DB và JWT secret
+- Nếu postgres password bị lệch:
+  ```bash
+  docker exec lms-postgres psql -U lms -d lms -c "ALTER USER lms WITH PASSWORD '<pass-from-env-prod>';"
+  docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.prod restart backend
+  ```
+
+### Kiểm tra sau deploy
+```bash
+# Tất cả 4 containers phải Healthy
+docker ps --format 'table {{.Names}}\t{{.Status}}'
+
+# API health
+curl -s http://localhost:8088/actuator/health
+# Expected: {"status":"UP"}
+
+# Test login
+curl -s -X POST http://localhost:8088/api/v3/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@maritime.edu","password":"admin123"}'
+```
