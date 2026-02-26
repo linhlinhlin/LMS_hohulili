@@ -72,7 +72,7 @@ export const PAYMENT_METHODS: { code: PaymentMethod; name: string; icon: IconNam
 @Injectable({ providedIn: 'root' })
 export class PaymentApi {
     private http = inject(HttpClient);
-    private baseUrl = `${environment.apiUrl}/payments`;
+    private baseUrl = `${environment.apiUrl}/api/v3/payments`;
 
     /**
      * Process checkout/payment
