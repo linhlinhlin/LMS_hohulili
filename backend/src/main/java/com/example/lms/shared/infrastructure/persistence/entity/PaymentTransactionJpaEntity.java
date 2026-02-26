@@ -56,6 +56,10 @@ public class PaymentTransactionJpaEntity {
     @Column(name = "vnp_card_type", length = 20)
     private String vnpCardType;
 
+    @Version
+    @Column(name = "version")
+    private Long version;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

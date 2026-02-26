@@ -21,6 +21,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.env.Environment;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -28,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.*;
 
@@ -334,7 +336,7 @@ public class PaymentControllerV3 {
         if (vnpAmountStr != null) {
             try {
                 // VNPay sends amount × 100 (no decimals)
-                BigDecimal vnpAmount = new BigDecimal(vnpAmountStr).divide(BigDecimal.valueOf(100));
+                BigDecimal vnpAmount = new BigDecimal(vnpAmountStr).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
                 if (vnpAmount.compareTo(payment.getAmount()) != 0) {
                     log.error("[VNPay IPN] Amount mismatch for payment {}: expected {}đ, received {}đ",
                             paymentId, payment.getAmount(), vnpAmount);
@@ -360,44 +362,46 @@ public class PaymentControllerV3 {
         // P1 FIX: Check BOTH responseCode AND transactionStatus
         boolean isSuccess = "00".equals(responseCode) && "00".equals(transactionStatus);
 
-        if (isSuccess) {
-            payment.setStatus(PaymentTransactionJpaEntity.PaymentStatus.COMPLETED);
-            payment.setPaidAt(Instant.now());
-            paymentRepository.save(payment);
+        try {
+            if (isSuccess) {
+                payment.setStatus(PaymentTransactionJpaEntity.PaymentStatus.COMPLETED);
+                payment.setPaidAt(Instant.now());
+                paymentRepository.save(payment);
 
-            // Auto-enroll student
-            autoEnrollStudent(payment.getStudentId(), payment.getCourseId());
+                // Auto-enroll student
+                autoEnrollStudent(payment.getStudentId(), payment.getCourseId());
 
-            // Send email notifications
-            sendPaymentEmails(payment);
+                // Send email notifications
+                sendPaymentEmails(payment);
 
-            log.info("[VNPay IPN] Payment completed: {} (bank={}, txnNo={})",
-                    paymentId, params.get("vnp_BankCode"), params.get("vnp_TransactionNo"));
-            return ResponseEntity.ok(Map.of("RspCode", "00", "Message", "Confirm Success"));
-        } else {
-            payment.setStatus(PaymentTransactionJpaEntity.PaymentStatus.FAILED);
-            paymentRepository.save(payment);
+                log.info("[VNPay IPN] Payment completed: {} (bank={}, txnNo={})",
+                        paymentId, params.get("vnp_BankCode"), params.get("vnp_TransactionNo"));
+                return ResponseEntity.ok(Map.of("RspCode", "00", "Message", "Confirm Success"));
+            } else {
+                payment.setStatus(PaymentTransactionJpaEntity.PaymentStatus.FAILED);
+                paymentRepository.save(payment);
 
-            log.info("[VNPay IPN] Payment failed: {} (responseCode={}, txnStatus={})",
-                    paymentId, responseCode, transactionStatus);
-            return ResponseEntity.ok(Map.of("RspCode", "00", "Message", "Confirm Success"));
+                log.info("[VNPay IPN] Payment failed: {} (responseCode={}, txnStatus={})",
+                        paymentId, responseCode, transactionStatus);
+                return ResponseEntity.ok(Map.of("RspCode", "00", "Message", "Confirm Success"));
+            }
+        } catch (OptimisticLockingFailureException e) {
+            // Concurrent IPN: another request already processed this payment
+            log.warn("[VNPay IPN] Optimistic lock conflict for payment {} — already processed by another IPN", paymentId);
+            return ResponseEntity.ok(Map.of("RspCode", "02", "Message", "Order already processed"));
         }
     }
 
     @Operation(summary = "VNPay return URL (browser redirect)")
     @GetMapping("/vnpay-return")
     public ResponseEntity<Void> vnpayReturn(@RequestParam Map<String, String> params) {
-        boolean valid = paymentGateway.verifyCallback(params);
-        String responseCode = params.get("vnp_ResponseCode");
+        // Always redirect to FE callback page for SERVER-SIDE verification.
+        // Never redirect directly to success — IPN is the authoritative source.
         String txnRef = params.get("vnp_TxnRef");
         String vnpTxnNo = params.get("vnp_TransactionNo");
 
-        String redirectUrl;
-        if (valid && "00".equals(responseCode)) {
-            redirectUrl = "/payment/success?txnRef=" + txnRef + "&vnp_TransactionNo=" + vnpTxnNo;
-        } else {
-            redirectUrl = "/payment/failed?code=" + (responseCode != null ? responseCode : "99");
-        }
+        String redirectUrl = "/payment/callback/vnpay?vnp_TxnRef=" + (txnRef != null ? txnRef : "")
+                + "&vnp_TransactionNo=" + (vnpTxnNo != null ? vnpTxnNo : "");
 
         return ResponseEntity.status(302)
                 .header("Location", redirectUrl)

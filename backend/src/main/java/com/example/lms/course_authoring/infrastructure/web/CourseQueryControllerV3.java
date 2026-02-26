@@ -143,8 +143,10 @@ public class CourseQueryControllerV3 {
     @GetMapping("/{courseId}/instructors")
     @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<List<InstructorResponse>>> getCourseInstructors(
-            @PathVariable UUID courseId
+            @PathVariable UUID courseId,
+            @AuthenticationPrincipal UserJpaEntity user
     ) {
+        verifyCourseOwnership(courseId, user);
         // Return course owner/teacher as instructor with real user data
         return courseRepository.findById(courseId)
                 .map(course -> {

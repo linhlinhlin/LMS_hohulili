@@ -87,7 +87,10 @@ public class FileUploadControllerV3 {
             // Sanitize folder name
             String sanitizedFolder = sanitizePath(folder);
 
-            UUID uploadedBy = user != null ? user.getId() : UUID.fromString("00000000-0000-0000-0000-000000000000");
+            if (user == null) {
+                return ResponseEntity.status(401).body(Map.of("success", 0, "message", "Không được phép truy cập"));
+            }
+            UUID uploadedBy = user.getId();
             var attachment = fileManagementService.uploadFile(file, sanitizedFolder, uploadedBy);
 
             Map<String, Object> fileData = new HashMap<>();
@@ -136,7 +139,10 @@ public class FileUploadControllerV3 {
                 return ResponseEntity.badRequest().body(Map.of("success", 0, "message", "Loại video không được phép: " + contentType));
             }
 
-            UUID uploadedBy = user != null ? user.getId() : UUID.fromString("00000000-0000-0000-0000-000000000000");
+            if (user == null) {
+                return ResponseEntity.status(401).body(Map.of("success", 0, "message", "Không được phép truy cập"));
+            }
+            UUID uploadedBy = user.getId();
             var attachment = fileManagementService.uploadFile(file, "videos", uploadedBy);
 
             Map<String, Object> fileData = new HashMap<>();

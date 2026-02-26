@@ -84,8 +84,9 @@ export class PaymentCallbackComponent implements OnInit {
      * The IPN callback is the authoritative source — we just check the DB result.
      */
     private async verifyPaymentFromServer(txnRef: string | undefined, transactionNo: string | undefined): Promise<void> {
-        // If we don't have txnRef, we can't verify — show error
-        if (!txnRef) {
+        // Validate txnRef: must be UUID format (prevents injection via URL params)
+        const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!txnRef || !UUID_REGEX.test(txnRef)) {
             this.router.navigate(['/payment/failed'], {
                 queryParams: { reason: 'error', message: 'Không tìm thấy mã giao dịch' }
             });

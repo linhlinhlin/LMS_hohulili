@@ -11,6 +11,7 @@ import com.example.lms.learning_delivery.domain.repository.LearningClassReposito
 import com.example.lms.shared.exception.BusinessRuleException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -91,7 +92,7 @@ public class SelfEnrollUseCase {
             return existing.get();
         }
 
-        // Create new default class
+        // Create new default class — handle concurrent creation race condition
         String defaultCode = "DEFAULT-" + course.getCode().getValue();
         LearningClass defaultClass = LearningClass.builder()
                 .name(DEFAULT_CLASS_NAME)
@@ -102,8 +103,15 @@ public class SelfEnrollUseCase {
                 .status(LearningClass.ClassStatus.OPEN)
                 .build();
 
-        LearningClass saved = learningClassRepository.save(defaultClass);
-        log.info("Created default class {} for course {}", saved.getId(), courseId);
-        return saved;
+        try {
+            LearningClass saved = learningClassRepository.save(defaultClass);
+            log.info("Created default class {} for course {}", saved.getId(), courseId);
+            return saved;
+        } catch (DataIntegrityViolationException e) {
+            // Race condition: another thread created the class between our check and insert
+            log.info("Default class race condition for course {} — retrying find", courseId);
+            return learningClassRepository.findByCourseIdAndName(courseId, DEFAULT_CLASS_NAME)
+                    .orElseThrow(() -> new BusinessRuleException("Không thể tạo lớp mặc định"));
+        }
     }
 }
