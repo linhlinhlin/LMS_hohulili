@@ -92,8 +92,10 @@ echo ""
 docker compose $COMPOSE_FILES $ENV_FILE ps
 echo ""
 
-# Check backend health
-if curl -sf http://localhost:8080/actuator/health > /dev/null 2>&1; then
+# Check backend health (via Caddy reverse proxy — backend port not exposed to host)
+if curl -sf http://localhost/actuator/health > /dev/null 2>&1; then
+  echo "Backend: HEALTHY"
+elif curl -sf http://localhost:80/actuator/health > /dev/null 2>&1; then
   echo "Backend: HEALTHY"
 else
   echo "Backend: Starting (check logs: docker compose $COMPOSE_FILES logs backend --tail=50)"

@@ -194,6 +194,12 @@ curl -X POST http://localhost:8088/api/v3/auth/login \
 - [ ] Tắt WiFi 5+ phút → quay lại → app không crash (iOS đã fix)
 - [ ] Tắt WiFi 24h → F5 → app vẫn load (cache 7 ngày)
 
+### PWA Recovery (khi SW bị hỏng)
+- [ ] Truy cập `holilihu.online/reset-sw` → thấy "Resetting PWA..." → redirect về trang chủ
+- [ ] Truy cập `holilihu.online/?reset-sw` → SW + cache bị xóa → reload clean
+- [ ] DevTools → Application → Service Workers → thấy `navigationRequestStrategy: freshness`
+- [ ] Tắt mạng 3 lần reload liên tiếp → auto-recovery kích hoạt (xóa SW + reload)
+
 ### Download khóa học offline
 - [ ] Student → khóa đã ghi danh → nút Download → tải về thành công
 - [ ] Tắt mạng → mở khóa đã download → xem được nội dung bài học

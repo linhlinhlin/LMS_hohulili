@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-> **Last Updated**: 2026-02-26 | **Version**: 10.1 | **Status**: Production Ready + Seed Data (806 tests, 0 failures)
+> **Last Updated**: 2026-02-26 | **Version**: 10.2 | **Status**: Production Ready + Seed Data (806 tests, 0 failures)
 
 This file provides guidance to Claude Code for working with this repository. **Read this first before any task.**
 
@@ -345,6 +345,19 @@ teacherGuard = [UserRole.TEACHER, UserRole.ADMIN, UserRole.ORG_ADMIN]
 ---
 
 ## RECENT CHANGES LOG
+
+### Session 95 (2026-02-26): iOS/iPad PWA Hardening + Production Audit
+
+**PWA + DEVOPS** | BE: no changes | FE: 5 files modified
+
+- **iOS stale cache root cause**: Added `navigationRequestStrategy: "freshness"` to `ngsw-config.json`
+  - Without this, NGSW uses cache-first for navigation → iPad serves cached 502/broken pages forever
+  - Pattern from reference project `lms-maritime-pwa` (confirmed SOTA for iOS)
+- **iPad viewport**: Added `viewport-fit=cover` to index.html for iPad Pro notch/safe area
+- **nginx hardening**: Fixed `X-XSS-Protection` (deprecated `1; mode=block` → `0`), `/health` endpoint `add_header` after `return` no-op → `default_type`, security headers inheritance in location blocks
+- **index.html cleanup**: Removed 7 broken apple-touch-icon refs (files don't exist), fixed `og:url` from `lms-maritime.com` → `holilihu.online`, OG/Twitter images → existing `icon-512x512.png`
+- **deploy.sh**: Fixed health check `localhost:8080` → `localhost/actuator/health` (port not exposed in prod)
+- Deleted stale `ngsw_prod.json` build artifact, added to `.gitignore`
 
 ### Session 94 (2026-02-26): PWA esbuild Fix + Production Audit
 
