@@ -16,8 +16,7 @@ public class PaymentVerificationAdapter implements PaymentVerificationPort {
 
     @Override
     public boolean hasCompletedPayment(UUID studentId, UUID courseId) {
-        return paymentRepository.findByStudentIdAndCourseId(studentId, courseId)
-                .map(p -> p.getStatus() == PaymentTransactionJpaEntity.PaymentStatus.COMPLETED)
-                .orElse(false);
+        return paymentRepository.existsByStudentIdAndCourseIdAndStatus(
+                studentId, courseId, PaymentTransactionJpaEntity.PaymentStatus.COMPLETED);
     }
 }

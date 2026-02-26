@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { PaymentService } from './payment.service';
 import { PAYMENT_METHODS, PaymentMethod } from '../../api/client/payment.api';
 import { IconComponent } from '../../shared/components/icon/icon.component';
+import { environment } from '../../../environments/environment';
 
 /**
  * Payment Modal Component
@@ -163,15 +164,17 @@ export class PaymentModalComponent {
   paymentComplete = output<void>();
 
   // State
-  selectedMethod = signal<PaymentMethod>('SIMULATED');
+  selectedMethod = signal<PaymentMethod>(environment.production ? 'VNPAY' : 'SIMULATED');
   paymentSuccess = signal(false);
 
   // Computed from service
   isProcessing = this.paymentService.isProcessing;
   error = this.paymentService.error;
 
-  // Available payment methods
-  paymentMethods = PAYMENT_METHODS;
+  // Available payment methods — hide SIMULATED in production
+  paymentMethods = environment.production
+      ? PAYMENT_METHODS.filter(m => m.code !== 'SIMULATED')
+      : PAYMENT_METHODS;
 
   onBackdropClick(event: MouseEvent): void {
     if (!this.isProcessing()) {

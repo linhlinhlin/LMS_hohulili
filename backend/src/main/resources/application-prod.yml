@@ -79,7 +79,7 @@ app:
     tmn-code: "${VNPAY_TMN_CODE:}"
     hash-secret: "${VNPAY_HASH_SECRET:}"
     pay-url: "https://pay.vnpay.vn/vpcpay.html"
-    return-url: "${APP_BASE_URL:https://holilihu.online}/payment/result"
+    return-url: "${APP_BASE_URL:https://holilihu.online}/api/v3/payments/vnpay-return"
     ipn-url: "${APP_BASE_URL:https://holilihu.online}/api/v3/payments/vnpay-ipn"
     expire-minutes: 15
 

@@ -113,6 +113,15 @@ export class PaymentApi {
             amount
         });
     }
+
+    /**
+     * Get payment by transaction reference (for callback verification)
+     * SECURITY: Used by payment-callback to verify status from server,
+     * not from URL params which could be forged.
+     */
+    getPaymentByTxnRef(txnRef: string): Observable<ApiResponse<PaymentResponse>> {
+        return this.http.get<ApiResponse<PaymentResponse>>(`${this.baseUrl}/by-ref/${txnRef}`);
+    }
 }
 
 export interface VnPayUrlResponse {

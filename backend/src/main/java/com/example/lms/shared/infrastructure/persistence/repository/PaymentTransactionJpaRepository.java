@@ -16,13 +16,16 @@ import java.util.UUID;
 @Repository
 public interface PaymentTransactionJpaRepository extends JpaRepository<PaymentTransactionJpaEntity, UUID> {
 
-    Optional<PaymentTransactionJpaEntity> findByStudentIdAndCourseId(UUID studentId, UUID courseId);
+    // Always get the LATEST payment to handle multiple payments per student+course
+    Optional<PaymentTransactionJpaEntity> findTopByStudentIdAndCourseIdOrderByCreatedAtDesc(UUID studentId, UUID courseId);
 
     Optional<PaymentTransactionJpaEntity> findByTransactionId(String transactionId);
 
     List<PaymentTransactionJpaEntity> findByStudentIdOrderByCreatedAtDesc(UUID studentId);
 
     boolean existsByStudentIdAndCourseId(UUID studentId, UUID courseId);
+
+    boolean existsByStudentIdAndCourseIdAndStatus(UUID studentId, UUID courseId, PaymentTransactionJpaEntity.PaymentStatus status);
 
     // === Analytics queries ===
 

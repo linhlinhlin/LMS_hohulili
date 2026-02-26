@@ -9,6 +9,12 @@ import java.util.*;
 
 /**
  * VNPay HMAC-SHA512 utilities.
+ *
+ * CRITICAL: VNPay computes hash on RAW (non-encoded) values joined as
+ * "key1=value1&key2=value2" (sorted alphabetically). The URL query string
+ * uses URLEncoder separately. Hash and URL encoding are independent operations.
+ *
+ * Reference: VNPay official Java sample code (vnpay_java)
  */
 public final class VnPayUtil {
 
@@ -26,18 +32,27 @@ public final class VnPayUtil {
         }
     }
 
+    /**
+     * Compute HMAC-SHA512 hash of fields using RAW (non-encoded) values.
+     * This matches VNPay's official hash algorithm:
+     * 1. Sort fields alphabetically by key
+     * 2. Join as "key1=value1&key2=value2" (RAW values, NO URL encoding)
+     * 3. HMAC-SHA512 with merchant's hash secret
+     *
+     * The URL query string encoding is handled separately in VnPayGatewayAdapter.
+     */
     public static String hashAllFields(Map<String, String> fields, String secret) {
-        // Sort fields alphabetically
         List<String> fieldNames = new ArrayList<>(fields.keySet());
         Collections.sort(fieldNames);
 
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < fieldNames.size(); i++) {
-            String name = fieldNames.get(i);
+        boolean hasAppended = false;
+        for (String name : fieldNames) {
             String value = fields.get(name);
             if (value != null && !value.isEmpty()) {
-                if (i > 0) sb.append('&');
+                if (hasAppended) sb.append('&');
                 sb.append(name).append('=').append(value);
+                hasAppended = true;
             }
         }
         return hmacSHA512(secret, sb.toString());

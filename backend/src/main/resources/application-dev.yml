@@ -96,7 +96,7 @@ app:
     tmn-code: "${VNPAY_TMN_CODE:DEMOV210}"
     hash-secret: "${VNPAY_HASH_SECRET:DEMOSECRET}"
     pay-url: "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"
-    return-url: "http://localhost:4200/payment/result"
+    return-url: "http://localhost:8088/api/v3/payments/vnpay-return"
     ipn-url: "http://localhost:8088/api/v3/payments/vnpay-ipn"
     expire-minutes: 15
 
