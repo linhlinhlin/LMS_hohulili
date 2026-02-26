@@ -131,6 +131,12 @@ export class CourseDetailComponent implements OnInit {
     const courseId = this.course()?.id;
     if (!courseId) return;
 
+    // Paid course → open payment modal (VNPay) instead of direct enrollment
+    if (this.course()?.price && this.course()!.price > 0) {
+      this.openPaymentModal();
+      return;
+    }
+
     this.isEnrolling.set(true);
     try {
       const classes = await this.courseService.getAvailableClasses(courseId);
