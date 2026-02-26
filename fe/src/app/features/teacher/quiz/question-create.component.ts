@@ -428,6 +428,11 @@ export class QuestionCreateComponent implements OnInit {
       return;
     }
 
+    if (!this.packageId) {
+      this.toast.error('Không tìm thấy ngân hàng câu hỏi. Vui lòng quay lại chọn ngân hàng trước.');
+      return;
+    }
+
     // SOTA 2025: Prevent duplicate submissions
     if (this.isLoading) return;
 

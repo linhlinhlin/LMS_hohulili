@@ -54,10 +54,9 @@ export class SectionSmartEditorComponent {
         }
 
         // Create a placeholder Section first
+        const quizData = { title: this.form.value.title || 'Bài trắc nghiệm mới', type: 'QUIZ' };
         const formData = new FormData();
-        formData.append('lessonId', lessonIdValue);
-        formData.append('title', this.form.value.title || 'Bài trắc nghiệm mới');
-        formData.append('type', 'QUIZ');
+        formData.append('data', new Blob([JSON.stringify(quizData)], { type: 'application/json' }));
 
         this.isSubmitting.set(true);
         const courseIdValue = this.courseId();
@@ -101,63 +100,41 @@ export class SectionSmartEditorComponent {
         const lessonIdValue = this.lessonId();
         const courseIdValue = this.courseId();
 
-        // Use FormData for File Upload, or JSON for others
-        if (this.selectedType() === 'FILE') {
-            const formData = new FormData();
-            formData.append('lessonId', lessonIdValue);
-            formData.append('title', title!);
-            formData.append('type', 'FILE');
-            if (this.selectedFile) {
-                formData.append('file', this.selectedFile);
-            }
-
-            if (!courseIdValue) {
-                this.toast.warning('Không tìm thấy course ID');
-                this.isSubmitting.set(false);
-                return;
-            }
-
-            this.sectionApi.createSection(courseIdValue, formData).subscribe({
-                next: () => {
-                    this.isSubmitting.set(false);
-                    this.saved.emit();
-                    this.close.emit();
-                },
-                error: () => {
-                    this.isSubmitting.set(false);
-                    this.toast.error('Có lỗi xảy ra khi lưu section.');
-                }
-            });
-        } else {
-            // Normal JSON request - Use FormData for ALL types
-            const formData = new FormData();
-            formData.append('lessonId', lessonIdValue);
-            formData.append('title', title!);
-            formData.append('type', this.selectedType());
-
-            if (this.selectedType() === 'TEXT') {
-                formData.append('content', content!);
-            } else if (this.selectedType() === 'VIDEO') {
-                formData.append('content', content!);
-            }
-
-            if (!courseIdValue) {
-                this.toast.warning('Không tìm thấy course ID');
-                this.isSubmitting.set(false);
-                return;
-            }
-
-            this.sectionApi.createSection(courseIdValue, formData).subscribe({
-                next: () => {
-                    this.isSubmitting.set(false);
-                    this.saved.emit();
-                    this.close.emit();
-                },
-                error: () => {
-                    this.isSubmitting.set(false);
-                    this.toast.error('Có lỗi xảy ra khi lưu section.');
-                }
-            });
+        if (!courseIdValue) {
+            this.toast.warning('Không tìm thấy course ID');
+            this.isSubmitting.set(false);
+            return;
         }
+
+        // Build data payload as JSON — backend expects @RequestPart("data") as Map
+        const dataPayload: Record<string, any> = {
+            title: title || '',
+            type: this.selectedType(),
+        };
+
+        if (this.selectedType() === 'TEXT') {
+            dataPayload['content'] = content || '';
+        } else if (this.selectedType() === 'VIDEO') {
+            dataPayload['videoUrl'] = content || '';
+        }
+
+        const formData = new FormData();
+        formData.append('data', new Blob([JSON.stringify(dataPayload)], { type: 'application/json' }));
+
+        if (this.selectedType() === 'FILE' && this.selectedFile) {
+            formData.append('file', this.selectedFile);
+        }
+
+        this.sectionApi.createSection(courseIdValue, formData).subscribe({
+            next: () => {
+                this.isSubmitting.set(false);
+                this.saved.emit();
+                this.close.emit();
+            },
+            error: () => {
+                this.isSubmitting.set(false);
+                this.toast.error('Có lỗi xảy ra khi lưu section.');
+            }
+        });
     }
 }

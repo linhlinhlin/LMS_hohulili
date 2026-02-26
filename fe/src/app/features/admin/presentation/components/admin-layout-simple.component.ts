@@ -132,7 +132,8 @@ export class AdminLayoutSimpleComponent implements OnInit, OnDestroy {
 
   private handleRouteChange(url: string) {
     const isInAiChat = url.includes('/ai-chat');
-    this.sidebarHidden.set(isInAiChat);
+    const isInPreview = url.includes('/preview');
+    this.sidebarHidden.set(isInAiChat || isInPreview);
   }
 
   toggleMobileSidebar(): void {

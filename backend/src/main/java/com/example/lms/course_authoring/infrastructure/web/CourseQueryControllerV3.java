@@ -330,7 +330,25 @@ public class CourseQueryControllerV3 {
         List<LessonJpaEntity> lessons = lessonRepository.findByChapterIdOrderByOrderIndex(chapterId);
 
         List<LessonResponse> response = lessons.stream()
-                .map(l -> LessonResponse.builder()
+                .map(l -> {
+                    List<SectionResponse> sectionResponses = new ArrayList<>();
+                    if (l.getContentBlocks() != null) {
+                        for (var block : l.getContentBlocks()) {
+                            Map<String, Object> data = block.getData() != null ? block.getData() : new HashMap<>();
+                            sectionResponses.add(SectionResponse.builder()
+                                .id(block.getId())
+                                .title((String) data.getOrDefault("title", "Untitled"))
+                                .type(block.getType())
+                                .content((String) data.get("content"))
+                                .videoUrl((String) data.get("videoUrl"))
+                                .fileUrl((String) data.get("fileUrl"))
+                                .duration(data.get("duration") != null ? ((Number) data.get("duration")).intValue() : 0)
+                                .orderIndex(data.get("orderIndex") != null ? ((Number) data.get("orderIndex")).intValue() : 0)
+                                .isRequired(data.get("isRequired") != null ? (Boolean) data.get("isRequired") : false)
+                                .build());
+                        }
+                    }
+                    return LessonResponse.builder()
                         .id(l.getId().toString())
                         .title(l.getTitle())
                         .description(l.getDescription())
@@ -338,7 +356,9 @@ public class CourseQueryControllerV3 {
                         .durationMinutes(l.getDurationMinutes())
                         .orderIndex(l.getOrderIndex())
                         .isFree(l.getIsFree() != null && l.getIsFree())
-                        .build())
+                        .sections(sectionResponses)
+                        .build();
+                })
                 .toList();
 
         return ResponseEntity.ok(ApiResponse.success(response, "Danh sách bài học"));

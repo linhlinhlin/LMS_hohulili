@@ -97,6 +97,30 @@ export class CourseLearningComponent implements OnInit {
   canGoNext = this.learningService.canGoNext;
   progressPercentage = this.learningService.progressPercentage;
 
+  /** Index of the chapter (section) containing the current lesson */
+  currentChapterIndex = computed(() => {
+    const lesson = this.currentLesson();
+    if (!lesson) return 0;
+    const idx = this.sections().findIndex(s => s.lessons.some((l: any) => l.id === lesson.id));
+    return idx >= 0 ? idx : 0;
+  });
+
+  /** Index of the current lesson within its chapter */
+  currentLessonIndex = computed(() => {
+    const lesson = this.currentLesson();
+    if (!lesson) return 0;
+    const section = this.sections()[this.currentChapterIndex()];
+    if (!section) return 0;
+    const idx = section.lessons.findIndex((l: any) => l.id === lesson.id);
+    return idx >= 0 ? idx : 0;
+  });
+
+  /** Total chapter count for sidebar header */
+  totalChapters = computed(() => this.sections().length);
+
+  /** Total lesson count for sidebar header */
+  totalLessons = computed(() => this.sections().reduce((sum, s) => sum + s.lessons.length, 0));
+
   // Filtered sections based on search
   filteredSections = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
@@ -500,9 +524,6 @@ export class CourseLearningComponent implements OnInit {
   }
 
   // Video events
-  onVideoStateChange(state: any): void {
-  }
-
   onVideoEnded(): void {
     this.learningService.markCurrentLessonComplete();
 

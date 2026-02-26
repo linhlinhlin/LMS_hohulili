@@ -47,6 +47,7 @@ public class CourseAuthoringControllerV3 {
     private final DeleteLessonUseCase deleteLessonUseCase;
     private final com.example.lms.course_authoring.application.usecase.ManageContentBlockUseCaseV3 manageContentBlockUseCase;
     private final com.example.lms.course_authoring.application.usecase.UpdateCourseUseCase updateCourseUseCase;
+    private final com.example.lms.shared.infrastructure.service.FileManagementService fileManagementService;
     private final com.example.lms.course_authoring.infrastructure.persistence.repository.ChapterJpaRepository chapterJpaRepository;
     private final com.example.lms.course_authoring.infrastructure.persistence.repository.LessonJpaRepository lessonJpaRepository;
     private final com.example.lms.course_authoring.domain.repository.CourseRepository courseRepository;
@@ -263,8 +264,17 @@ public class CourseAuthoringControllerV3 {
             @RequestPart(value = "file", required = false) org.springframework.web.multipart.MultipartFile file,
             @AuthenticationPrincipal UserJpaEntity user
     ) {
+        // Process file upload and inject URL into payload
         if (file != null && !file.isEmpty()) {
             log.debug("Received file: {}", file.getOriginalFilename());
+            try {
+                var attachment = fileManagementService.uploadFile(file, "sections", user.getId());
+                payload.put("fileUrl", attachment.getFileUrl());
+                payload.put("fileName", file.getOriginalFilename());
+            } catch (java.io.IOException e) {
+                log.error("File upload failed for section", e);
+                return ResponseEntity.badRequest().body(ApiResponse.error("Tải file thất bại: " + e.getMessage()));
+            }
         }
 
         String type = (String) payload.getOrDefault("type", "TEXT");
@@ -284,8 +294,17 @@ public class CourseAuthoringControllerV3 {
             @RequestPart(value = "file", required = false) org.springframework.web.multipart.MultipartFile file,
             @AuthenticationPrincipal UserJpaEntity user
     ) {
+        // Process file upload and inject URL into payload
         if (file != null && !file.isEmpty()) {
             log.debug("Received file for update: {}", file.getOriginalFilename());
+            try {
+                var attachment = fileManagementService.uploadFile(file, "sections", user.getId());
+                payload.put("fileUrl", attachment.getFileUrl());
+                payload.put("fileName", file.getOriginalFilename());
+            } catch (java.io.IOException e) {
+                log.error("File upload failed for section update", e);
+                return ResponseEntity.badRequest().body(ApiResponse.error("Tải file thất bại: " + e.getMessage()));
+            }
         }
 
         boolean isAdmin = isAdminRole(user);

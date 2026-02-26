@@ -374,10 +374,11 @@ export class QuizBankComponent implements OnInit {
   // ==================== Question actions ====================
 
   createNewQuestion() {
-    const queryParams: any = {};
-    if (this.selectedBank()) {
-      queryParams.packageId = this.selectedBank()!.id;
+    if (!this.selectedBank()) {
+      this.toast.warning('Vui lòng chọn ngân hàng câu hỏi trước khi tạo câu hỏi mới');
+      return;
     }
+    const queryParams: any = { packageId: this.selectedBank()!.id };
     if (this.selectedCategoryId()) {
       queryParams.categoryId = this.selectedCategoryId();
     }

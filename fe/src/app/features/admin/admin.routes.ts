@@ -75,6 +75,11 @@ export const adminRoutes: Routes = [
             path: 'review',
             loadComponent: () => import('./presentation/components/course-review.component').then(m => m.CourseReviewComponent),
             title: 'Duyệt khóa học'
+          },
+          {
+            path: ':courseId/preview',
+            loadComponent: () => import('./presentation/components/course-content-preview.component').then(m => m.CourseContentPreviewComponent),
+            title: 'Xem trước nội dung khóa học'
           }
         ]
       },

@@ -1,6 +1,8 @@
 package com.example.lms.assessment.application.usecase;
 
 import com.example.lms.assessment.domain.model.Question;
+import com.example.lms.assessment.domain.model.QuestionBank;
+import com.example.lms.assessment.domain.repository.QuestionBankRepository;
 import com.example.lms.assessment.domain.repository.QuestionRepository;
 import com.example.lms.shared.domain.model.ContentBlock;
 import lombok.Builder;
@@ -24,6 +26,7 @@ import java.util.stream.Collectors;
 public class CreateQuestionUseCaseV3 {
 
     private final QuestionRepository questionRepository;
+    private final QuestionBankRepository questionBankRepository;
     private final com.example.lms.shared.application.port.FileManagementPort fileManagementService;
 
     @Transactional
@@ -59,6 +62,14 @@ public class CreateQuestionUseCaseV3 {
 
         // Save via repository (adapter handles JPA conversion)
         Question savedQuestion = questionRepository.save(question);
+
+        // Increment bank question count
+        if (command.packageId() != null) {
+            questionBankRepository.findById(command.packageId()).ifPresent(bank -> {
+                bank.incrementQuestionCount();
+                questionBankRepository.save(bank);
+            });
+        }
 
         // Link files to entities (SOTA 2026: Hybrid Logic)
         fileManagementService.linkFilesToEntity(command.contentBlocks(), savedQuestion.getId(), "QUESTION");

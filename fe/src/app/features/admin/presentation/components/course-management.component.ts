@@ -1,5 +1,5 @@
 import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AdminService, AdminCourseSummary } from '../../infrastructure/services/admin.service';
 import { ToastService } from '../../../../core/services/toast.service';
@@ -14,6 +14,7 @@ import { AuthService } from '../../../../core/services/auth.service';
 })
 export class CourseManagementComponent implements OnInit {
   protected adminService = inject(AdminService);
+  private router = inject(Router);
   private toast = inject(ToastService);
   private confirmDialog = inject(ConfirmDialogService);
   private authService = inject(AuthService);
@@ -158,6 +159,10 @@ export class CourseManagementComponent implements OnInit {
 
   openFullCourseView(courseId: string): void {
     window.open(`/teacher/courses/${courseId}/editor`, '_blank');
+  }
+
+  previewContent(courseId: string): void {
+    this.router.navigate(['/admin/courses', courseId, 'preview']);
   }
 
   closeDetailModal(): void {

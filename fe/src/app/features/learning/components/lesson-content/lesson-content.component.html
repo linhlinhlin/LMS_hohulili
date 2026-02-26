@@ -29,7 +29,7 @@
           @if (videoCompleted()) {
           <span class="progress-complete">Hoàn thành</span>
           } @else {
-          <span class="progress-remaining">Cần 50% để tiếp tục</span>
+          <span class="progress-remaining">Cần 90% để tiếp tục</span>
           }
         </div>
       </div>
@@ -85,14 +85,14 @@
       </span>
     </div>
 
-    <!-- Section Title -->
-    <h2 class="section-title-main">{{ section.title }}</h2>
+    <!-- Section Title (numbered: "Bài 1.1: Title") -->
+    <h2 class="section-title-main">{{ lessonNumber() }}: {{ section.title }}</h2>
     }
 
     <!-- Lesson title only shown when NO sections (simple lessons) -->
     @if (!hasSections()) {
     <div class="lesson-header">
-      <h1 class="lesson-title">{{ lesson().title }}</h1>
+      <h1 class="lesson-title">{{ lessonNumber() }}: {{ lesson().title }}</h1>
       @if (lesson().description) {
       <p class="lesson-description">{{ lesson().description }}</p>
       }

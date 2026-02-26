@@ -1,6 +1,7 @@
 import { Component, signal, inject, computed, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { AdminService, AdminCourseSummary, PendingCourseSummary } from '../../infrastructure/services/admin.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
@@ -91,6 +92,11 @@ type CourseListItem = AdminCourseSummary | (PendingCourseSummary & { status: str
                       </td>
                       <td class="px-6 py-4 text-center">
                         <div class="flex justify-center gap-2">
+                          <button
+                            (click)="previewContent(course.id)"
+                            class="px-3 py-1 bg-[#0056D2] text-white hover:bg-[#004BB5] rounded text-xs font-medium">
+                            Xem nội dung
+                          </button>
                           <button
                             (click)="viewDetails(course)"
                             class="px-3 py-1 bg-[#0056D2]/5 text-[#0056D2] hover:bg-[#0056D2]/10 rounded text-xs font-medium">
@@ -297,6 +303,7 @@ type CourseListItem = AdminCourseSummary | (PendingCourseSummary & { status: str
 })
 export class CourseReviewComponent implements OnInit {
   private adminService = inject(AdminService);
+  private router = inject(Router);
   private toast = inject(ToastService);
   private confirmDialog = inject(ConfirmDialogService);
   
@@ -374,6 +381,10 @@ export class CourseReviewComponent implements OnInit {
         }
       });
     }
+  }
+
+  previewContent(courseId: string) {
+    this.router.navigate(['/admin/courses', courseId, 'preview']);
   }
 
   viewDetails(course: CourseListItem) {

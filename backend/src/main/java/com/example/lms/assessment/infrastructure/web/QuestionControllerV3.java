@@ -36,6 +36,7 @@ public class QuestionControllerV3 {
     private final CreateQuestionUseCaseV3 createQuestionUseCase;
     private final UpdateQuestionUseCaseV3 updateQuestionUseCase;
     private final QuestionRepository questionRepository;
+    private final com.example.lms.assessment.domain.repository.QuestionBankRepository questionBankRepository;
     private final QuestionJpaRepository questionJpaRepository; // Only for Excel import (infra concern)
 
     // ============== Response DTOs ==============
@@ -150,12 +151,23 @@ public class QuestionControllerV3 {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @Transactional
     @Operation(summary = "Delete question by ID")
     public ResponseEntity<ApiResponse<Map<String, String>>> deleteQuestion(
             @PathVariable UUID id,
             @AuthenticationPrincipal UserJpaEntity user) {
         // S78: Verify ownership — only creator or ADMIN/ORG_ADMIN can delete
         verifyQuestionOwnership(id, user);
+
+        // Decrement bank question count before deleting
+        questionRepository.findById(id).ifPresent(question -> {
+            if (question.getPackageId() != null) {
+                questionBankRepository.findById(question.getPackageId()).ifPresent(bank -> {
+                    bank.decrementQuestionCount();
+                    questionBankRepository.save(bank);
+                });
+            }
+        });
 
         questionRepository.deleteById(id);
 
@@ -348,6 +360,15 @@ public class QuestionControllerV3 {
             }
         } catch (java.io.IOException | org.apache.poi.ooxml.POIXMLException e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("IMPORT_ERROR", "Không thể đọc file Excel: " + e.getMessage()));
+        }
+
+        // Update bank question count after import
+        if (successCount > 0) {
+            final int imported = successCount;
+            questionBankRepository.findById(packageId).ifPresent(bank -> {
+                bank.setQuestionCount(bank.getQuestionCount() + imported);
+                questionBankRepository.save(bank);
+            });
         }
 
         ExcelImportResult result = new ExcelImportResult(successCount, failedCount, successCount + failedCount, errors,

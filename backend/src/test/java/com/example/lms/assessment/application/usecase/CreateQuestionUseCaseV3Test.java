@@ -1,6 +1,7 @@
 package com.example.lms.assessment.application.usecase;
 
 import com.example.lms.assessment.domain.model.Question;
+import com.example.lms.assessment.domain.repository.QuestionBankRepository;
 import com.example.lms.assessment.domain.repository.QuestionRepository;
 import com.example.lms.shared.infrastructure.service.FileManagementService;
 import com.example.lms.shared.domain.model.ContentBlock;
@@ -33,6 +34,9 @@ class CreateQuestionUseCaseV3Test {
     private QuestionRepository questionRepository;
 
     @Mock
+    private QuestionBankRepository questionBankRepository;
+
+    @Mock
     private FileManagementService fileManagementService;
 
     private CreateQuestionUseCaseV3 useCase;
@@ -42,7 +46,7 @@ class CreateQuestionUseCaseV3Test {
 
     @BeforeEach
     void setUp() {
-        useCase = new CreateQuestionUseCaseV3(questionRepository, fileManagementService);
+        useCase = new CreateQuestionUseCaseV3(questionRepository, questionBankRepository, fileManagementService);
         packageId = UUID.randomUUID();
         createdBy = UUID.randomUUID();
     }

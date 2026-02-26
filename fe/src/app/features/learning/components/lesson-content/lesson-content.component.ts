@@ -50,13 +50,19 @@ export class LessonContentComponent implements AfterViewInit {
   readonly lesson = input.required<LessonDetail>();
   readonly isCompleted = input(false);
   readonly hasQuiz = input(false);
+  readonly chapterIndex = input(0);
+  readonly lessonIndex = input(0);
+
+  /** Numbered lesson label: "Bài 1.1" */
+  readonly lessonNumber = computed(() =>
+    `Bài ${this.chapterIndex() + 1}.${this.lessonIndex() + 1}`
+  );
 
   // Two-way binding with model (Angular v20+)
   readonly sectionIndex = model(0);
 
   // Output functions (Angular v20+)
   readonly markComplete = output<void>();
-  readonly videoStateChange = output<any>();
   readonly videoEnded = output<void>();
   readonly goToQuiz = output<void>();
 

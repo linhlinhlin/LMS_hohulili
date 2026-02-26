@@ -30,6 +30,9 @@ COPY nginx.conf /etc/nginx/conf.d/lms.conf
 # Copy built Angular app
 COPY --from=build /app/dist/lms-angular/browser /usr/share/nginx/html
 
+# Angular 20 SSR outputs index.csr.html — create index.html copy for nginx try_files fallback
+RUN cp /usr/share/nginx/html/index.csr.html /usr/share/nginx/html/index.html
+
 # Security: Proper permissions
 RUN chown -R nginx:nginx /usr/share/nginx/html && \
     chmod -R 755 /usr/share/nginx/html && \
