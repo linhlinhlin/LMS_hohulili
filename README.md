@@ -12,7 +12,7 @@ adaptive video streaming, offline-first PWA, and a 4-tier role-based access syst
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org)
 [![Java](https://img.shields.io/badge/Java-21-ED8B00?style=flat-square&logo=openjdk&logoColor=white)](https://openjdk.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-[![Tests](https://img.shields.io/badge/Tests-527_passed-2EA44F?style=flat-square)](#quality-assurance)
+[![Tests](https://img.shields.io/badge/Tests-806_passed-2EA44F?style=flat-square)](#quality-assurance)
 [![License](https://img.shields.io/badge/License-Proprietary-blue?style=flat-square)](#license)
 
 [Features](#features) · [Quick Start](#quick-start) · [Architecture](#architecture) · [API Docs](#api-documentation) · [Tech Stack](#tech-stack) · [Roadmap](#roadmap)
@@ -31,10 +31,10 @@ The system supports four distinct user roles — **System Admin**, **Operations 
 
 | Metric | Value |
 |--------|-------|
-| Backend | 381 Java files · 216 endpoints · 527 tests (0 failures) |
-| Frontend | 236 components · 56 services · 70+ routes · 100% OnPush |
-| Database | 34 tables · 94 indexes · 45 migrations |
-| Architecture | Clean Architecture / DDD · 8 modules · 64 use cases |
+| Backend | 420+ Java files · 255+ endpoints · 806 tests (0 failures) |
+| Frontend | 236 components · 61 services · 107 routes · 100% OnPush |
+| Database | 34 tables · 94 indexes · 55 migrations |
+| Architecture | Clean Architecture / DDD · 8 modules · 69 use cases |
 
 ---
 
@@ -69,12 +69,13 @@ The system supports four distinct user roles — **System Admin**, **Operations 
 - Available across student, teacher, and admin portals
 
 ### PWA & Offline-First
-- Angular Service Worker with 6 cached data groups
+- Angular Service Worker with 6 cached data groups (all 7d maxAge for iOS ITP resilience)
 - IndexedDB offline storage via Dexie.js (7 tables)
 - Full course download for offline learning
 - Background sync with conflict resolution (additive merge for video, server-wins for grades)
 - 3-tier network detection (none / slow / fast) with status indicator
-- Storage quota management with 90% pre-check
+- Storage quota management with 90% pre-check + persistent storage request
+- iOS PWA hardening: SW eviction recovery, ChunkLoadError handler, visibilitychange re-registration
 
 ### Multi-Tier Admin
 - **ADMIN**: Full system access — settings, logs, delete users/courses
@@ -237,15 +238,15 @@ fe/src/app/
 
 | Module | Domain Models | Use Cases | Controllers | Endpoints |
 |--------|:---:|:---:|:---:|:---:|
-| identity | 2 | 7 | 2 | 21 |
+| identity | 2 | 9 | 2 | 22 |
 | course_authoring | 6 | 23 | 6 | 53 |
-| learning_delivery | 9 | 17 | 10 | 51 |
-| assessment | 11 | 14 | 6 | 59 |
+| learning_delivery | 9 | 17 | 11 | 59 |
+| assessment | 11 | 15 | 6 | 59 |
 | communication | 4 | 1 | 1 | 6 |
 | ai_assistant | 3 | 1 | 1 | 11 |
-| shared | 3 | 1 | 3 | 9 |
-| config | — | — | — | 5 |
-| **Total** | **38** | **64** | **29** | **216** |
+| shared | 3 | 1 | 4 | 15 |
+| config | — | — | 1 | 5 |
+| **Total** | **38** | **69** | **32** | **255+** |
 
 </details>
 
@@ -367,11 +368,11 @@ All endpoints use the `/api/v3/` prefix and return standardized responses:
 |----------|:---:|---------|
 | Backend Clean Architecture | 10/10 | Zero infra imports in domain, CQRS query ports, typed exceptions |
 | Frontend Angular Patterns | 10/10 | 100% signals, 0 legacy patterns, 0 mock services |
-| PWA / Offline-First | 9.5/10 | NGSW + Dexie.js, batch sync, conflict resolution |
+| PWA / Offline-First | 10/10 | NGSW + Dexie.js, iOS hardened, 7d cache, batch sync, conflict resolution |
 | Security | 10/10 | 4-tier RBAC, escalation prevention, ownership verification |
 | Code Cleanliness | 10/10 | 0 dead code, 0 English UI text, 0 generic color tokens |
 | UX & Design | 10/10 | Coursera-style, #0056D2 design tokens, WCAG 2.5.7 DnD |
-| Test Coverage | 8.7/10 | 527 tests, 0 failures, ~49% line coverage |
+| Test Coverage | 9.8/10 | 806 tests, 0 failures |
 
 ### Testing
 
@@ -420,7 +421,7 @@ LMS_hohulili/
 │   │   ├── shared/                 # Sync, File service, Value objects
 │   │   └── config/                 # Security, CORS, JWT
 │   └── src/main/resources/
-│       ├── db/migration/           # Flyway V1 + V26-V45
+│       ├── db/migration/           # Flyway V1-V55
 │       └── application-*.yml       # Environment configs
 │
 ├── fe/                             # Angular 20.3 PWA
@@ -483,9 +484,11 @@ Edit `fe/src/environments/environment.ts`:
 | Multi-Tier Admin | 4-role RBAC with escalation prevention | Done |
 | Design System | #0056D2 tokens, Vietnamese localization, WCAG DnD | Done |
 | PWA Offline-First | Service Worker, IndexedDB, background sync, adaptive video | Done |
-| AI Integration | LLM connection, real-time streaming, knowledge base | In Progress |
-| Payment & Email | VNPay integration, email verification, password reset | Planned |
-| Production Readiness | MIME validation, cert PDF, audit logging, 80% coverage | Planned |
+| AI Integration | LLM connection, real-time streaming, knowledge base | Done |
+| Payment & Email | VNPay integration, email verification, password reset | Done |
+| Production Readiness | MIME validation, cert PDF, audit logging, seed data, Docker deploy | Done |
+| iOS PWA Hardening | SW eviction recovery, 7d cache, ChunkLoadError, persistent storage | Done |
+| UX Polish | Student lesson viewer, micro-progress indicators, admin preview | Done |
 
 ---
 
@@ -493,7 +496,7 @@ Edit `fe/src/environments/environment.ts`:
 
 | Document | Description |
 |----------|-------------|
-| [`CLAUDE.md`](CLAUDE.md) | AI agent development guide (architecture, patterns, 216 endpoints) |
+| [`CLAUDE.md`](CLAUDE.md) | AI agent development guide (architecture, patterns, 255+ endpoints) |
 | [`backend/README.md`](backend/README.md) | Backend architecture, all endpoints, database schema |
 | [`fe/FRONTEND_ARCHITECTURE.md`](fe/FRONTEND_ARCHITECTURE.md) | Frontend architecture, 236 components, services, state |
 | [`STREAMING_PWA_ROADMAP.md`](STREAMING_PWA_ROADMAP.md) | PWA offline-first implementation details |

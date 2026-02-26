@@ -159,7 +159,49 @@ curl -X POST http://localhost:8088/api/v3/auth/login \
 
 ---
 
-## 6. Lưu ý khi test
+## 6. Giao diện học viên (Student Lesson Viewer)
+
+### Sidebar bài học
+- [ ] Hiển thị header "CẤU TRÚC KHÓA HỌC" + "N Chương · M Bài học"
+- [ ] Chapter có icon folder (mở/đóng khi expand/collapse)
+- [ ] Lesson có icon loại nội dung: play (VIDEO), description (TEXT), attach_file (FILE), quiz (QUIZ)
+- [ ] Bài đang học: nền xanh nhạt, chữ xanh
+- [ ] Bài đã hoàn thành: checkmark xanh lá, chữ mờ
+- [ ] Đánh số "Bài 1.1: Tên bài" đúng thứ tự
+
+### Nội dung bài học
+- [ ] VIDEO: hiển thị trong container bo tròn, có shadow, nền xám nhạt
+- [ ] TEXT: hiển thị trong card trắng, có border + shadow nhẹ
+- [ ] Tiêu đề bài: dạng "Bài 1.1: Tên bài học" (có đánh số)
+- [ ] Previous/Next navigation hoạt động đúng
+
+### Responsive
+- [ ] Mobile: sidebar ẩn, có nút mở overlay
+- [ ] Desktop: sidebar + content cạnh nhau
+
+---
+
+## 7. PWA & Offline
+
+### Test cơ bản (Chrome DevTools)
+- [ ] Mở Chrome → DevTools → Application → Service Workers → thấy ngsw-worker.js active
+- [ ] Network → Offline → F5 → app vẫn load được (app shell từ cache)
+- [ ] Tắt offline → duyệt vài trang → bật offline → các trang đã xem vẫn hiển thị
+
+### Test trên thiết bị thật
+- [ ] iPad/iPhone: Add to Home Screen → mở app → tắt WiFi → app vẫn chạy
+- [ ] Android: Install PWA → tắt WiFi → app vẫn chạy
+- [ ] Tắt WiFi 5+ phút → quay lại → app không crash (iOS đã fix)
+- [ ] Tắt WiFi 24h → F5 → app vẫn load (cache 7 ngày)
+
+### Download khóa học offline
+- [ ] Student → khóa đã ghi danh → nút Download → tải về thành công
+- [ ] Tắt mạng → mở khóa đã download → xem được nội dung bài học
+- [ ] Progress vẫn được lưu offline (IndexedDB)
+
+---
+
+## 8. Lưu ý khi test
 
 - **Khóa PAID**: Cần tích hợp VNPay sandbox để test thanh toán (hiện chưa có merchant credentials thật)
 - **Email**: Dev environment dùng SMTP mock, prod dùng Resend API

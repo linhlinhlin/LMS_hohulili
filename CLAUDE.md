@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-> **Last Updated**: 2026-02-26 | **Version**: 9.0 | **Status**: Production Ready + Seed Data (806 tests, 0 failures)
+> **Last Updated**: 2026-02-26 | **Version**: 10.0 | **Status**: Production Ready + Seed Data (806 tests, 0 failures)
 
 This file provides guidance to Claude Code for working with this repository. **Read this first before any task.**
 
@@ -108,7 +108,7 @@ fe/src/app/
 ├── api/              # 18 API clients + 23 endpoints + 19 type files
 ├── core/             # Auth, guards, global services
 ├── features/
-│   ├── admin/        # 22 components - Dashboard, user/course management
+│   ├── admin/        # 23 components - Dashboard, user/course management, course preview
 │   ├── teacher/      # 68 components - Course editor, assignments, grading, quiz
 │   ├── student/      # 12 components - Learning, enrollments, messages
 │   ├── ai-chat/      # 15 components - AI assistant (DDD + streaming)
@@ -122,7 +122,7 @@ fe/src/app/
 └── state/            # Global state: course, class, global
 ```
 
-**Stats**: 231 components | 61 services | 107 routes | 523 TS files
+**Stats**: 236 components | 61 services | 107 routes | 525 TS files
 
 ---
 
@@ -201,7 +201,7 @@ cd fe && npm run build 2>&1 | head -50
 
 ## ANGULAR CONVENTIONS (CRITICAL)
 
-> All 231 components follow these patterns. **0 legacy patterns remain.**
+> All 236 components follow these patterns. **0 legacy patterns remain.**
 
 ```typescript
 @Component({
@@ -329,6 +329,33 @@ teacherGuard = [UserRole.TEACHER, UserRole.ADMIN, UserRole.ORG_ADMIN]
 
 ## RECENT CHANGES LOG
 
+### Session 93 (2026-02-26): Student Lesson Viewer UX + PWA iOS Hardening
+
+**UX POLISH + PWA** | BE: no changes | FE: 6 files modified, 3 services rewritten
+
+- **S93a**: Admin course content preview component (new)
+- **S93b**: Student lesson viewer UX polish matching professional LMS reference
+  - Sidebar: "CẤU TRÚC KHÓA HỌC" header, folder icons, colored content-type icons
+  - Numbered lesson titles: "Bài 1.1: Title" format
+  - Video: rounded-xl container with shadow (no more full-width black)
+  - Text: white card with border + prose styling
+  - Design tokens: all `#3b82f6` → `#0056D2` in learning pages
+- **S93b**: Micro-progress indicators (Coursera/LinkedIn Learning pattern)
+  - Green checkmark for completed, blue dot for active, muted text for done
+  - Chapter count "3/5 bài học" subtitle
+- **S93c**: PWA iOS crash fix — app crashed after ~5min offline on iPad Mini 6
+  - Bug 1: `SwUpdateService` auto-reloaded on `unrecoverable` when offline → native "No Connection"
+  - Bug 2: `NetworkStatusService` probed `/actuator/health` every 30s with `cache:'no-cache'` (bypassed SW)
+  - Bug 3: `AbortError` (timeout) falsely marking device as offline
+- **S93c**: PWA iOS hardening (expert-sourced from Apple WebKit, Angular, Google Workbox)
+  - `visibilitychange` handler: detect iOS SW eviction after ~5min background → re-register
+  - Clear stale NGSW caches before reload in `unrecoverable` handler
+  - `ChunkLoadError` global handler (Angular #42094 lazy chunk mismatch)
+  - Persistent storage logging for iOS diagnostics
+- **S93d**: NGSW cache maxAge extended to 7d for iOS ITP resilience
+  - `course-catalog`: 6h → 7d, `user-profile`: 1d → 7d, `enrollments`: 1d → 7d
+  - All dataGroups now match iOS ITP 7-day window
+
 ### Session 90 (2026-02-26): Fix V54/V55 Migration + Test Checklist
 
 **BUGFIX** | BE: 806 tests, 0 failures (no Java changes) | FE: no changes
@@ -402,13 +429,13 @@ Architecture: `Internet → Caddy (:443) → nginx (FE) + backend:8080 (API)`
 
 ---
 
-## ARCHITECTURE SCORES (Post-S90)
+## ARCHITECTURE SCORES (Post-S93)
 
 | Category | Score |
 |----------|-------|
 | Backend Clean Architecture | 10/10 |
 | Frontend Angular Patterns | 10/10 |
-| PWA / Download-First | 9.8/10 |
+| PWA / Download-First | 10/10 (iOS hardened, 7d cache, visibility handler, ChunkLoadError) |
 | Security | 10/10 |
 | Test Coverage | 9.8/10 (806 tests, 0 failures) |
 | Code Cleanliness | 10/10 |

@@ -12,11 +12,11 @@ Read this instead of re-auditing the codebase.
 | Metric | Value |
 |--------|-------|
 | Framework | Angular 20.3+ (standalone, signals) |
-| TypeScript Files | 510 |
-| Components | 235 |
-| Services (@Injectable) | ~56 |
-| Total TypeScript LOC | ~47,000+ |
-| OnPush Coverage | **235/235 (100%)** |
+| TypeScript Files | ~525 |
+| Components | 236 |
+| Services (@Injectable) | ~61 |
+| Total TypeScript LOC | ~48,000+ |
+| OnPush Coverage | **236/236 (100%)** |
 | Legacy Patterns | **0** (*ngIf, *ngFor, standalone:true, @Input, @Output, @ViewChild) |
 | console.log/warn/debug | **0** in production code |
 | English text in UI | **0** (all Vietnamese) |
@@ -86,7 +86,7 @@ fe/src/app/
 | `viewChild()` / `viewChild.required()` | 23 | Standard |
 | `effect()` | 29 (21 files) | Where needed |
 | `@if` / `@for` / `@switch` | 234 files (2,117 instances) | Standard |
-| `ChangeDetectionStrategy.OnPush` | 237/237 (100%) | Enforced |
+| `ChangeDetectionStrategy.OnPush` | 236/236 (100%) | Enforced |
 | `takeUntilDestroyed(DestroyRef)` | Standard | Cleanup pattern |
 
 ### Legacy Patterns (All Eliminated)
@@ -110,7 +110,7 @@ fe/src/app/
 | AI-Chat | 15 | Full DDD |
 | Learning | 13 | Full DDD |
 | Courses | 10+ | DDD |
-| Admin | 22 | Feature-based |
+| Admin | 23 | Feature-based |
 | Assignments | 12 | Full DDD |
 | Student | 12 | Feature-based |
 | Auth | 4 | Flat |
@@ -118,7 +118,7 @@ fe/src/app/
 | Payment | 4 | Flat |
 
 ### Admin (`features/admin/`)
-**22 components** | Store + Signals pattern
+**23 components** | Store + Signals pattern
 
 ```
 admin/
@@ -131,7 +131,9 @@ admin/
 │   ├── admin-layout-simple.component
 │   ├── admin-user-management.component
 │   ├── course-management.component
+│   ├── course-management.component
 │   ├── course-review.component (542 LOC)
+│   ├── course-content-preview.component (NEW S93)
 │   ├── student-management.component
 │   ├── teacher-management.component
 │   ├── system-settings.component
@@ -422,11 +424,11 @@ ApiClient.delete<T> / deleteWithResponse<T>
 | `pwa.service.ts` | ~80 | Progressive Web App |
 | `image-lifecycle.service.ts` | ~100 | Image handling |
 | `content-identity.service.ts` | ~100 | Content identification |
-| **`network-status.service.ts`** | ~120 | **3-tier network detection (none/slow/fast)** |
+| **`network-status.service.ts`** | ~120 | **3-tier network detection (none/slow/fast), /favicon.ico probe (2min interval)** |
 | **`storage-manager.service.ts`** | ~100 | **Storage quota, formatBytes, persistent storage** |
 | **`offline-sync.service.ts`** | ~250 | **Sync queue, batch push, failedCount, retryFailed** |
 | **`course-download.service.ts`** | ~200 | **Full course download to IndexedDB** |
-| **`sw-update.service.ts`** | ~50 | **SW update (6h check, user confirmation dialog)** |
+| **`sw-update.service.ts`** | ~150 | **SW update (6h check, user confirm, iOS eviction recovery, ChunkLoadError, cache cleanup)** |
 | **`screen-wake-lock.service.ts`** | ~80 | **Screen Wake Lock API (video playback)** |
 | **`qoe-tracker.service.ts`** | ~100 | **QoE metrics (startup, rebuffer, bitrate)** |
 | **`offline-video.service.ts`** | ~150 | **Video download via Cache API** |
@@ -590,6 +592,23 @@ items = toSignal(this.service.data$, { initialValue: [] });
 ---
 
 ## Modernization Changelog
+
+### 2026-02-26 Session 93 (Student Lesson Viewer UX + PWA iOS Hardening)
+
+**Score: 10/10 (maintained)**
+
+| Task | Detail |
+|------|--------|
+| Admin course preview | New `CourseContentPreviewComponent` for admin course review (admin: 22→23) |
+| Student lesson viewer polish | Sidebar: structure header, folder icons, colored type icons, numbered "Bài 1.1" titles |
+| Micro-progress indicators | Green checkmark (completed), blue dot (active), muted text (done) — Coursera/LinkedIn pattern |
+| Video styling | Rounded-xl container with shadow, bg-slate-50 wrapper (no more full-width black) |
+| Text content card | White card with border + prose styling for HTML content |
+| Design token alignment | All `#3b82f6` → `#0056D2` in learning pages (6 files) |
+| PWA iOS crash fix | `SwUpdateService` rewritten: no auto-reload offline, visibility handler, cache cleanup, ChunkLoadError |
+| Network probe fix | `NetworkStatusService`: `/actuator/health` → `/favicon.ico`, 30s → 120s, no `cache:'no-cache'` |
+| NGSW cache hardening | All dataGroup maxAge extended to 7d (was 6h/1d) for iOS ITP resilience |
+| Component count | 235 → 236 (admin +1) |
 
 ### 2026-02-23 Session 63 (VNPay + Email + Password Reset)
 
