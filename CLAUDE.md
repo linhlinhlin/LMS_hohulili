@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-> **Last Updated**: 2026-02-26 | **Version**: 10.2 | **Status**: Production Ready + Seed Data (806 tests, 0 failures)
+> **Last Updated**: 2026-02-26 | **Version**: 10.3 | **Status**: Production Ready + Seed Data (806 tests, 0 failures)
 
 This file provides guidance to Claude Code for working with this repository. **Read this first before any task.**
 
@@ -213,6 +213,14 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.
 **Cause**: Angular 20 esbuild merges CSS chunks into main bundle but still lists original chunk name in `ngsw.json`. Missing file → 404 → NGSW install fails completely.
 **Fix**: Already handled by `fe/scripts/fix-ngsw.js` post-build script (runs automatically via `npm run build`).
 
+### 8. Backend Crash: "Schema-validation: wrong column type" (text[] array)
+**Cause**: Hibernate 6.4 `ddl-auto: validate` fails on PostgreSQL `text[]` array columns (`_text` vs `text[]` type mismatch).
+**Fix**: Use `ddl-auto: none` in production (Flyway manages schema). Dev uses `ddl-auto: update`.
+
+### 9. YAML Indentation Bug in application-prod.yml
+**Cause**: `datasource`/`jpa`/`flyway`/`servlet` accidentally nested under `server:` instead of `spring:` due to misleading comment placement.
+**Fix**: Keep `spring:` and `server:` as separate top-level blocks. Always verify YAML structure with an IDE or linter.
+
 ---
 
 ## ANGULAR CONVENTIONS (CRITICAL)
@@ -346,18 +354,31 @@ teacherGuard = [UserRole.TEACHER, UserRole.ADMIN, UserRole.ORG_ADMIN]
 
 ## RECENT CHANGES LOG
 
-### Session 95 (2026-02-26): iOS/iPad PWA Hardening + Production Audit
+### Session 95 (2026-02-26): Deep Audit — Security, YAML, IDOR, PWA iOS
 
-**PWA + DEVOPS** | BE: no changes | FE: 5 files modified
+**SECURITY + DEVOPS + PWA** | BE: 4 files | FE: 7 files | Infra: 3 files
 
-- **iOS stale cache root cause**: Added `navigationRequestStrategy: "freshness"` to `ngsw-config.json`
-  - Without this, NGSW uses cache-first for navigation → iPad serves cached 502/broken pages forever
-  - Pattern from reference project `lms-maritime-pwa` (confirmed SOTA for iOS)
-- **iPad viewport**: Added `viewport-fit=cover` to index.html for iPad Pro notch/safe area
-- **nginx hardening**: Fixed `X-XSS-Protection` (deprecated `1; mode=block` → `0`), `/health` endpoint `add_header` after `return` no-op → `default_type`, security headers inheritance in location blocks
-- **index.html cleanup**: Removed 7 broken apple-touch-icon refs (files don't exist), fixed `og:url` from `lms-maritime.com` → `holilihu.online`, OG/Twitter images → existing `icon-512x512.png`
-- **deploy.sh**: Fixed health check `localhost:8080` → `localhost/actuator/health` (port not exposed in prod)
-- Deleted stale `ngsw_prod.json` build artifact, added to `.gitignore`
+**Deep audit (3 parallel agents): Backend, Frontend, Infrastructure**
+
+**CRITICAL fixes (7):**
+- **application-prod.yml YAML indentation**: `datasource`/`jpa`/`flyway`/`servlet` were nested under `server:` instead of `spring:` → production used base config (wrong pool size, wrong Flyway baseline, 500MB upload limit)
+- **IDOR bypass**: `verifyCourseOwnership` in `CourseQueryControllerV3` and `ClassControllerV3` used `ifPresent()` — silently skipped ownership check when entity not found → fixed to `orElseThrow()`
+- **IDOR**: `QuestionControllerV3.getQuestionById` had no ownership check — any teacher could read other teachers' questions/answer keys → added `verifyQuestionOwnership()`
+- **Auth interceptor**: Redirected to `/login` (wrong, route is `/auth/login`), had race condition (both `logout()` + `window.location.href` fired), deprecated `throwError(error)` → all fixed
+- **Dockerfile build**: `npm run build -- --configuration=production` passed flag to `fix-ngsw.js` not `ng build` → changed to explicit `npx ng build --configuration=production && node scripts/fix-ngsw.js`
+- **ddl-auto**: Changed to `none` in prod (Flyway manages schema; Hibernate 6.4 `validate` crashes on PostgreSQL `text[]` array columns)
+
+**MEDIUM fixes (4):**
+- `auth.service.ts`: `JSON.parse` without try/catch — corrupted localStorage crashed entire app
+- `nginx.conf`: Restricted `/actuator/` proxy to `/actuator/health` only (was exposing metrics/env)
+- `Caddyfile`: Same actuator restriction
+- `application-dev.yml`: Flyway `clean-disabled: true` (was `false`)
+
+**PWA + iOS (from reference project `lms-maritime-pwa`):**
+- `ngsw-config.json`: Added `navigationRequestStrategy: "freshness"` (root cause of iPad stale cache)
+- `index.html`: Added `viewport-fit=cover`, PWA recovery script, cleaned 7 broken icon refs
+- `nginx.conf`: Added `/reset-sw` standalone endpoint, security headers fixes
+- `deploy.sh`: Fixed health check port, `.gitignore` for stale artifacts
 
 ### Session 94 (2026-02-26): PWA esbuild Fix + Production Audit
 
@@ -474,14 +495,14 @@ Architecture: `Internet → Caddy (:443) → nginx (FE) + backend:8080 (API)`
 
 ---
 
-## ARCHITECTURE SCORES (Post-S94)
+## ARCHITECTURE SCORES (Post-S95)
 
 | Category | Score |
 |----------|-------|
 | Backend Clean Architecture | 10/10 |
 | Frontend Angular Patterns | 10/10 |
-| PWA / Download-First | 10/10 (iOS hardened, 7d cache, visibility handler, ChunkLoadError) |
-| Security | 10/10 |
+| PWA / Download-First | 10/10 (iOS freshness, /reset-sw, auto-recovery, 7d cache) |
+| Security | 10/10 (IDOR fixed, ownership checks, actuator restricted) |
 | Test Coverage | 9.8/10 (806 tests, 0 failures) |
 | Code Cleanliness | 10/10 |
 | UX & Design | 10/10 |

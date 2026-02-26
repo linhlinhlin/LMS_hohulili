@@ -194,13 +194,13 @@ docker compose exec db psql -U lms -d lms
 ```bash
 cd backend
 
-# All tests (202 tests)
+# All tests (806 tests)
 mvn test -B
 
-# Expected: Tests run: 202, Failures: 0, Errors: 0
+# Expected: Tests run: 806, Failures: 0, Errors: 0
 ```
 
-**Test Coverage**: ~35-40% (target: 50%+)
+**Test Coverage**: 806 tests, 0 failures (unit + architecture + security tests)
 
 #### Rebuild API Container
 
@@ -423,14 +423,14 @@ npm test
 
 | Metric | Value |
 |--------|-------|
-| **Backend Files** | 302 Java files |
-| **Frontend Components** | 257 components |
-| **REST Endpoints** | 114 endpoints (Swagger-documented) |
+| **Backend Files** | 420+ Java files |
+| **Frontend Components** | 236 components |
+| **REST Endpoints** | 255+ endpoints (Swagger-documented) |
 | **Database Tables** | 34 tables |
-| **Test Cases** | 202 tests (backend) |
+| **Test Cases** | 806 tests (backend, 0 failures) |
 | **Total LOC** | ~100k+ lines |
 | **Modules (Backend)** | 9 bounded contexts |
-| **Architecture Score** | 9.5/10 (Clean Architecture) |
+| **Architecture Score** | 10/10 (Clean Architecture + DDD) |
 
 ---
 
@@ -467,4 +467,4 @@ npm test
 
 **Welcome to the team! 🚢⚓**
 
-*Last updated: 2026-02-06*
+*Last updated: 2026-02-26*

@@ -237,10 +237,10 @@ cd /home/Admin/lms
 ### Kiểm tra sau deploy
 ```bash
 # Tất cả 4 containers phải Healthy
-docker ps --format 'table {{.Names}}\t{{.Status}}'
+docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.prod ps
 
-# API health
-curl -s http://localhost:8088/actuator/health
+# API health (qua Caddy reverse proxy)
+curl -s https://holilihu.online/actuator/health
 # Expected: {"status":"UP"}
 
 # Test login
