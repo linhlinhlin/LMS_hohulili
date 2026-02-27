@@ -144,16 +144,22 @@ public class TeacherStudentControllerV3 {
     @Operation(summary = "Get detailed student information")
     @GetMapping("/{studentId}")
     public ResponseEntity<ApiResponse<StudentDetailResponse>> getStudentDetail(
+            @AuthenticationPrincipal UserJpaEntity teacher,
             @PathVariable UUID studentId
     ) {
+        verifyStudentInTeacherCourses(studentId, teacher);
+
         Optional<UserJpaEntity> userOpt = userJpaRepository.findById(studentId);
         if (userOpt.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.error("Không tìm thấy học viên"));
         }
         UserJpaEntity user = userOpt.get();
 
-        // Get all enrollments for this student
-        List<EnrollmentJpaEntity> enrollments = enrollmentRepository.findByStudentId(studentId);
+        // Get enrollments scoped to teacher's courses
+        Set<UUID> teacherCourseIds = getTeacherCourseIds(teacher.getId());
+        List<EnrollmentJpaEntity> enrollments = enrollmentRepository.findByStudentId(studentId).stream()
+                .filter(e -> e.getLearningClass() != null && teacherCourseIds.contains(e.getLearningClass().getCourseId()))
+                .toList();
         long completed = enrollments.stream()
                 .filter(e -> "COMPLETED".equals(e.getStatus().name()))
                 .count();
@@ -181,10 +187,12 @@ public class TeacherStudentControllerV3 {
     @Operation(summary = "Get student's assignment submissions")
     @GetMapping("/{studentId}/assignments")
     public ResponseEntity<ApiResponse<List<StudentAssignmentResponse>>> getStudentAssignments(
+            @AuthenticationPrincipal UserJpaEntity teacher,
             @PathVariable UUID studentId,
             @RequestParam(required = false) String courseId,
             @RequestParam(required = false) String status
     ) {
+        verifyStudentInTeacherCourses(studentId, teacher);
         List<AssignmentSubmissionJpaEntity> submissions = submissionRepository.findByStudentId(studentId);
 
         // Build assignment ID → assignment map for titles
@@ -218,10 +226,12 @@ public class TeacherStudentControllerV3 {
     @Operation(summary = "Get student analytics")
     @GetMapping("/{studentId}/analytics")
     public ResponseEntity<ApiResponse<StudentAnalyticsResponse>> getStudentAnalytics(
+            @AuthenticationPrincipal UserJpaEntity teacher,
             @PathVariable UUID studentId,
             @RequestParam(required = false) String courseId,
             @RequestParam(required = false) String timeRange
     ) {
+        verifyStudentInTeacherCourses(studentId, teacher);
         // Real data from analytics query port
         long gradedQuizzes = analyticsQuery.countGradedQuizAttempts(studentId);
         long gradedAssignments = analyticsQuery.countGradedAssignments(studentId);
@@ -356,6 +366,30 @@ public class TeacherStudentControllerV3 {
         } catch (java.io.IOException e) {
             log.error("[Report] Lỗi tạo PDF cho học viên {}: {}", studentId, e.getMessage());
             return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    // === Helpers ===
+
+    private Set<UUID> getTeacherCourseIds(UUID teacherId) {
+        return courseRepository.findByTeacherId(teacherId).stream()
+                .map(CourseJpaEntity::getId)
+                .collect(Collectors.toSet());
+    }
+
+    private void verifyStudentInTeacherCourses(UUID studentId, UserJpaEntity teacher) {
+        // Admin/OrgAdmin bypass
+        if (teacher.getRole() == UserJpaEntity.UserRole.ADMIN
+                || teacher.getRole() == UserJpaEntity.UserRole.ORG_ADMIN) {
+            return;
+        }
+        Set<UUID> teacherCourseIds = getTeacherCourseIds(teacher.getId());
+        boolean enrolled = enrollmentRepository.findByStudentId(studentId).stream()
+                .anyMatch(e -> e.getLearningClass() != null
+                        && teacherCourseIds.contains(e.getLearningClass().getCourseId()));
+        if (!enrolled) {
+            throw new com.example.lms.shared.exception.BusinessRuleException(
+                    "Học viên này không thuộc khóa học của bạn");
         }
     }
 

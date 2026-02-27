@@ -27,6 +27,12 @@ public interface PaymentTransactionJpaRepository extends JpaRepository<PaymentTr
 
     boolean existsByStudentIdAndCourseIdAndStatus(UUID studentId, UUID courseId, PaymentTransactionJpaEntity.PaymentStatus status);
 
+    // Admin queries
+    org.springframework.data.domain.Page<PaymentTransactionJpaEntity> findByStatus(PaymentTransactionJpaEntity.PaymentStatus status, org.springframework.data.domain.Pageable pageable);
+
+    // Expiry cleanup: find old PENDING payments
+    List<PaymentTransactionJpaEntity> findByStatusAndCreatedAtBefore(PaymentTransactionJpaEntity.PaymentStatus status, Instant cutoff);
+
     // === Analytics queries ===
 
     @Query("SELECT COALESCE(SUM(p.amount), 0) FROM PaymentTransactionJpaEntity p WHERE p.courseId IN :courseIds AND p.status = 'COMPLETED'")

@@ -1,11 +1,10 @@
-version: '3.9'
 services:
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: pgadmin
     environment:
       - PGADMIN_DEFAULT_EMAIL=admin@devmail.net
-      - PGADMIN_DEFAULT_PASSWORD=S3cure!Passw0rd
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD:-devonly123}
     ports:
       - "8081:80"
     volumes:

@@ -45,6 +45,19 @@
       }
     </div>
 
+    <!-- Paywall Banner -->
+    @if (coursePaid() && !hasPaid()) {
+    <div class="paywall-banner" (click)="showPaymentModal.set(true)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+      </svg>
+      <span>Mở khóa toàn bộ khóa học</span>
+      <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+      </svg>
+    </div>
+    }
+
     <!-- Course Structure Header -->
     <div class="course-structure-header">
       <span class="structure-label">CẤU TRÚC KHÓA HỌC</span>
@@ -111,7 +124,11 @@
                 [class.expanded]="isLessonExpanded(lesson.id)" (click)="toggleLesson(lesson)"
                 [attr.aria-label]="lesson.title + ', ' + (learningService.isLessonCompleted(lesson.id)() ? 'Đã hoàn thành' : 'Chưa hoàn thành') + (lesson.duration > 0 ? ', ' + lesson.duration + ' phút' : '')">
                 <div class="lesson-status">
-                  @if (learningService.isLessonCompleted(lesson.id)()) {
+                  @if (isLessonLocked(lesson)) {
+                  <svg class="status-icon locked" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                  </svg>
+                  } @else if (learningService.isLessonCompleted(lesson.id)()) {
                   <svg class="status-icon completed" width="16" height="16" viewBox="0 0 20 20" fill="none">
                     <circle cx="10" cy="10" r="10" fill="currentColor" />
                     <path d="M6 10l3 3 5-6" stroke="white" stroke-width="2.5" stroke-linecap="round"
@@ -335,4 +352,13 @@
       }
     </div>
   </main>
+
+  <!-- Payment Modal -->
+  @if (showPaymentModal()) {
+    <app-payment-modal
+      [courseInfo]="getPaymentInfo()"
+      (close)="onPaymentModalClose($event)"
+      (paymentComplete)="onPaymentComplete()">
+    </app-payment-modal>
+  }
 </div>

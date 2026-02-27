@@ -12,6 +12,7 @@ import com.example.lms.assessment.infrastructure.persistence.entity.QuizJpaEntit
 import com.example.lms.assessment.infrastructure.persistence.repository.QuestionJpaRepository;
 import com.example.lms.assessment.infrastructure.persistence.repository.QuizAttemptJpaRepository;
 import com.example.lms.assessment.infrastructure.persistence.repository.QuizJpaRepositoryV3;
+import com.example.lms.course_authoring.infrastructure.persistence.JpaCourseRepository;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.shared.domain.model.ContentBlock;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
@@ -53,6 +54,7 @@ public class QuizControllerV3 {
     private final QuestionJpaRepository questionJpaRepository;
     private final QuizJpaRepositoryV3 quizJpaRepository;
     private final QuizAttemptJpaRepository attemptJpaRepository;
+    private final JpaCourseRepository courseJpaRepository;
 
     // ============ Teacher CRUD Operations ============
 
@@ -67,8 +69,14 @@ public class QuizControllerV3 {
     @GetMapping("/{quizId}")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN', 'STUDENT')")
     @Operation(summary = "Get quiz by ID")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> getQuizById(@PathVariable UUID quizId) {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getQuizById(
+            @PathVariable UUID quizId,
+            @AuthenticationPrincipal UserJpaEntity user) {
         Quiz quiz = quizManagementUseCase.getQuizById(quizId);
+        // P0: Teachers can only see their own quizzes
+        if (user.getRole() != UserJpaEntity.UserRole.STUDENT) {
+            verifyLessonOwnership(quiz.getLessonId(), user);
+        }
         return ResponseEntity.ok(ApiResponse.success(toQuizMap(quiz)));
     }
 
@@ -88,6 +96,10 @@ public class QuizControllerV3 {
             @PathVariable UUID quizId,
             @AuthenticationPrincipal UserJpaEntity user) {
         Quiz quiz = quizManagementUseCase.getQuizById(quizId);
+        // P0: Teachers can only see questions for their own quizzes
+        if (user.getRole() != UserJpaEntity.UserRole.STUDENT) {
+            verifyLessonOwnership(quiz.getLessonId(), user);
+        }
         List<UUID> questionIds = quiz.getQuestions() != null
                 ? quiz.getQuestions().stream().map(q -> q.getQuestionId()).toList()
                 : List.of();
@@ -135,6 +147,15 @@ public class QuizControllerV3 {
             @PathVariable UUID quizId,
             @Valid @RequestBody UpdateQuizSettingsRequest request,
             @AuthenticationPrincipal UserJpaEntity user) {
+        Instant availableFrom = null, dueAt = null, lockAt = null;
+        try {
+            if (request.availableFrom() != null) availableFrom = Instant.parse(request.availableFrom());
+            if (request.dueAt() != null) dueAt = Instant.parse(request.dueAt());
+            if (request.lockAt() != null) lockAt = Instant.parse(request.lockAt());
+        } catch (java.time.format.DateTimeParseException e) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("Định dạng thời gian không hợp lệ: " + e.getMessage()));
+        }
         Quiz.QuizSettings newSettings = Quiz.QuizSettings.builder()
                 .timeLimitMinutes(request.timeLimitMinutes())
                 .maxAttempts(request.maxAttempts())
@@ -143,9 +164,9 @@ public class QuizControllerV3 {
                 .shuffleOptions(request.shuffleOptions())
                 .showResultsImmediately(request.showResultsImmediately())
                 .showCorrectAnswers(request.showCorrectAnswers())
-                .availableFrom(request.availableFrom() != null ? Instant.parse(request.availableFrom()) : null)
-                .dueAt(request.dueAt() != null ? Instant.parse(request.dueAt()) : null)
-                .lockAt(request.lockAt() != null ? Instant.parse(request.lockAt()) : null)
+                .availableFrom(availableFrom)
+                .dueAt(dueAt)
+                .lockAt(lockAt)
                 .build();
         Quiz updated = quizManagementUseCase.updateQuizSettings(quizId, newSettings, request.title(),
                 user.getId(), user.getRole().name());
@@ -158,10 +179,14 @@ public class QuizControllerV3 {
     @Operation(summary = "Update quiz questions (bulk replace)")
     public ResponseEntity<ApiResponse<Void>> updateQuizQuestions(
             @PathVariable UUID quizId,
-            @Valid @RequestBody UpdateQuizQuestionsRequest request) {
+            @Valid @RequestBody UpdateQuizQuestionsRequest request,
+            @AuthenticationPrincipal UserJpaEntity user) {
         // Pragmatic: use JPA directly to replace quiz_questions join entries
         var quizEntity = quizJpaRepository.findById(quizId)
                 .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Quiz", quizId));
+
+        // P0: Verify teacher owns the course this quiz belongs to
+        verifyQuizOwnership(quizEntity, user);
 
         // Must clear() and addAll() - never replace the collection reference (Hibernate orphan error)
         if (quizEntity.getQuestions() == null) {
@@ -236,7 +261,15 @@ public class QuizControllerV3 {
     @Operation(summary = "Submit a quiz attempt")
     public ResponseEntity<ApiResponse<QuizAttempt>> submitAttempt(
             @PathVariable UUID attemptId,
-            @Valid @RequestBody List<QuizAttempt.AttemptAnswer> answers) {
+            @Valid @RequestBody List<QuizAttempt.AttemptAnswer> answers,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        // P0: Verify student owns this attempt
+        var attemptEntity = attemptJpaRepository.findById(attemptId)
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("QuizAttempt", attemptId));
+        if (!attemptEntity.getStudentId().equals(user.getId())) {
+            return ResponseEntity.status(403)
+                    .body(ApiResponse.error("Bạn không có quyền nộp bài thi này"));
+        }
         try {
             QuizAttempt result = quizAttemptUseCase.submitAttempt(attemptId, answers);
             return ResponseEntity.ok(ApiResponse.success(result));
@@ -319,6 +352,11 @@ public class QuizControllerV3 {
                     "totalElements", attempts.size(), "totalPages", 1)));
         }
 
+        // P0: Teacher can only see attempts for quizzes they own
+        var quizEntity = quizJpaRepository.findById(quizId)
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Quiz", quizId));
+        verifyQuizOwnership(quizEntity, user);
+
         Page<QuizAttemptJpaEntity> attemptPage = attemptJpaRepository
                 .findByQuizIdOrderByCreatedAtDesc(quizId, PageRequest.of(page, size));
         return ResponseEntity.ok(ApiResponse.success(toPaginatedMap(attemptPage)));
@@ -330,8 +368,11 @@ public class QuizControllerV3 {
     @Operation(summary = "Get all attempts for a lesson's quizzes (paginated)")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getLessonAttempts(
             @PathVariable UUID lessonId,
+            @AuthenticationPrincipal UserJpaEntity user,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
+        // P0: Verify teacher owns the lesson's course
+        verifyLessonOwnership(lessonId, user);
         var quizzes = quizJpaRepository.findByLessonId(lessonId);
         List<UUID> quizIds = quizzes.stream().map(QuizJpaEntity::getId).toList();
         if (quizIds.isEmpty()) {
@@ -347,7 +388,11 @@ public class QuizControllerV3 {
     @GetMapping("/lessons/{lessonId}/statistics")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Operation(summary = "Get quiz statistics for a lesson")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> getQuizStatistics(@PathVariable UUID lessonId) {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getQuizStatistics(
+            @PathVariable UUID lessonId,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        // P0: Verify teacher owns the lesson's course
+        verifyLessonOwnership(lessonId, user);
         Map<String, Object> stats = getQuizStatisticsUseCase.execute(lessonId);
         return ResponseEntity.ok(ApiResponse.success(stats));
     }
@@ -640,4 +685,35 @@ public class QuizControllerV3 {
             Double score,
             String feedback
     ) {}
+
+    // ============ Ownership Helpers ============
+
+    private boolean isAdminRole(UserJpaEntity user) {
+        return user.getRole() == UserJpaEntity.UserRole.ADMIN
+            || user.getRole() == UserJpaEntity.UserRole.ORG_ADMIN;
+    }
+
+    private void verifyLessonOwnership(UUID lessonId, UserJpaEntity user) {
+        if (isAdminRole(user)) return;
+        courseJpaRepository.findByLessonId(lessonId).ifPresentOrElse(
+            course -> {
+                if (course.getTeacherId() == null || !course.getTeacherId().equals(user.getId())) {
+                    throw new org.springframework.security.access.AccessDeniedException("Bạn không sở hữu tài nguyên này");
+                }
+            },
+            () -> { throw new com.example.lms.shared.exception.EntityNotFoundException("Course for lesson", lessonId); }
+        );
+    }
+
+    private void verifyQuizOwnership(QuizJpaEntity quiz, UserJpaEntity user) {
+        if (isAdminRole(user)) return;
+        courseJpaRepository.findByLessonId(quiz.getLessonId()).ifPresentOrElse(
+            course -> {
+                if (course.getTeacherId() == null || !course.getTeacherId().equals(user.getId())) {
+                    throw new org.springframework.security.access.AccessDeniedException("Bạn không sở hữu bài kiểm tra này");
+                }
+            },
+            () -> { throw new com.example.lms.shared.exception.EntityNotFoundException("Course for quiz", quiz.getId()); }
+        );
+    }
 }

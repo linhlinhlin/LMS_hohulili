@@ -11,7 +11,7 @@ import {
   BankQuestionDTO
 } from '../../../api/types/question-bank.types';
 import { QuizApi } from '../../../api/endpoints/quiz.api';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, take } from 'rxjs';
 import { QuestionImportModalComponent } from './components/question-import-modal.component';
 import { ToastService } from '../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../core/services/confirm-dialog.service';
@@ -99,7 +99,7 @@ export class QuizBankComponent implements OnInit {
   }
 
   async ngOnInit() {
-    this.route.queryParams.subscribe(async params => {
+    this.route.queryParams.pipe(take(1)).subscribe(params => {
       this.addToQuizLessonId = params['addToQuiz'] || null;
       this.returnUrl = params['returnUrl'] || null;
 

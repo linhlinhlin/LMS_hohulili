@@ -158,13 +158,13 @@ public class CommunicationControllerV3 {
             Optional<Message> msgOpt = messageRepository.findById(MessageId.of(msgId));
             if (msgOpt.isPresent()) {
                 Message msg = msgOpt.get();
-                // P0-4: Verify user is participant of this message's conversation
-                conversationRepository.findById(msg.getConversationId()).ifPresent(conv -> {
-                    if (!conv.hasParticipant(user.getId())) return;
+                // Verify user is participant of this message's conversation
+                var convOpt = conversationRepository.findById(msg.getConversationId());
+                if (convOpt.isPresent() && convOpt.get().hasParticipant(user.getId())) {
                     msg.markAsRead();
                     messageRepository.save(msg);
-                });
-                count++;
+                    count++;
+                }
             }
         }
         return ResponseEntity.ok(ApiResponse.success(null, count + " tin nhắn đã được đánh dấu đã đọc"));

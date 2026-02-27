@@ -47,6 +47,8 @@ export interface LessonSummary {
   duration: number; // in minutes
   orderIndex: number;
   isCompleted?: boolean; // Added for progress tracking
+  isFree?: boolean; // Lesson is free (accessible without payment)
+  locked?: boolean; // Lesson content is locked (requires payment)
   sections?: SectionContent[]; // L3 content blocks from API
 }
 

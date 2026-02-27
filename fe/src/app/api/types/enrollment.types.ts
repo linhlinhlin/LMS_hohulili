@@ -8,7 +8,7 @@
 // ============================================
 
 /** PostgreSQL: status VARCHAR(50) CHECK (...) in enrollments table */
-export type EnrollmentStatus = 'ACTIVE' | 'COMPLETED' | 'DROPPED' | 'EXPIRED';
+export type EnrollmentStatus = 'ACTIVE' | 'COMPLETED' | 'DROPPED' | 'EXPIRED' | 'SUSPENDED';
 
 /** PostgreSQL: status VARCHAR(50) CHECK (...) in learning_classes table */
 export type ClassStatus = 'OPEN' | 'IN_PROGRESS' | 'CLOSED' | 'ARCHIVED';

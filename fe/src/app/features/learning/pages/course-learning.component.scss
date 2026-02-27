@@ -269,6 +269,29 @@
     }
 
     // Course Structure Header (Reference: blue uppercase label + count)
+    .paywall-banner {
+      margin: 0.75rem;
+      padding: 0.75rem 1rem;
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      color: white;
+      border-radius: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+
+      &:hover {
+        opacity: 0.9;
+      }
+
+      span {
+        flex: 1;
+      }
+    }
+
     .course-structure-header {
       padding: 1rem 1.25rem 0.75rem;
       display: flex;
@@ -437,7 +460,6 @@
                 background: rgba(0, 86, 210, 0.1);
 
                 .lesson-status {
-                  display: flex; // Show for active too
                   .status-icon { color: #0056D2; }
                 }
 
@@ -449,7 +471,6 @@
 
               &.completed {
                 .lesson-status {
-                  display: flex; // Show micro-checkmark only when completed
                 }
 
                 .lesson-title {
@@ -459,12 +480,16 @@
 
               .lesson-status {
                 flex-shrink: 0;
-                display: none; // Hidden by default - shown only for completed
+                display: flex;
+                align-items: center;
 
                 .status-icon {
                   width: 16px;
                   height: 16px;
-                  color: #10b981;
+                  color: #d1d5db; // Default: muted dot
+
+                  &.completed { color: #10b981; }
+                  &.locked { color: #9ca3af; }
                 }
               }
 

@@ -70,6 +70,11 @@ public class AssignmentSubmissionJpaEntity {
     @Column(name = "created_at", updatable = false)
     private Instant createdAt;
 
+    @Version
+    @Column(name = "version")
+    @Builder.Default
+    private Long version = 0L;
+
     @UpdateTimestamp
     @Column(name = "updated_at")
     private Instant updatedAt;

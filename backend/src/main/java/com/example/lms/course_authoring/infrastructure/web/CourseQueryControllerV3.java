@@ -21,9 +21,12 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
+import com.example.lms.shared.infrastructure.persistence.entity.PaymentTransactionJpaEntity;
+import com.example.lms.shared.infrastructure.persistence.repository.PaymentTransactionJpaRepository;
 
 /**
  * V3 Controller for Course queries.
@@ -43,6 +46,7 @@ public class CourseQueryControllerV3 {
     private final com.example.lms.course_authoring.infrastructure.persistence.repository.ChapterJpaRepository chapterRepository;
     private final UserJpaRepository userJpaRepository;
     private final com.example.lms.course_authoring.infrastructure.persistence.repository.CategoryJpaRepository categoryJpaRepository;
+    private final PaymentTransactionJpaRepository paymentRepository;
 
     @Operation(summary = "Get all published courses")
     @GetMapping
@@ -81,7 +85,8 @@ public class CourseQueryControllerV3 {
     @Operation(summary = "Get course content (chapters and lessons)")
     @GetMapping("/{courseId}/content")
     public ResponseEntity<ApiResponse<List<ChapterResponse>>> getCourseContent(
-            @PathVariable UUID courseId
+            @PathVariable UUID courseId,
+            @AuthenticationPrincipal UserJpaEntity currentUser
     ) {
         // Query chapters and lessons directly from JPA repositories
         // (CourseEntityMapper.toDomain() doesn't load chapters - they're separate entities)
@@ -91,12 +96,18 @@ public class CourseQueryControllerV3 {
             return ResponseEntity.ok(ApiResponse.success(new ArrayList<>(), "Khóa học chưa có nội dung"));
         }
 
+        // Paywall check: determine if content should be gated
+        boolean contentUnlocked = isContentUnlocked(courseId, currentUser);
+
         List<ChapterResponse> chapters = new ArrayList<>();
         for (var ch : chapterEntities) {
             var lessonEntities = lessonRepository.findByChapterIdOrderByOrderIndex(ch.getId());
 
             List<LessonResponse> lessonResponses = new ArrayList<>();
             for (var l : lessonEntities) {
+                boolean lessonFree = l.getIsFree() != null && l.getIsFree();
+                boolean showContent = contentUnlocked || lessonFree;
+
                 List<SectionResponse> sectionResponses = new ArrayList<>();
                 if (l.getContentBlocks() != null) {
                     for (var block : l.getContentBlocks()) {
@@ -105,9 +116,9 @@ public class CourseQueryControllerV3 {
                             .id(block.getId())
                             .title((String) data.getOrDefault("title", "Untitled"))
                             .type(block.getType())
-                            .content((String) data.get("content"))
-                            .videoUrl((String) data.get("videoUrl"))
-                            .fileUrl((String) data.get("fileUrl"))
+                            .content(showContent ? (String) data.get("content") : null)
+                            .videoUrl(showContent ? (String) data.get("videoUrl") : null)
+                            .fileUrl(showContent ? (String) data.get("fileUrl") : null)
                             .duration(data.get("duration") != null ? ((Number) data.get("duration")).intValue() : 0)
                             .orderIndex(data.get("orderIndex") != null ? ((Number) data.get("orderIndex")).intValue() : 0)
                             .isRequired(data.get("isRequired") != null ? (Boolean) data.get("isRequired") : false)
@@ -122,7 +133,8 @@ public class CourseQueryControllerV3 {
                         .type(l.getType() != null ? l.getType().name() : "LECTURE")
                         .durationMinutes(l.getDurationMinutes())
                         .orderIndex(l.getOrderIndex())
-                        .isFree(l.getIsFree() != null && l.getIsFree())
+                        .isFree(lessonFree)
+                        .locked(!showContent)
                         .sections(sectionResponses)
                         .build());
             }
@@ -268,13 +280,18 @@ public class CourseQueryControllerV3 {
     @Operation(summary = "Get lesson details by ID")
     @GetMapping("/lessons/{lessonId}")
     public ResponseEntity<ApiResponse<LessonDetailResponse>> getLessonById(
-            @PathVariable UUID lessonId
+            @PathVariable UUID lessonId,
+            @AuthenticationPrincipal UserJpaEntity currentUser
     ) {
         // Query chain: Lesson -> Chapter -> Course (3 indexed queries, no nested loops)
         return lessonRepository.findById(lessonId)
                 .flatMap(lesson -> chapterRepository.findById(lesson.getChapterId())
                         .flatMap(chapter -> courseRepository.findById(chapter.getCourseId())
                                 .map(course -> {
+                                    // Paywall check
+                                    boolean lessonFree = lesson.getIsFree() != null && lesson.getIsFree();
+                                    boolean showContent = isContentUnlocked(course.getId(), currentUser) || lessonFree;
+
                                     // Build sections from contentBlocks
                                     List<SectionResponse> sectionResponses = new ArrayList<>();
                                     String contentText = null;
@@ -285,19 +302,21 @@ public class CourseQueryControllerV3 {
                                                 .id(block.getId())
                                                 .title((String) data.getOrDefault("title", "Untitled"))
                                                 .type(block.getType())
-                                                .content((String) data.get("content"))
-                                                .videoUrl((String) data.get("videoUrl"))
-                                                .fileUrl((String) data.get("fileUrl"))
+                                                .content(showContent ? (String) data.get("content") : null)
+                                                .videoUrl(showContent ? (String) data.get("videoUrl") : null)
+                                                .fileUrl(showContent ? (String) data.get("fileUrl") : null)
                                                 .duration(data.get("duration") != null ? ((Number) data.get("duration")).intValue() : 0)
                                                 .orderIndex(data.get("orderIndex") != null ? ((Number) data.get("orderIndex")).intValue() : 0)
                                                 .isRequired(data.get("isRequired") != null ? (Boolean) data.get("isRequired") : false)
                                                 .build());
                                         }
-                                        // Populate content from first TEXT block as fallback
-                                        contentText = lesson.getContentBlocks().stream()
-                                            .filter(b -> "TEXT".equals(b.getType()) && b.getData() != null)
-                                            .map(b -> (String) b.getData().get("content"))
-                                            .findFirst().orElse(null);
+                                        if (showContent) {
+                                            // Populate content from first TEXT block as fallback
+                                            contentText = lesson.getContentBlocks().stream()
+                                                .filter(b -> "TEXT".equals(b.getType()) && b.getData() != null)
+                                                .map(b -> (String) b.getData().get("content"))
+                                                .findFirst().orElse(null);
+                                        }
                                     }
 
                                     LessonDetailResponse response = LessonDetailResponse.builder()
@@ -307,13 +326,14 @@ public class CourseQueryControllerV3 {
                                             .lessonType(lesson.getType() != null ? lesson.getType().name() : "LECTURE")
                                             .durationMinutes(lesson.getDurationMinutes())
                                             .orderIndex(lesson.getOrderIndex())
-                                            .content(contentText)
-                                            .videoUrl(lesson.getVideoUrl())
+                                            .content(showContent ? contentText : null)
+                                            .videoUrl(showContent ? lesson.getVideoUrl() : null)
                                             .sectionId(chapter.getId().toString())
                                             .sectionTitle(chapter.getTitle())
                                             .courseId(course.getId().toString())
                                             .courseTitle(course.getTitle())
-                                            .isPreview(lesson.getIsFree() != null && lesson.getIsFree())
+                                            .isPreview(lessonFree)
+                                            .locked(!showContent)
                                             .sections(sectionResponses)
                                             .build();
                                     return ResponseEntity.ok(ApiResponse.success(response, "Thông tin bài học"));
@@ -327,8 +347,13 @@ public class CourseQueryControllerV3 {
     @GetMapping("/chapters/{chapterId}/lessons")
     @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<List<LessonResponse>>> getChapterLessons(
-            @PathVariable UUID chapterId
+            @PathVariable UUID chapterId,
+            @AuthenticationPrincipal UserJpaEntity user
     ) {
+        // P1: Verify ownership via chapter → course
+        var chapter = chapterRepository.findById(chapterId)
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Chương", chapterId));
+        verifyCourseOwnership(chapter.getCourseId(), user);
         List<LessonJpaEntity> lessons = lessonRepository.findByChapterIdOrderByOrderIndex(chapterId);
 
         List<LessonResponse> response = lessons.stream()
@@ -452,6 +477,36 @@ public class CourseQueryControllerV3 {
                 .orElse(null);
     }
 
+    // === Paywall Helper ===
+
+    /**
+     * Check if content is unlocked for the given user and course.
+     * Content is unlocked if:
+     * - Course is free (price == 0 or null)
+     * - User is authenticated AND has a COMPLETED payment
+     * - User is a teacher/admin (always unlocked)
+     */
+    private boolean isContentUnlocked(UUID courseId, UserJpaEntity currentUser) {
+        // Check course price
+        var courseOpt = courseRepository.findById(courseId);
+        if (courseOpt.isEmpty()) return false;
+        var course = courseOpt.get();
+
+        boolean isFreeOrZero = (course.getPrice() == null || course.getPrice().compareTo(BigDecimal.ZERO) <= 0)
+                || (course.getSalePrice() != null && course.getSalePrice().compareTo(BigDecimal.ZERO) <= 0);
+        if (isFreeOrZero) return true;
+
+        // No user = locked for paid courses
+        if (currentUser == null) return false;
+
+        // Admin/OrgAdmin/Teacher always have access
+        if (isAdminRole(currentUser) || currentUser.getRole() == UserJpaEntity.UserRole.TEACHER) return true;
+
+        // Student: check payment
+        return paymentRepository.existsByStudentIdAndCourseIdAndStatus(
+                currentUser.getId(), courseId, PaymentTransactionJpaEntity.PaymentStatus.COMPLETED);
+    }
+
     // === Ownership Helpers ===
 
     private boolean isAdminRole(UserJpaEntity user) {
@@ -536,6 +591,7 @@ public class CourseQueryControllerV3 {
         private Integer durationMinutes;
         private Integer orderIndex;
         private Boolean isFree;
+        private Boolean locked;
         private List<SectionResponse> sections;
     }
 
@@ -569,6 +625,7 @@ public class CourseQueryControllerV3 {
         private String courseId;
         private String courseTitle;
         private Boolean isPreview;
+        private Boolean locked;
         private List<SectionResponse> sections;
     }
 }

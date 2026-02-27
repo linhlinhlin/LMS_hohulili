@@ -65,6 +65,11 @@ public class EnrollmentJpaEntity {
     @Column(name = "last_accessed_at")
     private Instant lastAccessedAt;
 
+    @Version
+    @Column(name = "version")
+    @Builder.Default
+    private Long version = 0L;
+
     // Managed by DB trigger trg_enrollments_updated_at (fn_set_updated_at)
     @Column(name = "updated_at", insertable = false, updatable = false)
     private Instant updatedAt;

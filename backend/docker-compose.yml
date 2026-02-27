@@ -22,8 +22,8 @@ services:
     ports:
       - "8081:80"
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@devmail.net
-      PGADMIN_DEFAULT_PASSWORD: S3cure!Passw0rd    
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@devmail.net}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-devonly123}
     depends_on:
       - db
 

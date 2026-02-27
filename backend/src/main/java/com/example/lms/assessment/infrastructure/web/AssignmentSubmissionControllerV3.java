@@ -42,8 +42,9 @@ public class AssignmentSubmissionControllerV3 {
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Transactional(readOnly = true)
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getSubmissions(
-            @PathVariable UUID assignmentId) {
-
+            @PathVariable UUID assignmentId,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        verifyAssignmentOwnership(assignmentId, user);
         var submissions = submissionRepository.findByAssignmentId(assignmentId);
         List<Map<String, Object>> result = submissions.stream()
                 .map(this::toSubmissionMap).toList();
@@ -55,8 +56,9 @@ public class AssignmentSubmissionControllerV3 {
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Transactional(readOnly = true)
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getSubmissionDetails(
-            @PathVariable UUID assignmentId) {
-
+            @PathVariable UUID assignmentId,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        verifyAssignmentOwnership(assignmentId, user);
         var submissions = submissionRepository.findByAssignmentId(assignmentId);
         List<Map<String, Object>> result = submissions.stream()
                 .map(this::toSubmissionDetailMap).toList();
@@ -104,36 +106,28 @@ public class AssignmentSubmissionControllerV3 {
             @Valid @RequestBody GradeRequest request,
             @AuthenticationPrincipal UserJpaEntity user) {
 
-        return submissionRepository.findById(submissionId)
-                .map(submission -> {
-                    // P0-7: Teacher must own the course that this assignment belongs to
-                    if (user.getRole() == UserJpaEntity.UserRole.TEACHER) {
-                        var assignment = assignmentRepository.findById(submission.getAssignmentId());
-                        if (assignment.isPresent()) {
-                            var course = courseJpaRepository.findById(assignment.get().getCourseId());
-                            if (course.isPresent() && !course.get().getTeacherId().equals(user.getId())) {
-                                return ResponseEntity.status(403)
-                                        .body(ApiResponse.<Map<String, Object>>error("Bạn không sở hữu bài tập này"));
-                            }
-                        }
-                    }
+        var submission = submissionRepository.findById(submissionId).orElse(null);
+        if (submission == null) {
+            return ResponseEntity.notFound().build();
+        }
 
-                    Double gradeValue = request.score() != null ? request.score() : request.grade();
-                    if (gradeValue != null) {
-                        submission.setGrade(gradeValue);
-                    }
-                    if (request.feedback() != null) {
-                        submission.setFeedback(request.feedback());
-                    }
-                    submission.setGradedBy(user.getId());
-                    submission.setGradedAt(Instant.now());
-                    submission.setStatus(AssignmentSubmissionJpaEntity.SubmissionStatus.GRADED);
+        // Verify teacher owns the course via assignment → course chain
+        verifyAssignmentOwnership(submission.getAssignmentId(), user);
 
-                    submissionRepository.save(submission);
-                    return ResponseEntity.ok(ApiResponse.success(
-                            toSubmissionDetailMap(submission), "Đã chấm điểm bài nộp"));
-                })
-                .orElse(ResponseEntity.notFound().build());
+        Double gradeValue = request.score() != null ? request.score() : request.grade();
+        if (gradeValue != null) {
+            submission.setGrade(gradeValue);
+        }
+        if (request.feedback() != null) {
+            submission.setFeedback(request.feedback());
+        }
+        submission.setGradedBy(user.getId());
+        submission.setGradedAt(Instant.now());
+        submission.setStatus(AssignmentSubmissionJpaEntity.SubmissionStatus.GRADED);
+
+        submissionRepository.save(submission);
+        return ResponseEntity.ok(ApiResponse.success(
+                toSubmissionDetailMap(submission), "Đã chấm điểm bài nộp"));
     }
 
     @Operation(summary = "Batch grade multiple submissions")
@@ -144,7 +138,7 @@ public class AssignmentSubmissionControllerV3 {
             @PathVariable UUID assignmentId,
             @Valid @RequestBody List<BatchGradeItem> items,
             @AuthenticationPrincipal UserJpaEntity user) {
-
+        verifyAssignmentOwnership(assignmentId, user);
         int gradedCount = 0;
         for (BatchGradeItem item : items) {
             var opt = submissionRepository.findById(item.submissionId());
@@ -182,6 +176,10 @@ public class AssignmentSubmissionControllerV3 {
                         return ResponseEntity.status(403)
                                 .body(ApiResponse.<Map<String, Object>>error("Bạn không có quyền xem bài nộp này"));
                     }
+                    // P1: Teachers can only see submissions for their own courses' assignments
+                    if (user.getRole() != UserJpaEntity.UserRole.STUDENT) {
+                        verifyAssignmentOwnership(s.getAssignmentId(), user);
+                    }
                     return ResponseEntity.ok(ApiResponse.success(toSubmissionDetailMap(s)));
                 })
                 .orElse(ResponseEntity.notFound().build());
@@ -191,8 +189,10 @@ public class AssignmentSubmissionControllerV3 {
     @GetMapping("/api/v3/assignments/{assignmentId}/submissions/export")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Transactional(readOnly = true)
-    public ResponseEntity<byte[]> exportSubmissions(@PathVariable UUID assignmentId) {
-        // Export CSV with headers
+    public ResponseEntity<byte[]> exportSubmissions(
+            @PathVariable UUID assignmentId,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        verifyAssignmentOwnership(assignmentId, user);
         var submissions = submissionRepository.findByAssignmentId(assignmentId);
         StringBuilder csv = new StringBuilder();
         csv.append("Student ID,Status,Grade,Submitted At,Feedback\n");
@@ -201,7 +201,7 @@ public class AssignmentSubmissionControllerV3 {
                     s.getStudentId(), s.getStatus(),
                     s.getGrade() != null ? s.getGrade() : "",
                     s.getSubmittedAt() != null ? s.getSubmittedAt() : "",
-                    s.getFeedback() != null ? s.getFeedback().replace(",", " ") : ""));
+                    sanitizeCsvField(s.getFeedback())));
         }
         return ResponseEntity.ok()
                 .header("Content-Type", "text/csv")
@@ -275,21 +275,14 @@ public class AssignmentSubmissionControllerV3 {
     public ResponseEntity<ApiResponse<Void>> publishAssignment(
             @PathVariable UUID assignmentId,
             @AuthenticationPrincipal UserJpaEntity user) {
-        return assignmentRepository.findById(assignmentId)
-                .map(a -> {
-                    // P0-9: Teacher must own the course
-                    if (user.getRole() == UserJpaEntity.UserRole.TEACHER) {
-                        var course = courseJpaRepository.findById(a.getCourseId());
-                        if (course.isPresent() && !course.get().getTeacherId().equals(user.getId())) {
-                            return ResponseEntity.status(403)
-                                    .body(ApiResponse.<Void>error("Bạn không sở hữu bài tập này"));
-                        }
-                    }
-                    a.setStatus(AssignmentJpaEntity.AssignmentStatus.PUBLISHED);
-                    assignmentRepository.save(a);
-                    return ResponseEntity.ok(ApiResponse.<Void>success(null, "Đã phát hành bài tập"));
-                })
-                .orElse(ResponseEntity.notFound().build());
+        // Verify ownership via assignment → course → teacher chain
+        verifyAssignmentOwnership(assignmentId, user);
+
+        var assignment = assignmentRepository.findById(assignmentId)
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Assignment", assignmentId));
+        assignment.setStatus(AssignmentJpaEntity.AssignmentStatus.PUBLISHED);
+        assignmentRepository.save(assignment);
+        return ResponseEntity.ok(ApiResponse.<Void>success(null, "Đã phát hành bài tập"));
     }
 
     // =============================================
@@ -336,4 +329,34 @@ public class AssignmentSubmissionControllerV3 {
     ) {}
     public record BatchGradeItem(UUID submissionId, Double grade, String feedback) {}
     public record SubmitRequest(String content, String fileUrl, String fileName) {}
+
+    // =============================================
+    // Ownership Helpers
+    // =============================================
+
+    private boolean isAdminRole(UserJpaEntity user) {
+        return user.getRole() == UserJpaEntity.UserRole.ADMIN
+            || user.getRole() == UserJpaEntity.UserRole.ORG_ADMIN;
+    }
+
+    private void verifyAssignmentOwnership(UUID assignmentId, UserJpaEntity user) {
+        if (isAdminRole(user)) return;
+        var assignment = assignmentRepository.findById(assignmentId)
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Assignment", assignmentId));
+        var course = courseJpaRepository.findById(assignment.getCourseId())
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Course", assignment.getCourseId()));
+        if (course.getTeacherId() == null || !course.getTeacherId().equals(user.getId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Bạn không sở hữu bài tập này");
+        }
+    }
+
+    private String sanitizeCsvField(String value) {
+        if (value == null) return "";
+        String cleaned = value.replace(",", " ").replace("\n", " ").replace("\r", " ");
+        // Prevent CSV injection: prefix formula-triggering chars with single quote
+        if (!cleaned.isEmpty() && "=+-@\t\r".indexOf(cleaned.charAt(0)) >= 0) {
+            cleaned = "'" + cleaned;
+        }
+        return cleaned;
+    }
 }

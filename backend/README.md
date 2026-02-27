@@ -20,7 +20,7 @@ docker compose logs api --tail=100
 | API | http://localhost:8088/api/v3 | JWT Bearer |
 | **Swagger UI** | **http://localhost:8088/swagger-ui** | - (219 endpoints documented) |
 | OpenAPI Spec | http://localhost:8088/v3/api-docs | - |
-| pgAdmin | http://localhost:8081 | `admin@devmail.net` / `S3cure!Passw0rd` |
+| pgAdmin | http://localhost:8081 | `admin@devmail.net` / `devonly123` (env: PGADMIN_PASSWORD) |
 | PostgreSQL | localhost:5432/lms | `lms` / `lms` |
 
 **Test Accounts** (auto-created on first startup):
@@ -329,7 +329,7 @@ curl -X POST http://localhost:8088/api/v3/teacher/courses \
 | assessment | 11 (Assignment, Quiz, Question, Submission, Rubric, QuestionBank, etc.) | 14 | 6 (Assignment, Submission, Quiz, Question, QuestionBank, Rubric) | 59 |
 | communication | 4 (Conversation, Message, etc.) | 1 | 1 | 6 |
 | ai_assistant | 3 (ChatSession, KnowledgeDocument, etc.) | 1 | 1 | 11 |
-| shared | 3 (ContentBlock, FileMetadata, PaymentTransaction) | 1 | 3 (FileUpload, Payment, AdminSettings) | 12 |
+| shared | 4 (ContentBlock, FileMetadata, PaymentTransaction, PaymentCommands) | 5 (Checkout, CreateVnPayUrl, ProcessVnPayIpn, Refund, Expiry) | 3 (FileUpload, Payment, AdminSettings) | 15 |
 | config | - | - | - | - |
 | **TOTAL** | **38** | **66** | **29** | **219** |
 
@@ -654,16 +654,46 @@ GET    /api/v3/files/{filename}                                     # Download f
 POST   /api/v3/files/upload-multiple                                 # Upload multiple files
 ```
 
-#### PaymentControllerV3 (`/api/v3/payments`)
+#### PaymentControllerV3 (`/api/v3/payments`) — Clean Architecture / DDD
 ```
-POST   /api/v3/payments/create                                      # Create payment (simulated)
-POST   /api/v3/payments/checkout                                     # Checkout (simulated)
-GET    /api/v3/payments/my                                           # My payments
-GET    /api/v3/payments/{id}                                        # Payment detail
+POST   /api/v3/payments/checkout                                     # Checkout (simulated, dev-only)
+GET    /api/v3/payments/status/{courseId}                             # Payment status for course
+GET    /api/v3/payments/my-payments                                  # Payment history
+GET    /api/v3/payments/can-access/{courseId}/lesson/{lessonIndex}    # Lesson access check
+GET    /api/v3/payments/by-ref/{txnRef}                              # Payment by transaction ref
 POST   /api/v3/payments/vnpay/create-url                             # Create VNPay redirect URL
 GET    /api/v3/payments/vnpay-ipn                                    # VNPay IPN callback (public)
 GET    /api/v3/payments/vnpay-return                                 # VNPay browser return (public)
+GET    /api/v3/payments/admin/all                                    # Admin: list all payments (paginated)
+POST   /api/v3/payments/admin/{paymentId}/refund                     # Admin: process refund
 ```
+
+**Payment DDD Architecture** (refactored S100):
+```
+shared/
+├── domain/
+│   ├── model/PaymentTransaction.java        # Pure domain model, state machine
+│   └── repository/PaymentRepository.java    # Domain port (no Spring imports)
+├── application/
+│   ├── usecase/
+│   │   ├── CheckoutUseCase.java             # Simulated payment (dev-only)
+│   │   ├── CreateVnPayUrlUseCase.java       # VNPay URL generation
+│   │   ├── ProcessVnPayIpnUseCase.java      # IPN verification + state transition
+│   │   └── RefundPaymentUseCase.java        # Admin refund processing
+│   └── dto/
+│       ├── PaymentCommands.java             # Command records
+│       └── PaymentResponse.java             # Response DTO
+└── infrastructure/
+    ├── persistence/
+    │   ├── entity/PaymentTransactionJpaEntity.java
+    │   ├── mapper/PaymentEntityMapper.java
+    │   ├── repository/PaymentTransactionJpaRepository.java
+    │   └── PaymentRepositoryAdapter.java
+    ├── service/PaymentExpiryScheduler.java  # @Scheduled PENDING cleanup
+    └── web/PaymentControllerV3.java         # Thin controller → use cases
+```
+
+**Payment State Machine**: `PENDING → COMPLETED | FAILED | EXPIRED`, `COMPLETED → REFUNDED`
 
 #### AdminSettingsControllerV3 (`/api/v3/admin/settings`) — ADMIN-only
 ```

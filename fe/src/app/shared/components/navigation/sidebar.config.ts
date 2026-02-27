@@ -48,6 +48,11 @@ export const studentSidebarConfig: SidebarConfig = {
       icon: 'check'
     },
     {
+      label: 'Lịch sử thanh toán',
+      route: '/student/payments',
+      icon: 'briefcase'
+    },
+    {
       label: 'Khám phá',
       route: '/student/browse',
       icon: 'search'

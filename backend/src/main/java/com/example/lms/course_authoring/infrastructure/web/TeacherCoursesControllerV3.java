@@ -91,7 +91,10 @@ public class TeacherCoursesControllerV3 {
 
     @GetMapping("/{courseId}")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
-    public ResponseEntity<ApiResponse<Object>> getCourseById(@PathVariable UUID courseId) {
+    public ResponseEntity<ApiResponse<Object>> getCourseById(
+            @PathVariable UUID courseId,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        verifyCourseOwnership(courseId, user);
         var draft = getCourseDraftUseCase.execute(courseId);
         return ResponseEntity.ok(ApiResponse.success(draft));
     }
@@ -148,7 +151,10 @@ public class TeacherCoursesControllerV3 {
 
     @GetMapping("/{courseId}/review-status")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
-    public ResponseEntity<ApiResponse<Object>> getReviewStatus(@PathVariable UUID courseId) {
+    public ResponseEntity<ApiResponse<Object>> getReviewStatus(
+            @PathVariable UUID courseId,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        verifyCourseOwnership(courseId, user);
         var status = courseAuthoringUseCase.getReviewStatus(courseId);
         return ResponseEntity.ok(ApiResponse.success(status));
     }
@@ -204,11 +210,11 @@ public class TeacherCoursesControllerV3 {
 
     private void verifyCourseOwnership(UUID courseId, UserJpaEntity user) {
         if (isAdminRole(user)) return;
-        jpaCourseRepository.findById(courseId).ifPresent(course -> {
-            if (!course.getTeacherId().equals(user.getId())) {
-                throw new org.springframework.security.access.AccessDeniedException("Bạn không sở hữu khóa học này");
-            }
-        });
+        var course = jpaCourseRepository.findById(courseId)
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Course", courseId));
+        if (!course.getTeacherId().equals(user.getId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Bạn không sở hữu khóa học này");
+        }
     }
 
     @lombok.Builder

@@ -130,13 +130,15 @@ export class TeacherRevenueService {
         this._isLoading.next(true);
         this.isLoading.set(true);
 
-        return this.apiClient.getWithResponse<RevenueHistoryItem[]>(TEACHER_REVENUE_ENDPOINTS.HISTORY, { params }).pipe(
+        return this.apiClient.getWithResponse<any>(TEACHER_REVENUE_ENDPOINTS.HISTORY, { params }).pipe(
             finalize(() => {
                 this._isLoading.next(false);
                 this.isLoading.set(false);
             }),
             map(response => {
-                const history = response.data ?? [];
+                // BE returns paginated { content: [...], totalElements, ... }
+                const data = response.data;
+                const history: RevenueHistoryItem[] = Array.isArray(data) ? data : (data?.content ?? []);
                 this._revenueHistory.set(history);
                 return history;
             }),
@@ -209,13 +211,15 @@ export class TeacherRevenueService {
         this._isLoading.next(true);
         this.isLoading.set(true);
 
-        return this.apiClient.getWithResponse<PayoutHistoryItem[]>(TEACHER_REVENUE_ENDPOINTS.PAYOUT_HISTORY, { params }).pipe(
+        return this.apiClient.getWithResponse<any>(TEACHER_REVENUE_ENDPOINTS.PAYOUT_HISTORY, { params }).pipe(
             finalize(() => {
                 this._isLoading.next(false);
                 this.isLoading.set(false);
             }),
             map(response => {
-                const history = response.data ?? [];
+                // BE returns paginated { content: [...], totalElements, ... }
+                const data = response.data;
+                const history: PayoutHistoryItem[] = Array.isArray(data) ? data : (data?.content ?? []);
                 this._payoutHistory.set(history);
                 return history;
             }),

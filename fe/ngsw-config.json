@@ -12,7 +12,18 @@
           "/index.csr.html",
           "/manifest.webmanifest",
           "/*.css",
-          "/*.js"
+          "/main-*.js",
+          "/polyfills-*.js"
+        ]
+      }
+    },
+    {
+      "name": "lazy-chunks",
+      "installMode": "lazy",
+      "updateMode": "lazy",
+      "resources": {
+        "files": [
+          "/chunk-*.js"
         ]
       }
     },

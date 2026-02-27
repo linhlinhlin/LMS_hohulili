@@ -3,6 +3,7 @@ package com.example.lms.learning_delivery.infrastructure.web;
 import com.example.lms.course_authoring.infrastructure.persistence.JpaCourseRepository;
 import com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
+import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
 import com.example.lms.learning_delivery.infrastructure.persistence.JpaEnrollmentRepository;
 import com.example.lms.shared.infrastructure.persistence.entity.PaymentTransactionJpaEntity;
 import com.example.lms.shared.infrastructure.persistence.repository.PaymentTransactionJpaRepository;
@@ -32,6 +33,7 @@ public class TeacherRevenueControllerV3 {
     private final JpaCourseRepository courseRepository;
     private final PaymentTransactionJpaRepository paymentRepository;
     private final JpaEnrollmentRepository enrollmentRepository;
+    private final UserJpaRepository userRepository;
 
     @Operation(summary = "Get revenue summary for teacher")
     @GetMapping("/api/v3/teacher/revenue/summary")
@@ -42,25 +44,42 @@ public class TeacherRevenueControllerV3 {
         List<UUID> courseIds = getTeacherCourseIds(user);
 
         BigDecimal totalRevenue = BigDecimal.ZERO;
-        BigDecimal monthlyRevenue = BigDecimal.ZERO;
+        BigDecimal thisMonthRevenue = BigDecimal.ZERO;
+        BigDecimal lastMonthRevenue = BigDecimal.ZERO;
         long totalStudents = 0;
 
         if (!courseIds.isEmpty()) {
             totalRevenue = paymentRepository.sumRevenueByCourseIds(courseIds);
 
-            // Monthly revenue: current month
+            // This month revenue
             YearMonth currentMonth = YearMonth.now();
             Instant monthStart = currentMonth.atDay(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
             Instant monthEnd = currentMonth.plusMonths(1).atDay(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
-            monthlyRevenue = paymentRepository.sumRevenueByCourseIdsAndDateRange(courseIds, monthStart, monthEnd);
+            thisMonthRevenue = paymentRepository.sumRevenueByCourseIdsAndDateRange(courseIds, monthStart, monthEnd);
+
+            // Last month revenue (for growth calculation)
+            YearMonth lastMonth = currentMonth.minusMonths(1);
+            Instant lastMonthStart = lastMonth.atDay(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
+            lastMonthRevenue = paymentRepository.sumRevenueByCourseIdsAndDateRange(courseIds, lastMonthStart, monthStart);
 
             totalStudents = enrollmentRepository.countDistinctStudentsByCourseIds(courseIds);
         }
 
+        // Growth percentage
+        double growthPercentage = 0;
+        if (lastMonthRevenue.compareTo(BigDecimal.ZERO) > 0) {
+            growthPercentage = thisMonthRevenue.subtract(lastMonthRevenue)
+                    .multiply(BigDecimal.valueOf(100))
+                    .divide(lastMonthRevenue, 1, java.math.RoundingMode.HALF_UP)
+                    .doubleValue();
+        }
+
         Map<String, Object> summary = new LinkedHashMap<>();
         summary.put("totalRevenue", totalRevenue);
-        summary.put("monthlyRevenue", monthlyRevenue);
-        summary.put("pendingPayout", BigDecimal.ZERO);
+        summary.put("thisMonthRevenue", thisMonthRevenue);
+        summary.put("lastMonthRevenue", lastMonthRevenue);
+        summary.put("totalCoursesSold", totalStudents); // enrollments = courses sold
+        summary.put("growthPercentage", growthPercentage);
         summary.put("totalStudents", totalStudents);
         summary.put("totalCourses", courseIds.size());
         summary.put("currency", "VND");
@@ -105,18 +124,31 @@ public class TeacherRevenueControllerV3 {
         Map<UUID, String> courseTitles = courseRepository.findByTeacherId(user.getId()).stream()
                 .collect(Collectors.toMap(CourseJpaEntity::getId, CourseJpaEntity::getTitle));
 
+        // Batch-load student names
+        var studentIds = payments.getContent().stream()
+                .map(PaymentTransactionJpaEntity::getStudentId).distinct().toList();
+        Map<UUID, String> studentNames = new HashMap<>();
+        if (!studentIds.isEmpty()) {
+            userRepository.findAllById(studentIds)
+                    .forEach(u -> studentNames.put(u.getId(), u.getFullName()));
+        }
+
         List<Map<String, Object>> content = payments.getContent().stream()
                 .map(p -> {
                     Map<String, Object> item = new LinkedHashMap<>();
                     item.put("id", p.getId());
                     item.put("courseId", p.getCourseId());
-                    item.put("courseTitle", courseTitles.getOrDefault(p.getCourseId(), "Khóa học"));
+                    item.put("courseName", courseTitles.getOrDefault(p.getCourseId(), "Khóa học"));
                     item.put("studentId", p.getStudentId());
+                    item.put("studentName", studentNames.getOrDefault(p.getStudentId(), "—"));
                     item.put("amount", p.getAmount());
+                    item.put("platformFee", 0); // No platform fee model yet
+                    item.put("netAmount", p.getAmount()); // 100% to teacher for now
                     item.put("currency", p.getCurrency());
-                    item.put("status", p.getStatus().name());
+                    item.put("status", p.getStatus().name().toLowerCase());
                     item.put("paymentMethod", p.getPaymentMethod());
                     item.put("transactionId", p.getTransactionId());
+                    item.put("transactionDate", p.getPaidAt() != null ? p.getPaidAt().toString() : p.getCreatedAt().toString());
                     item.put("paidAt", p.getPaidAt());
                     item.put("createdAt", p.getCreatedAt());
                     return item;
@@ -142,10 +174,11 @@ public class TeacherRevenueControllerV3 {
         BigDecimal available = courseIds.isEmpty() ? BigDecimal.ZERO : paymentRepository.sumRevenueByCourseIds(courseIds);
 
         Map<String, Object> balance = new LinkedHashMap<>();
-        balance.put("available", available);
-        balance.put("pending", BigDecimal.ZERO);
+        balance.put("availableBalance", available);
+        balance.put("pendingBalance", BigDecimal.ZERO);
+        balance.put("totalWithdrawn", BigDecimal.ZERO);
+        balance.put("minWithdrawAmount", 100000);
         balance.put("currency", "VND");
-        balance.put("minimumPayout", 100000);
 
         return ResponseEntity.ok(ApiResponse.success(balance, "Số dư khả dụng"));
     }

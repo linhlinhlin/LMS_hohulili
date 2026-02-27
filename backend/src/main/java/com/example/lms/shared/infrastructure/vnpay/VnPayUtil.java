@@ -62,14 +62,25 @@ public final class VnPayUtil {
         return hmacSHA512(secret, sb.toString());
     }
 
+    /**
+     * Extract client IP from X-Forwarded-For header.
+     * Uses the RIGHTMOST IP (added by Caddy/nginx reverse proxy) to prevent spoofing.
+     * The leftmost IP is client-controlled and can be forged.
+     */
     public static String getClientIp(HttpServletRequest request) {
-        String ip = request.getHeader("X-Forwarded-For");
-        if (ip != null && !ip.isEmpty() && !"unknown".equalsIgnoreCase(ip)) {
-            return ip.split(",")[0].trim();
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
+            String[] ips = xForwardedFor.split(",");
+            for (int i = ips.length - 1; i >= 0; i--) {
+                String ip = ips[i].trim();
+                if (!ip.isEmpty() && !"unknown".equalsIgnoreCase(ip)) {
+                    return ip;
+                }
+            }
         }
-        ip = request.getHeader("X-Real-IP");
-        if (ip != null && !ip.isEmpty() && !"unknown".equalsIgnoreCase(ip)) {
-            return ip;
+        String realIp = request.getHeader("X-Real-IP");
+        if (realIp != null && !realIp.isEmpty() && !"unknown".equalsIgnoreCase(realIp)) {
+            return realIp;
         }
         return request.getRemoteAddr();
     }

@@ -12,7 +12,7 @@
  * @requirements 7.1, 7.2, 7.3
  */
 import { Injectable, signal, computed, inject } from '@angular/core';
-import { Observable, of, delay, tap, interval, Subject, map, catchError } from 'rxjs';
+import { Observable, of, delay, tap, interval, Subject, map, catchError, Subscription } from 'rxjs';
 import { ApiClient } from '../../api/client/api-client';
 
 export type NotificationType =
@@ -79,6 +79,7 @@ export class NotificationService {
 
   // Real-time updates subject
   private newNotification$ = new Subject<Notification>();
+  private pollingSubscription: Subscription | null = null;
 
   // Computed
   readonly allNotifications = computed(() => this.notifications());
@@ -97,7 +98,8 @@ export class NotificationService {
    */
   initialize(userId: string): void {
     this.currentUserId.set(userId);
-    this.loadNotifications();
+    // Subscribe to actually execute the cold Observable
+    this.loadNotifications().subscribe();
     // Start polling for new notifications (replace with WebSocket in production)
     this.startPolling();
   }
@@ -420,10 +422,19 @@ export class NotificationService {
    * In production, replace with WebSocket connection
    */
   private startPolling(): void {
+    // Stop any existing polling to prevent stacking on re-login
+    this.stopPolling();
     // Poll every 30 seconds
-    interval(30000).subscribe(() => {
+    this.pollingSubscription = interval(30000).subscribe(() => {
       this.checkForNewNotifications();
     });
+  }
+
+  private stopPolling(): void {
+    if (this.pollingSubscription) {
+      this.pollingSubscription.unsubscribe();
+      this.pollingSubscription = null;
+    }
   }
 
   private checkForNewNotifications(): void {
@@ -432,7 +443,7 @@ export class NotificationService {
         next: (response: any) => {
           const count = response?.data?.unreadCount ?? response?.unreadCount ?? 0;
           if (count > this.unreadCount()) {
-            this.loadNotifications();
+            this.loadNotifications().subscribe();
           }
         },
         error: () => { /* silently ignore polling errors */ }
@@ -443,6 +454,7 @@ export class NotificationService {
    * Clear all state
    */
   clearState(): void {
+    this.stopPolling();
     this.notifications.set([]);
     this.currentUserId.set('');
     this.loading.set(false);

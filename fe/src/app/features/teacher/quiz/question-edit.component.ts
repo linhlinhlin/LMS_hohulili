@@ -243,7 +243,7 @@ export class QuestionEditComponent implements OnInit {
 
   // Use ViewChild to set blocks on load
 
-  readonly blockEditor = viewChild.required(BlockEditorComponent);
+  readonly blockEditor = viewChild(BlockEditorComponent);
 
   constructor() {
     this.questionForm = this.fb.group({

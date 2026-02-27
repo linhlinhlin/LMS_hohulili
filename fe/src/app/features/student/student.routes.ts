@@ -43,11 +43,11 @@ export const studentRoutes: Routes = [
         pathMatch: 'full'
       },
       
-      // Checkout - Thanh toán khóa học
+      // Payment History - Lịch sử thanh toán
       {
-        path: 'checkout/:courseId',
-        loadComponent: () => import('./pages/checkout.component').then(m => m.CheckoutComponent),
-        title: 'Thanh toán khóa học'
+        path: 'payments',
+        loadComponent: () => import('./pages/student-payment-history.component').then(m => m.StudentPaymentHistoryComponent),
+        title: 'Lịch sử thanh toán'
       },
 
       // Assignment Routes - Unified page for all student assignments

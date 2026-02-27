@@ -1,6 +1,7 @@
-import { Component, OnInit, signal, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, inject, ChangeDetectionStrategy } from '@angular/core';
 
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { take } from 'rxjs';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 
 /**
@@ -47,10 +48,22 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
                     </div>
                 }
 
+                @if (isPending()) {
+                    <div class="pending-notice">
+                        <p>Thanh toán đang được xác nhận. Vui lòng chờ hoặc kiểm tra lại sau.</p>
+                    </div>
+                }
+
                 <div class="actions">
-                    <a routerLink="/student/my-courses" class="btn btn-primary">
-                        <app-icon name="courses" size="sm" class="mr-1"/> Bắt đầu học ngay
-                    </a>
+                    @if (courseId() && !isPending()) {
+                        <button (click)="goToLearning()" class="btn btn-primary">
+                            <app-icon name="courses" size="sm" class="mr-1"/> Bắt đầu học ngay ({{ countdown() }}s)
+                        </button>
+                    } @else {
+                        <a routerLink="/student/my-courses" class="btn btn-primary">
+                            <app-icon name="courses" size="sm" class="mr-1"/> Xem khóa học của tôi
+                        </a>
+                    }
                     <a routerLink="/courses" class="btn btn-secondary">
                         <app-icon name="search" size="sm" class="mr-1"/> Khám phá thêm khóa học
                     </a>
@@ -252,20 +265,67 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
         .btn-secondary:hover {
             background: #E5E7EB;
         }
+
+        .pending-notice {
+            background: #FEF3C7;
+            border: 1px solid #FDE68A;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            color: #92400E;
+            font-size: 0.875rem;
+        }
     `]
 })
-export class PaymentSuccessComponent implements OnInit {
+export class PaymentSuccessComponent implements OnInit, OnDestroy {
     private route = inject(ActivatedRoute);
     private router = inject(Router);
 
     transactionId = signal<string | null>(null);
     orderId = signal<string | null>(null);
+    courseId = signal<string | null>(null);
+    isPending = signal(false);
+    countdown = signal(5);
+    private countdownInterval: any;
 
     ngOnInit() {
-        // Get query params from VNPay callback or other sources
-        this.route.queryParams.subscribe(params => {
+        this.route.queryParams.pipe(take(1)).subscribe(params => {
             this.transactionId.set(params['txn'] || params['vnp_TransactionNo'] || null);
             this.orderId.set(params['orderId'] || params['vnp_TxnRef'] || null);
+            this.courseId.set(params['courseId'] || null);
+            this.isPending.set(params['pending'] === 'true');
+
+            // Auto-redirect to learning page after 5s (only if we have courseId and not pending)
+            if (this.courseId() && !this.isPending()) {
+                this.startCountdown();
+            }
         });
+    }
+
+    private startCountdown(): void {
+        this.countdownInterval = setInterval(() => {
+            const current = this.countdown();
+            if (current <= 1) {
+                clearInterval(this.countdownInterval);
+                this.goToLearning();
+            } else {
+                this.countdown.set(current - 1);
+            }
+        }, 1000);
+    }
+
+    goToLearning(): void {
+        const cid = this.courseId();
+        if (cid) {
+            this.router.navigate(['/student/learn/course', cid]);
+        } else {
+            this.router.navigate(['/student/my-courses']);
+        }
+    }
+
+    ngOnDestroy(): void {
+        if (this.countdownInterval) {
+            clearInterval(this.countdownInterval);
+        }
     }
 }

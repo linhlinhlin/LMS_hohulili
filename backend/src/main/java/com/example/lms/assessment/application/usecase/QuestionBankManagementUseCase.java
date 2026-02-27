@@ -198,12 +198,26 @@ public class QuestionBankManagementUseCase {
             throw new BusinessRuleException("Không tìm thấy câu hỏi với các ID cung cấp");
         }
 
+        // Collect source bank IDs before moving (questions may come from different banks)
+        Set<UUID> sourceBankIds = questions.stream()
+                .map(Question::getPackageId)
+                .filter(id -> id != null && !id.equals(command.targetBankId()))
+                .collect(Collectors.toSet());
+
         for (Question question : questions) {
             question.moveToBank(command.targetBankId(), command.targetCategoryId());
         }
         questionRepository.saveAll(questions);
 
-        // Update question counts
+        // Update source bank counts
+        for (UUID sourceBankId : sourceBankIds) {
+            bankRepository.findById(sourceBankId).ifPresent(sourceBank -> {
+                sourceBank.setQuestionCount((int) questionRepository.countByBankId(sourceBankId));
+                bankRepository.save(sourceBank);
+            });
+        }
+
+        // Update target bank count
         targetBank.setQuestionCount((int) questionRepository.countByBankId(command.targetBankId()));
         bankRepository.save(targetBank);
 

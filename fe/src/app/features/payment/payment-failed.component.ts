@@ -1,6 +1,7 @@
 import { Component, OnInit, signal, inject, ChangeDetectionStrategy } from '@angular/core';
 
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { take } from 'rxjs';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 
 /**
@@ -41,7 +42,7 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
                     <a routerLink="/courses" class="btn btn-secondary">
                         ← Quay lại danh sách khóa học
                     </a>
-                    <a href="mailto:support@lms-maritime.com" class="btn btn-link">
+                    <a href="mailto:support@holilihu.online" class="btn btn-link">
                         <app-icon name="mail" size="sm" class="mr-1"/> Liên hệ hỗ trợ
                     </a>
                 </div>
@@ -195,7 +196,7 @@ export class PaymentFailedComponent implements OnInit {
     errorMessage = signal<string>('Đã có lỗi xảy ra trong quá trình thanh toán. Vui lòng thử lại.');
 
     ngOnInit() {
-        this.route.queryParams.subscribe(params => {
+        this.route.queryParams.pipe(take(1)).subscribe(params => {
             this.reason.set(params['reason'] || null);
 
             if (params['message']) {

@@ -9,11 +9,6 @@ spring:
     password: lms
     driver-class-name: org.postgresql.Driver
 
-    # Supabase (for production - commented out)
-    # url: jdbc:postgresql://aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true&prepareThreshold=0&sslmode=require
-    # username: postgres.rljldvpboqapokzecfff
-    # password: ho_hu_li_li_
-
     # SOTA HikariCP Configuration (Dec 2025)
     # Formula: pool-size = (cores × 2) + 1
     # Reference: https://github.com/brettwooldridge/HikariCP/wiki/About-Pool-Sizing

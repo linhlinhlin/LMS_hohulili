@@ -192,7 +192,7 @@
         </p>
         <div class="payment-notice-price">
           <span class="price-label">Giá khóa học:</span>
-          <span class="price-value">{{ formatPrice(course()?.price || 0) }}</span>
+          <span class="price-value">{{ formatPrice(course()?.salePrice ?? course()?.price ?? 0) }}</span>
         </div>
         <button (click)="goToCheckout()" class="btn-payment">
           <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">

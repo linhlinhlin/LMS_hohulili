@@ -45,7 +45,10 @@ public class AssignmentControllerV3 {
     @GetMapping("/courses/{courseId}")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Operation(summary = "Get assignments for a specific course")
-    public ResponseEntity<ApiResponse<Object>> getAssignmentsByCourse(@PathVariable java.util.UUID courseId) {
+    public ResponseEntity<ApiResponse<Object>> getAssignmentsByCourse(
+            @PathVariable java.util.UUID courseId,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        verifyCourseOwnership(courseId, user);
         var result = getAssignmentsByCourseUseCase.execute(courseId);
         return ResponseEntity.ok(ApiResponse.success(result));
     }
@@ -91,6 +94,15 @@ public class AssignmentControllerV3 {
     ) {
         // P0-8: Verify teacher ownership of the course
         verifyCourseOwnership(courseId, user);
+        java.time.Instant dueDate = null;
+        if (request.dueDate() != null) {
+            try {
+                dueDate = java.time.Instant.parse(request.dueDate());
+            } catch (java.time.format.DateTimeParseException e) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("Định dạng ngày hết hạn không hợp lệ"));
+            }
+        }
         var command = new CreateAssignmentCommand(
             null, // lessonId is optional now
             courseId,
@@ -99,7 +111,7 @@ public class AssignmentControllerV3 {
             request.instructions(),
             "FILE_UPLOAD", // Default type
             request.maxScore(),
-            request.dueDate() != null ? java.time.Instant.parse(request.dueDate()) : null,
+            dueDate,
             true,
             request.distributionType(),
             request.studentIds()
@@ -182,11 +194,11 @@ public class AssignmentControllerV3 {
 
     private void verifyCourseOwnership(java.util.UUID courseId, UserJpaEntity user) {
         if (isAdminRole(user)) return;
-        courseJpaRepository.findById(courseId).ifPresent(course -> {
-            if (course.getTeacherId() == null || !course.getTeacherId().equals(user.getId())) {
-                throw new AccessDeniedException("Bạn không sở hữu khóa học này");
-            }
-        });
+        var course = courseJpaRepository.findById(courseId)
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Course", courseId));
+        if (course.getTeacherId() == null || !course.getTeacherId().equals(user.getId())) {
+            throw new AccessDeniedException("Bạn không sở hữu khóa học này");
+        }
     }
 
     private void verifyAssignmentOwnership(

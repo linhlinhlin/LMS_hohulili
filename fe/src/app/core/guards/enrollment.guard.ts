@@ -29,7 +29,7 @@ export const enrollmentGuard: CanActivateFn = async (route) => {
 
     return true;
   } catch {
-    // On API error, allow access (don't block due to network issues)
-    return true;
+    // On API error, redirect to course detail (fail-closed: don't expose paid content)
+    return router.createUrlTree(['/student/course', courseId]);
   }
 };

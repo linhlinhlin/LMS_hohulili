@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal, ChangeDetectionStrategy } from '@ang
 
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { take } from 'rxjs';
 import { QuizApi, CreateAssignmentQuizRequest } from '../../../../../api/endpoints/quiz.api';
 import { QuestionApi, Question } from '../../../../../api/endpoints/question.api';
 import { CourseApi, ClassSummary } from '../../../../../api/client/course.api';
@@ -110,7 +111,7 @@ export class AssignmentQuizCreateComponent implements OnInit {
     };
 
     ngOnInit() {
-        this.route.params.subscribe(params => {
+        this.route.params.pipe(take(1)).subscribe(params => {
             const id = params['courseId'];
             if (id) {
                 this.courseId.set(id);

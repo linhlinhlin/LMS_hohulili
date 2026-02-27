@@ -45,8 +45,18 @@ public class PackageControllerV3 {
     @Operation(summary = "Get all available packages")
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
-    public ResponseEntity<ApiResponse<List<PackageDTO>>> getAllPackages() {
-        List<com.example.lms.shared.infrastructure.persistence.entity.PackageJpaEntity> entities = packageRepository.findAll();
+    public ResponseEntity<ApiResponse<List<PackageDTO>>> getAllPackages(
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
+        List<com.example.lms.shared.infrastructure.persistence.entity.PackageJpaEntity> entities;
+        if (isAdminRole(user)) {
+            entities = packageRepository.findAll();
+        } else {
+            // P0: Non-admin teachers only see PUBLIC packages + their own
+            entities = packageRepository.findAll().stream()
+                    .filter(p -> p.getVisibility() == com.example.lms.shared.infrastructure.persistence.entity.PackageJpaEntity.Visibility.PUBLIC
+                            || p.getOwnerId().equals(user.getId()))
+                    .toList();
+        }
         List<PackageDTO> dtos = entities.stream().map(this::toDTO).toList();
         return ResponseEntity.ok(ApiResponse.success(dtos, "Tất cả gói câu hỏi"));
     }
@@ -54,9 +64,18 @@ public class PackageControllerV3 {
     @Operation(summary = "Get package by ID")
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
-    public ResponseEntity<ApiResponse<PackageDTO>> getPackageById(@PathVariable java.util.UUID id) {
+    public ResponseEntity<ApiResponse<PackageDTO>> getPackageById(
+            @PathVariable java.util.UUID id,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
         return packageRepository.findById(id)
-                .map(pkg -> ResponseEntity.ok(ApiResponse.success(toDTO(pkg))))
+                .map(pkg -> {
+                    // P0: Non-admin can only see PUBLIC packages or their own
+                    if (!isAdminRole(user) && !pkg.getOwnerId().equals(user.getId())
+                            && pkg.getVisibility() != com.example.lms.shared.infrastructure.persistence.entity.PackageJpaEntity.Visibility.PUBLIC) {
+                        throw new org.springframework.security.access.AccessDeniedException("Bạn không có quyền xem gói câu hỏi này");
+                    }
+                    return ResponseEntity.ok(ApiResponse.success(toDTO(pkg)));
+                })
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -124,12 +143,15 @@ public class PackageControllerV3 {
     @Operation(summary = "Get questions in package")
     @GetMapping("/{id}/questions")
     @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getQuestionsInPackage(@PathVariable java.util.UUID id) {
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getQuestionsInPackage(
+            @PathVariable java.util.UUID id,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
+        // P0: Verify package ownership before exposing questions + correctOption
+        verifyPackageOwnership(id, user);
         var questions = questionRepository.findByPackageId(id);
         List<Map<String, Object>> result = questions.stream().map(q -> {
             Map<String, Object> map = new HashMap<>();
             map.put("id", q.getId().toString());
-            // Extract text content from contentBlocks for display
             String contentText = extractTextFromBlocks(q.getContentBlocks());
             map.put("content", contentText);
             map.put("type", "MULTIPLE_CHOICE");
@@ -140,7 +162,7 @@ public class PackageControllerV3 {
             map.put("status", q.getStatus() != null ? q.getStatus().name() : "ACTIVE");
             return map;
         }).toList();
-        
+
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 

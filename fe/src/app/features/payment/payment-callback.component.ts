@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { PaymentApi } from '../../api/client/payment.api';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, take } from 'rxjs';
 
 /**
  * Payment Callback Component
@@ -70,7 +70,7 @@ export class PaymentCallbackComponent implements OnInit {
     private paymentApi = inject(PaymentApi);
 
     ngOnInit() {
-        this.route.queryParams.subscribe(params => {
+        this.route.queryParams.pipe(take(1)).subscribe(params => {
             const txnRef = params['vnp_TxnRef'] || params['txnRef'];
             const transactionNo = params['vnp_TransactionNo'];
 
@@ -82,6 +82,7 @@ export class PaymentCallbackComponent implements OnInit {
     /**
      * SECURITY: Verify payment status from server, not URL params.
      * The IPN callback is the authoritative source — we just check the DB result.
+     * Uses exponential polling: 2s, 4s, 8s (max 3 retries, ~14s total).
      */
     private async verifyPaymentFromServer(txnRef: string | undefined, transactionNo: string | undefined): Promise<void> {
         // Validate txnRef: must be UUID format (prevents injection via URL params)
@@ -93,55 +94,64 @@ export class PaymentCallbackComponent implements OnInit {
             return;
         }
 
-        try {
-            // Call server to get authoritative payment status
-            // Note: txnRef from VNPay is our payment entity ID
-            const response = await firstValueFrom(this.paymentApi.getPaymentByTxnRef(txnRef));
+        // Exponential polling: delays = [2s, 4s, 8s]
+        const MAX_RETRIES = 3;
+        const BASE_DELAY = 2000;
 
-            if (response.success && response.data.status === 'COMPLETED') {
-                this.router.navigate(['/payment/success'], {
-                    queryParams: {
-                        txn: transactionNo || response.data.transactionId,
-                        orderId: txnRef
-                    }
-                });
-            } else if (response.success && response.data.status === 'PENDING') {
-                // IPN hasn't arrived yet — wait and retry once
-                setTimeout(async () => {
-                    try {
-                        const retry = await firstValueFrom(this.paymentApi.getPaymentByTxnRef(txnRef));
-                        if (retry.success && retry.data.status === 'COMPLETED') {
-                            this.router.navigate(['/payment/success'], {
-                                queryParams: { txn: transactionNo, orderId: txnRef }
-                            });
-                        } else {
-                            this.router.navigate(['/payment/failed'], {
-                                queryParams: { reason: 'PENDING', orderId: txnRef }
-                            });
+        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+            try {
+                const response = await firstValueFrom(this.paymentApi.getPaymentByTxnRef(txnRef));
+
+                if (response.success && response.data.status === 'COMPLETED') {
+                    this.router.navigate(['/payment/success'], {
+                        queryParams: {
+                            txn: transactionNo || response.data.transactionId,
+                            orderId: txnRef,
+                            courseId: response.data.courseId
                         }
-                    } catch {
-                        this.router.navigate(['/payment/failed'], {
-                            queryParams: { reason: 'error', orderId: txnRef }
-                        });
+                    });
+                    return;
+                } else if (response.success && response.data.status === 'PENDING') {
+                    if (attempt < MAX_RETRIES) {
+                        // Wait with exponential backoff before next attempt
+                        await new Promise(resolve => setTimeout(resolve, BASE_DELAY * Math.pow(2, attempt)));
+                        continue;
                     }
-                }, 3000);
-            } else {
+                    // All retries exhausted — show "waiting" state, NOT failed
+                    this.router.navigate(['/payment/success'], {
+                        queryParams: {
+                            txn: transactionNo,
+                            orderId: txnRef,
+                            courseId: response.data.courseId,
+                            pending: 'true'
+                        }
+                    });
+                    return;
+                } else {
+                    // Definitive failure (FAILED, CANCELLED, etc.)
+                    this.router.navigate(['/payment/failed'], {
+                        queryParams: {
+                            reason: this.getReasonFromStatus(response.data?.status),
+                            orderId: txnRef
+                        }
+                    });
+                    return;
+                }
+            } catch {
+                if (attempt < MAX_RETRIES) {
+                    await new Promise(resolve => setTimeout(resolve, BASE_DELAY * Math.pow(2, attempt)));
+                    continue;
+                }
+                // SECURITY: Never trust URL params on API failure — always show error
                 this.router.navigate(['/payment/failed'], {
                     queryParams: {
-                        reason: this.getReasonFromStatus(response.data?.status),
+                        reason: 'error',
+                        message: 'Không thể xác minh thanh toán. Vui lòng kiểm tra lịch sử thanh toán.',
                         orderId: txnRef
                     }
                 });
+                return;
             }
-        } catch {
-            // SECURITY: Never trust URL params on API failure — always show error
-            this.router.navigate(['/payment/failed'], {
-                queryParams: {
-                    reason: 'error',
-                    message: 'Không thể xác minh thanh toán. Vui lòng kiểm tra lịch sử thanh toán.',
-                    orderId: txnRef
-                }
-            });
         }
     }
 

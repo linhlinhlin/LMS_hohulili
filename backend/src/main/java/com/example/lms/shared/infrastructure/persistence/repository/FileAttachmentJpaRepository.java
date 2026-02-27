@@ -9,4 +9,6 @@ import java.util.UUID;
 @Repository
 public interface FileAttachmentJpaRepository extends JpaRepository<FileAttachmentJpaEntity, UUID> {
     java.util.Optional<FileAttachmentJpaEntity> findByFileUrl(String fileUrl);
+
+    java.util.Optional<FileAttachmentJpaEntity> findByFileName(String fileName);
 }

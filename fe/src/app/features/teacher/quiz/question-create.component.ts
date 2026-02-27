@@ -428,7 +428,7 @@ export class QuestionCreateComponent implements OnInit {
       return;
     }
 
-    if (!this.packageId) {
+    if (!this.packageId && !this.isDialog()) {
       this.toast.error('Không tìm thấy ngân hàng câu hỏi. Vui lòng quay lại chọn ngân hàng trước.');
       return;
     }

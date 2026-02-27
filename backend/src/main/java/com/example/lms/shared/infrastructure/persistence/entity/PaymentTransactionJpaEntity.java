@@ -56,6 +56,22 @@ public class PaymentTransactionJpaEntity {
     @Column(name = "vnp_card_type", length = 20)
     private String vnpCardType;
 
+    // Refund tracking (V60 migration)
+    @Column(name = "refund_status", length = 20)
+    private String refundStatus = "NONE";
+
+    @Column(name = "refund_requested_at")
+    private Instant refundRequestedAt;
+
+    @Column(name = "refund_completed_at")
+    private Instant refundCompletedAt;
+
+    @Column(name = "refund_reason", columnDefinition = "TEXT")
+    private String refundReason;
+
+    @Column(name = "refund_admin_note", columnDefinition = "TEXT")
+    private String refundAdminNote;
+
     @Version
     @Column(name = "version")
     private Long version;
@@ -115,6 +131,15 @@ public class PaymentTransactionJpaEntity {
     public String getVnpResponseCode() { return vnpResponseCode; }
     public String getVnpCardType() { return vnpCardType; }
 
+    public Long getVersion() { return version; }
+
+    // Refund getters
+    public String getRefundStatus() { return refundStatus; }
+    public Instant getRefundRequestedAt() { return refundRequestedAt; }
+    public Instant getRefundCompletedAt() { return refundCompletedAt; }
+    public String getRefundReason() { return refundReason; }
+    public String getRefundAdminNote() { return refundAdminNote; }
+
     // Setters
     public void setStatus(PaymentStatus status) { this.status = status; }
     public void setPaidAt(Instant paidAt) { this.paidAt = paidAt; }
@@ -122,8 +147,14 @@ public class PaymentTransactionJpaEntity {
     public void setVnpBankCode(String vnpBankCode) { this.vnpBankCode = vnpBankCode; }
     public void setVnpResponseCode(String vnpResponseCode) { this.vnpResponseCode = vnpResponseCode; }
     public void setVnpCardType(String vnpCardType) { this.vnpCardType = vnpCardType; }
+    public void setRefundStatus(String refundStatus) { this.refundStatus = refundStatus; }
+    public void setRefundRequestedAt(Instant refundRequestedAt) { this.refundRequestedAt = refundRequestedAt; }
+    public void setRefundCompletedAt(Instant refundCompletedAt) { this.refundCompletedAt = refundCompletedAt; }
+    public void setRefundReason(String refundReason) { this.refundReason = refundReason; }
+    public void setRefundAdminNote(String refundAdminNote) { this.refundAdminNote = refundAdminNote; }
+    public void setVersion(Long version) { this.version = version; }
 
     public enum PaymentStatus {
-        PENDING, COMPLETED, FAILED, REFUNDED
+        PENDING, COMPLETED, FAILED, REFUNDED, EXPIRED
     }
 }

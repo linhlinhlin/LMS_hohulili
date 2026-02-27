@@ -320,7 +320,8 @@ export class LearningService {
         completedLessons: new Set(completedLessonIds)
       }));
 
-      const total = this.totalLessons();
+      // Use local mergedSections to avoid signal timing issues
+      const total = mergedSections.reduce((sum, s) => sum + s.lessons.length, 0);
       const completed = completedLessonIds.length;
       const progressPercentage = total > 0
         ? Math.round((completed / total) * 100)
@@ -808,6 +809,8 @@ export class LearningService {
               lessonType: (lesson as any).lessonType || getLessonTypeFromTitle(lesson.title),
               duration: 0, // Will be loaded when lesson is selected
               orderIndex: lesson.orderIndex || idx,
+              isFree: (lesson as any).isFree === true,
+              locked: (lesson as any).locked === true,
               sections: (lesson.sections || []).map(s => ({
                 id: s.id,
                 title: s.title,

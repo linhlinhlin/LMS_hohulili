@@ -103,7 +103,9 @@ class SmtpEmailAdapterTest {
                     "Phạm Thị D",
                     "Luật hàng hải quốc tế",
                     new BigDecimal("500000"),
-                    "TXN-123456"
+                    "TXN-123456",
+                    "VNPAY",
+                    "2026-02-27T10:00:00Z"
             );
 
             verify(mailSender).send(mimeMessage);

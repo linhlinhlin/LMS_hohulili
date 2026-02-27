@@ -73,12 +73,12 @@ public class UserControllerV3 {
         return ResponseEntity.ok(ApiResponse.success(response, "Danh sách người dùng"));
     }
 
-    @Operation(summary = "Get all users without pagination")
+    @Operation(summary = "Get all users (capped at 1000)")
     @GetMapping("/list/all")
     @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN')")
     public ResponseEntity<ApiResponse<List<UserResponse>>> getAllUsersNoPagination() {
-        List<UserJpaEntity> users = userRepository.findAll();
-        List<UserResponse> response = users.stream().map(this::toResponse).toList();
+        Page<UserJpaEntity> page = userRepository.findAll(PageRequest.of(0, 1000));
+        List<UserResponse> response = page.getContent().stream().map(this::toResponse).toList();
         return ResponseEntity.ok(ApiResponse.success(response, "Danh sách tất cả người dùng"));
     }
 

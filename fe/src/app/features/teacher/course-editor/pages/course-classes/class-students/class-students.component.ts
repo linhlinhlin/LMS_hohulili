@@ -1,6 +1,7 @@
 import { Component, OnInit, signal, inject, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
+import { take } from 'rxjs';
 import { ClassService } from '../../../../../../state/class.service';
 import { AddStudentDrawerComponent } from './add-student-drawer/add-student-drawer.component';
 
@@ -20,7 +21,7 @@ export class ClassStudentsComponent implements OnInit {
     isDrawerOpen = signal(false);
 
     ngOnInit() {
-        this.route.params.subscribe(params => {
+        this.route.params.pipe(take(1)).subscribe(params => {
             this.classId = params['classId'];
             if (this.classId) {
                 this.loadStudents();

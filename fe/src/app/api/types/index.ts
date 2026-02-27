@@ -12,7 +12,6 @@ export * from './course.types';  // Includes Chapter, Lesson, Section types
 export * from './enrollment.types';
 export * from './quiz.types';
 export * from './assignment.types';
-export * from './payment.types';
 export * from './auth.types';
 
 // Note: chapter.types.ts is NOT exported here - use course.types.ts instead

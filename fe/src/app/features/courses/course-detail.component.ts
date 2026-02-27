@@ -1,4 +1,5 @@
-import { Component, signal, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, signal, inject, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule, isPlatformBrowser, DOCUMENT } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { Title, Meta } from '@angular/platform-browser';
@@ -48,25 +49,26 @@ export class CourseDetailComponent implements OnInit {
   showClassModal = signal(false);
   selectedClass = signal<string | null>(null);
   isEnrolling = signal(false);
-  expandedChapters = signal<Set<number>>(new Set([1])); // First chapter expanded by default
+  expandedChapters = signal<Set<string>>(new Set()); // Track by chapter ID
   isEnrolled = signal(false); // Student enrollment status
   isPaid = signal(false); // Payment status
   showPaymentModal = signal(false); // Payment modal visibility
+  courseContent = signal<any[]>([]); // Real curriculum from API
 
   // Inject services
   private enrollmentService = inject(StudentEnrollmentService);
   private paymentService = inject(PaymentService);
   private toast = inject(ToastService);
+  private destroyRef = inject(DestroyRef);
 
   ngOnInit(): void {
-    this.route.params.subscribe(params => {
+    this.route.params.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(params => {
       if (params['id']) {
         this.loadCourse(params['id']);
 
         // Preload enrollment status for logged-in students
         if (this.authService.isAuthenticated() && this.authService.userRole() === 'student') {
           this.enrollmentService.loadEnrolledCourses(0, 100).then(() => {
-            // Check if student is enrolled in this course
             this.isEnrolled.set(this.enrollmentService.isEnrolledInCourse(params['id']));
           });
         }
@@ -99,7 +101,7 @@ export class CourseDetailComponent implements OnInit {
       title: c?.title || '',
       thumbnail: c?.thumbnail || '',
       price: c?.price || 0,
-      salePrice: (c as any)?.salePrice,
+      salePrice: c?.salePrice,
       instructorName
     };
   }
@@ -120,6 +122,29 @@ export class CourseDetailComponent implements OnInit {
   onPaymentComplete() {
     // Payment was successful, update state
     this.isPaid.set(true);
+  }
+
+  async handleFreeTrial() {
+    if (!this.authService.currentUser()) {
+      this.router.navigate(['/auth/login'], { queryParams: { returnUrl: this.router.url } });
+      return;
+    }
+    const courseId = this.course()?.id;
+    if (!courseId) return;
+
+    this.isEnrolling.set(true);
+    try {
+      const classes = await this.courseService.getAvailableClasses(courseId);
+      if (classes.length === 0) {
+        this.toast.warning('Hiện tại chưa có lớp nào mở cho khóa học này.');
+      } else {
+        await this.enroll(classes[0].id);
+      }
+    } catch (e) {
+      this.toast.error('Có lỗi xảy ra khi đăng ký dùng thử.');
+    } finally {
+      this.isEnrolling.set(false);
+    }
   }
 
   async handleEnrollClick() {
@@ -186,35 +211,53 @@ export class CourseDetailComponent implements OnInit {
       if (course) {
         this.updateSeo(course);
       }
+
+      // Load real curriculum
+      this.loadCurriculum(id);
+
+      // Load payment status for logged-in students
+      if (this.authService.isAuthenticated() && course?.price && course.price > 0) {
+        try {
+          const state = await this.paymentService.loadPaymentStatus(id);
+          this.isPaid.set(state.hasPaid);
+        } catch {
+          // Default unpaid
+        }
+      } else if (!course?.price || course.price === 0) {
+        this.isPaid.set(true); // Free course = always accessible
+      }
     } catch (error) {
       this.toast.error('Không thể tải thông tin khóa học');
     }
   }
 
-  toggleChapter(chapterIndex: number): void {
-    this.expandedChapters.update(set => {
-      const newSet = new Set(set);
-      if (newSet.has(chapterIndex)) {
-        newSet.delete(chapterIndex);
-      } else {
-        newSet.add(chapterIndex);
+  private loadCurriculum(courseId: string): void {
+    this.courseApi.getCourseContent(courseId).subscribe({
+      next: (response: any) => {
+        if (response?.data) {
+          this.courseContent.set(response.data);
+          // Auto-expand first chapter
+          if (response.data.length > 0) {
+            this.expandedChapters.set(new Set([response.data[0].id]));
+          }
+        }
+      },
+      error: () => {
+        // Silently fail — course detail still shows
       }
-      return newSet;
     });
   }
 
-  getChapterTitle(index: number): string {
-    const titles = ['Giới thiệu tổng quan', 'Kiến thức cơ bản', 'Ứng dụng thực tiễn'];
-    return titles[index - 1] || `Chương ${index}`;
-  }
-
-  getLessonTitle(chapter: number, lesson: number): string {
-    const lessons: Record<number, string[]> = {
-      1: ['Tổng quan khóa học', 'Mục tiêu học tập', 'Tài liệu tham khảo'],
-      2: ['Khái niệm cơ bản', 'Nguyên lý hoạt động', 'Bài tập thực hành'],
-      3: ['Case study', 'Dự án thực tế', 'Đánh giá cuối khóa']
-    };
-    return lessons[chapter]?.[lesson - 1] || `Bài ${lesson}`;
+  toggleChapter(chapterId: string): void {
+    this.expandedChapters.update(set => {
+      const newSet = new Set(set);
+      if (newSet.has(chapterId)) {
+        newSet.delete(chapterId);
+      } else {
+        newSet.add(chapterId);
+      }
+      return newSet;
+    });
   }
 
   getCategoryName(category: string): string {

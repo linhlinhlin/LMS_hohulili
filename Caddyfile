@@ -19,14 +19,6 @@ holilihu.online {
         reverse_proxy backend:8080
     }
 
-    # Swagger UI (API docs)
-    handle /swagger-ui* {
-        reverse_proxy backend:8080
-    }
-    handle /v3/api-docs* {
-        reverse_proxy backend:8080
-    }
-
     # Frontend (Angular SPA) — catch-all
     handle {
         reverse_proxy frontend:80
@@ -38,6 +30,8 @@ holilihu.online {
         X-Content-Type-Options "nosniff"
         Strict-Transport-Security "max-age=31536000; includeSubDomains"
         Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://maritime-ai-chatbot.onrender.com https://sandbox.vnpayment.vn https://pay.vnpay.vn wss:; font-src 'self' data:; frame-src 'none'; object-src 'none'; base-uri 'self';"
     }
 
     # Compression

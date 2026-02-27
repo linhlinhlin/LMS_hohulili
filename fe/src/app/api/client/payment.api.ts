@@ -25,8 +25,10 @@ export interface PaymentResponse {
     courseId: string;
     courseTitle: string;
     amount: number;
+    currency: string;
     status: PaymentStatus;
     transactionId: string | null;
+    paymentMethod: string | null;
     paidAt: string | null;
     createdAt: string | null;
 }
@@ -55,7 +57,7 @@ export interface ApiResponse<T> {
     error?: string;
 }
 
-export type PaymentStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED' | 'EXPIRED' | 'REFUNDED' | 'PARTIALLY_REFUNDED';
+export type PaymentStatus = 'PENDING' | 'COMPLETED' | 'FAILED' | 'EXPIRED' | 'REFUNDED' | 'UNPAID';
 
 export type PaymentMethod = 'VNPAY' | 'ZALOPAY' | 'MOMO' | 'BANK_TRANSFER' | 'SIMULATED';
 

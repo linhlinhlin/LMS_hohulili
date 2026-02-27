@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { CourseApi } from '../../../api/client/course.api';
 import { CourseContentChapter, LessonSummary } from '../../../api/types/course.types';
-import { PaymentService, PaymentStatusResponse } from '../services/payment.service';
+import { PaymentService } from '../../payment/payment.service';
 import { CourseReviewApi, ReviewDTO, ReviewSummary, SubmitReviewRequest } from '../../../api/endpoints/course-review.api';
 import { firstValueFrom } from 'rxjs';
 import { ToastService } from '../../../core/services/toast.service';
@@ -18,7 +18,9 @@ interface CourseDetail {
   enrolledCount: number;
   chapterCount: number;
   progress?: number;
-  price?: number; // Thêm giá khóa học
+  price?: number;
+  salePrice?: number;
+  priceType?: string;
 }
 
 interface Section {
@@ -145,7 +147,9 @@ export class CourseDetailComponent implements OnInit {
           teacherName: detail?.teacherName || '',
           enrolledCount: detail?.enrolledCount || 0,
           chapterCount: detail?.chapterCount || 0,
-          price: detail?.price || 500000 // Default price
+          price: detail?.price ?? 0,
+          salePrice: detail?.salePrice,
+          priceType: detail?.priceType
         });
       },
       error: () => {
@@ -300,20 +304,16 @@ export class CourseDetailComponent implements OnInit {
   /**
    * Kiểm tra trạng thái thanh toán khóa học
    */
-  checkPaymentStatus(courseId: string): void {
+  async checkPaymentStatus(courseId: string): Promise<void> {
     this.paymentLoading.set(true);
-    this.paymentService.getPaymentStatus(courseId).subscribe({
-      next: (response) => {
-        if (response.data) {
-          this.hasPaid.set(response.data.hasPaid);
-        }
-        this.paymentLoading.set(false);
-      },
-      error: () => {
-        this.paymentLoading.set(false);
-        this.toast.error('Không thể kiểm tra trạng thái thanh toán');
-      }
-    });
+    try {
+      const state = await this.paymentService.loadPaymentStatus(courseId);
+      this.hasPaid.set(state.hasPaid);
+    } catch {
+      this.toast.error('Không thể kiểm tra trạng thái thanh toán');
+    } finally {
+      this.paymentLoading.set(false);
+    }
   }
 
   /**
@@ -337,12 +337,12 @@ export class CourseDetailComponent implements OnInit {
   }
 
   /**
-   * Điều hướng đến trang thanh toán
+   * Điều hướng đến trang thanh toán (public course detail with VNPay modal)
    */
   goToCheckout(): void {
     const courseId = this.course()?.id;
     if (!courseId) return;
-    this.router.navigate(['/student/checkout', courseId]);
+    this.router.navigate(['/courses', courseId]);
   }
 
   /**

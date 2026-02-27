@@ -16,6 +16,7 @@ import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -56,7 +57,9 @@ public class AdminCoursesControllerV3 {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String search
     ) {
-        PageRequest pageable = PageRequest.of(page, Math.min(size, 100));
+        // Sort PENDING first, then by createdAt descending
+        PageRequest pageable = PageRequest.of(page, Math.min(size, 100),
+                Sort.by(Sort.Order.asc("status"), Sort.Order.desc("createdAt")));
 
         Page<Course> courses;
         if (status != null && !status.isBlank() && search != null && !search.isBlank()) {

@@ -45,15 +45,18 @@ public class FileUploadControllerV3 {
     private final Optional<R2StorageService> r2StorageService;
     private final Optional<LocalStorageService> localStorageService;
     private final com.example.lms.shared.infrastructure.service.FileManagementService fileManagementService;
+    private final com.example.lms.shared.infrastructure.persistence.repository.FileAttachmentJpaRepository fileAttachmentRepository;
 
     @Autowired
     public FileUploadControllerV3(
             @Autowired(required = false) R2StorageService r2StorageService,
             @Autowired(required = false) LocalStorageService localStorageService,
-            com.example.lms.shared.infrastructure.service.FileManagementService fileManagementService) {
+            com.example.lms.shared.infrastructure.service.FileManagementService fileManagementService,
+            com.example.lms.shared.infrastructure.persistence.repository.FileAttachmentJpaRepository fileAttachmentRepository) {
         this.r2StorageService = Optional.ofNullable(r2StorageService);
         this.localStorageService = Optional.ofNullable(localStorageService);
         this.fileManagementService = fileManagementService;
+        this.fileAttachmentRepository = fileAttachmentRepository;
     }
 
     private boolean isStorageAvailable() {
@@ -180,6 +183,27 @@ public class FileUploadControllerV3 {
             }
 
             String sanitizedKey = sanitizePath(storageKey);
+
+            // P1: Verify file ownership — only uploader or admin can delete
+            var fileOpt = fileAttachmentRepository.findByFileName(sanitizedKey);
+            if (fileOpt.isPresent()) {
+                var file = fileOpt.get();
+                if (!isAdminRole(user) && !file.getUploadedBy().equals(user.getId())) {
+                    return ResponseEntity.status(403).body(Map.of(
+                        "success", false,
+                        "message", "Bạn không có quyền xóa tập tin này"
+                    ));
+                }
+            } else {
+                // Legacy file without DB record — only admin can delete
+                if (!isAdminRole(user)) {
+                    return ResponseEntity.status(403).body(Map.of(
+                        "success", false,
+                        "message", "Bạn không có quyền xóa tập tin này"
+                    ));
+                }
+            }
+
             if (r2StorageService.isPresent()) {
                 r2StorageService.get().delete(sanitizedKey);
             } else if (localStorageService.isPresent()) {
@@ -222,5 +246,10 @@ public class FileUploadControllerV3 {
     private String sanitizePath(String input) {
         if (input == null) return "default";
         return input.replaceAll("[^a-zA-Z0-9._-]", "_");
+    }
+
+    private boolean isAdminRole(UserJpaEntity user) {
+        return user != null && (user.getRole() == UserJpaEntity.UserRole.ADMIN
+            || user.getRole() == UserJpaEntity.UserRole.ORG_ADMIN);
     }
 }

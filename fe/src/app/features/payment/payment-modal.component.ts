@@ -139,13 +139,13 @@ export interface CoursePaymentInfo {
                 </svg>
                 <span>Đang xử lý...</span>
               } @else {
-                <span>Thanh toán {{ (courseInfo().salePrice || courseInfo().price) | number:'1.0-0' }}₫</span>
+                <span>Thanh toán {{ (courseInfo().salePrice ?? courseInfo().price) | number:'1.0-0' }}₫</span>
               }
             </button>
 
             <!-- Security Note -->
             <p class="text-center text-xs text-gray-400 mt-4">
-              <app-icon name="shield" size="sm" class="text-emerald-600 mr-1"/> Thanh toán được bảo mật. Đảm bảo hoàn tiền trong 30 ngày.
+              <app-icon name="shield" size="sm" class="text-emerald-600 mr-1"/> Thanh toán được bảo mật qua cổng VNPay.
             </p>
           </div>
         }
@@ -171,9 +171,9 @@ export class PaymentModalComponent {
   isProcessing = this.paymentService.isProcessing;
   error = this.paymentService.error;
 
-  // Available payment methods — hide SIMULATED in production
+  // Available payment methods — production: only VNPay (others not implemented yet)
   paymentMethods = environment.production
-      ? PAYMENT_METHODS.filter(m => m.code !== 'SIMULATED')
+      ? PAYMENT_METHODS.filter(m => m.code === 'VNPAY')
       : PAYMENT_METHODS;
 
   onBackdropClick(event: MouseEvent): void {

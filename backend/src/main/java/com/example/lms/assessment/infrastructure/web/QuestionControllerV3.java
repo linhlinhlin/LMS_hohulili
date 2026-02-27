@@ -163,14 +163,13 @@ public class QuestionControllerV3 {
         verifyQuestionOwnership(id, user);
 
         // Decrement bank question count before deleting
-        questionRepository.findById(id).ifPresent(question -> {
-            if (question.getPackageId() != null) {
-                questionBankRepository.findById(question.getPackageId()).ifPresent(bank -> {
-                    bank.decrementQuestionCount();
-                    questionBankRepository.save(bank);
-                });
-            }
-        });
+        var question = questionRepository.findById(id).orElse(null);
+        if (question != null && question.getPackageId() != null) {
+            questionBankRepository.findById(question.getPackageId()).ifPresent(bank -> {
+                bank.decrementQuestionCount();
+                questionBankRepository.save(bank);
+            });
+        }
 
         questionRepository.deleteById(id);
 

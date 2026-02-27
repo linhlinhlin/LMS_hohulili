@@ -53,8 +53,9 @@ public class ResendEmailAdapter implements EmailServicePort {
 
     @Override
     @Async
-    public void sendPaymentReceipt(String toEmail, String fullName, String courseName, BigDecimal amount, String txnId) {
-        String html = EmailTemplates.paymentReceipt(fullName, courseName, amount, txnId);
+    public void sendPaymentReceipt(String toEmail, String fullName, String courseName, BigDecimal amount,
+                                    String txnId, String paymentMethod, String paidAt) {
+        String html = EmailTemplates.paymentReceipt(fullName, courseName, amount, txnId, paymentMethod, paidAt);
         send(toEmail, "Biên lai thanh toán - LMS Maritime", html);
     }
 
@@ -63,6 +64,14 @@ public class ResendEmailAdapter implements EmailServicePort {
     public void sendEmailVerification(String toEmail, String fullName, String verificationLink) {
         String html = EmailTemplates.emailVerification(fullName, verificationLink);
         send(toEmail, "Xác nhận email - LMS Maritime", html);
+    }
+
+    @Override
+    @Async
+    public void sendRefundNotification(String toEmail, String fullName, String courseName,
+                                        BigDecimal amount, String reason, String transactionId) {
+        String html = EmailTemplates.refundNotification(fullName, courseName, amount, reason, transactionId);
+        send(toEmail, "Thông báo hoàn tiền - LMS Maritime", html);
     }
 
     private void send(String to, String subject, String htmlBody) {

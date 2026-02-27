@@ -14,7 +14,11 @@ public interface EmailServicePort {
 
     void sendEnrollmentConfirmation(String toEmail, String fullName, String courseName);
 
-    void sendPaymentReceipt(String toEmail, String fullName, String courseName, BigDecimal amount, String txnId);
+    void sendPaymentReceipt(String toEmail, String fullName, String courseName, BigDecimal amount,
+                            String txnId, String paymentMethod, String paidAt);
 
     void sendEmailVerification(String toEmail, String fullName, String verificationLink);
+
+    void sendRefundNotification(String toEmail, String fullName, String courseName,
+                                BigDecimal amount, String reason, String transactionId);
 }

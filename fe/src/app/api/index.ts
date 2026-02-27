@@ -74,22 +74,6 @@ export type {
     EnrollmentResult
 } from './types/enrollment.types';
 
-export type {
-    Payment,
-    PaymentStatus,
-    PriceType,
-    PaymentSummary,
-    PaymentHistory,
-    RevenueSummary,
-    RevenueHistory,
-    PayoutRequest,
-    CreatePaymentRequest,
-    ConfirmPaymentRequest,
-    RequestPayoutRequest,
-    PaymentInitResponse,
-    PaymentVerifyResponse
-} from './types/payment.types';
-
 // Chapter types - export types that don't conflict with course.types
 export type {
     Chapter,

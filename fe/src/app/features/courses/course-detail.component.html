@@ -124,31 +124,30 @@
               <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 <div class="flex items-center justify-between mb-4">
                   <h2 class="text-xl font-bold text-gray-900">Nội dung khóa học</h2>
-                  <span class="text-sm text-gray-500">{{ course()?.lessonsCount || 0 }} bài học</span>
+                  <span class="text-sm text-gray-500">{{ courseContent().length }} chương · {{ course()?.lessonsCount || 0 }} bài học</span>
                 </div>
-                
+
                 <div class="space-y-3">
-                  <!-- Sample curriculum items -->
-                  @for (i of [1,2,3]; track i) {
+                  @for (chapter of courseContent(); track chapter.id; let chIdx = $index) {
                     <div class="border border-gray-200 rounded-lg overflow-hidden">
-                      <button (click)="toggleChapter(i)" 
+                      <button (click)="toggleChapter(chapter.id)"
                               class="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors text-left">
                         <div class="flex items-center gap-3">
-                          <svg class="w-5 h-5 text-gray-400 transition-transform" 
-                               [class.rotate-90]="expandedChapters().has(i)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg class="w-5 h-5 text-gray-400 transition-transform"
+                               [class.rotate-90]="expandedChapters().has(chapter.id)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                           </svg>
-                          <span class="font-medium text-gray-900">Chương {{ i }}: {{ getChapterTitle(i) }}</span>
+                          <span class="font-medium text-gray-900">Chương {{ chIdx + 1 }}: {{ chapter.title }}</span>
                         </div>
-                        <span class="text-sm text-gray-500">{{ 2 + i }} bài học</span>
+                        <span class="text-sm text-gray-500">{{ chapter.lessons?.length || 0 }} bài học</span>
                       </button>
-                      
-                      @if (expandedChapters().has(i)) {
+
+                      @if (expandedChapters().has(chapter.id)) {
                         <div class="border-t border-gray-200 divide-y divide-gray-100">
-                          @for (j of [1,2,3]; track j) {
+                          @for (lesson of chapter.lessons; track lesson.id; let lIdx = $index) {
                             <div class="flex items-center justify-between p-4 hover:bg-gray-50">
                               <div class="flex items-center gap-3">
-                                @if (isPaid() || (i === 1 && j <= 2)) {
+                                @if (lesson.isFree || isPaid()) {
                                   <svg class="w-5 h-5 text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -158,24 +157,35 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                                   </svg>
                                 }
-                                <span class="text-gray-700">Bài {{ j }}: {{ getLessonTitle(i, j) }}</span>
+                                <span class="text-gray-700">Bài {{ chIdx + 1 }}.{{ lIdx + 1 }}: {{ lesson.title }}</span>
+                                @if (lesson.isFree && !isPaid()) {
+                                  <span class="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-medium">Xem trước</span>
+                                }
                               </div>
-                              <span class="text-sm text-gray-500">{{ 5 + j * 3 }} phút</span>
+                              @if (lesson.durationMinutes) {
+                                <span class="text-sm text-gray-500">{{ lesson.durationMinutes }} phút</span>
+                              }
                             </div>
                           }
                         </div>
                       }
                     </div>
                   }
+
+                  @if (courseContent().length === 0) {
+                    <div class="text-center text-gray-500 py-4">
+                      <p>Đang tải nội dung...</p>
+                    </div>
+                  }
                 </div>
-                
-                @if (!isPaid()) {
+
+                @if (!isPaid() && course()?.price && course()!.price > 0) {
                   <div class="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-3">
                     <svg class="w-5 h-5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                     </svg>
                     <p class="text-sm text-amber-800">
-                      <strong>Xem trước miễn phí:</strong> 2 bài học đầu tiên. Thanh toán để mở khóa toàn bộ nội dung.
+                      <strong>Xem trước miễn phí:</strong> Các bài có nhãn "Xem trước". Thanh toán để mở khóa toàn bộ nội dung.
                     </p>
                   </div>
                 }
@@ -253,7 +263,7 @@
                       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
                       </svg>
-                      <span>Mở khóa khóa học ({{ course()!.price | number:'1.0-0' }}₫)</span>
+                      <span>Mở khóa khóa học ({{ (course()!.salePrice ?? course()!.price) | number:'1.0-0' }}₫)</span>
                     </button>
                     <p class="text-center text-sm text-amber-600 mb-3">
                       ⚠️ Bạn chỉ xem được 2 bài học đầu tiên. Thanh toán để truy cập đầy đủ.
@@ -280,12 +290,14 @@
                   }
                   
                   @if (!isEnrolled() && course()?.price && course()!.price > 0) {
-                    <button (click)="handleEnrollClick()" class="w-full border-2 border-gray-300 text-gray-700 py-3 px-6 rounded-lg font-semibold hover:bg-gray-50 transition-colors mb-4">
-                      Dùng thử miễn phí (2 bài đầu)
+                    <button (click)="handleFreeTrial()"
+                            [disabled]="isEnrolling()"
+                            class="w-full border-2 border-gray-300 text-gray-700 py-3 px-6 rounded-lg font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50 mb-4">
+                      Dùng thử miễn phí
                     </button>
                   }
                   
-                  <p class="text-center text-sm text-gray-500 mb-6">Đảm bảo hoàn tiền trong 30 ngày</p>
+                  <p class="text-center text-sm text-gray-500 mb-6">Thanh toán an toàn qua VNPay</p>
                   
                   <!-- Course Includes -->
                   <div class="border-t border-gray-200 pt-4">

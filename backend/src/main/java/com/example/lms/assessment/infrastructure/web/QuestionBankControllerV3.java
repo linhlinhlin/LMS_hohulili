@@ -60,8 +60,15 @@ public class QuestionBankControllerV3 {
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Operation(summary = "Get question bank by ID with category tree")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> getBankById(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getBankById(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal UserJpaEntity user) {
         QuestionBank bank = useCase.getBankById(id);
+        // Ownership check: only owner, admins, or PUBLIC banks
+        if (!isAdminRole(user) && !bank.getOwnerId().equals(user.getId())
+                && bank.getVisibility() != QuestionBank.Visibility.PUBLIC) {
+            throw new org.springframework.security.access.AccessDeniedException("Bạn không có quyền xem ngân hàng câu hỏi này");
+        }
         List<QuestionBankCategory> categoryTree = useCase.getCategoryTree(id);
 
         Map<String, Object> result = toBankMap(bank);
@@ -132,7 +139,11 @@ public class QuestionBankControllerV3 {
     @GetMapping("/{id}/categories")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Operation(summary = "Get category tree for a bank")
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getCategoryTree(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getCategoryTree(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        // P0: Verify bank access (owner, admin, or PUBLIC)
+        verifyBankAccess(id, user);
         List<QuestionBankCategory> tree = useCase.getCategoryTree(id);
         List<Map<String, Object>> result = tree.stream().map(this::toCategoryTreeMap).toList();
         return ResponseEntity.ok(ApiResponse.success(result));
@@ -188,8 +199,10 @@ public class QuestionBankControllerV3 {
     @Operation(summary = "Get questions in bank (optionally filtered by category)")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getBankQuestions(
             @PathVariable UUID id,
-            @RequestParam(required = false) UUID categoryId) {
-
+            @RequestParam(required = false) UUID categoryId,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        // P0: Verify bank access (owner, admin, or PUBLIC)
+        verifyBankAccess(id, user);
         List<Question> questions = useCase.getBankQuestions(id, categoryId);
         List<Map<String, Object>> result = questions.stream().map(this::toQuestionMap).toList();
         return ResponseEntity.ok(ApiResponse.success(result, "Danh sách câu hỏi"));
@@ -214,8 +227,16 @@ public class QuestionBankControllerV3 {
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Operation(summary = "Search question banks by name")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> searchBanks(
-            @RequestParam String query) {
+            @RequestParam String query,
+            @AuthenticationPrincipal UserJpaEntity user) {
         List<QuestionBank> banks = useCase.searchBanks(query);
+        // P1: Filter out PRIVATE banks that don't belong to the current user
+        if (!isAdminRole(user)) {
+            banks = banks.stream()
+                    .filter(b -> b.getOwnerId().equals(user.getId())
+                            || b.getVisibility() != QuestionBank.Visibility.PRIVATE)
+                    .toList();
+        }
         List<Map<String, Object>> result = banks.stream().map(this::toBankMap).toList();
         return ResponseEntity.ok(ApiResponse.success(result));
     }
@@ -265,6 +286,8 @@ public class QuestionBankControllerV3 {
             @PathVariable UUID bankId,
             @AuthenticationPrincipal UserJpaEntity user,
             @RequestParam("file") MultipartFile file) {
+        // P0: Verify teacher owns the target bank
+        verifyBankOwnership(bankId, user);
         var result = importExportUseCase.importFromCsv(bankId, user.getId(), file);
         return ResponseEntity.ok(ApiResponse.success(result, "Đã nhập thành công " + result.imported() + " câu hỏi"));
     }
@@ -272,7 +295,11 @@ public class QuestionBankControllerV3 {
     @GetMapping("/{bankId}/export")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Operation(summary = "Export questions as CSV")
-    public ResponseEntity<byte[]> exportQuestions(@PathVariable UUID bankId) {
+    public ResponseEntity<byte[]> exportQuestions(
+            @PathVariable UUID bankId,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        // P0: Verify teacher owns the bank
+        verifyBankOwnership(bankId, user);
         byte[] csv = importExportUseCase.exportBankToCsv(bankId);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=question_bank_" + bankId + ".csv")
@@ -285,7 +312,10 @@ public class QuestionBankControllerV3 {
     @Operation(summary = "Get random questions from a bank")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getRandomQuestions(
             @PathVariable UUID bankId,
-            @RequestParam(defaultValue = "10") int count) {
+            @RequestParam(defaultValue = "10") int count,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        // P0: Verify bank access (owner, admin, or PUBLIC)
+        verifyBankAccess(bankId, user);
         List<QuestionJpaEntity> random = questionJpaRepository.findRandomByBankId(bankId, count);
         List<Map<String, Object>> result = random.stream().map(q -> {
             Map<String, Object> map = new LinkedHashMap<>();
@@ -365,5 +395,29 @@ public class QuestionBankControllerV3 {
             map.put("content", sb.toString());
         }
         return map;
+    }
+
+    private boolean isAdminRole(UserJpaEntity user) {
+        return user.getRole() == UserJpaEntity.UserRole.ADMIN
+            || user.getRole() == UserJpaEntity.UserRole.ORG_ADMIN;
+    }
+
+    /** P0: Verify bank read access — owner, admin, or PUBLIC visibility */
+    private void verifyBankAccess(UUID bankId, UserJpaEntity user) {
+        if (isAdminRole(user)) return;
+        QuestionBank bank = useCase.getBankById(bankId);
+        if (!bank.getOwnerId().equals(user.getId())
+                && bank.getVisibility() != QuestionBank.Visibility.PUBLIC) {
+            throw new org.springframework.security.access.AccessDeniedException("Bạn không có quyền truy cập ngân hàng câu hỏi này");
+        }
+    }
+
+    /** P0: Verify bank write access — owner or admin only (PUBLIC not sufficient) */
+    private void verifyBankOwnership(UUID bankId, UserJpaEntity user) {
+        if (isAdminRole(user)) return;
+        QuestionBank bank = useCase.getBankById(bankId);
+        if (!bank.getOwnerId().equals(user.getId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Bạn không sở hữu ngân hàng câu hỏi này");
+        }
     }
 }

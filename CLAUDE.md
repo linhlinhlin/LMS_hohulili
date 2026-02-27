@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-> **Last Updated**: 2026-02-26 | **Version**: 10.3 | **Status**: Production Ready + Seed Data (806 tests, 0 failures)
+> **Last Updated**: 2026-02-27 | **Version**: 11.0 | **Status**: Production Ready + Payment DDD (806 tests, 0 failures)
 
 This file provides guidance to Claude Code for working with this repository. **Read this first before any task.**
 
@@ -75,7 +75,7 @@ backend/src/main/java/com/example/lms/
 ├── assessment/            # Assignment, Quiz, Question, Submission, Rubric, QuestionBank
 ├── communication/         # Messages, Conversations
 ├── ai_assistant/          # AI Chat integration (SSE streaming)
-├── shared/                # Value objects, domain events, exceptions, file service, payment, email, VNPay, admin settings
+├── shared/                # Value objects, domain events, exceptions, file service, payment (DDD), email, VNPay, admin settings
 └── config/                # Security, CORS, JWT, rate limiting, R2 storage
 ```
 
@@ -117,7 +117,7 @@ fe/src/app/
 │   ├── assignments/  # 12 components - Student assignment work (DDD)
 │   ├── auth/         # 4 components - Login, register, forgot/reset password
 │   ├── communication/# 2 components - Notifications
-│   └── payment/      # 4 components - VNPay integration
+│   └── payment/      # 6 components - VNPay integration, refund policy, payment history
 ├── shared/           # 48 reusable components, 8 services
 └── state/            # Global state: course, class, global
 ```
@@ -311,8 +311,8 @@ export class ExampleComponent {
 | assessment | 11 | 15 | 6 | 59 |
 | communication | 4 | 1 | 1 | 6 |
 | ai_assistant | 3 | 1 | 1 | 11 |
-| shared | 3 | 1 | 4 | 15 |
-| **Total** | **38** | **69** | **32** | **255+** |
+| shared | 4 | 5 | 4 | 15 |
+| **Total** | **39** | **73** | **32** | **260+** |
 
 ---
 
@@ -353,6 +353,57 @@ teacherGuard = [UserRole.TEACHER, UserRole.ADMIN, UserRole.ORG_ADMIN]
 ---
 
 ## RECENT CHANGES LOG
+
+### Session 100 (2026-02-27): Payment DDD Refactoring + Deep Audit + UI/UX Sync
+
+**ARCHITECTURE + SECURITY + UX** | BE: 12 files (8 new) | FE: 5 files
+
+**Payment module refactored to full Clean Architecture / DDD:**
+- `PaymentTransaction` domain model — pure Java, factory methods (`createPending`, `createSimulated`, `reconstitute`), state machine guards (PENDING→COMPLETED/FAILED/EXPIRED, COMPLETED→REFUNDED)
+- `PaymentRepository` domain port — zero framework imports
+- `PaymentEntityMapper` + `PaymentRepositoryAdapter` — persistence layer
+- 4 use cases: `CheckoutUseCase`, `CreateVnPayUrlUseCase`, `ProcessVnPayIpnUseCase`, `RefundPaymentUseCase`
+- `PaymentControllerV3` now thin — delegates to use cases, no business logic
+- `PaymentExpiryScheduler` migrated to domain repository
+
+**Deep architecture audit (17 issues found — 0 P0, 4 P1, 13 P2):**
+- P1: PaymentEntityMapper version mapping (critical for optimistic locking)
+- P1: CommunicationController markAsRead ifPresent→proper conditional
+- P1: QuestionController delete nested ifPresent→orElse pattern
+- P1: VNPay return URL-encode params (parameter injection prevention)
+- P2: X-Forwarded-For anti-spoofing (rightmost IP from trusted proxy)
+
+**Payment UI/UX sync (8 fixes):**
+- `salePrice || price` → `salePrice ?? price` (falsy 0 bug)
+- PaymentStatus type aligned with BE (removed CANCELLED/PROCESSING/PARTIALLY_REFUNDED)
+- Added OnDestroy lifecycle to PaymentSuccessComponent
+- Removed `as any` cast for salePrice in course-detail
+- Fixed support email to `support@holilihu.online`
+- UUID.fromString() wrapped in try/catch (3 endpoints — returns 400 not 500)
+- Unlock button shows salePrice when available
+- Added EXPIRED status label/styling in payment history
+
+### Session 99 (2026-02-27): P2 Cleanup — Optimistic Locking + Dead Code
+
+**CLEANUP** | BE: 3 files | FE: 4 files (2 deleted)
+
+- `@Version` optimistic locking on `EnrollmentJpaEntity` + `AssignmentSubmissionJpaEntity` (V62 migration)
+- Deleted dead `CourseDetailEnhancedComponent` (2 files), dead `payment.types.ts`
+- Capped `getAllUsersNoPagination` to 1000
+- Replaced hardcoded pgadmin password with env var
+
+### Session 98 (2026-02-27): Full Codebase Audit — 27 Issues Fixed
+
+**SECURITY + QUALITY** | BE: 8 files | FE: 2 files
+
+- P0: Quiz submitAttempt IDOR (added @AuthenticationPrincipal + ownership)
+- P0: updateQuizQuestions no ownership (added verifyQuizOwnership)
+- P1: ifPresent()→orElseThrow() in 3 controllers
+- P1: AssignmentSubmission 4 endpoints missing ownership checks
+- P1: QuestionBank getBankById no ownership
+- P1: CSV injection sanitization, revenue FE-BE mismatch
+- P1: N+1 in toPaymentMap (batch courseRepository.findAllById)
+- P2: Rate limiter auth aggregation, V61 payment indexes
 
 ### Session 95 (2026-02-26): Deep Audit — Security, YAML, IDOR, PWA iOS
 
@@ -495,17 +546,17 @@ Architecture: `Internet → Caddy (:443) → nginx (FE) + backend:8080 (API)`
 
 ---
 
-## ARCHITECTURE SCORES (Post-S95)
+## ARCHITECTURE SCORES (Post-S100)
 
 | Category | Score |
 |----------|-------|
-| Backend Clean Architecture | 10/10 |
+| Backend Clean Architecture | 10/10 (Payment DDD refactored, all modules follow Clean Arch) |
 | Frontend Angular Patterns | 10/10 |
 | PWA / Download-First | 10/10 (iOS freshness, /reset-sw, auto-recovery, 7d cache) |
-| Security | 10/10 (IDOR fixed, ownership checks, actuator restricted) |
+| Security | 10/10 (IDOR fixed, UUID validation, ownership checks, actuator restricted) |
 | Test Coverage | 9.8/10 (806 tests, 0 failures) |
-| Code Cleanliness | 10/10 |
-| UX & Design | 10/10 |
+| Code Cleanliness | 10/10 (dead code removed, optimistic locking, no hardcoded secrets) |
+| UX & Design | 10/10 (Payment UX synced — salePrice, status aligned) |
 | API Completeness | 10/10 |
 
 ---

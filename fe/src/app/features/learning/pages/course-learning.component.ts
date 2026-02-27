@@ -1,4 +1,5 @@
-import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy, HostListener, effect, untracked } from '@angular/core';
+import { Component, signal, computed, inject, OnInit, DestroyRef, ChangeDetectionStrategy, HostListener, effect, untracked } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { LearningService } from '../services/learning.service';
@@ -9,6 +10,9 @@ import { QuizApi } from '../../../api/endpoints/quiz.api';
 import { VideoProgressApi } from '../../../api/client/video-progress.api';
 import { ApiClient } from '../../../api/client/api-client';
 import { ToastService } from '../../../core/services/toast.service';
+import { PaymentService } from '../../payment/payment.service';
+import { PaymentModalComponent, CoursePaymentInfo } from '../../payment/payment-modal.component';
+import { AuthService } from '../../../core/services/auth.service';
 
 /**
  * Course Learning Component
@@ -18,7 +22,7 @@ import { ToastService } from '../../../core/services/toast.service';
  */
 @Component({
   selector: 'app-course-learning',
-  imports: [RouterModule, LessonContentComponent],
+  imports: [RouterModule, LessonContentComponent, PaymentModalComponent],
   templateUrl: './course-learning.component.html',
   styleUrls: ['./course-learning.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -32,6 +36,14 @@ export class CourseLearningComponent implements OnInit {
   private videoProgressApi = inject(VideoProgressApi);
   private apiClient = inject(ApiClient);
   private toast = inject(ToastService);
+  private paymentService = inject(PaymentService);
+  private authService = inject(AuthService);
+  private destroyRef = inject(DestroyRef);
+
+  // Payment state
+  showPaymentModal = signal(false);
+  hasPaid = signal(false);
+  coursePaid = signal(false); // true if course.price > 0
 
   // Local UI state
   sidebarCollapsed = signal(false);
@@ -61,6 +73,20 @@ export class CourseLearningComponent implements OnInit {
 
   // Pending lesson ID for auto-expand (set from route, resolved reactively when sections load)
   private pendingExpandLessonId = signal<string | null>(null);
+
+  // Detect if course has locked lessons (paid course, user hasn't paid)
+  private paymentDetectEffect = effect(() => {
+    const sections = this.sections();
+    if (sections.length > 0) {
+      const hasLockedLesson = sections.some(s =>
+        s.lessons.some((l: any) => l.locked === true)
+      );
+      untracked(() => {
+        this.coursePaid.set(hasLockedLesson);
+        if (!hasLockedLesson) this.hasPaid.set(true); // Free course or already paid
+      });
+    }
+  }, { allowSignalWrites: true });
 
   private autoExpandEffect = effect(() => {
     const sections = this.sections();
@@ -141,6 +167,7 @@ export class CourseLearningComponent implements OnInit {
     this.checkMobileView();
     this.loadCourseFromRoute();
     this.loadCompletedSections();
+    this.loadPaymentStatus();
 
     // Set pending lesson ID — the autoExpandEffect will handle expansion reactively when sections load
     const lessonId = this.route.snapshot.paramMap.get('lessonId');
@@ -153,7 +180,7 @@ export class CourseLearningComponent implements OnInit {
 
     // Listen for quiz completion via query params
     // Security: Validate quiz completion server-side before marking lesson complete
-    this.route.queryParams.subscribe(params => {
+    this.route.queryParams.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(params => {
       if (params['quizCompleted'] === 'true' && params['attemptId']) {
         this.validateAndCompleteQuizLesson(params['attemptId']);
       }
@@ -244,6 +271,15 @@ export class CourseLearningComponent implements OnInit {
   // Lesson selection
   onLessonSelect(lessonId: string): void {
     const lesson = this.learningService.allLessons().find(l => l.id === lessonId);
+    if (!lesson) return;
+
+    // Block selection of locked lessons
+    if (this.isLessonLocked(lesson)) {
+      this.toast.warning('Cần thanh toán để xem bài này');
+      this.showPaymentModal.set(true);
+      return;
+    }
+
     if (lesson) {
       this.learningService.selectLesson(lesson);
       this.currentSectionIndex.set(0); // Reset section index on lesson change
@@ -633,6 +669,57 @@ export class CourseLearningComponent implements OnInit {
   // Handle section index change from lesson-content component
   onSectionIndexChange(index: number): void {
     this.currentSectionIndex.set(index);
+  }
+
+  // === Payment / Paywall ===
+
+  private async loadPaymentStatus(): Promise<void> {
+    const courseId = this.route.snapshot.paramMap.get('courseId') || this.route.snapshot.paramMap.get('id');
+    if (!courseId || !this.authService.isAuthenticated()) return;
+
+    try {
+      const state = await this.paymentService.loadPaymentStatus(courseId);
+      this.hasPaid.set(state.hasPaid);
+    } catch {
+      // Default to unpaid — content gating is enforced server-side anyway
+    }
+  }
+
+  /** Check if a lesson is locked (paid course + not paid + not free lesson) */
+  isLessonLocked(lesson: any): boolean {
+    if (!this.coursePaid()) return false;
+    if (this.hasPaid()) return false;
+    if (lesson.isFree) return false;
+    // Also check server-side locked flag
+    if (lesson.locked === true) return true;
+    return true;
+  }
+
+  /** Get payment info for the payment modal */
+  getPaymentInfo(): CoursePaymentInfo {
+    const c = this.course();
+    return {
+      courseId: c?.id || '',
+      title: c?.title || '',
+      thumbnail: '',
+      price: (c as any)?.price || 0,
+      salePrice: (c as any)?.salePrice,
+      instructorName: ''
+    };
+  }
+
+  onPaymentModalClose(startLearning?: boolean | void): void {
+    this.showPaymentModal.set(false);
+    if (startLearning === true) {
+      this.hasPaid.set(true);
+      this.coursePaid.set(false); // No longer locked
+      // Reload course content to get unlocked content from server
+      this.loadCourseFromRoute();
+    }
+  }
+
+  onPaymentComplete(): void {
+    this.hasPaid.set(true);
   }
 
   // Navigation

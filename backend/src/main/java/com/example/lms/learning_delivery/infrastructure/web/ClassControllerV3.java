@@ -177,8 +177,9 @@ public class ClassControllerV3 {
             @AuthenticationPrincipal UserJpaEntity user
     ) {
         // P0-13: Verify teacher owns the course via class
-        classJpaRepository.findById(UUID.fromString(classId))
-                .ifPresent(cls -> verifyCourseOwnership(cls.getCourseId(), user));
+        var cls = classJpaRepository.findById(UUID.fromString(classId))
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("LearningClass", classId));
+        verifyCourseOwnership(cls.getCourseId(), user);
         var command = new UpdateLearningClassUseCase.UpdateClassCommand(
                 UUID.fromString(classId),
                 request.getName(),
@@ -202,8 +203,9 @@ public class ClassControllerV3 {
             @AuthenticationPrincipal UserJpaEntity user
     ) {
         // P0-13: Verify teacher owns the course via class
-        classJpaRepository.findById(UUID.fromString(classId))
-                .ifPresent(cls -> verifyCourseOwnership(cls.getCourseId(), user));
+        var clsToDelete = classJpaRepository.findById(UUID.fromString(classId))
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("LearningClass", classId));
+        verifyCourseOwnership(clsToDelete.getCourseId(), user);
         deleteLearningClassUseCase.execute(UUID.fromString(classId));
         return ResponseEntity.ok(ApiResponse.success(null, "Xóa lớp học thành công"));
     }

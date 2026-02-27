@@ -1,13 +1,19 @@
 package com.example.lms.shared.infrastructure.web;
 
+import com.example.lms.shared.application.dto.PaymentResponse;
+import com.example.lms.shared.application.port.EmailServicePort;
+import com.example.lms.shared.application.usecase.CheckoutUseCase;
+import com.example.lms.shared.application.usecase.CreateVnPayUrlUseCase;
+import com.example.lms.shared.application.usecase.ProcessVnPayIpnUseCase;
+import com.example.lms.shared.application.usecase.RefundPaymentUseCase;
+import com.example.lms.shared.domain.model.PaymentTransaction;
+import com.example.lms.shared.domain.repository.PaymentRepository;
 import com.example.lms.course_authoring.infrastructure.persistence.JpaCourseRepository;
 import com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
 import com.example.lms.learning_delivery.application.dto.SelfEnrollCommand;
 import com.example.lms.learning_delivery.application.usecase.SelfEnrollUseCase;
-import com.example.lms.shared.application.port.EmailServicePort;
-import com.example.lms.shared.application.port.PaymentGatewayPort;
 import com.example.lms.shared.infrastructure.persistence.entity.PaymentTransactionJpaEntity;
 import com.example.lms.shared.infrastructure.persistence.repository.PaymentTransactionJpaRepository;
 import com.example.lms.shared.infrastructure.vnpay.VnPayUtil;
@@ -22,6 +28,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.env.Environment;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -29,20 +38,16 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.Instant;
 import java.util.*;
 
 /**
- * Payment Controller V3 - VNPay integration + Simulated (dev-only) payment.
+ * Payment Controller V3 — Thin controller delegating to use cases.
  *
- * Security hardening (S96):
- * - Server-side price validation from course DB (no trust on client amount)
- * - IPN amount verification (vnp_Amount must match stored amount)
- * - State guard: only PENDING payments can transition to COMPLETED/FAILED
- * - vnp_TransactionStatus + vnp_ResponseCode double-check
- * - SIMULATED checkout blocked in production profile
- * - canAccessLesson checks COMPLETED status (not just existence)
+ * Use cases handle all business logic:
+ * - CheckoutUseCase: Simulated payment (dev-only)
+ * - CreateVnPayUrlUseCase: VNPay URL generation
+ * - ProcessVnPayIpnUseCase: IPN callback verification + state transitions
+ * - RefundPaymentUseCase: Admin refund processing
  */
 @Slf4j
 @Tag(name = "Payments V3", description = "API thanh toán khóa học (VNPay + Simulated)")
@@ -52,13 +57,25 @@ import java.util.*;
 @SecurityRequirement(name = "Bearer Authentication")
 public class PaymentControllerV3 {
 
-    private final PaymentTransactionJpaRepository paymentRepository;
-    private final PaymentGatewayPort paymentGateway;
-    private final EmailServicePort emailService;
+    // Use cases (business logic)
+    private final CheckoutUseCase checkoutUseCase;
+    private final CreateVnPayUrlUseCase createVnPayUrlUseCase;
+    private final ProcessVnPayIpnUseCase processVnPayIpnUseCase;
+    private final RefundPaymentUseCase refundPaymentUseCase;
+
+    // Domain repository (read queries)
+    private final PaymentRepository paymentRepository;
+
+    // Infrastructure (for admin list queries — still uses JPA repo for pagination)
+    private final PaymentTransactionJpaRepository paymentJpaRepository;
     private final SelfEnrollUseCase selfEnrollUseCase;
     private final UserJpaRepository userRepository;
     private final JpaCourseRepository courseRepository;
+    private final com.example.lms.learning_delivery.infrastructure.persistence.JpaEnrollmentRepository enrollmentJpaRepository;
+    private final EmailServicePort emailService;
     private final Environment environment;
+
+    // ==================== Student Endpoints ====================
 
     @Operation(summary = "Checkout - simulate course payment (dev-only)")
     @PostMapping("/checkout")
@@ -72,38 +89,27 @@ public class PaymentControllerV3 {
             return ResponseEntity.status(401).body(ApiResponse.error("Không được phép truy cập"));
         }
 
-        // P1 FIX: Block simulated checkout in production
         if (isProductionProfile()) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("Thanh toán giả lập không khả dụng trên hệ thống production. Vui lòng sử dụng VNPay."));
         }
 
-        UUID courseId = UUID.fromString(request.courseId);
-
-        // Check for existing completed payment
-        var existing = paymentRepository.findTopByStudentIdAndCourseIdOrderByCreatedAtDesc(currentUser.getId(), courseId);
-        if (existing.isPresent() && existing.get().getStatus() == PaymentTransactionJpaEntity.PaymentStatus.COMPLETED) {
-            return ResponseEntity.ok(ApiResponse.success(toPaymentMap(existing.get()), "Đã thanh toán trước đó"));
+        UUID courseId;
+        try {
+            courseId = UUID.fromString(request.courseId);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Mã khóa học không hợp lệ"));
         }
+        BigDecimal serverPrice = getServerPrice(courseId);
 
-        String txnId = "TXN-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        var payment = checkoutUseCase.execute(currentUser.getId(), courseId, serverPrice, request.paymentMethod);
 
-        var payment = PaymentTransactionJpaEntity.builder()
-                .studentId(currentUser.getId())
-                .courseId(courseId)
-                .amount(request.amount != null ? BigDecimal.valueOf(request.amount) : BigDecimal.ZERO)
-                .paymentMethod(request.paymentMethod != null ? request.paymentMethod : "SIMULATED")
-                .transactionId(txnId)
-                .status(PaymentTransactionJpaEntity.PaymentStatus.COMPLETED)
-                .paidAt(Instant.now())
-                .build();
-
-        payment = paymentRepository.save(payment);
-
-        // Auto-enroll student after simulated payment
+        // Auto-enroll student
         autoEnrollStudent(payment.getStudentId(), payment.getCourseId());
 
-        return ResponseEntity.ok(ApiResponse.success(toPaymentMap(payment), "Thanh toán thành công"));
+        String courseTitle = courseRepository.findById(courseId).map(CourseJpaEntity::getTitle).orElse(null);
+        return ResponseEntity.ok(ApiResponse.success(
+                PaymentResponse.from(payment, courseTitle).toMap(), "Thanh toán thành công"));
     }
 
     @Operation(summary = "Get payment status for a course")
@@ -117,31 +123,36 @@ public class PaymentControllerV3 {
             return ResponseEntity.status(401).body(ApiResponse.error("Không được phép truy cập"));
         }
 
-        UUID courseUuid = UUID.fromString(courseId);
-        var paymentOpt = paymentRepository.findTopByStudentIdAndCourseIdOrderByCreatedAtDesc(currentUser.getId(), courseUuid);
+        UUID courseUuid;
+        try {
+            courseUuid = UUID.fromString(courseId);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Mã khóa học không hợp lệ"));
+        }
+        var paymentOpt = paymentRepository.findLatestByStudentAndCourse(currentUser.getId(), courseUuid);
 
-        if (paymentOpt.isPresent() && paymentOpt.get().getStatus() == PaymentTransactionJpaEntity.PaymentStatus.COMPLETED) {
+        if (paymentOpt.isPresent() && paymentOpt.get().isCompleted()) {
             var payment = paymentOpt.get();
             return ResponseEntity.ok(ApiResponse.success(
-                Map.of(
-                    "courseId", courseId,
-                    "hasPaid", true,
-                    "status", "COMPLETED",
-                    "transactionId", payment.getTransactionId(),
-                    "paidAt", payment.getPaidAt().toString()
-                ),
-                "Trạng thái thanh toán"
+                    Map.of(
+                            "courseId", courseId,
+                            "hasPaid", true,
+                            "status", "COMPLETED",
+                            "transactionId", payment.getTransactionId(),
+                            "paidAt", payment.getPaidAt().toString()
+                    ),
+                    "Trạng thái thanh toán"
             ));
         }
 
         return ResponseEntity.ok(ApiResponse.success(
-            Map.of(
-                "courseId", courseId,
-                "hasPaid", false,
-                "status", "UNPAID",
-                "freeLessonsCount", 2
-            ),
-            "Khóa học chưa được mua"
+                Map.of(
+                        "courseId", courseId,
+                        "hasPaid", false,
+                        "status", "UNPAID",
+                        "freeLessonsCount", 2
+                ),
+                "Khóa học chưa được mua"
         ));
     }
 
@@ -154,8 +165,18 @@ public class PaymentControllerV3 {
             return ResponseEntity.status(401).body(ApiResponse.error("Không được phép truy cập"));
         }
 
-        var payments = paymentRepository.findByStudentIdOrderByCreatedAtDesc(currentUser.getId());
-        List<Map<String, Object>> result = payments.stream().map(this::toPaymentMap).toList();
+        var payments = paymentRepository.findByStudentId(currentUser.getId());
+
+        // Batch-load course titles (avoid N+1)
+        var courseIds = payments.stream().map(PaymentTransaction::getCourseId).distinct().toList();
+        Map<UUID, String> courseTitleMap = new HashMap<>();
+        if (!courseIds.isEmpty()) {
+            courseRepository.findAllById(courseIds).forEach(c -> courseTitleMap.put(c.getId(), c.getTitle()));
+        }
+
+        List<Map<String, Object>> result = payments.stream()
+                .map(p -> PaymentResponse.from(p, courseTitleMap.get(p.getCourseId())).toMap())
+                .toList();
         return ResponseEntity.ok(ApiResponse.success(result, "Lịch sử thanh toán"));
     }
 
@@ -171,24 +192,24 @@ public class PaymentControllerV3 {
             return ResponseEntity.status(401).body(ApiResponse.error("Không được phép truy cập"));
         }
 
-        UUID courseUuid = UUID.fromString(courseId);
-
-        // P1 FIX: Only count COMPLETED payments (not PENDING/FAILED)
-        boolean hasPaid = paymentRepository.existsByStudentIdAndCourseIdAndStatus(
-                currentUser.getId(), courseUuid, PaymentTransactionJpaEntity.PaymentStatus.COMPLETED);
-
-        // Free access: first 2 lessons (index 0, 1)
+        UUID courseUuid;
+        try {
+            courseUuid = UUID.fromString(courseId);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Mã khóa học không hợp lệ"));
+        }
+        boolean hasPaid = paymentRepository.hasCompletedPayment(currentUser.getId(), courseUuid);
         boolean canAccess = hasPaid || lessonIndex < 2;
 
         return ResponseEntity.ok(ApiResponse.success(
-            Map.of(
-                "courseId", courseId,
-                "lessonIndex", lessonIndex,
-                "canAccess", canAccess,
-                "hasPaid", hasPaid,
-                "message", canAccess ? "Được phép truy cập" : "Cần thanh toán để xem bài học này"
-            ),
-            canAccess ? "Được phép truy cập" : "Cần thanh toán"
+                Map.of(
+                        "courseId", courseId,
+                        "lessonIndex", lessonIndex,
+                        "canAccess", canAccess,
+                        "hasPaid", hasPaid,
+                        "message", canAccess ? "Được phép truy cập" : "Cần thanh toán để xem bài học này"
+                ),
+                canAccess ? "Được phép truy cập" : "Cần thanh toán"
         ));
     }
 
@@ -203,7 +224,6 @@ public class PaymentControllerV3 {
             return ResponseEntity.status(401).body(ApiResponse.error("Không được phép truy cập"));
         }
 
-        // txnRef is our payment entity ID (UUID)
         UUID paymentId;
         try {
             paymentId = UUID.fromString(txnRef);
@@ -217,13 +237,14 @@ public class PaymentControllerV3 {
         }
 
         var payment = paymentOpt.get();
-
-        // Security: only owner can view their own payment
         if (!payment.getStudentId().equals(currentUser.getId())) {
             return ResponseEntity.status(403).body(ApiResponse.error("Không có quyền xem giao dịch này"));
         }
 
-        return ResponseEntity.ok(ApiResponse.success(toPaymentMap(payment), "Thông tin giao dịch"));
+        String courseTitle = courseRepository.findById(payment.getCourseId())
+                .map(CourseJpaEntity::getTitle).orElse(null);
+        return ResponseEntity.ok(ApiResponse.success(
+                PaymentResponse.from(payment, courseTitle).toMap(), "Thông tin giao dịch"));
     }
 
     // ==================== VNPay Endpoints ====================
@@ -242,49 +263,26 @@ public class PaymentControllerV3 {
         }
 
         UUID courseId = request.courseId();
-
-        // Check for existing completed payment
-        var existing = paymentRepository.findTopByStudentIdAndCourseIdOrderByCreatedAtDesc(currentUser.getId(), courseId);
-        if (existing.isPresent() && existing.get().getStatus() == PaymentTransactionJpaEntity.PaymentStatus.COMPLETED) {
-            return ResponseEntity.ok(ApiResponse.success(toPaymentMap(existing.get()), "Đã thanh toán trước đó"));
-        }
-
-        // Server-side price validation — use course price from DB, not client
         CourseJpaEntity course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new IllegalArgumentException("Khóa học không tồn tại: " + courseId));
 
-        // Use salePrice if available, otherwise full price
-        BigDecimal serverPrice = (course.getSalePrice() != null && course.getSalePrice().compareTo(BigDecimal.ZERO) > 0)
-                ? course.getSalePrice()
-                : course.getPrice();
-        if (serverPrice == null || serverPrice.compareTo(BigDecimal.ZERO) <= 0) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("Khóa học này miễn phí, không cần thanh toán"));
+        BigDecimal serverPrice = resolvePrice(course);
+        String ipAddress = VnPayUtil.getClientIp(httpRequest);
+
+        var result = createVnPayUrlUseCase.execute(
+                currentUser.getId(), courseId, serverPrice, course.getTitle(), ipAddress);
+
+        // Already paid — return existing payment
+        if (result.paymentUrl() == null) {
+            String courseTitle = course.getTitle();
+            return ResponseEntity.ok(ApiResponse.success(
+                    PaymentResponse.from(result.payment(), courseTitle).toMap(), "Đã thanh toán trước đó"));
         }
 
-        // Create PENDING transaction with server-verified price
-        var payment = PaymentTransactionJpaEntity.builder()
-                .studentId(currentUser.getId())
-                .courseId(courseId)
-                .amount(serverPrice)
-                .paymentMethod("VNPAY")
-                .transactionId(UUID.randomUUID().toString())
-                .status(PaymentTransactionJpaEntity.PaymentStatus.PENDING)
-                .build();
-        payment = paymentRepository.save(payment);
-
-        // Generate VNPay redirect URL
-        String ipAddress = VnPayUtil.getClientIp(httpRequest);
-        String orderInfo = "Thanh toan khoa hoc " + course.getTitle();
-        String paymentUrl = paymentGateway.createPaymentUrl(payment.getId(), serverPrice, orderInfo, ipAddress);
-
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("paymentUrl", paymentUrl);
-        result.put("transactionId", payment.getTransactionId());
-
-        log.info("[VNPay] Created payment URL for course {} ({}đ), txn: {}",
-                courseId, serverPrice, payment.getTransactionId());
-        return ResponseEntity.ok(ApiResponse.success(result, "URL thanh toán VNPay đã được tạo"));
+        Map<String, Object> responseMap = new LinkedHashMap<>();
+        responseMap.put("paymentUrl", result.paymentUrl());
+        responseMap.put("transactionId", result.payment().getTransactionId());
+        return ResponseEntity.ok(ApiResponse.success(responseMap, "URL thanh toán VNPay đã được tạo"));
     }
 
     @Operation(summary = "VNPay IPN callback (server-to-server)")
@@ -293,101 +291,18 @@ public class PaymentControllerV3 {
     public ResponseEntity<Map<String, String>> vnpayIpn(@RequestParam Map<String, String> params) {
         log.info("[VNPay IPN] Received callback: txnRef={}", params.get("vnp_TxnRef"));
 
-        // Step 1: Verify checksum
-        if (!paymentGateway.verifyCallback(params)) {
-            log.warn("[VNPay IPN] Invalid checksum for txnRef={}", params.get("vnp_TxnRef"));
-            return ResponseEntity.ok(Map.of("RspCode", "97", "Message", "Invalid Checksum"));
-        }
-
-        // Step 2: Find payment
-        String txnRef = params.get("vnp_TxnRef");
-        if (txnRef == null) {
-            return ResponseEntity.ok(Map.of("RspCode", "01", "Message", "Order not found"));
-        }
-
-        UUID paymentId;
         try {
-            paymentId = UUID.fromString(txnRef);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.ok(Map.of("RspCode", "01", "Message", "Invalid TxnRef"));
-        }
+            var result = processVnPayIpnUseCase.execute(params);
 
-        var paymentOpt = paymentRepository.findById(paymentId);
-        if (paymentOpt.isEmpty()) {
-            return ResponseEntity.ok(Map.of("RspCode", "01", "Message", "Order not found"));
-        }
-
-        var payment = paymentOpt.get();
-
-        // Step 3: Idempotency — already processed
-        if (payment.getStatus() == PaymentTransactionJpaEntity.PaymentStatus.COMPLETED) {
-            return ResponseEntity.ok(Map.of("RspCode", "02", "Message", "Order already confirmed"));
-        }
-
-        // P1 FIX: State guard — only PENDING payments can be processed
-        if (payment.getStatus() != PaymentTransactionJpaEntity.PaymentStatus.PENDING) {
-            log.warn("[VNPay IPN] Payment {} is in {} state, cannot process IPN",
-                    paymentId, payment.getStatus());
-            return ResponseEntity.ok(Map.of("RspCode", "02", "Message", "Order already processed"));
-        }
-
-        // P0 FIX: Validate amount — vnp_Amount must match stored amount
-        String vnpAmountStr = params.get("vnp_Amount");
-        if (vnpAmountStr != null) {
-            try {
-                // VNPay sends amount × 100 (no decimals)
-                BigDecimal vnpAmount = new BigDecimal(vnpAmountStr).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-                if (vnpAmount.compareTo(payment.getAmount()) != 0) {
-                    log.error("[VNPay IPN] Amount mismatch for payment {}: expected {}đ, received {}đ",
-                            paymentId, payment.getAmount(), vnpAmount);
-                    payment.setStatus(PaymentTransactionJpaEntity.PaymentStatus.FAILED);
-                    payment.setVnpResponseCode("04");
-                    paymentRepository.save(payment);
-                    return ResponseEntity.ok(Map.of("RspCode", "04", "Message", "Invalid Amount"));
-                }
-            } catch (NumberFormatException e) {
-                log.error("[VNPay IPN] Invalid vnp_Amount format: {}", vnpAmountStr);
-                return ResponseEntity.ok(Map.of("RspCode", "04", "Message", "Invalid Amount"));
+            // If payment completed successfully, auto-enroll + send email
+            if (result.payment() != null && result.payment().isCompleted()) {
+                autoEnrollStudent(result.payment().getStudentId(), result.payment().getCourseId());
+                sendPaymentEmails(result.payment());
             }
-        }
 
-        // Step 4: Update VNPay metadata
-        String responseCode = params.get("vnp_ResponseCode");
-        String transactionStatus = params.get("vnp_TransactionStatus");
-        payment.setVnpTransactionNo(params.get("vnp_TransactionNo"));
-        payment.setVnpBankCode(params.get("vnp_BankCode"));
-        payment.setVnpResponseCode(responseCode);
-        payment.setVnpCardType(params.get("vnp_CardType"));
-
-        // P1 FIX: Check BOTH responseCode AND transactionStatus
-        boolean isSuccess = "00".equals(responseCode) && "00".equals(transactionStatus);
-
-        try {
-            if (isSuccess) {
-                payment.setStatus(PaymentTransactionJpaEntity.PaymentStatus.COMPLETED);
-                payment.setPaidAt(Instant.now());
-                paymentRepository.save(payment);
-
-                // Auto-enroll student
-                autoEnrollStudent(payment.getStudentId(), payment.getCourseId());
-
-                // Send email notifications
-                sendPaymentEmails(payment);
-
-                log.info("[VNPay IPN] Payment completed: {} (bank={}, txnNo={})",
-                        paymentId, params.get("vnp_BankCode"), params.get("vnp_TransactionNo"));
-                return ResponseEntity.ok(Map.of("RspCode", "00", "Message", "Confirm Success"));
-            } else {
-                payment.setStatus(PaymentTransactionJpaEntity.PaymentStatus.FAILED);
-                paymentRepository.save(payment);
-
-                log.info("[VNPay IPN] Payment failed: {} (responseCode={}, txnStatus={})",
-                        paymentId, responseCode, transactionStatus);
-                return ResponseEntity.ok(Map.of("RspCode", "00", "Message", "Confirm Success"));
-            }
+            return ResponseEntity.ok(Map.of("RspCode", result.rspCode(), "Message", result.message()));
         } catch (OptimisticLockingFailureException e) {
-            // Concurrent IPN: another request already processed this payment
-            log.warn("[VNPay IPN] Optimistic lock conflict for payment {} — already processed by another IPN", paymentId);
+            log.warn("[VNPay IPN] Optimistic lock conflict — already processed by another IPN");
             return ResponseEntity.ok(Map.of("RspCode", "02", "Message", "Order already processed"));
         }
     }
@@ -395,23 +310,130 @@ public class PaymentControllerV3 {
     @Operation(summary = "VNPay return URL (browser redirect)")
     @GetMapping("/vnpay-return")
     public ResponseEntity<Void> vnpayReturn(@RequestParam Map<String, String> params) {
-        // Always redirect to FE callback page for SERVER-SIDE verification.
-        // Never redirect directly to success — IPN is the authoritative source.
         String txnRef = params.get("vnp_TxnRef");
         String vnpTxnNo = params.get("vnp_TransactionNo");
 
-        String redirectUrl = "/payment/callback/vnpay?vnp_TxnRef=" + (txnRef != null ? txnRef : "")
-                + "&vnp_TransactionNo=" + (vnpTxnNo != null ? vnpTxnNo : "");
+        String redirectUrl = "/payment/callback/vnpay?vnp_TxnRef="
+                + java.net.URLEncoder.encode(txnRef != null ? txnRef : "", java.nio.charset.StandardCharsets.UTF_8)
+                + "&vnp_TransactionNo="
+                + java.net.URLEncoder.encode(vnpTxnNo != null ? vnpTxnNo : "", java.nio.charset.StandardCharsets.UTF_8);
 
         return ResponseEntity.status(302)
                 .header("Location", redirectUrl)
                 .build();
     }
 
+    // ==================== Admin Endpoints ====================
+
+    @Operation(summary = "Admin: list all payments (paginated)")
+    @GetMapping("/admin/all")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN')")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> adminListPayments(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String status
+    ) {
+        var pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+
+        Page<PaymentTransactionJpaEntity> payments;
+        if (status != null && !status.isBlank()) {
+            try {
+                var paymentStatus = PaymentTransactionJpaEntity.PaymentStatus.valueOf(status);
+                payments = paymentJpaRepository.findByStatus(paymentStatus, pageable);
+            } catch (IllegalArgumentException e) {
+                payments = paymentJpaRepository.findAll(pageable);
+            }
+        } else {
+            payments = paymentJpaRepository.findAll(pageable);
+        }
+
+        // Batch-load student names + course titles
+        var studentIds = payments.getContent().stream().map(PaymentTransactionJpaEntity::getStudentId).distinct().toList();
+        var studentNames = new HashMap<UUID, String>();
+        if (!studentIds.isEmpty()) {
+            userRepository.findAllById(studentIds).forEach(u -> studentNames.put(u.getId(), u.getFullName()));
+        }
+        var courseIds = payments.getContent().stream().map(PaymentTransactionJpaEntity::getCourseId).distinct().toList();
+        var courseTitles = new HashMap<UUID, String>();
+        if (!courseIds.isEmpty()) {
+            courseRepository.findAllById(courseIds).forEach(c -> courseTitles.put(c.getId(), c.getTitle()));
+        }
+
+        List<Map<String, Object>> content = payments.getContent().stream().map(p -> {
+            Map<String, Object> map = new LinkedHashMap<>();
+            map.put("id", p.getId().toString());
+            map.put("courseId", p.getCourseId().toString());
+            map.put("courseTitle", courseTitles.get(p.getCourseId()));
+            map.put("amount", p.getAmount());
+            map.put("currency", p.getCurrency());
+            map.put("status", p.getStatus().name());
+            map.put("transactionId", p.getTransactionId());
+            map.put("paymentMethod", p.getPaymentMethod());
+            map.put("paidAt", p.getPaidAt() != null ? p.getPaidAt().toString() : null);
+            map.put("createdAt", p.getCreatedAt() != null ? p.getCreatedAt().toString() : null);
+            map.put("studentName", studentNames.getOrDefault(p.getStudentId(), "—"));
+            map.put("studentId", p.getStudentId().toString());
+            map.put("refundStatus", p.getRefundStatus());
+            return map;
+        }).toList();
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("content", content);
+        result.put("totalElements", payments.getTotalElements());
+        result.put("totalPages", payments.getTotalPages());
+        result.put("page", page);
+        result.put("size", size);
+        return ResponseEntity.ok(ApiResponse.success(result, "Danh sách giao dịch"));
+    }
+
+    @Operation(summary = "Admin: process refund for a payment")
+    @PostMapping("/admin/{paymentId}/refund")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN')")
+    @Transactional
+    public ResponseEntity<ApiResponse<Map<String, Object>>> adminRefundPayment(
+            @AuthenticationPrincipal UserJpaEntity currentUser,
+            @PathVariable UUID paymentId,
+            @Valid @RequestBody RefundRequest request
+    ) {
+        var payment = refundPaymentUseCase.execute(
+                paymentId, request.reason(), request.adminNote(), currentUser.getEmail());
+
+        String courseTitle = courseRepository.findById(payment.getCourseId())
+                .map(CourseJpaEntity::getTitle).orElse(null);
+
+        // Revoke enrollment to remove course access
+        enrollmentJpaRepository.findByStudentIdAndCourseId(payment.getStudentId(), payment.getCourseId())
+                .ifPresent(enrollment -> {
+                    enrollment.setStatus(com.example.lms.learning_delivery.infrastructure.persistence.entity.EnrollmentJpaEntity.EnrollmentStatus.DROPPED);
+                    enrollmentJpaRepository.save(enrollment);
+                    log.info("[Refund] Revoked enrollment for student {} course {}", payment.getStudentId(), payment.getCourseId());
+                });
+
+        // Send refund notification email
+        sendRefundEmail(payment, courseTitle, request.reason());
+
+        return ResponseEntity.ok(ApiResponse.success(
+                PaymentResponse.from(payment, courseTitle).toMap(),
+                "Hoàn tiền thành công. Vui lòng xử lý hoàn tiền qua VNPay merchant dashboard."));
+    }
+
     // ==================== Helpers ====================
 
     private boolean isProductionProfile() {
         return Arrays.asList(environment.getActiveProfiles()).contains("prod");
+    }
+
+    private BigDecimal getServerPrice(UUID courseId) {
+        CourseJpaEntity course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new IllegalArgumentException("Khóa học không tồn tại: " + courseId));
+        return resolvePrice(course);
+    }
+
+    private BigDecimal resolvePrice(CourseJpaEntity course) {
+        if (course.getSalePrice() != null && course.getSalePrice().compareTo(BigDecimal.ZERO) > 0) {
+            return course.getSalePrice();
+        }
+        return course.getPrice() != null ? course.getPrice() : BigDecimal.ZERO;
     }
 
     private void autoEnrollStudent(UUID studentId, UUID courseId) {
@@ -423,17 +445,34 @@ public class PaymentControllerV3 {
         }
     }
 
-    private void sendPaymentEmails(PaymentTransactionJpaEntity payment) {
+    private void sendRefundEmail(PaymentTransaction payment, String courseTitle, String reason) {
+        try {
+            var userOpt = userRepository.findById(payment.getStudentId());
+            if (userOpt.isPresent()) {
+                var student = userOpt.get();
+                emailService.sendRefundNotification(
+                        student.getEmail(), student.getFullName(),
+                        courseTitle != null ? courseTitle : "Khóa học",
+                        payment.getAmount(), reason, payment.getTransactionId()
+                );
+            }
+        } catch (Exception e) {
+            log.error("[Refund] Failed to send refund email: {}", e.getMessage());
+        }
+    }
+
+    private void sendPaymentEmails(PaymentTransaction payment) {
         try {
             var userOpt = userRepository.findById(payment.getStudentId());
             if (userOpt.isPresent()) {
                 var user = userOpt.get();
+                String courseName = courseRepository.findById(payment.getCourseId())
+                        .map(CourseJpaEntity::getTitle).orElse("Khóa học");
                 emailService.sendPaymentReceipt(
-                        user.getEmail(),
-                        user.getFullName(),
-                        "Khóa học LMS",
-                        payment.getAmount(),
-                        payment.getTransactionId()
+                        user.getEmail(), user.getFullName(), courseName,
+                        payment.getAmount(), payment.getTransactionId(),
+                        payment.getPaymentMethod(),
+                        payment.getPaidAt() != null ? payment.getPaidAt().toString() : null
                 );
             }
         } catch (Exception e) {
@@ -441,32 +480,24 @@ public class PaymentControllerV3 {
         }
     }
 
-    private Map<String, Object> toPaymentMap(PaymentTransactionJpaEntity p) {
-        Map<String, Object> map = new LinkedHashMap<>();
-        map.put("id", p.getId().toString());
-        map.put("courseId", p.getCourseId().toString());
-        map.put("amount", p.getAmount());
-        map.put("currency", p.getCurrency());
-        map.put("status", p.getStatus().name());
-        map.put("transactionId", p.getTransactionId());
-        map.put("paymentMethod", p.getPaymentMethod());
-        map.put("paidAt", p.getPaidAt() != null ? p.getPaidAt().toString() : null);
-        map.put("createdAt", p.getCreatedAt() != null ? p.getCreatedAt().toString() : null);
-        return map;
-    }
-
     // ==================== Request DTOs ====================
 
     public record CheckoutRequest(
-        @NotBlank(message = "Mã khóa học không được để trống")
-        String courseId,
-        Double amount,
-        String paymentMethod
+            @NotBlank(message = "Mã khóa học không được để trống")
+            String courseId,
+            Double amount,
+            String paymentMethod
     ) {}
 
     public record VnPayCreateRequest(
-        @NotNull(message = "Mã khóa học không được để trống")
-        UUID courseId,
-        BigDecimal amount // Ignored — server uses course price from DB
+            @NotNull(message = "Mã khóa học không được để trống")
+            UUID courseId,
+            BigDecimal amount
+    ) {}
+
+    public record RefundRequest(
+            @NotBlank(message = "Lý do hoàn tiền không được để trống")
+            String reason,
+            String adminNote
     ) {}
 }

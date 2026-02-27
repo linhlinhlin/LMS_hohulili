@@ -1,3 +1,9 @@
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
 spring:
   config:
     activate:
@@ -98,7 +104,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus
+        include: health,info
   endpoint:
     health:
       show-details: when-authorized
@@ -112,4 +118,7 @@ logging:
     root: WARN
     com.example.lms: INFO
     org.hibernate.SQL: WARN
+    org.hibernate.orm.jdbc.bind: WARN
+    org.springframework.orm.jpa: WARN
+    org.springframework.transaction: WARN
     org.springframework.security: WARN

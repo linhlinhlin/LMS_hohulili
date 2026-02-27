@@ -76,7 +76,23 @@ export class AuthService {
   }
 
   register(userData: any): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(AUTH_ENDPOINTS.REGISTER, userData);
+    return this.http.post<ApiResponse<AuthResponse>>(AUTH_ENDPOINTS.REGISTER, userData).pipe(
+      map(response => {
+        if (!response.success || !response.data) {
+          throw new Error(response.message || 'Registration failed');
+        }
+        return response.data;
+      }),
+      tap(data => {
+        if (data.accessToken) {
+          this.setTokens(data.accessToken, data.refreshToken);
+          this.setUser(data.user);
+          const normalizedUser = { ...data.user, role: data.user.role?.toLowerCase() || '' };
+          this.currentUserSubject.next(normalizedUser);
+          this._currentUser.set(normalizedUser);
+        }
+      })
+    );
   }
 
   loginAsDemo(role: string): Observable<AuthResponse> {

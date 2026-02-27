@@ -88,9 +88,31 @@ public final class EmailTemplates {
         return wrap("Xác nhận email", body);
     }
 
-    public static String paymentReceipt(String fullName, String courseName, BigDecimal amount, String txnId) {
+    public static String refundNotification(String fullName, String courseName, BigDecimal amount,
+                                              String reason, String transactionId) {
         NumberFormat nf = NumberFormat.getInstance(new Locale("vi", "VN"));
         String formattedAmount = nf.format(amount) + "₫";
+
+        String body = """
+            <p style="color:#475569;line-height:1.6;margin:0 0 16px">Xin chào <strong>%s</strong>,</p>
+            <p style="color:#475569;line-height:1.6;margin:0 0 24px">Giao dịch thanh toán của bạn đã được hoàn tiền. Dưới đây là chi tiết:</p>
+            <table width="100%%" cellpadding="8" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:8px;margin:0 0 24px">
+              <tr style="background:#f8fafc"><td style="font-weight:600;color:#475569;border-bottom:1px solid #e2e8f0">Khóa học</td><td style="color:#1e293b;border-bottom:1px solid #e2e8f0">%s</td></tr>
+              <tr><td style="font-weight:600;color:#475569;border-bottom:1px solid #e2e8f0">Số tiền hoàn</td><td style="color:#dc2626;font-weight:600;border-bottom:1px solid #e2e8f0">%s</td></tr>
+              <tr style="background:#f8fafc"><td style="font-weight:600;color:#475569;border-bottom:1px solid #e2e8f0">Lý do</td><td style="color:#1e293b;border-bottom:1px solid #e2e8f0">%s</td></tr>
+              <tr><td style="font-weight:600;color:#475569">Mã giao dịch</td><td style="color:#1e293b;font-family:monospace">%s</td></tr>
+            </table>
+            <p style="color:#475569;line-height:1.6;margin:0 0 16px">Quyền truy cập khóa học của bạn đã bị thu hồi. Số tiền sẽ được hoàn trả qua phương thức thanh toán ban đầu trong vòng 5-10 ngày làm việc.</p>
+            <p style="color:#94a3b8;font-size:13px;margin:0">Nếu bạn có thắc mắc, vui lòng liên hệ support@holilihu.online.</p>
+            """.formatted(fullName, courseName, formattedAmount, reason != null ? reason : "—", transactionId);
+        return wrap("Thông báo hoàn tiền", body);
+    }
+
+    public static String paymentReceipt(String fullName, String courseName, BigDecimal amount,
+                                         String txnId, String paymentMethod, String paidAt) {
+        NumberFormat nf = NumberFormat.getInstance(new Locale("vi", "VN"));
+        String formattedAmount = nf.format(amount) + "₫";
+        String methodLabel = "VNPAY".equals(paymentMethod) ? "VNPay" : (paymentMethod != null ? paymentMethod : "—");
 
         String body = """
             <p style="color:#475569;line-height:1.6;margin:0 0 16px">Xin chào <strong>%s</strong>,</p>
@@ -98,10 +120,12 @@ public final class EmailTemplates {
             <table width="100%%" cellpadding="8" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:8px;margin:0 0 24px">
               <tr style="background:#f8fafc"><td style="font-weight:600;color:#475569;border-bottom:1px solid #e2e8f0">Khóa học</td><td style="color:#1e293b;border-bottom:1px solid #e2e8f0">%s</td></tr>
               <tr><td style="font-weight:600;color:#475569;border-bottom:1px solid #e2e8f0">Số tiền</td><td style="color:#1e293b;font-weight:600;border-bottom:1px solid #e2e8f0">%s</td></tr>
+              <tr style="background:#f8fafc"><td style="font-weight:600;color:#475569;border-bottom:1px solid #e2e8f0">Phương thức</td><td style="color:#1e293b;border-bottom:1px solid #e2e8f0">%s</td></tr>
+              <tr><td style="font-weight:600;color:#475569;border-bottom:1px solid #e2e8f0">Ngày thanh toán</td><td style="color:#1e293b;border-bottom:1px solid #e2e8f0">%s</td></tr>
               <tr style="background:#f8fafc"><td style="font-weight:600;color:#475569">Mã giao dịch</td><td style="color:#1e293b;font-family:monospace">%s</td></tr>
             </table>
-            <p style="color:#94a3b8;font-size:13px;margin:0">Vui lòng giữ email này làm biên lai thanh toán.</p>
-            """.formatted(fullName, courseName, formattedAmount, txnId);
+            <p style="color:#94a3b8;font-size:13px;margin:0">Vui lòng giữ email này làm biên lai thanh toán. Chính sách hoàn tiền: trong vòng 7 ngày, học chưa quá 30%% nội dung.</p>
+            """.formatted(fullName, courseName, formattedAmount, methodLabel, paidAt != null ? paidAt : "—", txnId);
         return wrap("Biên lai thanh toán", body);
     }
 }

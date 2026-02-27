@@ -1,5 +1,5 @@
 import { Component, OnInit, inject, signal, viewChild, ChangeDetectionStrategy } from '@angular/core';
-import { forkJoin } from 'rxjs';
+import { forkJoin, take } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 
 import { ActivatedRoute, Router } from '@angular/router';
@@ -103,14 +103,12 @@ export class LessonQuizCreateComponent implements OnInit {
     sectionId = signal<string | null>(null);
 
     ngOnInit() {
-        this.route.params.subscribe(params => {
+        this.route.params.pipe(take(1)).subscribe(params => {
             const sectionIdParam = params['sectionId'];
             const lessonIdParam = params['lessonId'];
 
             if (sectionIdParam) {
                 this.sectionId.set(sectionIdParam);
-                // Update: If we have Section ID, we must also stop loading and fetch questions
-                // Since we don't have separate loadSectionData yet, we just open the form
                 this.isLoading.set(false);
                 this.loadQuestionsInBackground();
             }

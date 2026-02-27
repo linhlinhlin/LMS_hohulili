@@ -161,6 +161,13 @@ export const routes: Routes = [
     loadChildren: () => import('./features/payment/payment.routes').then(m => m.paymentRoutes),
   },
 
+  // Refund Policy (public, required by Vietnamese Consumer Protection Law 19/2023/QH15)
+  {
+    path: 'refund-policy',
+    loadComponent: () => import('./features/payment/refund-policy.component').then(m => m.RefundPolicyComponent),
+    title: 'Chính sách hoàn tiền - LMS Maritime'
+  },
+
 
   // ========================================
   // OFFLINE ROUTE
