@@ -55,114 +55,22 @@
   </div>
   }
 
-  <!-- Content Area -->
-  <div class="max-w-5xl mx-auto w-full px-4 md:px-8 pt-4">
-
-    <!-- Pill Tabs -->
-    <div class="flex justify-center border-b border-gray-200 pb-0 mb-6">
-      <div class="flex gap-2 p-1 bg-gray-50/50 rounded-full border border-gray-100">
-        <button class="px-6 py-1.5 rounded-full text-sm transition-all"
-          (click)="activeTab.set('overview')"
-          [class.bg-[#0056D2]]="activeTab() === 'overview'"
-          [class.text-white]="activeTab() === 'overview'"
-          [class.font-semibold]="activeTab() === 'overview'"
-          [class.shadow-sm]="activeTab() === 'overview'"
-          [class.text-slate-600]="activeTab() !== 'overview'"
-          [class.font-medium]="activeTab() !== 'overview'"
-          [class.hover:bg-gray-100]="activeTab() !== 'overview'">
-          Tổng quan
-        </button>
-        <button class="px-6 py-1.5 rounded-full text-sm transition-all"
-          (click)="activeTab.set('materials')"
-          [class.bg-[#0056D2]]="activeTab() === 'materials'"
-          [class.text-white]="activeTab() === 'materials'"
-          [class.font-semibold]="activeTab() === 'materials'"
-          [class.shadow-sm]="activeTab() === 'materials'"
-          [class.text-slate-600]="activeTab() !== 'materials'"
-          [class.font-medium]="activeTab() !== 'materials'"
-          [class.hover:bg-gray-100]="activeTab() !== 'materials'">
-          Tài liệu
-        </button>
-        <button class="px-6 py-1.5 rounded-full text-sm transition-all"
-          (click)="activeTab.set('discussion')"
-          [class.bg-[#0056D2]]="activeTab() === 'discussion'"
-          [class.text-white]="activeTab() === 'discussion'"
-          [class.font-semibold]="activeTab() === 'discussion'"
-          [class.shadow-sm]="activeTab() === 'discussion'"
-          [class.text-slate-600]="activeTab() !== 'discussion'"
-          [class.font-medium]="activeTab() !== 'discussion'"
-          [class.hover:bg-gray-100]="activeTab() !== 'discussion'">
-          Thảo luận
-        </button>
-      </div>
-    </div>
+  <!-- Reading Area (max-width 800px for optimal reading) -->
+  <div class="max-w-[800px] mx-auto w-full px-4 md:px-8 pt-10">
 
     <!-- Tab: Overview (default) -->
     @if (activeTab() === 'overview') {
 
-    <!-- Section Nav Bar -->
-    @if (hasSections() && lesson().sections && currentSection(); as section) {
-    <div class="flex items-center justify-between py-2 mb-1 border-b border-gray-200">
-      <div class="flex items-center gap-3">
-        <span class="text-[11px] font-bold text-[#0056D2] bg-[#0056D2]/5 px-2 py-0.5 rounded-full whitespace-nowrap tracking-wide">
-          Phần {{ sectionIndex() + 1 }}/{{ lesson().sections!.length }}
-        </span>
-        @if (lesson().sections!.length > 1) {
-        <div class="flex items-center gap-1.5">
-          @for (s of lesson().sections!; track s.id; let i = $index) {
-          <button class="w-2 h-2 rounded-full transition-all"
-            [class.bg-[#0056D2]]="i === sectionIndex()"
-            [class.border-[#0056D2]]="i === sectionIndex()"
-            [class.bg-green-500]="i < sectionIndex()"
-            [class.border-green-500]="i < sectionIndex()"
-            [class.bg-white]="i > sectionIndex()"
-            [class.border-gray-300]="i > sectionIndex()"
-            [class.border-[1.5px]]="true"
-            (click)="selectSection(i)"
-            [attr.aria-label]="'Phần ' + (i + 1)">
-          </button>
-          }
-        </div>
-        }
-      </div>
-      <span class="text-[10px] font-semibold px-2 py-0.5 rounded uppercase tracking-widest"
-        [class.bg-pink-100]="section.type === 'VIDEO'" [class.text-pink-700]="section.type === 'VIDEO'"
-        [class.bg-blue-100]="section.type === 'TEXT'" [class.text-blue-800]="section.type === 'TEXT'"
-        [class.bg-amber-100]="section.type === 'QUIZ'" [class.text-amber-700]="section.type === 'QUIZ'"
-        [class.bg-green-100]="section.type === 'FILE'" [class.text-green-700]="section.type === 'FILE'"
-        [class.bg-indigo-100]="section.type === 'ASSIGNMENT'" [class.text-indigo-700]="section.type === 'ASSIGNMENT'">
-        {{ getSectionTypeLabel(section.type) }}
-      </span>
-    </div>
+    <!-- Lesson Title (clean, no noise) -->
+    @if (hasSections() && currentSection(); as section) {
+    <h1 class="text-2xl md:text-[32px] font-bold text-gray-900 mb-10 leading-tight">
+      {{ lessonNumber() }}: {{ section.title }}
+    </h1>
+    } @else {
+    <h1 class="text-2xl md:text-[32px] font-bold text-gray-900 mb-10 leading-tight">
+      {{ lesson().title }}
+    </h1>
     }
-
-    <!-- Lesson Title + Metadata -->
-    <div class="mb-5 border-b border-gray-100 pb-5">
-      @if (hasSections() && currentSection(); as section) {
-      <h1 class="text-xl md:text-2xl font-bold text-[#0056D2] mb-2 leading-tight">
-        {{ lessonNumber() }}: {{ section.title }}
-      </h1>
-      } @else {
-      <h1 class="text-xl md:text-2xl font-bold text-[#0056D2] mb-2 leading-tight">
-        {{ lesson().title }}
-      </h1>
-      @if (lesson().description) {
-      <p class="text-sm text-slate-500 mt-1">{{ lesson().description }}</p>
-      }
-      }
-      <div class="flex items-center gap-4 text-xs text-slate-500 mt-2">
-        <div class="flex items-center gap-1.5">
-          <div class="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center">
-            <span class="material-symbols-outlined text-slate-400 text-sm">person</span>
-          </div>
-          <span class="font-medium text-slate-700">{{ lesson().courseTitle || 'Giảng viên' }}</span>
-        </div>
-        @if (lesson().durationMinutes) {
-        <span class="text-slate-300">&bull;</span>
-        <span>{{ lesson().durationMinutes }} phút</span>
-        }
-      </div>
-    </div>
 
     <!-- Content Body -->
     @if (currentSection(); as section) {

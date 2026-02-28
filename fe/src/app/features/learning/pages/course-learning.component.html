@@ -146,14 +146,12 @@
             [class.bg-blue-50/50]="currentLesson()?.id === lesson.id && currentSectionIndex() === sectionIndex"
             [class.text-slate-500]="!isSectionCompleted(sectionItem.id) && !(currentLesson()?.id === lesson.id && currentSectionIndex() === sectionIndex)"
             (click)="selectSectionInSidebar(sectionIndex, $event)">
-            @if (sectionItem.type === 'VIDEO') {
-            <span class="material-symbols-outlined text-[14px]">play_circle</span>
-            } @else if (sectionItem.type === 'TEXT') {
-            <span class="material-symbols-outlined text-[14px]">description</span>
-            } @else if (sectionItem.type === 'QUIZ') {
-            <span class="material-symbols-outlined text-[14px]">quiz</span>
+            @if (isSectionCompleted(sectionItem.id)) {
+            <span class="material-symbols-outlined text-[14px] text-green-500">check_circle</span>
+            } @else if (currentLesson()?.id === lesson.id && currentSectionIndex() === sectionIndex) {
+            <span class="material-symbols-outlined text-[14px] text-[#0056D2]">play_circle</span>
             } @else {
-            <span class="material-symbols-outlined text-[14px]">attach_file</span>
+            <span class="material-symbols-outlined text-[14px] text-slate-400">radio_button_unchecked</span>
             }
             <span class="truncate">{{ sectionItem.title }}</span>
           </button>
@@ -180,17 +178,25 @@
   <!-- Main Content Area -->
   <main class="flex-1 flex flex-col h-full relative bg-white overflow-hidden">
 
-    <!-- Breadcrumb (desktop only) -->
-    <div class="hidden md:flex px-6 py-3 items-center text-xs text-slate-500 gap-2 border-b border-gray-100 bg-white shrink-0">
-      <span class="hover:text-[#0056D2] cursor-pointer" (click)="goBack()">Khóa học</span>
-      <span class="material-symbols-outlined text-[10px]">chevron_right</span>
-      @if (filteredSections()[currentChapterIndex()]; as chapter) {
-      <span class="hover:text-[#0056D2] cursor-pointer">{{ chapter.title }}</span>
-      <span class="material-symbols-outlined text-[10px]">chevron_right</span>
-      }
-      @if (currentLesson(); as lesson) {
-      <span class="font-semibold text-[#0056D2]">{{ lesson.title }}</span>
-      }
+    <!-- Top Bar (desktop only, minimal like reference) -->
+    <div class="hidden md:flex h-[52px] items-center justify-between px-6 border-b border-gray-100 bg-white shrink-0">
+      <div></div>
+      <div class="flex items-center gap-5 text-sm text-slate-500 font-medium">
+        <button class="flex items-center gap-1.5 hover:text-[#0056D2] transition-colors"
+          [class.text-[#0056D2]]="activeTab() === 'discussion'"
+          [class.font-semibold]="activeTab() === 'discussion'"
+          (click)="activeTab() === 'discussion' ? activeTab.set('overview') : activeTab.set('discussion')">
+          <span class="material-symbols-outlined text-[18px]">forum</span>
+          <span>Thảo luận</span>
+        </button>
+        <button class="flex items-center gap-1.5 hover:text-[#0056D2] transition-colors"
+          [class.text-[#0056D2]]="activeTab() === 'materials'"
+          [class.font-semibold]="activeTab() === 'materials'"
+          (click)="activeTab() === 'materials' ? activeTab.set('overview') : activeTab.set('materials')">
+          <span class="material-symbols-outlined text-[18px]">download</span>
+          <span>Tài liệu</span>
+        </button>
+      </div>
     </div>
 
     <!-- Scrollable Content -->
