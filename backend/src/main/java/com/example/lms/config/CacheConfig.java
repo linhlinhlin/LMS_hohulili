@@ -10,17 +10,14 @@ import org.springframework.context.annotation.Configuration;
 import java.util.concurrent.TimeUnit;
 
 /**
- * SOTA Caffeine Cache Configuration (Dec 2025)
- * 
- * Following Google/Netflix best practices:
- * - Caffeine is faster than Guava Cache
- * - Adaptive eviction policies (TinyLFU algorithm)
- * - Native Spring Boot 3.x integration
- * 
- * Cache strategy:
- * - categories: Long TTL (1 hour) - rarely changes
- * - courses: Medium TTL (5 min) - frequently accessed
- * - instructors: Medium TTL (10 min) - moderate changes
+ * Caffeine Cache Configuration with per-cache TTL differentiation.
+ *
+ * <ul>
+ *   <li>{@code categories} — 1 hour (rarely changes)</li>
+ *   <li>{@code instructors} — 10 min (moderate changes)</li>
+ *   <li>{@code courses}, {@code courseContent} — 5 min (frequently updated)</li>
+ *   <li>{@code studentEnrollments}, {@code studentProgress} — 2 min (user-specific, freshness matters)</li>
+ * </ul>
  */
 @Configuration
 @EnableCaching
@@ -29,31 +26,28 @@ public class CacheConfig {
     @Bean
     public CacheManager cacheManager() {
         CaffeineCacheManager cacheManager = new CaffeineCacheManager();
-        
-        // Default configuration for all caches
+
+        // Default for any unlisted cache: 5 min, 500 entries
         cacheManager.setCaffeine(Caffeine.newBuilder()
-            // Expire entries after write (TTL)
-            .expireAfterWrite(10, TimeUnit.MINUTES)
-            // Maximum number of entries in cache
-            .maximumSize(1000)
-            // Record cache stats for monitoring via Actuator
+            .expireAfterWrite(5, TimeUnit.MINUTES)
+            .maximumSize(500)
             .recordStats()
-            // Weak values to allow GC if memory pressure
-            // .weakValues() // Uncomment for memory-sensitive environments
         );
-        
-        // Register cache names
-        cacheManager.setCacheNames(java.util.List.of(
-            "categories",           // TTL: 10 min - rarely changes
-            "instructors",          // TTL: 10 min
-            "courses",              // TTL: 10 min
-            "courseContent",        // TTL: 10 min
-            // SOTA: Student-specific caches (Dec 2025)
-            // Pattern from Amazon: Cache user-specific data with shorter TTL
-            "studentEnrollments",   // TTL: 5 min - enrolled courses per student
-            "studentProgress"       // TTL: 5 min - progress per student per course
-        ));
-        
+
+        // Per-cache configuration with differentiated TTLs
+        cacheManager.registerCustomCache("categories",
+            Caffeine.newBuilder().expireAfterWrite(1, TimeUnit.HOURS).maximumSize(200).recordStats().build());
+        cacheManager.registerCustomCache("instructors",
+            Caffeine.newBuilder().expireAfterWrite(10, TimeUnit.MINUTES).maximumSize(500).recordStats().build());
+        cacheManager.registerCustomCache("courses",
+            Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES).maximumSize(1000).recordStats().build());
+        cacheManager.registerCustomCache("courseContent",
+            Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES).maximumSize(1000).recordStats().build());
+        cacheManager.registerCustomCache("studentEnrollments",
+            Caffeine.newBuilder().expireAfterWrite(2, TimeUnit.MINUTES).maximumSize(2000).recordStats().build());
+        cacheManager.registerCustomCache("studentProgress",
+            Caffeine.newBuilder().expireAfterWrite(2, TimeUnit.MINUTES).maximumSize(2000).recordStats().build());
+
         return cacheManager;
     }
 }

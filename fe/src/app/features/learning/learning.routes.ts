@@ -4,8 +4,8 @@ import { enrollmentGuard } from '../../core/guards/enrollment.guard';
 export const learningRoutes: Routes = [
   {
     path: '',
-    loadComponent: () => import('./learning-new.component').then(m => m.LearningNewComponent),
-    title: 'Học tập - LMS Maritime'
+    redirectTo: '/student/dashboard',
+    pathMatch: 'full'
   },
   {
     path: 'select',

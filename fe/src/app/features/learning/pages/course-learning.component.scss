@@ -205,17 +205,14 @@
 
       .search-icon {
         position: absolute;
-        left: 2rem;
+        left: 1.75rem;
         top: 50%;
         transform: translateY(-50%);
         color: #9ca3af;
-        font-size: 1rem;
         pointer-events: none;
         z-index: 1;
-
-        &::before {
-          color: #9ca3af !important;
-        }
+        width: 16px;
+        height: 16px;
       }
 
       .search-input {
@@ -405,7 +402,18 @@
             }
 
             .chapter-progress {
-              display: none; // Hidden: clean look per reference
+              height: 3px;
+              background: #e5e7eb;
+              border-radius: 2px;
+              margin-top: 0.25rem;
+              overflow: hidden;
+
+              .chapter-progress-fill {
+                height: 100%;
+                background: #0056D2;
+                border-radius: 2px;
+                transition: width 0.3s ease;
+              }
             }
           }
 
@@ -464,7 +472,7 @@
                 }
 
                 .lesson-title {
-                  color: #0056D2 !important; // Override completed muting
+                  color: #0056D2;
                   font-weight: 600;
                 }
               }
@@ -509,7 +517,18 @@
                 }
 
                 .lesson-meta {
-                  display: none; // Hidden: reference shows only title
+                  display: flex;
+                  align-items: center;
+                  gap: 0.5rem;
+                  margin-top: 0.125rem;
+                  font-size: 0.7rem;
+                  color: #9ca3af;
+
+                  .section-count,
+                  .lesson-type,
+                  .lesson-duration {
+                    white-space: nowrap;
+                  }
                 }
               }
 
@@ -529,21 +548,21 @@
 
           // Level 3: Section Items under Lesson
           .section-items {
-            list-style: none !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            width: 100% !important;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            width: 100%;
 
             .section-item-wrapper {
-              margin: 0 !important;
-              padding: 0 !important;
-              width: 100% !important;
+              margin: 0;
+              padding: 0;
+              width: 100%;
             }
 
             .section-item {
-              width: calc(100% - 1.5rem) !important;
-              margin: 1px 0.5rem 1px 1rem !important;
-              padding: 0.375rem 0.625rem !important;
+              width: calc(100% - 1.5rem);
+              margin: 1px 0.5rem 1px 1rem;
+              padding: 0.375rem 0.625rem;
               border: none;
               background: transparent;
               text-align: left;
@@ -568,18 +587,19 @@
 
               &.completed {
                 .section-status-icon {
-                  display: flex; // Show micro-checkmark for completed
                   &.completed { color: #16a34a; }
                 }
                 .section-title { color: #6b7280; }
               }
 
               .section-status-icon {
-                display: none; // Hidden by default - shown for completed
+                display: flex;
+                align-items: center;
                 width: 14px;
                 height: 14px;
                 margin-right: 4px;
                 flex-shrink: 0;
+                color: #d1d5db;
 
                 svg { width: 14px; height: 14px; }
               }
@@ -604,6 +624,7 @@
                 flex: 1;
                 display: flex;
                 align-items: center;
+                gap: 0.375rem;
 
                 .section-title {
                   font-size: 0.8rem;
@@ -612,7 +633,20 @@
                 }
 
                 .section-type-badge {
-                  display: none;
+                  font-size: 0.6rem;
+                  font-weight: 600;
+                  padding: 0.1rem 0.35rem;
+                  border-radius: 3px;
+                  text-transform: uppercase;
+                  letter-spacing: 0.03em;
+                  white-space: nowrap;
+                  flex-shrink: 0;
+
+                  &[data-type="VIDEO"] { background: #fce7f3; color: #be185d; }
+                  &[data-type="TEXT"] { background: #dbeafe; color: #003d99; }
+                  &[data-type="QUIZ"] { background: #fef3c7; color: #b45309; }
+                  &[data-type="FILE"] { background: #d1fae5; color: #047857; }
+                  &[data-type="ASSIGNMENT"] { background: #e0e7ff; color: #4338ca; }
                 }
               }
             }
@@ -1070,134 +1104,3 @@
   }
 }
 
-// ========================================
-// LESSON NAVIGATION (Previous / Next Buttons)
-// ========================================
-.lesson-navigation {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 3rem;
-  padding: 2rem 0;
-  border-top: 1px solid #e5e7eb;
-  gap: 1rem;
-
-  .nav-btn {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.875rem 1.5rem;
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    font-weight: 600;
-    color: #4b5563;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-
-    &.prev {
-      padding-left: 1rem; // Less padding on icon side
-    }
-
-    &.next {
-      padding-right: 1rem;
-      background: rgba(0, 86, 210, 0.05);
-      border-color: rgba(0, 86, 210, 0.1);
-      color: #004BB5;
-
-      &:hover:not(:disabled) {
-        background: #0056D2;
-        color: white;
-        border-color: #0056D2;
-        transform: translateY(-2px);
-        box-shadow: 0 8px 16px rgba(0, 86, 210, 0.2);
-      }
-    }
-
-    &:hover:not(:disabled) {
-      background: #f9fafb;
-      border-color: #d1d5db;
-      color: #111827;
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    }
-
-    &:disabled {
-      background: #f3f4f6;
-      border-color: #e5e7eb;
-      color: #9ca3af;
-      cursor: not-allowed;
-      box-shadow: none;
-      transform: none;
-      opacity: 0.7;
-    }
-
-    i {
-      font-size: 1.25rem;
-      transition: transform 0.2s;
-    }
-
-    &.next:hover:not(:disabled) i {
-      transform: translateX(4px);
-    }
-
-    &.prev:hover:not(:disabled) i {
-      transform: translateX(-4px);
-    }
-  }
-
-  .btn-complete {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.875rem 2rem;
-    background: white;
-    border: 2px solid #22c55e;
-    border-radius: 50px;
-    font-weight: 600;
-    color: #22c55e;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-
-    &:hover {
-      background: #f0fdf4;
-      transform: scale(1.02);
-      box-shadow: 0 4px 12px rgba(34, 197, 94, 0.15);
-    }
-
-    &.completed {
-      background: #22c55e;
-      color: white;
-      border-color: #22c55e;
-      box-shadow: 0 4px 12px rgba(34, 197, 94, 0.25);
-
-      &:hover {
-        background: #16a34a;
-        transform: scale(1.05);
-        box-shadow: 0 6px 16px rgba(34, 197, 94, 0.35);
-      }
-    }
-
-    i {
-      font-size: 1.25rem;
-    }
-  }
-
-  // Mobile adjustments
-  @media (max-width: 640px) {
-    flex-direction: column;
-    gap: 1rem;
-
-    .nav-btn,
-    .btn-complete {
-      width: 100%;
-      justify-content: center;
-    }
-
-    .btn-complete {
-      order: -1; // Show complete button first on mobile
-    }
-  }
-}

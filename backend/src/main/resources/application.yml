@@ -82,7 +82,7 @@ wiii:
 # R2 is S3-compatible object storage with zero egress fees
 cloudflare:
   r2:
-    enabled: ${CLOUDFLARE_R2_ENABLED:true}
+    enabled: ${CLOUDFLARE_R2_ENABLED:false}
     account-id: ${CLOUDFLARE_R2_ACCOUNT_ID:}
     access-key: ${CLOUDFLARE_R2_ACCESS_KEY:}
     secret-key: ${CLOUDFLARE_R2_SECRET_KEY:}

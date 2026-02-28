@@ -55,7 +55,7 @@ public class EnrollmentEntityMapper {
             });
         }
 
-        return EnrollmentJpaEntity.builder()
+        EnrollmentJpaEntity entity = EnrollmentJpaEntity.builder()
                 .id(domain.getId())
                 .learningClass(learningClassEntity)
                 .studentId(domain.getStudentId())
@@ -67,6 +67,11 @@ public class EnrollmentEntityMapper {
                 .joinedAt(domain.getJoinedAt())
                 .lastAccessedAt(domain.getLastAccessedAt())
                 .build();
+        // Carry version for optimistic locking (prevents @Version reset to 0)
+        if (domain.getVersion() != null) {
+            entity.setVersion(domain.getVersion());
+        }
+        return entity;
     }
 
     /**
@@ -126,6 +131,7 @@ public class EnrollmentEntityMapper {
                 .enrolledAt(entity.getEnrolledAt())
                 .joinedAt(entity.getJoinedAt())
                 .lastAccessedAt(entity.getLastAccessedAt())
+                .version(entity.getVersion())
                 .build();
     }
 }

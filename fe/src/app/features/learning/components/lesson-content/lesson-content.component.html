@@ -12,9 +12,9 @@
           [sectionId]="section.id" />
         } @else {
         <video [src]="getVideoSrc(section.videoUrl)" controls controlsList="nodownload" class="video-player"
-          (play)="onVideoPlay()" (pause)="onVideoPause()" (ended)="onVideoEnd()"
+          (ended)="onVideoEnd()"
           (loadedmetadata)="onVideoLoadedMetadata($event)"
-          (timeupdate)="onVideoTimeUpdate($event)" (error)="onVideoError($event)">
+          (timeupdate)="onVideoTimeUpdate($event)">
           Trình duyệt của bạn không hỗ trợ video.
         </video>
         }
@@ -29,7 +29,7 @@
           @if (videoCompleted()) {
           <span class="progress-complete">Hoàn thành</span>
           } @else {
-          <span class="progress-remaining">Cần 90% để tiếp tục</span>
+          <span class="progress-remaining">Cần 50% để tiếp tục</span>
           }
         </div>
       </div>
@@ -49,9 +49,9 @@
       } @else {
       <video [src]="getVideoSrc(lesson().videoUrl)" [poster]="lesson().thumbnail" controls controlsList="nodownload"
         class="video-player"
-        (play)="onVideoPlay()" (pause)="onVideoPause()" (ended)="onVideoEnd()"
+        (ended)="onVideoEnd()"
         (loadedmetadata)="onVideoLoadedMetadata($event)"
-        (timeupdate)="onVideoTimeUpdate($event)" (error)="onVideoError($event)">
+        (timeupdate)="onVideoTimeUpdate($event)">
         Trình duyệt của bạn không hỗ trợ video.
       </video>
       }

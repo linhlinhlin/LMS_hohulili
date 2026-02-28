@@ -35,6 +35,10 @@ public class UpdateAssignmentUseCaseV3 {
 
         assignment.updateInfo(command.title(), command.description(), command.instructions());
 
+        if (command.maxScore() != null) {
+            assignment.setMaxScore(command.maxScore());
+        }
+
         if (command.dueDate() != null) {
             try {
                 assignment.setDueDate(Instant.parse(command.dueDate()));

@@ -43,10 +43,6 @@ public class BookmarkControllerV3 {
             @AuthenticationPrincipal UserJpaEntity currentUser,
             @RequestParam(required = false) UUID courseId) {
 
-        if (currentUser == null) {
-            return ResponseEntity.status(401).body(ApiResponse.error("Không được phép truy cập"));
-        }
-
         List<Bookmark> bookmarks;
         if (courseId != null) {
             bookmarks = bookmarkRepository.findByUserIdAndCourseId(currentUser.getId(), courseId);
@@ -70,10 +66,6 @@ public class BookmarkControllerV3 {
     public ResponseEntity<ApiResponse<Map<String, Object>>> createBookmark(
             @AuthenticationPrincipal UserJpaEntity currentUser,
             @Valid @RequestBody CreateBookmarkRequest request) {
-
-        if (currentUser == null) {
-            return ResponseEntity.status(401).body(ApiResponse.error("Không được phép truy cập"));
-        }
 
         // Check duplicate
         if (bookmarkRepository.existsByUserIdAndUrl(currentUser.getId(), request.url())) {
@@ -109,22 +101,11 @@ public class BookmarkControllerV3 {
             @PathVariable UUID id,
             @Valid @RequestBody UpdateBookmarkRequest request) {
 
-        if (currentUser == null) {
-            return ResponseEntity.status(401).body(ApiResponse.error("Không được phép truy cập"));
-        }
+        Bookmark bookmark = bookmarkRepository.findById(id)
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Đánh dấu", id));
 
-        Optional<Bookmark> bookmarkOpt = bookmarkRepository.findById(id);
-        if (bookmarkOpt.isEmpty()) {
-            return ResponseEntity.status(404)
-                    .body(ApiResponse.error("Không tìm thấy đánh dấu"));
-        }
-
-        Bookmark bookmark = bookmarkOpt.get();
-
-        // Ownership check
         if (!bookmark.getUserId().equals(currentUser.getId())) {
-            return ResponseEntity.status(403)
-                    .body(ApiResponse.error("Không có quyền cập nhật đánh dấu này"));
+            throw new org.springframework.security.access.AccessDeniedException("Không có quyền cập nhật đánh dấu này");
         }
 
         bookmark.update(
@@ -146,22 +127,11 @@ public class BookmarkControllerV3 {
             @AuthenticationPrincipal UserJpaEntity currentUser,
             @PathVariable UUID id) {
 
-        if (currentUser == null) {
-            return ResponseEntity.status(401).body(ApiResponse.error("Không được phép truy cập"));
-        }
+        Bookmark bookmark = bookmarkRepository.findById(id)
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Đánh dấu", id));
 
-        Optional<Bookmark> bookmarkOpt = bookmarkRepository.findById(id);
-        if (bookmarkOpt.isEmpty()) {
-            return ResponseEntity.status(404)
-                    .body(ApiResponse.error("Không tìm thấy đánh dấu"));
-        }
-
-        Bookmark bookmark = bookmarkOpt.get();
-
-        // Ownership check
         if (!bookmark.getUserId().equals(currentUser.getId())) {
-            return ResponseEntity.status(403)
-                    .body(ApiResponse.error("Không có quyền xóa đánh dấu này"));
+            throw new org.springframework.security.access.AccessDeniedException("Không có quyền xóa đánh dấu này");
         }
 
         bookmarkRepository.deleteById(id);

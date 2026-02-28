@@ -6,56 +6,65 @@ export const studentSidebarConfig: SidebarConfig = {
   role: 'student',
   title: 'Cổng Học viên',
   logoIcon: 'courses',
-  showProgress: true,
-  progressValue: 75,
-  progressLabel: 'Tiến độ học tập',
   menuItems: [
+    // — Học tập —
     {
       label: 'Trang chủ',
       route: '/student',
       icon: 'home',
-      exact: true
+      exact: true,
+      group: 'Học tập'
     },
     {
       label: 'Khóa học của tôi',
       route: '/student/my-courses',
-      icon: 'courses'
+      icon: 'courses',
+      group: 'Học tập'
     },
     {
       label: 'Bài tập của tôi',
       route: '/student/assignments',
-      icon: 'blog'
+      icon: 'blog',
+      group: 'Học tập'
     },
+    {
+      label: 'Khám phá',
+      route: '/student/browse',
+      icon: 'search',
+      group: 'Học tập'
+    },
+    // — Công cụ —
     {
       label: 'Tin nhắn',
       route: '/student/messages',
-      icon: 'mail'
+      icon: 'mail',
+      group: 'Công cụ'
     },
     {
       label: 'Trợ Lý AI',
       route: '/student/ai-chat',
       icon: 'globe',
-      badge: 'NEW'
+      badge: 'NEW',
+      group: 'Công cụ'
     },
+    // — Tài khoản —
     {
       label: 'Phân tích',
       route: '/student/analytics',
-      icon: 'bar-chart'
+      icon: 'bar-chart',
+      group: 'Tài khoản'
     },
     {
       label: 'Bảng điểm',
       route: '/student/grades',
-      icon: 'check'
+      icon: 'check',
+      group: 'Tài khoản'
     },
     {
       label: 'Lịch sử thanh toán',
       route: '/student/payments',
-      icon: 'briefcase'
-    },
-    {
-      label: 'Khám phá',
-      route: '/student/browse',
-      icon: 'search'
+      icon: 'briefcase',
+      group: 'Tài khoản'
     }
   ]
 };

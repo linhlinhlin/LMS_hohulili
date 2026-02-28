@@ -23,6 +23,7 @@ public class Enrollment {
     private Instant enrolledAt;
     private Instant joinedAt;
     private Instant lastAccessedAt;
+    private Long version;
 
     protected Enrollment() {}
 
@@ -95,6 +96,7 @@ public class Enrollment {
     public Instant getEnrolledAt() { return enrolledAt; }
     public Instant getJoinedAt() { return joinedAt; }
     public Instant getLastAccessedAt() { return lastAccessedAt; }
+    public Long getVersion() { return version; }
 
     // ==================== LessonProgress Value Object ====================
 
@@ -167,6 +169,7 @@ public class Enrollment {
         private Instant enrolledAt;
         private Instant joinedAt;
         private Instant lastAccessedAt;
+        private Long version;
 
         public Builder id(UUID id) { this.id = id; return this; }
         public Builder learningClass(LearningClass learningClass) { this.learningClass = learningClass; return this; }
@@ -178,6 +181,7 @@ public class Enrollment {
         public Builder enrolledAt(Instant enrolledAt) { this.enrolledAt = enrolledAt; return this; }
         public Builder joinedAt(Instant joinedAt) { this.joinedAt = joinedAt; return this; }
         public Builder lastAccessedAt(Instant lastAccessedAt) { this.lastAccessedAt = lastAccessedAt; return this; }
+        public Builder version(Long version) { this.version = version; return this; }
 
         public Enrollment build() {
             Enrollment e = new Enrollment();
@@ -191,6 +195,7 @@ public class Enrollment {
             e.enrolledAt = this.enrolledAt;
             e.joinedAt = this.joinedAt;
             e.lastAccessedAt = this.lastAccessedAt;
+            e.version = this.version;
             return e;
         }
     }

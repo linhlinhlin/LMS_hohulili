@@ -49,7 +49,7 @@ class QuestionBankManagementUseCaseSecurityTest {
 
         var command = new QuestionBankManagementUseCase.UpdateBankCommand("New Name", null, null, null);
 
-        assertThatThrownBy(() -> useCase.updateBank(bankId, command, otherUserId))
+        assertThatThrownBy(() -> useCase.updateBank(bankId, command, otherUserId, false))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("Bạn không sở hữu ngân hàng câu hỏi này");
     }
@@ -64,7 +64,7 @@ class QuestionBankManagementUseCaseSecurityTest {
         when(bank.isOwnedBy(otherUserId)).thenReturn(false);
         when(bankRepository.findById(bankId)).thenReturn(Optional.of(bank));
 
-        assertThatThrownBy(() -> useCase.archiveBank(bankId, otherUserId))
+        assertThatThrownBy(() -> useCase.archiveBank(bankId, otherUserId, false))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("Bạn không sở hữu ngân hàng câu hỏi này");
     }

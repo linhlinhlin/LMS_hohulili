@@ -86,10 +86,10 @@ class MultiTierAdminSecurityTest {
         void orgAdminShouldCreateTeacher() {
             // Given
             var request = new UserControllerV3.CreateUserRequest(
-                    "new@test.com", "New Teacher", "password123", "TEACHER", null
+                    "new@test.com", "New Teacher", "Maritime@2026", "TEACHER", null
             );
             when(userRepository.existsByEmail("new@test.com")).thenReturn(false);
-            when(passwordEncoder.encode("password123")).thenReturn("encoded");
+            when(passwordEncoder.encode("Maritime@2026")).thenReturn("encoded");
             when(userRepository.save(any(UserJpaEntity.class))).thenAnswer(i -> i.getArgument(0));
 
             // When
@@ -105,10 +105,10 @@ class MultiTierAdminSecurityTest {
         void orgAdminShouldCreateStudent() {
             // Given
             var request = new UserControllerV3.CreateUserRequest(
-                    "student@test.com", "New Student", "password123", "STUDENT", null
+                    "student@test.com", "New Student", "Maritime@2026", "STUDENT", null
             );
             when(userRepository.existsByEmail("student@test.com")).thenReturn(false);
-            when(passwordEncoder.encode("password123")).thenReturn("encoded");
+            when(passwordEncoder.encode("Maritime@2026")).thenReturn("encoded");
             when(userRepository.save(any(UserJpaEntity.class))).thenAnswer(i -> i.getArgument(0));
 
             // When
@@ -124,7 +124,7 @@ class MultiTierAdminSecurityTest {
         void orgAdminShouldNotCreateAdmin() {
             // Given
             var request = new UserControllerV3.CreateUserRequest(
-                    "newadmin@test.com", "New Admin", "password123", "ADMIN", null
+                    "newadmin@test.com", "New Admin", "Maritime@2026", "ADMIN", null
             );
 
             // When
@@ -140,7 +140,7 @@ class MultiTierAdminSecurityTest {
         void orgAdminShouldNotCreateOrgAdmin() {
             // Given
             var request = new UserControllerV3.CreateUserRequest(
-                    "neworg@test.com", "New Org Admin", "password123", "ORG_ADMIN", null
+                    "neworg@test.com", "New Org Admin", "Maritime@2026", "ORG_ADMIN", null
             );
 
             // When
@@ -156,10 +156,10 @@ class MultiTierAdminSecurityTest {
         void adminShouldCreateAdmin() {
             // Given
             var request = new UserControllerV3.CreateUserRequest(
-                    "newadmin@test.com", "New Admin", "password123", "ADMIN", null
+                    "newadmin@test.com", "New Admin", "Maritime@2026", "ADMIN", null
             );
             when(userRepository.existsByEmail("newadmin@test.com")).thenReturn(false);
-            when(passwordEncoder.encode("password123")).thenReturn("encoded");
+            when(passwordEncoder.encode("Maritime@2026")).thenReturn("encoded");
             when(userRepository.save(any(UserJpaEntity.class))).thenAnswer(i -> i.getArgument(0));
 
             // When
@@ -175,10 +175,10 @@ class MultiTierAdminSecurityTest {
         void adminShouldCreateOrgAdmin() {
             // Given
             var request = new UserControllerV3.CreateUserRequest(
-                    "neworg@test.com", "New Org Admin", "password123", "ORG_ADMIN", null
+                    "neworg@test.com", "New Org Admin", "Maritime@2026", "ORG_ADMIN", null
             );
             when(userRepository.existsByEmail("neworg@test.com")).thenReturn(false);
-            when(passwordEncoder.encode("password123")).thenReturn("encoded");
+            when(passwordEncoder.encode("Maritime@2026")).thenReturn("encoded");
             when(userRepository.save(any(UserJpaEntity.class))).thenAnswer(i -> i.getArgument(0));
 
             // When

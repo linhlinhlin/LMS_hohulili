@@ -120,7 +120,7 @@ public class QuestionBankControllerV3 {
                 request.name(), request.description(), request.subject(), visibility
         );
 
-        QuestionBank bank = useCase.updateBank(id, command, user.getId());
+        QuestionBank bank = useCase.updateBank(id, command, user.getId(), isAdminRole(user));
         return ResponseEntity.ok(ApiResponse.success(toBankMap(bank), "Cập nhật ngân hàng câu hỏi thành công"));
     }
 
@@ -130,7 +130,7 @@ public class QuestionBankControllerV3 {
     public ResponseEntity<ApiResponse<Void>> archiveBank(
             @PathVariable UUID id,
             @AuthenticationPrincipal UserJpaEntity user) {
-        useCase.archiveBank(id, user.getId());
+        useCase.archiveBank(id, user.getId(), isAdminRole(user));
         return ResponseEntity.ok(ApiResponse.success("Kho câu hỏi đã được lưu trữ"));
     }
 

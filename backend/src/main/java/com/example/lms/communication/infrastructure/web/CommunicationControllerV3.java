@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * V3 Controller for Communication.
@@ -55,8 +56,15 @@ public class CommunicationControllerV3 {
                 ? conversationRepository.findByParticipantId(userId)
                 : conversationRepository.findActiveByParticipantId(userId);
 
+        // Batch-fetch other participant names (avoid N+1)
+        Set<UUID> otherUserIds = conversations.stream()
+                .map(c -> c.getOtherParticipant(userId))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<UUID, String> userNameMap = batchFetchUserNames(otherUserIds);
+
         List<Map<String, Object>> result = conversations.stream()
-                .map(conv -> mapConversation(conv, userId))
+                .map(conv -> mapConversation(conv, userId, userNameMap))
                 .toList();
 
         return ResponseEntity.ok(ApiResponse.success(result, "Danh sách hội thoại"));
@@ -79,8 +87,10 @@ public class CommunicationControllerV3 {
         if (conv.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.success(null, "Không tìm thấy cuộc hội thoại"));
         }
+        UUID otherUserId = conv.get().getOtherParticipant(currentUserId);
+        Map<UUID, String> userNameMap = batchFetchUserNames(Set.of(otherUserId));
         return ResponseEntity.ok(ApiResponse.success(
-                mapConversation(conv.get(), currentUserId), "Thông tin cuộc hội thoại"));
+                mapConversation(conv.get(), currentUserId, userNameMap), "Thông tin cuộc hội thoại"));
     }
 
     @Operation(summary = "Get messages in a conversation")
@@ -91,17 +101,21 @@ public class CommunicationControllerV3 {
     ) {
         // P0-3: Verify user is participant of this conversation
         Conversation conv = conversationRepository.findById(ConversationId.of(conversationId))
-                .orElse(null);
-        if (conv == null) {
-            return ResponseEntity.status(404).body(ApiResponse.error("Không tìm thấy cuộc hội thoại"));
-        }
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Cuộc hội thoại", conversationId));
         if (!conv.hasParticipant(user.getId())) {
-            return ResponseEntity.status(403).body(ApiResponse.error("Bạn không phải thành viên của cuộc hội thoại này"));
+            throw new org.springframework.security.access.AccessDeniedException("Bạn không phải thành viên của cuộc hội thoại này");
         }
 
         List<Message> messages = messageRepository.findByConversationId(ConversationId.of(conversationId));
+
+        // Batch-fetch sender names (avoid N+1)
+        Set<UUID> senderIds = messages.stream()
+                .map(Message::getSenderId)
+                .collect(Collectors.toSet());
+        Map<UUID, String> senderNameMap = batchFetchUserNames(senderIds);
+
         List<Map<String, Object>> result = messages.stream()
-                .map(this::mapMessage)
+                .map(msg -> mapMessage(msg, senderNameMap))
                 .toList();
 
         return ResponseEntity.ok(ApiResponse.success(result, "Danh sách tin nhắn"));
@@ -129,9 +143,10 @@ public class CommunicationControllerV3 {
         );
         UUID messageId = sendMessageUseCase.execute(command);
 
-        // Get real conversation ID
-        Conversation conversation = conversationRepository
+        // Get real conversation ID (sendMessageUseCase always creates/finds conversation)
+        UUID conversationId = conversationRepository
                 .findByParticipants(senderId, request.recipientId())
+                .map(c -> c.getId().value())
                 .orElse(null);
 
         var response = new LinkedHashMap<String, Object>();
@@ -141,7 +156,7 @@ public class CommunicationControllerV3 {
             "senderId", senderId,
             "createdAt", Instant.now()
         ));
-        response.put("conversationId", conversation != null ? conversation.getId().value() : null);
+        response.put("conversationId", conversationId);
 
         return ResponseEntity.ok(ApiResponse.success(response, "Gửi tin nhắn thành công"));
     }
@@ -191,11 +206,9 @@ public class CommunicationControllerV3 {
 
     // ============== Helpers ==============
 
-    private Map<String, Object> mapConversation(Conversation conv, UUID currentUserId) {
+    private Map<String, Object> mapConversation(Conversation conv, UUID currentUserId, Map<UUID, String> userNameMap) {
         UUID otherUserId = conv.getOtherParticipant(currentUserId);
-        String otherUserName = userJpaRepository.findById(otherUserId)
-                .map(UserJpaEntity::getFullName)
-                .orElse("Unknown");
+        String otherUserName = userNameMap.getOrDefault(otherUserId, "Unknown");
 
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("id", conv.getId().value());
@@ -208,10 +221,8 @@ public class CommunicationControllerV3 {
         return map;
     }
 
-    private Map<String, Object> mapMessage(Message msg) {
-        String senderName = userJpaRepository.findById(msg.getSenderId())
-                .map(UserJpaEntity::getFullName)
-                .orElse("Unknown");
+    private Map<String, Object> mapMessage(Message msg, Map<UUID, String> senderNameMap) {
+        String senderName = senderNameMap.getOrDefault(msg.getSenderId(), "Unknown");
 
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("id", msg.getId().value());
@@ -223,6 +234,12 @@ public class CommunicationControllerV3 {
         map.put("createdAt", msg.getCreatedAt());
         map.put("readAt", msg.getReadAt());
         return map;
+    }
+
+    private Map<UUID, String> batchFetchUserNames(Set<UUID> userIds) {
+        if (userIds.isEmpty()) return Map.of();
+        return userJpaRepository.findAllById(userIds).stream()
+                .collect(Collectors.toMap(UserJpaEntity::getId, UserJpaEntity::getFullName));
     }
 
     // ============== Request DTOs ==============

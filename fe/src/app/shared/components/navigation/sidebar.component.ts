@@ -1,4 +1,4 @@
-import { Component, input, signal, computed, inject, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
+import { Component, input, output, signal, computed, inject, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
 
 import { RouterModule, Router, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
@@ -12,6 +12,7 @@ export interface SidebarMenuItem {
   badge?: string | number;
   children?: SidebarMenuItem[];
   exact?: boolean;
+  group?: string;
 }
 
 export interface SidebarConfig {
@@ -20,10 +21,6 @@ export interface SidebarConfig {
   subtitle?: string;
   logoIcon: IconName;
   menuItems: SidebarMenuItem[];
-  showProgress?: boolean;
-  progressValue?: number;
-  progressLabel?: string;
-  collapsible?: boolean;
 }
 
 @Component({
@@ -39,6 +36,8 @@ export class SidebarComponent {
   private router = inject(Router);
 
   config = input.required<SidebarConfig>();
+  collapsed = input(false);
+  toggleCollapse = output<void>();
 
   getSidebarClasses(): string {
     return `sidebar-${this.config().role.toLowerCase()}`;
@@ -48,17 +47,12 @@ export class SidebarComponent {
     return `sidebar-logo-${this.config().role.toLowerCase()}`;
   }
 
-  getProgressTextClass(): string {
-    const progress = this.config().progressValue || 0;
-    if (progress >= 80) return 'text-green-600';
-    if (progress >= 60) return 'text-[#0056D2]';
-    if (progress >= 40) return 'text-yellow-600';
-    return 'text-red-600';
-  }
-
-  getProgressSubtext(): string {
-    // This could be made configurable or computed from actual data
-    return '3 khóa học đang học';
+  shouldShowGroupTitle(index: number): boolean {
+    const items = this.config().menuItems;
+    const item = items[index];
+    if (!item.group) return false;
+    if (index === 0) return true;
+    return item.group !== items[index - 1].group;
   }
 
   getIconClasses(item: SidebarMenuItem): string {

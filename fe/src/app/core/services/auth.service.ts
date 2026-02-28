@@ -95,10 +95,6 @@ export class AuthService {
     );
   }
 
-  loginAsDemo(role: string): Observable<AuthResponse> {
-    return this.login({ email: `demo_${role}@example.com`, password: 'demo123' });
-  }
-
   logout(): void {
     // ✅ FIXED: Specify 'text' response type since backend returns plain text
     // Call backend logout (fire and forget)
@@ -140,17 +136,7 @@ export class AuthService {
       return null;
     }
 
-    // Primary token key
-    let token = localStorage.getItem(this.tokenKey);
-
-    // Fallback to other possible keys if primary is not found
-    if (!token) {
-      token = localStorage.getItem('token') ||
-        localStorage.getItem('access_token') ||
-        localStorage.getItem('auth_token');
-    }
-
-    return token;
+    return localStorage.getItem(this.tokenKey);
   }
 
   private setUser(user: User): void {
@@ -208,12 +194,17 @@ export class AuthService {
     }
 
     const refreshToken = localStorage.getItem(this.refreshTokenKey);
-    return this.http.post<AuthResponse>(AUTH_ENDPOINTS.REFRESH, { refreshToken }).pipe(
-      tap(response => {
-        this.setTokens(response.accessToken, response.refreshToken);
-        this.setUser(response.user);
-        // Normalize role for currentUserSubject too
-        const normalizedUser = { ...response.user, role: response.user.role?.toLowerCase() || '' };
+    return this.http.post<ApiResponse<AuthResponse>>(AUTH_ENDPOINTS.REFRESH, { refreshToken }).pipe(
+      map(response => {
+        if (!response.success || !response.data) {
+          throw new Error(response.message || 'Token refresh failed');
+        }
+        return response.data;
+      }),
+      tap(data => {
+        this.setTokens(data.accessToken, data.refreshToken);
+        this.setUser(data.user);
+        const normalizedUser = { ...data.user, role: data.user.role?.toLowerCase() || '' };
         this.currentUserSubject.next(normalizedUser);
         this._currentUser.set(normalizedUser);
       })

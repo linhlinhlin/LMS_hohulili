@@ -2,6 +2,7 @@ package com.example.lms.identity.infrastructure.web;
 
 import com.example.lms.identity.application.usecase.UpdateUserUseCaseV3;
 import com.example.lms.identity.domain.model.User;
+import com.example.lms.identity.domain.valueobject.PasswordPolicy;
 import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.course_authoring.infrastructure.persistence.JpaCourseRepository;
@@ -125,7 +126,8 @@ public class UserControllerV3 {
     public ResponseEntity<ApiResponse<UserResponse>> getUserById(@PathVariable UUID userId) {
         return userRepository.findById(userId)
                 .map(user -> ResponseEntity.ok(ApiResponse.success(toResponse(user), "Thông tin người dùng")))
-                .orElse(ResponseEntity.notFound().build());
+                .orElseGet(() -> ResponseEntity.status(404)
+                        .body(ApiResponse.error("ENTITY_NOT_FOUND", "Không tìm thấy người dùng")));
     }
 
     @Operation(summary = "Create a new user (admin)")
@@ -145,6 +147,13 @@ public class UserControllerV3 {
         if (userRepository.existsByEmail(request.getEmail())) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("Email đã tồn tại"));
+        }
+
+        // Validate password against NIST policy
+        String passwordError = PasswordPolicy.validate(request.getPassword());
+        if (passwordError != null) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error(passwordError));
         }
 
         String username = (request.getUsername() != null && !request.getUsername().isBlank())

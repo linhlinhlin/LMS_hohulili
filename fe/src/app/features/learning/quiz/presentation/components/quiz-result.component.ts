@@ -292,11 +292,11 @@ export class QuizResultComponent implements OnInit {
 
   retakeQuiz(): void {
     // Navigate back to quiz attempt - in real app would create new attempt
-    this.router.navigate(['/learn/quiz']);
+    this.router.navigate(['/student/quiz']);
   }
 
   goToQuizList(): void {
-    this.router.navigate(['/learn/quiz']);
+    this.router.navigate(['/student/quiz']);
   }
 
   goToDashboard(): void {

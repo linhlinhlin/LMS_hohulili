@@ -38,6 +38,8 @@ class AdminCoursesControllerV3Test {
     @Mock private CategoryJpaRepository categoryRepository;
     @Mock private JpaEnrollmentRepository enrollmentRepository;
     @Mock private PaymentTransactionJpaRepository paymentTransactionRepository;
+    @Mock private com.example.lms.course_authoring.application.usecase.ApproveCourseUseCase approveCourseUseCase;
+    @Mock private com.example.lms.course_authoring.application.usecase.RejectCourseUseCase rejectCourseUseCase;
 
     @InjectMocks private AdminCoursesControllerV3 controller;
 
@@ -179,17 +181,15 @@ class AdminCoursesControllerV3Test {
         }
 
         @Test
-        @DisplayName("Should return 404 when course does not exist")
+        @DisplayName("Should throw EntityNotFoundException when course does not exist")
         void shouldReturn404WhenCourseNotExists() {
             // Given
             java.util.UUID courseId = java.util.UUID.randomUUID();
             when(courseRepository.existsById(courseId)).thenReturn(false);
 
-            // When
-            ResponseEntity<?> response = controller.deleteCourse(courseId);
-
-            // Then
-            assertThat(response.getStatusCode().value()).isEqualTo(404);
+            // When/Then
+            assertThatThrownBy(() -> controller.deleteCourse(courseId))
+                    .isInstanceOf(com.example.lms.shared.exception.EntityNotFoundException.class);
             verify(courseRepository, never()).deleteById(any());
         }
     }

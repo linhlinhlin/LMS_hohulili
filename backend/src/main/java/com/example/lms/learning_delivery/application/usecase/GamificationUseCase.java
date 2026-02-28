@@ -178,13 +178,13 @@ public class GamificationUseCase {
 
     @Transactional
     public void markNotificationRead(UUID notificationId, UUID userId) {
-        notificationRepository.findById(notificationId).ifPresent(n -> {
-            if (!userId.equals(n.getUserId())) {
-                throw new org.springframework.security.access.AccessDeniedException("Thông báo không thuộc về bạn");
-            }
-            n.markAsRead();
-            notificationRepository.save(n);
-        });
+        var n = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Thông báo", notificationId));
+        if (!userId.equals(n.getUserId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Thông báo không thuộc về bạn");
+        }
+        n.markAsRead();
+        notificationRepository.save(n);
     }
 
     @Transactional
@@ -194,12 +194,12 @@ public class GamificationUseCase {
 
     @Transactional
     public void deleteNotification(UUID notificationId, UUID userId) {
-        notificationRepository.findById(notificationId).ifPresent(n -> {
-            if (!userId.equals(n.getUserId())) {
-                throw new org.springframework.security.access.AccessDeniedException("Thông báo không thuộc về bạn");
-            }
-            notificationRepository.deleteById(notificationId);
-        });
+        var n = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Thông báo", notificationId));
+        if (!userId.equals(n.getUserId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Thông báo không thuộc về bạn");
+        }
+        notificationRepository.deleteById(notificationId);
     }
 
     @Transactional(readOnly = true)

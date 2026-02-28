@@ -37,21 +37,21 @@ public class TeacherInvitationControllerV3 {
         List<TeacherInvitationJpaEntity> invitations =
                 invitationRepository.findByInvitedTeacherIdAndStatus(user.getId(), TeacherInvitationJpaEntity.InvitationStatus.PENDING);
 
+        // Batch-fetch course info to prevent N+1
+        Set<UUID> courseIds = invitations.stream().map(TeacherInvitationJpaEntity::getCourseId).collect(java.util.stream.Collectors.toSet());
+        Map<UUID, CourseJpaEntity> courseMap = courseIds.isEmpty() ? Map.of() :
+                courseRepository.findAllById(courseIds).stream()
+                        .collect(java.util.stream.Collectors.toMap(CourseJpaEntity::getId, c -> c));
+
         List<Map<String, Object>> result = invitations.stream()
                 .map(inv -> {
                     Map<String, Object> item = new LinkedHashMap<>();
                     item.put("id", inv.getId().toString());
                     item.put("courseId", inv.getCourseId().toString());
 
-                    // Fetch course info
-                    courseRepository.findById(inv.getCourseId()).ifPresent(course -> {
-                        item.put("courseName", course.getTitle());
-                        item.put("courseThumbnail", course.getThumbnailUrl());
-                    });
-                    if (!item.containsKey("courseName")) {
-                        item.put("courseName", "Khóa học");
-                        item.put("courseThumbnail", null);
-                    }
+                    CourseJpaEntity course = courseMap.get(inv.getCourseId());
+                    item.put("courseName", course != null ? course.getTitle() : "Khóa học");
+                    item.put("courseThumbnail", course != null ? course.getThumbnailUrl() : null);
 
                     item.put("invitedBy", inv.getInvitedById().toString());
                     item.put("invitedByName", "Giảng viên");

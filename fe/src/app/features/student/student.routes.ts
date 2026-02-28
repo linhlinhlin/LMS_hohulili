@@ -36,10 +36,10 @@ export const studentRoutes: Routes = [
         title: 'Chi tiết khóa học'
       },
 
-      // Lesson Viewer - redirect to new learning interface
+      // Lesson Viewer - redirect to my courses
       {
         path: 'lesson-viewer',
-        redirectTo: 'learn',
+        redirectTo: 'my-courses',
         pathMatch: 'full'
       },
       

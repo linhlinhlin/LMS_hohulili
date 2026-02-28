@@ -1,62 +1,42 @@
 <div class="dashboard-container">
-  <!-- Main Column (70%) - Course Feed -->
   <div class="main-column">
     @if (error()) {
-      <div class="error-banner" style="background:#fef2f2;border:1px solid #fecaca;color:#991b1b;padding:12px 16px;border-radius:8px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">
+      <div class="error-banner" style="background:#fef2f2;border:1px solid #fecaca;color:#991b1b;padding:10px 14px;border-radius:8px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;font-size:13px">
         <span>{{ error() }}</span>
-        <button (click)="error.set(null)" style="background:none;border:none;cursor:pointer;font-size:18px">&times;</button>
+        <button (click)="error.set(null)" style="background:none;border:none;cursor:pointer;font-size:16px">&times;</button>
       </div>
     }
-    <!-- Header: Greeting + Career Goal -->
+
+    <!-- Header -->
     <div class="dashboard-header">
       <h1 class="greeting">{{ getGreeting() }}, {{ getUserFirstName() }}</h1>
-      @if (isEditingGoal()) {
-        <div class="career-goal edit-mode">
-          <span>Mục tiêu nghề nghiệp:</span>
-          <input
-            #goalInput
-            type="text"
-            class="goal-input"
-            [value]="careerGoal()"
-            (keydown.enter)="saveGoal(goalInput.value)"
-            (keydown.escape)="isEditingGoal.set(false)"
-            placeholder="Nhập mục tiêu nghề nghiệp..."
-          />
-          <button class="edit-goal-btn" (click)="saveGoal(goalInput.value)">Lưu</button>
-          <button class="edit-goal-btn" (click)="isEditingGoal.set(false)">Hủy</button>
-        </div>
-      } @else {
-        <p class="career-goal">
-          Mục tiêu nghề nghiệp của bạn là phát triển kỹ năng
-          <strong>{{ careerGoal() }}</strong>
-          <button class="edit-goal-btn" (click)="editGoal()">
-            <app-icon name="pencil" size="xs" />
-            Chỉnh sửa mục tiêu
-          </button>
-        </p>
-      }
+      <p class="career-goal">Tiếp tục hành trình học tập hàng hải của bạn hôm nay.</p>
     </div>
 
-    <!-- Continue Where You Left Off - Netflix/Coursera Pattern -->
-    @if (continueData()) {
-    <div class="continue-widget">
-      <div class="continue-content">
-        <div class="continue-icon">
-          <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
-            <path d="M8 5v14l11-7z"/>
+    <!-- Hero Card -->
+    @if (continueCardData(); as card) {
+    <div class="hero-card" (click)="continueLastActivity()">
+      <div class="hero-body">
+        <div class="hero-icon-circle">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+        <div class="hero-info">
+          <div class="hero-label-row">
+            <span class="hero-label">Tiếp tục học</span>
+            <span class="hero-lesson-count">Bài {{ card.completedLessons }}/{{ card.totalLessons }}</span>
+          </div>
+          <h2 class="hero-title">{{ card.courseTitle }}</h2>
+          @if (card.lessonTitle) {
+            <p class="hero-chapter">{{ card.lessonTitle }}</p>
+          }
+        </div>
+        <button class="hero-cta" (click)="continueLastActivity(); $event.stopPropagation()">
+          Tiếp tục bài học
+          <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+            <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
           </svg>
-        </div>
-        <div class="continue-text">
-          <span class="continue-label">Tiếp tục từ chỗ bạn đã dừng</span>
-          <span class="continue-time">Hoạt động lần cuối: {{ getRelativeTime(continueData()!.lastActivityAt) }}</span>
-        </div>
+        </button>
       </div>
-      <button class="continue-btn" (click)="continueLastActivity()">
-        Tiếp tục
-        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-          <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
-        </svg>
-      </button>
     </div>
     }
 
@@ -64,7 +44,7 @@
     <div class="courses-section">
       <div class="section-header">
         <div class="tabs-container" role="tablist">
-          <button 
+          <button
             class="tab-chip"
             [class.active]="activeTab() === 'in-progress'"
             (click)="switchTab('in-progress')"
@@ -73,7 +53,7 @@
             type="button">
             <span class="tab-label">Đang học</span>
           </button>
-          <button 
+          <button
             class="tab-chip"
             [class.active]="activeTab() === 'completed'"
             (click)="switchTab('completed')"
@@ -85,126 +65,105 @@
         </div>
         <a [routerLink]="['/student/my-courses']" class="view-all-link">
           Xem tất cả
-          <app-icon name="arrow-right" size="xs" />
         </a>
       </div>
 
-      <!-- In Progress Tab Content - Empty State -->
+      <!-- In Progress - Empty State -->
       @if (activeTab() === 'in-progress' && recentInProgress().length === 0 && !isLoading()) {
         <div class="empty-state">
           <div class="empty-state-icon">
             <app-icon name="academic-cap" size="lg" />
           </div>
-          <h3 class="empty-state-title">Chưa có khóa học nào</h3>
-          <p class="empty-state-text">Hãy khám phá và đăng ký khóa học để bắt đầu hành trình học tập!</p>
+          <h3 class="empty-state-title">Chưa có khóa học đang học</h3>
+          <p class="empty-state-text">Hãy bắt đầu học một khóa học mới nhé!</p>
           <app-button variant="primary" (clicked)="router.navigate(['/courses'])">
             Khám phá khóa học
           </app-button>
         </div>
       }
 
-      <!-- In Progress Tab Content -->
+      <!-- In Progress - Course Cards -->
       @if (activeTab() === 'in-progress' && recentInProgress().length > 0) {
         <div class="courses-list">
           @for (course of recentInProgress(); track course.id) {
-            <div class="course-card-wrapper">
-              <!-- Course Thumbnail -->
-              <div class="course-thumbnail">
-                @if (course.thumbnail) {
-                  <img [src]="course.thumbnail" [alt]="course.title" class="thumbnail-image" />
-                } @else {
-                  <div class="thumbnail-placeholder">
-                    <app-icon name="academic-cap" size="lg" />
-                  </div>
-                }
-              </div>
-
-              <!-- Course Metadata -->
-              <div class="course-metadata">
-                <div class="partner-info">
-                  <span class="partner-name">{{ course.partner }}</span>
-                </div>
-                <h3 class="course-title">
-                  <a [routerLink]="['/student/course', course.id]">
-                    {{ course.title }}
-                  </a>
-                </h3>
-                <div class="course-meta">
-                  <span>Khóa học</span>
-                  <span class="separator">·</span>
-                  <span>{{ course.progress }}% hoàn thành</span>
-                  @if (course.estimatedCompletion !== 'Completed') {
-                    <span class="separator">·</span>
-                    <span class="estimated">Dự kiến: {{ course.estimatedCompletion }}</span>
+            <div class="course-card">
+              <div class="course-card-body">
+                <div class="course-thumbnail">
+                  @if (course.thumbnail) {
+                    <img [src]="course.thumbnail" [alt]="course.title" class="thumbnail-image" />
+                  } @else {
+                    <div class="thumbnail-placeholder">
+                      <app-icon name="academic-cap" size="lg" />
+                    </div>
                   }
                 </div>
-              </div>
 
-              <!-- Action Buttons -->
-              <div class="action-buttons">
-                <app-button 
-                  variant="primary" 
-                  (clicked)="continueCourse(course.id)">
-                  Tiếp tục học
-                </app-button>
-                <button class="dropdown-button" (click)="toggleModules(course.id)" aria-label="Hiển thị bài học">
-                  <app-icon [name]="course.showModules ? 'chevron-up' : 'chevron-down'" size="sm" />
-                </button>
-              </div>
-
-              <!-- Progress Bar -->
-              <div class="progress-bar-thin">
-                <div class="progress-fill" [style.width.%]="course.progress"></div>
-              </div>
-            </div>
-
-            <!-- Modules Dropdown -->
-            @if (course.showModules && course.modules && course.modules.length > 0) {
-              <div class="modules-dropdown">
-                @for (module of course.modules; track module.id) {
-                  <div class="module-item">
-                    <div class="module-header">
-                      <app-icon name="book-open" size="xs" />
-                      <span class="module-title">{{ module.title }}</span>
-                    </div>
-                    <div class="lessons-list">
-                      @for (lesson of module.lessons; track lesson.id) {
-                        <a 
-                          [routerLink]="['/student/learn/course', course.id, 'lesson', lesson.id]"
-                          class="lesson-item"
-                          [class.completed]="lesson.completed">
-                          <span class="lesson-title">{{ lesson.title }}</span>
-                          @if (lesson.completed) {
-                            <app-icon name="check-circle" size="xs" class="check-icon" />
-                          }
-                        </a>
-                        @if (lesson.sections && lesson.sections.length > 0) {
-                          <div class="section-sub-list" style="padding-left:24px;display:flex;flex-direction:column;gap:2px;margin-top:2px">
-                            @for (sec of lesson.sections; track sec.id) {
-                              <div style="display:flex;align-items:center;gap:6px;padding:4px 8px;font-size:12px;color:#6B7280">
-                                @if (sec.type === 'VIDEO') {
-                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
-                                } @else if (sec.type === 'QUIZ') {
-                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-                                } @else {
-                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                }
-                                <span>{{ sec.title }}</span>
-                              </div>
-                            }
-                          </div>
-                        }
-                      }
-                    </div>
+                <div class="course-metadata">
+                  <h3 class="course-title">
+                    <a [routerLink]="['/student/course', course.id]">{{ course.title }}</a>
+                  </h3>
+                  <div class="course-meta">
+                    @if (course.progress > 0) {
+                      <span>{{ course.progress }}% hoàn thành</span>
+                    } @else {
+                      <span>Chưa bắt đầu</span>
+                    }
                   </div>
-                }
+                  @if (course.progress > 0) {
+                    <div class="progress-bar-thin">
+                      <div class="progress-fill" [style.width.%]="course.progress"></div>
+                    </div>
+                  }
+                </div>
+                <div class="action-buttons">
+                  <app-button variant="primary" (clicked)="continueCourse(course.id)">
+                    {{ course.progress > 0 ? 'Tiếp tục học' : 'Bắt đầu ngay' }}
+                  </app-button>
+                  <button class="dropdown-button" (click)="toggleModules(course.id)" aria-label="Hiển thị bài học">
+                    <app-icon [name]="course.showModules ? 'chevron-up' : 'chevron-down'" size="sm" />
+                  </button>
+                </div>
               </div>
-            }
+
+              @if (course.showModules && course.modules && course.modules.length > 0) {
+                <div class="syllabus-section">
+                  @for (module of course.modules; track module.id) {
+                    <div class="module-item">
+                      <div class="module-header">
+                        <svg class="module-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                        <span class="module-title">{{ module.title }}</span>
+                        <span class="module-count">{{ module.completedCount }}/{{ module.totalCount }}</span>
+                      </div>
+                      <div class="lessons-list">
+                        @for (lesson of module.lessons; track lesson.id) {
+                          <a
+                            [routerLink]="['/student/learn/course', course.id, 'lesson', lesson.id]"
+                            class="lesson-item"
+                            [class.completed]="lesson.completed"
+                            [class.current]="lesson.id === course.currentLessonId">
+                            <span class="lesson-status-icon">
+                              @if (lesson.completed) {
+                                <svg width="16" height="16" viewBox="0 0 20 20" fill="#10B981"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                              } @else if (lesson.id === course.currentLessonId) {
+                                <svg width="16" height="16" viewBox="0 0 20 20" fill="#0056D2"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/></svg>
+                              } @else {
+                                <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="#D1D5DB" stroke-width="1.5"><circle cx="10" cy="10" r="7"/></svg>
+                              }
+                            </span>
+                            <span class="lesson-title">{{ lesson.title }}</span>
+                          </a>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
           }
         </div>
       }
 
-      <!-- Completed Tab Content - Empty State -->
+      <!-- Completed - Empty State -->
       @if (activeTab() === 'completed' && recentCompleted().length === 0 && !isLoading()) {
         <div class="empty-state">
           <div class="empty-state-icon">
@@ -215,166 +174,73 @@
         </div>
       }
 
-      <!-- Completed Tab Content -->
+      <!-- Completed - Course Cards -->
       @if (activeTab() === 'completed' && recentCompleted().length > 0) {
         <div class="courses-list">
           @for (course of recentCompleted(); track course.id) {
-        <div class="course-card-wrapper">
-          <!-- Course Thumbnail -->
-          <div class="course-thumbnail">
-            @if (course.thumbnail) {
-              <img [src]="course.thumbnail" [alt]="course.title" class="thumbnail-image" />
-            } @else {
-              <div class="thumbnail-placeholder">
-                <app-icon name="academic-cap" size="lg" />
-              </div>
-            }
-          </div>
-
-          <!-- Course Metadata -->
-          <div class="course-metadata">
-            <div class="partner-info">
-              <span class="partner-name">{{ course.partner }}</span>
-            </div>
-            <h3 class="course-title">
-              <a [routerLink]="['/student/course', course.id]">
-                {{ course.title }}
-              </a>
-            </h3>
-            <div class="course-meta">
-              <span>Khóa học</span>
-              <span class="separator">·</span>
-              <span>{{ course.progress }}% hoàn thành</span>
-              @if (course.estimatedCompletion !== 'Completed') {
-                <span class="separator">·</span>
-                <span class="estimated">Dự kiến: {{ course.estimatedCompletion }}</span>
-              }
-            </div>
-          </div>
-
-          <!-- Action Buttons -->
-          <div class="action-buttons">
-            <app-button 
-              variant="primary" 
-              (clicked)="continueCourse(course.id)">
-              {{ course.status === 'completed' ? 'Xem lại' : 'Tiếp tục học' }}
-            </app-button>
-            <button class="dropdown-button" (click)="toggleModules(course.id)" aria-label="Hiển thị bài học">
-              <app-icon [name]="course.showModules ? 'chevron-up' : 'chevron-down'" size="sm" />
-            </button>
-          </div>
-
-          <!-- Progress Bar -->
-          <div class="progress-bar-thin">
-            <div class="progress-fill" [style.width.%]="course.progress"></div>
-          </div>
-        </div>
-
-        <!-- Modules Dropdown -->
-        @if (course.showModules && course.modules && course.modules.length > 0) {
-          <div class="modules-dropdown">
-            @for (module of course.modules; track module.id) {
-              <div class="module-item">
-                <div class="module-header">
-                  <app-icon name="book-open" size="xs" />
-                  <span class="module-title">{{ module.title }}</span>
-                </div>
-                <div class="lessons-list">
-                  @for (lesson of module.lessons; track lesson.id) {
-                    <a 
-                      [routerLink]="['/student/learn/course', course.id, 'lesson', lesson.id]"
-                      class="lesson-item"
-                      [class.completed]="lesson.completed">
-                      <span class="lesson-title">{{ lesson.title }}</span>
-                      @if (lesson.completed) {
-                        <app-icon name="check-circle" size="xs" class="check-icon" />
-                      }
-                    </a>
+            <div class="course-card">
+              <div class="course-card-body">
+                <div class="course-thumbnail">
+                  @if (course.thumbnail) {
+                    <img [src]="course.thumbnail" [alt]="course.title" class="thumbnail-image" />
+                  } @else {
+                    <div class="thumbnail-placeholder">
+                      <app-icon name="academic-cap" size="lg" />
+                    </div>
                   }
                 </div>
+
+                <div class="course-metadata">
+                  <h3 class="course-title">
+                    <a [routerLink]="['/student/course', course.id]">{{ course.title }}</a>
+                  </h3>
+                  <div class="course-meta">
+                    <span class="progress-label-completed">Hoàn thành</span>
+                  </div>
+                  <div class="progress-bar-thin">
+                    <div class="progress-fill completed" [style.width.%]="course.progress"></div>
+                  </div>
+                </div>
+                <div class="action-buttons">
+                  <app-button variant="primary" (clicked)="continueCourse(course.id)">
+                    Xem lại
+                  </app-button>
+                  <button class="dropdown-button" (click)="toggleModules(course.id)" aria-label="Hiển thị bài học">
+                    <app-icon [name]="course.showModules ? 'chevron-up' : 'chevron-down'" size="sm" />
+                  </button>
+                </div>
               </div>
-            }
-          </div>
-        }
-      }
+
+              @if (course.showModules && course.modules && course.modules.length > 0) {
+                <div class="syllabus-section">
+                  @for (module of course.modules; track module.id) {
+                    <div class="module-item">
+                      <div class="module-header">
+                        <svg class="module-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                        <span class="module-title">{{ module.title }}</span>
+                        <span class="module-count">{{ module.completedCount }}/{{ module.totalCount }}</span>
+                      </div>
+                      <div class="lessons-list">
+                        @for (lesson of module.lessons; track lesson.id) {
+                          <a
+                            [routerLink]="['/student/learn/course', course.id, 'lesson', lesson.id]"
+                            class="lesson-item"
+                            [class.completed]="lesson.completed">
+                            <span class="lesson-status-icon">
+                              <svg width="16" height="16" viewBox="0 0 20 20" fill="#10B981"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                            </span>
+                            <span class="lesson-title">{{ lesson.title }}</span>
+                          </a>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
         </div>
       }
     </div>
   </div>
-
-  <!-- Sidebar (30%) - Widgets -->
-  <aside class="sidebar">
-    <!-- Today's Goals Widget -->
-    <app-card class="widget">
-      <h3 class="widget-title">Mục tiêu hôm nay</h3>
-      <div class="goal-item">
-        <div class="goal-stars">
-          @for (star of [1,2,3]; track star) {
-            <app-icon 
-              name="star" 
-              size="md" 
-              [class.filled]="todayGoalProgress() >= star"
-            />
-          }
-        </div>
-        <p class="goal-text">Hoàn thành 3 hoạt động học tập bất kỳ</p>
-        <p class="goal-progress">{{ todayGoalProgress() }}/3</p>
-      </div>
-    </app-card>
-
-    <!-- Learning Plan Widget (GitHub-style Heatmap) -->
-    <app-card class="widget">
-      <h3 class="widget-title">Kế hoạch học tập</h3>
-      <p class="widget-subtitle">4 tuần gần đây</p>
-      
-      <!-- Heatmap Grid -->
-      <div class="heatmap-grid">
-        @for (week of learningHeatmap(); track week.week) {
-          <div class="heatmap-week">
-            @for (day of week.days; track day.date) {
-              <div 
-                class="heatmap-day" 
-                [class.level-0]="day.level === 0"
-                [class.level-1]="day.level === 1"
-                [class.level-2]="day.level === 2"
-                [class.level-3]="day.level === 3"
-                [title]="day.date + ': ' + day.count + ' hoạt động'">
-              </div>
-            }
-          </div>
-        }
-      </div>
-
-      <!-- Stats -->
-      <div class="learning-stats">
-        <div class="stat">
-          <span class="stat-value">{{ todayStudyTime() }}</span>
-          <span class="stat-label">Học hôm nay</span>
-        </div>
-        <div class="stat">
-          <span class="stat-value">{{ learningStreak() }}</span>
-          <span class="stat-label">Ngày liên tiếp</span>
-        </div>
-      </div>
-
-      <app-button variant="ghost" [fullWidth]="true" (clicked)="setLearningPlan()">
-        Thiết lập kế hoạch
-      </app-button>
-    </app-card>
-
-    <!-- Achievements Widget -->
-    @if (achievements().length > 0) {
-      <app-card class="widget">
-        <h3 class="widget-title">Thành tích</h3>
-        <div class="achievements-grid">
-          @for (achievement of achievements(); track achievement.id) {
-            <div class="achievement-item" [title]="achievement.description">
-              <span class="achievement-icon"><app-icon [name]="$any(getAchievementIcon(achievement.icon))" size="sm"/></span>
-              <span class="achievement-name">{{ achievement.name }}</span>
-            </div>
-          }
-        </div>
-      </app-card>
-    }
-  </aside>
 </div>

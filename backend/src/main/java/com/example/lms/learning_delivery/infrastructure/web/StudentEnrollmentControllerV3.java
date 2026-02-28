@@ -1,7 +1,9 @@
 package com.example.lms.learning_delivery.infrastructure.web;
 
 import com.example.lms.course_authoring.infrastructure.persistence.JpaCourseRepository;
+import com.example.lms.course_authoring.infrastructure.persistence.entity.CategoryJpaEntity;
 import com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity;
+import com.example.lms.course_authoring.infrastructure.persistence.repository.CategoryJpaRepository;
 import com.example.lms.course_authoring.infrastructure.persistence.repository.ChapterJpaRepository;
 import com.example.lms.course_authoring.infrastructure.persistence.repository.LessonJpaRepository;
 import com.example.lms.course_authoring.infrastructure.persistence.entity.ChapterJpaEntity;
@@ -55,6 +57,7 @@ public class StudentEnrollmentControllerV3 {
     private final LearningClassRepository learningClassRepository;
     private final JpaCourseRepository courseJpaRepository;
     private final UserJpaRepository userJpaRepository;
+    private final CategoryJpaRepository categoryJpaRepository;
     private final ChapterJpaRepository chapterJpaRepository;
     private final LessonJpaRepository lessonJpaRepository;
     private final CertificateJpaRepository certificateRepository;
@@ -105,6 +108,15 @@ public class StudentEnrollmentControllerV3 {
         Map<UUID, String> teacherNameMap = userJpaRepository.findAllById(teacherIds).stream()
                 .collect(Collectors.toMap(UserJpaEntity::getId, UserJpaEntity::getFullName));
 
+        // Batch-load category names (1 query)
+        Set<UUID> categoryIds = courseMap.values().stream()
+                .map(CourseJpaEntity::getCategoryId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<UUID, String> categoryNameMap = categoryIds.isEmpty() ? Map.of()
+                : categoryJpaRepository.findAllById(categoryIds).stream()
+                        .collect(Collectors.toMap(CategoryJpaEntity::getId, CategoryJpaEntity::getName));
+
         // Batch count lessons: chapters → lessons (2 queries instead of N*C)
         List<ChapterJpaEntity> allChapters = chapterJpaRepository.findByCourseIdInOrderByOrderIndex(new ArrayList<>(courseIds));
         List<UUID> chapterIds = allChapters.stream().map(ChapterJpaEntity::getId).toList();
@@ -141,11 +153,17 @@ public class StudentEnrollmentControllerV3 {
                         teacherName = teacherNameMap.getOrDefault(course.getTeacherId(), "");
                     }
 
+                    String categoryName = null;
+                    if (course != null && course.getCategoryId() != null) {
+                        categoryName = categoryNameMap.get(course.getCategoryId());
+                    }
+
                     return EnrolledCourseResponse.builder()
                             .id(courseId.toString())
                             .title(course != null ? course.getTitle() : lc.getName())
                             .description(description)
                             .teacherName(teacherName)
+                            .categoryName(categoryName)
                             .thumbnailUrl(course != null ? (course.getThumbnailUrl() != null ? course.getThumbnailUrl() : course.getIntroVideoUrl()) : null)
                             .status(enrollment.getStatus().name().toLowerCase())
                             .progress(enrollment.getCompletionPercent() != null ? enrollment.getCompletionPercent() : 0)
@@ -746,6 +764,7 @@ public class StudentEnrollmentControllerV3 {
         private String title;
         private String description;
         private String teacherName;
+        private String categoryName;
         private String thumbnailUrl;
         private String status;
         private Integer progress;

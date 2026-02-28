@@ -151,13 +151,21 @@ public class ClassControllerV3 {
             teacherId = UUID.fromString(request.getTeacherId());
         }
 
+        Instant startDate = null;
+        Instant endDate = null;
+        try {
+            if (request.getStartDate() != null) startDate = Instant.parse(request.getStartDate());
+            if (request.getEndDate() != null) endDate = Instant.parse(request.getEndDate());
+        } catch (java.time.format.DateTimeParseException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("INVALID_DATE", "Định dạng ngày không hợp lệ: " + e.getMessage()));
+        }
         var command = new CreateLearningClassUseCaseV3.CreateClassCommand(
                 UUID.fromString(request.getCourseId()),
                 teacherId,
                 classCode,
                 request.getName(),
-                request.getStartDate() != null ? Instant.parse(request.getStartDate()) : null,
-                request.getEndDate() != null ? Instant.parse(request.getEndDate()) : null,
+                startDate,
+                endDate,
                 request.getMaxStudents(),
                 request.getScheduleType(),
                 request.getSemester()
@@ -180,14 +188,22 @@ public class ClassControllerV3 {
         var cls = classJpaRepository.findById(UUID.fromString(classId))
                 .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("LearningClass", classId));
         verifyCourseOwnership(cls.getCourseId(), user);
+        Instant startDate = null;
+        Instant endDate = null;
+        try {
+            if (request.getStartDate() != null) startDate = Instant.parse(request.getStartDate());
+            if (request.getEndDate() != null) endDate = Instant.parse(request.getEndDate());
+        } catch (java.time.format.DateTimeParseException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("INVALID_DATE", "Định dạng ngày không hợp lệ: " + e.getMessage()));
+        }
         var command = new UpdateLearningClassUseCase.UpdateClassCommand(
                 UUID.fromString(classId),
                 request.getName(),
                 request.getCode(),
                 request.getStatus(),
                 request.getMaxStudents(),
-                request.getStartDate() != null ? Instant.parse(request.getStartDate()) : null,
-                request.getEndDate() != null ? Instant.parse(request.getEndDate()) : null
+                startDate,
+                endDate
         );
 
         LearningClassResponse response = updateLearningClassUseCase.execute(command);

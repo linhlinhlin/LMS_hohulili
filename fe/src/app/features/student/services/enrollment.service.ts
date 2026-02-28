@@ -233,9 +233,9 @@ export class StudentEnrollmentService {
       duration: totalLessons > 0 ? `${Math.ceil(totalLessons * 0.5)} giờ` : '',
       deadline: undefined,
       status,
-      thumbnail: courseAny.thumbnailUrl || 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=300&h=200&fit=crop',
-      category: 'general',
-      rating: 4.5,
+      thumbnail: courseAny.thumbnailUrl || null,
+      category: courseAny.categoryName || undefined,
+      rating: undefined,
       lastAccessed: new Date(),
       enrolledAt: course.createdAt ? new Date(course.createdAt) : new Date(),
       studyTime: this.calculateStudyTime(course)
@@ -255,13 +255,6 @@ export class StudentEnrollmentService {
     } catch {
       return 0;
     }
-  }
-
-  /**
-   * Extract progress từ course metadata
-   */
-  private extractProgressFromCourse(course: CourseSummary): number {
-    return (course as any).progress ?? 0;
   }
 
   /**
@@ -287,8 +280,8 @@ export class StudentEnrollmentService {
    * Calculate estimated study time
    */
   private calculateStudyTime(course: CourseSummary): number {
-    // Default estimated study time (40 hours = 2400 minutes)
-    return 2400;
+    const totalLessons = (course as any).totalLessons ?? 0;
+    return totalLessons > 0 ? totalLessons * 30 : 0; // ~30 min per lesson estimate
   }
 
 }

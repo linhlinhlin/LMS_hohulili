@@ -63,6 +63,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
 
+                // Skip authentication if user account is disabled or locked
+                if (!userDetails.isEnabled() || !userDetails.isAccountNonLocked()) {
+                    log.warn("User account disabled or locked: {}", username);
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+
                 // Validate token
                 if (jwtService.isTokenValid(jwt, userDetails)) {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
@@ -94,6 +101,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                path.equals("/actuator/health") ||
                path.equals("/api/v3/ai/health") ||
                path.equals("/api/v3/ai/ping") ||
-               path.equals("/api/v3/courses");      // Public courses listing
+               path.startsWith("/api/v3/integration/") ||
+               path.equals("/api/v3/categories") ||
+               path.equals("/api/v3/payments/vnpay-ipn") ||
+               path.equals("/api/v3/payments/vnpay-return") ||
+               path.startsWith("/uploads/");
     }
 }

@@ -105,29 +105,35 @@
         return;
       }
 
-      // Auto-recovery: detect broken SW state
-      // If the page loaded but SW has no controller, it may be broken
-      // Set a flag and if it persists across 2 loads, force reset
+      // Auto-recovery: detect truly broken SW state
+      // IMPORTANT: Don't check navigator.serviceWorker.controller — it's null on
+      // first load after SW install (NGSW doesn't clients.claim()). Instead check
+      // if a registration EXISTS. Only reset when no registration at all.
       var key = 'sw-health';
       try {
         if (navigator.serviceWorker.controller) {
-          // SW is healthy, clear flag
+          // SW is active and controlling — healthy
           sessionStorage.removeItem(key);
         } else if (navigator.onLine) {
-          var fails = parseInt(sessionStorage.getItem(key) || '0', 10);
-          if (fails >= 2) {
-            // SW broken for 3+ loads while online — force reset
-            sessionStorage.removeItem(key);
-            navigator.serviceWorker.getRegistrations().then(function(regs) {
-              regs.forEach(function(r) { r.unregister(); });
-            });
-            caches.keys().then(function(names) {
-              names.forEach(function(n) { caches.delete(n); });
-            });
-            setTimeout(function() { location.reload(); }, 500);
-          } else {
-            sessionStorage.setItem(key, String(fails + 1));
-          }
+          navigator.serviceWorker.getRegistration().then(function(reg) {
+            if (reg) {
+              // Registration exists but not controlling yet — normal after install/update
+              sessionStorage.removeItem(key);
+            } else {
+              // No registration AND online — SW was truly lost
+              var fails = parseInt(sessionStorage.getItem(key) || '0', 10);
+              if (fails >= 3) {
+                // 4+ loads without any SW registration — force reset
+                sessionStorage.removeItem(key);
+                caches.keys().then(function(names) {
+                  names.forEach(function(n) { caches.delete(n); });
+                });
+                setTimeout(function() { location.reload(); }, 500);
+              } else {
+                sessionStorage.setItem(key, String(fails + 1));
+              }
+            }
+          });
         }
       } catch(e) { /* sessionStorage not available */ }
     })();

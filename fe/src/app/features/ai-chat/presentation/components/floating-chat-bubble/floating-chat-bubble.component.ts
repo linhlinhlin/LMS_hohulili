@@ -91,7 +91,7 @@ import {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(135deg, #0056D2 0%, #004BB5 100%);
+      background: #0056D2;
       color: white;
       border: none;
       border-radius: 50%;
@@ -101,6 +101,7 @@ import {
     }
 
     .floating-bubble:hover {
+      background: #004BB5;
       transform: scale(1.08);
       box-shadow: 0 6px 24px rgba(0, 86, 210, 0.5);
     }

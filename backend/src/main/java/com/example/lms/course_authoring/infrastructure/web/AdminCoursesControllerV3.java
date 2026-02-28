@@ -1,5 +1,7 @@
 package com.example.lms.course_authoring.infrastructure.web;
 
+import com.example.lms.course_authoring.application.usecase.ApproveCourseUseCase;
+import com.example.lms.course_authoring.application.usecase.RejectCourseUseCase;
 import com.example.lms.course_authoring.domain.model.Course;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
 import com.example.lms.course_authoring.infrastructure.persistence.entity.CategoryJpaEntity;
@@ -7,6 +9,7 @@ import com.example.lms.course_authoring.infrastructure.persistence.repository.Ca
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
 import com.example.lms.learning_delivery.infrastructure.persistence.JpaEnrollmentRepository;
+import com.example.lms.shared.exception.EntityNotFoundException;
 import com.example.lms.shared.infrastructure.persistence.repository.PaymentTransactionJpaRepository;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -47,6 +50,8 @@ public class AdminCoursesControllerV3 {
     private final CategoryJpaRepository categoryRepository;
     private final JpaEnrollmentRepository enrollmentRepository;
     private final PaymentTransactionJpaRepository paymentTransactionRepository;
+    private final ApproveCourseUseCase approveCourseUseCase;
+    private final RejectCourseUseCase rejectCourseUseCase;
 
     @Operation(summary = "Get all courses with pagination and filtering")
     @GetMapping("/all")
@@ -155,14 +160,11 @@ public class AdminCoursesControllerV3 {
             @AuthenticationPrincipal UserJpaEntity admin
     ) {
         String comment = request != null ? request.getComment() : "Đã duyệt";
-
-        return courseRepository.findById(courseId)
-                .map(course -> {
-                    course.approve(admin.getId(), comment);
-                    courseRepository.save(course);
-                    return ResponseEntity.ok(ApiResponse.success(toAdminResponse(course), "Đã duyệt khóa học"));
-                })
-                .orElse(ResponseEntity.notFound().build());
+        // Delegate to use case — publishes CourseApprovedEvent domain events
+        approveCourseUseCase.execute(courseId, admin.getId(), comment);
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new EntityNotFoundException("Khóa học", courseId));
+        return ResponseEntity.ok(ApiResponse.success(toAdminResponse(course), "Đã duyệt khóa học"));
     }
 
     @Operation(summary = "Reject a course")
@@ -173,13 +175,11 @@ public class AdminCoursesControllerV3 {
             @Valid @RequestBody RejectRequest request,
             @AuthenticationPrincipal UserJpaEntity admin
     ) {
-        return courseRepository.findById(courseId)
-                .map(course -> {
-                    course.reject(admin.getId(), request.getReason());
-                    courseRepository.save(course);
-                    return ResponseEntity.ok(ApiResponse.success(toAdminResponse(course), "Đã từ chối khóa học"));
-                })
-                .orElse(ResponseEntity.notFound().build());
+        // Delegate to use case for proper domain layer handling
+        rejectCourseUseCase.execute(courseId, admin.getId(), request.getReason());
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new EntityNotFoundException("Khóa học", courseId));
+        return ResponseEntity.ok(ApiResponse.success(toAdminResponse(course), "Đã từ chối khóa học"));
     }
 
     @Operation(summary = "Revoke course approval - move back to draft")
@@ -190,25 +190,23 @@ public class AdminCoursesControllerV3 {
             @Valid @RequestBody(required = false) RejectRequest request,
             @AuthenticationPrincipal UserJpaEntity admin
     ) {
-        return courseRepository.findById(courseId)
-                .map(course -> {
-                    String reason = request != null ? request.getReason() : "Bị thu hồi bởi quản trị viên";
-                    course.revoke(admin.getId(), reason);
-                    courseRepository.save(course);
-                    return ResponseEntity.ok(ApiResponse.success(toAdminResponse(course), "Đã thu hồi khóa học"));
-                })
-                .orElse(ResponseEntity.notFound().build());
+        String reason = request != null ? request.getReason() : "Bị thu hồi bởi quản trị viên";
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new EntityNotFoundException("Khóa học", courseId));
+        course.revoke(admin.getId(), reason);
+        courseRepository.save(course);
+        return ResponseEntity.ok(ApiResponse.success(toAdminResponse(course), "Đã thu hồi khóa học"));
     }
 
     @Operation(summary = "Delete a course")
     @DeleteMapping("/{courseId}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<String>> deleteCourse(@PathVariable UUID courseId) {
-        if (courseRepository.existsById(courseId)) {
-            courseRepository.deleteById(courseId);
-            return ResponseEntity.ok(ApiResponse.success("Đã xóa", "Khóa học đã được xóa thành công"));
+        if (!courseRepository.existsById(courseId)) {
+            throw new EntityNotFoundException("Khóa học", courseId);
         }
-        return ResponseEntity.notFound().build();
+        courseRepository.deleteById(courseId);
+        return ResponseEntity.ok(ApiResponse.success("Đã xóa", "Khóa học đã được xóa thành công"));
     }
 
     // === Helper Methods ===

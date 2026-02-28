@@ -290,16 +290,17 @@ public class AiAssistantControllerV3 {
 
     private void verifyCourseAccess(UUID courseId, UserJpaEntity user) {
         if (isAdminRole(user)) return;
+        var course = jpaCourseRepository.findById(courseId)
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Khóa học", courseId));
         // Teacher who owns the course can access
-        var courseOpt = jpaCourseRepository.findById(courseId);
-        if (courseOpt.isPresent() && courseOpt.get().getTeacherId().equals(user.getId())) return;
+        if (course.getTeacherId() != null && course.getTeacherId().equals(user.getId())) return;
         // Enrolled student can access
         if (jpaEnrollmentRepository.existsByStudentIdAndCourseId(user.getId(), courseId)) return;
         throw new AccessDeniedException("Bạn không có quyền truy cập khóa học này");
     }
 
     private void verifySessionOwner(ChatSessionResponse session, UUID currentUserId) {
-        if (session.userId() != null && !session.userId().equals(currentUserId)) {
+        if (session.userId() == null || !session.userId().equals(currentUserId)) {
             throw new AccessDeniedException("Bạn không có quyền truy cập phiên này");
         }
     }

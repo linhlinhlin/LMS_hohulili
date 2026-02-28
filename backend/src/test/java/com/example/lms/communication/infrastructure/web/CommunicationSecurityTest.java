@@ -21,6 +21,7 @@ import java.time.Instant;
 import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -72,8 +73,8 @@ class CommunicationSecurityTest {
 
             when(conversationRepository.findById(ConversationId.of(convId))).thenReturn(Optional.of(conv));
 
-            var response = controller.getMessages(convId, userC);
-            assertThat(response.getStatusCode().value()).isEqualTo(403);
+            assertThatThrownBy(() -> controller.getMessages(convId, userC))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
         }
 
         @Test

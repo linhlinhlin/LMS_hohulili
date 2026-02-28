@@ -33,9 +33,10 @@ public class AuthenticateUserUseCaseV2 {
         log.info("Authenticating user (V2): {}", command.email());
 
         // Find user by email or username using domain repository
+        // P1: Use same error message for not-found and wrong-password to prevent user enumeration
         User user = userRepository.findByEmail(command.email())
             .or(() -> userRepository.findByUsername(command.email()))
-            .orElseThrow(() -> new UnauthorizedException("User không tồn tại"));
+            .orElseThrow(() -> new UnauthorizedException("Thông tin đăng nhập không chính xác"));
 
         // Check if enabled
         if (!user.isEnabled()) {

@@ -81,7 +81,7 @@ public class AssignmentControllerV3 {
                         .build();
                     return ResponseEntity.ok(ApiResponse.success(dto, "Thông tin bài tập"));
                 })
-                .orElse(ResponseEntity.notFound().build());
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Bài tập", id));
     }
 
     @PostMapping("/courses/{courseId}")

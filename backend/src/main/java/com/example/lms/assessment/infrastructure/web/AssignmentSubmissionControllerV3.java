@@ -106,10 +106,8 @@ public class AssignmentSubmissionControllerV3 {
             @Valid @RequestBody GradeRequest request,
             @AuthenticationPrincipal UserJpaEntity user) {
 
-        var submission = submissionRepository.findById(submissionId).orElse(null);
-        if (submission == null) {
-            return ResponseEntity.notFound().build();
-        }
+        var submission = submissionRepository.findById(submissionId)
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Bài nộp", submissionId));
 
         // Verify teacher owns the course via assignment → course chain
         verifyAssignmentOwnership(submission.getAssignmentId(), user);
@@ -168,21 +166,19 @@ public class AssignmentSubmissionControllerV3 {
             @PathVariable UUID submissionId,
             @AuthenticationPrincipal UserJpaEntity user) {
 
-        return submissionRepository.findById(submissionId)
-                .map(s -> {
-                    // P0-6: Students can only see their own submissions
-                    if (user.getRole() == UserJpaEntity.UserRole.STUDENT
-                            && !s.getStudentId().equals(user.getId())) {
-                        return ResponseEntity.status(403)
-                                .body(ApiResponse.<Map<String, Object>>error("Bạn không có quyền xem bài nộp này"));
-                    }
-                    // P1: Teachers can only see submissions for their own courses' assignments
-                    if (user.getRole() != UserJpaEntity.UserRole.STUDENT) {
-                        verifyAssignmentOwnership(s.getAssignmentId(), user);
-                    }
-                    return ResponseEntity.ok(ApiResponse.success(toSubmissionDetailMap(s)));
-                })
-                .orElse(ResponseEntity.notFound().build());
+        var submission = submissionRepository.findById(submissionId)
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Bài nộp", submissionId));
+
+        // P0-6: Students can only see their own submissions
+        if (user.getRole() == UserJpaEntity.UserRole.STUDENT
+                && !submission.getStudentId().equals(user.getId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Bạn không có quyền xem bài nộp này");
+        }
+        // P1: Teachers can only see submissions for their own courses' assignments
+        if (user.getRole() != UserJpaEntity.UserRole.STUDENT) {
+            verifyAssignmentOwnership(submission.getAssignmentId(), user);
+        }
+        return ResponseEntity.ok(ApiResponse.success(toSubmissionDetailMap(submission)));
     }
 
     @Operation(summary = "Export submissions for an assignment")

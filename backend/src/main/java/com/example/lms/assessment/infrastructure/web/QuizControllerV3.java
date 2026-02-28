@@ -83,7 +83,13 @@ public class QuizControllerV3 {
     @GetMapping("/lessons/{lessonId}")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN', 'STUDENT')")
     @Operation(summary = "Get quizzes for a lesson")
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getQuizzesByLesson(@PathVariable UUID lessonId) {
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getQuizzesByLesson(
+            @PathVariable UUID lessonId,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        // Verify ownership: teachers can only see quizzes for their own lessons
+        if (user.getRole() != UserJpaEntity.UserRole.STUDENT) {
+            verifyLessonOwnership(lessonId, user);
+        }
         List<Quiz> quizzes = quizManagementUseCase.getQuizzesByLesson(lessonId);
         return ResponseEntity.ok(ApiResponse.success(quizzes.stream().map(this::toQuizMap).toList()));
     }

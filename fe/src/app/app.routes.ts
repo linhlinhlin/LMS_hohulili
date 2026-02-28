@@ -143,11 +143,6 @@ export const routes: Routes = [
   // OTHER AUTHENTICATED ROUTES
   // ========================================
 
-  {
-    path: 'learn',
-    loadChildren: () => import('./features/learning/learning.routes').then(m => m.learningRoutes),
-    canActivate: [authGuard]
-  },
   // AI Chat for Guests (public route)
   {
     path: 'ai-chat',

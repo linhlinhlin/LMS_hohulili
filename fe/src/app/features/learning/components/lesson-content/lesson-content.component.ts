@@ -164,19 +164,10 @@ export class LessonContentComponent implements AfterViewInit {
   readonly sectionReadComplete = output<string>();
 
   // Video player events
-  onVideoPlay(): void {
-  }
-
-  onVideoPause(): void {
-  }
-
   onVideoEnd(): void {
     this.tracker.stopTracking();
     this.heartbeat.stop();
     this.videoEnded.emit();
-  }
-
-  onVideoError(error: any): void {
   }
 
   onVideoTimeUpdate(event: Event): void {

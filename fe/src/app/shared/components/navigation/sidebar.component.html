@@ -1,4 +1,4 @@
-<div class="sidebar-container" [class]="getSidebarClasses()">
+<div class="sidebar-container" [class]="getSidebarClasses()" [class.sidebar-collapsed]="collapsed()">
     <!-- Header -->
     <div class="sidebar-header">
         <div class="flex items-center space-x-3">
@@ -7,31 +7,24 @@
                 <app-icon [name]="config().logoIcon" size="md" class="text-white"/>
             </div>
 
-            <div class="flex-1 min-w-0">
+            <div class="sidebar-header-text flex-1 min-w-0">
                 <h2 class="sidebar-title">{{ config().title }}</h2>
                 <p class="sidebar-subtitle">{{ authService.currentUser()?.fullName }}</p>
             </div>
         </div>
 
-        <!-- Progress Card (optional) -->
-        @if (config().showProgress) {
-        <div class="sidebar-progress-card">
-            <div class="flex items-center justify-between mb-2">
-                <span class="text-sm font-medium text-gray-700">{{ config().progressLabel || 'Tiến độ học tập' }}</span>
-                <span class="text-sm font-bold" [class]="getProgressTextClass()">{{ config().progressValue || 0
-                    }}%</span>
-            </div>
-            <div class="w-full bg-gray-200 rounded-full h-2">
-                <div class="progress-bar" [style.width.%]="config().progressValue || 0"></div>
-            </div>
-            <p class="text-xs text-gray-600 mt-2">{{ getProgressSubtext() }}</p>
-        </div>
-        }
+        <!-- Collapse toggle button -->
+        <button class="collapse-toggle" (click)="toggleCollapse.emit()" aria-label="Thu gọn sidebar">
+            <app-icon [name]="collapsed() ? 'chevron-right' : 'chevron-left'" size="xs"/>
+        </button>
     </div>
 
     <!-- Navigation Menu -->
     <nav class="sidebar-nav">
-        @for (item of config().menuItems; track item.route) {
+        @for (item of config().menuItems; track item.route; let i = $index) {
+        @if (shouldShowGroupTitle(i)) {
+            <div class="nav-group-title">{{ item.group }}</div>
+        }
         <div class="nav-item-container">
             <a [routerLink]="item.route" routerLinkActive="active"
                 [routerLinkActiveOptions]="{exact: item.exact ?? false}" class="nav-item">
@@ -42,6 +35,7 @@
                 @if (item.badge) {
                 <span class="nav-badge">{{ item.badge }}</span>
                 }
+                <span class="nav-tooltip">{{ item.label }}</span>
             </a>
 
             <!-- Sub-menu items -->

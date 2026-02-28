@@ -49,6 +49,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     private static final int LIMIT_AUTH_OTHER = 60;        // Generous: refresh + me are automated
     private static final int LIMIT_AI = 30;               // Moderate: AI cost control
     private static final int LIMIT_PAYMENTS = 30;         // Moderate: payment flow has multiple calls
+    private static final int LIMIT_PUBLIC = 120;           // Public endpoints: generous but bounded
 
     private static final long WINDOW_MS = 60_000L; // 1 minute
 
@@ -66,9 +67,9 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
         String method = request.getMethod();
 
-        // Only rate limit auth, AI, and payment endpoints
+        // Rate limit auth, AI, payment, and public endpoints
         if (!path.startsWith("/api/v3/auth") && !path.startsWith("/api/v3/ai")
-                && !path.startsWith("/api/v3/payments")) {
+                && !path.startsWith("/api/v3/payments") && !isPublicEndpoint(path)) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -142,6 +143,9 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         }
         if (path.startsWith("/api/v3/payments")) {
             return new EndpointTier("payments", LIMIT_PAYMENTS);
+        }
+        if (isPublicEndpoint(path)) {
+            return new EndpointTier("public", LIMIT_PUBLIC);
         }
         // AI endpoints
         return new EndpointTier("ai", LIMIT_AI);
@@ -219,6 +223,16 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             double overlapWeight = Math.max(0, 1.0 - ((double) elapsed / windowMs));
             return (previousCount * overlapWeight) + currentCount.get();
         }
+    }
+
+    /**
+     * Check if path is a public (unauthenticated) endpoint that should be rate-limited.
+     */
+    private boolean isPublicEndpoint(String path) {
+        return path.equals("/api/v3/courses") ||
+               path.startsWith("/api/v3/courses/") ||
+               path.equals("/api/v3/categories") ||
+               path.startsWith("/api/v3/certificates/verify/");
     }
 
     private record EndpointTier(String bucketKey, int limit) {}

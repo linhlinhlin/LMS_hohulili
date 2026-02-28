@@ -66,7 +66,7 @@ class QuestionBankManagementUseCaseTest {
                 "New Name", "New Desc", "Physics", QuestionBank.Visibility.PUBLIC
         );
 
-        QuestionBank result = useCase.updateBank(bank.getId(), command, userId);
+        QuestionBank result = useCase.updateBank(bank.getId(), command, userId, false);
 
         assertThat(result.getName()).isEqualTo("New Name");
         assertThat(result.getDescription()).isEqualTo("New Desc");
@@ -81,7 +81,7 @@ class QuestionBankManagementUseCaseTest {
         UUID otherUser = UUID.randomUUID();
         var command = new QuestionBankManagementUseCase.UpdateBankCommand("New", null, null, null);
 
-        assertThatThrownBy(() -> useCase.updateBank(bank.getId(), command, otherUser))
+        assertThatThrownBy(() -> useCase.updateBank(bank.getId(), command, otherUser, false))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("Bạn không sở hữu ngân hàng câu hỏi này");
     }
@@ -91,7 +91,7 @@ class QuestionBankManagementUseCaseTest {
         QuestionBank bank = QuestionBank.create("Bank", null, null, userId, null, null);
         when(bankRepository.findById(bank.getId())).thenReturn(Optional.of(bank));
 
-        useCase.archiveBank(bank.getId(), userId);
+        useCase.archiveBank(bank.getId(), userId, false);
 
         assertThat(bank.getStatus()).isEqualTo(QuestionBank.Status.ARCHIVED);
         verify(bankRepository).save(bank);

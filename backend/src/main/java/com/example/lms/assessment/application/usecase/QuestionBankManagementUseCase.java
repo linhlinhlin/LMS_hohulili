@@ -49,11 +49,11 @@ public class QuestionBankManagementUseCase {
     }
 
     @Transactional
-    public QuestionBank updateBank(UUID bankId, UpdateBankCommand command, UUID userId) {
+    public QuestionBank updateBank(UUID bankId, UpdateBankCommand command, UUID userId, boolean isAdmin) {
         QuestionBank bank = bankRepository.findById(bankId)
                 .orElseThrow(() -> new EntityNotFoundException("QuestionBank", bankId));
 
-        if (!bank.isOwnedBy(userId)) {
+        if (!isAdmin && !bank.isOwnedBy(userId)) {
             throw new BusinessRuleException("Bạn không sở hữu ngân hàng câu hỏi này");
         }
 
@@ -66,11 +66,11 @@ public class QuestionBankManagementUseCase {
     }
 
     @Transactional
-    public void archiveBank(UUID bankId, UUID userId) {
+    public void archiveBank(UUID bankId, UUID userId, boolean isAdmin) {
         QuestionBank bank = bankRepository.findById(bankId)
                 .orElseThrow(() -> new EntityNotFoundException("QuestionBank", bankId));
 
-        if (!bank.isOwnedBy(userId)) {
+        if (!isAdmin && !bank.isOwnedBy(userId)) {
             throw new BusinessRuleException("Bạn không sở hữu ngân hàng câu hỏi này");
         }
 

@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
 /**
@@ -65,8 +66,8 @@ class AssignmentSecurityTest {
 
             var studentB = mockUser(studentBId, UserJpaEntity.UserRole.STUDENT);
 
-            var response = controller.getSubmissionById(submissionId, studentB);
-            assertThat(response.getStatusCode().value()).isEqualTo(403);
+            assertThatThrownBy(() -> controller.getSubmissionById(submissionId, studentB))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
         }
     }
 
@@ -96,8 +97,8 @@ class AssignmentSecurityTest {
             var otherTeacher = mockUser(otherTeacherId, UserJpaEntity.UserRole.TEACHER);
 
             var request = new AssignmentSubmissionControllerV3.GradeRequest(85.0, null, "Tốt");
-            var response = controller.gradeSubmission(submissionId, request, otherTeacher);
-            assertThat(response.getStatusCode().value()).isEqualTo(403);
+            assertThatThrownBy(() -> controller.gradeSubmission(submissionId, request, otherTeacher))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
         }
 
         @Test
@@ -140,8 +141,8 @@ class AssignmentSecurityTest {
 
             var otherTeacher = mockUser(otherTeacherId, UserJpaEntity.UserRole.TEACHER);
 
-            var response = controller.publishAssignment(assignmentId, otherTeacher);
-            assertThat(response.getStatusCode().value()).isEqualTo(403);
+            assertThatThrownBy(() -> controller.publishAssignment(assignmentId, otherTeacher))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
         }
     }
 

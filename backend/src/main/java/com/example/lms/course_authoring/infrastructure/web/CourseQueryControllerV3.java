@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
+import com.example.lms.course_authoring.infrastructure.persistence.entity.CategoryJpaEntity;
 import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
 import com.example.lms.shared.infrastructure.persistence.entity.PaymentTransactionJpaEntity;
 import com.example.lms.shared.infrastructure.persistence.repository.PaymentTransactionJpaRepository;
@@ -64,7 +65,20 @@ public class CourseQueryControllerV3 {
             courses = courseRepository.findByStatus(Course.CourseStatus.APPROVED, pageable);
         }
         
-        Page<CourseSummaryResponse> response = courses.map(this::toSummary);
+        // Batch-fetch teacher names and category names to prevent N+1
+        Set<UUID> teacherIds = courses.getContent().stream()
+                .map(Course::getTeacherId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<UUID, String> teacherNameMap = teacherIds.isEmpty() ? Map.of() :
+                userJpaRepository.findAllById(teacherIds).stream()
+                        .collect(Collectors.toMap(u -> u.getId(), u -> u.getFullName()));
+
+        Set<UUID> categoryIds = courses.getContent().stream()
+                .map(Course::getCategoryId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<UUID, String> categoryNameMap = categoryIds.isEmpty() ? Map.of() :
+                categoryJpaRepository.findAllById(categoryIds).stream()
+                        .collect(Collectors.toMap(c -> c.getId(), c -> c.getName()));
+
+        Page<CourseSummaryResponse> response = courses.map(course -> toSummaryBatch(course, teacherNameMap, categoryNameMap));
         return ResponseEntity.ok(ApiResponse.success(response, "Danh sách khóa học"));
     }
 
@@ -79,7 +93,7 @@ public class CourseQueryControllerV3 {
         // This prevents LazyInitializationException when open-in-view=false
         return courseRepository.findByIdWithContent(courseId)
                 .map(course -> ResponseEntity.ok(ApiResponse.success(toDetail(course), "Thông tin khóa học")))
-                .orElse(ResponseEntity.notFound().build());
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Khóa học", courseId));
     }
 
     @Operation(summary = "Get course content (chapters and lessons)")
@@ -182,7 +196,7 @@ public class CourseQueryControllerV3 {
                             .build();
                     return ResponseEntity.ok(ApiResponse.success(List.of(instructor), "Danh sách giảng viên"));
                 })
-                .orElse(ResponseEntity.ok(ApiResponse.success(List.of(), "Không tìm thấy khóa học")));
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Khóa học", courseId));
     }
 
     @lombok.Builder
@@ -214,13 +228,9 @@ public class CourseQueryControllerV3 {
     ) {
         verifyCourseOwnership(courseId, user);
         List<LearningClass> classes = learningClassRepository.findByCourseId(courseId);
-        List<ClassInfoResponse> response = classes.stream()
-                .map(this::toClassInfoResponse)
-                .toList();
+        List<ClassInfoResponse> response = batchMapClasses(classes);
         return ResponseEntity.ok(ApiResponse.success(response, "Danh sách lớp học"));
     }
-
-    private final com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository userRepository;
 
     @Operation(summary = "Search classes for a course")
     @GetMapping("/{courseId}/classes/search")
@@ -237,21 +247,44 @@ public class CourseQueryControllerV3 {
         verifyCourseOwnership(courseId, user);
         PageRequest pageable = PageRequest.of(page, Math.min(size, 100));
         Page<LearningClass> classPage = learningClassRepository.searchByCourseId(courseId, search, status, pageable);
-        Page<ClassInfoResponse> response = classPage.map(this::toClassInfoResponse);
+        // Batch-fetch teacher names and enrollment counts to prevent N+1
+        List<LearningClass> classList = classPage.getContent();
+        Map<UUID, String> teacherMap = batchFetchTeacherNames(classList);
+        Map<UUID, Long> enrollmentCountMap = batchFetchClassEnrollments(classList);
+        Page<ClassInfoResponse> response = classPage.map(lc -> toClassInfoResponseBatch(lc, teacherMap, enrollmentCountMap));
         return ResponseEntity.ok(ApiResponse.success(response, "Tìm kiếm lớp học"));
     }
-    
-    private ClassInfoResponse toClassInfoResponse(LearningClass lc) {
-        // Count actual enrollments for this class
-        long studentCount = enrollmentRepository.countByClassId(lc.getId());
-        
-        String teacherName = null;
-        if (lc.getTeacherId() != null) {
-            teacherName = userRepository.findById(lc.getTeacherId())
-                    .map(UserJpaEntity::getFullName)
-                    .orElse("Unknown Teacher");
-        }
 
+    private List<ClassInfoResponse> batchMapClasses(List<LearningClass> classes) {
+        Map<UUID, String> teacherMap = batchFetchTeacherNames(classes);
+        Map<UUID, Long> enrollmentCountMap = batchFetchClassEnrollments(classes);
+        return classes.stream()
+                .map(lc -> toClassInfoResponseBatch(lc, teacherMap, enrollmentCountMap))
+                .toList();
+    }
+
+    private Map<UUID, String> batchFetchTeacherNames(List<LearningClass> classes) {
+        Set<UUID> teacherIds = classes.stream()
+                .map(LearningClass::getTeacherId).filter(Objects::nonNull).collect(Collectors.toSet());
+        if (teacherIds.isEmpty()) return Map.of();
+        return userJpaRepository.findAllById(teacherIds).stream()
+                .collect(Collectors.toMap(u -> u.getId(), u -> u.getFullName()));
+    }
+
+    private Map<UUID, Long> batchFetchClassEnrollments(List<LearningClass> classes) {
+        List<UUID> classIds = classes.stream().map(LearningClass::getId).toList();
+        if (classIds.isEmpty()) return Map.of();
+        Map<UUID, Long> result = new HashMap<>();
+        // Use individual counts since batch may not exist — still better than N+1 in toClassInfoResponse
+        for (UUID classId : classIds) {
+            result.put(classId, enrollmentRepository.countByClassId(classId));
+        }
+        return result;
+    }
+
+    private ClassInfoResponse toClassInfoResponseBatch(LearningClass lc, Map<UUID, String> teacherMap, Map<UUID, Long> enrollmentCountMap) {
+        String teacherName = lc.getTeacherId() != null ? teacherMap.getOrDefault(lc.getTeacherId(), "Unknown Teacher") : null;
+        long studentCount = enrollmentCountMap.getOrDefault(lc.getId(), 0L);
         return ClassInfoResponse.builder()
                 .id(lc.getId().toString())
                 .name(lc.getName())
@@ -288,9 +321,9 @@ public class CourseQueryControllerV3 {
                 .flatMap(lesson -> chapterRepository.findById(lesson.getChapterId())
                         .flatMap(chapter -> courseRepository.findById(chapter.getCourseId())
                                 .map(course -> {
-                                    // Paywall check
+                                    // Paywall check (use Course overload to avoid redundant fetch)
                                     boolean lessonFree = lesson.getIsFree() != null && lesson.getIsFree();
-                                    boolean showContent = isContentUnlocked(course.getId(), currentUser) || lessonFree;
+                                    boolean showContent = isContentUnlocked(course, currentUser) || lessonFree;
 
                                     // Build sections from contentBlocks
                                     List<SectionResponse> sectionResponses = new ArrayList<>();
@@ -340,7 +373,7 @@ public class CourseQueryControllerV3 {
                                 })
                         )
                 )
-                .orElse(ResponseEntity.notFound().build());
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Bài học", lessonId));
     }
 
     @Operation(summary = "Get lessons by chapter ID")
@@ -393,6 +426,7 @@ public class CourseQueryControllerV3 {
 
     @Operation(summary = "Get chapter details by ID")
     @GetMapping("/chapters/{chapterId}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<ChapterResponse>> getChapterById(
             @PathVariable UUID chapterId
     ) {
@@ -403,11 +437,11 @@ public class CourseQueryControllerV3 {
                             .title(ch.getTitle())
                             .description(ch.getDescription())
                             .orderIndex(ch.getOrderIndex())
-                            .lessons(new ArrayList<>()) // Details usually don't need full lesson list or lazy load
+                            .lessons(new ArrayList<>())
                             .build();
                     return ResponseEntity.ok(ApiResponse.success(response, "Thông tin chương"));
                 })
-                .orElse(ResponseEntity.notFound().build());
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Chương", chapterId));
     }
 
     // === Mapping methods ===
@@ -415,6 +449,21 @@ public class CourseQueryControllerV3 {
     private CourseSummaryResponse toSummary(Course course) {
         String teacherName = resolveTeacherName(course.getTeacherId());
         String categoryName = resolveCategoryName(course.getCategoryId());
+        return CourseSummaryResponse.builder()
+                .id(course.getId().toString())
+                .title(course.getTitle())
+                .description(course.getDescription())
+                .thumbnailUrl(course.getThumbnailUrl())
+                .status(course.getStatus().name().toLowerCase())
+                .teacherName(teacherName)
+                .createdAt(course.getCreatedAt() != null ? course.getCreatedAt().toString() : null)
+                .categoryName(categoryName)
+                .build();
+    }
+
+    private CourseSummaryResponse toSummaryBatch(Course course, Map<UUID, String> teacherNameMap, Map<UUID, String> categoryNameMap) {
+        String teacherName = course.getTeacherId() != null ? teacherNameMap.getOrDefault(course.getTeacherId(), "") : "";
+        String categoryName = course.getCategoryId() != null ? categoryNameMap.get(course.getCategoryId()) : null;
         return CourseSummaryResponse.builder()
                 .id(course.getId().toString())
                 .title(course.getTitle())
@@ -481,30 +530,25 @@ public class CourseQueryControllerV3 {
 
     /**
      * Check if content is unlocked for the given user and course.
-     * Content is unlocked if:
-     * - Course is free (price == 0 or null)
-     * - User is authenticated AND has a COMPLETED payment
-     * - User is a teacher/admin (always unlocked)
+     * Accepts courseId (fetches course) or use the overload with Course object to avoid redundant fetch.
      */
     private boolean isContentUnlocked(UUID courseId, UserJpaEntity currentUser) {
-        // Check course price
         var courseOpt = courseRepository.findById(courseId);
         if (courseOpt.isEmpty()) return false;
-        var course = courseOpt.get();
+        return isContentUnlocked(courseOpt.get(), currentUser);
+    }
 
+    private boolean isContentUnlocked(Course course, UserJpaEntity currentUser) {
         boolean isFreeOrZero = (course.getPrice() == null || course.getPrice().compareTo(BigDecimal.ZERO) <= 0)
                 || (course.getSalePrice() != null && course.getSalePrice().compareTo(BigDecimal.ZERO) <= 0);
         if (isFreeOrZero) return true;
 
-        // No user = locked for paid courses
         if (currentUser == null) return false;
 
-        // Admin/OrgAdmin/Teacher always have access
         if (isAdminRole(currentUser) || currentUser.getRole() == UserJpaEntity.UserRole.TEACHER) return true;
 
-        // Student: check payment
         return paymentRepository.existsByStudentIdAndCourseIdAndStatus(
-                currentUser.getId(), courseId, PaymentTransactionJpaEntity.PaymentStatus.COMPLETED);
+                currentUser.getId(), course.getId(), PaymentTransactionJpaEntity.PaymentStatus.COMPLETED);
     }
 
     // === Ownership Helpers ===

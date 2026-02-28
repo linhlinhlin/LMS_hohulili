@@ -19,7 +19,7 @@
     },
     {
       "name": "lazy-chunks",
-      "installMode": "lazy",
+      "installMode": "prefetch",
       "updateMode": "lazy",
       "resources": {
         "files": [
@@ -119,6 +119,18 @@
         "maxAge": "7d",
         "strategy": "freshness",
         "timeout": "5s"
+      }
+    },
+    {
+      "name": "google-fonts",
+      "urls": [
+        "https://fonts.googleapis.com/**",
+        "https://fonts.gstatic.com/**"
+      ],
+      "cacheConfig": {
+        "maxSize": 30,
+        "maxAge": "365d",
+        "strategy": "performance"
       }
     }
   ],

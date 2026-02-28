@@ -1,6 +1,7 @@
 package com.example.lms.learning_delivery.infrastructure.web;
 
 import com.example.lms.course_authoring.infrastructure.persistence.JpaCourseRepository;
+import com.example.lms.course_authoring.infrastructure.persistence.repository.LessonJpaRepository;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.learning_delivery.application.usecase.LearningActivityUseCase;
 import com.example.lms.learning_delivery.application.usecase.LearningActivityUseCase.*;
@@ -36,6 +37,7 @@ public class LearningActivityControllerV3 {
     private final LearningActivityUseCase useCase;
     private final LearningEventJpaRepository learningEventRepository;
     private final JpaCourseRepository courseJpaRepository;
+    private final LessonJpaRepository lessonJpaRepository;
 
     @Operation(summary = "Record heartbeat (time-spent tracking)")
     @PostMapping("/heartbeat")
@@ -90,6 +92,10 @@ public class LearningActivityControllerV3 {
         courseJpaRepository.findByLessonId(result.lessonId()).ifPresent(course -> {
             response.put("courseId", course.getId().toString());
             response.put("courseTitle", course.getTitle());
+        });
+
+        lessonJpaRepository.findById(result.lessonId()).ifPresent(lesson -> {
+            response.put("lessonTitle", lesson.getTitle());
         });
 
         return ResponseEntity.ok(ApiResponse.success(response, "Hoạt động gần nhất"));

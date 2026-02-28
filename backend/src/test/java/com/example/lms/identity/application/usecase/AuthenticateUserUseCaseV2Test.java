@@ -150,7 +150,7 @@ class AuthenticateUserUseCaseV2Test {
             // When/Then
             assertThatThrownBy(() -> useCase.execute(validCommand))
                 .isInstanceOf(UnauthorizedException.class)
-                .hasMessageContaining("User không tồn tại");
+                .hasMessageContaining("Thông tin đăng nhập không chính xác");
 
             verify(passwordEncoder, never()).matches(anyString(), anyString());
             verify(tokenService, never()).generateAccessToken(any(), anyString(), anyString());

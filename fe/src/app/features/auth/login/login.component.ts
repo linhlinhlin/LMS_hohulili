@@ -101,35 +101,6 @@ export class LoginComponent {
     return isEmail || isUsername ? null : { emailOrUsername: true };
   }
 
-  async loginAsDemo(role: UserRole): Promise<void> {
-    try {
-      await this.authService.loginAsDemo(role);
-
-      // Show success message
-      const roleName = this.getRoleDisplayName(role);
-      this.successMessage.set(`Đã đăng nhập thành công với tài khoản ${roleName}!`);
-      this.showSuccessMessage.set(true);
-
-      // Hide success message after 3 seconds
-      setTimeout(() => {
-        this.showSuccessMessage.set(false);
-      }, 3000);
-
-      // Redirect is handled by AuthService
-    } catch (error) {
-      // Error is handled by the store
-    }
-  }
-
-  private getRoleDisplayName(role: UserRole): string {
-    switch (role) {
-      case UserRole.STUDENT: return 'Học viên';
-      case UserRole.TEACHER: return 'Giảng viên';
-      case UserRole.ADMIN: return 'Quản trị viên';
-      default: return 'Người dùng';
-    }
-  }
-
   getErrorMessage(error: string): string {
     // Map common error messages to user-friendly Vietnamese messages
     const errorMappings: Record<string, string> = {

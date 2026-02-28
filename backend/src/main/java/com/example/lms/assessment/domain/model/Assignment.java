@@ -202,6 +202,14 @@ public class Assignment {
         this.updatedAt = Instant.now();
     }
 
+    public void setMaxScore(Integer maxScore) {
+        if (maxScore != null && maxScore <= 0) {
+            throw new IllegalArgumentException("Điểm tối đa phải là số dương");
+        }
+        this.maxScore = maxScore;
+        this.updatedAt = Instant.now();
+    }
+
     public void updateInfo(String title, String description, String instructions) {
         if (title != null && !title.isBlank()) {
             this.title = title;

@@ -37,8 +37,7 @@ public class PackageControllerV3 {
             return ResponseEntity.status(401).build();
         }
         List<com.example.lms.shared.infrastructure.persistence.entity.PackageJpaEntity> entities = packageRepository.findByOwnerId(user.getId());
-        
-        List<PackageDTO> dtos = entities.stream().map(this::toDTO).toList();
+        List<PackageDTO> dtos = batchMapPackages(entities);
         return ResponseEntity.ok(ApiResponse.success(dtos, "Danh sách gói câu hỏi"));
     }
 
@@ -51,13 +50,12 @@ public class PackageControllerV3 {
         if (isAdminRole(user)) {
             entities = packageRepository.findAll();
         } else {
-            // P0: Non-admin teachers only see PUBLIC packages + their own
             entities = packageRepository.findAll().stream()
                     .filter(p -> p.getVisibility() == com.example.lms.shared.infrastructure.persistence.entity.PackageJpaEntity.Visibility.PUBLIC
                             || p.getOwnerId().equals(user.getId()))
                     .toList();
         }
-        List<PackageDTO> dtos = entities.stream().map(this::toDTO).toList();
+        List<PackageDTO> dtos = batchMapPackages(entities);
         return ResponseEntity.ok(ApiResponse.success(dtos, "Tất cả gói câu hỏi"));
     }
 
@@ -192,7 +190,12 @@ public class PackageControllerV3 {
         if (request.getQuestionIds() == null || request.getQuestionIds().isEmpty()) {
              return ResponseEntity.badRequest().body(ApiResponse.error("400", "Chưa chọn câu hỏi"));
         }
-        java.util.UUID targetId = java.util.UUID.fromString(request.getTargetPackageId());
+        java.util.UUID targetId;
+        try {
+            targetId = java.util.UUID.fromString(request.getTargetPackageId());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("400", "ID gói đích không hợp lệ"));
+        }
 
         // Verify target package ownership
         verifyPackageOwnership(targetId, user);
@@ -218,15 +221,27 @@ public class PackageControllerV3 {
     @Operation(summary = "Search packages")
     @GetMapping("/search")
     @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
-    public ResponseEntity<ApiResponse<List<PackageDTO>>> searchPackages(@RequestParam(required = false) String keyword) {
+    public ResponseEntity<ApiResponse<List<PackageDTO>>> searchPackages(
+            @RequestParam(required = false) String keyword,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
         if (keyword == null || keyword.isBlank()) {
              return ResponseEntity.ok(ApiResponse.success(List.of()));
         }
-        // Using unpaged for simplicity or default page
-        org.springframework.data.domain.Page<com.example.lms.shared.infrastructure.persistence.entity.PackageJpaEntity> page = 
+        org.springframework.data.domain.Page<com.example.lms.shared.infrastructure.persistence.entity.PackageJpaEntity> page =
             packageRepository.findByNameContainingIgnoreCase(keyword, org.springframework.data.domain.Pageable.ofSize(20));
-            
-        List<PackageDTO> dtos = page.getContent().stream().map(this::toDTO).toList();
+
+        // Filter by visibility + ownership (same as getAllPackages) to prevent data leakage
+        java.util.List<com.example.lms.shared.infrastructure.persistence.entity.PackageJpaEntity> filtered;
+        if (isAdminRole(user)) {
+            filtered = page.getContent();
+        } else {
+            filtered = page.getContent().stream()
+                    .filter(p -> p.getVisibility() == com.example.lms.shared.infrastructure.persistence.entity.PackageJpaEntity.Visibility.PUBLIC
+                            || p.getOwnerId().equals(user.getId()))
+                    .toList();
+        }
+
+        List<PackageDTO> dtos = filtered.stream().map(this::toDTO).toList();
         return ResponseEntity.ok(ApiResponse.success(dtos, "Kết quả tìm kiếm"));
     }
 
@@ -247,6 +262,40 @@ public class PackageControllerV3 {
     }
 
     // === Helpers ===
+
+    private List<PackageDTO> batchMapPackages(List<com.example.lms.shared.infrastructure.persistence.entity.PackageJpaEntity> entities) {
+        // Batch-fetch owner names
+        java.util.Set<java.util.UUID> ownerIds = entities.stream()
+                .map(e -> e.getOwnerId()).filter(java.util.Objects::nonNull).collect(java.util.stream.Collectors.toSet());
+        java.util.Map<java.util.UUID, String> ownerNameMap = ownerIds.isEmpty() ? Map.of() :
+                userRepository.findAllById(ownerIds).stream()
+                        .collect(java.util.stream.Collectors.toMap(u -> u.getId(), u -> u.getFullName()));
+
+        // Batch-fetch question counts
+        java.util.Map<java.util.UUID, Integer> questionCountMap = new java.util.HashMap<>();
+        for (var entity : entities) {
+            questionCountMap.put(entity.getId(), (int) questionRepository.countByPackageId(entity.getId()));
+        }
+
+        return entities.stream().map(entity -> {
+            String ownerName = entity.getOwnerId() != null ? ownerNameMap.getOrDefault(entity.getOwnerId(), "Unknown") : "Unknown";
+            int questionCount = questionCountMap.getOrDefault(entity.getId(), 0);
+            return PackageDTO.builder()
+                    .id(entity.getId().toString())
+                    .name(entity.getName())
+                    .description(entity.getDescription())
+                    .subject(entity.getSubject())
+                    .ownerId(entity.getOwnerId().toString())
+                    .ownerName(ownerName)
+                    .visibility(entity.getVisibility().name())
+                    .capacity(entity.getCapacity())
+                    .questionCount(questionCount)
+                    .status(entity.getStatus() != null ? entity.getStatus() : "ACTIVE")
+                    .createdAt(entity.getCreatedAt() != null ? entity.getCreatedAt().toString() : null)
+                    .updatedAt(entity.getUpdatedAt() != null ? entity.getUpdatedAt().toString() : null)
+                    .build();
+        }).toList();
+    }
 
     private PackageDTO toDTO(com.example.lms.shared.infrastructure.persistence.entity.PackageJpaEntity entity) {
         String ownerName = userRepository.findById(entity.getOwnerId())

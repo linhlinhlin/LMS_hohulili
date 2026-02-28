@@ -18,9 +18,11 @@ import { ChatWidgetComponent } from '../../ai-chat/presentation/components/chat-
     <div class="min-h-screen flex flex-col">
       <!-- Desktop Sidebar - Full Height -->
       @if (!shouldHideSidebar()) {
-        <div class="hidden md:flex md:w-72 md:flex-col md:fixed md:inset-y-0 md:z-40"
-          >
-          <app-sidebar [config]="studentSidebarConfig()"></app-sidebar>
+        <div [class]="'hidden md:flex md:flex-col md:fixed md:inset-y-0 md:z-40 transition-all duration-300 '
+          + (sidebarCollapsed() ? 'md:w-16' : 'md:w-72')">
+          <app-sidebar [config]="studentSidebarConfig()"
+            [collapsed]="sidebarCollapsed()"
+            (toggleCollapse)="toggleSidebarCollapse()"></app-sidebar>
         </div>
       }
     
@@ -31,13 +33,17 @@ import { ChatWidgetComponent } from '../../ai-chat/presentation/components/chat-
           (click)="toggleMobileSidebar()">
           <div class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
           <div class="fixed inset-y-0 left-0 w-72 bg-white/95 backdrop-blur-xl shadow-2xl border-r border-white/20">
-            <app-sidebar [config]="studentSidebarConfig()"></app-sidebar>
+            <app-sidebar [config]="studentSidebarConfig()"
+              [collapsed]="false"></app-sidebar>
           </div>
         </div>
       }
     
       <!-- Main content area -->
-      <div [class]="shouldHideSidebar() ? 'flex flex-col flex-1 min-h-0' : 'md:pl-72 flex flex-col flex-1 min-h-0'">
+      <div [class]="shouldHideSidebar()
+        ? 'flex flex-col flex-1 min-h-0'
+        : 'flex flex-col flex-1 min-h-0 transition-all duration-300 '
+          + (sidebarCollapsed() ? 'md:pl-16' : 'md:pl-72')">
         <!-- Modern top navigation bar - Mobile only -->
         <header class="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-gray-200/50 md:hidden shadow-sm">
           <div class="px-4 sm:px-6 lg:px-8">
@@ -137,16 +143,16 @@ import { ChatWidgetComponent } from '../../ai-chat/presentation/components/chat-
                 </div>
                 <span class="text-xs font-medium">Bài tập</span>
               </a>
-              <!-- Learning -->
-              <a routerLink="/student/learn"
+              <!-- Grades -->
+              <a routerLink="/student/grades"
                 routerLinkActive="text-orange-600"
                 class="flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 min-w-0 flex-1">
                 <div class="w-6 h-6 mb-1">
                   <svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1.586a1 1 0 01.707.293l.707.707A1 1 0 0012.414 11H13m-3 3a1 1 0 100 2h6a1 1 0 100-2H9z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                   </svg>
                 </div>
-                <span class="text-xs font-medium">Học tập</span>
+                <span class="text-xs font-medium">Bảng điểm</span>
               </a>
               <!-- Profile -->
               <a routerLink="/student/profile"
@@ -181,6 +187,7 @@ export class StudentLayoutSimpleComponent implements OnInit, OnDestroy {
   private notificationService = inject(NotificationService);
   private messagingService = inject(MessagingService);
   protected isMobileSidebarOpen = signal(false);
+  protected sidebarCollapsed = signal(false);
 
   // Dynamic sidebar config with unread messages badge
   protected studentSidebarConfig = computed<SidebarConfig>(() => {
@@ -221,6 +228,7 @@ export class StudentLayoutSimpleComponent implements OnInit, OnDestroy {
 
     // Load sidebar state from localStorage on initialization
     this.loadSidebarState();
+    this.loadCollapsedState();
 
     // Subscribe to router events to detect navigation changes
     this.routerSubscription = this.router.events
@@ -270,6 +278,19 @@ export class StudentLayoutSimpleComponent implements OnInit, OnDestroy {
       if (saved !== null) {
         this.sidebarHidden.set(saved === 'true');
       }
+    }
+  }
+
+  toggleSidebarCollapse(): void {
+    this.sidebarCollapsed.update(v => !v);
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem('student_sidebar_collapsed', this.sidebarCollapsed().toString());
+    }
+  }
+
+  private loadCollapsedState(): void {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      this.sidebarCollapsed.set(localStorage.getItem('student_sidebar_collapsed') === 'true');
     }
   }
 

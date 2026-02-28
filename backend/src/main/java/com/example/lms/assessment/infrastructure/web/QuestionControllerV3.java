@@ -163,12 +163,13 @@ public class QuestionControllerV3 {
         verifyQuestionOwnership(id, user);
 
         // Decrement bank question count before deleting
-        var question = questionRepository.findById(id).orElse(null);
-        if (question != null && question.getPackageId() != null) {
-            questionBankRepository.findById(question.getPackageId()).ifPresent(bank -> {
-                bank.decrementQuestionCount();
-                questionBankRepository.save(bank);
-            });
+        var question = questionRepository.findById(id)
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Câu hỏi", id));
+        if (question.getPackageId() != null) {
+            var bank = questionBankRepository.findById(question.getPackageId())
+                    .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Ngân hàng câu hỏi", question.getPackageId()));
+            bank.decrementQuestionCount();
+            questionBankRepository.save(bank);
         }
 
         questionRepository.deleteById(id);
@@ -182,8 +183,9 @@ public class QuestionControllerV3 {
     public ResponseEntity<ApiResponse<UUID>> createQuestion(
             @AuthenticationPrincipal UserJpaEntity currentUser,
             @Valid @RequestBody CreateQuestionRequest request) {
+        // Verify teacher owns the target question bank
+        verifyBankOwnership(request.packageId(), currentUser);
         UUID userId = currentUser.getId();
-
         return ResponseEntity.ok(ApiResponse.success(createQuestionUseCase.execute(mapToCommand(request, userId))));
     }
 
@@ -288,6 +290,8 @@ public class QuestionControllerV3 {
             @RequestParam("packageId") UUID packageId,
             @RequestParam("difficulty") QuestionJpaEntity.Difficulty difficulty) {
 
+        // Verify teacher owns the target question bank before import
+        verifyBankOwnership(packageId, currentUser);
         UUID userId = currentUser.getId();
 
         int successCount = 0;
@@ -367,10 +371,10 @@ public class QuestionControllerV3 {
         // Update bank question count after import
         if (successCount > 0) {
             final int imported = successCount;
-            questionBankRepository.findById(packageId).ifPresent(bank -> {
-                bank.setQuestionCount(bank.getQuestionCount() + imported);
-                questionBankRepository.save(bank);
-            });
+            var bank = questionBankRepository.findById(packageId)
+                    .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Ngân hàng câu hỏi", packageId));
+            bank.setQuestionCount(bank.getQuestionCount() + imported);
+            questionBankRepository.save(bank);
         }
 
         ExcelImportResult result = new ExcelImportResult(successCount, failedCount, successCount + failedCount, errors,
@@ -472,6 +476,15 @@ public class QuestionControllerV3 {
                 .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Câu hỏi", questionId));
         if (question.getCreatedBy() == null || !question.getCreatedBy().equals(user.getId())) {
             throw new AccessDeniedException("Bạn không sở hữu câu hỏi này");
+        }
+    }
+
+    private void verifyBankOwnership(UUID bankId, UserJpaEntity user) {
+        if (isAdminRole(user)) return;
+        var bank = questionBankRepository.findById(bankId)
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Gói câu hỏi", bankId));
+        if (!bank.isOwnedBy(user.getId())) {
+            throw new AccessDeniedException("Bạn không sở hữu gói câu hỏi này");
         }
     }
 }

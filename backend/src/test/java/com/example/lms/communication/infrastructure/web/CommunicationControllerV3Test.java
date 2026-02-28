@@ -74,9 +74,10 @@ class CommunicationControllerV3Test {
             when(conversationRepository.findActiveByParticipantId(userAId))
                     .thenReturn(List.of(conv));
             var userB = mock(UserJpaEntity.class);
-            when(userJpaRepository.findById(userBId))
-                    .thenReturn(Optional.of(userB));
+            when(userB.getId()).thenReturn(userBId);
             when(userB.getFullName()).thenReturn("User B");
+            when(userJpaRepository.findAllById(any()))
+                    .thenReturn(List.of(userB));
 
             var response = controller.getConversations(userA, false);
             assertThat(response.getStatusCode().value()).isEqualTo(200);

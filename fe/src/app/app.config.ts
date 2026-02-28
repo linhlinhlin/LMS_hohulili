@@ -76,11 +76,12 @@ export const appConfig: ApplicationConfig = {
     ),
     // Set default locale to Vietnamese for pipes like CurrencyPipe, DatePipe, etc.
     { provide: LOCALE_ID, useValue: 'vi' },
-    // Service Worker disabled in development to avoid redirect issues
+    // Service Worker — register immediately so cache is populated ASAP
+    // (was registerWhenStable:30000 — too late; users closing tab within 30s got zero cache)
     ...(isDevMode() ? [] : [
       provideServiceWorker('ngsw-worker.js', {
         enabled: true,
-        registrationStrategy: 'registerWhenStable:30000'
+        registrationStrategy: 'registerImmediately'
       })
     ]),
     // ✅ FIXED: Add APP_INITIALIZER to setup global state before app renders

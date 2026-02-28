@@ -55,9 +55,9 @@ public class AuditLogControllerV3 {
     @Transactional(readOnly = true)
     @Operation(summary = "Xem chi tiết nhật ký kiểm toán")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getAuditLogDetail(@PathVariable Long id) {
-        return auditLogRepository.findById(id)
-                .map(entry -> ResponseEntity.ok(ApiResponse.success(toMap(entry))))
-                .orElse(ResponseEntity.notFound().build());
+        var entry = auditLogRepository.findById(id)
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Nhật ký kiểm toán", id.toString()));
+        return ResponseEntity.ok(ApiResponse.success(toMap(entry), "Chi tiết nhật ký kiểm toán"));
     }
 
     private Map<String, Object> toMap(AuditLogJpaEntity entry) {
