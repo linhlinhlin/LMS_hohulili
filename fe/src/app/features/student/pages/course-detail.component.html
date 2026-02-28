@@ -45,7 +45,14 @@
 
       <div class="course-info">
         <h1 class="course-title">{{ course()!.title }}</h1>
-        <p class="course-instructor">{{ course()!.teacherName }}</p>
+        <div class="course-meta-line">
+          <p class="course-instructor">{{ course()!.teacherName }}</p>
+          @if (course()!.deliveryMode === 'INSTRUCTOR_LED') {
+            <span class="delivery-badge class-mode">Lớp học</span>
+          } @else {
+            <span class="delivery-badge">Khóa học</span>
+          }
+        </div>
       </div>
     </div>
   </header>
@@ -91,7 +98,7 @@
             </svg>
             <div class="stat-content">
               <span class="stat-label">Số chương</span>
-              <span class="stat-value">{{ course()!.chapterCount }}</span>
+              <span class="stat-value">{{ chapterCount() || course()!.chapterCount }}</span>
             </div>
           </div>
 
@@ -141,7 +148,7 @@
             <span class="progress-value">{{ progressPercentage() }}%</span>
           </div>
           <div class="progress-bar">
-            <div class="progress-fill" [style.width.%]="progressPercentage()"></div>
+            <div class="progress-fill" [class.completed]="progressPercentage() >= 100" [style.width.%]="progressPercentage()"></div>
           </div>
           <p class="progress-detail">
             {{ completedLessons() }} / {{ totalLessons() }} bài học đã hoàn thành

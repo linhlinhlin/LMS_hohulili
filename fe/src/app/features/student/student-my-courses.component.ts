@@ -133,7 +133,7 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
                 <!-- Course Metadata -->
                 <div class="course-metadata">
                   <div class="partner-info">
-                    <span class="partner-name">LMS Maritime</span>
+                    <span class="partner-name">{{ getInstructorName(course) }}</span>
                   </div>
                   <h3 class="course-title">
                     <a [routerLink]="['/student/course', course.id]">
@@ -141,7 +141,9 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
                     </a>
                   </h3>
                   <div class="course-meta">
-                    <span>Khóa học</span>
+                    <span class="delivery-badge" [class.class-mode]="course.deliveryMode === 'INSTRUCTOR_LED'">
+                      {{ course.deliveryMode === 'INSTRUCTOR_LED' ? 'Lớp học' : 'Khóa học' }}
+                    </span>
                     <span class="separator">·</span>
                     <span>{{ course.progress }}% hoàn thành</span>
                     @if (course['estimatedCompletion']) {
@@ -166,7 +168,7 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
 
                 <!-- Progress Bar -->
                 <div class="progress-bar-thin">
-                  <div class="progress-fill" [style.width.%]="course.progress"></div>
+                  <div class="progress-fill" [class.completed]="course.progress >= 100" [style.width.%]="course.progress"></div>
                 </div>
               </div>
 
@@ -227,7 +229,7 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
             <label class="filter-label">Sắp xếp theo</label>
             <select class="filter-select" [value]="sortBy()" (change)="onSortChange($event)">
               <option value="recent">Gần đây nhất</option>
-              <option value="title">Tên khóa học</option>
+              <option value="name">Tên khóa học</option>
               <option value="progress">Tiến độ</option>
             </select>
           </div>
@@ -587,6 +589,15 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
       }
     }
 
+    .delivery-badge {
+      font-weight: 500;
+      color: $blue-primary;
+
+      &.class-mode {
+        color: #7C3AED;
+      }
+    }
+
     /* Progress Bar - Compact Style */
     .progress-bar-thin {
       grid-area: progress;
@@ -605,6 +616,10 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
       background: $blue-primary;
       border-radius: 3px;
       transition: width 0.3s ease;
+
+      &.completed {
+        background: #10B981;
+      }
     }
 
     /* Action Buttons - Compact Style */
@@ -922,7 +937,7 @@ export class StudentMyCoursesComponent implements OnInit {
   });
 
   readonly inProgressCount = computed(() =>
-    this.enrolledCourses().filter(c => c['status'] === 'in-progress').length
+    this.enrolledCourses().filter(c => c['status'] === 'in-progress' || c['status'] === 'enrolled').length
   );
 
   readonly completedCount = computed(() =>
@@ -1007,17 +1022,25 @@ export class StudentMyCoursesComponent implements OnInit {
   }
 
   getUserFirstName(): string {
-    const fullName = this.authService.currentUser()?.name || 'Bạn';
+    const user = this.authService.currentUser();
+    const fullName = user?.fullName || user?.name || 'Bạn';
     return fullName.split(' ').pop() || fullName;
   }
 
   getUserInitials(): string {
-    const fullName = this.authService.currentUser()?.name || 'U';
+    const user = this.authService.currentUser();
+    const fullName = user?.fullName || user?.name || 'U';
     const names = fullName.trim().split(' ');
     if (names.length >= 2) {
       return (names[0][0] + names[names.length - 1][0]).toUpperCase();
     }
     return fullName.substring(0, 2).toUpperCase();
+  }
+
+  getInstructorName(course: EnhancedEnrolledCourse): string {
+    if (!course.instructor) return 'LMS Maritime';
+    if (typeof course.instructor === 'string') return course.instructor || 'LMS Maritime';
+    return course.instructor.name || 'LMS Maritime';
   }
 
   onTabChange(tabId: string): void {

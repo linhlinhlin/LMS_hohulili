@@ -74,9 +74,9 @@
   <!-- Reading Area -->
   <div class="max-w-[800px] mx-auto w-full px-4 md:px-8">
 
-    <!-- Tab Bar (only for VIDEO sections — Coursera/Udemy pattern) -->
-    @if (isVideoSection()) {
-    <div class="flex items-center gap-1 border-b border-gray-200 mt-6 mb-0">
+    <!-- Tab Bar (always visible — Coursera/Udemy pattern) -->
+    <div class="flex items-center gap-1 border-b border-gray-200 mb-0"
+      [class.mt-6]="isVideoSection()" [class.mt-0]="!isVideoSection()">
       <button class="relative px-4 py-3 text-sm font-medium transition-colors"
         [class.text-[#0056D2]]="activeTab() === 'overview'"
         [class.text-slate-500]="activeTab() !== 'overview'"
@@ -125,10 +125,9 @@
         }
       </button>
     </div>
-    }
 
     <!-- Tab Content -->
-    <div [class.pt-8]="isVideoSection()" [class.pt-10]="!isVideoSection()">
+    <div class="pt-8">
 
     <!-- Tab: Overview (default) -->
     @if (activeTab() === 'overview') {

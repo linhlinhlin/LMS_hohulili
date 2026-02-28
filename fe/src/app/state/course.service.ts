@@ -321,7 +321,8 @@ export class CourseService {
       studentsCount: course.enrolledCount || 0,
       lessonsCount: 0,
       isPublished: course.status === 'PUBLISHED',
-      isFree
+      isFree,
+      deliveryMode: course.deliveryMode
     };
   }
 

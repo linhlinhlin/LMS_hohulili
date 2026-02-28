@@ -743,11 +743,11 @@ export class LearningService {
     const url = `/api/v3/student/progress/courses/${courseId}/completed-ids`;
     return this.api.get<any>(url).pipe(
       map(res => {
-        // Extract completedLessonIds from either direct response or data wrapper
-        const completedLessonIds =
-          res?.data?.completedLessonIds ??
-          res?.completedLessonIds ??
-          [];
+        // API returns { data: ["id1", "id2", ...] } — flat array in data
+        const data = res?.data;
+        const completedLessonIds = Array.isArray(data)
+          ? data
+          : (data?.completedLessonIds ?? res?.completedLessonIds ?? []);
 
         return { completedLessonIds };
       })

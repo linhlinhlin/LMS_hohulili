@@ -235,6 +235,7 @@ export class StudentEnrollmentService {
       status,
       thumbnail: courseAny.thumbnailUrl || null,
       category: courseAny.categoryName || undefined,
+      deliveryMode: course.deliveryMode || 'SELF_PACED',
       rating: undefined,
       lastAccessed: new Date(),
       enrolledAt: course.createdAt ? new Date(course.createdAt) : new Date(),

@@ -46,6 +46,11 @@
                   </div>
                   
                   <span class="text-slate-400">{{ course()?.studentsCount || 0 }} học viên</span>
+                  @if (course()?.deliveryMode === 'INSTRUCTOR_LED') {
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-500/20 text-purple-300">Lớp học</span>
+                  } @else {
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#0056D2]/20 text-blue-300">Khóa học</span>
+                  }
                 </div>
                 
                 <!-- Instructor -->

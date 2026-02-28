@@ -21,6 +21,7 @@ interface CourseDetail {
   price?: number;
   salePrice?: number;
   priceType?: string;
+  deliveryMode?: 'SELF_PACED' | 'INSTRUCTOR_LED';
 }
 
 interface Section {
@@ -83,6 +84,9 @@ export class CourseDetailComponent implements OnInit {
   hasPaid = signal(false);
   paymentLoading = signal(false);
 
+  // Real progress from enrollment API
+  private _realProgress = signal<{ percentage: number; completed: number; total: number } | null>(null);
+
   // Review state
   reviews = signal<ReviewDTO[]>([]);
   reviewSummary = signal<ReviewSummary>({ averageRating: 0, totalReviews: 0 });
@@ -97,13 +101,19 @@ export class CourseDetailComponent implements OnInit {
     return this.sections().reduce((sum, section) => sum + section.lessons.length, 0);
   });
 
+  chapterCount = computed(() => this.sections().length);
+
   completedLessons = computed(() => {
+    const real = this._realProgress();
+    if (real) return real.completed;
     return this.sections().reduce((sum, section) => {
       return sum + section.lessons.filter(l => l.isCompleted).length;
     }, 0);
   });
 
   progressPercentage = computed(() => {
+    const real = this._realProgress();
+    if (real) return real.percentage;
     const total = this.totalLessons();
     if (total === 0) return 0;
     return Math.round((this.completedLessons() / total) * 100);
@@ -130,6 +140,7 @@ export class CourseDetailComponent implements OnInit {
       this.checkPaymentStatus(courseId);
       this.loadReviews(courseId);
       this.loadMyReview(courseId);
+      this.loadProgress(courseId);
     }
   }
 
@@ -140,6 +151,8 @@ export class CourseDetailComponent implements OnInit {
     this.courseApi.getCourseById(courseId).subscribe({
       next: (res: any) => {
         const detail = res?.data;
+        const price = detail?.price ?? 0;
+        const priceType = detail?.priceType;
         this.course.set({
           id: courseId,
           title: detail?.title || '',
@@ -147,10 +160,15 @@ export class CourseDetailComponent implements OnInit {
           teacherName: detail?.teacherName || '',
           enrolledCount: detail?.enrolledCount || 0,
           chapterCount: detail?.chapterCount || 0,
-          price: detail?.price ?? 0,
+          price,
           salePrice: detail?.salePrice,
-          priceType: detail?.priceType
+          priceType,
+          deliveryMode: detail?.deliveryMode
         });
+        // Auto-mark free courses as paid
+        if (!price || price === 0 || priceType === 'FREE') {
+          this.hasPaid.set(true);
+        }
       },
       error: () => {
         this.isLoading.set(false);
@@ -303,17 +321,50 @@ export class CourseDetailComponent implements OnInit {
 
   /**
    * Kiểm tra trạng thái thanh toán khóa học
+   * Free courses (price=0 or priceType=FREE) are always considered paid
    */
   async checkPaymentStatus(courseId: string): Promise<void> {
     this.paymentLoading.set(true);
     try {
+      const course = this.course();
+      const isFree = !course?.price || course.price === 0 || course.priceType === 'FREE';
+      if (isFree) {
+        this.hasPaid.set(true);
+        return;
+      }
       const state = await this.paymentService.loadPaymentStatus(courseId);
       this.hasPaid.set(state.hasPaid);
     } catch {
-      this.toast.error('Không thể kiểm tra trạng thái thanh toán');
+      // For free courses default to paid
+      const course = this.course();
+      if (!course?.price || course.price === 0 || course.priceType === 'FREE') {
+        this.hasPaid.set(true);
+      }
     } finally {
       this.paymentLoading.set(false);
     }
+  }
+
+  /**
+   * Load tiến độ thực từ enrollment progress API
+   * Handles both ApiResponse wrapper {data: {...}} and direct response
+   */
+  private loadProgress(courseId: string): void {
+    this.courseApi.getCourseProgress(courseId).subscribe({
+      next: (res: any) => {
+        // Handle both wrapped {data: {progressPercentage}} and direct {progressPercentage}
+        const data = res?.data ?? res;
+        const pct = data?.progressPercentage;
+        if (pct !== undefined && pct !== null) {
+          this._realProgress.set({
+            percentage: Math.round(pct),
+            completed: data.completedLessons || 0,
+            total: data.totalLessons || 0
+          });
+        }
+      },
+      error: () => { /* Progress is supplementary — silent fallback */ }
+    });
   }
 
   /**

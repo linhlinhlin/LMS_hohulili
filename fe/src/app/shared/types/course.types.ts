@@ -147,6 +147,7 @@ export interface ExtendedCourse extends Course {
   priceType?: 'FREE' | 'PAID' | 'SUBSCRIPTION';
   salePrice?: number;
   categoryName?: string;
+  deliveryMode?: 'SELF_PACED' | 'INSTRUCTOR_LED';
 }
 
 // Course Review interface
@@ -223,6 +224,7 @@ export interface EnrolledCourse {
   title: string;
   description: string;
   shortDescription?: string;
+  deliveryMode?: 'SELF_PACED' | 'INSTRUCTOR_LED';
   instructor: string | {
     id: string;
     name: string;

@@ -128,10 +128,33 @@
   line-height: 1.2;
 }
 
+.course-meta-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .course-instructor {
   font-size: 1rem;
   color: #6B7280;
   margin: 0;
+}
+
+.delivery-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background-color: rgba(#0056D2, 0.1);
+  color: #0056D2;
+
+  &.class-mode {
+    background-color: rgba(#7C3AED, 0.1);
+    color: #7C3AED;
+  }
 }
 
 // ============================================
@@ -302,6 +325,10 @@
   background-color: #0056D2;
   border-radius: 4px;
   transition: width 0.5s ease;
+
+  &.completed {
+    background-color: #10B981;
+  }
 }
 
 .progress-detail {
