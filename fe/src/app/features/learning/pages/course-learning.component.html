@@ -180,10 +180,17 @@
   <!-- Main Content Area -->
   <main class="flex-1 flex flex-col h-full relative bg-white overflow-hidden">
 
-    <!-- Top Bar (desktop only, minimal like reference) -->
+    <!-- Top Bar (desktop only) — Ghi chú + Tài liệu toggles -->
     <div class="hidden md:flex h-[52px] items-center justify-between px-6 border-b border-gray-100 bg-white shrink-0">
       <div></div>
-      <div class="flex items-center gap-5 text-sm text-slate-500 font-medium">
+      <div class="flex items-center gap-4 text-sm text-slate-500 font-medium">
+        <button class="flex items-center gap-1.5 hover:text-[#0056D2] transition-colors"
+          [class.text-[#0056D2]]="activeTab() === 'notes'"
+          [class.font-semibold]="activeTab() === 'notes'"
+          (click)="activeTab() === 'notes' ? activeTab.set('overview') : activeTab.set('notes')">
+          <span class="material-symbols-outlined text-[18px]">edit_note</span>
+          <span>Ghi chú</span>
+        </button>
         <button class="flex items-center gap-1.5 hover:text-[#0056D2] transition-colors"
           [class.text-[#0056D2]]="activeTab() === 'materials'"
           [class.font-semibold]="activeTab() === 'materials'"

@@ -51,7 +51,7 @@ export class CourseLearningComponent implements OnInit {
   error = signal<string | null>(null);
 
   // Active content tab
-  activeTab = signal<'overview' | 'materials' | 'discussion'>('overview');
+  activeTab = signal<'overview' | 'notes' | 'materials'>('overview');
 
   // Video progress tracking for 75% rule
   canCompleteCurrentLesson = signal<boolean>(true); // Default true for non-video lessons

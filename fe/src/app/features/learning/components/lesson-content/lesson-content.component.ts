@@ -1,6 +1,7 @@
 import { Component, input, output, model, signal, computed, ChangeDetectionStrategy, inject, effect, ElementRef, viewChild, AfterViewInit } from '@angular/core';
 
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { Router } from '@angular/router';
 import { LessonDetail } from '../../models/learning.models';
@@ -11,6 +12,7 @@ import { ReadingProgressTracker } from '../../services/reading-progress-tracker.
 import { VideoProgressApi } from '../../../../api/client/video-progress.api';
 import { YouTubePlayerComponent } from '../youtube-player/youtube-player.component';
 import { OfflineVideoService } from '../../../../core/services/offline-video.service';
+import { NoteApi, NoteResponse, CreateNoteRequest, UpdateNoteRequest } from '../../../../api/endpoints/note.api';
 
 /**
  * Lesson Content Component
@@ -22,7 +24,7 @@ import { OfflineVideoService } from '../../../../core/services/offline-video.ser
  */
 @Component({
   selector: 'app-lesson-content',
-  imports: [YouTubePlayerComponent, CommonModule],
+  imports: [YouTubePlayerComponent, CommonModule, FormsModule],
   templateUrl: './lesson-content.component.html',
   styleUrls: ['./lesson-content.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -35,6 +37,99 @@ export class LessonContentComponent implements AfterViewInit {
   private readingTracker = inject(ReadingProgressTracker);
   private videoProgressApi = inject(VideoProgressApi);
   private offlineVideo = inject(OfflineVideoService);
+  private noteApi = inject(NoteApi);
+
+  // --- Notes state ---
+  readonly lessonNotes = signal<NoteResponse[]>([]);
+  readonly isLoadingNotes = signal(false);
+  readonly editingNoteId = signal<string | null>(null);
+  readonly editingNoteTitle = signal('');
+  readonly editingNoteContent = signal('');
+  readonly newNoteContent = signal('');
+  readonly isSavingNote = signal(false);
+
+  /** Load notes when switching to notes tab */
+  private loadNotesEffect = effect(() => {
+    const lesson = this.lesson();
+    const tab = this.activeTab();
+    if (tab === 'notes' && lesson?.courseId) {
+      this.loadNotes();
+    }
+  });
+
+  private loadNotes(): void {
+    const lesson = this.lesson();
+    if (!lesson?.courseId) return;
+    this.isLoadingNotes.set(true);
+    this.noteApi.listNotes(lesson.courseId).subscribe({
+      next: (res: any) => {
+        const allNotes: NoteResponse[] = res?.data || res || [];
+        // Filter notes for this specific lesson
+        const filtered = allNotes.filter(n => n.lessonId === lesson.id);
+        this.lessonNotes.set(filtered);
+        this.isLoadingNotes.set(false);
+      },
+      error: () => this.isLoadingNotes.set(false)
+    });
+  }
+
+  createNote(): void {
+    const lesson = this.lesson();
+    const content = this.newNoteContent().trim();
+    if (!content || !lesson?.courseId) return;
+
+    this.isSavingNote.set(true);
+    const req: CreateNoteRequest = {
+      courseId: lesson.courseId,
+      lessonId: lesson.id,
+      title: lesson.title,
+      content
+    };
+    this.noteApi.createNote(req).subscribe({
+      next: () => {
+        this.newNoteContent.set('');
+        this.isSavingNote.set(false);
+        this.loadNotes();
+      },
+      error: () => this.isSavingNote.set(false)
+    });
+  }
+
+  startEditNote(note: NoteResponse): void {
+    this.editingNoteId.set(note.id);
+    this.editingNoteTitle.set(note.title);
+    this.editingNoteContent.set(note.content);
+  }
+
+  cancelEditNote(): void {
+    this.editingNoteId.set(null);
+  }
+
+  saveEditNote(): void {
+    const noteId = this.editingNoteId();
+    if (!noteId) return;
+
+    this.isSavingNote.set(true);
+    const req: UpdateNoteRequest = {
+      title: this.editingNoteTitle(),
+      content: this.editingNoteContent()
+    };
+    this.noteApi.updateNote(noteId, req).subscribe({
+      next: () => {
+        this.editingNoteId.set(null);
+        this.isSavingNote.set(false);
+        this.loadNotes();
+      },
+      error: () => this.isSavingNote.set(false)
+    });
+  }
+
+  deleteNote(noteId: string): void {
+    this.noteApi.deleteNote(noteId).subscribe({
+      next: () => this.loadNotes(),
+      error: () => {}
+    });
+  }
 
   /** Reference to text content container for scroll tracking */
   readonly textContentRef = viewChild<ElementRef>('textContent');
@@ -67,7 +162,7 @@ export class LessonContentComponent implements AfterViewInit {
   readonly goToQuiz = output<void>();
 
   // Active tab for content view
-  readonly activeTab = model<'overview' | 'materials' | 'discussion'>('overview');
+  readonly activeTab = model<'overview' | 'notes' | 'materials'>('overview');
 
   // Computed signals for derived state
   readonly hasSections = computed(() => {
@@ -81,6 +176,13 @@ export class LessonContentComponent implements AfterViewInit {
       return null;
     }
     return ls.sections[this.sectionIndex()] || null;
+  });
+
+  /** Whether current view is a video section (used to show/hide tab bar) */
+  readonly isVideoSection = computed(() => {
+    const section = this.currentSection();
+    if (section) return section.type === 'VIDEO' && !!section.videoUrl;
+    return !this.hasSections() && !!this.lesson()?.videoUrl;
   });
 
   readonly canGoPreviousSection = computed(() => this.sectionIndex() > 0);
