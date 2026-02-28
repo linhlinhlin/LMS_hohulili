@@ -146,12 +146,14 @@
             [class.bg-blue-50/50]="currentLesson()?.id === lesson.id && currentSectionIndex() === sectionIndex"
             [class.text-slate-500]="!isSectionCompleted(sectionItem.id) && !(currentLesson()?.id === lesson.id && currentSectionIndex() === sectionIndex)"
             (click)="selectSectionInSidebar(sectionIndex, $event)">
-            @if (isSectionCompleted(sectionItem.id)) {
-            <span class="material-symbols-outlined text-[14px] text-green-500">check_circle</span>
-            } @else if (currentLesson()?.id === lesson.id && currentSectionIndex() === sectionIndex) {
-            <span class="material-symbols-outlined text-[14px] text-[#0056D2]">play_circle</span>
+            @if (sectionItem.type === 'VIDEO') {
+            <span class="material-symbols-outlined text-[14px]">play_circle</span>
+            } @else if (sectionItem.type === 'TEXT') {
+            <span class="material-symbols-outlined text-[14px]">description</span>
+            } @else if (sectionItem.type === 'QUIZ') {
+            <span class="material-symbols-outlined text-[14px]">quiz</span>
             } @else {
-            <span class="material-symbols-outlined text-[14px] text-slate-400">radio_button_unchecked</span>
+            <span class="material-symbols-outlined text-[14px]">attach_file</span>
             }
             <span class="truncate">{{ sectionItem.title }}</span>
           </button>
@@ -182,13 +184,6 @@
     <div class="hidden md:flex h-[52px] items-center justify-between px-6 border-b border-gray-100 bg-white shrink-0">
       <div></div>
       <div class="flex items-center gap-5 text-sm text-slate-500 font-medium">
-        <button class="flex items-center gap-1.5 hover:text-[#0056D2] transition-colors"
-          [class.text-[#0056D2]]="activeTab() === 'discussion'"
-          [class.font-semibold]="activeTab() === 'discussion'"
-          (click)="activeTab() === 'discussion' ? activeTab.set('overview') : activeTab.set('discussion')">
-          <span class="material-symbols-outlined text-[18px]">forum</span>
-          <span>Thảo luận</span>
-        </button>
         <button class="flex items-center gap-1.5 hover:text-[#0056D2] transition-colors"
           [class.text-[#0056D2]]="activeTab() === 'materials'"
           [class.font-semibold]="activeTab() === 'materials'"
