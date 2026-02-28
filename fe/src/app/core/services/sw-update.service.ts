@@ -71,6 +71,26 @@ export class SwUpdateService {
 
     // Request persistent storage — critical for iOS (prevents 7-day eviction)
     this.storage.requestPersistence();
+
+    // One-time "offline ready" toast — shows only on first SW install per device
+    this.showOfflineReadyToast();
+  }
+
+  /**
+   * Show a one-time toast when SW first becomes active (all prefetch assets cached).
+   * Uses localStorage flag so it only fires once per device, ever.
+   * navigator.serviceWorker.ready resolves when SW is active = prefetch complete.
+   */
+  private showOfflineReadyToast(): void {
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
+    try {
+      if (localStorage.getItem('pwa-ready-shown')) return;
+    } catch { return; }
+
+    navigator.serviceWorker.ready.then(() => {
+      this.toast.success('Sẵn sàng ngoại tuyến — trang web hoạt động kể cả khi mất mạng');
+      try { localStorage.setItem('pwa-ready-shown', '1'); } catch {}
+    });
   }
 
   /**
