@@ -6,7 +6,7 @@ import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { StudentEnrollmentService } from './services/enrollment.service';
 import { CourseApi } from '../../api/client/course.api';
-import { EnrolledCourse } from './types';
+import { EnrolledCourse } from '../../shared/types/course.types';
 import { IconComponent } from '../../shared/components/ui/icon/icon.component';
 import { ButtonComponent } from '../../shared/components/ui/button/button.component';
 import { CardComponent } from '../../shared/components/ui/card/card.component';

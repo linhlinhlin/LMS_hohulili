@@ -2,7 +2,7 @@ import { Injectable, inject, signal, computed } from '@angular/core';
 import { CourseApi } from '../../../api/client/course.api';
 import { StudentApi } from '../../../api/client/student.api';
 import { CourseSummary } from '../../../api/types/course.types';
-import { EnrolledCourse } from '../types';
+import { EnrolledCourse } from '../../../shared/types/course.types';
 import { firstValueFrom } from 'rxjs';
 import { ErrorHandlingService } from '../../../shared/services/error-handling.service';
 
