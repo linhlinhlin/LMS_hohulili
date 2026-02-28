@@ -1,257 +1,174 @@
-<div class="learning-container">
+<div class="h-screen flex flex-col md:flex-row overflow-hidden bg-white">
+
+  <!-- Mobile Header (md:hidden) -->
+  <header class="md:hidden flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white z-20 shrink-0">
+    <button class="text-slate-700 p-1" (click)="toggleSidebar()">
+      <span class="material-symbols-outlined">menu</span>
+    </button>
+    <h1 class="text-sm font-bold truncate text-[#0056D2] max-w-[220px]">{{ course()?.title || 'Đang tải...' }}</h1>
+    <button class="text-slate-700 p-1">
+      <span class="material-symbols-outlined">more_vert</span>
+    </button>
+  </header>
 
   <!-- Mobile Sidebar Overlay -->
   @if (isMobileView() && showMobileSidebar()) {
-  <div class="mobile-overlay" (click)="closeMobileSidebar()"></div>
+  <div class="fixed inset-0 bg-black/50 z-40" (click)="closeMobileSidebar()"></div>
   }
 
   <!-- Sidebar -->
-  <aside class="learning-sidebar" [class.collapsed]="sidebarCollapsed()" [class.mobile-visible]="showMobileSidebar()">
+  <aside class="w-[300px] flex-col border-r border-gray-200 bg-white h-full z-10 shrink-0"
+    [class.hidden]="isMobileView() && !showMobileSidebar()"
+    [class.!flex]="showMobileSidebar() || !isMobileView()"
+    [class.fixed]="isMobileView()"
+    [class.left-0]="isMobileView()"
+    [class.top-0]="isMobileView()"
+    [class.bottom-0]="isMobileView()"
+    [class.w-[85vw]]="isMobileView()"
+    [class.max-w-[320px]]="isMobileView()"
+    [class.z-50]="isMobileView()"
+    [class.shadow-xl]="isMobileView()">
 
     <!-- Sidebar Header -->
-    <div class="sidebar-header">
-      <div class="course-info">
-        <button class="back-button" (click)="goBack()" aria-label="Quay lại khóa học">
-          <i class="icon-arrow-left"></i>
-        </button>
-        <div class="course-title-wrapper">
-          <h2 class="course-title">{{ course()?.title || 'Đang tải...' }}</h2>
-          <!-- Progress Bar (Coursera-style) -->
-          <div class="progress-bar-container">
-            <div class="progress-bar-track">
-              <div class="progress-bar-fill" [style.width.%]="progressPercentage()"></div>
-            </div>
-            <span class="progress-label">{{ progressPercentage() }}% hoàn thành</span>
-          </div>
-        </div>
+    <div class="px-4 py-4 border-b border-gray-200">
+      <div class="flex items-center text-xs font-medium text-slate-500 mb-3 cursor-pointer hover:text-[#0056D2] transition-colors"
+        (click)="goBack()">
+        <span class="material-symbols-outlined text-sm mr-1">arrow_back</span>
+        Danh sách khóa học
       </div>
-      @if (!isMobileView()) {
-      <button class="collapse-btn" (click)="toggleSidebar()"
-        [attr.aria-label]="sidebarCollapsed() ? 'Mở rộng' : 'Thu gọn'">
-        <i [class]="sidebarCollapsed() ? 'icon-chevron-right' : 'icon-chevron-left'"></i>
-      </button>
-      }
-    </div>
-
-    <!-- Search Box -->
-    <div class="search-box">
-      <svg class="search-icon" width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-        <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
-      </svg>
-      <input type="text" placeholder="Tìm kiếm bài học..." [value]="searchQuery()"
-        (input)="onSearchChange($any($event.target).value)" class="search-input">
-      @if (searchQuery()) {
-      <button class="clear-search" (click)="clearSearch()" aria-label="Xóa tìm kiếm">
-        <i class="icon-x"></i>
-      </button>
-      }
+      <h2 class="font-bold text-[#0056D2] text-base leading-tight mb-3">{{ course()?.title || 'Đang tải...' }}</h2>
+      <div class="flex items-center gap-2">
+        <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+          <div class="h-full bg-green-600 rounded-full transition-all duration-500"
+            [style.width.%]="progressPercentage()"></div>
+        </div>
+        <span class="text-xs font-bold text-slate-700">{{ progressPercentage() }}%</span>
+      </div>
     </div>
 
     <!-- Paywall Banner -->
     @if (coursePaid() && !hasPaid()) {
-    <div class="paywall-banner" (click)="showPaymentModal.set(true)">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-      </svg>
-      <span>Mở khóa toàn bộ khóa học</span>
-      <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
-      </svg>
+    <div class="mx-4 mt-3 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2 cursor-pointer hover:bg-amber-100 transition-colors text-sm text-amber-800"
+      (click)="showPaymentModal.set(true)">
+      <span class="material-symbols-outlined text-base">lock</span>
+      <span class="flex-1 font-medium">Mở khóa toàn bộ khóa học</span>
+      <span class="material-symbols-outlined text-sm">chevron_right</span>
     </div>
     }
 
-    <!-- Course Structure Header -->
-    <div class="course-structure-header">
-      <span class="structure-label">CẤU TRÚC KHÓA HỌC</span>
-      <span class="structure-count">{{ totalChapters() }} Chương · {{ totalLessons() }} Bài học</span>
-    </div>
-
-    <!-- Lesson List -->
-    <div class="lesson-list">
+    <!-- Course Navigation -->
+    <div class="flex-1 overflow-y-auto" style="scrollbar-width: thin;">
       @if (isLoadingCourse()) {
-      <div class="loading-state">
-        <div class="spinner"></div>
-        <p>Đang tải nội dung khóa học...</p>
+      <div class="flex flex-col items-center justify-center py-12 text-slate-400">
+        <div class="w-8 h-8 border-[3px] border-slate-200 border-t-[#0056D2] rounded-full animate-spin mb-3"></div>
+        <p class="text-sm">Đang tải nội dung...</p>
       </div>
       } @else if (courseError()) {
-      <div class="error-state">
-        <i class="icon-alert-circle"></i>
-        <p>{{ courseError() }}</p>
-      </div>
-      } @else if (filteredSections().length === 0) {
-      <div class="empty-state">
-        <i class="icon-search"></i>
-        <p>Không tìm thấy bài học</p>
+      <div class="flex flex-col items-center justify-center py-12 text-red-500 px-4">
+        <span class="material-symbols-outlined text-3xl mb-2">error</span>
+        <p class="text-sm text-center">{{ courseError() }}</p>
       </div>
       } @else {
       @for (section of filteredSections(); track section.id) {
-      <div class="section-accordion">
-        <!-- Section Header - Clickable to expand/collapse -->
-        <button class="section-header" [class.expanded]="isSectionExpanded(section.id)"
-          (click)="toggleSection(section.id)" [attr.aria-expanded]="isSectionExpanded(section.id)"
-          [attr.aria-label]="section.title + ', ' + section.lessons.length + ' bài học'">
-          <div class="folder-icon">
-            @if (isSectionExpanded(section.id)) {
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
-            </svg>
-            } @else {
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-            </svg>
-            }
-          </div>
-          <div class="section-info">
-            <h3 class="section-title">{{ section.title }}</h3>
-            <span class="section-count">{{ getCompletedLessonCount(section) }}/{{ section.lessons.length }} bài học</span>
-            <div class="chapter-progress">
-              <div class="chapter-progress-fill" [style.width.%]="getChapterProgress(section)"></div>
-            </div>
-          </div>
-          <svg class="chevron-icon" [class.rotated]="isSectionExpanded(section.id)" width="20" height="20"
-            viewBox="0 0 20 20" fill="none">
-            <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-              stroke-linejoin="round" />
-          </svg>
+      <div>
+        <!-- Level 1: Chapter Header -->
+        <button class="flex items-center justify-between w-full px-4 py-3 border-b border-gray-100 cursor-pointer hover:bg-gray-100 transition-colors text-left"
+          [class.bg-slate-100]="isSectionExpanded(section.id)"
+          [class.bg-gray-50]="!isSectionExpanded(section.id)"
+          (click)="toggleSection(section.id)"
+          [attr.aria-expanded]="isSectionExpanded(section.id)">
+          <h3 class="text-sm font-bold"
+            [class.text-[#0056D2]]="isSectionExpanded(section.id)"
+            [class.text-slate-800]="!isSectionExpanded(section.id)">
+            {{ section.title }}
+          </h3>
+          <span class="material-symbols-outlined text-sm transition-transform duration-200"
+            [class.text-[#0056D2]]="isSectionExpanded(section.id)"
+            [class.text-slate-400]="!isSectionExpanded(section.id)"
+            [class.rotate-180]="isSectionExpanded(section.id)">
+            expand_more
+          </span>
         </button>
 
-        <!-- Section Content - Collapsible -->
+        <!-- Level 2 + Level 3: Lessons + Sections -->
         @if (isSectionExpanded(section.id)) {
-        <div class="section-content">
-          <ul class="lesson-items">
-            @for (lesson of section.lessons; track lesson.id) {
-            <li class="lesson-item-wrapper">
-              <button class="lesson-item" [class.active]="currentLesson()?.id === lesson.id"
-                [class.completed]="learningService.isLessonCompleted(lesson.id)()"
-                [class.expanded]="isLessonExpanded(lesson.id)" (click)="toggleLesson(lesson)"
-                [attr.aria-label]="lesson.title + ', ' + (learningService.isLessonCompleted(lesson.id)() ? 'Đã hoàn thành' : 'Chưa hoàn thành') + (lesson.duration > 0 ? ', ' + lesson.duration + ' phút' : '')">
-                <div class="lesson-status">
-                  @if (isLessonLocked(lesson)) {
-                  <svg class="status-icon locked" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                  </svg>
-                  } @else if (learningService.isLessonCompleted(lesson.id)()) {
-                  <svg class="status-icon completed" width="16" height="16" viewBox="0 0 20 20" fill="none">
-                    <circle cx="10" cy="10" r="10" fill="currentColor" />
-                    <path d="M6 10l3 3 5-6" stroke="white" stroke-width="2.5" stroke-linecap="round"
-                      stroke-linejoin="round" />
-                  </svg>
-                  } @else {
-                  <svg class="status-icon current-dot" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <circle cx="8" cy="8" r="5" fill="currentColor" />
-                  </svg>
-                  }
-                </div>
-                <div class="lesson-content">
-                  <div class="lesson-title">{{ lesson.title }}</div>
-                  @if (lesson.sections && lesson.sections.length > 0) {
-                  <div class="lesson-meta">
-                    <span class="section-count">{{ lesson.sections.length }} phần</span>
-                  </div>
-                  } @else if (lesson.duration > 0) {
-                  <div class="lesson-meta">
-                    <span class="lesson-type">{{ getLessonTypeLabel(lesson.lessonType) }}</span>
-                    <span class="lesson-duration">{{ lesson.duration }} phút</span>
-                  </div>
-                  }
-                </div>
-                <!-- Expand/Collapse icon if lesson has sections -->
-                @if (lesson.sections && lesson.sections.length > 0) {
-                <svg class="chevron-icon lesson-chevron" [class.rotated]="isLessonExpanded(lesson.id)" width="16"
-                  height="16" viewBox="0 0 20 20" fill="none">
-                  <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                    stroke-linejoin="round" />
-                </svg>
-                }
-              </button>
+        <div>
+          @for (lesson of section.lessons; track lesson.id) {
+          <!-- Level 2: Lesson Item -->
+          <button class="flex items-start gap-3 w-full px-4 py-2.5 cursor-pointer hover:bg-slate-50 transition-colors border-l-4 text-left"
+            [class.bg-[#E6F0FA]]="currentLesson()?.id === lesson.id"
+            [class.border-[#0056D2]]="currentLesson()?.id === lesson.id && !learningService.isLessonCompleted(lesson.id)()"
+            [class.border-green-500]="learningService.isLessonCompleted(lesson.id)()"
+            [class.border-transparent]="currentLesson()?.id !== lesson.id && !learningService.isLessonCompleted(lesson.id)()"
+            [class.opacity-60]="isLessonLocked(lesson)"
+            (click)="toggleLesson(lesson)">
 
-              <!-- Level 3: Sections (if lesson has sections and is expanded) -->
-              @if (lesson.sections && lesson.sections.length > 0 && isLessonExpanded(lesson.id)) {
-              <ul class="section-items">
-                @for (sectionItem of lesson.sections; track sectionItem.id; let sectionIndex = $index) {
-                <li class="section-item-wrapper">
-                  <button class="section-item" 
-                    [class.active]="currentSectionIndex() === sectionIndex"
-                    [class.completed]="isSectionCompleted(sectionItem.id)"
-                    (click)="selectSectionInSidebar(sectionIndex, $event)">
-                    
-                    <!-- Completion Status Icon -->
-                    @if (isSectionCompleted(sectionItem.id)) {
-                      <div class="section-status-icon completed">
-                        <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
-                          <circle cx="10" cy="10" r="10" fill="currentColor" />
-                          <path d="M6 10l3 3 5-6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                        </svg>
-                      </div>
-                    } @else {
-                      <div class="section-status-icon">
-                        <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
-                          <circle cx="10" cy="10" r="9" stroke="currentColor" stroke-width="2" />
-                        </svg>
-                      </div>
-                    }
-                    
-                    <div class="section-icon" [class.video-icon]="sectionItem.type === 'VIDEO'" [class.text-icon]="sectionItem.type === 'TEXT'" [class.file-icon]="sectionItem.type === 'FILE'" [class.quiz-icon]="sectionItem.type === 'QUIZ'">
-                      @if (sectionItem.type === 'VIDEO') {
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M8 5v14l11-7z"/>
-                      </svg>
-                      } @else if (sectionItem.type === 'TEXT') {
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
-                        </path>
-                      </svg>
-                      } @else if (sectionItem.type === 'QUIZ') {
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2">
-                        </path>
-                      </svg>
-                      } @else if (sectionItem.type === 'FILE') {
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                          d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z">
-                        </path>
-                      </svg>
-                      } @else {
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
-                        </path>
-                      </svg>
-                      }
-                    </div>
-                    <div class="section-content">
-                      <span class="section-title">{{ sectionItem.title }}</span>
-                      <span class="section-type-badge" [attr.data-type]="sectionItem.type">
-                        {{ getSectionTypeLabel(sectionItem.type) }}
-                      </span>
-                    </div>
-                  </button>
-                </li>
-                }
-              </ul>
-              }
-
-              @if (hasQuiz(lesson.id)) {
-              <button class="quiz-button" (click)="goToQuiz(lesson.id, $event); false" title="Làm bài trắc nghiệm"
-                aria-label="Làm bài trắc nghiệm cho {{ lesson.title }}">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path
-                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01">
-                  </path>
-                </svg>
-                <span>Làm bài</span>
-              </button>
-              }
-            </li>
+            <!-- Status Icon -->
+            @if (isLessonLocked(lesson)) {
+            <span class="material-symbols-outlined text-slate-400 text-[18px] shrink-0 mt-0.5">lock</span>
+            } @else if (learningService.isLessonCompleted(lesson.id)()) {
+            <span class="material-symbols-outlined text-green-600 text-[18px] shrink-0 mt-0.5">check_circle</span>
+            } @else if (currentLesson()?.id === lesson.id) {
+            <span class="material-symbols-outlined text-[#0056D2] text-[18px] shrink-0 mt-0.5">play_circle</span>
+            } @else {
+            <span class="material-symbols-outlined text-slate-400 text-[18px] shrink-0 mt-0.5">radio_button_unchecked</span>
             }
-          </ul>
+
+            <!-- Lesson Info -->
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-medium truncate"
+                [class.font-bold]="currentLesson()?.id === lesson.id"
+                [class.text-[#0056D2]]="currentLesson()?.id === lesson.id"
+                [class.text-slate-700]="currentLesson()?.id !== lesson.id">
+                {{ lesson.title }}
+              </div>
+              @if (lesson.duration > 0) {
+              <div class="text-xs text-slate-400 mt-0.5">{{ lesson.duration }} phút</div>
+              }
+            </div>
+
+            <!-- Expand icon for lessons with sections -->
+            @if (lesson.sections && lesson.sections.length > 0) {
+            <span class="material-symbols-outlined text-slate-400 text-sm transition-transform duration-200 shrink-0"
+              [class.rotate-180]="isLessonExpanded(lesson.id)">
+              expand_more
+            </span>
+            }
+          </button>
+
+          <!-- Level 3: Sub-sections -->
+          @if (lesson.sections && lesson.sections.length > 0 && isLessonExpanded(lesson.id)) {
+          @for (sectionItem of lesson.sections; track sectionItem.id; let sectionIndex = $index) {
+          <button class="flex items-center gap-2 w-full pl-12 pr-4 py-1.5 text-xs cursor-pointer transition-colors text-left hover:text-[#0056D2]"
+            [class.text-green-600]="isSectionCompleted(sectionItem.id)"
+            [class.font-semibold]="currentLesson()?.id === lesson.id && currentSectionIndex() === sectionIndex"
+            [class.text-[#0056D2]]="currentLesson()?.id === lesson.id && currentSectionIndex() === sectionIndex"
+            [class.bg-blue-50/50]="currentLesson()?.id === lesson.id && currentSectionIndex() === sectionIndex"
+            [class.text-slate-500]="!isSectionCompleted(sectionItem.id) && !(currentLesson()?.id === lesson.id && currentSectionIndex() === sectionIndex)"
+            (click)="selectSectionInSidebar(sectionIndex, $event)">
+            @if (sectionItem.type === 'VIDEO') {
+            <span class="material-symbols-outlined text-[14px]">play_circle</span>
+            } @else if (sectionItem.type === 'TEXT') {
+            <span class="material-symbols-outlined text-[14px]">description</span>
+            } @else if (sectionItem.type === 'QUIZ') {
+            <span class="material-symbols-outlined text-[14px]">quiz</span>
+            } @else {
+            <span class="material-symbols-outlined text-[14px]">attach_file</span>
+            }
+            <span class="truncate">{{ sectionItem.title }}</span>
+          </button>
+          }
+          }
+
+          <!-- Quiz button -->
+          @if (hasQuiz(lesson.id)) {
+          <button class="flex items-center gap-2 w-full pl-12 pr-4 py-1.5 text-xs text-amber-600 hover:text-amber-700 cursor-pointer transition-colors"
+            (click)="goToQuiz(lesson.id, $event)">
+            <span class="material-symbols-outlined text-[14px]">assignment</span>
+            <span>Làm bài trắc nghiệm</span>
+          </button>
+          }
+          }
         </div>
         }
       </div>
@@ -261,50 +178,42 @@
   </aside>
 
   <!-- Main Content Area -->
-  <main class="main-content">
+  <main class="flex-1 flex flex-col h-full relative bg-white overflow-hidden">
 
-    <!-- Mobile Menu Button -->
-    @if (isMobileView()) {
-    <button class="mobile-menu-btn" (click)="toggleSidebar()" aria-label="Mở menu">
-      <i class="icon-menu"></i>
-    </button>
-    }
-
-    <!-- Sidebar Toggle Button (when collapsed on desktop) -->
-    @if (!isMobileView() && sidebarCollapsed()) {
-    <div class="collapsed-top-bar">
-      <button class="sidebar-toggle-btn-inline" (click)="toggleSidebar()" aria-label="Mở menu khóa học">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="3" y="3" width="18" height="18" rx="2" />
-          <line x1="9" y1="3" x2="9" y2="21" />
-        </svg>
-      </button>
-      <div class="mini-course-info">
-        <span class="text-sm text-gray-500">Đang học:</span>
-        <h3 class="font-semibold text-gray-800">{{ course()?.title }}</h3>
-      </div>
-    </div>
-    }
-
-    <!-- Content Area -->
-    <div class="content-area">
-      @if (error()) {
-        <div style="background:#fef2f2;border:1px solid #fecaca;color:#991b1b;padding:12px 16px;border-radius:8px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">
-          <span>{{ error() }}</span>
-          <button (click)="error.set(null)" style="background:none;border:none;cursor:pointer;font-size:18px">&times;</button>
-        </div>
+    <!-- Breadcrumb (desktop only) -->
+    <div class="hidden md:flex px-6 py-3 items-center text-xs text-slate-500 gap-2 border-b border-gray-100 bg-white shrink-0">
+      <span class="hover:text-[#0056D2] cursor-pointer" (click)="goBack()">Khóa học</span>
+      <span class="material-symbols-outlined text-[10px]">chevron_right</span>
+      @if (filteredSections()[currentChapterIndex()]; as chapter) {
+      <span class="hover:text-[#0056D2] cursor-pointer">{{ chapter.title }}</span>
+      <span class="material-symbols-outlined text-[10px]">chevron_right</span>
       }
+      @if (currentLesson(); as lesson) {
+      <span class="font-semibold text-[#0056D2]">{{ lesson.title }}</span>
+      }
+    </div>
+
+    <!-- Scrollable Content -->
+    <div class="flex-1 overflow-y-auto scroll-smooth pb-20">
+      @if (error()) {
+      <div class="mx-4 mt-4 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex justify-between items-center">
+        <span>{{ error() }}</span>
+        <button (click)="error.set(null)" class="text-red-600 hover:text-red-800 text-lg font-bold">&times;</button>
+      </div>
+      }
+
       @if (isLoadingLesson()) {
-      <div class="loading-overlay">
-        <div class="spinner large"></div>
-        <p>Đang tải bài học...</p>
+      <div class="flex flex-col items-center justify-center py-20 text-slate-400">
+        <div class="w-10 h-10 border-[3px] border-slate-200 border-t-[#0056D2] rounded-full animate-spin mb-4"></div>
+        <p class="text-sm">Đang tải bài học...</p>
       </div>
       } @else if (lessonError()) {
-      <div class="error-container">
-        <i class="icon-alert-circle"></i>
-        <h3>Lỗi tải bài học</h3>
-        <p>{{ lessonError() }}</p>
-        <button class="btn-primary" (click)="loadCourseFromRoute()">
+      <div class="flex flex-col items-center justify-center py-20 px-6 text-center">
+        <span class="material-symbols-outlined text-4xl text-red-400 mb-3">error</span>
+        <h3 class="text-lg font-bold text-slate-800 mb-1">Lỗi tải bài học</h3>
+        <p class="text-sm text-slate-500 mb-4">{{ lessonError() }}</p>
+        <button class="px-6 py-2 bg-[#0056D2] text-white rounded-lg text-sm font-medium hover:bg-[#004BB5] transition-colors"
+          (click)="loadCourseFromRoute()">
           Thử lại
         </button>
       </div>
@@ -312,55 +221,66 @@
       <!-- Lesson Content Component -->
       <app-lesson-content [lesson]="currentLesson()!"
         [isCompleted]="learningService.isLessonCompleted(currentLesson()!.id)()"
-        [hasQuiz]="hasQuiz(currentLesson()!.id)" [sectionIndex]="currentSectionIndex()"
-        [chapterIndex]="currentChapterIndex()" [lessonIndex]="currentLessonIndex()"
-        (sectionIndexChange)="onSectionIndexChange($event)" (markComplete)="onMarkComplete()"
+        [hasQuiz]="hasQuiz(currentLesson()!.id)"
+        [sectionIndex]="currentSectionIndex()"
+        [chapterIndex]="currentChapterIndex()"
+        [lessonIndex]="currentLessonIndex()"
+        [(activeTab)]="activeTab"
+        (sectionIndexChange)="onSectionIndexChange($event)"
+        (markComplete)="onMarkComplete()"
         (videoEnded)="onVideoEnded()"
         (sectionReadComplete)="onSectionReadComplete($event)">
       </app-lesson-content>
-
-      <!-- Navigation Buttons - Inside content area -->
-      <div class="lesson-navigation">
-        <button class="nav-btn prev" [disabled]="!canGoPrevious() && currentSectionIndex() === 0"
-          (click)="previousLesson()" [attr.aria-label]="currentSectionIndex() > 0 ? 'Phần trước' : 'Bài học trước'">
-          <i class="icon-chevron-left"></i>
-          <span>Trước</span>
-        </button>
-
-        <button class="btn-complete" [class.completed]="learningService.isLessonCompleted(currentLesson()!.id)()"
-          (click)="onMarkComplete()">
-          @if (learningService.isLessonCompleted(currentLesson()!.id)()) {
-          <i class="icon-check"></i>
-          <span>Đã hoàn thành</span>
-          } @else {
-          <span>Đánh dấu hoàn thành</span>
-          }
-        </button>
-
-        <button class="nav-btn next"
-          [disabled]="!canGoNext() && (!currentLesson()?.sections || currentSectionIndex() >= (currentLesson()?.sections?.length || 0) - 1)"
-          (click)="nextLesson()"
-          [attr.aria-label]="(currentLesson()?.sections && currentSectionIndex() < (currentLesson()?.sections?.length || 0) - 1) ? 'Phần tiếp theo' : 'Bài học tiếp theo'">
-          <span>Tiếp theo</span>
-          <i class="icon-chevron-right"></i>
-        </button>
-      </div>
       } @else {
-      <div class="no-lesson-selected">
-        <i class="icon-book-open"></i>
-        <h3>Chọn bài học để bắt đầu</h3>
-        <p>Chọn một bài học từ danh sách bên trái</p>
+      <div class="flex flex-col items-center justify-center py-20 text-slate-400">
+        <span class="material-symbols-outlined text-5xl mb-3">menu_book</span>
+        <h3 class="text-lg font-semibold text-slate-700 mb-1">Chọn bài học để bắt đầu</h3>
+        <p class="text-sm">Chọn một bài học từ danh sách bên trái</p>
       </div>
       }
     </div>
+
+    <!-- Bottom Navigation Bar -->
+    @if (currentLesson()) {
+    <div class="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
+      <div class="max-w-5xl mx-auto flex items-center justify-between">
+        <button class="flex items-center gap-1 px-3 py-2 rounded text-slate-500 hover:text-[#0056D2] hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:pointer-events-none"
+          [disabled]="!canGoPrevious() && currentSectionIndex() === 0"
+          (click)="previousLesson()">
+          <span class="material-symbols-outlined text-xl">arrow_back</span>
+          <span class="hidden sm:inline text-sm font-medium">Bài trước</span>
+        </button>
+
+        <button class="px-6 py-2.5 rounded shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-sm font-bold tracking-wide text-white hover:brightness-110"
+          [class.bg-green-600]="learningService.isLessonCompleted(currentLesson()!.id)()"
+          [class.bg-[#0056D2]]="!learningService.isLessonCompleted(currentLesson()!.id)()"
+          (click)="onMarkComplete()">
+          @if (learningService.isLessonCompleted(currentLesson()!.id)()) {
+          <span class="material-symbols-outlined text-base">check</span>
+          <span>Đã hoàn thành</span>
+          } @else {
+          <span>Đánh dấu hoàn thành</span>
+          <span class="material-symbols-outlined text-base">check</span>
+          }
+        </button>
+
+        <button class="flex items-center gap-1 px-3 py-2 rounded text-slate-500 hover:text-[#0056D2] hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:pointer-events-none"
+          [disabled]="!canGoNext() && (!currentLesson()?.sections || currentSectionIndex() >= (currentLesson()?.sections?.length || 0) - 1)"
+          (click)="nextLesson()">
+          <span class="hidden sm:inline text-sm font-medium">Bài tiếp theo</span>
+          <span class="material-symbols-outlined text-xl">arrow_forward</span>
+        </button>
+      </div>
+    </div>
+    }
   </main>
 
   <!-- Payment Modal -->
   @if (showPaymentModal()) {
-    <app-payment-modal
-      [courseInfo]="getPaymentInfo()"
-      (close)="onPaymentModalClose($event)"
-      (paymentComplete)="onPaymentComplete()">
-    </app-payment-modal>
+  <app-payment-modal
+    [courseInfo]="getPaymentInfo()"
+    (close)="onPaymentModalClose($event)"
+    (paymentComplete)="onPaymentComplete()">
+  </app-payment-modal>
   }
 </div>

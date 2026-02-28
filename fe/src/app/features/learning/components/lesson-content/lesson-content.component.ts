@@ -66,6 +66,9 @@ export class LessonContentComponent implements AfterViewInit {
   readonly videoEnded = output<void>();
   readonly goToQuiz = output<void>();
 
+  // Active tab for content view
+  readonly activeTab = model<'overview' | 'materials' | 'discussion'>('overview');
+
   // Computed signals for derived state
   readonly hasSections = computed(() => {
     const ls = this.lesson();

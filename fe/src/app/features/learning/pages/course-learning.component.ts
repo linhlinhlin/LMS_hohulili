@@ -46,11 +46,12 @@ export class CourseLearningComponent implements OnInit {
   coursePaid = signal(false); // true if course.price > 0
 
   // Local UI state
-  sidebarCollapsed = signal(false);
-  searchQuery = signal('');
   isMobileView = signal(false);
   showMobileSidebar = signal(false);
   error = signal<string | null>(null);
+
+  // Active content tab
+  activeTab = signal<'overview' | 'materials' | 'discussion'>('overview');
 
   // Video progress tracking for 75% rule
   canCompleteCurrentLesson = signal<boolean>(true); // Default true for non-video lessons
@@ -148,20 +149,7 @@ export class CourseLearningComponent implements OnInit {
   totalLessons = computed(() => this.sections().reduce((sum, s) => sum + s.lessons.length, 0));
 
   // Filtered sections based on search
-  filteredSections = computed(() => {
-    const query = this.searchQuery().toLowerCase().trim();
-    if (!query) return this.sections();
-
-    return this.sections()
-      .map(section => ({
-        ...section,
-        lessons: section.lessons.filter(lesson =>
-          lesson.title.toLowerCase().includes(query) ||
-          lesson.description.toLowerCase().includes(query)
-        )
-      }))
-      .filter(section => section.lessons.length > 0);
-  });
+  filteredSections = computed(() => this.sections());
 
   ngOnInit(): void {
     this.checkMobileView();
@@ -246,26 +234,13 @@ export class CourseLearningComponent implements OnInit {
 
   // Sidebar actions
   toggleSidebar(): void {
-    if (this.isMobileView()) {
-      this.showMobileSidebar.update(show => !show);
-    } else {
-      this.sidebarCollapsed.update(collapsed => !collapsed);
-    }
+    this.showMobileSidebar.update(show => !show);
   }
 
   closeMobileSidebar(): void {
     if (this.isMobileView()) {
       this.showMobileSidebar.set(false);
     }
-  }
-
-  // Search
-  onSearchChange(query: string): void {
-    this.searchQuery.set(query);
-  }
-
-  clearSearch(): void {
-    this.searchQuery.set('');
   }
 
   // Lesson selection
