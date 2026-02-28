@@ -143,7 +143,7 @@
             [class.text-green-600]="isSectionCompleted(sectionItem.id)"
             [class.font-semibold]="currentLesson()?.id === lesson.id && currentSectionIndex() === sectionIndex"
             [class.text-[#0056D2]]="currentLesson()?.id === lesson.id && currentSectionIndex() === sectionIndex"
-            [class.bg-blue-50/50]="currentLesson()?.id === lesson.id && currentSectionIndex() === sectionIndex"
+            [class.bg-blue-50]="currentLesson()?.id === lesson.id && currentSectionIndex() === sectionIndex"
             [class.text-slate-500]="!isSectionCompleted(sectionItem.id) && !(currentLesson()?.id === lesson.id && currentSectionIndex() === sectionIndex)"
             (click)="selectSectionInSidebar(sectionIndex, $event)">
             @if (sectionItem.type === 'VIDEO') {

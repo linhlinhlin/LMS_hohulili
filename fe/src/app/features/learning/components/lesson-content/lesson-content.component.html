@@ -1,16 +1,54 @@
 <div class="flex flex-col min-h-full">
 
-  <!-- VIDEO SECTION -->
+  <!-- VIDEO SECTION (Cinematic Wrapper) -->
   @if (currentSection(); as section) {
     @if (section.type === 'VIDEO' && section.videoUrl) {
-    <div class="w-full bg-black relative aspect-video md:max-h-[55vh] shadow-sm">
-      @if (isYouTubeUrl(section.videoUrl)) {
+    <div class="w-full bg-[#111827]">
+      <div class="relative aspect-video max-w-5xl mx-auto">
+        @if (isYouTubeUrl(section.videoUrl)) {
+        <app-youtube-player
+          [videoUrl]="section.videoUrl"
+          [lessonId]="lesson().id"
+          [sectionId]="section.id"
+          (videoEnded)="onVideoEnd()" />
+        } @else {
+        <video [src]="getVideoSrc(section.videoUrl)" controls controlsList="nodownload"
+          class="w-full h-full object-contain bg-black"
+          (ended)="onVideoEnd()"
+          (loadedmetadata)="onVideoLoadedMetadata($event)"
+          (timeupdate)="onVideoTimeUpdate($event)">
+          Trình duyệt của bạn không hỗ trợ video.
+        </video>
+        }
+
+        <!-- Thin progress bar at top (server-confirmed watch %) -->
+        <div class="absolute top-0 left-0 right-0 h-[3px] bg-white/10 z-10">
+          <div class="h-full bg-[#0056D2] transition-all" [style.width.%]="videoProgress()"></div>
+        </div>
+
+        <!-- Completed badge -->
+        @if (videoCompleted()) {
+        <div class="absolute top-3 right-3 px-2 py-0.5 bg-green-500/90 text-white text-[11px] font-semibold rounded z-10">
+          Hoàn thành
+        </div>
+        }
+      </div>
+    </div>
+    }
+  }
+
+  <!-- Fallback: Lesson-level video (no sections) -->
+  @if (!hasSections() && lesson().videoUrl) {
+  <div class="w-full bg-[#111827]">
+    <div class="relative aspect-video max-w-5xl mx-auto">
+      @if (isYouTubeUrl(lesson().videoUrl)) {
       <app-youtube-player
-        [videoUrl]="section.videoUrl"
+        [videoUrl]="lesson().videoUrl!"
         [lessonId]="lesson().id"
-        [sectionId]="section.id" />
+        [sectionId]="'lesson-' + lesson().id"
+        (videoEnded)="onVideoEnd()" />
       } @else {
-      <video [src]="getVideoSrc(section.videoUrl)" controls controlsList="nodownload"
+      <video [src]="getVideoSrc(lesson().videoUrl)" [poster]="lesson().thumbnail" controls controlsList="nodownload"
         class="w-full h-full object-contain bg-black"
         (ended)="onVideoEnd()"
         (loadedmetadata)="onVideoLoadedMetadata($event)"
@@ -19,39 +57,17 @@
       </video>
       }
 
-      <!-- Video Progress Overlay -->
-      <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-4 py-2">
-        <div class="flex items-center gap-3 text-white text-xs">
-          <div class="flex-1 h-1 bg-white/20 rounded-full overflow-hidden">
-            <div class="h-full bg-[#0056D2] rounded-full transition-all" [style.width.%]="videoProgress()"></div>
-          </div>
-          <span class="font-medium whitespace-nowrap">{{ videoProgress() | number:'1.0-0' }}%</span>
-          @if (videoCompleted()) {
-          <span class="text-green-400 font-semibold">Hoàn thành</span>
-          }
-        </div>
+      <!-- Thin progress bar at top -->
+      <div class="absolute top-0 left-0 right-0 h-[3px] bg-white/10 z-10">
+        <div class="h-full bg-[#0056D2] transition-all" [style.width.%]="videoProgress()"></div>
       </div>
-    </div>
-    }
-  }
 
-  <!-- Fallback: Lesson-level video (no sections) -->
-  @if (!hasSections() && lesson().videoUrl) {
-  <div class="w-full bg-black relative aspect-video md:max-h-[55vh] shadow-sm">
-    @if (isYouTubeUrl(lesson().videoUrl)) {
-    <app-youtube-player
-      [videoUrl]="lesson().videoUrl!"
-      [lessonId]="lesson().id"
-      [sectionId]="'lesson-' + lesson().id" />
-    } @else {
-    <video [src]="getVideoSrc(lesson().videoUrl)" [poster]="lesson().thumbnail" controls controlsList="nodownload"
-      class="w-full h-full object-contain bg-black"
-      (ended)="onVideoEnd()"
-      (loadedmetadata)="onVideoLoadedMetadata($event)"
-      (timeupdate)="onVideoTimeUpdate($event)">
-      Trình duyệt của bạn không hỗ trợ video.
-    </video>
-    }
+      @if (videoCompleted()) {
+      <div class="absolute top-3 right-3 px-2 py-0.5 bg-green-500/90 text-white text-[11px] font-semibold rounded z-10">
+        Hoàn thành
+      </div>
+      }
+    </div>
   </div>
   }
 

@@ -1,6 +1,7 @@
 import {
   Component,
   input,
+  output,
   inject,
   OnInit,
   OnDestroy,
@@ -83,6 +84,7 @@ export class YouTubePlayerComponent implements OnInit, OnDestroy {
   videoUrl = input.required<string>();
   lessonId = input.required<string>();
   sectionId = input.required<string>();
+  videoEnded = output<void>();
 
   private tracker = inject(WatchedSegmentsTracker);
   private videoProgressApi = inject(VideoProgressApi);
@@ -151,6 +153,11 @@ export class YouTubePlayerComponent implements OnInit, OnDestroy {
       this.startPolling();
     } else {
       this.stopPolling();
+    }
+
+    if (event.data === YT.PlayerState.ENDED) {
+      this.tracker.stopTracking();
+      this.zone.run(() => this.videoEnded.emit());
     }
   }
 

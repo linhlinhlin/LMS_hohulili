@@ -538,11 +538,11 @@ export class CourseLearningComponent implements OnInit {
   onVideoEnded(): void {
     this.learningService.markCurrentLessonComplete();
 
-    // Auto-advance to next lesson if available
+    // Auto-advance to next lesson after 2s (Netflix pattern)
     if (this.canGoNext()) {
       setTimeout(() => {
         this.nextLesson();
-      }, 1000);
+      }, 2000);
     }
   }
 
