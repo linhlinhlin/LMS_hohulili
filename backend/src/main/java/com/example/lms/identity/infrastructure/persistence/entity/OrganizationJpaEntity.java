@@ -24,7 +24,7 @@ public class OrganizationJpaEntity {
     @Column(nullable = false)
     private Boolean enabled = true;
 
-    @Column(name = "refresh_token_expiry_days", nullable = false)
+    @Column(name = "token_expiry_days", nullable = false)
     private Integer tokenExpiryDays = 30;
 
     @Column(name = "created_at", nullable = false)
