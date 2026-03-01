@@ -4,6 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import { offlineDb, getCurrentUserId, type OfflineCourse, type OfflineChapter, type OfflineLesson, type DownloadCheckpoint } from '../db/lms-offline.db';
 import { StorageManagerService } from './storage-manager.service';
 import { ToastService } from './toast.service';
+import { OfflineVideoService } from './offline-video.service';
 import { environment } from '../../../environments/environment';
 
 export type { OfflineCourse, OfflineChapter, OfflineLesson };
@@ -234,6 +235,32 @@ export class CourseDownloadService {
     await this.refreshDownloadedCourses();
     await this.storage.refresh();
     this.toast.info('Đã xóa khóa học ngoại tuyến');
+  }
+
+  /**
+   * Remove ALL downloaded courses, videos, and sync queue for current user.
+   * Used by Storage Management UI "Delete All" action.
+   */
+  async removeAllCourses(videoService: OfflineVideoService): Promise<void> {
+    const userId = getCurrentUserId();
+
+    // 1. Delete all offline videos from Cache API
+    const videos = videoService.downloads();
+    for (const video of videos) {
+      await videoService.deleteVideo(video.lessonId);
+    }
+
+    // 2. Delete all IndexedDB data for this user
+    await offlineDb.lessons.where('userId').equals(userId).delete();
+    await offlineDb.chapters.where('userId').equals(userId).delete();
+    await offlineDb.progress.where('userId').equals(userId).delete();
+    await offlineDb.courses.where('userId').equals(userId).delete();
+    await offlineDb.downloadCheckpoints.where('userId').equals(userId).delete();
+    await offlineDb.syncQueue.where('userId').equals(userId).delete();
+
+    await this.refreshDownloadedCourses();
+    await this.storage.refresh();
+    this.toast.success('Đã xóa tất cả dữ liệu ngoại tuyến');
   }
 
   /**

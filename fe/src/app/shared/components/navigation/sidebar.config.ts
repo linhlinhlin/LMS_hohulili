@@ -56,6 +56,12 @@ export const studentSidebarConfig: SidebarConfig = {
       group: 'Tài khoản'
     },
     {
+      label: 'Lưu trữ ngoại tuyến',
+      route: '/student/storage',
+      icon: 'download',
+      group: 'Tài khoản'
+    },
+    {
       label: 'Lịch sử thanh toán',
       route: '/student/payments',
       icon: 'briefcase',

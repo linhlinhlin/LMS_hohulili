@@ -50,6 +50,13 @@ export const studentRoutes: Routes = [
         title: 'Lịch sử thanh toán'
       },
 
+      // Offline Storage Management - Lưu trữ ngoại tuyến
+      {
+        path: 'storage',
+        loadComponent: () => import('./storage/student-storage-management.component').then(m => m.StudentStorageManagementComponent),
+        title: 'Lưu trữ ngoại tuyến'
+      },
+
       // Assignment Routes - Unified page for all student assignments
       {
         path: 'assignments',
