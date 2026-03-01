@@ -2,8 +2,7 @@ import { HttpRequest, HttpHandlerFn, HttpEvent, HttpResponse, HttpErrorResponse 
 import { Observable, from, of, throwError } from 'rxjs';
 import { catchError, switchMap } from 'rxjs/operators';
 import { inject } from '@angular/core';
-import Dexie from 'dexie';
-import { offlineDb } from '../../core/db/lms-offline.db';
+import { offlineDb, getCurrentUserId } from '../../core/db/lms-offline.db';
 import { NetworkStatusService } from '../../core/services/network-status.service';
 import { OfflineSyncService } from '../../core/services/offline-sync.service';
 
@@ -104,14 +103,15 @@ async function getOfflineFallback(url: string): Promise<any | null> {
     const courseMatch = path.match(/^\/api\/v3\/courses\/([a-f0-9-]+)$/);
     if (courseMatch) {
       const course = await offlineDb.courses.get(courseMatch[1]);
-      if (course) {
+      if (course && course.userId === getCurrentUserId()) {
         return { success: true, data: course, _offline: true };
       }
     }
 
     // Pattern: /api/v3/courses (list)
     if (path === '/api/v3/courses' || path.startsWith('/api/v3/courses?')) {
-      const courses = await offlineDb.courses.toArray();
+      const userId = getCurrentUserId();
+      const courses = await offlineDb.courses.where('userId').equals(userId).toArray();
       if (courses.length > 0) {
         return {
           success: true,
@@ -125,8 +125,9 @@ async function getOfflineFallback(url: string): Promise<any | null> {
     // Pattern: /api/v3/courses/{id}/chapters
     const chaptersMatch = path.match(/^\/api\/v3\/courses\/([a-f0-9-]+)\/chapters$/);
     if (chaptersMatch) {
+      const userId = getCurrentUserId();
       const chapters = await offlineDb.chapters
-        .where('courseId').equals(chaptersMatch[1])
+        .where('[userId+courseId]').equals([userId, chaptersMatch[1]])
         .sortBy('sortOrder');
       if (chapters.length > 0) {
         return { success: true, data: chapters, _offline: true };
@@ -138,9 +139,9 @@ async function getOfflineFallback(url: string): Promise<any | null> {
       /^\/api\/v3\/courses\/([a-f0-9-]+)\/chapters\/([a-f0-9-]+)\/lessons$/
     );
     if (lessonsMatch) {
+      const userId = getCurrentUserId();
       const lessons = await offlineDb.lessons
-        .where('[courseId+sortOrder]')
-        .between([lessonsMatch[1], Dexie.minKey], [lessonsMatch[1], Dexie.maxKey])
+        .where('[userId+courseId]').equals([userId, lessonsMatch[1]])
         .filter(l => l.chapterId === lessonsMatch[2])
         .toArray();
       if (lessons.length > 0) {
@@ -152,21 +153,22 @@ async function getOfflineFallback(url: string): Promise<any | null> {
     const lessonMatch = path.match(/\/lessons\/([a-f0-9-]+)$/);
     if (lessonMatch) {
       const lesson = await offlineDb.lessons.get(lessonMatch[1]);
-      if (lesson) {
+      if (lesson && lesson.userId === getCurrentUserId()) {
         return { success: true, data: lesson, _offline: true };
       }
     }
 
     // Pattern: /api/v3/enrollments or student enrollments
     if (path.includes('/enrollments')) {
-      const courses = await offlineDb.courses.toArray();
+      const userId = getCurrentUserId();
+      const courses = await offlineDb.courses.where('userId').equals(userId).toArray();
       if (courses.length > 0) {
         // Calculate real progress from local lesson progress data
         const enrollments = await Promise.all(courses.map(async (c) => {
           const progressRecords = await offlineDb.progress
             .where('courseId').equals(c.id)
             .toArray();
-          const completedLessons = progressRecords.filter(p => p.completedAt != null).length;
+          const completedLessons = progressRecords.filter(p => p.completedAt != null && p.userId === userId).length;
           const totalLessons = c.totalLessons || 1;
           const progress = totalLessons > 0
             ? Math.round((completedLessons / totalLessons) * 100)

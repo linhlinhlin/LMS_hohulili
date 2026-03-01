@@ -1,7 +1,7 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { offlineDb, type OfflineCourse, type OfflineChapter, type OfflineLesson, type DownloadCheckpoint } from '../db/lms-offline.db';
+import { offlineDb, getCurrentUserId, type OfflineCourse, type OfflineChapter, type OfflineLesson, type DownloadCheckpoint } from '../db/lms-offline.db';
 import { StorageManagerService } from './storage-manager.service';
 import { ToastService } from './toast.service';
 import { environment } from '../../../environments/environment';
@@ -60,6 +60,7 @@ export class CourseDownloadService {
     this.downloadProgress.set(0);
 
     this.downloadCancelled = false;
+    const userId = getCurrentUserId();
 
     try {
       // 0a. Request persistent storage on first download (prevent browser eviction)
@@ -88,7 +89,7 @@ export class CourseDownloadService {
       const chaptersData = contentRes.data || contentRes || [];
 
       // 3. Check for existing checkpoint (resume support)
-      const checkpoint = await offlineDb.downloadCheckpoints.get(courseId);
+      const checkpoint = await offlineDb.downloadCheckpoints.get([userId, courseId]);
       const completedChapterIds = new Set(checkpoint?.completedChapterIds || []);
 
       // 4. Write chapters+lessons to DB per-chapter (crash-safe)
@@ -110,6 +111,7 @@ export class CourseDownloadService {
             courseId,
             title: chapter.title || chapter.name,
             sortOrder: chapter.sortOrder ?? chapter.orderIndex ?? chapter.order ?? 0,
+            userId,
           };
           await offlineDb.chapters.put(chapterRecord);
 
@@ -132,6 +134,7 @@ export class CourseDownloadService {
               videoManifestUrl: l.sections?.[0]?.videoUrl || l.videoUrl,
               sortOrder: l.sortOrder ?? l.orderIndex ?? l.order ?? 0,
               downloadedAt: new Date(),
+              userId,
             };
             await offlineDb.lessons.put(lesson);
           }
@@ -145,6 +148,7 @@ export class CourseDownloadService {
           totalChapters: chaptersData.length,
           startedAt: checkpoint?.startedAt || new Date(),
           updatedAt: new Date(),
+          userId,
         });
 
         this.downloadProgress.set(Math.round(((i + 1) / chaptersData.length) * 80));
@@ -156,7 +160,7 @@ export class CourseDownloadService {
       }
 
       // 5. Count total lessons + size from DB (not memory — crash-safe)
-      const dbLessons = await offlineDb.lessons.where('courseId').equals(courseId).toArray();
+      const dbLessons = await offlineDb.lessons.where('[userId+courseId]').equals([userId, courseId]).toArray();
       let totalSize = 0;
       for (const l of dbLessons) {
         totalSize += new Blob([l.contentHtml || '']).size;
@@ -172,11 +176,12 @@ export class CourseDownloadService {
         downloadedAt: new Date(),
         version: 1,
         sizeBytes: totalSize,
+        userId,
       };
       await offlineDb.courses.put(course);
 
       // 7. Clean up checkpoint on successful completion
-      await offlineDb.downloadCheckpoints.delete(courseId);
+      await offlineDb.downloadCheckpoints.delete([userId, courseId]);
 
       this.downloadProgress.set(100);
       this.toast.success(`Đã tải khóa học "${courseData.title || courseData.name}" cho ngoại tuyến`);
@@ -196,24 +201,25 @@ export class CourseDownloadService {
    * Remove a downloaded course from local storage.
    */
   async removeCourse(courseId: string): Promise<void> {
+    const userId = getCurrentUserId();
     // Sync any pending progress before deleting (prevent data loss)
     const pendingProgress = await offlineDb.progress
       .where('courseId').equals(courseId)
-      .filter(p => p.syncStatus === 'pending')
+      .filter(p => p.userId === userId && p.syncStatus === 'pending')
       .count();
     if (pendingProgress > 0) {
       this.toast.warning(`${pendingProgress} mục tiến trình chưa đồng bộ. Đang đồng bộ trước khi xóa...`);
       // Progress will be synced next time user goes online
     }
 
-    await offlineDb.lessons.where('courseId').equals(courseId).delete();
-    await offlineDb.chapters.where('courseId').equals(courseId).delete();
-    await offlineDb.progress.where('courseId').equals(courseId).delete();
+    await offlineDb.lessons.where('[userId+courseId]').equals([userId, courseId]).delete();
+    await offlineDb.chapters.where('[userId+courseId]').equals([userId, courseId]).delete();
+    await offlineDb.progress.where('courseId').equals(courseId).filter(p => p.userId === userId).delete();
     await offlineDb.courses.delete(courseId);
-    await offlineDb.downloadCheckpoints.delete(courseId);
+    await offlineDb.downloadCheckpoints.delete([userId, courseId]);
 
     // Clean orphaned syncQueue entries for this course
-    const allQueueItems = await offlineDb.syncQueue.toArray();
+    const allQueueItems = await offlineDb.syncQueue.where('userId').equals(userId).toArray();
     const relatedIds = allQueueItems
       .filter(item =>
         item.endpoint.includes(courseId) ||
@@ -244,23 +250,26 @@ export class CourseDownloadService {
    */
   async isDownloaded(courseId: string): Promise<boolean> {
     const course = await offlineDb.courses.get(courseId);
-    return course !== undefined;
+    return course !== undefined && course.userId === getCurrentUserId();
   }
 
   /**
    * Get offline course metadata.
    */
   async getOfflineCourse(courseId: string): Promise<OfflineCourse | undefined> {
-    return offlineDb.courses.get(courseId);
+    const course = await offlineDb.courses.get(courseId);
+    if (course && course.userId === getCurrentUserId()) return course;
+    return undefined;
   }
 
   /**
    * Get offline chapters for a course, sorted by sortOrder.
    */
   async getOfflineChapters(courseId: string): Promise<OfflineChapter[]> {
+    const userId = getCurrentUserId();
     return offlineDb.chapters
-      .where('courseId')
-      .equals(courseId)
+      .where('[userId+courseId]')
+      .equals([userId, courseId])
       .sortBy('sortOrder');
   }
 
@@ -268,21 +277,25 @@ export class CourseDownloadService {
    * Get offline lesson content.
    */
   async getOfflineLesson(lessonId: string): Promise<OfflineLesson | undefined> {
-    return offlineDb.lessons.get(lessonId);
+    const lesson = await offlineDb.lessons.get(lessonId);
+    if (lesson && lesson.userId === getCurrentUserId()) return lesson;
+    return undefined;
   }
 
   /**
    * Get all lessons for an offline course.
    */
   async getOfflineLessons(courseId: string): Promise<OfflineLesson[]> {
+    const userId = getCurrentUserId();
     return offlineDb.lessons
-      .where('courseId')
-      .equals(courseId)
+      .where('[userId+courseId]')
+      .equals([userId, courseId])
       .sortBy('sortOrder');
   }
 
   private async refreshDownloadedCourses(): Promise<void> {
-    const courses = await offlineDb.courses.toArray();
+    const userId = getCurrentUserId();
+    const courses = await offlineDb.courses.where('userId').equals(userId).toArray();
     this.downloadedCourses.set(
       courses.map(c => ({
         id: c.id,

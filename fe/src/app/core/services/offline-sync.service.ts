@@ -1,7 +1,7 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { offlineDb, type SyncQueueItem, type SyncEntityType, type SyncOperationType } from '../db/lms-offline.db';
+import { offlineDb, getCurrentUserId, type SyncQueueItem, type SyncEntityType, type SyncOperationType } from '../db/lms-offline.db';
 import { NetworkStatusService } from './network-status.service';
 import { ToastService } from './toast.service';
 import { environment } from '../../../environments/environment';
@@ -60,10 +60,12 @@ export class OfflineSyncService {
     endpoint: string,
     payload: unknown,
   ): Promise<void> {
-    // Deduplicate: check for existing pending item with same entityType + endpoint
+    const userId = getCurrentUserId();
+
+    // Deduplicate: check for existing pending item with same entityType + endpoint for this user
     const existing = await offlineDb.syncQueue
-      .where('syncStatus').equals('pending')
-      .filter(item => item.entityType === entityType && item.endpoint === endpoint)
+      .where('userId').equals(userId)
+      .filter(item => item.syncStatus === 'pending' && item.entityType === entityType && item.endpoint === endpoint)
       .first();
 
     if (existing?.id != null) {
@@ -72,6 +74,7 @@ export class OfflineSyncService {
       });
     } else {
       await offlineDb.syncQueue.add({
+        userId,
         entityType,
         operationType,
         endpoint,
@@ -105,9 +108,10 @@ export class OfflineSyncService {
 
     try {
       const now = new Date();
+      const userId = getCurrentUserId();
       const pendingItems = await offlineDb.syncQueue
-        .where('syncStatus')
-        .equals('pending')
+        .where('userId').equals(userId)
+        .filter(item => item.syncStatus === 'pending')
         .sortBy('createdAt');
 
       // Filter out items still in backoff window
@@ -141,9 +145,8 @@ export class OfflineSyncService {
       // Clean up synced items older than 24h
       const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
       await offlineDb.syncQueue
-        .where('syncStatus')
-        .equals('synced')
-        .filter(item => item.createdAt < oneDayAgo)
+        .where('userId').equals(userId)
+        .filter(item => item.syncStatus === 'synced' && item.createdAt < oneDayAgo)
         .delete();
 
       result.pending = await this.getPendingCount();
@@ -170,8 +173,8 @@ export class OfflineSyncService {
    */
   async retryFailed(): Promise<SyncResult> {
     const failedItems = await offlineDb.syncQueue
-      .where('syncStatus')
-      .equals('failed')
+      .where('userId').equals(getCurrentUserId())
+      .filter(item => item.syncStatus === 'failed')
       .toArray();
 
     if (failedItems.length === 0) {
@@ -199,8 +202,8 @@ export class OfflineSyncService {
    */
   async getFailedCount(): Promise<number> {
     return offlineDb.syncQueue
-      .where('syncStatus')
-      .equals('failed')
+      .where('userId').equals(getCurrentUserId())
+      .filter(item => item.syncStatus === 'failed')
       .count();
   }
 
@@ -209,8 +212,8 @@ export class OfflineSyncService {
    */
   async clearFailed(): Promise<void> {
     await offlineDb.syncQueue
-      .where('syncStatus')
-      .equals('failed')
+      .where('userId').equals(getCurrentUserId())
+      .filter(item => item.syncStatus === 'failed')
       .delete();
     await this.refreshCounts();
   }
@@ -339,8 +342,8 @@ export class OfflineSyncService {
 
   private async getPendingCount(): Promise<number> {
     return offlineDb.syncQueue
-      .where('syncStatus')
-      .equals('pending')
+      .where('userId').equals(getCurrentUserId())
+      .filter(item => item.syncStatus === 'pending')
       .count();
   }
 

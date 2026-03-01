@@ -1,5 +1,5 @@
 import { Injectable, signal } from '@angular/core';
-import { offlineDb } from '../db/lms-offline.db';
+import { offlineDb, getCurrentUserId } from '../db/lms-offline.db';
 
 export interface OfflineVideoEntry {
   lessonId: string;
@@ -78,7 +78,7 @@ export class OfflineVideoService {
 
       // Update IndexedDB lesson record
       const existingLesson = await offlineDb.lessons.get(lessonId);
-      if (existingLesson) {
+      if (existingLesson && existingLesson.userId === getCurrentUserId()) {
         await offlineDb.lessons.update(lessonId, {
           videoOfflineUri: `cache:${lessonId}`,
           downloadedAt: new Date(),
@@ -130,7 +130,7 @@ export class OfflineVideoService {
     }
 
     const lesson = await offlineDb.lessons.get(lessonId);
-    if (lesson) {
+    if (lesson && lesson.userId === getCurrentUserId()) {
       await offlineDb.lessons.update(lessonId, { videoOfflineUri: undefined });
     }
 
@@ -164,6 +164,7 @@ export class OfflineVideoService {
         // Use Content-Length header to avoid loading blob into RAM
         const sizeBytes = Number(response.headers.get('content-length')) || 0;
         const lesson = await offlineDb.lessons.get(lessonId);
+        if (lesson && lesson.userId !== getCurrentUserId()) continue;
 
         entries.push({
           lessonId,
