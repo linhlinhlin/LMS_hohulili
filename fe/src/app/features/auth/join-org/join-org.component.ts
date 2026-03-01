@@ -110,8 +110,8 @@ export class JoinOrgComponent implements OnInit {
   inviteQueryForRegister(): Record<string, string> {
     const inv = this.invite();
     if (inv?.code) return { invite: inv.code };
-    const token = this.route.snapshot.queryParamMap.get('token');
-    if (token) return { invite: token };
+    // EMAIL invites use tokens, not codes — don't pass to register
+    // User registers normally, then accepts invite post-login via /auth/join?token=...
     return {};
   }
 
