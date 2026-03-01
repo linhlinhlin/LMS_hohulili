@@ -312,8 +312,8 @@ Full technical analysis documented in [`docs/PWA_OFFLINE_RESEARCH.md`](docs/PWA_
 - [x] 7.7 **P0**: Add `userId` to courses/chapters/lessons/checkpoints (Dexie v4 migration) ✅ S112
 - [x] 7.8 **P0**: Filter all IndexedDB reads by current userId ✅ S112
 - [x] 7.9 **P0**: CourseDownloadService — scope downloads to current user ✅ S112
-- [ ] 7.10 **P1**: Full logout → clear IndexedDB + Cache API (soft logout preserves)
-- [ ] 7.11 **P1**: Storage management UI component ("Đã dùng X/Y MB")
+- [x] 7.10 **P1**: Pre-logout sync check + explicit cleanup via Storage Management ✅ S113
+- [x] 7.11 **P1**: Storage management UI `/student/storage` with segmented bar, per-item delete ✅ S113
 - [ ] 7.12 **P2**: iOS "Add to Home Screen" smart prompt for maritime users
 
 ### Key Findings

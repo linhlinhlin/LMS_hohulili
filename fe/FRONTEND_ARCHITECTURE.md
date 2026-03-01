@@ -628,8 +628,8 @@ Sync:     NetworkStatus online → 2s delay → POST /api/v3/sync/push → confl
 | Priority | Issue | Status |
 |----------|-------|--------|
 | ~~P0~~ | ~~Multi-account no data isolation (courses/chapters/lessons missing userId)~~ | **Fixed S112** |
-| P1 | No storage management UI for end users | Pending |
-| P1 | Full logout doesn't clean offline data | Pending |
+| ~~P1~~ | ~~No storage management UI for end users~~ | **Fixed S113**: `/student/storage` page with segmented bar, per-item delete |
+| ~~P1~~ | ~~Full logout doesn't clean offline data~~ | **Fixed S113**: Pre-logout sync check + explicit cleanup via Storage Management |
 
 ---
 
