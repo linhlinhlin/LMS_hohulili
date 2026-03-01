@@ -37,6 +37,7 @@ export class RegisterComponent implements OnInit {
   isLoading = signal(false);
   errorMessage = signal('');
   inviteOrgName = signal('');
+  readonly inviteCodeError = signal('');
 
   ngOnInit(): void {
     // Read invite code from URL ?invite=CODE
@@ -62,14 +63,17 @@ export class RegisterComponent implements OnInit {
   validateInviteCode(code: string): void {
     if (!code || code.trim().length < 3) {
       this.inviteOrgName.set('');
+      this.inviteCodeError.set('');
       return;
     }
     this.orgService.validateInviteCode(code.trim()).subscribe({
       next: (invite) => {
         this.inviteOrgName.set(invite.organizationName || '');
+        this.inviteCodeError.set('');
       },
       error: () => {
         this.inviteOrgName.set('');
+        this.inviteCodeError.set('Mã mời không hợp lệ hoặc đã hết hạn');
       }
     });
   }
