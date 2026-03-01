@@ -4,6 +4,7 @@ import { RouterModule, ActivatedRoute } from '@angular/router';
 import { OrganizationService } from '../../infrastructure/services/organization.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
+import { AuthService } from '../../../../core/services/auth.service';
 import { Organization, OrganizationInvite, OrgMember } from '../../../../shared/types/user.types';
 
 type Tab = 'members' | 'invites' | 'settings';
@@ -157,11 +158,13 @@ type Tab = 'members' | 'invites' | 'settings';
                         }
                       </td>
                       <td class="px-5 py-3.5">
-                        <button (click)="removeMember(member)"
-                                class="px-2.5 py-1 text-xs font-medium text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
-                                title="Xóa khỏi tổ chức">
-                          Xóa
-                        </button>
+                        @if (canRemoveMember(member)) {
+                          <button (click)="removeMember(member)"
+                                  class="px-2.5 py-1 text-xs font-medium text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                                  title="Xóa khỏi tổ chức">
+                            Xóa
+                          </button>
+                        }
                       </td>
                     </tr>
                   } @empty {
@@ -404,6 +407,7 @@ export class OrganizationDetailComponent implements OnInit {
   private orgService = inject(OrganizationService);
   private toast = inject(ToastService);
   private confirmDialog = inject(ConfirmDialogService);
+  private readonly authService = inject(AuthService);
 
   org = signal<Organization | null>(null);
   members = signal<OrgMember[]>([]);
@@ -461,6 +465,19 @@ export class OrganizationDetailComponent implements OnInit {
       next: (invites) => this.invites.set(invites),
       error: () => this.toast.error('Không thể tải danh sách lời mời')
     });
+  }
+
+  canRemoveMember(member: OrgMember): boolean {
+    const currentUser = this.authService.currentUser();
+    const currentRole = currentUser?.role?.toLowerCase();
+    // ADMIN can remove anyone except themselves
+    if (currentRole === 'admin') {
+      return member.id !== currentUser?.id;
+    }
+    // ORG_ADMIN cannot remove ADMIN or other ORG_ADMIN, and cannot remove themselves
+    const memberRole = member.role?.toLowerCase();
+    if (memberRole === 'admin' || memberRole === 'org_admin') return false;
+    return member.id !== currentUser?.id;
   }
 
   async removeMember(member: OrgMember): Promise<void> {
