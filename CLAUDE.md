@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-> **Last Updated**: 2026-03-01 | **Version**: 14.0 | **Status**: Production Ready + Maritime PWA Token Management (806 tests, 0 failures)
+> **Last Updated**: 2026-03-01 | **Version**: 14.3 | **Status**: Production Ready + 3-Level Completion Verified (806 tests, 0 failures)
 
 This file provides guidance to Claude Code for working with this repository. **Read this first before any task.**
 
@@ -289,6 +289,18 @@ export class ExampleComponent {
 | Global State | `fe/src/app/state/global.state.ts` |
 | Course Editor Store | `fe/src/app/features/teacher/course-editor/store/course-editor.store.ts` |
 
+### PWA / Offline
+| Purpose | File |
+|---------|------|
+| **PWA Deep Research** | **`docs/PWA_OFFLINE_RESEARCH.md`** |
+| **PWA Roadmap** | **`STREAMING_PWA_ROADMAP.md`** |
+| Dexie.js DB Schema | `fe/src/app/core/db/lms-offline.db.ts` |
+| NGSW Config | `fe/ngsw-config.json` |
+| Course Download | `fe/src/app/core/services/course-download.service.ts` |
+| Offline Video | `fe/src/app/core/services/offline-video.service.ts` |
+| Offline Sync | `fe/src/app/core/services/offline-sync.service.ts` |
+| Offline Interceptor | `fe/src/app/api/interceptors/offline.interceptor.ts` |
+
 ### Deployment
 | Purpose | File |
 |---------|------|
@@ -353,6 +365,173 @@ teacherGuard = [UserRole.TEACHER, UserRole.ADMIN, UserRole.ORG_ADMIN]
 ---
 
 ## RECENT CHANGES LOG
+
+### Session 113b (2026-03-01): P1 Storage Management UI + Logout Sync Check
+
+**FEATURE** | BE: 0 changes | FE: 5 files (1 new, 4 modified)
+
+**Storage Management Page (`/student/storage`):**
+- Dedicated page with segmented storage bar (Spotify pattern: courses/videos/sync)
+- Per-course cards with title, lesson count, size, download date, delete button
+- Per-video cards with title, size, download date, delete button
+- Sync queue section with pending/failed counts, retry button
+- Warning banners at 80% (amber) and 95% (red) quota thresholds
+- "Xoa tat ca du lieu ngoai tuyen" button with danger ConfirmDialog
+- All destructive actions require ConfirmDialog confirmation
+
+**Pre-Logout Sync Check:**
+- Online + pending items: offer "Dong bo & Dang xuat" dialog (warning variant)
+- Offline + pending items: inform "Du lieu se duoc giu lai" dialog (info variant)
+- Only failed items: proceed directly (failed need manual retry in Storage UI)
+- No pending items: proceed to logout immediately
+
+**Service Enhancement:**
+- `CourseDownloadService.removeAllCourses(videoService)`: bulk delete all offline data for current user
+
+**Navigation:**
+- Sidebar: "Luu tru ngoai tuyen" nav item with download icon in "Tai khoan" group
+- Route: `/student/storage` with lazy-loaded component
+
+**SOTA Research**: Moodle Mobile (hierarchical per-course delete), Spotify (segmented bar), Netflix (storage budget), Google/Microsoft/Slack (three-tier logout)
+
+### Session 113 (2026-03-01): CoT Deep Verification — 3-Level Completion Flow
+
+**VERIFICATION + CLEANUP** | BE: 0 changes | FE: 1 file modified
+
+**CoT Research: 3-level completion flow (Chương → Bài → Mục) verified correct:**
+- Applied Chain-of-Thought methodology with 2 parallel Explore agents
+- Agent 1: Dashboard/My-Courses completion pattern (merge `completed: boolean` into lesson objects)
+- Agent 2: Backend API + section-level tracking (lesson-level only in course detail)
+- **Finding**: Course Detail uses separate `_completedLessonIds` signal + `isLessonCompleted()` method — different pattern from dashboard but produces identical results
+- **Section inheritance**: `@let completed = isLessonCompleted(lesson.id)` scoped to outer `@for`, accessible in nested section `@for` — sections correctly inherit parent lesson completion
+- **No functional bugs found** — all 3 levels display correct completion indicators
+
+**Dead code removal (`course-detail.component.ts`):**
+- Removed `isCompleted?: boolean` from local `Lesson` interface (always `false`, never updated, never read by template)
+- Removed `isCompleted: false` from data mapping in `loadCourse()`
+- Template uses `isLessonCompleted(lesson.id)` via signal, not the dead field
+
+**Browser verification (student account, 5-lesson course):**
+- Chapter 1: "1/2 bài học" ✅ | Chapter 2: "2/3 bài học" ✅
+- Green checkmarks on completed lessons, empty circles on incomplete ✅
+- Progress bar: 60% (3/5) horizontal bar ✅
+- Level 3 (Mục): seed data has `sections: []` — template correctly skips with `@if (lesson.sections.length > 0)` ✅
+
+### Session 112 (2026-03-01): P0 Multi-Account IndexedDB Data Isolation
+
+**SECURITY + ARCHITECTURE** | BE: 0 changes | FE: 5 files modified
+
+**P0 Fix: Multi-account data isolation in IndexedDB (Dexie.js)**
+- **Root cause**: courses/chapters/lessons/downloadCheckpoints/syncQueue tables had NO userId field — two users on same browser could see/overwrite each other's downloaded courses
+- **Pattern**: Google Drive model (same IndexedDB, compound primary keys per user) vs Moodle (per-site SQLite)
+
+**Dexie v4 Schema Migration (`lms-offline.db.ts`):**
+- Added `userId: string` to 5 interfaces (OfflineCourse, OfflineChapter, OfflineLesson, DownloadCheckpoint, SyncQueueItem)
+- Compound primary keys: `[userId+id]` for courses/chapters/lessons (prevents cross-user overwrite)
+- Compound primary key: `[userId+courseId]` for downloadCheckpoints
+- Compound indexes: `[userId+courseId]`, `[userId+chapterId]`, `[userId+courseId+sortOrder]`
+- `getCurrentUserId()` helper reads from `localStorage.getItem('lms_user')` (verified match with AuthService)
+- Upgrade callback clears old data (users must re-download)
+
+**Service-Level Isolation (4 files):**
+- `CourseDownloadService`: all downloads, deletes, reads use compound keys + userId filter
+- `OfflineVideoService`: lesson lookups use compound keys, `getVideoUrl()` verifies ownership
+- `OfflineSyncService`: queue operations, retries, counts scoped by userId
+- `Offline interceptor`: all 6 fallback read paths (course/chapter/lesson/enrollment) filtered by userId
+
+**Code review findings fixed:**
+- Compound primary keys `[userId+id]` prevent two users downloading same course from overwriting each other
+- `removeCourse()` uses compound key delete (was bare courseId — would delete other user's record)
+- `getVideoUrl()` checks lesson ownership before serving cached video blob
+
+### Session 111 (2026-03-01): Student Course Detail Redesign + Design Consistency
+
+**UX REDESIGN** | BE: 0 changes | FE: 3 files rewritten (course-detail TS/HTML/SCSS)
+
+**Part 1 — Full Course Detail Page Redesign (`/student/course/:id`):**
+- Complete rewrite of all 3 component files (TS/HTML/SCSS)
+- Hero section: breadcrumb, title, meta row (instructor, delivery badge, rating), stats row
+- Completed lesson IDs integration (S107 pattern): `getCompletedLessonIds()` → `Set.has()` → per-lesson checkmarks
+- Per-chapter completion map: computed signal with "X/Y bài học" counts
+- Expand all / Collapse all toggle for curriculum sections
+- Resume Learning: localStorage `lastAccessedLessonId` → fallback to first incomplete lesson
+
+**Part 2 — Hybrid 2/3-Level Curriculum Display:**
+- 3-level: Chapter → Lesson → Section (sub-list with type icons, duration, required badge)
+- 2-level fallback: When `sections: []` (seed data), show lesson's own type badge + description inline
+- Lesson `type` from API via `(lesson as any).type` cast (not in `LessonSummary` interface)
+- Type badges: Văn bản (blue), Video (red), Bài kiểm tra (purple), Bài tập (amber), Tệp (green)
+
+**Part 3 — Design Consistency (Nielsen's Heuristic #4):**
+- **Replaced circular SVG progress ring with horizontal progress bar** — every other student page uses 6px horizontal bars
+- Progress bar: 6px height, `#0056D2` fill, `#E5E7EB` bg, 3px radius, 0.3s ease — identical to dashboard/my-courses
+- Green bar (`#10B981`) at 100% completion — matches dashboard pattern
+- Single-column hero flow: Title → Meta → Stats → `border-top` separator → Progress bar → Info row (percentage + CTA)
+- Mobile: progress info and CTA stack vertically, button full-width
+- Removed ~90 lines of circular ring CSS (`.progress-ring-*`, SVG viewBox/rotate)
+
+**Part 4 — Section (mục) Completion Indicators:**
+- Section sub-items now inherit completion from parent lesson (matching dashboard pattern)
+- Completed: green checkmark SVG (#10B981) replaces type icon + muted title text
+- Incomplete: type icon (VIDEO/TEXT/QUIZ/FILE) with normal styling
+- CSS: `.section-sub-item.completed` — title `$gray-400`, icon stays green on hover
+
+**Completion indicator sync verified (3-level hierarchy):**
+| Level | Completed | Incomplete | Locked |
+|-------|-----------|------------|--------|
+| Chương (Chapter) | "X/Y bài học" green text | "X bài học" gray | — |
+| Bài (Lesson) | Green ✓ + green bg | Empty ○ circle | Gray lock |
+| Mục (Section) | Green ✓ + muted text | Type icon | — |
+
+### Session 110 (2026-03-01): Deep PWA Research + Documentation + Login UX
+
+**RESEARCH + UX + DOCS** | FE: 2 files modified | Docs: 3 files (1 new, 2 updated)
+
+**3-Mode Login Page (Material Design SOTA):**
+- Mode 1 (Online): Normal login form — unchanged
+- Mode 2 (Offline + Resume): User identity card (ChromeOS pattern) + "Tiếp tục truy cập ngoại tuyến" button — login form HIDDEN
+- Mode 3 (Offline + No Session): Cloud-off icon + "Không có kết nối mạng" — login form HIDDEN
+- Basis: Material Design "Hide if irrelevant and can't be used" — 0/12 major products show disabled login forms offline
+- `login.component.ts`: `canResume`, `isOfflineNoSession`, `savedUser`, `savedUserInitial` computed signals
+- `session-expired-banner.component.ts`: Hide banner on `/auth/*` pages
+
+**Deep PWA Offline Research:**
+- Created `docs/PWA_OFFLINE_RESEARCH.md` — comprehensive technical research document (9 sections)
+- End-to-end flow analysis, multi-device behavior matrix, physical storage locations
+- Edge cases: two accounts (P0 data isolation gap), storage exhaustion, iOS 7-day eviction, crash recovery
+- Security audit: encryption at rest, XSS impact, cross-origin, shared device
+- SOTA comparison: Moodle Mobile, Canvas Student, Coursera
+
+**Documentation Updates:**
+- `STREAMING_PWA_ROADMAP.md`: Added Phase 7 (multi-account isolation) with research findings
+- `fe/FRONTEND_ARCHITECTURE.md`: Added PWA section with storage layers, conflict resolution, known issues
+- `CLAUDE.md`: Added PWA/Offline key files reference section
+
+**Key Finding — P0**: IndexedDB courses/chapters/lessons tables have NO userId field → two users on same browser see each other's downloaded content. Progress tables correctly have userId but content is shared.
+
+### Session 109 (2026-03-01): Student Progress & Completion Display Fixes
+
+**BUGFIX + UX** | BE: 4 files modified | FE: 3 files modified | DB: 1 column rename
+
+**Part 1 — Section completion indicators (FE-only):**
+- Sections under completed lessons now show green checkmarks (derived from parent `lesson.completed`)
+- Applied to my-courses component + dashboard (both in-progress and completed tabs)
+- CSS: `.section-item.completed` with muted title + green icon
+
+**Part 2 — Backend progress counting bug (5 fixes in `StudentEnrollmentControllerV3.java`):**
+- **Root cause**: `.size()` and `.keySet()` on progress JSONB map counted ALL entries (IN_PROGRESS, UNLOCKED, COMPLETED) instead of only COMPLETED
+- Fixed 5 locations: `getCompletedLessonIds()`, `getEnrolledCourses()`, `getCourseProgress()`, `markLessonComplete()`, `getNextLesson()`
+- All now use `.filter(p -> "COMPLETED".equals(p.getStatus()))`
+
+**Part 3 — 100% completion display (SOTA Canvas/Coursera pattern):**
+- **Critical bug**: `findActiveWithClass()` only returned ACTIVE enrollments → COMPLETED courses invisible
+- Added `findActiveAndCompletedWithClass()` JPA query + adapter method
+- `getEnrolledCourses()` now uses new query → completed courses appear in "Đã hoàn thành" tab
+- Auto-transition ACTIVE→COMPLETED at 100% in `markLessonComplete()` + `UpdateLessonProgressUseCase`
+- FE: green "Đã hoàn thành" label, green progress bar at 100%, smart button text ("Xem lại"/"Tiếp tục học"/"Bắt đầu ngay")
+- Tab counts: "Đang học (4)" / "Đã hoàn thành (1)" with correct stats
+
+**DB fix:** `organizations` column renamed `refresh_token_expiry_days` → `token_expiry_days` (JPA entity mismatch from S108)
 
 ### Session 108 (2026-03-01): Maritime PWA Token Management + Soft Logout
 
@@ -669,7 +848,7 @@ Architecture: `Internet → Caddy (:443) → nginx (FE) + backend:8080 (API)`
 
 ---
 
-## ARCHITECTURE SCORES (Post-S108)
+## ARCHITECTURE SCORES (Post-S111)
 
 | Category | Score |
 |----------|-------|
@@ -679,7 +858,7 @@ Architecture: `Internet → Caddy (:443) → nginx (FE) + backend:8080 (API)`
 | Security | 10/10 (IDOR fixed, UUID validation, ownership, token hashing, rate limit) |
 | Test Coverage | 9.8/10 (806 tests, 0 failures) |
 | Code Cleanliness | 10/10 (94 dead files removed in S104, -11,755 lines) |
-| UX & Design | 10/10 (Org management Toast+ConfirmDialog, Coursera-level) |
+| UX & Design | 10/10 (Design consistency audit S111, Coursera-level, unified progress bars) |
 | API Completeness | 10/10 (275+ endpoints) |
 
 ---
