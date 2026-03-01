@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-> **Last Updated**: 2026-03-01 | **Version**: 14.3 | **Status**: Production Ready + 3-Level Completion Verified (806 tests, 0 failures)
+> **Last Updated**: 2026-03-01 | **Version**: 14.4 | **Status**: Production Ready + PWA Phase 7 Complete (806 tests, 0 failures)
 
 This file provides guidance to Claude Code for working with this repository. **Read this first before any task.**
 
@@ -122,7 +122,7 @@ fe/src/app/
 └── state/            # Global state: course, class, global
 ```
 
-**Stats**: 214 components | 58 services | 108 routes | 465 TS files
+**Stats**: 215+ components | 62 services | 108 routes | ~470 TS files
 
 ---
 
@@ -365,6 +365,27 @@ teacherGuard = [UserRole.TEACHER, UserRole.ADMIN, UserRole.ORG_ADMIN]
 ---
 
 ## RECENT CHANGES LOG
+
+### Session 113c (2026-03-01): Lesson View Section Completion Desync Fix (CoT)
+
+**BUGFIX** | BE: 0 changes | FE: 1 file modified (`course-learning.component.ts`)
+
+**Problem**: Lesson view sidebar (`/student/learn/course/.../lesson/...`) showed 3/5 sections completed for a lesson, while dashboard/my-courses showed 5/5 green checkmarks for the same lesson.
+
+**CoT Root Cause Analysis (5 Whys):**
+- Step 1: Lesson view shows 3/5 → `completedSections` signal only has 3 IDs
+- Step 2: Why only 3? → `loadCompletedSections()` reads ONLY from `localStorage['completed_sections']`
+- Step 3: Why localStorage only has 3? → `onVideoEnded()` and quiz completion mark lesson complete WITHOUT marking each section individually
+- Step 4: Why dashboard shows 5/5? → Dashboard inherits from parent `lesson.completed` flag (backend-driven)
+- **Root Cause**: Two different data sources with no synchronization — lesson view uses localStorage (client-only per-section tracking), dashboard uses backend completedLessonIds
+
+**Fix**: Added `syncSectionCompletionEffect` — Angular `effect()` that watches `sections()` + `completedLessons()` signals:
+- When a lesson is COMPLETED (from backend), auto-populates ALL its section IDs into `completedSections` signal
+- Uses `untracked()` to avoid circular dependencies, `allowSignalWrites: true`
+- Updates localStorage for persistence across page reloads
+- SOTA pattern: Coursera/Canvas — completed lesson = all sub-items completed
+
+**Verified**: Console check confirmed `completedSections` went from 3→7, `missingSectionIds: []` for all lessons. Visual check: all 5 sections of Bài 3.3 show green in both dashboard and lesson view.
 
 ### Session 113b (2026-03-01): P1 Storage Management UI + Logout Sync Check
 
@@ -848,7 +869,7 @@ Architecture: `Internet → Caddy (:443) → nginx (FE) + backend:8080 (API)`
 
 ---
 
-## ARCHITECTURE SCORES (Post-S111)
+## ARCHITECTURE SCORES (Post-S113c)
 
 | Category | Score |
 |----------|-------|
