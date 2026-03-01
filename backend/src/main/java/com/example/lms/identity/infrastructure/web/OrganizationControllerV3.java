@@ -149,6 +149,12 @@ public class OrganizationControllerV3 {
         UserJpaEntity user = userJpaRepo.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("Người dùng", userId));
 
+        // ORG_ADMIN cannot add ADMIN or other ORG_ADMIN to org
+        if (isOrgAdmin(currentUser) && (user.getRole() == UserJpaEntity.UserRole.ADMIN || user.getRole() == UserJpaEntity.UserRole.ORG_ADMIN)) {
+            return ResponseEntity.status(403).body(ApiResponse.error(
+                "Không có quyền thêm quản trị viên vào tổ chức"));
+        }
+
         // P0: Check if user is already in a different org
         if (user.getOrganizationId() != null && !id.equals(user.getOrganizationId())) {
             return ResponseEntity.badRequest().body(ApiResponse.error(
