@@ -58,7 +58,9 @@
 
     <!-- Footer -->
     <div class="sidebar-footer">
-        <button (click)="logout()" class="logout-btn">
+        <button (click)="logout()" class="logout-btn"
+                [disabled]="!authService.canLogout()"
+                [title]="authService.canLogout() ? 'Đăng xuất' : 'Không thể đăng xuất khi ngoại tuyến'">
             <app-icon name="logout" size="sm"/>
             <span>Đăng xuất</span>
         </button>

@@ -52,7 +52,9 @@ import { ChatWidgetComponent } from '../../../ai-chat/presentation/components/ch
                 <div class="flex items-center space-x-3">
                   <span class="text-sm text-gray-600 hidden sm:inline">{{ authService.currentUser()?.fullName }}</span>
                   <button (click)="logout()"
-                    class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm"
+                    [disabled]="!authService.canLogout()"
+                    [title]="authService.canLogout() ? 'Đăng xuất' : 'Không thể đăng xuất khi ngoại tuyến'"
+                    class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-red-600"
                     aria-label="Đăng xuất">
                     Đăng xuất
                   </button>

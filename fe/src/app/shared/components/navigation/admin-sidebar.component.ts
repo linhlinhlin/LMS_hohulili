@@ -95,7 +95,9 @@ interface NavigationItem {
 
       <!-- Footer — matches teacher/student: simple text + icon -->
       <div class="sidebar-footer">
-        <button (click)="logout()" class="logout-btn">
+        <button (click)="logout()" class="logout-btn"
+                [disabled]="!authService.canLogout()"
+                [title]="authService.canLogout() ? 'Đăng xuất' : 'Không thể đăng xuất khi ngoại tuyến'">
           <app-icon name="logout" size="sm"/>
           <span>Đăng xuất</span>
         </button>
@@ -333,8 +335,13 @@ interface NavigationItem {
       font-weight: 500;
     }
 
-    .logout-btn:hover {
+    .logout-btn:hover:not(:disabled) {
       background-color: #fef2f2;
+    }
+
+    .logout-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
     }
 
     .logout-btn app-icon {

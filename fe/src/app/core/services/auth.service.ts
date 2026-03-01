@@ -6,6 +6,7 @@ import { catchError } from 'rxjs/operators';
 import { AUTH_ENDPOINTS } from '../../api/endpoints/auth.endpoints';
 import { ApiResponse } from '../../api/types/common.types';
 import { SessionExpiredService } from './session-expired.service';
+import { NetworkStatusService } from './network-status.service';
 
 export enum UserRole {
   ADMIN = 'admin',
@@ -40,6 +41,7 @@ export class AuthService {
   private http = inject(HttpClient);
   private router = inject(Router);
   private sessionService = inject(SessionExpiredService);
+  private network = inject(NetworkStatusService);
   private tokenKey = 'lms_access_token';
   private refreshTokenKey = 'lms_refresh_token';
   private userKey = 'lms_user';
@@ -52,6 +54,9 @@ export class AuthService {
   readonly currentUserSignal = this._currentUser.asReadonly();
   readonly isAuthenticatedSignal = computed(() => !!this._currentUser());
   readonly userRoleSignal = computed(() => this._currentUser()?.role || '');
+
+  /** Maritime PWA: block logout when offline to preserve offline access */
+  readonly canLogout = computed(() => this.network.online());
 
   login(credentials: { email: string; password: string }): Observable<AuthResponse> {
     // Update expected type to ApiResponse<AuthResponse>
@@ -100,6 +105,12 @@ export class AuthService {
   }
 
   logout(): void {
+    // Maritime PWA: block logout when offline — clearing tokens would lose all offline access
+    // and user cannot login again without network connectivity
+    if (!this.network.online()) {
+      return;
+    }
+
     // ✅ FIXED: Specify 'text' response type since backend returns plain text
     // Call backend logout (fire and forget)
     this.http.post(AUTH_ENDPOINTS.LOGOUT, {}, { responseType: 'text' }).subscribe({
