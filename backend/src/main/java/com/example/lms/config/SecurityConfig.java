@@ -21,6 +21,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import jakarta.servlet.DispatcherType;
+
 import java.util.List;
 
 @Configuration
@@ -54,6 +56,8 @@ public class SecurityConfig {
                 )
             )
             .authorizeHttpRequests(auth -> auth
+                // Sprint 220: Permit async dispatch for SSE streaming (SecurityContext lost in virtual threads)
+                .dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll()
                 .requestMatchers(
                     // API Documentation
                     "/v3/api-docs/**",
@@ -88,7 +92,10 @@ public class SecurityConfig {
                     "/api/v3/integration/**",
                     // VNPay callbacks (server-to-server IPN + browser return)
                     "/api/v3/payments/vnpay-ipn",
-                    "/api/v3/payments/vnpay-return"
+                    "/api/v3/payments/vnpay-return",
+                    // Public invite validation (rate-limited)
+                    "/api/v3/invites/validate",
+                    "/api/v3/invites/validate-token"
                 ).permitAll()
                 .anyRequest().authenticated()
             )

@@ -7,6 +7,8 @@ export interface User {
   name?: string;
   role: UserRole;
   enabled: boolean;     // Added - account status from backend
+  organizationId?: string;   // UUID of user's organization (from BE UserResponse)
+  organizationName?: string; // Org name (resolved from /me endpoint or JWT)
   avatar?: string;      // Keep for UI - not sent to backend
   department?: string;  // Keep for UI - not sent to backend
   studentId?: string;   // Keep for UI - not sent to backend
@@ -36,4 +38,43 @@ export interface RegisterRequest {
   password: string;
   fullName: string;     // Changed from name to match backend
   role?: UserRole;      // Made optional - backend has default STUDENT
+  inviteCode?: string;  // Optional - for joining org during registration
+}
+
+// Organization types
+export interface Organization {
+  id: string;
+  name: string;
+  code: string;
+  description: string | null;
+  enabled: boolean;
+  tokenExpiryDays: number;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export type InviteType = 'CODE' | 'EMAIL';
+export type InviteStatus = 'ACTIVE' | 'REVOKED' | 'EXPIRED';
+
+export interface OrganizationInvite {
+  id: string;
+  organizationId: string;
+  organizationName: string;
+  type: InviteType;
+  code: string | null;
+  email: string | null;
+  maxUses: number | null;
+  useCount: number;
+  status: InviteStatus;
+  expiresAt: string;
+  createdAt: string;
+}
+
+export interface OrgMember {
+  id: string;
+  email: string;
+  fullName: string;
+  role: string;
+  enabled: boolean;
+  tokenExpiryDays?: number | null;
 }

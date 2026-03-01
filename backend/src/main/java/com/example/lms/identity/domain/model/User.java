@@ -5,6 +5,7 @@ import com.example.lms.shared.domain.valueobject.UserId;
 
 import java.time.Instant;
 import java.util.Objects;
+import java.util.UUID;
 
 /**
  * User Domain Model - Pure POJO without JPA annotations.
@@ -19,14 +20,16 @@ public class User {
     private String fullName;
     private Role role;
     private boolean enabled;
+    private UUID organizationId;
+    private Integer tokenExpiryDays;
     private Instant createdAt;
     private Instant updatedAt;
     
     // Private constructor - use builder or factory methods
     private User() {}
     
-    public User(UserId id, String username, Email email, String password, 
-                String fullName, Role role, boolean enabled, 
+    public User(UserId id, String username, Email email, String password,
+                String fullName, Role role, boolean enabled, UUID organizationId,
                 Instant createdAt, Instant updatedAt) {
         this.id = Objects.requireNonNull(id, "ID người dùng không được null");
         this.username = Objects.requireNonNull(username, "Tên đăng nhập không được null");
@@ -35,12 +38,13 @@ public class User {
         this.fullName = Objects.requireNonNull(fullName, "Họ tên không được null");
         this.role = Objects.requireNonNull(role, "Vai trò không được null");
         this.enabled = enabled;
+        this.organizationId = organizationId;
         this.createdAt = createdAt != null ? createdAt : Instant.now();
         this.updatedAt = updatedAt;
     }
     
     // Factory method for new user registration
-    public static User createNew(String username, Email email, String encodedPassword, 
+    public static User createNew(String username, Email email, String encodedPassword,
                                   String fullName, Role role) {
         return new User(
             UserId.generate(),
@@ -50,6 +54,7 @@ public class User {
             fullName,
             role,
             true,
+            null,
             Instant.now(),
             null
         );
@@ -101,6 +106,11 @@ public class User {
     public boolean isOrgAdmin() {
         return role == Role.ORG_ADMIN;
     }
+
+    public void assignToOrganization(UUID orgId) {
+        this.organizationId = Objects.requireNonNull(orgId, "Organization ID không được null");
+        this.updatedAt = Instant.now();
+    }
     
     // Getters
     public UserId getId() { return id; }
@@ -110,8 +120,15 @@ public class User {
     public String getFullName() { return fullName; }
     public Role getRole() { return role; }
     public boolean isEnabled() { return enabled; }
+    public UUID getOrganizationId() { return organizationId; }
+    public Integer getTokenExpiryDays() { return tokenExpiryDays; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
+
+    public void setTokenExpiryDays(Integer days) {
+        this.tokenExpiryDays = days;
+        this.updatedAt = Instant.now();
+    }
     
     @Override
     public boolean equals(Object o) {
@@ -139,9 +156,11 @@ public class User {
         private String fullName;
         private Role role = Role.STUDENT;
         private boolean enabled = true;
+        private UUID organizationId;
+        private Integer tokenExpiryDays;
         private Instant createdAt;
         private Instant updatedAt;
-        
+
         public Builder id(UserId id) { this.id = id; return this; }
         public Builder username(String username) { this.username = username; return this; }
         public Builder email(Email email) { this.email = email; return this; }
@@ -149,11 +168,15 @@ public class User {
         public Builder fullName(String fullName) { this.fullName = fullName; return this; }
         public Builder role(Role role) { this.role = role; return this; }
         public Builder enabled(boolean enabled) { this.enabled = enabled; return this; }
+        public Builder organizationId(UUID organizationId) { this.organizationId = organizationId; return this; }
+        public Builder tokenExpiryDays(Integer tokenExpiryDays) { this.tokenExpiryDays = tokenExpiryDays; return this; }
         public Builder createdAt(Instant createdAt) { this.createdAt = createdAt; return this; }
         public Builder updatedAt(Instant updatedAt) { this.updatedAt = updatedAt; return this; }
-        
+
         public User build() {
-            return new User(id, username, email, password, fullName, role, enabled, createdAt, updatedAt);
+            User user = new User(id, username, email, password, fullName, role, enabled, organizationId, createdAt, updatedAt);
+            user.tokenExpiryDays = this.tokenExpiryDays;
+            return user;
         }
     }
 }

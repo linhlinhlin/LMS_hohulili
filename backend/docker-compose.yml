@@ -37,16 +37,24 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/lms
       - SPRING_DATASOURCE_USERNAME=lms
       - SPRING_DATASOURCE_PASSWORD=lms
-      - SPRING_AI_SERVICE_URL=https://maritime-ai-chatbot.onrender.com
       - MAIL_USERNAME=${MAIL_USERNAME:-}
       - MAIL_PASSWORD=${MAIL_PASSWORD:-}
       - MAIL_FROM=${MAIL_FROM:-}
+      # Wiii AI Integration (Sprint 220)
+      - WIII_WEBHOOK_URL=http://wiii-app:8000/api/v1/lms/webhook/maritime-lms
+      - WIII_WEBHOOK_SECRET=wiii-lms-hmac-s3cr3t-2026
+      - WIII_WEBHOOK_ENABLED=true
+      - WIII_SERVICE_TOKEN=wiii-service-token-shared-secret
+      - WIII_TOKEN_EXCHANGE_URL=http://wiii-app:8000/api/v1/auth/lms/token
     volumes:
       - ./uploads:/app/uploads
     depends_on:
       db:
         condition: service_healthy
     restart: always
+    networks:
+      - default
+      - wiii-network  # Sprint 220: Reach wiii-app for AI chat
     deploy:
       resources:
         limits:
@@ -58,3 +66,7 @@ services:
 
 volumes:
   pgdata:
+
+networks:
+  wiii-network:
+    external: true  # Created by Wiii's docker-compose

@@ -1,6 +1,6 @@
 # Frontend Architecture Reference
 
-> **Last Updated**: 2026-02-26 | **Angular**: 20.3 | **Score**: 10/10
+> **Last Updated**: 2026-03-01 | **Angular**: 20.3 | **Score**: 10/10
 
 This document is the **single source of truth** for the LMS frontend architecture.
 Read this instead of re-auditing the codebase.
@@ -13,10 +13,10 @@ Read this instead of re-auditing the codebase.
 |--------|-------|
 | Framework | Angular 20.3+ (standalone, signals) |
 | TypeScript Files | ~525 |
-| Components | 236 |
-| Services (@Injectable) | ~61 |
+| Components | 237 |
+| Services (@Injectable) | ~62 |
 | Total TypeScript LOC | ~48,000+ |
-| OnPush Coverage | **236/236 (100%)** |
+| OnPush Coverage | **237/237 (100%)** |
 | Legacy Patterns | **0** (*ngIf, *ngFor, standalone:true, @Input, @Output, @ViewChild) |
 | console.log/warn/debug | **0** in production code |
 | English text in UI | **0** (all Vietnamese) |
@@ -25,8 +25,8 @@ Read this instead of re-auditing the codebase.
 | API Clients | 18 |
 | API Endpoints | 23 |
 | API Types | 19 |
-| Shared Components | 48 |
-| Core Services | 15 |
+| Shared Components | 49 |
+| Core Services | 16 |
 | State Services | 3 (global, course, class) |
 | Guards | 5 (in 3 files) |
 | Routes | 70+ |
@@ -46,7 +46,7 @@ fe/src/app/
 │   ├── interceptors/       # Auth, base-url, error, offline interceptors (4 files)
 │   └── operators/          # RxJS operators (unwrapSpringPage)
 ├── core/                   # Singleton services & guards
-│   ├── services/           # Auth, messaging, notification, PWA offline, etc. (21 services)
+│   ├── services/           # Auth, messaging, notification, PWA offline, etc. (22 services)
 │   ├── db/                 # lms-offline.db.ts (Dexie.js 4 - 7 tables)
 │   └── guards/             # auth.guard, role.guard, enrollment.guard (5 guard fns in 3 files)
 ├── features/               # Feature modules (lazy-loaded)
@@ -63,7 +63,7 @@ fe/src/app/
 │   ├── profile/            # 2 components - User profile
 │   ├── home/               # 1 component - Landing page
 │   └── (about, contact, privacy, terms, settings, analytics)
-├── shared/                 # Reusable components (48) & services (8)
+├── shared/                 # Reusable components (49) & services (8)
 │   ├── components/         # UI, layout, content, navigation
 │   ├── services/           # Analytics, file-upload, communication, etc.
 │   └── blocks/             # Content block renderers
@@ -86,7 +86,7 @@ fe/src/app/
 | `viewChild()` / `viewChild.required()` | 23 | Standard |
 | `effect()` | 29 (21 files) | Where needed |
 | `@if` / `@for` / `@switch` | 234 files (2,117 instances) | Standard |
-| `ChangeDetectionStrategy.OnPush` | 236/236 (100%) | Enforced |
+| `ChangeDetectionStrategy.OnPush` | 237/237 (100%) | Enforced |
 | `takeUntilDestroyed(DestroyRef)` | Standard | Cleanup pattern |
 
 ### Legacy Patterns (All Eliminated)
@@ -387,7 +387,7 @@ api/
 │   ├── common.types.ts   # ApiResponse<T>, Pagination
 │   ├── course.types.ts   # Course, CourseDTO
 │   └── ... (all domain types)
-├── interceptors/    # Auth token, base-url, error handling, offline fallback (4 files)
+├── interceptors/    # Auth token (network-aware soft logout), base-url, error handling, offline fallback (4 files)
 └── operators/
     └── unwrap-spring-page.ts  # unwrapSpringPage<T>() RxJS operator
 ```
@@ -408,7 +408,7 @@ ApiClient.delete<T> / deleteWithResponse<T>
 
 ## Core Module
 
-### Services (21)
+### Services (22)
 
 | Service | LOC | Purpose |
 |---------|-----|---------|
@@ -425,6 +425,7 @@ ApiClient.delete<T> / deleteWithResponse<T>
 | `image-lifecycle.service.ts` | ~100 | Image handling |
 | `content-identity.service.ts` | ~100 | Content identification |
 | **`network-status.service.ts`** | ~120 | **3-tier network detection (none/slow/fast), /favicon.ico probe (2min interval)** |
+| **`session-expired.service.ts`** | ~90 | **4-state auth machine (ONLINE_AUTHENTICATED, OFFLINE_AUTHENTICATED, OFFLINE_DEGRADED, UNAUTHENTICATED), soft logout when offline** |
 | **`storage-manager.service.ts`** | ~100 | **Storage quota, formatBytes, persistent storage** |
 | **`offline-sync.service.ts`** | ~250 | **Sync queue, batch push, failedCount, retryFailed** |
 | **`course-download.service.ts`** | ~200 | **Full course download to IndexedDB** |
@@ -446,7 +447,7 @@ ApiClient.delete<T> / deleteWithResponse<T>
 
 ---
 
-## Shared Module (48 Components)
+## Shared Module (49 Components)
 
 ### Layout
 - `homepage-layout`, `public-header`, `footer`, `mega-menu`
@@ -468,6 +469,7 @@ ApiClient.delete<T> / deleteWithResponse<T>
 - `notification`, `notification-bell`, `toast-container`
 - `global-search`, `enriched-input`, `math-quick-toolbar`
 - `message-bubble`, `message-input`, `error-display`
+- `session-expired-banner` (amber banner for OFFLINE_DEGRADED state, "Dang nhap lai" button)
 
 ---
 
@@ -592,6 +594,17 @@ items = toSignal(this.service.data$, { initialValue: [] });
 ---
 
 ## Modernization Changelog
+
+### 2026-03-01 Session 108 (Maritime PWA Token Management + Soft Logout)
+
+**Score: 10/10 (maintained)**
+
+| Task | Detail |
+|------|--------|
+| SessionExpiredService | 4-state auth machine: ONLINE_AUTHENTICATED, OFFLINE_AUTHENTICATED, OFFLINE_DEGRADED, UNAUTHENTICATED. Evaluates refresh token expiry + network status for state transitions |
+| SessionExpiredBannerComponent | Amber banner (z-101) shown in OFFLINE_DEGRADED state: "Phien dang nhap het han" with "Dang nhap lai" button preserving returnUrl |
+| auth.interceptor.ts network-aware | On 401 when offline: transitions to OFFLINE_DEGRADED instead of hard logout. Online refresh failure still hard-logouts. Successful refresh transitions to ONLINE_AUTHENTICATED |
+| Component count | 236 → 237 (shared +1: session-expired-banner) |
 
 ### 2026-02-26 Session 93 (Student Lesson Viewer UX + PWA iOS Hardening)
 

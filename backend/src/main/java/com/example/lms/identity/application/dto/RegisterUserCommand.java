@@ -23,5 +23,7 @@ public record RegisterUserCommand(
     @NotBlank(message = "Họ tên không được để trống")
     String fullName,
 
-    String role // Optional, defaults to STUDENT
+    String role, // Optional, defaults to STUDENT
+
+    String inviteCode // Optional, for joining org during registration
 ) {}

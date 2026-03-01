@@ -84,6 +84,23 @@ export const adminRoutes: Routes = [
         ]
       },
 
+      // Organization Management Routes
+      {
+        path: 'organizations',
+        children: [
+          {
+            path: '',
+            loadComponent: () => import('./presentation/components/organization-list.component').then(m => m.OrganizationListComponent),
+            title: 'Quản lý tổ chức'
+          },
+          {
+            path: ':id',
+            loadComponent: () => import('./presentation/components/organization-detail.component').then(m => m.OrganizationDetailComponent),
+            title: 'Chi tiết tổ chức'
+          }
+        ]
+      },
+
       // Analytics Routes
       {
         path: 'analytics',
@@ -107,12 +124,7 @@ export const adminRoutes: Routes = [
         title: 'Nhật ký kiểm toán'
       },
 
-      // AI Chat - Trợ lý AI Hàng Hải
-      {
-        path: 'ai-chat',
-        loadChildren: () => import('../ai-chat/ai-chat.routes').then(m => m.AI_CHAT_ROUTES),
-        title: 'Trợ lý AI Hàng Hải'
-      }
+      // Sprint 220b: ai-chat full-page route removed — AI chat is now an iframe widget
     ]
   }
 ];

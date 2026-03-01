@@ -43,6 +43,8 @@ interface Course {
   modules: Module[];
   currentLessonId: string | null;
   thumbnail?: string;
+  instructor: string;
+  deliveryMode: 'SELF_PACED' | 'INSTRUCTOR_LED';
 }
 
 /**
@@ -178,17 +180,25 @@ export class StudentDashboardComponent implements OnInit {
       // Find the first incomplete lesson across all modules (= current lesson)
       const currentLessonId = this.findFirstIncompleteLessonId(rawModules);
 
+      // Recalculate progress from actual completion data when modules are loaded
+      const totalFromModules = enrichedModules.reduce((sum, m) => sum + (m.totalCount || 0), 0);
+      const completedFromModules = enrichedModules.reduce((sum, m) => sum + (m.completedCount || 0), 0);
+      const actualProgress = totalFromModules > 0 ? Math.round((completedFromModules / totalFromModules) * 100) : 0;
+      const progress = enrichedModules.length > 0 ? Math.max(course.progress, actualProgress) : course.progress;
+
       return {
         id: course.id,
         title: course.title,
-        progress: course.progress,
+        progress,
         completedLessons: course.completedLessons,
         totalLessons: course.totalLessons,
         status: (course.status === 'enrolled' ? 'in-progress' : course.status) as 'in-progress' | 'completed',
         showModules: expanded.has(course.id),
         modules: enrichedModules,
         currentLessonId,
-        thumbnail: course.thumbnail
+        thumbnail: course.thumbnail,
+        instructor: this.getInstructorName(course.instructor),
+        deliveryMode: course.deliveryMode || 'SELF_PACED',
       };
     });
   });
@@ -196,17 +206,22 @@ export class StudentDashboardComponent implements OnInit {
   // Load course content (modules/lessons) from API
   private async loadCourseContent(courseId: string): Promise<void> {
     try {
-      const response = await firstValueFrom(this.courseApi.getCourseContent(courseId));
-      const sections = response.data || [];
+      // Fetch content + completed lesson IDs in parallel
+      const [contentRes, completedIds] = await Promise.all([
+        firstValueFrom(this.courseApi.getCourseContent(courseId)),
+        this.fetchCompletedLessonIds(courseId)
+      ]);
+      const sections = contentRes.data || [];
+      const completedSet = new Set(completedIds);
 
-      // Transform API response to Module format
+      // Transform API response to Module format with completion status
       const modules: Module[] = sections.map((section: any) => ({
         id: section.id,
         title: section.title,
         lessons: (section.lessons || []).map((lesson: any) => ({
           id: lesson.id,
           title: lesson.title,
-          completed: lesson.completed || false,
+          completed: completedSet.has(lesson.id),
           sections: (lesson.sections || []).map((s: any) => ({
             id: s.id,
             title: s.title,
@@ -223,6 +238,19 @@ export class StudentDashboardComponent implements OnInit {
       });
     } catch {
       this.toast.error('Không thể tải nội dung khóa học.');
+    }
+  }
+
+  private async fetchCompletedLessonIds(courseId: string): Promise<string[]> {
+    try {
+      const res = await firstValueFrom(
+        this.courseApi.getCompletedLessonIds(courseId)
+      );
+      // API returns { data: ["id1", "id2", ...] } — flat array
+      const data = res?.data;
+      return Array.isArray(data) ? data : [];
+    } catch {
+      return [];
     }
   }
 
@@ -261,8 +289,19 @@ export class StudentDashboardComponent implements OnInit {
   }
 
   getUserFirstName(): string {
-    const fullName = this.authService.currentUser()?.fullName || 'Bạn';
+    const user = this.authService.currentUser();
+    const fullName = user?.fullName || user?.name || 'Bạn';
     return fullName.split(' ').pop() || fullName;
+  }
+
+  getUserInitials(): string {
+    const user = this.authService.currentUser();
+    const fullName = user?.fullName || user?.name || 'U';
+    const names = fullName.trim().split(' ');
+    if (names.length >= 2) {
+      return (names[0][0] + names[names.length - 1][0]).toUpperCase();
+    }
+    return fullName.substring(0, 2).toUpperCase();
   }
 
   async continueCourse(courseId: string): Promise<void> {
@@ -304,6 +343,12 @@ export class StudentDashboardComponent implements OnInit {
 
   switchTab(tab: 'in-progress' | 'completed'): void {
     this.activeTab.set(tab);
+  }
+
+  private getInstructorName(instructor: string | { name: string } | undefined): string {
+    if (!instructor) return 'LMS Maritime';
+    if (typeof instructor === 'string') return instructor || 'LMS Maritime';
+    return instructor.name || 'LMS Maritime';
   }
 
 }

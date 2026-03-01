@@ -51,9 +51,15 @@ services:
       # App URLs
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:4200}
       APP_CORS_ORIGINS: ${APP_CORS_ORIGINS:-http://localhost:4200}
-      # AI Service
+      # AI Service (Wiii)
       AI_SERVICE_URL: ${AI_SERVICE_URL:-https://maritime-ai-chatbot.onrender.com}
       AI_SERVICE_API_KEY: ${AI_SERVICE_API_KEY:-}
+      # Wiii Integration (Sprint 220)
+      WIII_WEBHOOK_URL: ${WIII_WEBHOOK_URL:-}
+      WIII_WEBHOOK_SECRET: ${WIII_WEBHOOK_SECRET:-}
+      WIII_WEBHOOK_ENABLED: ${WIII_WEBHOOK_ENABLED:-false}
+      WIII_SERVICE_TOKEN: ${WIII_SERVICE_TOKEN:-}
+      WIII_TOKEN_EXCHANGE_URL: ${WIII_TOKEN_EXCHANGE_URL:-}
       # Email
       SPRING_MAIL_HOST: ${MAIL_HOST:-}
       SPRING_MAIL_PORT: ${MAIL_PORT:-587}
@@ -74,6 +80,7 @@ services:
     networks:
       - lms-backend
       - lms-frontend
+      - wiii-network  # Sprint 220: Reach wiii-app for AI service
 
   # ===== Angular Frontend (nginx) =====
   frontend:
@@ -102,3 +109,5 @@ networks:
   lms-frontend:
     name: lms-frontend
     driver: bridge
+  wiii-network:
+    external: true  # Sprint 220: Created by Wiii's docker-compose

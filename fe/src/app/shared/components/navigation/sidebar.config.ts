@@ -40,13 +40,8 @@ export const studentSidebarConfig: SidebarConfig = {
       icon: 'mail',
       group: 'Công cụ'
     },
-    {
-      label: 'Trợ Lý AI',
-      route: '/student/ai-chat',
-      icon: 'globe',
-      badge: 'NEW',
-      group: 'Công cụ'
-    },
+    // Sprint 220b: "Trợ Lý AI" full-page route removed — AI chat is now an iframe widget (floating bubble)
+
     // — Tài khoản —
     {
       label: 'Phân tích',
@@ -133,12 +128,8 @@ export const teacherSidebarConfig: SidebarConfig = {
       route: '/teacher/notifications',
       icon: 'bell'
     },
-    {
-      label: 'Trợ Lý AI',
-      route: '/teacher/ai-chat',
-      icon: 'globe',
-      badge: 'NEW'
-    }
+    // Sprint 220b: "Trợ Lý AI" full-page route removed — AI chat is now an iframe widget (floating bubble)
+
   ]
 };
 
@@ -175,12 +166,8 @@ const allAdminMenuItems: SidebarMenuItem[] = [
     route: '/admin/logs',
     icon: 'file-text'
   },
-  {
-    label: 'LMS AI',
-    route: '/admin/ai-chat',
-    icon: 'globe',
-    badge: 'NEW'
-  }
+  // Sprint 220b: "LMS AI" full-page route removed — AI chat is now an iframe widget (floating bubble)
+
 ];
 
 // Routes hidden from ORG_ADMIN (system-level only)

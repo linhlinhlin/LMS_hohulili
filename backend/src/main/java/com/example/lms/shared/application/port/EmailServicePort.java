@@ -21,4 +21,6 @@ public interface EmailServicePort {
 
     void sendRefundNotification(String toEmail, String fullName, String courseName,
                                 BigDecimal amount, String reason, String transactionId);
+
+    void sendOrganizationInvite(String toEmail, String organizationName, String inviteLink);
 }

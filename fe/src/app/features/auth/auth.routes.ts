@@ -27,6 +27,11 @@ export const authRoutes: Routes = [
     title: 'Xác nhận email - LMS Maritime'
   },
   {
+    path: 'join',
+    loadComponent: () => import('./join-org/join-org.component').then(m => m.JoinOrgComponent),
+    title: 'Tham gia tổ chức - LMS Maritime'
+  },
+  {
     path: '',
     redirectTo: 'login',
     pathMatch: 'full'

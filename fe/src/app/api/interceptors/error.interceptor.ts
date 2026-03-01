@@ -20,7 +20,8 @@ export const errorInterceptor = (req: HttpRequest<any>, next: HttpHandlerFn): Ob
         }
       }
 
-      return throwError(() => new Error(errorMessage));
+      // Preserve HttpErrorResponse for other interceptors (offline interceptor needs status/type)
+      return throwError(() => error);
     })
   );
 };

@@ -25,6 +25,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -54,6 +55,12 @@ class RegisterUserUseCaseV2Test {
     @Mock
     private DomainEventPublisher eventPublisher;
 
+    @Mock
+    private AcceptInviteUseCase acceptInviteUseCase;
+
+    @Mock
+    private com.example.lms.identity.domain.repository.OrganizationRepository organizationRepository;
+
     @InjectMocks
     private RegisterUserUseCaseV2 useCase;
 
@@ -72,7 +79,8 @@ class RegisterUserUseCaseV2Test {
             "test@example.com",
             "Password123!",
             "Test User",
-            "STUDENT"
+            "STUDENT",
+            null
         );
     }
 
@@ -88,8 +96,8 @@ class RegisterUserUseCaseV2Test {
             when(userRepository.existsByEmail(anyString())).thenReturn(false);
             when(passwordEncoder.encode(anyString())).thenReturn(ENCODED_PASSWORD);
             when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-            when(tokenService.generateAccessToken(any(UUID.class), anyString(), anyString())).thenReturn(ACCESS_TOKEN);
-            when(tokenService.generateRefreshToken(any(UUID.class), anyString(), anyString())).thenReturn(REFRESH_TOKEN);
+            when(tokenService.generateAccessToken(any(UUID.class), anyString(), anyString(), any())).thenReturn(ACCESS_TOKEN);
+            when(tokenService.generateRefreshToken(any(UUID.class), anyString(), anyString(), anyLong())).thenReturn(REFRESH_TOKEN);
 
             // When
             AuthResponse response = useCase.execute(validCommand);
@@ -110,8 +118,8 @@ class RegisterUserUseCaseV2Test {
             when(userRepository.existsByEmail(anyString())).thenReturn(false);
             when(passwordEncoder.encode("Password123!")).thenReturn(ENCODED_PASSWORD);
             when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-            when(tokenService.generateAccessToken(any(UUID.class), anyString(), anyString())).thenReturn(ACCESS_TOKEN);
-            when(tokenService.generateRefreshToken(any(UUID.class), anyString(), anyString())).thenReturn(REFRESH_TOKEN);
+            when(tokenService.generateAccessToken(any(UUID.class), anyString(), anyString(), any())).thenReturn(ACCESS_TOKEN);
+            when(tokenService.generateRefreshToken(any(UUID.class), anyString(), anyString(), anyLong())).thenReturn(REFRESH_TOKEN);
 
             // When
             useCase.execute(validCommand);
@@ -132,8 +140,8 @@ class RegisterUserUseCaseV2Test {
             when(userRepository.existsByEmail(anyString())).thenReturn(false);
             when(passwordEncoder.encode(anyString())).thenReturn(ENCODED_PASSWORD);
             when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-            when(tokenService.generateAccessToken(any(UUID.class), anyString(), anyString())).thenReturn(ACCESS_TOKEN);
-            when(tokenService.generateRefreshToken(any(UUID.class), anyString(), anyString())).thenReturn(REFRESH_TOKEN);
+            when(tokenService.generateAccessToken(any(UUID.class), anyString(), anyString(), any())).thenReturn(ACCESS_TOKEN);
+            when(tokenService.generateRefreshToken(any(UUID.class), anyString(), anyString(), anyLong())).thenReturn(REFRESH_TOKEN);
 
             // When
             useCase.execute(validCommand);
@@ -152,7 +160,7 @@ class RegisterUserUseCaseV2Test {
         void shouldForceStudentRole_whenAdminRoleRequested() {
             // Given
             RegisterUserCommand adminCommand = new RegisterUserCommand(
-                    "hacker", "hacker@test.com", "securePass99", "Hacker User", "ADMIN"
+                    "hacker", "hacker@test.com", "securePass99", "Hacker User", "ADMIN", null
             );
 
             when(userRepository.existsByUsername("hacker")).thenReturn(false);
@@ -163,8 +171,8 @@ class RegisterUserUseCaseV2Test {
                     "hacker", Email.of("hacker@test.com"), "encoded-pw", "Hacker User", Role.STUDENT
             );
             when(userRepository.save(any(User.class))).thenReturn(savedUser);
-            when(tokenService.generateAccessToken(any(), anyString(), anyString())).thenReturn("token");
-            when(tokenService.generateRefreshToken(any(), anyString(), anyString())).thenReturn("token");
+            when(tokenService.generateAccessToken(any(), anyString(), anyString(), any())).thenReturn("token");
+            when(tokenService.generateRefreshToken(any(), anyString(), anyString(), anyLong())).thenReturn("token");
 
             // When
             AuthResponse response = useCase.execute(adminCommand);
@@ -184,7 +192,7 @@ class RegisterUserUseCaseV2Test {
         void shouldForceStudentRole_whenOrgAdminRoleRequested() {
             // Given
             RegisterUserCommand orgAdminCommand = new RegisterUserCommand(
-                    "orguser", "orguser@test.com", "securePass99", "Org Admin User", "ORG_ADMIN"
+                    "orguser", "orguser@test.com", "securePass99", "Org Admin User", "ORG_ADMIN", null
             );
 
             when(userRepository.existsByUsername("orguser")).thenReturn(false);
@@ -195,8 +203,8 @@ class RegisterUserUseCaseV2Test {
                     "orguser", Email.of("orguser@test.com"), "encoded-pw", "Org Admin User", Role.STUDENT
             );
             when(userRepository.save(any(User.class))).thenReturn(savedUser);
-            when(tokenService.generateAccessToken(any(), anyString(), anyString())).thenReturn("token");
-            when(tokenService.generateRefreshToken(any(), anyString(), anyString())).thenReturn("token");
+            when(tokenService.generateAccessToken(any(), anyString(), anyString(), any())).thenReturn("token");
+            when(tokenService.generateRefreshToken(any(), anyString(), anyString(), anyLong())).thenReturn("token");
 
             // When
             AuthResponse response = useCase.execute(orgAdminCommand);
@@ -216,7 +224,7 @@ class RegisterUserUseCaseV2Test {
         void shouldDefaultToStudentRole_whenNoRoleProvided() {
             // Given
             RegisterUserCommand nullRoleCommand = new RegisterUserCommand(
-                    "newuser", "newuser@test.com", "securePass99", "New User", null
+                    "newuser", "newuser@test.com", "securePass99", "New User", null, null
             );
 
             when(userRepository.existsByUsername("newuser")).thenReturn(false);
@@ -227,8 +235,8 @@ class RegisterUserUseCaseV2Test {
                     "newuser", Email.of("newuser@test.com"), "encoded-pw", "New User", Role.STUDENT
             );
             when(userRepository.save(any(User.class))).thenReturn(savedUser);
-            when(tokenService.generateAccessToken(any(), anyString(), anyString())).thenReturn("token");
-            when(tokenService.generateRefreshToken(any(), anyString(), anyString())).thenReturn("token");
+            when(tokenService.generateAccessToken(any(), anyString(), anyString(), any())).thenReturn("token");
+            when(tokenService.generateRefreshToken(any(), anyString(), anyString(), anyLong())).thenReturn("token");
 
             // When
             AuthResponse response = useCase.execute(nullRoleCommand);
@@ -253,7 +261,7 @@ class RegisterUserUseCaseV2Test {
         void shouldRejectCommonPassword() {
             // Given
             RegisterUserCommand weakPasswordCommand = new RegisterUserCommand(
-                    "testuser", "testuser@test.com", "password", "Test User", null
+                    "testuser", "testuser@test.com", "password", "Test User", null, null
             );
 
             when(userRepository.existsByUsername("testuser")).thenReturn(false);
@@ -318,8 +326,8 @@ class RegisterUserUseCaseV2Test {
             when(userRepository.existsByEmail(anyString())).thenReturn(false);
             when(passwordEncoder.encode("Password123!")).thenReturn(ENCODED_PASSWORD);
             when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-            when(tokenService.generateAccessToken(any(UUID.class), anyString(), anyString())).thenReturn(ACCESS_TOKEN);
-            when(tokenService.generateRefreshToken(any(UUID.class), anyString(), anyString())).thenReturn(REFRESH_TOKEN);
+            when(tokenService.generateAccessToken(any(UUID.class), anyString(), anyString(), any())).thenReturn(ACCESS_TOKEN);
+            when(tokenService.generateRefreshToken(any(UUID.class), anyString(), anyString(), anyLong())).thenReturn(REFRESH_TOKEN);
 
             // When
             useCase.execute(validCommand);
@@ -336,15 +344,15 @@ class RegisterUserUseCaseV2Test {
             when(userRepository.existsByEmail(anyString())).thenReturn(false);
             when(passwordEncoder.encode(anyString())).thenReturn(ENCODED_PASSWORD);
             when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-            when(tokenService.generateAccessToken(any(UUID.class), anyString(), anyString())).thenReturn(ACCESS_TOKEN);
-            when(tokenService.generateRefreshToken(any(UUID.class), anyString(), anyString())).thenReturn(REFRESH_TOKEN);
+            when(tokenService.generateAccessToken(any(UUID.class), anyString(), anyString(), any())).thenReturn(ACCESS_TOKEN);
+            when(tokenService.generateRefreshToken(any(UUID.class), anyString(), anyString(), anyLong())).thenReturn(REFRESH_TOKEN);
 
             // When
             useCase.execute(validCommand);
 
             // Then
-            verify(tokenService).generateAccessToken(any(UUID.class), eq("test@example.com"), eq("STUDENT"));
-            verify(tokenService).generateRefreshToken(any(UUID.class), eq("test@example.com"), eq("STUDENT"));
+            verify(tokenService).generateAccessToken(any(UUID.class), eq("test@example.com"), eq("STUDENT"), any());
+            verify(tokenService).generateRefreshToken(any(UUID.class), eq("test@example.com"), eq("STUDENT"), anyLong());
         }
     }
 }

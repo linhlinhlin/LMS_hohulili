@@ -49,6 +49,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     private static final int LIMIT_AUTH_OTHER = 60;        // Generous: refresh + me are automated
     private static final int LIMIT_AI = 30;               // Moderate: AI cost control
     private static final int LIMIT_PAYMENTS = 30;         // Moderate: payment flow has multiple calls
+    private static final int LIMIT_INVITE_VALIDATE = 20;   // Invite validate: brute-force prevention
     private static final int LIMIT_PUBLIC = 120;           // Public endpoints: generous but bounded
 
     private static final long WINDOW_MS = 60_000L; // 1 minute
@@ -67,9 +68,10 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
         String method = request.getMethod();
 
-        // Rate limit auth, AI, payment, and public endpoints
+        // Rate limit auth, AI, payment, invite, and public endpoints
         if (!path.startsWith("/api/v3/auth") && !path.startsWith("/api/v3/ai")
-                && !path.startsWith("/api/v3/payments") && !isPublicEndpoint(path)) {
+                && !path.startsWith("/api/v3/payments") && !path.startsWith("/api/v3/invites")
+                && !isPublicEndpoint(path)) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -140,6 +142,9 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             }
             // Everything else (refresh, me, reset-password) — generous
             return new EndpointTier("auth:other", LIMIT_AUTH_OTHER);
+        }
+        if (path.startsWith("/api/v3/invites/validate")) {
+            return new EndpointTier("invite:validate", LIMIT_INVITE_VALIDATE);
         }
         if (path.startsWith("/api/v3/payments")) {
             return new EndpointTier("payments", LIMIT_PAYMENTS);

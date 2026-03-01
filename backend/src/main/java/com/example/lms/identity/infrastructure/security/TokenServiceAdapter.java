@@ -48,6 +48,24 @@ public class TokenServiceAdapter implements TokenService {
         return jwtService.generateRefreshToken(userDetails);
     }
 
+    @Override
+    public String generateRefreshToken(UUID userId, String email, String role, long expirationMs) {
+        UserDetails userDetails = toUserDetails(email);
+        return jwtService.generateRefreshToken(userDetails, expirationMs);
+    }
+
+    @Override
+    public String generateAccessToken(UUID userId, String email, String role, UUID organizationId) {
+        java.util.HashMap<String, Object> claims = new java.util.HashMap<>();
+        claims.put("userId", userId.toString());
+        claims.put("role", role);
+        if (organizationId != null) {
+            claims.put("organizationId", organizationId.toString());
+        }
+        UserDetails userDetails = toUserDetails(email);
+        return jwtService.generateToken(claims, userDetails);
+    }
+
     private UserDetails toUserDetails(String email) {
         return new User(email, "", List.of(new SimpleGrantedAuthority("ROLE_USER")));
     }

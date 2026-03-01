@@ -9,8 +9,13 @@
 
     <!-- Header -->
     <div class="dashboard-header">
-      <h1 class="greeting">{{ getGreeting() }}, {{ getUserFirstName() }}</h1>
-      <p class="career-goal">Tiếp tục hành trình học tập hàng hải của bạn hôm nay.</p>
+      <div class="header-content">
+        <div class="avatar-circle">{{ getUserInitials() }}</div>
+        <div class="greeting-section">
+          <h1 class="greeting">{{ getGreeting() }}, {{ getUserFirstName() }}</h1>
+          <p class="career-goal">Tiếp tục hành trình học tập hàng hải của bạn hôm nay.</p>
+        </div>
+      </div>
     </div>
 
     <!-- Hero Card -->
@@ -99,10 +104,15 @@
                 </div>
 
                 <div class="course-metadata">
+                  <div class="partner-info">{{ course.instructor }}</div>
                   <h3 class="course-title">
                     <a [routerLink]="['/student/course', course.id]">{{ course.title }}</a>
                   </h3>
                   <div class="course-meta">
+                    <span class="delivery-badge" [class.class-mode]="course.deliveryMode === 'INSTRUCTOR_LED'">
+                      {{ course.deliveryMode === 'INSTRUCTOR_LED' ? 'Lớp học' : 'Khóa học' }}
+                    </span>
+                    <span class="separator">·</span>
                     @if (course.progress > 0) {
                       <span>{{ course.progress }}% hoàn thành</span>
                     } @else {
@@ -111,7 +121,7 @@
                   </div>
                   @if (course.progress > 0) {
                     <div class="progress-bar-thin">
-                      <div class="progress-fill" [style.width.%]="course.progress"></div>
+                      <div class="progress-fill" [class.completed]="course.progress >= 100" [style.width.%]="course.progress"></div>
                     </div>
                   }
                 </div>
@@ -152,6 +162,24 @@
                             </span>
                             <span class="lesson-title">{{ lesson.title }}</span>
                           </a>
+                          @if (lesson.sections && lesson.sections.length > 0) {
+                            <div class="section-list">
+                              @for (sec of lesson.sections; track sec.id) {
+                                <div class="section-item">
+                                  <span class="section-type-icon">
+                                    @if (sec.type === 'VIDEO') {
+                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                                    } @else if (sec.type === 'QUIZ') {
+                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                                    } @else {
+                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                    }
+                                  </span>
+                                  <span class="section-title">{{ sec.title }}</span>
+                                </div>
+                              }
+                            </div>
+                          }
                         }
                       </div>
                     </div>
@@ -191,10 +219,15 @@
                 </div>
 
                 <div class="course-metadata">
+                  <div class="partner-info">{{ course.instructor }}</div>
                   <h3 class="course-title">
                     <a [routerLink]="['/student/course', course.id]">{{ course.title }}</a>
                   </h3>
                   <div class="course-meta">
+                    <span class="delivery-badge" [class.class-mode]="course.deliveryMode === 'INSTRUCTOR_LED'">
+                      {{ course.deliveryMode === 'INSTRUCTOR_LED' ? 'Lớp học' : 'Khóa học' }}
+                    </span>
+                    <span class="separator">·</span>
                     <span class="progress-label-completed">Hoàn thành</span>
                   </div>
                   <div class="progress-bar-thin">
@@ -231,6 +264,24 @@
                             </span>
                             <span class="lesson-title">{{ lesson.title }}</span>
                           </a>
+                          @if (lesson.sections && lesson.sections.length > 0) {
+                            <div class="section-list">
+                              @for (sec of lesson.sections; track sec.id) {
+                                <div class="section-item">
+                                  <span class="section-type-icon">
+                                    @if (sec.type === 'VIDEO') {
+                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                                    } @else if (sec.type === 'QUIZ') {
+                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                                    } @else {
+                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                    }
+                                  </span>
+                                  <span class="section-title">{{ sec.title }}</span>
+                                </div>
+                              }
+                            </div>
+                          }
                         }
                       </div>
                     </div>

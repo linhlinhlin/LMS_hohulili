@@ -1,6 +1,6 @@
 # Maritime LMS Backend
 
-> **Spring Boot 3.2.6 + Java 21 + PostgreSQL 16** | Clean Architecture / DDD | 420+ source files | 806 tests | 260+ endpoints
+> **Spring Boot 3.2.6 + Java 21 + PostgreSQL 16** | Clean Architecture / DDD | 420+ source files | 806 tests | 275+ endpoints
 
 ## Quick Start
 
@@ -18,7 +18,7 @@ docker compose logs api --tail=100
 | Service | URL | Credentials |
 |---------|-----|-------------|
 | API | http://localhost:8088/api/v3 | JWT Bearer |
-| **Swagger UI** | **http://localhost:8088/swagger-ui** | - (219 endpoints documented) |
+| **Swagger UI** | **http://localhost:8088/swagger-ui** | - (234 endpoints documented) |
 | OpenAPI Spec | http://localhost:8088/v3/api-docs | - |
 | pgAdmin | http://localhost:8081 | `admin@devmail.net` / `devonly123` (env: PGADMIN_PASSWORD) |
 | PostgreSQL | localhost:5432/lms | `lms` / `lms` |
@@ -114,7 +114,7 @@ Domain ← Application ← Infrastructure
 - Can be used as Flyway baseline for fresh deployments
 
 **Schema Stats:**
-- **34 tables**: identity (1), course_authoring (8+1 review), learning_delivery (8 incl. gamification/video/certificate), assessment (12+2 question_bank), communication (2), ai_assistant (2), shared (3+1 payment), security (2)
+- **36 tables**: identity (1+2 org/invites), course_authoring (8+1 review), learning_delivery (8 incl. gamification/video/certificate), assessment (12+2 question_bank), communication (2), ai_assistant (2), shared (3+1 payment), security (2)
 - **94 indexes**: 60+ B-tree, 9 partial, 6 BRIN, 12 GIN, 7 unique
 - **54 foreign keys**: CASCADE on children, SET NULL on soft dependencies
 - **All enums validated** at DB level with CHECK constraints
@@ -163,7 +163,7 @@ docker compose ps
 
 ```bash
 mvn test -B
-# Expected: Tests run: 550, Failures: 0, Errors: 0
+# Expected: Tests run: 806, Failures: 0, Errors: 0
 ```
 
 **Coverage**: ~50% (target: 60%+)
@@ -177,18 +177,20 @@ mvn test -B
 **Access**: http://localhost:8088/swagger-ui
 
 **Features:**
-- ✅ **219 endpoints** fully documented with request/response schemas
+- ✅ **234 endpoints** fully documented with request/response schemas
 - ✅ **29 API tags** organized by domain module
 - ✅ **Try it out** - Test endpoints directly from browser
 - ✅ **JWT Authentication** - Built-in authorization testing
 - ✅ **OpenAPI 3.0.1** - Standard specification format
 
-### API Modules (29 controllers)
+### API Modules (31 controllers)
 
 | Module | Endpoints | Description |
 |--------|-----------|-------------|
 | **Authentication V3** | 9 | Login, register, JWT refresh, profile, forgot-password, reset-password |
 | **User Management V3** | 13 | User CRUD, role change, enable/disable (ADMIN/ORG_ADMIN) |
+| **Organizations V3** | 12 | Org CRUD, members, invites, per-member token config (ADMIN/ORG_ADMIN) |
+| **Invites V3** | 3 | Validate invite code/token (public), accept invite (authenticated) |
 | **Course Authoring V3** | 14 | Create/update courses, chapters, lessons, content blocks |
 | **Course Query V3** | 9 | Public course browsing, search, categories |
 | **Admin - Courses** | 7 | Approve/reject courses, dashboard stats (ADMIN/ORG_ADMIN) |
@@ -305,17 +307,17 @@ curl -X POST http://localhost:8088/api/v3/teacher/courses \
 
 | Metric | Count |
 |--------|-------|
-| Java source files | 397 |
+| Java source files | 420+ |
 | Bounded contexts (modules) | 8 |
-| Domain models | 38 |
-| Use cases | 66 |
-| REST controllers | 29 |
-| REST endpoints | 219 |
+| Domain models | 40 |
+| Use cases | 72 |
+| REST controllers | 31 |
+| REST endpoints | 234 |
 | JPA entities | 40 |
 | Repository ports | 34 |
-| Flyway migrations | V1 (reference) + V26-V47 (22 incremental) |
+| Flyway migrations | V1 (reference) + V26-V65 (29 incremental) |
 | Test files | 50 |
-| Test cases | 550 (0 failures) |
+| Test cases | 806 (0 failures) |
 | Domain events | 11 |
 | @PreAuthorize annotations | 163 |
 
@@ -323,7 +325,7 @@ curl -X POST http://localhost:8088/api/v3/teacher/courses \
 
 | Module | Domain Models | Use Cases | Controllers | Endpoints |
 |--------|--------------|-----------|-------------|-----------|
-| identity | 2 (User, Role) | 9 | 2 (Auth, User) | 22 |
+| identity | 4 (User, Role, Organization, OrganizationInvite) | 15 | 4 (Auth, User, Organization, Invite) | 37 |
 | course_authoring | 6 (Course, Chapter, Lesson, ContentBlock, Category, CourseReview) | 23 | 6 (Authoring, Query, Package, AdminCourses, TeacherCourses, CourseReview) | 53 |
 | learning_delivery | 9 (LearningClass, Enrollment, Certificate, VideoProgress, LearningStreak, Achievement, etc.) | 17 | 10 (Class, Enrollment, TeacherStudent, Gamification, Activity, Video, Analytics x2, Revenue, Invitation) | 51 |
 | assessment | 11 (Assignment, Quiz, Question, Submission, Rubric, QuestionBank, etc.) | 14 | 6 (Assignment, Submission, Quiz, Question, QuestionBank, Rubric) | 59 |
@@ -331,11 +333,11 @@ curl -X POST http://localhost:8088/api/v3/teacher/courses \
 | ai_assistant | 3 (ChatSession, KnowledgeDocument, etc.) | 1 | 1 | 11 |
 | shared | 4 (ContentBlock, FileMetadata, PaymentTransaction, PaymentCommands) | 5 (Checkout, CreateVnPayUrl, ProcessVnPayIpn, Refund, Expiry) | 3 (FileUpload, Payment, AdminSettings) | 15 |
 | config | - | - | - | - |
-| **TOTAL** | **38** | **66** | **29** | **219** |
+| **TOTAL** | **40** | **72** | **31** | **234** |
 
 ---
 
-## API Reference (219 Endpoints)
+## API Reference (234 Endpoints)
 
 ### Identity Module
 
@@ -361,6 +363,29 @@ DELETE /api/v3/users/{id}              # Delete user (ADMIN)
 PUT    /api/v3/users/{id}/role         # Change role (ADMIN)
 PUT    /api/v3/users/{id}/enable       # Enable account (ADMIN)
 PUT    /api/v3/users/{id}/disable      # Disable account (ADMIN)
+```
+
+#### OrganizationControllerV3 (`/api/v3/organizations`)
+```
+GET    /api/v3/organizations                                        # List organizations (ADMIN/ORG_ADMIN)
+GET    /api/v3/organizations/{id}                                   # Get organization detail
+POST   /api/v3/organizations                                        # Create organization
+PUT    /api/v3/organizations/{id}                                   # Update organization
+GET    /api/v3/organizations/{id}/members                           # List members
+POST   /api/v3/organizations/{id}/members                           # Add member
+DELETE /api/v3/organizations/{id}/members/{userId}                   # Remove member
+PUT    /api/v3/organizations/{id}/members/{userId}/token-config      # Set per-member token expiry (ADMIN/ORG_ADMIN)
+POST   /api/v3/organizations/{id}/invites/code                      # Create invite code
+POST   /api/v3/organizations/{id}/invites/email                     # Send email invite
+GET    /api/v3/organizations/{id}/invites                           # List invites
+DELETE /api/v3/organizations/{id}/invites/{inviteId}                 # Revoke invite
+```
+
+#### InviteControllerV3 (`/api/v3/invites`)
+```
+GET    /api/v3/invites/validate                                     # Validate invite code (public, rate-limited)
+GET    /api/v3/invites/validate-token                               # Validate email invite token (public, rate-limited)
+POST   /api/v3/invites/accept                                       # Accept invite (authenticated)
 ```
 
 ### Course Authoring Module
@@ -784,6 +809,8 @@ Enrollment ──┬── status: ACTIVE → COMPLETED/DROPPED/SUSPENDED
 - **JWT Bearer tokens** (JJWT 0.12.3)
 - Access token + Refresh token pattern
 - Token generation via `TokenService` port (application layer)
+  - `generateRefreshToken(UUID, String, String, long)` — dynamic expiry for per-user/per-org token config
+  - `generateAccessToken(UUID, String, String, UUID)` — includes `organizationId` claim in JWT
 
 ### Authorization (Multi-Tier Admin — S43)
 - **163 @PreAuthorize annotations** across controllers
@@ -855,6 +882,13 @@ Port: 5432 (Docker) / 5432 (local)
 | V44 | Seed TEACHER + STUDENT test accounts |
 | V46 | Password reset tokens table (SHA-256 hash, expiry, single-use) |
 | V47 | VNPay payment fields (vnp_transaction_no, bank_code, response_code, card_type) |
+| V54 | Seed users + 10 STCW courses with full content (1188 lines) |
+| V55 | Seed classes, enrollments, questions, quizzes, assignments, reviews (2743 lines) |
+| V58 | enrollments.updated_at column fix |
+| V61 | Payment indexes (status, course_id, paid_at) |
+| V62 | @Version optimistic locking on enrollments + assignment submissions |
+| V64 | Organizations + organization_invites tables (CODE/EMAIL types, constraints, indexes) |
+| V65 | users.token_expiry_days column — per-user refresh token expiry override |
 
 **Note**: Migrations V1-V25 exist in production database history but SQL files are managed externally. V26+ are in `src/main/resources/db/migration/`.
 
@@ -1232,12 +1266,12 @@ public ResponseEntity<?> create(@Valid @RequestBody CreateCourseCommand cmd) {
 
 ### Step 4: Database
 1. Create Flyway migration in `src/main/resources/db/migration/V{N}__description.sql`
-2. Version must be next sequential number after V47
+2. Version must be next sequential number after V65
 
 ### Step 5: Testing
 1. Domain model tests (pure logic, no mocks)
 2. Use case tests (@Mock repos, @InjectMocks use case)
-3. Run `mvn test -B` to verify all 550+ tests pass
+3. Run `mvn test -B` to verify all 806+ tests pass
 
 ### Checklist
 - [ ] Domain model has NO framework annotations
@@ -1288,4 +1322,4 @@ docker inspect lms-backend --format='{{.State.Health.Status}}'
 
 ---
 
-*Last updated: 2026-02-23 | 397 files | 550 tests | 219 endpoints | 8 modules | 29 controllers*
+*Last updated: 2026-03-01 | 420+ files | 806 tests | 234 endpoints | 8 modules | 31 controllers*

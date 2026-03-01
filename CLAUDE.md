@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-> **Last Updated**: 2026-02-27 | **Version**: 11.0 | **Status**: Production Ready + Payment DDD (806 tests, 0 failures)
+> **Last Updated**: 2026-03-01 | **Version**: 14.0 | **Status**: Production Ready + Maritime PWA Token Management (806 tests, 0 failures)
 
 This file provides guidance to Claude Code for working with this repository. **Read this first before any task.**
 
@@ -40,7 +40,7 @@ chmod +x deploy.sh && ./deploy.sh
 
 ## CURRENT SYSTEM STATUS
 
-### Backend: RUNNING (420+ files | 806 tests | 260+ endpoints)
+### Backend: RUNNING (410+ files | 806 tests | 275+ endpoints)
 | Component | Port |
 |-----------|------|
 | Spring Boot API | 8088 |
@@ -122,7 +122,7 @@ fe/src/app/
 └── state/            # Global state: course, class, global
 ```
 
-**Stats**: 236 components | 61 services | 107 routes | 525 TS files
+**Stats**: 214 components | 58 services | 108 routes | 465 TS files
 
 ---
 
@@ -305,14 +305,14 @@ export class ExampleComponent {
 
 | Module | Domain Models | Use Cases | Controllers | Endpoints |
 |--------|--------------|-----------|-------------|-----------|
-| identity | 2 | 9 | 2 | 22 |
+| identity | 4 | 15 | 3 | 36 |
 | course_authoring | 6 | 23 | 6 | 53 |
 | learning_delivery | 9 | 17 | 11 | 59 |
 | assessment | 11 | 15 | 6 | 59 |
 | communication | 4 | 1 | 1 | 6 |
 | ai_assistant | 3 | 1 | 1 | 11 |
 | shared | 4 | 5 | 4 | 15 |
-| **Total** | **39** | **73** | **32** | **260+** |
+| **Total** | **41** | **79** | **33** | **275+** |
 
 ---
 
@@ -353,6 +353,129 @@ teacherGuard = [UserRole.TEACHER, UserRole.ADMIN, UserRole.ORG_ADMIN]
 ---
 
 ## RECENT CHANGES LOG
+
+### Session 108 (2026-03-01): Maritime PWA Token Management + Soft Logout
+
+**FEATURE** | BE: 12 files (1 new migration, 11 modified) | FE: 8 files (2 new, 6 modified)
+
+**Phase 1 — Backend Per-Org/Per-User Refresh Token Expiry:**
+- V69 migration: `users.token_expiry_days` column (nullable INT, per-user override) + raise org constraint 730→1095
+- `Organization.java`: max 730→1095 days (maritime crews at sea 1-2 years), `validateMemberTokenExpiry()`
+- `User.java`: `tokenExpiryDays` field + getter/setter + builder
+- `UserJpaEntity.java` + `UserEntityMapper.java`: column mapping both directions
+- `TokenService.java` port: 2 new overloaded methods (`generateRefreshToken` with expiry ms, `generateAccessToken` with orgId)
+- `JwtService.java`: `generateRefreshToken(UserDetails, long)` dynamic expiry
+- `TokenServiceAdapter.java`: implement both new port methods
+- Auth use cases (Authenticate/Refresh/Register): org-aware `computeRefreshExpiryMs()` — user→org→default 30d chain
+- `OrganizationControllerV3`: `PUT /{id}/members/{userId}/token-config` endpoint, @Max 730→1095, tokenExpiryDays in listMembers
+
+**Phase 2 — Frontend Three-State Auth Machine + Soft Logout:**
+- `SessionExpiredService` (new): 4-state auth machine (ONLINE_AUTHENTICATED / OFFLINE_AUTHENTICATED / OFFLINE_DEGRADED / UNAUTHENTICATED)
+- `SessionExpiredBannerComponent` (new): amber z-101 banner "Phiên đăng nhập hết hạn — Chế độ chỉ đọc"
+- `auth.interceptor.ts`: network-aware refresh — if offline, `transitionToDegraded()` instead of hard logout
+- `auth.service.ts`: session state transitions on login/logout/refresh
+- `app.ts`: banner + `evaluateState()` on init
+- `offline-indicator.component.ts`: banner stacking fix (top-10 when session expired banner showing)
+
+**Phase 3 — Frontend Member Token Config UI:**
+- `organization.endpoints.ts`: MEMBER_TOKEN_CONFIG endpoint
+- `organization.service.ts`: `setMemberTokenExpiry()` method
+- `organization-detail.component.ts`: Token column with inline edit, "Mặc định tổ chức" label
+- `user.types.ts`: `OrgMember.tokenExpiryDays` field
+
+**Offline audit fixes (3 bugs):**
+- `errorInterceptor`: preserved `HttpErrorResponse` type (was wrapping in `new Error()` → broke offline IndexedDB fallback)
+- `SessionExpiredService`: added `effect()` to auto re-evaluate state on network changes
+- `SessionExpiredBannerComponent`: login button disabled when offline + Vietnamese diacritics fix
+- `OrganizationJpaEntity`: fixed column name `token_expiry_days` → `refresh_token_expiry_days` (DB mismatch)
+
+**Key design**: Access tokens stay short (24h global), only refresh tokens get per-org/per-user expiry (up to 1095 days). Soft logout preserves IndexedDB offline access.
+
+### Session 107 (2026-03-01): Dashboard-MyCourses Sync + Module Completion Fix
+
+**UX POLISH** | BE: 0 changes | FE: 5 files modified
+
+**Dashboard-MyCourses info sync:**
+- Instructor name + delivery mode badge ("Khóa học"/"Lớp học") added to dashboard course cards
+- Avatar greeting header moved from My Courses → Dashboard (proper landing page)
+- My Courses: "Chưa bắt đầu" instead of "0% hoàn thành", simple page title header
+
+**Module dropdown completion indicators (root cause fix):**
+- **Bug**: Expand button on course cards showed module content but `lesson.completed` was always `false`
+- **Root cause**: `getCourseContent()` API returns structure only — no completion field. Completion data lives in separate endpoint `/api/v3/student/progress/courses/{id}/completed-ids`
+- **Fix**: Added `getCompletedLessonIds()` to `CourseApi`, both dashboard and my-courses now `Promise.all()` fetch content + completed IDs in parallel, merge via `Set.has()`
+- Green checkmarks for completed, blue play icon for current, empty circle for upcoming
+- Chapter counts: "X/Y" completed per module header
+
+### Session 106 (2026-03-01): Student UX Audit — Dashboard + Course Detail + Lesson View
+
+**UX POLISH** | BE: 0 changes | FE: 11 files modified
+
+**Part 1 — Student Dashboard (`student-my-courses`):**
+- Instructor name display from `teacherName` field
+- Delivery mode labels: "Khóa học" (SELF_PACED) vs "Lớp học" (INSTRUCTOR_LED)
+- User greeting: "Chào, [firstName]!" with avatar initial
+
+**Part 2 — Course Detail (`student/course/:id`):**
+- Real progress from enrollment API (`getCourseProgress`) — was hardcoded 0%
+- Chapter count computed from `sections().length` (API field returned 0)
+- Free course paywall fix: auto-set `hasPaid=true` when `price=0` or `priceType=FREE`
+- Delivery mode badge in public course detail hero section
+- Added `deliveryMode` to `ExtendedCourse` type + `CourseService` mapper
+
+**Part 3 — Lesson View (`learning/`):**
+- **P1 API parsing bug**: `getCourseProgress()` in `learning.service.ts` expected `res?.data?.completedLessonIds` but API returns flat array `{ data: ["id1", "id2"] }` — caused 0% sidebar progress and no completion indicators. Fixed with `Array.isArray(data)` check.
+- Chapter progress counts: "X/Y bài học" under chapter headers (green when all completed)
+- Back link: "Danh sách khóa học" → "Chi tiết khóa học"
+- Top bar: Removed redundant Ghi chú/Tài liệu toggles → minimal course breadcrumb
+- Tab bar: Always visible (not just VIDEO sections)
+
+### Session 105 (2026-03-01): Organization Invitation System (Full Stack)
+
+**FEATURE** | BE: ~18 new files, ~8 modified | FE: ~6 new files, ~8 modified
+
+**Backend — Organization Invitation DDD (full Clean Architecture):**
+- V64 migration: `organization_invites` table (CODE/EMAIL types, constraints, indexes)
+- `OrganizationInvite` domain model: state machine (ACTIVE→REVOKED/EXPIRED), factory methods (`createCode()`, `createEmailInvite()`), `TokenHasher` (SHA-256)
+- 6 use cases: `CreateInviteCodeUseCase`, `SendEmailInviteUseCase`, `ValidateInviteUseCase`, `AcceptInviteUseCase`, `RevokeInviteUseCase`, `ListInvitesUseCase`
+- `InviteControllerV3`: public endpoints (validate code/token, accept invite) with rate limiting
+- `OrganizationControllerV3`: 13 endpoints (CRUD + members + invites), org-scoped access control
+- `InviteExpiryScheduler`: hourly auto-expire via domain repository
+- `RegisterUserUseCaseV2`: inviteCode → acceptForNewUser → assign org (default Wiii Org if no invite)
+- Email: `sendOrganizationInvite()` in EmailServicePort + SMTP/Resend adapters + Vietnamese template
+
+**Frontend — Org Management UI + Invite Flows:**
+- `organization.endpoints.ts` + `organization.service.ts` (12 API methods)
+- `organization-list.component.ts`: create org, list with status badges, Toast integration
+- `organization-detail.component.ts`: 3 tabs (Members/Invites/Settings), ConfirmDialog on destructive actions
+- `join-org.component.ts`: public `/auth/join` page for email invite links (token/code validation + accept)
+- Register form: `inviteCode` field, `?invite=CODE` URL param, org name validation on blur
+- Admin sidebar: `briefcase` icon for org nav (both ADMIN and ORG_ADMIN)
+
+**Type alignment fixes:**
+- `User` interface + `AuthResponse` + `AuthenticationResponse`: added `organizationId`, `organizationName`
+- `ORG_ADMIN` role added to FE auth type unions (was missing — only had ADMIN/TEACHER/STUDENT)
+
+### Session 104 (2026-03-01): Student Lesson View UX + Dead Code Cleanup
+
+**UX + CLEANUP** | FE: 66 files deleted, 5 modified | BE: 28 files deleted
+
+**Student Lesson View UX polish (3 commits):**
+- Full Tailwind-first UI redesign: sidebar, lesson content, video player
+- Focus Mode: remove visual noise, 800px reading width, status icons
+- Video player cinematic wrapper, thin progress bar, YouTube auto-complete
+- Professional tabs below video (Coursera/Udemy pattern): Tổng quan / Ghi chú / Tài liệu
+- Notes integration: full CRUD via NoteApi (create, edit, delete per lesson)
+- Tab bar only for VIDEO sections; top-right Ghi chú/Tài liệu toggles for all sections
+- Course detail page sidebar restored (was incorrectly hidden — users felt "lost")
+
+**Dead code audit (3 parallel agents) + cleanup:**
+- FE: 66 files deleted — 25 dead components, 4 services, 5 API files, 12 DDD layers, 8 barrels, 1 worker
+- BE: 28 files deleted — 10 DTOs, 2 use cases, 3 domain models, 6 Kafka/Outbox, 3 infra, 3 mappers, 1 duplicate
+- Removed 4 unused environment variables (aiServiceUrl, r2PublicBaseUrl, appName, version)
+- Fixed EnrolledCourse import redirects after type file deletion
+- Total: **-11,755 lines** of dead code removed
+- 0 legacy Angular patterns found (fully modernized to Angular 20)
 
 ### Session 100 (2026-02-27): Payment DDD Refactoring + Deep Audit + UI/UX Sync
 
@@ -546,18 +669,18 @@ Architecture: `Internet → Caddy (:443) → nginx (FE) + backend:8080 (API)`
 
 ---
 
-## ARCHITECTURE SCORES (Post-S100)
+## ARCHITECTURE SCORES (Post-S108)
 
 | Category | Score |
 |----------|-------|
-| Backend Clean Architecture | 10/10 (Payment DDD refactored, all modules follow Clean Arch) |
-| Frontend Angular Patterns | 10/10 |
+| Backend Clean Architecture | 10/10 (Payment DDD, Invitation DDD, all modules Clean Arch) |
+| Frontend Angular Patterns | 10/10 (0 legacy patterns, fully Angular 20 signals) |
 | PWA / Download-First | 10/10 (iOS freshness, /reset-sw, auto-recovery, 7d cache) |
-| Security | 10/10 (IDOR fixed, UUID validation, ownership checks, actuator restricted) |
+| Security | 10/10 (IDOR fixed, UUID validation, ownership, token hashing, rate limit) |
 | Test Coverage | 9.8/10 (806 tests, 0 failures) |
-| Code Cleanliness | 10/10 (dead code removed, optimistic locking, no hardcoded secrets) |
-| UX & Design | 10/10 (Payment UX synced — salePrice, status aligned) |
-| API Completeness | 10/10 |
+| Code Cleanliness | 10/10 (94 dead files removed in S104, -11,755 lines) |
+| UX & Design | 10/10 (Org management Toast+ConfirmDialog, Coursera-level) |
+| API Completeness | 10/10 (275+ endpoints) |
 
 ---
 

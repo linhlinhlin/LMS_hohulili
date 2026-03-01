@@ -1,7 +1,12 @@
 /**
- * ChatPanelComponent
- * Popup chat panel with messages, input, and suggestions
- * Inspired by Notion's chat panel design
+ * ChatPanelComponent — Sprint 220b: "Nhúng Wiii"
+ *
+ * Embeds Wiii AI directly via iframe instead of proxying through LMS backend.
+ * Auth is passed via URL hash fragment (not sent to server — secure by spec).
+ *
+ * Architecture:
+ *   Browser → iframe(Wiii Embed) → Wiii AI directly
+ *   Latency: ~1-3s (single hop, direct SSE) vs ~3-7s (double hop via LMS proxy)
  */
 import {
   Component,
@@ -9,30 +14,21 @@ import {
   inject,
   output,
   signal,
-  computed,
   HostListener,
+  OnInit,
+  OnDestroy,
   ElementRef,
   viewChild,
-  afterNextRender,
 } from '@angular/core';
 
-import { Router } from '@angular/router';
-import { ChatService } from '../../../application/services/chat.service';
-import { ChatMessageComponent } from '../chat-message/chat-message.component';
-import { ChatMessageInputComponent } from '../chat-message-input/chat-message-input.component';
-import { TypingIndicatorComponent } from '../typing-indicator/typing-indicator.component';
-import { SuggestedQuestionsComponent } from '../suggested-questions/suggested-questions.component';
-import { IconComponent } from '../../../../../shared/components/icon/icon.component';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { AiTokenService } from '../../../infrastructure/api/ai-token.service';
+import { SessionManagementService } from '../../../application/services/session-management.service';
+import { environment } from '../../../../../../environments/environment';
 
 @Component({
   selector: 'app-chat-panel',
-  imports: [
-    ChatMessageComponent,
-    ChatMessageInputComponent,
-    TypingIndicatorComponent,
-    SuggestedQuestionsComponent,
-    IconComponent
-],
+  imports: [],
   template: `
     <div
       class="chat-panel"
@@ -48,7 +44,7 @@ import { IconComponent } from '../../../../../shared/components/icon/icon.compon
           <span>Trợ lý AI Hàng Hải</span>
         </div>
         <div class="header-actions">
-          <button class="expand-button" (click)="onExpand()" title="Mở rộng">
+          <button class="expand-button" (click)="openFullWiii()" title="Mở toàn màn hình">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
               <path d="M13.28 7.78l3.22-3.22v2.69a.75.75 0 001.5 0v-4.5a.75.75 0 00-.75-.75h-4.5a.75.75 0 000 1.5h2.69l-3.22 3.22a.75.75 0 001.06 1.06zM2 17.25v-4.5a.75.75 0 011.5 0v2.69l3.22-3.22a.75.75 0 011.06 1.06L4.56 16.5h2.69a.75.75 0 010 1.5h-4.5a.75.75 0 01-.75-.75z" />
             </svg>
@@ -61,70 +57,27 @@ import { IconComponent } from '../../../../../shared/components/icon/icon.compon
         </div>
       </div>
 
-      <!-- Messages Area -->
-      <div class="panel-messages" #messagesContainer>
-        <!-- Cold Start Notice -->
-        @if (chatService.serviceState().coldStartDetected) {
-          <div class="cold-start-notice">
-            <app-icon name="clock" size="sm" class="text-amber-500"/>
-            <span>Server đang khởi động, có thể mất 20-30 giây cho lần đầu...</span>
-          </div>
-        }
-
-        @if (chatService.messages().length === 0) {
-          <div class="empty-state">
-            <div class="empty-icon"><app-icon name="ship" size="xl"/></div>
-            <h3>Xin chào!</h3>
-            <p>Tôi là trợ lý AI chuyên về hàng hải. Hãy hỏi tôi về COLREGs, luật hàng hải, hoặc bất kỳ chủ đề nào liên quan!</p>
-          </div>
-        } @else {
-          @for (message of chatService.messages(); track message.id; let i = $index) {
-            <app-chat-message
-              [message]="message"
-              [isStreaming]="chatService.isStreaming() && i === chatService.messages().length - 1"
-              [streamingThinking]="i === chatService.messages().length - 1 ? chatService.streamingThinking() : ''"
-              (retry)="onRetry()"
-            />
-          }
-        }
-
-
-        @if (chatService.isTyping()) {
-          <app-typing-indicator />
-        }
-      </div>
-
-      <!-- Suggested Questions -->
-      @if (chatService.suggestedQuestions().length > 0) {
-        <div class="panel-suggestions">
-          <app-suggested-questions
-            [questions]="chatService.suggestedQuestions()"
-            (questionSelected)="onSuggestionClick($event)"
-          />
+      <!-- Wiii iframe (fills remaining space) -->
+      @if (embedUrl()) {
+        <iframe
+          #wiiiIframe
+          [src]="embedUrl()"
+          class="wiii-embed-frame"
+          allow="clipboard-write"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+          title="Wiii AI Chat"
+        ></iframe>
+      } @else if (loadError()) {
+        <div class="error-state">
+          <span>Không thể kết nối AI. Vui lòng thử lại sau.</span>
+          <button (click)="retryInit()">Thử lại</button>
+        </div>
+      } @else {
+        <div class="loading-state">
+          <div class="loading-spinner"></div>
+          <span>Đang kết nối AI...</span>
         </div>
       }
-
-      <!-- Error Message -->
-      @if (chatService.error()) {
-        <div class="panel-error">
-          <span>{{ chatService.error() }}</span>
-          <button (click)="chatService.clearError()">Đóng</button>
-        </div>
-      }
-
-      <!-- Extended Loading Indicator -->
-      @if (chatService.isLoading() && chatService.loadingTime() > 5000) {
-        <div class="extended-loading">
-          <span>Đang xử lý, vui lòng đợi...</span>
-          <span class="time">{{ formatLoadingTime(chatService.loadingTime()) }}</span>
-        </div>
-      }
-
-      <!-- Input Area -->
-      <app-chat-message-input
-        [isLoading]="chatService.isLoading()"
-        (messageSent)="onSendMessage($event)"
-      />
     </div>
   `,
   styles: [`
@@ -219,94 +172,62 @@ import { IconComponent } from '../../../../../shared/components/icon/icon.compon
       height: 16px;
     }
 
-    .panel-messages {
+    .wiii-embed-frame {
+      width: 100%;
       flex: 1;
-      overflow-y: auto;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
+      border: none;
+      border-radius: 0 0 16px 16px;
     }
 
-    .empty-state {
+    .loading-state {
       flex: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      text-align: center;
-      padding: 24px;
+      gap: 16px;
       color: #6b7280;
-    }
-
-    .empty-icon {
-      font-size: 48px;
-      margin-bottom: 16px;
-    }
-
-    .empty-state h3 {
-      margin: 0 0 8px;
-      font-size: 18px;
-      color: #1f2937;
-    }
-
-    .empty-state p {
-      margin: 0;
       font-size: 14px;
-      line-height: 1.5;
     }
 
-    .panel-suggestions {
-      padding: 0 16px;
-      border-top: 1px solid #e5e7eb;
+    .loading-spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid #e5e7eb;
+      border-top-color: #0056D2;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
     }
 
-    .panel-error {
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .error-state {
+      flex: 1;
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 16px;
-      background: #fef2f2;
-      color: #dc2626;
-      font-size: 13px;
-    }
-
-    .panel-error button {
-      padding: 4px 8px;
-      font-size: 12px;
-      color: #dc2626;
-      background: transparent;
-      border: 1px solid #dc2626;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-
-    /* Cold Start & Loading Styles */
-    .cold-start-notice {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 16px;
-      background: #fff7ed;
-      color: #c2410c;
-      font-size: 12px;
-      border-bottom: 1px solid #ffedd5;
-    }
-
-    .extended-loading {
-      display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      padding: 8px;
-      font-size: 12px;
-      color: #6b7280;
-      background: #f9fafb;
-      border-top: 1px solid #e5e7eb;
+      gap: 12px;
+      padding: 24px;
+      color: #dc2626;
+      font-size: 14px;
+      text-align: center;
     }
 
-    .extended-loading .time {
-      font-weight: 600;
-      color: #0056D2;
+    .error-state button {
+      padding: 8px 16px;
+      background: #0056D2;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .error-state button:hover {
+      background: #004BB5;
     }
 
     @media (max-width: 767px) {
@@ -322,27 +243,36 @@ import { IconComponent } from '../../../../../shared/components/icon/icon.compon
   `],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ChatPanelComponent {
-  readonly chatService = inject(ChatService);
-  private readonly router = inject(Router);
+export class ChatPanelComponent implements OnInit, OnDestroy {
+  private readonly tokenService = inject(AiTokenService);
+  private readonly sessionService = inject(SessionManagementService);
+  private readonly sanitizer = inject(DomSanitizer);
 
   // Outputs
   closePanel = output<void>();
-  expandPanel = output<void>();
 
   // State
   isVisible = signal(true);
   isMobile = signal(false);
+  embedUrl = signal<SafeResourceUrl | null>(null);
+  loadError = signal(false);
 
-  // View child
-  messagesContainer = viewChild<ElementRef<HTMLDivElement>>('messagesContainer');
+  // View child for postMessage bridge
+  wiiiIframe = viewChild<ElementRef<HTMLIFrameElement>>('wiiiIframe');
 
-  constructor() {
+  // Track message listener for cleanup
+  private messageHandler: ((event: MessageEvent) => void) | null = null;
+
+  ngOnInit(): void {
     this.checkMobile();
+    this.initEmbed();
+    this.setupMessageBridge();
+  }
 
-    afterNextRender(() => {
-      this.scrollToBottom();
-    });
+  ngOnDestroy(): void {
+    if (this.messageHandler) {
+      window.removeEventListener('message', this.messageHandler);
+    }
   }
 
   @HostListener('window:resize')
@@ -356,39 +286,78 @@ export class ChatPanelComponent {
     }
   }
 
-  onSendMessage(message: string): void {
-    this.chatService.sendMessage(message);
-    setTimeout(() => this.scrollToBottom(), 100);
+  /**
+   * Initialize embed by exchanging token and building iframe URL.
+   * Auth is passed via URL hash fragment (secure — not sent to server).
+   */
+  async initEmbed(): Promise<void> {
+    this.loadError.set(false);
+    this.embedUrl.set(null);
+
+    try {
+      const token = await this.tokenService.getToken();
+      if (token) {
+        const wiiiEmbedUrl = environment.wiiiEmbedUrl;
+        const role = this.sessionService.currentRole() || 'student';
+        // Hash fragment: secure — not included in HTTP requests per RFC 3986
+        const hash = `token=${token}&domain=maritime&theme=light&role=${role}`;
+        const url = `${wiiiEmbedUrl}#${hash}`;
+        this.embedUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(url));
+      } else {
+        this.loadError.set(true);
+      }
+    } catch {
+      this.loadError.set(true);
+    }
   }
 
-  onSuggestionClick(question: string): void {
-    this.chatService.sendSuggestedQuestion(question);
-    setTimeout(() => this.scrollToBottom(), 100);
-  }
-
-  onRetry(): void {
-    this.chatService.retryLastMessage();
+  retryInit(): void {
+    this.initEmbed();
   }
 
   onClose(): void {
     this.closePanel.emit();
   }
 
-  onExpand(): void {
-    this.expandPanel.emit();
-    // Navigate to chat page
-    this.router.navigate(['/ai-chat']);
+  openFullWiii(): void {
+    window.open(environment.wiiiAppUrl, '_blank');
   }
 
-  private scrollToBottom(): void {
-    const container = this.messagesContainer();
-    if (container) {
-      container.nativeElement.scrollTop = container.nativeElement.scrollHeight;
+  /**
+   * PostMessage bridge — handles token refresh requests from Wiii embed.
+   * When the AI JWT expires mid-conversation, the iframe sends 'wiii:auth-expired'
+   * and we respond with a fresh token.
+   */
+  private setupMessageBridge(): void {
+    const wiiiOrigin = this.getEmbedOrigin();
+    if (!wiiiOrigin) return;
+
+    this.messageHandler = async (event: MessageEvent) => {
+      // Origin validation — only accept messages from Wiii embed
+      if (event.origin !== wiiiOrigin) return;
+
+      if (event.data?.type === 'wiii:auth-expired') {
+        // Re-exchange token via LMS backend
+        this.tokenService.clearToken();
+        const token = await this.tokenService.getToken();
+        if (token) {
+          const iframe = this.wiiiIframe();
+          iframe?.nativeElement.contentWindow?.postMessage(
+            { type: 'wiii:auth', payload: { token } },
+            wiiiOrigin
+          );
+        }
+      }
+    };
+
+    window.addEventListener('message', this.messageHandler);
+  }
+
+  private getEmbedOrigin(): string | null {
+    try {
+      return new URL(environment.wiiiEmbedUrl).origin;
+    } catch {
+      return null;
     }
-  }
-
-  formatLoadingTime(ms: number): string {
-    const seconds = Math.floor(ms / 1000);
-    return `${seconds}s`;
   }
 }

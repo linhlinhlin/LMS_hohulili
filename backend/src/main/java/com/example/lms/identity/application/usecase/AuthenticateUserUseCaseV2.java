@@ -5,6 +5,7 @@ import com.example.lms.identity.application.dto.AuthenticateCommand;
 import com.example.lms.identity.application.dto.UserResponse;
 import com.example.lms.identity.application.port.TokenService;
 import com.example.lms.identity.domain.model.User;
+import com.example.lms.identity.domain.repository.OrganizationRepository;
 import com.example.lms.identity.domain.repository.UserRepository;
 import com.example.lms.shared.exception.UnauthorizedException;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,7 @@ public class AuthenticateUserUseCaseV2 {
     private final UserRepository userRepository;
     private final TokenService tokenService;
     private final PasswordEncoder passwordEncoder;
+    private final OrganizationRepository organizationRepository;
 
     public AuthResponse execute(AuthenticateCommand command) {
         log.info("Authenticating user (V2): {}", command.email());
@@ -49,12 +51,13 @@ public class AuthenticateUserUseCaseV2 {
             throw new UnauthorizedException("Thông tin đăng nhập không chính xác");
         }
 
-        // Generate tokens via domain port
+        // Generate tokens via domain port — org-aware refresh expiry
         String email = user.getEmail() != null ? user.getEmail().getValue() : user.getUsername();
+        long refreshExpiryMs = computeRefreshExpiryMs(user);
         String accessToken = tokenService.generateAccessToken(
-                user.getId().value(), email, user.getRole().name());
+                user.getId().value(), email, user.getRole().name(), user.getOrganizationId());
         String refreshToken = tokenService.generateRefreshToken(
-                user.getId().value(), email, user.getRole().name());
+                user.getId().value(), email, user.getRole().name(), refreshExpiryMs);
 
         log.info("User authenticated successfully (V2): {}", user.getId());
 
@@ -63,5 +66,18 @@ public class AuthenticateUserUseCaseV2 {
             refreshToken,
             UserResponse.fromDomain(user)
         );
+    }
+
+    private long computeRefreshExpiryMs(User user) {
+        // Priority: user override > org setting > default 30 days
+        if (user.getTokenExpiryDays() != null) {
+            return user.getTokenExpiryDays() * 86_400_000L;
+        }
+        if (user.getOrganizationId() != null) {
+            return organizationRepository.findById(user.getOrganizationId())
+                .map(org -> org.getTokenExpiryDays() * 86_400_000L)
+                .orElse(30L * 86_400_000L);
+        }
+        return 30L * 86_400_000L;
     }
 }

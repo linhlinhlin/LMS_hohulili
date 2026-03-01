@@ -33,6 +33,8 @@ public interface UserJpaRepository extends JpaRepository<UserJpaEntity, UUID> {
 
     long countByRole(UserJpaEntity.UserRole role);
 
+    List<UserJpaEntity> findByOrganizationId(UUID organizationId);
+
     @Query("SELECT u FROM UserJpaEntity u WHERE u.role = :role AND " +
            "(LOWER(u.username) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
            "LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%')) OR " +

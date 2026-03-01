@@ -13,7 +13,6 @@ import { CardComponent } from '../../shared/components/ui/card/card.component';
 import { ProgressBarComponent } from '../../shared/components/ui/progress-bar/progress-bar.component';
 import { TabsComponent, Tab } from '../../shared/components/ui/tabs/tabs.component';
 import { ToastService } from '../../core/services/toast.service';
-import { CourseDownloadButtonComponent } from '../../shared/components/course-download-button/course-download-button.component';
 
 // Enhanced course with modules
 interface LessonSection {
@@ -25,9 +24,12 @@ interface LessonSection {
 interface EnhancedEnrolledCourse extends EnrolledCourse {
   showModules?: boolean;
   estimatedCompletion?: string;
+  currentLessonId?: string | null;
   modules?: Array<{
     id: string;
     title: string;
+    completedCount?: number;
+    totalCount?: number;
     lessons: Array<{
       id: string;
       title: string;
@@ -56,7 +58,6 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
     RouterModule,
     IconComponent,
     ButtonComponent,
-    CourseDownloadButtonComponent,
 ],
   template: `
     <div class="my-courses-container">
@@ -68,17 +69,10 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
             <button (click)="error.set(null)" style="background:none;border:none;cursor:pointer;font-size:18px">&times;</button>
           </div>
         }
-        <!-- Coursera-Style Header -->
-        <div class="coursera-header">
-          <div class="header-content">
-            <div class="avatar-circle">
-              {{ getUserInitials() }}
-            </div>
-            <div class="greeting-section">
-              <h1 class="greeting-title">{{ getGreeting() }}, {{ getUserFirstName() }}</h1>
-              <p class="greeting-subtitle">Tiếp tục hành trình học tập của bạn</p>
-            </div>
-          </div>
+        <!-- Page Header -->
+        <div class="page-header">
+          <h1 class="page-title">Khóa học của tôi</h1>
+          <p class="page-subtitle">Quản lý và theo dõi tiến độ các khóa học đã đăng ký</p>
         </div>
 
         <!-- Tabs -->
@@ -118,6 +112,7 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
         @else {
           <div class="courses-list">
             @for (course of filteredCourses(); track course.id) {
+              <div class="course-card-outer">
               <div class="course-card-wrapper">
                 <!-- Course Thumbnail -->
                 <div class="course-thumbnail">
@@ -145,7 +140,7 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
                       {{ course.deliveryMode === 'INSTRUCTOR_LED' ? 'Lớp học' : 'Khóa học' }}
                     </span>
                     <span class="separator">·</span>
-                    <span>{{ course.progress }}% hoàn thành</span>
+                    <span>{{ course.progress > 0 ? course.progress + '% hoàn thành' : 'Chưa bắt đầu' }}</span>
                     @if (course['estimatedCompletion']) {
                       <span class="separator">·</span>
                       <span class="estimated">Dự kiến: {{ course['estimatedCompletion'] }}</span>
@@ -160,50 +155,58 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
                     (clicked)="resumeCourse(course.id)">
                     {{ activeTab() === 'completed' ? 'Xem lại' : 'Tiếp tục học' }}
                   </app-button>
-                  <app-course-download-button [courseId]="course.id" [courseTitle]="course.title" />
                   <button class="dropdown-button" (click)="toggleModules(course.id)" aria-label="Show lessons">
                     <app-icon [name]="course.showModules ? 'chevron-up' : 'chevron-down'" size="sm" />
                   </button>
                 </div>
-
-                <!-- Progress Bar -->
-                <div class="progress-bar-thin">
-                  <div class="progress-fill" [class.completed]="course.progress >= 100" [style.width.%]="course.progress"></div>
-                </div>
+              </div>
+              <!-- Progress Bar (full-width below card body) -->
+              <div class="progress-bar-thin" style="margin: 0 8px 4px 8px;">
+                <div class="progress-fill" [class.completed]="course.progress >= 100" [style.width.%]="course.progress"></div>
               </div>
 
               <!-- Modules Dropdown -->
               @if (course.showModules && course.modules && course.modules.length > 0) {
-                <div class="modules-dropdown">
+                <div class="syllabus-section">
                   @for (module of course.modules; track module.id) {
                     <div class="module-item">
                       <div class="module-header">
-                        <app-icon name="book-open" size="xs" />
+                        <svg class="module-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
                         <span class="module-title">{{ module.title }}</span>
+                        <span class="module-count">{{ module.completedCount }}/{{ module.totalCount }}</span>
                       </div>
                       <div class="lessons-list">
                         @for (lesson of module.lessons; track lesson.id) {
                           <a
                             [routerLink]="['/student/learn/course', course.id, 'lesson', lesson.id]"
                             class="lesson-item"
-                            [class.completed]="lesson.completed">
+                            [class.completed]="lesson.completed"
+                            [class.current]="lesson.id === course.currentLessonId">
+                            <span class="lesson-status-icon">
+                              @if (lesson.completed) {
+                                <svg width="16" height="16" viewBox="0 0 20 20" fill="#10B981"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                              } @else if (lesson.id === course.currentLessonId) {
+                                <svg width="16" height="16" viewBox="0 0 20 20" fill="#0056D2"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/></svg>
+                              } @else {
+                                <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="#D1D5DB" stroke-width="1.5"><circle cx="10" cy="10" r="7"/></svg>
+                              }
+                            </span>
                             <span class="lesson-title">{{ lesson.title }}</span>
-                            @if (lesson.completed) {
-                              <app-icon name="check-circle" size="xs" class="check-icon" />
-                            }
                           </a>
                           @if (lesson.sections && lesson.sections.length > 0) {
-                            <div style="padding-left:24px;display:flex;flex-direction:column;gap:2px;margin-top:2px">
+                            <div class="section-list">
                               @for (sec of lesson.sections; track sec.id) {
-                                <div style="display:flex;align-items:center;gap:6px;padding:4px 8px;font-size:12px;color:#6B7280">
-                                  @if (sec.type === 'VIDEO') {
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
-                                  } @else if (sec.type === 'QUIZ') {
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-                                  } @else {
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                  }
-                                  <span>{{ sec.title }}</span>
+                                <div class="section-item">
+                                  <span class="section-type-icon">
+                                    @if (sec.type === 'VIDEO') {
+                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                                    } @else if (sec.type === 'QUIZ') {
+                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                                    } @else {
+                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                    }
+                                  </span>
+                                  <span class="section-title">{{ sec.title }}</span>
                                 </div>
                               }
                             </div>
@@ -214,6 +217,7 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
                   }
                 </div>
               }
+              </div>
             }
           </div>
         }
@@ -301,27 +305,19 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
 
     @media (max-width: 640px) {
       .course-card-wrapper {
-        grid-template-columns: auto 1fr;
-        grid-template-rows: auto auto auto;
-        grid-template-areas:
-          "logo metadata"
-          "logo progress"
-          "actions actions";
-        row-gap: 8px;
+        flex-direction: column;
+        gap: 10px;
         padding: 12px;
       }
 
       .course-thumbnail {
-        width: 160px;
-        height: 90px;
+        width: 100%;
+        height: 140px;
       }
 
       .action-buttons {
-        justify-self: stretch;
-        
-        app-button {
-          flex: 1;
-        }
+        align-self: stretch;
+        justify-content: flex-start;
       }
     }
 
@@ -330,64 +326,23 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
     }
 
     /* Coursera-Style Header */
-    .coursera-header {
-      margin-bottom: 24px;
-      padding: 24px 16px 16px 16px;
+    .page-header {
+      margin-bottom: 20px;
+      padding: 24px 16px 0 16px;
     }
 
-    .header-content {
-      display: flex;
-      align-items: center;
-      gap: $spacing-4;
-    }
-
-    .avatar-circle {
-      width: 64px;
-      height: 64px;
-      border-radius: 50%;
-      background: $blue-primary;
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    .page-title {
       font-size: $text-2xl;
-      font-weight: $font-bold;
-      flex-shrink: 0;
-      box-shadow: 0 2px 8px rgba(0, 86, 210, 0.2);
-
-      @include mobile {
-        width: 48px;
-        height: 48px;
-        font-size: $text-lg;
-      }
-    }
-
-    .greeting-section {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .greeting-title {
-      font-size: $text-3xl;
       font-weight: $font-bold;
       color: $text-primary;
       margin: 0 0 $spacing-1 0;
-      line-height: 1.2;
-
-      @include mobile {
-        font-size: $text-2xl;
-      }
+      line-height: 1.3;
     }
 
-    .greeting-subtitle {
-      font-size: $text-base;
+    .page-subtitle {
+      font-size: $text-sm;
       color: $text-secondary;
       margin: 0;
-      line-height: 1.5;
-
-      @include mobile {
-        font-size: $text-sm;
-      }
     }
 
     /* Tabs - Sticky */
@@ -472,41 +427,35 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
       gap: 12px;
     }
 
-    .course-card-wrapper {
+    .course-card-outer {
       background: white;
       border: 1px solid #E5E7EB;
       border-radius: 8px;
-      overflow: visible;
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
       transition: all 0.2s ease;
-      display: grid;
-      grid-template-columns: auto 1fr auto;
-      grid-template-rows: auto auto;
-      grid-template-areas:
-        "logo metadata actions"
-        "logo progress actions";
-      column-gap: 16px;
-      row-gap: 10px;
-      padding: 8px;
-      align-items: start;
+      overflow: hidden;
 
       &:hover {
-        background: #F9FAFB;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
       }
     }
 
+    .course-card-wrapper {
+      display: flex;
+      gap: 16px;
+      padding: 8px;
+      align-items: center;
+    }
+
     /* Left Section - Course Thumbnail */
     .course-thumbnail {
-      grid-area: logo;
-      width: 160px;
-      height: 90px;
+      width: 140px;
+      height: 80px;
       display: flex;
       align-items: center;
       justify-content: center;
       border-radius: 8px;
       flex-shrink: 0;
-      align-self: center;
       overflow: hidden;
       background: #F3F4F6;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -531,12 +480,11 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
 
     /* Metadata Section */
     .course-metadata {
-      grid-area: metadata;
+      flex: 1;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 4px;
       min-width: 0;
-      overflow: visible;
     }
 
     .partner-info {
@@ -600,14 +548,11 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
 
     /* Progress Bar - Compact Style */
     .progress-bar-thin {
-      grid-area: progress;
       width: 100%;
       height: 6px;
       background: #E5E7EB;
       border-radius: 3px;
       overflow: hidden;
-      position: relative;
-      align-self: start;
       margin-top: 2px;
     }
 
@@ -624,11 +569,10 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
 
     /* Action Buttons - Compact Style */
     .action-buttons {
-      grid-area: actions;
       display: flex;
       align-items: center;
       gap: 8px;
-      justify-self: end;
+      flex-shrink: 0;
       align-self: center;
 
       app-button {
@@ -666,72 +610,104 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
       }
     }
 
-    /* Modules Dropdown */
-    .modules-dropdown {
-      background: #F9FAFB;
-      border: 1px solid #E5E7EB;
-      border-top: none;
-      border-radius: 0 0 8px 8px;
-      padding: 16px;
-      margin: -8px 0 0 0;
+    /* Syllabus / Accordion (matches dashboard) */
+    .syllabus-section {
+      border-top: 1px solid #E5E7EB;
+      background: #FAFAFA;
+      max-height: 360px;
+      overflow-y: auto;
+
+      &::-webkit-scrollbar { width: 4px; }
+      &::-webkit-scrollbar-track { background: transparent; }
+      &::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 2px; }
     }
 
     .module-item {
-      margin-bottom: 16px;
-
-      &:last-child {
-        margin-bottom: 0;
+      &:not(:first-child) {
+        .module-header {
+          border-top: 1px solid #F3F4F6;
+          margin-top: 2px;
+        }
       }
     }
 
     .module-header {
       display: flex;
       align-items: center;
+      justify-content: space-between;
       gap: 8px;
-      margin-bottom: 8px;
+      padding: 10px 16px;
+      background: white;
+      border-bottom: 1px solid #F3F4F6;
+    }
 
-      app-icon {
-        color: #6B7280;
-        width: 14px;
-        height: 14px;
-      }
+    .module-icon {
+      color: #9CA3AF;
+      flex-shrink: 0;
+      margin-right: 4px;
     }
 
     .module-title {
       font-size: 13px;
       font-weight: 600;
       color: #374151;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .module-count {
+      font-size: 10px;
+      font-weight: 500;
+      color: #636363;
+      white-space: nowrap;
+      flex-shrink: 0;
+      background: #F3F4F6;
+      padding: 1px 6px;
+      border-radius: 3px;
     }
 
     .lessons-list {
       display: flex;
       flex-direction: column;
-      gap: 4px;
-      padding-left: 22px;
     }
 
     .lesson-item {
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      padding: 8px 12px;
-      background: white;
-      border-radius: 6px;
+      gap: 10px;
+      padding: 10px 16px 10px 32px;
       text-decoration: none;
-      transition: all 0.2s ease;
-      border: 1px solid transparent;
+      transition: background 0.15s ease;
+      border-bottom: 1px solid #F3F4F6;
+      cursor: pointer;
 
-      &:hover {
-        background: #E5E7EB;
-        border-color: #D1D5DB;
-      }
+      &:last-child { border-bottom: none; }
+      &:hover { background: white; }
 
       &.completed {
+        .lesson-title { color: #9CA3AF; }
+      }
+
+      &.current {
         .lesson-title {
-          color: #9CA3AF;
-          text-decoration: line-through;
+          color: $blue-primary;
+          font-weight: 500;
         }
       }
+    }
+
+    .lesson-status-icon {
+      flex-shrink: 0;
+      width: 16px;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      svg { display: block; }
     }
 
     .lesson-title {
@@ -739,13 +715,47 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
       color: #374151;
       flex: 1;
       line-height: 1.4;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
-    .check-icon {
-      color: #10B981;
+    /* Section items (3rd level) */
+    .section-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding-left: 44px;
+      margin-top: 2px;
+    }
+
+    .section-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      font-size: 12px;
+      color: #6B7280;
+    }
+
+    .section-type-icon {
       flex-shrink: 0;
-      width: 14px;
-      height: 14px;
+      width: 12px;
+      height: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #9CA3AF;
+
+      svg { display: block; }
+    }
+
+    .section-title {
+      line-height: 1.3;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     /* Filter Sidebar - Sticky */
@@ -975,35 +985,78 @@ export class StudentMyCoursesComponent implements OnInit {
   // Load course content (modules/lessons) from API
   private async loadCourseContent(courseId: string): Promise<void> {
     try {
-      const response = await firstValueFrom(this.courseApi.getCourseContent(courseId));
+      // Fetch content + completed lesson IDs in parallel
+      const [response, completedIds] = await Promise.all([
+        firstValueFrom(this.courseApi.getCourseContent(courseId)),
+        this.fetchCompletedLessonIds(courseId)
+      ]);
       const sections = response.data || [];
+      const completedSet = new Set(completedIds);
 
-      // Transform API response to module format
-      const modules = sections.map((section: any) => ({
-        id: section.id,
-        title: section.title,
-        lessons: (section.lessons || []).map((lesson: any) => ({
+      // Transform API response to module format with completion status
+      const modules = sections.map((section: any) => {
+        const lessons = (section.lessons || []).map((lesson: any) => ({
           id: lesson.id,
           title: lesson.title,
           type: this.getLessonType(lesson.lessonType),
           duration: lesson.durationMinutes ? `${lesson.durationMinutes} phút` : '',
-          completed: lesson.completed || false,
+          completed: completedSet.has(lesson.id),
           sections: (lesson.sections || []).map((s: any) => ({
             id: s.id,
             title: s.title,
             type: s.type || 'TEXT'
           }))
-        }))
-      }));
+        }));
+        return {
+          id: section.id,
+          title: section.title,
+          lessons,
+          completedCount: lessons.filter((l: any) => l.completed).length,
+          totalCount: lessons.length,
+        };
+      });
 
-      // Update the specific course with loaded modules
+      // Find the first incomplete lesson across all modules
+      let currentLessonId: string | null = null;
+      for (const mod of modules) {
+        for (const lesson of mod.lessons) {
+          if (!lesson.completed) {
+            currentLessonId = lesson.id;
+            break;
+          }
+        }
+        if (currentLessonId) break;
+      }
+
+      // Recalculate progress from actual completion data
+      const totalLessons = modules.reduce((sum: number, m: any) => sum + m.totalCount, 0);
+      const completedLessons = modules.reduce((sum: number, m: any) => sum + m.completedCount, 0);
+      const actualProgress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+
+      // Update the specific course with loaded modules + recalculated progress
       this.enrolledCourses.update(courses =>
-        courses.map(c =>
-          c['id'] === courseId ? { ...c, modules } : c
-        )
+        courses.map(c => {
+          if (c['id'] !== courseId) return c;
+          // Use the higher of enrollment progress vs actual progress
+          const newProgress = Math.max(c['progress'] || 0, actualProgress);
+          return { ...c, modules, currentLessonId, progress: newProgress };
+        })
       );
     } catch {
       this.toast.error('Không thể tải nội dung khóa học.');
+    }
+  }
+
+  private async fetchCompletedLessonIds(courseId: string): Promise<string[]> {
+    try {
+      const res = await firstValueFrom(
+        this.courseApi.getCompletedLessonIds(courseId)
+      );
+      // API returns { data: ["id1", "id2", ...] } — flat array
+      const data = res?.data;
+      return Array.isArray(data) ? data : [];
+    } catch {
+      return [];
     }
   }
 

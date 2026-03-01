@@ -5,12 +5,15 @@ import { SwUpdateService } from './core/services/sw-update.service';
 import { ToastContainerComponent } from './shared/components/toast-container/toast-container.component';
 import { ConfirmDialogComponent } from './shared/components/confirm-dialog/confirm-dialog.component';
 import { OfflineIndicatorComponent } from './shared/components/offline-indicator/offline-indicator.component';
+import { SessionExpiredBannerComponent } from './shared/components/session-expired-banner/session-expired-banner.component';
+import { SessionExpiredService } from './core/services/session-expired.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-root',
-  imports: [RouterOutlet, ToastContainerComponent, ConfirmDialogComponent, OfflineIndicatorComponent],
+  imports: [RouterOutlet, ToastContainerComponent, ConfirmDialogComponent, OfflineIndicatorComponent, SessionExpiredBannerComponent],
   template: `
+    <app-session-expired-banner />
     <app-offline-indicator />
     <router-outlet></router-outlet>
     <app-toast-container />
@@ -20,9 +23,11 @@ import { OfflineIndicatorComponent } from './shared/components/offline-indicator
 export class App {
   private pwaService = inject(PwaService);
   private swUpdate = inject(SwUpdateService);
+  private sessionService = inject(SessionExpiredService);
   protected readonly title = signal('LMS Maritime - Hệ thống Quản lý Học tập Phân tán');
 
   constructor() {
     this.swUpdate.initialize();
+    this.sessionService.evaluateState();
   }
 }

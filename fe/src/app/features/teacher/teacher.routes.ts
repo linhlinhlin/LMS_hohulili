@@ -165,14 +165,7 @@ export const teacherRoutes: Routes = [
         pathMatch: 'full'
       },
 
-      // AI Chat - Trợ lý AI Hàng Hải
-      {
-        path: 'ai-chat',
-        loadChildren: () => import('../ai-chat/ai-chat.routes').then(m => m.AI_CHAT_ROUTES),
-        title: 'Trợ lý AI Hàng Hải'
-      },
-
-
+      // Sprint 220b: ai-chat full-page route removed — AI chat is now an iframe widget
     ]
   }
 ];

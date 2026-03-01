@@ -28,4 +28,14 @@ public interface TokenService {
      * Generate a new refresh token for the given user.
      */
     String generateRefreshToken(UUID userId, String email, String role);
+
+    /**
+     * Generate a refresh token with per-org/per-user expiry (milliseconds).
+     */
+    String generateRefreshToken(UUID userId, String email, String role, long expirationMs);
+
+    /**
+     * Generate an access token with organizationId claim.
+     */
+    String generateAccessToken(UUID userId, String email, String role, UUID organizationId);
 }

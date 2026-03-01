@@ -369,6 +369,7 @@ export class AdminSidebarComponent {
       ]
     },
     { label: 'Khóa học', icon: 'courses', route: '/admin/courses' },
+    { label: 'Tổ chức', icon: 'briefcase', route: '/admin/organizations' },
     { label: 'Phân tích', icon: 'bar-chart', route: '/admin/analytics' },
     { label: 'Hệ thống', icon: 'settings', route: '_separator_system', separator: true },
     { label: 'Cài đặt hệ thống', icon: 'settings', route: '/admin/settings' },
@@ -387,6 +388,7 @@ export class AdminSidebarComponent {
       ]
     },
     { label: 'Khóa học', icon: 'courses', route: '/admin/courses' },
+    { label: 'Tổ chức', icon: 'briefcase', route: '/admin/organizations' },
     { label: 'Phân tích', icon: 'bar-chart', route: '/admin/analytics' },
     { label: 'LMS AI', icon: 'globe', route: '/admin/ai-chat', badge: 'NEW' }
   ];

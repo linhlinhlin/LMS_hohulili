@@ -108,6 +108,22 @@ public final class EmailTemplates {
         return wrap("Thông báo hoàn tiền", body);
     }
 
+    public static String organizationInvite(String organizationName, String inviteLink) {
+        String body = """
+            <p style="color:#475569;line-height:1.6;margin:0 0 16px">Xin chào,</p>
+            <p style="color:#475569;line-height:1.6;margin:0 0 16px">Bạn được mời tham gia tổ chức:</p>
+            <div style="background:#f0f9ff;border-left:4px solid %s;padding:16px;border-radius:0 8px 8px 0;margin:0 0 24px">
+              <p style="margin:0;font-weight:600;color:#1e293b;font-size:16px">%s</p>
+            </div>
+            <p style="color:#475569;line-height:1.6;margin:0 0 24px">Nhấn nút bên dưới để chấp nhận lời mời:</p>
+            <table width="100%%" cellpadding="0" cellspacing="0"><tr><td align="center">
+              <a href="%s" style="display:inline-block;padding:14px 32px;background:%s;color:#fff;text-decoration:none;border-radius:8px;font-weight:600;font-size:16px">Chấp nhận lời mời</a>
+            </td></tr></table>
+            <p style="color:#94a3b8;font-size:13px;margin:24px 0 0">Liên kết này sẽ hết hạn sau 7 ngày. Nếu bạn không mong đợi lời mời này, vui lòng bỏ qua email này.</p>
+            """.formatted(PRIMARY, organizationName, inviteLink, PRIMARY);
+        return wrap("Lời mời tham gia tổ chức", body);
+    }
+
     public static String paymentReceipt(String fullName, String courseName, BigDecimal amount,
                                          String txnId, String paymentMethod, String paidAt) {
         NumberFormat nf = NumberFormat.getInstance(new Locale("vi", "VN"));

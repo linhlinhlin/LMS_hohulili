@@ -7,6 +7,7 @@ import com.example.lms.identity.application.port.TokenService;
 import com.example.lms.identity.domain.event.UserRegisteredEvent;
 import com.example.lms.identity.domain.model.Role;
 import com.example.lms.identity.domain.model.User;
+import com.example.lms.identity.domain.repository.OrganizationRepository;
 import com.example.lms.identity.domain.repository.UserRepository;
 import com.example.lms.shared.domain.event.DomainEventPublisher;
 import com.example.lms.shared.domain.valueobject.Email;
@@ -35,6 +36,10 @@ public class RegisterUserUseCaseV2 {
     private final TokenService tokenService;
     private final PasswordEncoder passwordEncoder;
     private final DomainEventPublisher eventPublisher;
+    private final AcceptInviteUseCase acceptInviteUseCase;
+    private final OrganizationRepository organizationRepository;
+
+    private static final String DEFAULT_ORG_CODE = "WIII";
 
     @Transactional
     public AuthResponse execute(RegisterUserCommand command) {
@@ -68,15 +73,27 @@ public class RegisterUserUseCaseV2 {
             role
         );
 
+        // Assign organization: invite code → org, or default Wiii Org
+        if (command.inviteCode() != null && !command.inviteCode().isBlank()) {
+            java.util.UUID orgId = acceptInviteUseCase.acceptForNewUser(command.inviteCode().trim());
+            user.assignToOrganization(orgId);
+        } else {
+            // Default: assign to Wiii Org
+            organizationRepository.findByCode(DEFAULT_ORG_CODE)
+                    .filter(org -> org.isEnabled())
+                    .ifPresent(org -> user.assignToOrganization(org.getId()));
+        }
+
         // Save using domain repository
         User savedUser = userRepository.save(user);
 
-        // Generate tokens via domain port
+        // Generate tokens via domain port — org-aware refresh expiry
         String email = savedUser.getEmail() != null ? savedUser.getEmail().getValue() : savedUser.getUsername();
+        long refreshExpiryMs = computeRefreshExpiryMs(savedUser);
         String accessToken = tokenService.generateAccessToken(
-                savedUser.getId().value(), email, savedUser.getRole().name());
+                savedUser.getId().value(), email, savedUser.getRole().name(), savedUser.getOrganizationId());
         String refreshToken = tokenService.generateRefreshToken(
-                savedUser.getId().value(), email, savedUser.getRole().name());
+                savedUser.getId().value(), email, savedUser.getRole().name(), refreshExpiryMs);
 
         log.info("User registered successfully (V2): {}", savedUser.getId());
 
@@ -94,5 +111,17 @@ public class RegisterUserUseCaseV2 {
             refreshToken,
             UserResponse.fromDomain(savedUser)
         );
+    }
+
+    private long computeRefreshExpiryMs(User user) {
+        if (user.getTokenExpiryDays() != null) {
+            return user.getTokenExpiryDays() * 86_400_000L;
+        }
+        if (user.getOrganizationId() != null) {
+            return organizationRepository.findById(user.getOrganizationId())
+                .map(org -> org.getTokenExpiryDays() * 86_400_000L)
+                .orElse(30L * 86_400_000L);
+        }
+        return 30L * 86_400_000L;
     }
 }

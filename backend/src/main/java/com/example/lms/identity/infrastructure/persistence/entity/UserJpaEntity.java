@@ -64,6 +64,12 @@ public class UserJpaEntity implements UserDetails {
     @Column
     private Instant updatedAt;
 
+    @Column(name = "organization_id")
+    private UUID organizationId;
+
+    @Column(name = "token_expiry_days")
+    private Integer tokenExpiryDays;
+
     // Manual Getters/Setters
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
@@ -91,6 +97,12 @@ public class UserJpaEntity implements UserDetails {
     
     public Instant getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+
+    public UUID getOrganizationId() { return organizationId; }
+    public void setOrganizationId(UUID organizationId) { this.organizationId = organizationId; }
+
+    public Integer getTokenExpiryDays() { return tokenExpiryDays; }
+    public void setTokenExpiryDays(Integer tokenExpiryDays) { this.tokenExpiryDays = tokenExpiryDays; }
 
     // ==================== UserDetails Implementation ====================
 

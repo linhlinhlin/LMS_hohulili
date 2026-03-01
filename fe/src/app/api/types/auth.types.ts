@@ -7,8 +7,9 @@ export interface AuthenticationResponse {
     username: string;
     email: string;
     fullName: string;
-    role: 'ADMIN' | 'TEACHER' | 'STUDENT';
+    role: 'ADMIN' | 'ORG_ADMIN' | 'TEACHER' | 'STUDENT';
     enabled: boolean;
+    organizationId?: string;
     createdAt?: string;
     updatedAt?: string;
   };
@@ -47,8 +48,9 @@ export interface AuthResponse {
     username: string;
     email: string;
     fullName: string;
-    role: 'ADMIN' | 'TEACHER' | 'STUDENT';
+    role: 'ADMIN' | 'ORG_ADMIN' | 'TEACHER' | 'STUDENT';
     enabled: boolean;
+    organizationId?: string;
     createdAt?: string;
     updatedAt?: string;
   };

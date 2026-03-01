@@ -48,21 +48,25 @@ public class WiiiDataControllerV3 {
     public ApiResponse<Map<String, Object>> getStudentProfile(@PathVariable UUID userId) {
         log.debug("Integration: getStudentProfile({})", userId);
 
-        var profile = jdbc.queryForMap(
+        List<Map<String, Object>> rows = jdbc.queryForList(
                 "SELECT u.id, u.username AS name, u.email, u.full_name, u.role " +
                 "FROM users u WHERE u.id = ?",
                 userId
         );
 
+        if (rows.isEmpty()) {
+            return ApiResponse.error("NOT_FOUND", "Student not found");
+        }
+
         // Get enrolled course names
         List<String> enrolledCourses = jdbc.queryForList(
                 "SELECT DISTINCT lc.name FROM enrollments e " +
-                "JOIN learning_classes lc ON e.learning_class_id = lc.id " +
+                "JOIN learning_classes lc ON e.class_id = lc.id " +
                 "WHERE e.student_id = ? AND e.status = 'ACTIVE'",
                 String.class, userId
         );
 
-        Map<String, Object> result = new HashMap<>(profile);
+        Map<String, Object> result = new HashMap<>(rows.get(0));
         result.put("enrolled_courses", enrolledCourses);
         result.put("class_name", null);  // LMS doesn't have class_name concept
         result.put("program", null);      // LMS doesn't have program concept
@@ -82,16 +86,18 @@ public class WiiiDataControllerV3 {
 
         List<Map<String, Object>> grades = jdbc.queryForList(
                 "SELECT " +
-                "  lc.course_id::text AS course_id, " +
+                "  ch.course_id::text AS course_id, " +
                 "  lc.name AS course_name, " +
                 "  qa.score AS grade, " +
-                "  100.0 AS max_grade, " +
-                "  qa.end_time::text AS date " +
+                "  COALESCE(qa.max_score, 100.0) AS max_grade, " +
+                "  qa.submitted_at::text AS date " +
                 "FROM quiz_attempts qa " +
                 "JOIN quizzes q ON qa.quiz_id = q.id " +
-                "LEFT JOIN learning_classes lc ON q.course_id = lc.course_id " +
+                "JOIN lessons l ON q.lesson_id = l.id " +
+                "JOIN chapters ch ON l.chapter_id = ch.id " +
+                "LEFT JOIN learning_classes lc ON ch.course_id = lc.course_id " +
                 "WHERE qa.student_id = ? AND qa.status IN ('SUBMITTED', 'GRADED') " +
-                "ORDER BY qa.end_time DESC",
+                "ORDER BY qa.submitted_at DESC",
                 userId
         );
 
@@ -117,7 +123,7 @@ public class WiiiDataControllerV3 {
                 "  e.completion_percent, " +
                 "  e.enrolled_at::text AS enrolled_at " +
                 "FROM enrollments e " +
-                "JOIN learning_classes lc ON e.learning_class_id = lc.id " +
+                "JOIN learning_classes lc ON e.class_id = lc.id " +
                 "WHERE e.student_id = ? " +
                 "ORDER BY e.enrolled_at DESC",
                 userId
@@ -145,7 +151,7 @@ public class WiiiDataControllerV3 {
                 "  a.due_date::text AS due_date " +
                 "FROM assignments a " +
                 "JOIN learning_classes lc ON a.course_id = lc.course_id " +
-                "JOIN enrollments e ON e.learning_class_id = lc.id " +
+                "JOIN enrollments e ON e.class_id = lc.id " +
                 "WHERE e.student_id = ? " +
                 "  AND e.status = 'ACTIVE' " +
                 "  AND (a.due_date IS NULL OR a.due_date > NOW()) " +
@@ -171,19 +177,21 @@ public class WiiiDataControllerV3 {
                 "  qa.id::text AS attempt_id, " +
                 "  q.id::text AS quiz_id, " +
                 "  q.title AS quiz_name, " +
-                "  lc.course_id::text AS course_id, " +
+                "  ch.course_id::text AS course_id, " +
                 "  lc.name AS course_name, " +
                 "  qa.score, " +
-                "  100.0 AS max_score, " +
+                "  COALESCE(qa.max_score, 100.0) AS max_score, " +
                 "  qa.is_passed, " +
-                "  qa.start_time::text AS start_time, " +
-                "  qa.end_time::text AS end_time, " +
+                "  qa.started_at::text AS start_time, " +
+                "  qa.submitted_at::text AS end_time, " +
                 "  qa.status " +
                 "FROM quiz_attempts qa " +
                 "JOIN quizzes q ON qa.quiz_id = q.id " +
-                "LEFT JOIN learning_classes lc ON q.course_id = lc.course_id " +
+                "JOIN lessons l ON q.lesson_id = l.id " +
+                "JOIN chapters ch ON l.chapter_id = ch.id " +
+                "LEFT JOIN learning_classes lc ON ch.course_id = lc.course_id " +
                 "WHERE qa.student_id = ? " +
-                "ORDER BY qa.start_time DESC " +
+                "ORDER BY qa.started_at DESC " +
                 "LIMIT 50",
                 userId
         );
@@ -215,7 +223,7 @@ public class WiiiDataControllerV3 {
                 "  e.enrolled_at::text AS enrolled_at " +
                 "FROM enrollments e " +
                 "JOIN users u ON e.student_id = u.id " +
-                "JOIN learning_classes lc ON e.learning_class_id = lc.id " +
+                "JOIN learning_classes lc ON e.class_id = lc.id " +
                 "WHERE lc.course_id = ? AND e.status = 'ACTIVE' " +
                 "ORDER BY u.username",
                 courseId
@@ -236,7 +244,7 @@ public class WiiiDataControllerV3 {
         // Student count
         Integer studentsCount = jdbc.queryForObject(
                 "SELECT COUNT(*) FROM enrollments e " +
-                "JOIN learning_classes lc ON e.learning_class_id = lc.id " +
+                "JOIN learning_classes lc ON e.class_id = lc.id " +
                 "WHERE lc.course_id = ? AND e.status = 'ACTIVE'",
                 Integer.class, courseId
         );
@@ -252,7 +260,7 @@ public class WiiiDataControllerV3 {
         // Completion rate
         Double completionRate = jdbc.queryForObject(
                 "SELECT COALESCE(AVG(e.completion_percent), 0) FROM enrollments e " +
-                "JOIN learning_classes lc ON e.learning_class_id = lc.id " +
+                "JOIN learning_classes lc ON e.class_id = lc.id " +
                 "WHERE lc.course_id = ? AND e.status = 'ACTIVE'",
                 Double.class, courseId
         );
@@ -260,7 +268,7 @@ public class WiiiDataControllerV3 {
         // Active in last 7 days
         Integer activeLast7d = jdbc.queryForObject(
                 "SELECT COUNT(DISTINCT e.student_id) FROM enrollments e " +
-                "JOIN learning_classes lc ON e.learning_class_id = lc.id " +
+                "JOIN learning_classes lc ON e.class_id = lc.id " +
                 "WHERE lc.course_id = ? AND e.status = 'ACTIVE' " +
                 "AND e.last_accessed_at > NOW() - INTERVAL '7 days'",
                 Integer.class, courseId
@@ -269,7 +277,7 @@ public class WiiiDataControllerV3 {
         // At-risk count (completion < 30% for active students)
         Integer atRiskCount = jdbc.queryForObject(
                 "SELECT COUNT(*) FROM enrollments e " +
-                "JOIN learning_classes lc ON e.learning_class_id = lc.id " +
+                "JOIN learning_classes lc ON e.class_id = lc.id " +
                 "WHERE lc.course_id = ? AND e.status = 'ACTIVE' " +
                 "AND e.completion_percent < 30",
                 Integer.class, courseId

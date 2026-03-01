@@ -71,7 +71,8 @@ public class AuthControllerV3 {
             request.email(),
             request.password(),
             request.fullName(),
-            request.role()
+            request.role(),
+            request.inviteCode()
         );
 
         AuthResponse response = registerUseCase.execute(command);
@@ -251,7 +252,8 @@ public class AuthControllerV3 {
         String password,
         @NotBlank(message = "Họ tên không được để trống")
         String fullName,
-        String role
+        String role,
+        String inviteCode // Optional, for joining org during registration
     ) {}
 
     public record LoginRequest(

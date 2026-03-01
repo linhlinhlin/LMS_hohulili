@@ -57,6 +57,7 @@ public class WiiiChatAdapter implements AiChatService {
         this.tokenExchangeAdapter = tokenExchangeAdapter;
         this.objectMapper = objectMapper;
         this.httpClient = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_1_1)  // Uvicorn doesn't support h2c
                 .connectTimeout(Duration.ofSeconds(15))
                 .build();
         this.sseExecutor = Executors.newVirtualThreadPerTaskExecutor();

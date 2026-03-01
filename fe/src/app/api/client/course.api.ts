@@ -122,6 +122,10 @@ export class CourseApi {
     return this.api.getWithResponse<any>(COURSE_ENDPOINTS.STUDENT.PROGRESS(courseId));
   }
 
+  getCompletedLessonIds(courseId: string) {
+    return this.api.getWithResponse<string[]>(`/api/v3/student/progress/courses/${courseId}/completed-ids`);
+  }
+
   getNextLesson(courseId: string) {
     return this.api.getWithResponse<any>(COURSE_ENDPOINTS.STUDENT.NEXT_LESSON(courseId));
   }

@@ -1,7 +1,8 @@
 /**
- * ChatWidgetComponent
- * Combines FloatingChatBubble and ChatPanel into a single widget
- * Can be added to any layout component
+ * ChatWidgetComponent — Sprint 220b: "Nhúng Wiii"
+ *
+ * Combines FloatingChatBubble and ChatPanel (iframe embed) into a single widget.
+ * Expand now opens full Wiii app in new tab instead of navigating to /ai-chat.
  */
 import {
   Component,
@@ -12,10 +13,8 @@ import {
   OnDestroy,
 } from '@angular/core';
 
-import { Router } from '@angular/router';
 import { FloatingChatBubbleComponent } from '../floating-chat-bubble/floating-chat-bubble.component';
 import { ChatPanelComponent } from '../chat-panel/chat-panel.component';
-import { ChatService } from '../../../application/services/chat.service';
 import { SessionManagementService } from '../../../application/services/session-management.service';
 import { AuthService } from '../../../../../core/services/auth.service';
 
@@ -24,11 +23,10 @@ import { AuthService } from '../../../../../core/services/auth.service';
   imports: [FloatingChatBubbleComponent, ChatPanelComponent],
   template: `
     @if (isEnabled()) {
-      <!-- Chat Panel -->
+      <!-- Chat Panel (iframe embed) -->
       @if (isPanelOpen()) {
         <app-chat-panel
           (closePanel)="closePanel()"
-          (expandPanel)="expandToFullPage()"
         />
       }
 
@@ -42,10 +40,8 @@ import { AuthService } from '../../../../../core/services/auth.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ChatWidgetComponent implements OnInit, OnDestroy {
-  private readonly chatService = inject(ChatService);
   private readonly sessionService = inject(SessionManagementService);
   private readonly authService = inject(AuthService);
-  private readonly router = inject(Router);
 
   // State
   isPanelOpen = signal(false);
@@ -62,17 +58,10 @@ export class ChatWidgetComponent implements OnInit, OnDestroy {
 
     // Update context from current route
     this.sessionService.updateContextFromRoute();
-
-    // Wake up server in background
-    this.chatService.wakeUpServer();
   }
 
   ngOnDestroy(): void {
-    // Save session state when widget is destroyed
-    const messages = this.chatService.messages();
-    if (messages.length > 0) {
-      this.sessionService.saveSessionState(messages);
-    }
+    // No-op — iframe handles its own state
   }
 
   togglePanel(): void {
@@ -81,26 +70,5 @@ export class ChatWidgetComponent implements OnInit, OnDestroy {
 
   closePanel(): void {
     this.isPanelOpen.set(false);
-  }
-
-  expandToFullPage(): void {
-    this.closePanel();
-
-    // Navigate based on user role
-    const role = this.sessionService.currentRole();
-    switch (role) {
-      case 'student':
-        this.router.navigate(['/student/ai-chat']);
-        break;
-      case 'teacher':
-        this.router.navigate(['/teacher/ai-chat']);
-        break;
-      case 'admin':
-      case 'org_admin':
-        this.router.navigate(['/admin/ai-chat']);
-        break;
-      default:
-        this.router.navigate(['/ai-chat']);
-    }
   }
 }

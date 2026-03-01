@@ -143,12 +143,7 @@ export const routes: Routes = [
   // OTHER AUTHENTICATED ROUTES
   // ========================================
 
-  // AI Chat for Guests (public route)
-  {
-    path: 'ai-chat',
-    loadChildren: () => import('./features/ai-chat/ai-chat.routes').then(m => m.AI_CHAT_ROUTES),
-    title: 'Trợ lý AI Hàng Hải'
-  },
+  // Sprint 220b: ai-chat full-page route removed — AI chat is now an iframe widget
 
   // Payment Result Pages (public - no auth required for callback handling)
   {

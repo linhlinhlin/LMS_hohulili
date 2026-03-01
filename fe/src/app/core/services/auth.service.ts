@@ -5,6 +5,7 @@ import { BehaviorSubject, Observable, tap, throwError, map } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { AUTH_ENDPOINTS } from '../../api/endpoints/auth.endpoints';
 import { ApiResponse } from '../../api/types/common.types';
+import { SessionExpiredService } from './session-expired.service';
 
 export enum UserRole {
   ADMIN = 'admin',
@@ -21,13 +22,15 @@ export interface User {
   name?: string;
   role: string;
   enabled: boolean;
+  organizationId?: string;
+  organizationName?: string;
   avatar?: string;
 }
 
 export interface AuthResponse {
   accessToken: string;
   refreshToken: string;
-  user: User;
+  user: User & { organizationId?: string };
 }
 
 @Injectable({
@@ -36,6 +39,7 @@ export interface AuthResponse {
 export class AuthService {
   private http = inject(HttpClient);
   private router = inject(Router);
+  private sessionService = inject(SessionExpiredService);
   private tokenKey = 'lms_access_token';
   private refreshTokenKey = 'lms_refresh_token';
   private userKey = 'lms_user';
@@ -64,10 +68,10 @@ export class AuthService {
       tap(data => {
         this.setTokens(data.accessToken, data.refreshToken);
         this.setUser(data.user);
-        // Normalize role for currentUserSubject too
         const normalizedUser = { ...data.user, role: data.user.role?.toLowerCase() || '' };
         this.currentUserSubject.next(normalizedUser);
         this._currentUser.set(normalizedUser);
+        this.sessionService.transitionToAuthenticated();
       }),
       catchError(error => {
         throw error;
@@ -115,6 +119,7 @@ export class AuthService {
 
     this.currentUserSubject.next(null);
     this._currentUser.set(null);
+    this.sessionService.transitionToUnauthenticated();
 
     // Redirect to login page
     this.router.navigate(['/auth/login'], {
@@ -207,6 +212,7 @@ export class AuthService {
         const normalizedUser = { ...data.user, role: data.user.role?.toLowerCase() || '' };
         this.currentUserSubject.next(normalizedUser);
         this._currentUser.set(normalizedUser);
+        this.sessionService.transitionToAuthenticated();
       })
     );
   }

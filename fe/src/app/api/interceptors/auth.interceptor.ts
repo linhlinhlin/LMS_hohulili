@@ -3,6 +3,8 @@ import { HttpRequest, HttpHandlerFn, HttpEvent, HttpErrorResponse } from '@angul
 import { Observable, throwError, BehaviorSubject } from 'rxjs';
 import { catchError, filter, take, switchMap } from 'rxjs/operators';
 import { AuthService } from '../../core/services/auth.service';
+import { NetworkStatusService } from '../../core/services/network-status.service';
+import { SessionExpiredService } from '../../core/services/session-expired.service';
 
 let isRefreshing = false;
 const refreshTokenSubject = new BehaviorSubject<string | null>(null);
@@ -35,14 +37,25 @@ function handleTokenRefresh(
   next: HttpHandlerFn,
   authService: AuthService
 ): Observable<HttpEvent<any>> {
+  const networkService = inject(NetworkStatusService);
+  const sessionService = inject(SessionExpiredService);
+
   if (!isRefreshing) {
     isRefreshing = true;
     refreshTokenSubject.next(null);
+
+    // Soft logout: if offline, degrade instead of attempting refresh
+    if (!networkService.online()) {
+      isRefreshing = false;
+      sessionService.transitionToDegraded();
+      return throwError(() => new HttpErrorResponse({ status: 401, statusText: 'Offline — session degraded' }));
+    }
 
     return authService.refreshToken().pipe(
       switchMap((response) => {
         isRefreshing = false;
         refreshTokenSubject.next(response.accessToken);
+        sessionService.transitionToAuthenticated();
         // Retry original request with new token
         return next(req.clone({
           setHeaders: { Authorization: `Bearer ${response.accessToken}` }
@@ -50,7 +63,13 @@ function handleTokenRefresh(
       }),
       catchError((err) => {
         isRefreshing = false;
-        authService.logout();
+        if (!networkService.online()) {
+          // Network went down during refresh — soft degrade
+          sessionService.transitionToDegraded();
+        } else {
+          // Online but refresh failed — hard logout
+          authService.logout();
+        }
         return throwError(() => err);
       })
     );

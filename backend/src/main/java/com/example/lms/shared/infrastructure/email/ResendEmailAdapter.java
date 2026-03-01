@@ -74,6 +74,13 @@ public class ResendEmailAdapter implements EmailServicePort {
         send(toEmail, "Thông báo hoàn tiền - LMS Maritime", html);
     }
 
+    @Override
+    @Async
+    public void sendOrganizationInvite(String toEmail, String organizationName, String inviteLink) {
+        String html = EmailTemplates.organizationInvite(organizationName, inviteLink);
+        send(toEmail, "Lời mời tham gia " + organizationName + " - LMS Maritime", html);
+    }
+
     private void send(String to, String subject, String htmlBody) {
         try {
             CreateEmailOptions options = CreateEmailOptions.builder()
