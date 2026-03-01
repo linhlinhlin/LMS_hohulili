@@ -1,6 +1,9 @@
 package com.example.lms.learning_delivery.application.usecase;
 
+import com.example.lms.learning_delivery.domain.model.Enrollment;
+import com.example.lms.learning_delivery.domain.model.LearningClass;
 import com.example.lms.learning_delivery.domain.model.LearningEvent;
+import com.example.lms.learning_delivery.domain.repository.EnrollmentRepository;
 import com.example.lms.learning_delivery.domain.repository.LearningEventRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -11,6 +14,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -23,6 +27,7 @@ import static org.mockito.Mockito.*;
 class LearningActivityUseCaseTest {
 
     @Mock private LearningEventRepository learningEventRepository;
+    @Mock private EnrollmentRepository enrollmentRepository;
     @Mock private GamificationUseCase gamificationUseCase;
 
     private LearningActivityUseCase useCase;
@@ -33,7 +38,7 @@ class LearningActivityUseCaseTest {
 
     @BeforeEach
     void setUp() {
-        useCase = new LearningActivityUseCase(learningEventRepository, gamificationUseCase);
+        useCase = new LearningActivityUseCase(learningEventRepository, enrollmentRepository, gamificationUseCase);
     }
 
     @Test
@@ -83,8 +88,47 @@ class LearningActivityUseCaseTest {
     }
 
     @Test
-    @DisplayName("getContinueWhereLeftOff returns DTO when activity exists")
-    void getContinueWhereLeftOffReturnsDTO() {
+    @DisplayName("getContinueWhereLeftOff returns enrollment-based DTO when progress exists")
+    void getContinueWhereLeftOffFromEnrollment() {
+        UUID courseId = UUID.randomUUID();
+        Instant recentActivity = Instant.now();
+
+        LearningClass lc = LearningClass.builder()
+                .id(UUID.randomUUID())
+                .courseId(courseId)
+                .name("Test Class")
+                .build();
+
+        Enrollment enrollment = Enrollment.builder()
+                .id(UUID.randomUUID())
+                .studentId(studentId)
+                .learningClass(lc)
+                .lastAccessedAt(recentActivity)
+                .progress(Map.of(
+                        lessonId.toString(), Enrollment.LessonProgress.builder()
+                                .status("IN_PROGRESS")
+                                .lastActivity(recentActivity)
+                                .build()
+                ))
+                .build();
+
+        when(enrollmentRepository.findActiveByStudentId(studentId))
+                .thenReturn(List.of(enrollment));
+
+        var result = useCase.getContinueWhereLeftOff(studentId);
+
+        assertThat(result).isNotNull();
+        assertThat(result.lessonId()).isEqualTo(lessonId);
+        assertThat(result.courseId()).isEqualTo(courseId);
+        assertThat(result.lastEventType()).isEqualTo("PROGRESS_UPDATE");
+    }
+
+    @Test
+    @DisplayName("getContinueWhereLeftOff falls back to learning events when no enrollment progress")
+    void getContinueWhereLeftOffFallsBackToEvents() {
+        when(enrollmentRepository.findActiveByStudentId(studentId))
+                .thenReturn(List.of());
+
         LearningEvent event = LearningEvent.create(
                 studentId, lessonId, sectionId,
                 LearningEvent.EventType.HEARTBEAT,
@@ -99,11 +143,14 @@ class LearningActivityUseCaseTest {
         assertThat(result.lessonId()).isEqualTo(lessonId);
         assertThat(result.sectionId()).isEqualTo(sectionId);
         assertThat(result.lastEventType()).isEqualTo("HEARTBEAT");
+        assertThat(result.courseId()).isNull();
     }
 
     @Test
-    @DisplayName("getContinueWhereLeftOff returns null when no activity")
+    @DisplayName("getContinueWhereLeftOff returns null when no activity at all")
     void getContinueWhereLeftOffReturnsNull() {
+        when(enrollmentRepository.findActiveByStudentId(studentId))
+                .thenReturn(List.of());
         when(learningEventRepository.findLastActivityEvent(studentId))
                 .thenReturn(Optional.empty());
 

@@ -85,10 +85,9 @@ public class StudentEnrollmentControllerV3 {
 
         UUID studentId = currentUser.getId();
         
-        // SOTA (Dec 2025): Single query with JOIN FETCH replaces 3 sequential queries
-        // Pattern from Google/YouTube: Eliminate N+1 by eager loading
-        // Expected latency reduction: ~300ms (3 queries → 1)
-        List<Enrollment> enrollments = enrollmentRepository.findActiveWithClass(studentId);
+        // SOTA: Fetch ACTIVE + COMPLETED enrollments (Canvas/Coursera pattern)
+        // Students see both in-progress and completed courses in their dashboard
+        List<Enrollment> enrollments = enrollmentRepository.findActiveAndCompletedWithClass(studentId);
         
         // Group enrollments by courseId (LearningClass already loaded via JOIN FETCH)
         Map<UUID, List<Enrollment>> courseEnrollments = enrollments.stream()
@@ -168,11 +167,24 @@ public class StudentEnrollmentControllerV3 {
                             .status(enrollment.getStatus().name().toLowerCase())
                             .progress(enrollment.getCompletionPercent() != null ? enrollment.getCompletionPercent() : 0)
                             .totalLessons(lessonCountMap.getOrDefault(courseId, 0L).intValue())
-                            .completedLessons(enrollment.getProgress() != null ? enrollment.getProgress().size() : 0)
+                            .completedLessons(enrollment.getProgress() != null
+                                ? (int) enrollment.getProgress().values().stream().filter(p -> "COMPLETED".equals(p.getStatus())).count()
+                                : 0)
                             .enrolledAt(enrollment.getEnrolledAt() != null ? enrollment.getEnrolledAt().toString() : null)
+                            .lastAccessedAt(enrollment.getLastAccessedAt() != null ? enrollment.getLastAccessedAt().toString() : null)
                             .build();
                 })
                 .collect(Collectors.toList());
+
+        // Sort by lastAccessedAt DESC (SOTA: Canvas/Coursera "most recently accessed" pattern)
+        courseResponses.sort((a, b) -> {
+            String aTime = a.getLastAccessedAt();
+            String bTime = b.getLastAccessedAt();
+            if (aTime == null && bTime == null) return 0;
+            if (aTime == null) return 1;
+            if (bTime == null) return -1;
+            return bTime.compareTo(aTime);
+        });
         
         // Apply pagination manually (0-indexed, Spring Data standard)
         int safePage = Math.max(0, page);
@@ -254,7 +266,9 @@ public class StudentEnrollmentControllerV3 {
                 .courseId(courseId.toString())
                 .progressPercentage(enrollment.getCompletionPercent() != null ? enrollment.getCompletionPercent() : 0)
                 .status(enrollment.getStatus().name().toLowerCase())
-                .completedLessons(enrollment.getProgress() != null ? enrollment.getProgress().size() : 0)
+                .completedLessons(enrollment.getProgress() != null
+                    ? (int) enrollment.getProgress().values().stream().filter(p -> "COMPLETED".equals(p.getStatus())).count()
+                    : 0)
                 .totalLessons((int) totalLessons)
                 .lastAccessedAt(enrollment.getLastAccessedAt() != null ? enrollment.getLastAccessedAt().toString() : null)
                 .build();
@@ -280,9 +294,12 @@ public class StudentEnrollmentControllerV3 {
 
         if (enrollmentOpt.isPresent()) {
             Enrollment enrollment = enrollmentOpt.get();
-            // Return completed lesson IDs from progress field (Map keys)
+            // Return only lesson IDs with status=COMPLETED (not IN_PROGRESS/UNLOCKED)
             List<String> completedIds = enrollment.getProgress() != null
-                ? new ArrayList<>(enrollment.getProgress().keySet())
+                ? enrollment.getProgress().entrySet().stream()
+                    .filter(e -> "COMPLETED".equals(e.getValue().getStatus()))
+                    .map(Map.Entry::getKey)
+                    .toList()
                 : List.of();
             return ResponseEntity.ok(ApiResponse.success(completedIds, "Danh sách bài học đã hoàn thành"));
         }
@@ -331,12 +348,20 @@ public class StudentEnrollmentControllerV3 {
                 .build();
         enrollment.updateProgress(lessonId.toString(), lessonProgress);
 
-        // Recalculate completion percent (batch: 2 queries instead of N*C)
+        // Recalculate completion percent — only count COMPLETED status entries
         long totalLessons = countTotalLessonsForCourse(courseId);
         if (totalLessons > 0 && enrollment.getProgress() != null) {
-            int completedCount = enrollment.getProgress().size();
+            long completedCount = enrollment.getProgress().values().stream()
+                .filter(p -> "COMPLETED".equals(p.getStatus()))
+                .count();
             int percent = (int) Math.min(100, Math.round((double) completedCount / totalLessons * 100));
             enrollment.updateCompletionPercent(percent);
+        }
+
+        // Auto-complete enrollment when all lessons done (SOTA: Canvas/Coursera pattern)
+        if (enrollment.getCompletionPercent() != null && enrollment.getCompletionPercent() == 100
+                && enrollment.getStatus() == Enrollment.EnrollmentStatus.ACTIVE) {
+            enrollment.complete();
         }
 
         enrollmentRepository.save(enrollment);
@@ -479,7 +504,10 @@ public class StudentEnrollmentControllerV3 {
             Enrollment enrollment = enrollmentOpt.get();
 
             Set<String> completedIds = enrollment.getProgress() != null
-                ? enrollment.getProgress().keySet()
+                ? enrollment.getProgress().entrySet().stream()
+                    .filter(e -> "COMPLETED".equals(e.getValue().getStatus()))
+                    .map(Map.Entry::getKey)
+                    .collect(Collectors.toSet())
                 : Set.of();
 
             // Batch load all lessons ordered by chapter→lesson orderIndex (2 queries instead of N+1)
@@ -771,6 +799,7 @@ public class StudentEnrollmentControllerV3 {
         private Integer totalLessons;
         private Integer completedLessons;
         private String enrolledAt;
+        private String lastAccessedAt;
         private String createdAt;
     }
 

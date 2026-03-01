@@ -8,7 +8,6 @@ import { PaymentService } from '../../payment/payment.service';
 import { CourseReviewApi, ReviewDTO, ReviewSummary, SubmitReviewRequest } from '../../../api/endpoints/course-review.api';
 import { firstValueFrom } from 'rxjs';
 import { ToastService } from '../../../core/services/toast.service';
-import { IconComponent } from '../../../shared/components/icon/icon.component';
 
 interface CourseDetail {
   id: string;
@@ -49,14 +48,14 @@ interface Lesson {
   description: string;
   orderIndex: number;
   durationMinutes?: number;
-  isCompleted?: boolean;
   hasQuiz?: boolean;
+  primaryType?: 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT';
   sections: SectionContent[];
 }
 
 @Component({
   selector: 'app-course-detail',
-  imports: [RouterModule, CommonModule, FormsModule, IconComponent],
+  imports: [RouterModule, CommonModule, FormsModule],
   templateUrl: './course-detail.component.html',
   styleUrls: ['./course-detail.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -69,7 +68,6 @@ export class CourseDetailComponent implements OnInit {
   private reviewApi = inject(CourseReviewApi);
   private toast = inject(ToastService);
 
-  // Số bài học miễn phí
   readonly FREE_LESSONS_COUNT = 2;
 
   // State
@@ -79,6 +77,7 @@ export class CourseDetailComponent implements OnInit {
   sections = signal<Section[]>([]);
   expandedSections = signal<Set<string>>(new Set());
   isDescriptionExpanded = signal(false);
+  allExpanded = signal(false);
 
   // Payment state
   hasPaid = signal(false);
@@ -86,6 +85,9 @@ export class CourseDetailComponent implements OnInit {
 
   // Real progress from enrollment API
   private _realProgress = signal<{ percentage: number; completed: number; total: number } | null>(null);
+
+  // Completed lesson IDs from API (S107 pattern)
+  private _completedLessonIds = signal<Set<string>>(new Set());
 
   // Review state
   reviews = signal<ReviewDTO[]>([]);
@@ -97,18 +99,16 @@ export class CourseDetailComponent implements OnInit {
   showReviewForm = signal(false);
 
   // Computed
-  totalLessons = computed(() => {
-    return this.sections().reduce((sum, section) => sum + section.lessons.length, 0);
-  });
+  totalLessons = computed(() =>
+    this.sections().reduce((sum, section) => sum + section.lessons.length, 0)
+  );
 
   chapterCount = computed(() => this.sections().length);
 
   completedLessons = computed(() => {
     const real = this._realProgress();
     if (real) return real.completed;
-    return this.sections().reduce((sum, section) => {
-      return sum + section.lessons.filter(l => l.isCompleted).length;
-    }, 0);
+    return this._completedLessonIds().size;
   });
 
   progressPercentage = computed(() => {
@@ -116,21 +116,35 @@ export class CourseDetailComponent implements OnInit {
     if (real) return real.percentage;
     const total = this.totalLessons();
     if (total === 0) return 0;
-    return Math.round((this.completedLessons() / total) * 100);
+    return Math.round((this._completedLessonIds().size / total) * 100);
   });
 
   totalDuration = computed(() => {
-    return this.sections().reduce((sum, section) => {
-      return sum + section.lessons.reduce((lessonSum, lesson) => {
-        return lessonSum + (lesson.durationMinutes || 0);
-      }, 0);
-    }, 0);
+    const fromSections = this.sections().reduce((sum, section) =>
+      sum + section.lessons.reduce((ls, lesson) =>
+        ls + (lesson.durationMinutes || 0), 0), 0);
+    // If API doesn't provide duration, estimate ~15 min per lesson
+    if (fromSections === 0) {
+      return this.totalLessons() * 15;
+    }
+    return fromSections;
   });
 
-  // Computed: Số bài học có thể truy cập (dựa trên payment)
   accessibleLessonsCount = computed(() => {
     if (this.hasPaid()) return this.totalLessons();
     return Math.min(this.FREE_LESSONS_COUNT, this.totalLessons());
+  });
+
+  // Per-chapter completion counts
+  chapterCompletionMap = computed(() => {
+    const completedIds = this._completedLessonIds();
+    const map = new Map<string, { completed: number; total: number }>();
+    for (const section of this.sections()) {
+      const total = section.lessons.length;
+      const completed = section.lessons.filter(l => completedIds.has(l.id)).length;
+      map.set(section.id, { completed, total });
+    }
+    return map;
   });
 
   ngOnInit(): void {
@@ -141,13 +155,13 @@ export class CourseDetailComponent implements OnInit {
       this.loadReviews(courseId);
       this.loadMyReview(courseId);
       this.loadProgress(courseId);
+      this.loadCompletedLessonIds(courseId);
     }
   }
 
   loadCourse(courseId: string): void {
     this.isLoading.set(true);
 
-    // Load course info
     this.courseApi.getCourseById(courseId).subscribe({
       next: (res: any) => {
         const detail = res?.data;
@@ -165,7 +179,6 @@ export class CourseDetailComponent implements OnInit {
           priceType,
           deliveryMode: detail?.deliveryMode
         });
-        // Auto-mark free courses as paid
         if (!price || price === 0 || priceType === 'FREE') {
           this.hasPaid.set(true);
         }
@@ -176,7 +189,6 @@ export class CourseDetailComponent implements OnInit {
       }
     });
 
-    // Load course content
     this.courseApi.getCourseContent(courseId).subscribe({
       next: (res) => {
         const contentSections: CourseContentChapter[] = res?.data || [];
@@ -189,15 +201,9 @@ export class CourseDetailComponent implements OnInit {
             orderIndex: section.orderIndex ?? 0,
             lessons: (section.lessons || [])
               .sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
-              .map((lesson: LessonSummary) => ({
-                id: lesson.id,
-                title: lesson.title,
-                description: lesson.description || '',
-                orderIndex: lesson.orderIndex ?? 0,
-                durationMinutes: lesson.sections?.reduce((sum, s) => sum + (s.duration || 0), 0) || 0,
-                isCompleted: false, // Progress tracked in learning interface via enrollment guard
-                hasQuiz: lesson.sections?.some(s => s.type === 'QUIZ') || false,
-                sections: (lesson.sections || []).map(s => ({
+              .map((lesson: LessonSummary) => {
+                const lessonAny = lesson as any;
+                const sections = (lesson.sections || []).map(s => ({
                   id: s.id,
                   title: s.title,
                   type: s.type as 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT',
@@ -206,14 +212,26 @@ export class CourseDetailComponent implements OnInit {
                   duration: s.duration,
                   orderIndex: s.orderIndex ?? 0,
                   isRequired: s.isRequired ?? false
-                }))
-              }))
+                }));
+                // Detect type: prefer sections-based detection, fall back to lesson-level type from API
+                const apiType = lessonAny.type as string | undefined;
+                const primaryType = sections.length > 0
+                  ? this.detectPrimaryType(lesson.sections || [])
+                  : (apiType as Lesson['primaryType']) || 'TEXT';
+                return {
+                  id: lesson.id,
+                  title: lesson.title,
+                  description: lesson.description || '',
+                  orderIndex: lesson.orderIndex ?? 0,
+                  durationMinutes: lessonAny.durationMinutes || sections.reduce((sum, s) => sum + (s.duration || 0), 0) || 0,
+                  hasQuiz: sections.some(s => s.type === 'QUIZ') || false,
+                  primaryType,
+                  sections
+                };
+              })
           }));
 
         this.sections.set(mappedSections);
-
-        // hasQuiz is already set from sections data (line 160)
-        // No need to call additional API to verify - this was causing 404 errors
 
         // Expand first section by default
         if (mappedSections.length > 0) {
@@ -232,6 +250,36 @@ export class CourseDetailComponent implements OnInit {
     });
   }
 
+  /** Detect dominant content type for lesson icon */
+  private detectPrimaryType(sections: any[]): Lesson['primaryType'] {
+    if (!sections || sections.length === 0) return 'TEXT';
+    const hasVideo = sections.some((s: any) => s.type === 'VIDEO');
+    if (hasVideo) return 'VIDEO';
+    const hasQuiz = sections.some((s: any) => s.type === 'QUIZ');
+    if (hasQuiz) return 'QUIZ';
+    const hasAssignment = sections.some((s: any) => s.type === 'ASSIGNMENT');
+    if (hasAssignment) return 'ASSIGNMENT';
+    const hasFile = sections.some((s: any) => s.type === 'FILE');
+    if (hasFile) return 'FILE';
+    return 'TEXT';
+  }
+
+  /** Fetch completed lesson IDs (S107 pattern) */
+  private async loadCompletedLessonIds(courseId: string): Promise<void> {
+    try {
+      const res = await firstValueFrom(this.courseApi.getCompletedLessonIds(courseId));
+      const data = res?.data;
+      const ids = Array.isArray(data) ? data : [];
+      this._completedLessonIds.set(new Set(ids));
+    } catch {
+      // Supplementary — silent fallback
+    }
+  }
+
+  isLessonCompleted(lessonId: string): boolean {
+    return this._completedLessonIds().has(lessonId);
+  }
+
   toggleSection(sectionId: string): void {
     this.expandedSections.update(set => {
       if (set.has(sectionId)) {
@@ -247,17 +295,28 @@ export class CourseDetailComponent implements OnInit {
     return this.expandedSections().has(sectionId);
   }
 
+  toggleAllSections(): void {
+    const sections = this.sections();
+    if (this.allExpanded()) {
+      // Collapse all
+      this.expandedSections.set(new Set());
+      this.allExpanded.set(false);
+    } else {
+      // Expand all
+      const allIds = new Set(sections.map(s => s.id));
+      this.expandedSections.set(allIds);
+      this.allExpanded.set(true);
+    }
+  }
+
   startLearning(): void {
     const courseId = this.course()?.id;
     if (!courseId) return;
-
-    // Navigate to first lesson
     const firstSection = this.sections()[0];
     if (firstSection && firstSection.lessons.length > 0) {
       const firstLesson = firstSection.lessons[0];
       this.router.navigate(['/student/learn/course', courseId, 'lesson', firstLesson.id]);
     } else {
-      // No lessons, just navigate to course learning page
       this.router.navigate(['/student/learn/course', courseId]);
     }
   }
@@ -266,7 +325,6 @@ export class CourseDetailComponent implements OnInit {
     const courseId = this.course()?.id;
     if (!courseId) return;
 
-    // Try to get last viewed lesson from localStorage
     const storageKey = `learning_progress_${courseId}`;
     try {
       const stored = localStorage.getItem(storageKey);
@@ -277,18 +335,27 @@ export class CourseDetailComponent implements OnInit {
           return;
         }
       }
-    } catch (error) {
-      // localStorage parse — silent fallback to startLearning()
+    } catch {
+      // silent fallback
     }
 
-    // Fallback to start learning
+    // Find first incomplete lesson
+    const completedIds = this._completedLessonIds();
+    for (const section of this.sections()) {
+      for (const lesson of section.lessons) {
+        if (!completedIds.has(lesson.id)) {
+          this.router.navigate(['/student/learn/course', courseId, 'lesson', lesson.id]);
+          return;
+        }
+      }
+    }
+
     this.startLearning();
   }
 
   goToLesson(lessonId: string): void {
     const courseId = this.course()?.id;
     if (!courseId) return;
-    // Navigate to learning interface with specific lesson
     this.router.navigate(['/student/learn/course', courseId, 'lesson', lessonId]);
   }
 
@@ -301,28 +368,18 @@ export class CourseDetailComponent implements OnInit {
   }
 
   formatDuration(minutes: number): string {
-    if (minutes < 60) {
-      return `${minutes} phút`;
-    }
+    if (minutes < 60) return `${minutes} phút`;
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
   }
 
-  // Note: checkLessonQuiz removed - hasQuiz is set from sections mapping
-  // No additional API verification needed
-
-  goToQuiz(lessonId: string, lessonTitle: string): void {
-    // Navigate to quiz attempt with lesson ID
+  goToQuiz(lessonId: string): void {
     this.router.navigate(['/student/quiz/take', lessonId]);
   }
 
   // ============ Payment Methods ============
 
-  /**
-   * Kiểm tra trạng thái thanh toán khóa học
-   * Free courses (price=0 or priceType=FREE) are always considered paid
-   */
   async checkPaymentStatus(courseId: string): Promise<void> {
     this.paymentLoading.set(true);
     try {
@@ -335,7 +392,6 @@ export class CourseDetailComponent implements OnInit {
       const state = await this.paymentService.loadPaymentStatus(courseId);
       this.hasPaid.set(state.hasPaid);
     } catch {
-      // For free courses default to paid
       const course = this.course();
       if (!course?.price || course.price === 0 || course.priceType === 'FREE') {
         this.hasPaid.set(true);
@@ -345,14 +401,9 @@ export class CourseDetailComponent implements OnInit {
     }
   }
 
-  /**
-   * Load tiến độ thực từ enrollment progress API
-   * Handles both ApiResponse wrapper {data: {...}} and direct response
-   */
   private loadProgress(courseId: string): void {
     this.courseApi.getCourseProgress(courseId).subscribe({
       next: (res: any) => {
-        // Handle both wrapped {data: {progressPercentage}} and direct {progressPercentage}
         const data = res?.data ?? res;
         const pct = data?.progressPercentage;
         if (pct !== undefined && pct !== null) {
@@ -363,22 +414,15 @@ export class CourseDetailComponent implements OnInit {
           });
         }
       },
-      error: () => { /* Progress is supplementary — silent fallback */ }
+      error: () => { /* supplementary — silent fallback */ }
     });
   }
 
-  /**
-   * Kiểm tra bài học có được truy cập không
-   * @param lessonIndex index trong danh sách flatten (0-based)
-   */
   canAccessLesson(lessonIndex: number): boolean {
     if (this.hasPaid()) return true;
     return lessonIndex < this.FREE_LESSONS_COUNT;
   }
 
-  /**
-   * Lấy global index của lesson trong tất cả sections
-   */
   getLessonGlobalIndex(sectionIndex: number, lessonIndexInSection: number): number {
     let globalIndex = 0;
     for (let i = 0; i < sectionIndex; i++) {
@@ -387,18 +431,12 @@ export class CourseDetailComponent implements OnInit {
     return globalIndex + lessonIndexInSection;
   }
 
-  /**
-   * Điều hướng đến trang thanh toán (public course detail with VNPay modal)
-   */
   goToCheckout(): void {
     const courseId = this.course()?.id;
     if (!courseId) return;
     this.router.navigate(['/courses', courseId]);
   }
 
-  /**
-   * Format giá tiền
-   */
   formatPrice(price: number): string {
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
@@ -410,18 +448,14 @@ export class CourseDetailComponent implements OnInit {
 
   loadReviews(courseId: string): void {
     this.reviewApi.getReviews(courseId).subscribe({
-      next: (res: any) => {
-        this.reviews.set(res?.data || []);
-      },
-      error: () => { /* Reviews are supplementary - silent fallback */ }
+      next: (res: any) => { this.reviews.set(res?.data || []); },
+      error: () => {}
     });
     this.reviewApi.getReviewSummary(courseId).subscribe({
       next: (res: any) => {
-        if (res?.data) {
-          this.reviewSummary.set(res.data);
-        }
+        if (res?.data) this.reviewSummary.set(res.data);
       },
-      error: () => { /* Summary is supplementary - silent fallback */ }
+      error: () => {}
     });
   }
 
@@ -434,7 +468,7 @@ export class CourseDetailComponent implements OnInit {
           this.reviewComment.set(res.data.comment || '');
         }
       },
-      error: () => { /* My review not found is expected for new users */ }
+      error: () => {}
     });
   }
 
@@ -452,9 +486,7 @@ export class CourseDetailComponent implements OnInit {
       this.showReviewForm.set(false);
       this.loadReviews(courseId);
       this.loadMyReview(courseId);
-    } catch {
-      // silently fail
-    } finally {
+    } catch {} finally {
       this.reviewSubmitting.set(false);
     }
   }
@@ -470,9 +502,7 @@ export class CourseDetailComponent implements OnInit {
       this.reviewRating.set(5);
       this.reviewComment.set('');
       this.loadReviews(courseId);
-    } catch {
-      // silently fail
-    }
+    } catch {}
   }
 
   setRating(star: number): void {

@@ -229,6 +229,17 @@
   .tab-label {
     line-height: 1;
   }
+
+  .tab-count {
+    font-size: 12px;
+    color: #9CA3AF;
+    line-height: 1;
+    margin-left: 2px;
+  }
+
+  &.active .tab-count {
+    color: rgba(255, 255, 255, 0.8);
+  }
 }
 
 .view-all-link {
@@ -244,6 +255,43 @@
   &:hover {
     color: #004BB8;
     text-decoration: underline;
+  }
+}
+
+/* ===== COURSES FOOTER ===== */
+.courses-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  margin-top: 12px;
+  background: white;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+}
+
+.footer-summary {
+  font-size: 12px;
+  color: #6B7280;
+  font-weight: 500;
+}
+
+.footer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: $blue-primary;
+  text-decoration: none;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: #004BB8;
+  }
+
+  svg {
+    flex-shrink: 0;
   }
 }
 
@@ -585,6 +633,11 @@
   padding: 4px 8px;
   font-size: 12px;
   color: #6B7280;
+
+  &.completed {
+    .section-title { color: #9CA3AF; }
+    .section-type-icon { color: #10B981; }
+  }
 }
 
 .section-type-icon {

@@ -127,6 +127,12 @@ public class EnrollmentRepositoryImpl implements EnrollmentRepository, Enrollmen
                 .toList();
     }
 
+    public List<Enrollment> findActiveAndCompletedWithClass(UUID studentId) {
+        return jpaRepository.findActiveAndCompletedWithClass(studentId).stream()
+                .map(mapper::toDomain)
+                .toList();
+    }
+
     @Override
     public Optional<Enrollment> findByStudentIdAndCourseId(UUID studentId, UUID courseId) {
         return jpaRepository.findByStudentIdAndCourseId(studentId, courseId)

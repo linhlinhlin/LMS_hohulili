@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-> **Last Updated**: 2026-03-01 | **Version**: 14.4 | **Status**: Production Ready + PWA Phase 7 Complete (806 tests, 0 failures)
+> **Last Updated**: 2026-03-02 | **Version**: 14.6 | **Status**: Production Ready + Org Audit Complete (806 tests, 0 failures)
 
 This file provides guidance to Claude Code for working with this repository. **Read this first before any task.**
 
@@ -365,6 +365,107 @@ teacherGuard = [UserRole.TEACHER, UserRole.ADMIN, UserRole.ORG_ADMIN]
 ---
 
 ## RECENT CHANGES LOG
+
+### Session 115 (2026-03-02): Organization Management Audit — 11 Bugs Fixed (CoT)
+
+**SECURITY + BUGFIX** | BE: 3 files modified | FE: 3 files modified
+
+**CoT Deep Audit of Organization Management Flow:**
+- Applied Chain-of-Thought methodology with 2 parallel Explore agents (23+ files analyzed)
+- Audited: org creation, member invitation (CODE/EMAIL), user joining, default "Wiii Org" assignment, org transfer, role hierarchy (ADMIN/ORG_ADMIN)
+- SOTA comparison: Auth0/Okta per-org policies, Canvas sections, Moodle cohorts
+
+**11 bugs found (4 P0, 5 P1, 2 P2):**
+
+**P0 Fixes (data integrity/security):**
+- `OrganizationControllerV3.addMember()`: blocked silent org overwrite — check if user already belongs to different org
+- `OrganizationControllerV3.removeMember()`: prevent self-removal + ORG_ADMIN cannot remove ADMIN/ORG_ADMIN
+- `AcceptInviteUseCase.acceptInvite()`: guard against org switch for existing users in different org
+
+**P1 Fixes (UX/error handling):**
+- `RegisterUserUseCaseV2`: Wiii Org `.ifPresent()` → explicit null check + `log.warn` (Canvas pattern)
+- `RegisterUserUseCaseV2`: invalid invite code `EntityNotFoundException` → `ValidationException` with Vietnamese message
+- `register.component.ts`: `inviteCodeError` signal + red error banner for invalid/expired codes
+- `OrganizationControllerV3`: ORG_ADMIN role guard on `setMemberTokenExpiry()` + audit logging
+- `join-org.component.ts`: removed EMAIL invite token passthrough to register page
+
+**P2 Fixes (polish):**
+- `organization-detail.component.ts`: `canRemoveMember()` guard hides delete button based on role hierarchy
+- P2 #11 (cosmetic `isAdminOrOrgAdmin` helper) — deferred as purely optional
+
+**Commits**: `65168d6`, `0a8b098`, `516beec`, `f9f23e3`, `2eec5e8`, `5caf549`
+
+### Session 114b (2026-03-02): Dashboard Course Limit (4 items) + Smart Footer — Teacher & Student
+
+**UX POLISH** | BE: 0 changes | FE: 6 files modified (3 teacher + 3 student)
+
+**Problem**: Dashboards showed too many courses (teacher: 6, student: 5-10) — too many for quick-glance overview. SOTA pattern (GitHub, Notion, Moodle) uses dashboards as "quick re-entry surfaces" with 3-8 items.
+
+**SOTA Research** (9 platforms): Canvas (20), Moodle (12 + "Recently Accessed" 3-5), GitHub (6-8 "Top Repos"), Notion (20 "Recently visited"). All use recency-based sorting and separate full-list pages.
+
+**Teacher Dashboard Changes:**
+- `DISPLAY_LIMIT = 4` — show max 4 courses per tab (was 6)
+- Sort by `updatedAt DESC` — most recently edited courses first (GitHub/Notion pattern)
+- `totalFilteredCount` + `hasMoreCourses` + `footerText` computed signals
+- Footer bar: "Hiển thị 4/17 khóa học gần nhất" + "Xem tất cả khóa học →"
+- Footer text adapts per tab: "4/6 đã duyệt", "4/11 nháp", "4/0 chờ duyệt"
+- Footer hidden when total ≤ 4 (no need for "see more" cue)
+- Tab counts still show real totals: Tất cả (17), Đã duyệt (6), Nháp (11)
+
+**Student Dashboard Changes:**
+- Same `DISPLAY_LIMIT = 4` pattern applied to both "Đang học" and "Đã hoàn thành" tabs
+- Tab counts now visible: "Đang học (3)" / "Đã hoàn thành (1)" — were hidden before
+- `totalInProgressCount` + `totalCompletedCount` + `hasMoreCourses` + `footerText` computed signals
+- Hero card course excluded from in-progress count to avoid duplication
+- Footer bar with adaptive text: "Hiển thị X/Y khóa học đang học" / "đã hoàn thành"
+- "Xem tất cả" link conditional on `hasMoreCourses()` (was always visible)
+- `.tab-count` + `.courses-footer` styles added to SCSS
+
+**Browser verified**: Teacher (4 tabs, footer adaptation, sort order, empty edge case). Student (tab counts, completed tab, footer hidden when ≤4).
+
+### Session 114 (2026-03-02): Teacher Dashboard Redesign — Design Sync with Student Dashboard
+
+**UX REDESIGN** | BE: 0 changes | FE: 3 files (2 new, 1 rewritten)
+
+**Problem**: Teacher dashboard used completely different visual language from student dashboard — inline Tailwind, no avatar, table-row course cards, no tabs — violating Nielsen's Heuristic #4 (Consistency and Standards).
+
+**Part 1 — Extract to External Files:**
+- Extracted 421-line inline template → `teacher-dashboard.component.html`
+- Extracted inline styles → `teacher-dashboard.component.scss` with `@use '../../../../styles/variables' as *`
+- Changed TS from `template:`/`styles:` to `templateUrl:`/`styleUrls:`
+
+**Part 2 — Header Redesign (matching student pattern):**
+- 64px avatar circle (`$blue-primary` bg, white initials, same box-shadow as student)
+- Greeting: 28px/700 weight + subtitle "Tổng quan hoạt động giảng dạy"
+- CTA "Tạo khóa học" button aligned right
+
+**Part 3 — KPI Panel Redesign (Udemy/Coursera style):**
+- From blue-border table → 4 individual icon cards with colored circles
+- Icon circles: blue (courses), green (students), amber (grading), yellow (rating)
+- Grid: `grid-cols-2 sm:grid-cols-4`, skeleton loading state
+
+**Part 4 — Pill Tabs for Course Filtering:**
+- Tabs: Tất cả / Đã duyệt / Nháp / Chờ duyệt (with counts)
+- `activeTab` signal + `filteredCourses` computed (max 6) + `matchTab()` helper
+- Pill style matching student `.tab-chip`: rounded-full, active=`$blue-primary`
+
+**Part 5 — Course Cards Redesign:**
+- From table rows → horizontal cards with 160x90 thumbnails
+- Metadata: code, student count, chapter count, delivery badge, rating
+- Status badge pills (rounded-full, color-coded), relative date, edit button
+- Card tokens matching student: `border-radius: 8px`, `shadow-sm`, `hover:shadow-md`
+
+**Part 6 — Sidebar + Responsive:**
+- Status distribution bar (6px proportional segments) + status list
+- Performance cards with student count and rating
+- Responsive: 2-col ≥1024px, single-col ≤1024px, compact ≤640px
+
+**Bug fix: Dashboard invisible (opacity: 0)**
+- Root cause: `critical.scss` has `body:not(.loaded) .dashboard-container { opacity: 0 }` — teacher didn't add `loaded` class
+- Root cause 2: Global `.dashboard-container` grid styles overriding component
+- Fix: Added `document.body.classList.add('loaded')` + SCSS overrides (`display: block`, `grid-template-columns: none`)
+
+**Browser verified**: Avatar, KPI cards, pill tabs (filtering works), course cards with thumbnails/status/edit, sidebar status bar, course navigation to editor.
 
 ### Session 113c (2026-03-01): Lesson View Section Completion Desync Fix (CoT)
 

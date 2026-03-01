@@ -140,7 +140,11 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
                       {{ course.deliveryMode === 'INSTRUCTOR_LED' ? 'Lớp học' : 'Khóa học' }}
                     </span>
                     <span class="separator">·</span>
-                    <span>{{ course.progress > 0 ? course.progress + '% hoàn thành' : 'Chưa bắt đầu' }}</span>
+                    @if (course.progress >= 100) {
+                      <span class="progress-label-completed">Đã hoàn thành</span>
+                    } @else {
+                      <span>{{ course.progress > 0 ? course.progress + '% hoàn thành' : 'Chưa bắt đầu' }}</span>
+                    }
                     @if (course['estimatedCompletion']) {
                       <span class="separator">·</span>
                       <span class="estimated">Dự kiến: {{ course['estimatedCompletion'] }}</span>
@@ -153,7 +157,7 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
                   <app-button
                     variant="primary"
                     (clicked)="resumeCourse(course.id)">
-                    {{ activeTab() === 'completed' ? 'Xem lại' : 'Tiếp tục học' }}
+                    {{ course.progress >= 100 ? 'Xem lại' : course.progress > 0 ? 'Tiếp tục học' : 'Bắt đầu ngay' }}
                   </app-button>
                   <button class="dropdown-button" (click)="toggleModules(course.id)" aria-label="Show lessons">
                     <app-icon [name]="course.showModules ? 'chevron-up' : 'chevron-down'" size="sm" />
@@ -196,9 +200,11 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
                           @if (lesson.sections && lesson.sections.length > 0) {
                             <div class="section-list">
                               @for (sec of lesson.sections; track sec.id) {
-                                <div class="section-item">
+                                <div class="section-item" [class.completed]="lesson.completed">
                                   <span class="section-type-icon">
-                                    @if (sec.type === 'VIDEO') {
+                                    @if (lesson.completed) {
+                                      <svg width="12" height="12" viewBox="0 0 20 20" fill="#10B981"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                                    } @else if (sec.type === 'VIDEO') {
                                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
                                     } @else if (sec.type === 'QUIZ') {
                                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
@@ -535,6 +541,11 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
       .estimated {
         color: #9CA3AF;
       }
+
+      .progress-label-completed {
+        color: #10B981;
+        font-weight: 600;
+      }
     }
 
     .delivery-badge {
@@ -737,6 +748,11 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
       padding: 4px 8px;
       font-size: 12px;
       color: #6B7280;
+
+      &.completed {
+        .section-title { color: #9CA3AF; }
+        .section-type-icon { color: #10B981; }
+      }
     }
 
     .section-type-icon {
@@ -940,8 +956,14 @@ export class StudentMyCoursesComponent implements OnInit {
       result = [...result].sort((a, b) => a['title'].localeCompare(b['title']));
     } else if (sort === 'progress') {
       result = [...result].sort((a, b) => b['progress'] - a['progress']);
+    } else {
+      // 'recent' = sort by lastAccessed DESC (SOTA: Canvas/Coursera pattern)
+      result = [...result].sort((a, b) => {
+        const aTime = String(a.lastAccessed || '');
+        const bTime = String(b.lastAccessed || '');
+        return bTime.localeCompare(aTime);
+      });
     }
-    // 'recent' = default order from API
 
     return result;
   });

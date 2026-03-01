@@ -254,19 +254,45 @@ export class StudentDashboardComponent implements OnInit {
     }
   }
 
+  private readonly DISPLAY_LIMIT = 4;
+
   // Computed - Get recent in-progress + enrolled courses (exclude hero card to avoid duplication)
   recentInProgress = computed(() => {
     const heroId = this.continueCardData()?.courseId;
     return this.courses()
       .filter(c => c.status === 'in-progress' && c.id !== heroId)
-      .slice(0, 10);
+      .slice(0, this.DISPLAY_LIMIT);
   });
 
   recentCompleted = computed(() =>
     this.courses()
       .filter(c => c.status === 'completed')
-      .slice(0, 5) // Show up to 5 completed courses
+      .slice(0, this.DISPLAY_LIMIT)
   );
+
+  // Total counts for tab badges and footer
+  totalInProgressCount = computed(() => {
+    const heroId = this.continueCardData()?.courseId;
+    return this.courses().filter(c => c.status === 'in-progress' && c.id !== heroId).length;
+  });
+
+  totalCompletedCount = computed(() =>
+    this.courses().filter(c => c.status === 'completed').length
+  );
+
+  hasMoreCourses = computed(() => {
+    const tab = this.activeTab();
+    if (tab === 'in-progress') return this.totalInProgressCount() > this.DISPLAY_LIMIT;
+    return this.totalCompletedCount() > this.DISPLAY_LIMIT;
+  });
+
+  footerText = computed(() => {
+    const tab = this.activeTab();
+    const total = tab === 'in-progress' ? this.totalInProgressCount() : this.totalCompletedCount();
+    const shown = Math.min(this.DISPLAY_LIMIT, total);
+    const suffix = tab === 'in-progress' ? 'đang học' : 'đã hoàn thành';
+    return `Hiển thị ${shown}/${total} khóa học ${suffix}`;
+  });
 
   // Use enrollment service stats as computed signals
   inProgressCount = computed(() => this.enrollmentService.enrollmentStats().inProgress);

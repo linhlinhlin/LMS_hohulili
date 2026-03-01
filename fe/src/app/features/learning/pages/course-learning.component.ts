@@ -89,6 +89,48 @@ export class CourseLearningComponent implements OnInit {
     }
   }, { allowSignalWrites: true });
 
+  // Sync section completion with lesson completion:
+  // When a lesson is COMPLETED (from backend), all its sections must show completed.
+  // Fixes: dashboard shows 5/5 sections green but lesson view only shows 3/5.
+  // Root cause: onVideoEnded/quizComplete mark lesson complete WITHOUT marking each section.
+  private syncSectionCompletionEffect = effect(() => {
+    const sections = this.sections();
+    const completedLessons = this.learningService.completedLessons();
+
+    if (sections.length === 0 || completedLessons.size === 0) return;
+
+    // Collect all section IDs from completed lessons
+    const sectionIdsToAdd: string[] = [];
+    for (const section of sections) {
+      for (const lesson of section.lessons) {
+        if (completedLessons.has(lesson.id) && (lesson as any).sections?.length > 0) {
+          for (const sec of (lesson as any).sections) {
+            sectionIdsToAdd.push(sec.id);
+          }
+        }
+      }
+    }
+
+    if (sectionIdsToAdd.length > 0) {
+      untracked(() => {
+        this.completedSections.update(completed => {
+          const newSet = new Set(completed);
+          let changed = false;
+          for (const id of sectionIdsToAdd) {
+            if (!newSet.has(id)) {
+              newSet.add(id);
+              changed = true;
+            }
+          }
+          if (changed) {
+            localStorage.setItem('completed_sections', JSON.stringify(Array.from(newSet)));
+          }
+          return changed ? newSet : completed;
+        });
+      });
+    }
+  }, { allowSignalWrites: true });
+
   private autoExpandEffect = effect(() => {
     const sections = this.sections();
     const lessonId = this.pendingExpandLessonId();

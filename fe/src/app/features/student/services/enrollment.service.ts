@@ -237,7 +237,7 @@ export class StudentEnrollmentService {
       category: courseAny.categoryName || undefined,
       deliveryMode: course.deliveryMode || 'SELF_PACED',
       rating: undefined,
-      lastAccessed: new Date(),
+      lastAccessed: courseAny.lastAccessedAt || courseAny.enrolledAt || new Date().toISOString(),
       enrolledAt: course.createdAt ? new Date(course.createdAt) : new Date(),
       studyTime: this.calculateStudyTime(course)
     };

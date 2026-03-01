@@ -82,21 +82,27 @@ public class LearningActivityControllerV3 {
         if (result == null) {
             return ResponseEntity.ok(ApiResponse.success(null, "Không có hoạt động gần đây"));
         }
-        // Resolve courseId from lessonId (single query)
+
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("lessonId", result.lessonId().toString());
         response.put("sectionId", result.sectionId());
         response.put("lastEventType", result.lastEventType());
         response.put("lastActivityAt", result.lastActivityAt().toString());
 
-        courseJpaRepository.findByLessonId(result.lessonId()).ifPresent(course -> {
-            response.put("courseId", course.getId().toString());
-            response.put("courseTitle", course.getTitle());
-        });
+        // Use courseId from enrollment (primary) or resolve from lessonId (fallback)
+        if (result.courseId() != null) {
+            response.put("courseId", result.courseId().toString());
+            courseJpaRepository.findById(result.courseId()).ifPresent(course ->
+                    response.put("courseTitle", course.getTitle()));
+        } else {
+            courseJpaRepository.findByLessonId(result.lessonId()).ifPresent(course -> {
+                response.put("courseId", course.getId().toString());
+                response.put("courseTitle", course.getTitle());
+            });
+        }
 
-        lessonJpaRepository.findById(result.lessonId()).ifPresent(lesson -> {
-            response.put("lessonTitle", lesson.getTitle());
-        });
+        lessonJpaRepository.findById(result.lessonId()).ifPresent(lesson ->
+                response.put("lessonTitle", lesson.getTitle()));
 
         return ResponseEntity.ok(ApiResponse.success(response, "Hoạt động gần nhất"));
     }

@@ -46,6 +46,12 @@ public class UpdateLessonProgressUseCase {
         // Recalculate completion percentage
         recalculateCompletion(enrollment);
 
+        // Auto-complete enrollment when all lessons done (SOTA: Canvas/Coursera pattern)
+        if (enrollment.getCompletionPercent() != null && enrollment.getCompletionPercent() == 100
+                && enrollment.getStatus() == Enrollment.EnrollmentStatus.ACTIVE) {
+            enrollment.complete();
+        }
+
         enrollment = enrollmentRepository.save(enrollment);
 
         // Auto-issue certificate when course reaches 100% completion

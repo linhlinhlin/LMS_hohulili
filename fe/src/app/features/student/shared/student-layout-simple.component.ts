@@ -184,12 +184,31 @@ import { ConfirmDialogService } from '../../../core/services/confirm-dialog.serv
 
         <!-- AI Sidebar (Desktop) — always rendered, animated via CSS -->
         <aside class="ai-sidebar hidden md:flex md:flex-col"
-               [class.ai-sidebar-open]="isAiSidebarOpen()">
+               [class.ai-sidebar-open]="isAiSidebarOpen()"
+               [class.ai-sidebar-resizing]="isResizing()"
+               [style.width.px]="isAiSidebarOpen() ? aiSidebarWidth() : null"
+               [style.min-width.px]="isAiSidebarOpen() ? aiSidebarWidth() : null">
           <app-chat-panel
             mode="sidebar"
             (closePanel)="toggleAiSidebar()"
           />
         </aside>
+
+        <!-- Resize handle — fixed position at sidebar's left edge -->
+        @if (isAiSidebarOpen()) {
+          <div class="resize-handle-track"
+               [style.right.px]="aiSidebarWidth() - 6"
+               [class.resize-active]="isResizing()"
+               (mousedown)="startResize($event)"
+               (dblclick)="resetSidebarWidth()">
+            <div class="resize-handle-line"></div>
+          </div>
+        }
+
+        <!-- Resize overlay — blocks iframe from stealing mouse events during drag -->
+        @if (isResizing()) {
+          <div class="resize-overlay"></div>
+        }
       </div>
 
       <!-- Desktop: Toggle tab — always rendered, animated -->
@@ -241,10 +260,49 @@ import { ConfirmDialogService } from '../../../core/services/confirm-dialog.serv
     }
 
     .ai-sidebar.ai-sidebar-open {
-      width: 400px;
-      min-width: 400px;
+      width: 420px;
+      min-width: 320px;
       opacity: 1;
       border-left-color: #e5e7eb;
+    }
+
+    /* ── Resize handle — fixed at sidebar left edge ── */
+    .resize-handle-track {
+      position: fixed;
+      width: 12px;
+      top: 0;
+      bottom: 0;
+      cursor: col-resize;
+      z-index: 60;
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+    }
+
+    .resize-handle-line {
+      width: 2px;
+      background: #e5e7eb;
+      border-radius: 1px;
+      transition: width 0.15s ease, background 0.15s ease;
+    }
+
+    .resize-handle-track:hover .resize-handle-line,
+    .resize-handle-track.resize-active .resize-handle-line {
+      width: 4px;
+      background: #0056D2;
+    }
+
+    /* Overlay — covers entire viewport during drag to prevent iframe event stealing */
+    .resize-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 55;
+      cursor: col-resize;
+    }
+
+    /* During resize — disable transitions for instant feedback */
+    .ai-sidebar.ai-sidebar-resizing {
+      transition: none !important;
     }
 
     /* ── Toggle tab — subtle, professional ── */
@@ -309,6 +367,13 @@ export class StudentLayoutSimpleComponent implements OnInit, OnDestroy {
   // AI Panel state (mobile)
   protected isMobilePanelOpen = signal(false);
 
+  // Resize state
+  private readonly AI_SIDEBAR_DEFAULT_WIDTH = 420;
+  private readonly AI_SIDEBAR_MIN_WIDTH = 320;
+  private readonly AI_SIDEBAR_MAX_WIDTH_RATIO = 0.5;
+  protected aiSidebarWidth = signal(420);
+  protected isResizing = signal(false);
+
   // Dynamic sidebar config with unread messages badge
   protected studentSidebarConfig = computed<SidebarConfig>(() => {
     const unreadCount = this.messagingService.totalUnreadCount();
@@ -350,6 +415,7 @@ export class StudentLayoutSimpleComponent implements OnInit, OnDestroy {
     this.loadSidebarState();
     this.loadCollapsedState();
     this.loadAiSidebarState();
+    this.loadAiSidebarWidth();
 
     // Subscribe to router events to detect navigation changes
     this.routerSubscription = this.router.events
@@ -434,6 +500,55 @@ export class StudentLayoutSimpleComponent implements OnInit, OnDestroy {
   private loadAiSidebarState(): void {
     if (typeof window !== 'undefined' && window.localStorage) {
       this.isAiSidebarOpen.set(localStorage.getItem('student_ai_sidebar_open') === 'true');
+    }
+  }
+
+  // --- AI Sidebar Resize ---
+
+  startResize(event: MouseEvent): void {
+    event.preventDefault();
+    this.isResizing.set(true);
+    const startX = event.clientX;
+    const startWidth = this.aiSidebarWidth();
+    const maxWidth = Math.min(window.innerWidth * this.AI_SIDEBAR_MAX_WIDTH_RATIO, 800);
+
+    const onMouseMove = (e: MouseEvent) => {
+      const delta = startX - e.clientX;
+      const newWidth = Math.max(this.AI_SIDEBAR_MIN_WIDTH, Math.min(maxWidth, startWidth + delta));
+      this.aiSidebarWidth.set(newWidth);
+    };
+
+    const onMouseUp = () => {
+      this.isResizing.set(false);
+      this.saveAiSidebarWidth(this.aiSidebarWidth());
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  }
+
+  resetSidebarWidth(): void {
+    this.aiSidebarWidth.set(this.AI_SIDEBAR_DEFAULT_WIDTH);
+    this.saveAiSidebarWidth(this.AI_SIDEBAR_DEFAULT_WIDTH);
+  }
+
+  private saveAiSidebarWidth(width: number): void {
+    localStorage?.setItem('student_ai_sidebar_width', width.toString());
+  }
+
+  private loadAiSidebarWidth(): void {
+    const saved = localStorage?.getItem('student_ai_sidebar_width');
+    if (saved) {
+      const w = parseInt(saved, 10);
+      if (w >= this.AI_SIDEBAR_MIN_WIDTH && w <= 800) {
+        this.aiSidebarWidth.set(w);
+      }
     }
   }
 

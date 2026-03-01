@@ -48,7 +48,7 @@ public interface JpaEnrollmentRepository extends JpaRepository<EnrollmentJpaEnti
     @Query("SELECT e FROM EnrollmentJpaEntity e WHERE e.studentId = :studentId")
     List<EnrollmentJpaEntity> findByStudentId(@Param("studentId") UUID studentId);
 
-    @Query("SELECT e FROM EnrollmentJpaEntity e WHERE e.studentId = :studentId AND e.status = 'ACTIVE'")
+    @Query("SELECT e FROM EnrollmentJpaEntity e JOIN FETCH e.learningClass WHERE e.studentId = :studentId AND e.status = 'ACTIVE'")
     List<EnrollmentJpaEntity> findActiveByStudentId(@Param("studentId") UUID studentId);
 
     @Query("SELECT e FROM EnrollmentJpaEntity e WHERE e.learningClass.id = :classId")
@@ -72,6 +72,20 @@ public interface JpaEnrollmentRepository extends JpaRepository<EnrollmentJpaEnti
         AND e.status = 'ACTIVE'
     """)
     List<EnrollmentJpaEntity> findActiveWithClass(@Param("studentId") UUID studentId);
+
+    /**
+     * Fetch ACTIVE + COMPLETED enrollments for student dashboard/my-courses.
+     * SOTA (Canvas/Coursera): Students see both in-progress and completed courses.
+     * Sorted by lastAccessedAt DESC so "Gần đây nhất" (Most Recent) works correctly.
+     */
+    @Query("""
+        SELECT e FROM EnrollmentJpaEntity e
+        JOIN FETCH e.learningClass lc
+        WHERE e.studentId = :studentId
+        AND e.status IN ('ACTIVE', 'COMPLETED')
+        ORDER BY e.lastAccessedAt DESC NULLS LAST
+    """)
+    List<EnrollmentJpaEntity> findActiveAndCompletedWithClass(@Param("studentId") UUID studentId);
 
     // Find all enrollments for a course (via learning classes)
     @Query("SELECT e FROM EnrollmentJpaEntity e JOIN FETCH e.learningClass lc WHERE lc.courseId = :courseId")
