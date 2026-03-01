@@ -11,6 +11,7 @@ export interface OfflineCourse {
   downloadedAt: Date;
   version: number;
   sizeBytes: number;
+  userId: string;
 }
 
 export interface OfflineChapter {
@@ -18,6 +19,7 @@ export interface OfflineChapter {
   courseId: string;
   title: string;
   sortOrder: number;
+  userId: string;
 }
 
 export interface OfflineLesson {
@@ -30,6 +32,7 @@ export interface OfflineLesson {
   videoOfflineUri?: string;
   sortOrder: number;
   downloadedAt: Date;
+  userId: string;
 }
 
 // ─── Offline Progress ────────────────────────────────────────────────
@@ -86,6 +89,7 @@ export interface SyncQueueItem {
   retryCount: number;
   lastError?: string;
   nextRetryAt?: Date;
+  userId: string;
 }
 
 // ─── Download Checkpoint ─────────────────────────────────────────────
@@ -96,6 +100,24 @@ export interface DownloadCheckpoint {
   totalChapters: number;
   startedAt: Date;
   updatedAt: Date;
+  userId: string;
+}
+
+/**
+ * Get current user ID from localStorage.
+ * Used by all services to scope IndexedDB operations per user.
+ * Falls back to '__anonymous__' if no user is logged in.
+ */
+export function getCurrentUserId(): string {
+  if (typeof localStorage === 'undefined') return '__anonymous__';
+  const userStr = localStorage.getItem('lms_user');
+  if (!userStr) return '__anonymous__';
+  try {
+    const user = JSON.parse(userStr);
+    return user?.id || '__anonymous__';
+  } catch {
+    return '__anonymous__';
+  }
 }
 
 // ─── Database Class ──────────────────────────────────────────────────
@@ -143,6 +165,25 @@ export class LmsOfflineDatabase extends Dexie {
       quizAttempts: '++id, quizId, userId, syncStatus, submittedAt',
       syncQueue: '++id, entityType, [syncStatus+createdAt], createdAt',
       downloadCheckpoints: 'courseId',
+    });
+
+    this.version(4).stores({
+      courses: 'id, [userId+id], userId, downloadedAt',
+      chapters: 'id, [userId+courseId], [userId+courseId+sortOrder]',
+      lessons: 'id, [userId+courseId], [userId+chapterId], [userId+courseId+sortOrder]',
+      progress: '++id, lessonId, courseId, userId, syncStatus, updatedAt',
+      submissions: '++id, assignmentId, userId, syncStatus, submittedAt',
+      quizAttempts: '++id, quizId, userId, syncStatus, submittedAt',
+      syncQueue: '++id, entityType, userId, [syncStatus+createdAt], createdAt',
+      downloadCheckpoints: '[userId+courseId]',
+    }).upgrade(tx => {
+      // Clear old data without userId — users must re-download
+      tx.table('courses').clear();
+      tx.table('chapters').clear();
+      tx.table('lessons').clear();
+      tx.table('downloadCheckpoints').clear();
+      tx.table('syncQueue').clear();
+      console.log('[LMS-Offline] v4 migration: cleared old data for multi-account isolation');
     });
   }
 }
