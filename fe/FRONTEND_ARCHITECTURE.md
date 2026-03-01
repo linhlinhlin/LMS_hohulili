@@ -593,6 +593,46 @@ items = toSignal(this.service.data$, { initialValue: [] });
 
 ---
 
+## PWA Offline-First Architecture
+
+> **Deep research**: [`docs/PWA_OFFLINE_RESEARCH.md`](../docs/PWA_OFFLINE_RESEARCH.md) — Full technical analysis, SOTA comparison, security audit
+
+### Storage Layers
+
+| Layer | Technology | Size | Content |
+|-------|-----------|------|---------|
+| IndexedDB | Dexie.js 4 (`lms-maritime-offline`) | ~50-500MB | 8 tables: courses, chapters, lessons, progress, submissions, quizAttempts, syncQueue, checkpoints |
+| Cache API | Service Worker (`offline-videos`) | ~50-500MB | Video blobs (zero-RAM streaming) |
+| NGSW Cache | Angular SW | ~20-50MB | App shell, lazy chunks, API responses (9 dataGroups) |
+| LocalStorage | Browser | ~5-10KB | JWT tokens, user data, session state |
+
+### Offline Flow
+
+```
+Download: CourseDownloadService → API → IndexedDB (per-chapter atomic) + Cache API (video)
+Access:   offlineInterceptor → IndexedDB fallback (GET) / syncQueue (POST/PUT/DELETE)
+Sync:     NetworkStatus online → 2s delay → POST /api/v3/sync/push → conflict resolution
+```
+
+### Conflict Resolution
+
+| Entity | Strategy | Rationale |
+|--------|----------|-----------|
+| Video progress | Additive merge | Segments accumulate |
+| Lesson completion | Forward-only | COMPLETED never reverts |
+| Quiz attempts | Server-wins | Grading authoritative |
+| Submissions | Deferred | Replay to endpoint |
+
+### Known Issues (from deep research S110)
+
+| Priority | Issue | Status |
+|----------|-------|--------|
+| ~~P0~~ | ~~Multi-account no data isolation (courses/chapters/lessons missing userId)~~ | **Fixed S112** |
+| P1 | No storage management UI for end users | Pending |
+| P1 | Full logout doesn't clean offline data | Pending |
+
+---
+
 ## Modernization Changelog
 
 ### 2026-03-01 Session 108 (Maritime PWA Token Management + Soft Logout)

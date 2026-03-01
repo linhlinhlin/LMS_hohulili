@@ -292,6 +292,41 @@ Student Browser (Angular 20 PWA)
 
 ---
 
+## PHASE 7: DEEP ANALYSIS + MULTI-ACCOUNT ISOLATION ⏳ IN PROGRESS
+
+**Sprint**: 7 | **Priority**: CRITICAL | **Status**: Research Complete, Implementation Pending
+
+### Research Completed (S110)
+
+Full technical analysis documented in [`docs/PWA_OFFLINE_RESEARCH.md`](docs/PWA_OFFLINE_RESEARCH.md):
+
+- [x] 7.1 End-to-end offline flow analysis (download → access → sync)
+- [x] 7.2 Multi-device behavior matrix (Chrome, Android, iOS Home Screen, iOS Safari tab)
+- [x] 7.3 Physical storage locations per platform (can users browse to folder?)
+- [x] 7.4 Edge case analysis (two accounts, storage full, 7-day eviction, crash recovery, multi-device conflict)
+- [x] 7.5 Security analysis (encryption at rest, XSS impact, cross-origin, shared device)
+- [x] 7.6 SOTA comparison (Moodle Mobile, Canvas Student, Coursera)
+
+### Implementation Tasks
+
+- [x] 7.7 **P0**: Add `userId` to courses/chapters/lessons/checkpoints (Dexie v4 migration) ✅ S112
+- [x] 7.8 **P0**: Filter all IndexedDB reads by current userId ✅ S112
+- [x] 7.9 **P0**: CourseDownloadService — scope downloads to current user ✅ S112
+- [ ] 7.10 **P1**: Full logout → clear IndexedDB + Cache API (soft logout preserves)
+- [ ] 7.11 **P1**: Storage management UI component ("Đã dùng X/Y MB")
+- [ ] 7.12 **P2**: iOS "Add to Home Screen" smart prompt for maritime users
+
+### Key Findings
+
+| Finding | Impact | Mitigation |
+|---------|--------|-----------|
+| IndexedDB scoped per ORIGIN, not per user | Two users on same browser see each other's courses | Add userId to content tables |
+| Desktop IndexedDB files are LevelDB binary | Users can browse folder but can't read content | Acceptable — not extractable as HTML/video |
+| iOS Home Screen PWA exempt from 7-day ITP | Maritime crews should use "Add to Home Screen" | Add in-app prompt |
+| No encryption at rest (standard for PWAs) | Moodle/Canvas also don't encrypt | Physical device security sufficient |
+
+---
+
 ## DEFERRED ITEMS (Future Sessions)
 
 | Item | Reason | Priority |
