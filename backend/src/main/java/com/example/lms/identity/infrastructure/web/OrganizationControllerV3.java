@@ -148,8 +148,16 @@ public class OrganizationControllerV3 {
 
         UserJpaEntity user = userJpaRepo.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("Người dùng", userId));
+
+        // P0: Check if user is already in a different org
+        if (user.getOrganizationId() != null && !id.equals(user.getOrganizationId())) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(
+                "Người dùng đã thuộc tổ chức khác. Vui lòng xóa khỏi tổ chức hiện tại trước."));
+        }
+
         user.setOrganizationId(id);
         userJpaRepo.save(user);
+        log.info("Member added: userId={} to orgId={} by={}", userId, id, currentUser.getId());
         return ResponseEntity.ok(ApiResponse.success("Đã thêm thành viên"));
     }
 
@@ -161,13 +169,28 @@ public class OrganizationControllerV3 {
             @PathVariable UUID userId,
             @AuthenticationPrincipal UserJpaEntity currentUser) {
         verifyOrgAccess(currentUser, id);
+
+        // P0: Prevent self-removal
+        if (currentUser.getId().equals(userId)) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(
+                "Không thể tự xóa chính mình khỏi tổ chức"));
+        }
+
         UserJpaEntity user = userJpaRepo.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("Người dùng", userId));
         if (!id.equals(user.getOrganizationId())) {
             throw new EntityNotFoundException("Thành viên", userId);
         }
+
+        // P0: ORG_ADMIN cannot remove ADMIN or other ORG_ADMIN
+        if (isOrgAdmin(currentUser) && (user.getRole() == UserJpaEntity.UserRole.ADMIN || user.getRole() == UserJpaEntity.UserRole.ORG_ADMIN)) {
+            return ResponseEntity.status(403).body(ApiResponse.error(
+                "Không có quyền xóa quản trị viên khỏi tổ chức"));
+        }
+
         user.setOrganizationId(null);
         userJpaRepo.save(user);
+        log.info("Member removed: userId={} from orgId={} by={}", userId, id, currentUser.getId());
         return ResponseEntity.ok(ApiResponse.success("Đã xóa thành viên"));
     }
 
@@ -191,6 +214,12 @@ public class OrganizationControllerV3 {
             throw new EntityNotFoundException("Thành viên", userId);
         }
 
+        // P1: ORG_ADMIN cannot modify token for ADMIN or other ORG_ADMIN
+        if (isOrgAdmin(currentUser) && (user.getRole() == UserJpaEntity.UserRole.ADMIN || user.getRole() == UserJpaEntity.UserRole.ORG_ADMIN)) {
+            return ResponseEntity.status(403).body(ApiResponse.error(
+                "Không có quyền thay đổi cấu hình token của quản trị viên"));
+        }
+
         user.setTokenExpiryDays(request.tokenExpiryDays());
         userJpaRepo.save(user);
 
@@ -198,6 +227,7 @@ public class OrganizationControllerV3 {
         result.put("userId", userId);
         result.put("tokenExpiryDays", request.tokenExpiryDays());
         result.put("effectiveExpiryDays", request.tokenExpiryDays() != null ? request.tokenExpiryDays() : org.getTokenExpiryDays());
+        log.info("Token config updated: userId={} orgId={} days={} by={}", userId, id, request.tokenExpiryDays(), currentUser.getId());
         return ResponseEntity.ok(ApiResponse.success(result, "Đã cập nhật cấu hình token"));
     }
 
