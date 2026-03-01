@@ -1,8 +1,9 @@
-import { Component, signal, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, signal, inject, ChangeDetectionStrategy, computed } from '@angular/core';
 
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, FormControl, Validators, ReactiveFormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
+import { NetworkStatusService } from '../../../core/services/network-status.service';
 import { LoginRequest } from '../../../shared/types/user.types';
 import { UserRole } from '../../../shared/types/user.types';
 
@@ -21,6 +22,7 @@ type LoginForm = {
 })
 export class LoginComponent {
   protected authService = inject(AuthService);
+  protected network = inject(NetworkStatusService);
   protected UserRole = UserRole;
   private router = inject(Router);
   private route = inject(ActivatedRoute);
@@ -34,6 +36,13 @@ export class LoginComponent {
   errorMessage = signal('');
   private returnUrl: string;
 
+  /** Soft logout detection — show "Resume offline" button */
+  readonly isSoftLogout = signal(false);
+  readonly canResume = computed(() =>
+    this.isSoftLogout() && this.authService.canResumeSession() && !this.network.online()
+  );
+  readonly isOffline = computed(() => !this.network.online());
+
   constructor() {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, this.emailOrUsernameValidator]],
@@ -41,8 +50,17 @@ export class LoginComponent {
       rememberMe: [false]
     }) as FormGroup<LoginForm>;
 
-    // Get return URL from route parameters or default to dashboard
     this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/dashboard';
+
+    // Detect soft logout from query params
+    if (this.route.snapshot.queryParams['softLogout'] === 'true') {
+      this.isSoftLogout.set(true);
+    }
+  }
+
+  /** Resume the offline session — restores UI state from cached tokens */
+  resumeOffline(): void {
+    this.authService.resumeOfflineSession();
   }
 
   async onSubmit(): Promise<void> {

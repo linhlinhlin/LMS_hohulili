@@ -101,6 +101,32 @@
           </p>
         </div>
 
+        <!-- Soft Logout: Offline Resume Banner (Auth0 "application-only logout" / Moodle "Change Site") -->
+        @if (canResume()) {
+          <div class="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-5 animate-fade-in">
+            <div class="flex items-start gap-3 mb-4">
+              <svg class="w-6 h-6 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M18.364 5.636a9 9 0 010 12.728M5.636 18.364a9 9 0 010-12.728m2.828 9.9a5 5 0 010-7.072m7.072 0a5 5 0 010 7.072M13 12a1 1 0 11-2 0 1 1 0 012 0z"/>
+              </svg>
+              <div>
+                <h3 class="text-sm font-semibold text-amber-900">Bạn đang ngoại tuyến</h3>
+                <p class="text-sm text-amber-700 mt-1">
+                  Phiên đã tạm ngưng. Nội dung ngoại tuyến và dữ liệu đã tải xuống vẫn được giữ lại.
+                </p>
+              </div>
+            </div>
+            <button type="button"
+                    (click)="resumeOffline()"
+                    class="w-full flex justify-center items-center py-3 px-6 rounded-xl text-sm font-semibold text-amber-900 bg-amber-200 hover:bg-amber-300 transition-colors">
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+              </svg>
+              Tiếp tục truy cập ngoại tuyến
+            </button>
+          </div>
+        }
+
         <!-- Form -->
         <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="space-y-6">
           <!-- Email Field -->

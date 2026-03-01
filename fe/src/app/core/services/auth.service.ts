@@ -55,15 +55,10 @@ export class AuthService {
   readonly isAuthenticatedSignal = computed(() => !!this._currentUser());
   readonly userRoleSignal = computed(() => this._currentUser()?.role || '');
 
-  /** Maritime PWA: block logout when offline to preserve offline access */
-  readonly canLogout = computed(() => this.network.online());
-
   login(credentials: { email: string; password: string }): Observable<AuthResponse> {
-    // Update expected type to ApiResponse<AuthResponse>
     const loginRequest = this.http.post<ApiResponse<AuthResponse>>(AUTH_ENDPOINTS.LOGIN, credentials);
 
     return loginRequest.pipe(
-      // Extract data from ApiResponse
       map(response => {
         if (!response.success || !response.data) {
           throw new Error(response.message || 'Login failed');
@@ -104,24 +99,27 @@ export class AuthService {
     );
   }
 
+  /**
+   * Logout — online: full logout (clear everything + server call).
+   * Offline: soft logout (Auth0 "application-only logout" / Moodle "Change Site" pattern).
+   *
+   * SOTA: Zero out of 12 major products (Google, Microsoft, Moodle, Auth0, Okta,
+   * ChromeOS, Intune, Canvas, Spotify, Netflix, Slack, Apple MDM) block logout
+   * when offline. The standard pattern is "local logout" — clear UI session,
+   * keep tokens + cached data, allow session resume.
+   */
   logout(): void {
-    // Maritime PWA: block logout when offline — clearing tokens would lose all offline access
-    // and user cannot login again without network connectivity
     if (!this.network.online()) {
+      this.softLogout();
       return;
     }
 
-    // ✅ FIXED: Specify 'text' response type since backend returns plain text
-    // Call backend logout (fire and forget)
+    // Online: full logout — call server + clear everything
     this.http.post(AUTH_ENDPOINTS.LOGOUT, {}, { responseType: 'text' }).subscribe({
-      next: () => {
-      },
-      error: () => {
-      }
+      next: () => {},
+      error: () => {}
     });
 
-    // Clear local storage
-    // ✅ Guard against SSR context where localStorage doesn't exist
     if (typeof localStorage !== 'undefined') {
       localStorage.removeItem(this.tokenKey);
       localStorage.removeItem(this.refreshTokenKey);
@@ -132,14 +130,83 @@ export class AuthService {
     this._currentUser.set(null);
     this.sessionService.transitionToUnauthenticated();
 
-    // Redirect to login page
     this.router.navigate(['/auth/login'], {
       queryParams: { message: 'Đã đăng xuất thành công' }
     });
   }
 
+  /**
+   * Soft logout — Auth0 "application-only logout" / Moodle "Change Site" pattern.
+   *
+   * Clears UI session state but KEEPS tokens + IndexedDB offline data.
+   * User can resume the offline session from the login page without network.
+   *
+   * Why: Maritime crews at sea for months cannot afford to lose offline access.
+   * Clearing tokens when offline = permanently locked out until network returns.
+   */
+  softLogout(): void {
+    // Clear UI session state only — user appears logged out
+    this.currentUserSubject.next(null);
+    this._currentUser.set(null);
+    this.sessionService.transitionToDegraded();
+
+    // KEEP tokens in localStorage (for offline session resume)
+    // KEEP IndexedDB offline data (downloaded courses, progress)
+    // KEEP lms_user in localStorage (for session resume to know who was logged in)
+
+    this.router.navigate(['/auth/login'], {
+      queryParams: { softLogout: 'true' }
+    });
+  }
+
+  /**
+   * Resume offline session — restore UI state from stored tokens + user data.
+   * Called from login page when user clicks "Tiếp tục ngoại tuyến".
+   *
+   * Pattern: ChromeOS cached credentials + Moodle "Change Site" resume.
+   */
+  resumeOfflineSession(): boolean {
+    const savedUser = this.getSavedUser();
+    const hasToken = this.getToken();
+
+    if (!savedUser || !hasToken) {
+      return false;
+    }
+
+    // Restore UI session from stored data
+    this.currentUserSubject.next(savedUser);
+    this._currentUser.set(savedUser);
+    this.sessionService.evaluateState();
+
+    // Navigate to role-based dashboard
+    const role = savedUser.role?.toLowerCase() || '';
+    let redirectUrl = '/';
+    switch (role) {
+      case 'admin':
+      case 'org_admin':
+        redirectUrl = '/admin';
+        break;
+      case 'teacher':
+        redirectUrl = '/teacher';
+        break;
+      case 'student':
+        redirectUrl = '/student';
+        break;
+    }
+
+    this.router.navigate([redirectUrl]);
+    return true;
+  }
+
+  /**
+   * Check if a soft-logged-out session can be resumed.
+   * True when tokens + user data exist in localStorage but UI session is cleared.
+   */
+  canResumeSession(): boolean {
+    return !!this.getToken() && !!this.getSavedUser() && !this.getCurrentUser();
+  }
+
   private setTokens(accessToken: string, refreshToken: string): void {
-    // SSR guard: Only access localStorage in browser context
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(this.tokenKey, accessToken);
       localStorage.setItem(this.refreshTokenKey, refreshToken);
@@ -147,25 +214,20 @@ export class AuthService {
   }
 
   getToken(): string | null {
-    // SSR guard: Only access localStorage in browser context
     if (typeof localStorage === 'undefined') {
       return null;
     }
-
     return localStorage.getItem(this.tokenKey);
   }
 
   private setUser(user: User): void {
-    // Normalize role to lowercase for consistency
     const normalizedUser = { ...user, role: user.role?.toLowerCase() || '' };
-    // ✅ Guard against SSR context where localStorage doesn't exist
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(this.userKey, JSON.stringify(normalizedUser));
     }
   }
 
   private getSavedUser(): User | null {
-    // ✅ Guard against SSR context where localStorage doesn't exist
     if (typeof localStorage === 'undefined') {
       return null;
     }
@@ -204,7 +266,6 @@ export class AuthService {
   }
 
   refreshToken(): Observable<AuthResponse> {
-    // SSR guard: Only access localStorage in browser context
     if (typeof localStorage === 'undefined') {
       return throwError(() => new Error('Cannot refresh token in SSR context'));
     }
