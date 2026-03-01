@@ -123,7 +123,24 @@ public class AdminCoursesControllerV3 {
     @Operation(summary = "Get system analytics including courses, users, and enrollments")
     @GetMapping("/analytics")
     @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN')")
-    public ResponseEntity<ApiResponse<CourseAnalyticsResponse>> getCourseAnalytics() {
+    public ResponseEntity<ApiResponse<CourseAnalyticsResponse>> getCourseAnalytics(
+            @AuthenticationPrincipal UserJpaEntity currentUser
+    ) {
+        CourseAnalyticsResponse analytics;
+
+        if (isOrgAdmin(currentUser)) {
+            analytics = buildOrgScopedAnalytics(currentUser);
+        } else {
+            analytics = buildSystemWideAnalytics();
+        }
+
+        return ResponseEntity.ok(ApiResponse.success(analytics, "Dữ liệu phân tích"));
+    }
+
+    /**
+     * System-wide analytics for ADMIN — unchanged from original behavior.
+     */
+    private CourseAnalyticsResponse buildSystemWideAnalytics() {
         long totalCourses = courseRepository.count();
         long pendingCourses = courseRepository.countByStatus(Course.CourseStatus.PENDING);
         long approvedCourses = courseRepository.countByStatus(Course.CourseStatus.APPROVED);
@@ -137,7 +154,6 @@ public class AdminCoursesControllerV3 {
                 + userRepository.countByRole(UserJpaEntity.UserRole.ORG_ADMIN);
         long totalEnrollments = enrollmentRepository.count();
 
-        // Revenue data from payment transactions
         BigDecimal totalRevenueBd = paymentTransactionRepository.sumTotalRevenue();
         double totalRevenue = totalRevenueBd != null ? totalRevenueBd.doubleValue() : 0.0;
 
@@ -147,7 +163,7 @@ public class AdminCoursesControllerV3 {
         BigDecimal monthlyRevenueBd = paymentTransactionRepository.sumRevenueByDateRange(monthStart, monthEnd);
         double monthlyRevenue = monthlyRevenueBd != null ? monthlyRevenueBd.doubleValue() : 0.0;
 
-        CourseAnalyticsResponse analytics = CourseAnalyticsResponse.builder()
+        return CourseAnalyticsResponse.builder()
                 .totalCourses(totalCourses)
                 .pendingCourses(pendingCourses)
                 .publishedCourses(approvedCourses)
@@ -163,8 +179,90 @@ public class AdminCoursesControllerV3 {
                 .totalRevenue(totalRevenue)
                 .monthlyRevenue(monthlyRevenue)
                 .build();
+    }
 
-        return ResponseEntity.ok(ApiResponse.success(analytics, "Dữ liệu phân tích"));
+    /**
+     * Org-scoped analytics for ORG_ADMIN — only their organization's data.
+     * Counts teachers/students/admins within org, courses by org teachers,
+     * enrollments and revenue for those courses.
+     */
+    private CourseAnalyticsResponse buildOrgScopedAnalytics(UserJpaEntity currentUser) {
+        UUID orgId = currentUser.getOrganizationId();
+
+        // 1. Org members by role
+        List<UserJpaEntity> orgMembers = orgId != null
+                ? userRepository.findByOrganizationId(orgId)
+                : List.of();
+        long totalUsers = orgMembers.size();
+        long totalTeachers = orgMembers.stream()
+                .filter(u -> u.getRole() == UserJpaEntity.UserRole.TEACHER).count();
+        long totalStudents = orgMembers.stream()
+                .filter(u -> u.getRole() == UserJpaEntity.UserRole.STUDENT).count();
+        long totalAdmins = orgMembers.stream()
+                .filter(u -> u.getRole() == UserJpaEntity.UserRole.ADMIN
+                        || u.getRole() == UserJpaEntity.UserRole.ORG_ADMIN).count();
+
+        // 2. Org teacher IDs → course counts by status
+        Set<UUID> orgTeacherIds = getOrgTeacherIds(orgId);
+        long totalCourses;
+        long pendingCourses;
+        long approvedCourses;
+        long draftCourses;
+        long rejectedCourses;
+
+        if (orgTeacherIds.isEmpty()) {
+            totalCourses = 0;
+            pendingCourses = 0;
+            approvedCourses = 0;
+            draftCourses = 0;
+            rejectedCourses = 0;
+        } else {
+            totalCourses = courseRepository.countByTeacherIdIn(orgTeacherIds);
+            pendingCourses = courseRepository.countByStatusAndTeacherIdIn(Course.CourseStatus.PENDING, orgTeacherIds);
+            approvedCourses = courseRepository.countByStatusAndTeacherIdIn(Course.CourseStatus.APPROVED, orgTeacherIds);
+            draftCourses = courseRepository.countByStatusAndTeacherIdIn(Course.CourseStatus.DRAFT, orgTeacherIds);
+            rejectedCourses = courseRepository.countByStatusAndTeacherIdIn(Course.CourseStatus.REJECTED, orgTeacherIds);
+        }
+
+        // 3. Org course IDs → enrollment count + revenue
+        List<UUID> orgCourseIds = orgTeacherIds.isEmpty()
+                ? List.of()
+                : courseRepository.findCourseIdsByTeacherIdIn(orgTeacherIds);
+
+        long totalEnrollments = 0;
+        double totalRevenue = 0.0;
+        double monthlyRevenue = 0.0;
+
+        if (!orgCourseIds.isEmpty()) {
+            totalEnrollments = enrollmentRepository.countTotalByCourseIds(orgCourseIds);
+
+            BigDecimal totalRevenueBd = paymentTransactionRepository.sumRevenueByCourseIds(orgCourseIds);
+            totalRevenue = totalRevenueBd != null ? totalRevenueBd.doubleValue() : 0.0;
+
+            YearMonth currentMonth = YearMonth.now();
+            Instant monthStart = currentMonth.atDay(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
+            Instant monthEnd = currentMonth.plusMonths(1).atDay(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
+            BigDecimal monthlyRevenueBd = paymentTransactionRepository.sumRevenueByCourseIdsAndDateRange(
+                    orgCourseIds, monthStart, monthEnd);
+            monthlyRevenue = monthlyRevenueBd != null ? monthlyRevenueBd.doubleValue() : 0.0;
+        }
+
+        return CourseAnalyticsResponse.builder()
+                .totalCourses(totalCourses)
+                .pendingCourses(pendingCourses)
+                .publishedCourses(approvedCourses)
+                .draftCourses(draftCourses)
+                .rejectedCourses(rejectedCourses)
+                .approvedCourses(approvedCourses)
+                .totalUsers(totalUsers)
+                .totalTeachers(totalTeachers)
+                .totalStudents(totalStudents)
+                .totalAdmins(totalAdmins)
+                .totalEnrollments(totalEnrollments)
+                .activeCourses(approvedCourses)
+                .totalRevenue(totalRevenue)
+                .monthlyRevenue(monthlyRevenue)
+                .build();
     }
 
     @Operation(summary = "Approve a course")

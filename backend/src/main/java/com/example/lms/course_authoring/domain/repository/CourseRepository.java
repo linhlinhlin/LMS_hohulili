@@ -5,7 +5,9 @@ import com.example.lms.shared.domain.valueobject.CourseCode;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -129,4 +131,23 @@ public interface CourseRepository {
      * Only matches codes in the format PREFIX-NNN (e.g., NAV-001).
      */
     int findMaxSequenceNumberByPrefix(String prefix);
+
+    /**
+     * Count courses whose teacher is in the given set of teacher IDs.
+     * Used for org-scoped analytics.
+     */
+    long countByTeacherIdIn(Set<UUID> teacherIds);
+
+    /**
+     * Count courses by status whose teacher is in the given set of teacher IDs.
+     * Used for org-scoped analytics.
+     */
+    long countByStatusAndTeacherIdIn(Course.CourseStatus status, Set<UUID> teacherIds);
+
+    /**
+     * Find course IDs whose teacher is in the given set of teacher IDs.
+     * Returns only IDs (not full domain objects) for efficient batch queries.
+     * Used for org-scoped enrollment and revenue analytics.
+     */
+    List<UUID> findCourseIdsByTeacherIdIn(Set<UUID> teacherIds);
 }

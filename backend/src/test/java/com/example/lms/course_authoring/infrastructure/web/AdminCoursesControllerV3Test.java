@@ -19,6 +19,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -26,7 +29,7 @@ import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for AdminCoursesControllerV3.
- * Focuses on analytics counting both ADMIN and ORG_ADMIN,
+ * Focuses on analytics counting for both ADMIN (system-wide) and ORG_ADMIN (org-scoped),
  * and verifying role-based endpoint access patterns.
  */
 @ExtendWith(MockitoExtension.class)
@@ -43,9 +46,24 @@ class AdminCoursesControllerV3Test {
 
     @InjectMocks private AdminCoursesControllerV3 controller;
 
+    private UserJpaEntity adminUser;
+    private UserJpaEntity orgAdminUser;
+    private UUID orgId;
+
+    @BeforeEach
+    void setUpUsers() {
+        adminUser = mock(UserJpaEntity.class);
+        when(adminUser.getRole()).thenReturn(UserJpaEntity.UserRole.ADMIN);
+
+        orgId = UUID.randomUUID();
+        orgAdminUser = mock(UserJpaEntity.class);
+        when(orgAdminUser.getRole()).thenReturn(UserJpaEntity.UserRole.ORG_ADMIN);
+        when(orgAdminUser.getOrganizationId()).thenReturn(orgId);
+    }
+
     @Nested
-    @DisplayName("Analytics - Admin Count Tests")
-    class AnalyticsAdminCountTests {
+    @DisplayName("Analytics - ADMIN (System-wide)")
+    class AnalyticsAdminTests {
 
         @BeforeEach
         void setUpMocks() {
@@ -75,7 +93,7 @@ class AdminCoursesControllerV3Test {
             when(userRepository.countByRole(UserJpaEntity.UserRole.ORG_ADMIN)).thenReturn(3L);
 
             // When
-            ResponseEntity<?> response = controller.getCourseAnalytics();
+            ResponseEntity<?> response = controller.getCourseAnalytics(adminUser);
 
             // Then
             assertThat(response.getStatusCode().value()).isEqualTo(200);
@@ -107,7 +125,7 @@ class AdminCoursesControllerV3Test {
             when(userRepository.countByRole(UserJpaEntity.UserRole.ORG_ADMIN)).thenReturn(0L);
 
             // When
-            ResponseEntity<?> response = controller.getCourseAnalytics();
+            ResponseEntity<?> response = controller.getCourseAnalytics(adminUser);
 
             // Then
             var apiResponse = (com.example.lms.shared.infrastructure.web.ApiResponse<?>) response.getBody();
@@ -126,7 +144,7 @@ class AdminCoursesControllerV3Test {
             when(userRepository.countByRole(UserJpaEntity.UserRole.ORG_ADMIN)).thenReturn(2L);
 
             // When
-            ResponseEntity<?> response = controller.getCourseAnalytics();
+            ResponseEntity<?> response = controller.getCourseAnalytics(adminUser);
 
             // Then
             var apiResponse = (com.example.lms.shared.infrastructure.web.ApiResponse<?>) response.getBody();
@@ -151,11 +169,128 @@ class AdminCoursesControllerV3Test {
             when(paymentTransactionRepository.sumRevenueByDateRange(any(), any())).thenReturn(null);
 
             // When
-            ResponseEntity<?> response = controller.getCourseAnalytics();
+            ResponseEntity<?> response = controller.getCourseAnalytics(adminUser);
 
             // Then
             var apiResponse = (com.example.lms.shared.infrastructure.web.ApiResponse<?>) response.getBody();
             var analytics = (AdminCoursesControllerV3.CourseAnalyticsResponse) apiResponse.getData();
+            assertThat(analytics.getTotalRevenue()).isEqualTo(0.0);
+            assertThat(analytics.getMonthlyRevenue()).isEqualTo(0.0);
+        }
+    }
+
+    @Nested
+    @DisplayName("Analytics - ORG_ADMIN (Org-scoped)")
+    class AnalyticsOrgAdminTests {
+
+        private UUID teacherId1;
+        private UUID teacherId2;
+        private Set<UUID> orgTeacherIds;
+        private List<UUID> orgCourseIds;
+
+        @BeforeEach
+        void setUpOrgData() {
+            teacherId1 = UUID.randomUUID();
+            teacherId2 = UUID.randomUUID();
+            orgTeacherIds = Set.of(teacherId1, teacherId2);
+
+            UUID courseId1 = UUID.randomUUID();
+            UUID courseId2 = UUID.randomUUID();
+            UUID courseId3 = UUID.randomUUID();
+            orgCourseIds = List.of(courseId1, courseId2, courseId3);
+
+            // Org members
+            UserJpaEntity teacher1 = mock(UserJpaEntity.class);
+            when(teacher1.getRole()).thenReturn(UserJpaEntity.UserRole.TEACHER);
+            when(teacher1.getId()).thenReturn(teacherId1);
+
+            UserJpaEntity teacher2 = mock(UserJpaEntity.class);
+            when(teacher2.getRole()).thenReturn(UserJpaEntity.UserRole.TEACHER);
+            when(teacher2.getId()).thenReturn(teacherId2);
+
+            UserJpaEntity student1 = mock(UserJpaEntity.class);
+            when(student1.getRole()).thenReturn(UserJpaEntity.UserRole.STUDENT);
+
+            UserJpaEntity student2 = mock(UserJpaEntity.class);
+            when(student2.getRole()).thenReturn(UserJpaEntity.UserRole.STUDENT);
+
+            UserJpaEntity orgAdmin = mock(UserJpaEntity.class);
+            when(orgAdmin.getRole()).thenReturn(UserJpaEntity.UserRole.ORG_ADMIN);
+
+            when(userRepository.findByOrganizationId(orgId))
+                    .thenReturn(List.of(teacher1, teacher2, student1, student2, orgAdmin));
+        }
+
+        @Test
+        @DisplayName("ORG_ADMIN analytics should only count org members and org courses")
+        void orgAdminShouldReturnOrgScopedAnalytics() {
+            // Given
+            when(courseRepository.countByTeacherIdIn(anySet())).thenReturn(3L);
+            when(courseRepository.countByStatusAndTeacherIdIn(eq(Course.CourseStatus.PENDING), anySet())).thenReturn(1L);
+            when(courseRepository.countByStatusAndTeacherIdIn(eq(Course.CourseStatus.APPROVED), anySet())).thenReturn(1L);
+            when(courseRepository.countByStatusAndTeacherIdIn(eq(Course.CourseStatus.DRAFT), anySet())).thenReturn(1L);
+            when(courseRepository.countByStatusAndTeacherIdIn(eq(Course.CourseStatus.REJECTED), anySet())).thenReturn(0L);
+            when(courseRepository.findCourseIdsByTeacherIdIn(anySet())).thenReturn(orgCourseIds);
+
+            when(enrollmentRepository.countTotalByCourseIds(orgCourseIds)).thenReturn(15L);
+            when(paymentTransactionRepository.sumRevenueByCourseIds(orgCourseIds)).thenReturn(BigDecimal.valueOf(10000));
+            when(paymentTransactionRepository.sumRevenueByCourseIdsAndDateRange(eq(orgCourseIds), any(), any()))
+                    .thenReturn(BigDecimal.valueOf(2000));
+
+            // When
+            ResponseEntity<?> response = controller.getCourseAnalytics(orgAdminUser);
+
+            // Then
+            var apiResponse = (com.example.lms.shared.infrastructure.web.ApiResponse<?>) response.getBody();
+            assertThat(apiResponse).isNotNull();
+            var analytics = (AdminCoursesControllerV3.CourseAnalyticsResponse) apiResponse.getData();
+
+            // Org member counts
+            assertThat(analytics.getTotalUsers()).isEqualTo(5L);
+            assertThat(analytics.getTotalTeachers()).isEqualTo(2L);
+            assertThat(analytics.getTotalStudents()).isEqualTo(2L);
+            assertThat(analytics.getTotalAdmins()).isEqualTo(1L); // 1 ORG_ADMIN
+
+            // Org course counts
+            assertThat(analytics.getTotalCourses()).isEqualTo(3L);
+            assertThat(analytics.getPendingCourses()).isEqualTo(1L);
+            assertThat(analytics.getPublishedCourses()).isEqualTo(1L);
+            assertThat(analytics.getDraftCourses()).isEqualTo(1L);
+            assertThat(analytics.getRejectedCourses()).isEqualTo(0L);
+
+            // Org enrollment + revenue
+            assertThat(analytics.getTotalEnrollments()).isEqualTo(15L);
+            assertThat(analytics.getTotalRevenue()).isEqualTo(10000.0);
+            assertThat(analytics.getMonthlyRevenue()).isEqualTo(2000.0);
+
+            // Verify system-wide queries were NOT called
+            verify(courseRepository, never()).count();
+            verify(courseRepository, never()).countByStatus(any());
+            verify(userRepository, never()).count();
+            verify(userRepository, never()).countByRole(any());
+            verify(enrollmentRepository, never()).count();
+            verify(paymentTransactionRepository, never()).sumTotalRevenue();
+        }
+
+        @Test
+        @DisplayName("ORG_ADMIN with no org teachers should return all zeros for course/enrollment/revenue")
+        void orgAdminNoTeachersShouldReturnZeros() {
+            // Given — override to return no teachers
+            UserJpaEntity orgAdmin = mock(UserJpaEntity.class);
+            when(orgAdmin.getRole()).thenReturn(UserJpaEntity.UserRole.ORG_ADMIN);
+            when(userRepository.findByOrganizationId(orgId)).thenReturn(List.of(orgAdmin));
+
+            // When
+            ResponseEntity<?> response = controller.getCourseAnalytics(orgAdminUser);
+
+            // Then
+            var apiResponse = (com.example.lms.shared.infrastructure.web.ApiResponse<?>) response.getBody();
+            var analytics = (AdminCoursesControllerV3.CourseAnalyticsResponse) apiResponse.getData();
+
+            assertThat(analytics.getTotalUsers()).isEqualTo(1L);
+            assertThat(analytics.getTotalTeachers()).isEqualTo(0L);
+            assertThat(analytics.getTotalCourses()).isEqualTo(0L);
+            assertThat(analytics.getTotalEnrollments()).isEqualTo(0L);
             assertThat(analytics.getTotalRevenue()).isEqualTo(0.0);
             assertThat(analytics.getMonthlyRevenue()).isEqualTo(0.0);
         }
@@ -169,7 +304,7 @@ class AdminCoursesControllerV3Test {
         @DisplayName("Should delete course when it exists")
         void shouldDeleteCourseWhenExists() {
             // Given
-            java.util.UUID courseId = java.util.UUID.randomUUID();
+            UUID courseId = UUID.randomUUID();
             when(courseRepository.existsById(courseId)).thenReturn(true);
 
             // When
@@ -184,7 +319,7 @@ class AdminCoursesControllerV3Test {
         @DisplayName("Should throw EntityNotFoundException when course does not exist")
         void shouldReturn404WhenCourseNotExists() {
             // Given
-            java.util.UUID courseId = java.util.UUID.randomUUID();
+            UUID courseId = UUID.randomUUID();
             when(courseRepository.existsById(courseId)).thenReturn(false);
 
             // When/Then

@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -69,4 +71,15 @@ public interface JpaCourseRepository extends JpaRepository<CourseJpaEntity, UUID
 
     @Query("SELECT ch.courseId, COUNT(l) FROM ChapterJpaEntity ch JOIN LessonJpaEntity l ON l.chapterId = ch.id WHERE ch.courseId IN :courseIds GROUP BY ch.courseId")
     java.util.List<Object[]> countLessonsByCourseIds(@Param("courseIds") java.util.List<UUID> courseIds);
+
+    // === Org-scoped analytics queries ===
+
+    @Query("SELECT COUNT(c) FROM CourseJpaEntity c WHERE c.teacherId IN :teacherIds")
+    long countByTeacherIdIn(@Param("teacherIds") Collection<UUID> teacherIds);
+
+    @Query("SELECT COUNT(c) FROM CourseJpaEntity c WHERE c.status = :status AND c.teacherId IN :teacherIds")
+    long countByStatusAndTeacherIdIn(@Param("status") CourseJpaEntity.CourseStatus status, @Param("teacherIds") Collection<UUID> teacherIds);
+
+    @Query("SELECT c.id FROM CourseJpaEntity c WHERE c.teacherId IN :teacherIds")
+    List<UUID> findCourseIdsByTeacherIdIn(@Param("teacherIds") Collection<UUID> teacherIds);
 }

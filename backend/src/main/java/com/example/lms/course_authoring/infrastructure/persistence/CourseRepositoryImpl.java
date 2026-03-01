@@ -11,7 +11,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -157,6 +159,25 @@ public class CourseRepositoryImpl implements CourseRepository {
     public int findMaxSequenceNumberByPrefix(String prefix) {
         Integer max = jpaRepository.findMaxSequenceNumberByPrefix(prefix);
         return max != null ? max : 0;
+    }
+
+    @Override
+    public long countByTeacherIdIn(Set<UUID> teacherIds) {
+        if (teacherIds == null || teacherIds.isEmpty()) return 0;
+        return jpaRepository.countByTeacherIdIn(teacherIds);
+    }
+
+    @Override
+    public long countByStatusAndTeacherIdIn(Course.CourseStatus status, Set<UUID> teacherIds) {
+        if (teacherIds == null || teacherIds.isEmpty()) return 0;
+        CourseJpaEntity.CourseStatus entityStatus = mapStatusToEntity(status);
+        return jpaRepository.countByStatusAndTeacherIdIn(entityStatus, teacherIds);
+    }
+
+    @Override
+    public List<UUID> findCourseIdsByTeacherIdIn(Set<UUID> teacherIds) {
+        if (teacherIds == null || teacherIds.isEmpty()) return List.of();
+        return jpaRepository.findCourseIdsByTeacherIdIn(teacherIds);
     }
 
     /**
