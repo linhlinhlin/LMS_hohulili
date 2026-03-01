@@ -5,6 +5,7 @@ import com.example.lms.identity.application.dto.RegisterUserCommand;
 import com.example.lms.identity.application.dto.UserResponse;
 import com.example.lms.identity.application.port.TokenService;
 import com.example.lms.identity.domain.event.UserRegisteredEvent;
+import com.example.lms.identity.domain.model.Organization;
 import com.example.lms.identity.domain.model.Role;
 import com.example.lms.identity.domain.model.User;
 import com.example.lms.identity.domain.repository.OrganizationRepository;
@@ -12,6 +13,7 @@ import com.example.lms.identity.domain.repository.UserRepository;
 import com.example.lms.shared.domain.event.DomainEventPublisher;
 import com.example.lms.shared.domain.valueobject.Email;
 import com.example.lms.identity.domain.valueobject.PasswordPolicy;
+import com.example.lms.shared.exception.EntityNotFoundException;
 import com.example.lms.shared.exception.ValidationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -75,13 +77,25 @@ public class RegisterUserUseCaseV2 {
 
         // Assign organization: invite code → org, or default Wiii Org
         if (command.inviteCode() != null && !command.inviteCode().isBlank()) {
-            java.util.UUID orgId = acceptInviteUseCase.acceptForNewUser(command.inviteCode().trim());
-            user.assignToOrganization(orgId);
+            try {
+                java.util.UUID orgId = acceptInviteUseCase.acceptForNewUser(command.inviteCode().trim());
+                user.assignToOrganization(orgId);
+            } catch (EntityNotFoundException e) {
+                throw new ValidationException("inviteCode", "Mã mời không hợp lệ hoặc đã hết hạn");
+            } catch (IllegalStateException e) {
+                throw new ValidationException("inviteCode", e.getMessage());
+            }
         } else {
-            // Default: assign to Wiii Org
-            organizationRepository.findByCode(DEFAULT_ORG_CODE)
-                    .filter(org -> org.isEnabled())
-                    .ifPresent(org -> user.assignToOrganization(org.getId()));
+            // Default: assign to Wiii Org — log warning if not found
+            Organization defaultOrg = organizationRepository.findByCode(DEFAULT_ORG_CODE)
+                    .filter(Organization::isEnabled)
+                    .orElse(null);
+            if (defaultOrg != null) {
+                user.assignToOrganization(defaultOrg.getId());
+            } else {
+                log.warn("Default organization '{}' not found or disabled — user {} will have no org",
+                        DEFAULT_ORG_CODE, command.email());
+            }
         }
 
         // Save using domain repository
