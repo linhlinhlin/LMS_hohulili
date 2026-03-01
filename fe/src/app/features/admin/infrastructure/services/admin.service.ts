@@ -2,7 +2,7 @@ import { Injectable, inject, signal, computed } from '@angular/core';
 import { Observable, BehaviorSubject, throwError } from 'rxjs';
 import { map, catchError, finalize } from 'rxjs/operators';
 import { ApiClient } from '../../../../api/client/api-client';
-import { ADMIN_ENDPOINTS } from '../../../../api/endpoints/admin.endpoints';
+import { ADMIN_ENDPOINTS, BulkActionResponse, CategoryDTO } from '../../../../api/endpoints/admin.endpoints';
 import { UserRole } from '../../../../core/services/auth.service';
 
 export interface SystemAnalytics {
@@ -354,6 +354,35 @@ export class AdminService {
 
         return throwError(() => error);
       })
+    );
+  }
+
+  // ============================================
+  // BULK COURSE ACTIONS
+  // ============================================
+
+  bulkApproveCourses(courseIds: string[], comment?: string): Observable<BulkActionResponse> {
+    return this.apiClient.patchWithResponse<BulkActionResponse>(ADMIN_ENDPOINTS.BULK_APPROVE, { courseIds, comment }).pipe(
+      map(response => response.data),
+      catchError(error => throwError(() => error))
+    );
+  }
+
+  bulkRejectCourses(courseIds: string[], reason: string): Observable<BulkActionResponse> {
+    return this.apiClient.patchWithResponse<BulkActionResponse>(ADMIN_ENDPOINTS.BULK_REJECT, { courseIds, reason }).pipe(
+      map(response => response.data),
+      catchError(error => throwError(() => error))
+    );
+  }
+
+  // ============================================
+  // CATEGORIES
+  // ============================================
+
+  getCategories(): Observable<CategoryDTO[]> {
+    return this.apiClient.getWithResponse<CategoryDTO[]>(ADMIN_ENDPOINTS.CATEGORIES).pipe(
+      map(response => response.data || []),
+      catchError(error => throwError(() => error))
     );
   }
 

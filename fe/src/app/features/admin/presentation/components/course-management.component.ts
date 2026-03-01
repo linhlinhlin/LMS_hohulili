@@ -2,9 +2,11 @@ import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy } 
 import { Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AdminService, AdminCourseSummary } from '../../infrastructure/services/admin.service';
+import { CategoryDTO } from '../../../../api/endpoints/admin.endpoints';
 import { ToastService } from '../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 import { AuthService } from '../../../../core/services/auth.service';
+import { exportToCsv } from '../../../../shared/utils/csv-export';
 
 @Component({
   selector: 'app-course-management',
@@ -26,11 +28,31 @@ export class CourseManagementComponent implements OnInit {
   searchQuery = signal('');
   statusFilter = signal('');
   categoryFilter = signal('');
+  fromDate = signal('');
+  toDate = signal('');
 
   // Data signals
   courses = signal<AdminCourseSummary[]>([]);
   isLoading = signal(true);
-  categories = signal<string[]>([]);
+  categories = signal<CategoryDTO[]>([]);
+
+  // Bulk selection
+  selectedCourses = signal<Set<string>>(new Set());
+  selectedCount = computed(() => this.selectedCourses().size);
+
+  // Bulk reject modal
+  showBulkRejectModal = signal(false);
+  bulkRejectReason = signal('');
+
+  pendingVisibleCourses = computed(() =>
+    this.courses().filter(c => c.status?.toLowerCase() === 'pending')
+  );
+  allPendingSelected = computed(() => {
+    const pending = this.pendingVisibleCourses();
+    if (pending.length === 0) return false;
+    const selected = this.selectedCourses();
+    return pending.every(c => selected.has(c.id));
+  });
 
   // Pagination
   currentPage = signal(0);
@@ -66,6 +88,7 @@ export class CourseManagementComponent implements OnInit {
 
   loadCourses(): void {
     this.isLoading.set(true);
+    this.clearSelection();
     const params: any = {
       page: this.currentPage(),
       size: this.pageSize()
@@ -75,6 +98,15 @@ export class CourseManagementComponent implements OnInit {
     }
     if (this.searchQuery()) {
       params.search = this.searchQuery();
+    }
+    if (this.categoryFilter()) {
+      params.categoryId = this.categoryFilter();
+    }
+    if (this.fromDate()) {
+      params.fromDate = this.fromDate();
+    }
+    if (this.toDate()) {
+      params.toDate = this.toDate();
     }
 
     this.adminService.getAllCourses(params).subscribe({
@@ -98,8 +130,10 @@ export class CourseManagementComponent implements OnInit {
   }
 
   private loadCategories(): void {
-    // Categories loaded from API when endpoint is available.
-    // For now, categories signal stays empty — filter dropdown shows only "Tất cả danh mục".
+    this.adminService.getCategories().subscribe({
+      next: (cats) => this.categories.set(cats),
+      error: () => { /* Categories unavailable — filter dropdown shows only "Tất cả danh mục" */ }
+    });
   }
 
   async approveCourse(courseId: string): Promise<void> {
@@ -293,6 +327,129 @@ export class CourseManagementComponent implements OnInit {
       case 'advanced': return 'Nâng cao';
       default: return 'Không xác định';
     }
+  }
+
+  // ============================================
+  // BULK SELECTION
+  // ============================================
+
+  toggleSelectAll(): void {
+    const pending = this.pendingVisibleCourses();
+    if (this.allPendingSelected()) {
+      this.selectedCourses.set(new Set());
+    } else {
+      this.selectedCourses.set(new Set(pending.map(c => c.id)));
+    }
+  }
+
+  toggleCourseSelection(courseId: string): void {
+    const current = new Set(this.selectedCourses());
+    if (current.has(courseId)) {
+      current.delete(courseId);
+    } else {
+      current.add(courseId);
+    }
+    this.selectedCourses.set(current);
+  }
+
+  isCourseSelected(courseId: string): boolean {
+    return this.selectedCourses().has(courseId);
+  }
+
+  clearSelection(): void {
+    this.selectedCourses.set(new Set());
+  }
+
+  // ============================================
+  // BULK ACTIONS
+  // ============================================
+
+  async bulkApprove(): Promise<void> {
+    const ids = Array.from(this.selectedCourses());
+    if (ids.length === 0) return;
+
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Phê duyệt hàng loạt',
+      message: `Bạn có chắc chắn muốn phê duyệt ${ids.length} khóa học đã chọn?`,
+      confirmText: 'Phê duyệt',
+      variant: 'warning'
+    });
+    if (!confirmed) return;
+
+    this.adminService.bulkApproveCourses(ids).subscribe({
+      next: (result) => {
+        if (result.failed > 0) {
+          this.toast.warning(`Đã duyệt ${result.success}/${result.total} khóa học. ${result.failed} thất bại.`);
+        } else {
+          this.toast.success(`Đã duyệt ${result.success}/${result.total} khóa học`);
+        }
+        this.clearSelection();
+        this.loadCourses();
+      },
+      error: (err) => {
+        this.toast.error('Không thể duyệt hàng loạt: ' + (err.error?.message || 'Vui lòng thử lại'));
+      }
+    });
+  }
+
+  openBulkRejectModal(): void {
+    if (this.selectedCourses().size === 0) return;
+    this.bulkRejectReason.set('');
+    this.showBulkRejectModal.set(true);
+  }
+
+  closeBulkRejectModal(): void {
+    this.showBulkRejectModal.set(false);
+    this.bulkRejectReason.set('');
+  }
+
+  async confirmBulkReject(): Promise<void> {
+    const ids = Array.from(this.selectedCourses());
+    const reason = this.bulkRejectReason();
+    if (ids.length === 0 || !reason.trim()) return;
+
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Từ chối hàng loạt',
+      message: `Bạn có chắc chắn muốn từ chối ${ids.length} khóa học đã chọn?`,
+      confirmText: 'Từ chối',
+      variant: 'danger'
+    });
+    if (!confirmed) return;
+
+    this.adminService.bulkRejectCourses(ids, reason).subscribe({
+      next: (result) => {
+        if (result.failed > 0) {
+          this.toast.warning(`Đã từ chối ${result.success}/${result.total} khóa học. ${result.failed} thất bại.`);
+        } else {
+          this.toast.success(`Đã từ chối ${result.success}/${result.total} khóa học`);
+        }
+        this.closeBulkRejectModal();
+        this.clearSelection();
+        this.loadCourses();
+      },
+      error: (err) => {
+        this.toast.error('Không thể từ chối hàng loạt: ' + (err.error?.message || 'Vui lòng thử lại'));
+      }
+    });
+  }
+
+  // ============================================
+  // CSV EXPORT
+  // ============================================
+
+  exportCoursesToCsv(): void {
+    const headers = ['Mã', 'Tên', 'Giảng viên', 'Trạng thái', 'Học viên', 'Ngày tạo'];
+    const rows = this.courses().map(c => [
+      c.code || '',
+      c.title || '',
+      c.teacherName || '',
+      this.getStatusText(c.status),
+      String(c.enrolledCount || 0),
+      c.createdAt ? this.formatDate(c.createdAt) : ''
+    ]);
+    const today = new Date().toISOString().slice(0, 10);
+    exportToCsv(headers, rows, `courses_${today}.csv`);
+    this.toast.success('Đã xuất CSV thành công');
   }
 
   isPendingStatus(status: string): boolean {

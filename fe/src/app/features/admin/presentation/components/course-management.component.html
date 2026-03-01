@@ -95,36 +95,93 @@
 
         <!-- Search and Filter - Coursera Style -->
         <div class="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-          <div class="flex flex-col md:flex-row gap-4">
-            <div class="flex-1">
-              <input type="text"
-                     [ngModel]="searchQuery()"
-                     (ngModelChange)="searchQuery.set($event)"
-                     (keyup.enter)="onFilterChange()"
-                     placeholder="Tìm kiếm khóa học..."
-                     class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]">
+          <div class="flex flex-col gap-4">
+            <!-- Row 1: Search + Status + Category + CSV -->
+            <div class="flex flex-col md:flex-row gap-4">
+              <div class="flex-1">
+                <input type="text"
+                       [ngModel]="searchQuery()"
+                       (ngModelChange)="searchQuery.set($event)"
+                       (keyup.enter)="onFilterChange()"
+                       placeholder="Tìm kiếm khóa học..."
+                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]">
+              </div>
+              <div class="flex gap-4 flex-wrap">
+                <select [ngModel]="statusFilter()"
+                        (ngModelChange)="statusFilter.set($event); onFilterChange()"
+                        class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]">
+                  <option value="">Tất cả trạng thái</option>
+                  <option value="draft">Nháp</option>
+                  <option value="pending">Chờ phê duyệt</option>
+                  <option value="approved">Đã phê duyệt</option>
+                  <option value="rejected">Bị từ chối</option>
+                </select>
+                <select [ngModel]="categoryFilter()"
+                        (ngModelChange)="categoryFilter.set($event); onFilterChange()"
+                        class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]">
+                  <option value="">Tất cả danh mục</option>
+                  @for (cat of categories(); track cat.id) {
+                    <option [value]="cat.id">{{ cat.name }}</option>
+                  }
+                </select>
+                <button (click)="exportCoursesToCsv()"
+                        class="inline-flex items-center px-4 py-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                        title="Xuất CSV">
+                  <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                  </svg>
+                  Xuất CSV
+                </button>
+              </div>
             </div>
-            <div class="flex gap-4">
-              <select [ngModel]="statusFilter()"
-                      (ngModelChange)="statusFilter.set($event); onFilterChange()"
-                      class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]">
-                <option value="">Tất cả trạng thái</option>
-                <option value="draft">Nháp</option>
-                <option value="pending">Chờ phê duyệt</option>
-                <option value="approved">Đã phê duyệt</option>
-                <option value="rejected">Bị từ chối</option>
-              </select>
-              <select [ngModel]="categoryFilter()"
-                      (ngModelChange)="categoryFilter.set($event); onFilterChange()"
-                      class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]">
-                <option value="">Tất cả danh mục</option>
-                @for (cat of categories(); track cat) {
-                  <option [value]="cat">{{ cat }}</option>
-                }
-              </select>
+            <!-- Row 2: Date range filters -->
+            <div class="flex flex-col md:flex-row gap-4 items-center">
+              <div class="flex items-center gap-2">
+                <label class="text-sm text-gray-600 whitespace-nowrap">Từ ngày</label>
+                <input type="date"
+                       [ngModel]="fromDate()"
+                       (ngModelChange)="fromDate.set($event); onFilterChange()"
+                       class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]">
+              </div>
+              <div class="flex items-center gap-2">
+                <label class="text-sm text-gray-600 whitespace-nowrap">Đến ngày</label>
+                <input type="date"
+                       [ngModel]="toDate()"
+                       (ngModelChange)="toDate.set($event); onFilterChange()"
+                       class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]">
+              </div>
             </div>
           </div>
         </div>
+
+        <!-- Bulk Action Toolbar -->
+        @if (selectedCount() > 0) {
+          <div class="bg-[#0056D2]/5 border border-[#0056D2]/20 rounded-lg p-4 mb-4 flex items-center justify-between">
+            <div class="text-sm font-medium text-[#004BB5]">
+              Đã chọn {{ selectedCount() }} khóa học
+            </div>
+            <div class="flex items-center gap-3">
+              <button (click)="bulkApprove()"
+                      class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors">
+                <svg class="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                </svg>
+                Duyệt ({{ selectedCount() }})
+              </button>
+              <button (click)="openBulkRejectModal()"
+                      class="inline-flex items-center px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors">
+                <svg class="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                </svg>
+                Từ chối ({{ selectedCount() }})
+              </button>
+              <button (click)="clearSelection()"
+                      class="inline-flex items-center px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors">
+                Bỏ chọn
+              </button>
+            </div>
+          </div>
+        }
 
         <!-- Courses Table -->
         <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
@@ -140,6 +197,13 @@
               <table class="w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                   <tr>
+                    <th class="px-4 py-3 w-10">
+                      <input type="checkbox"
+                             [checked]="allPendingSelected()"
+                             (change)="toggleSelectAll()"
+                             class="w-4 h-4 rounded border-gray-300 text-[#0056D2] focus:ring-[#0056D2]"
+                             title="Chọn tất cả khóa học chờ phê duyệt">
+                    </th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                       Khóa học
                     </th>
@@ -160,6 +224,15 @@
                 <tbody class="bg-white divide-y divide-gray-100">
                   @for (course of courses(); track course.id) {
                     <tr class="hover:bg-gray-50 transition-colors">
+                      <!-- Checkbox -->
+                      <td class="px-4 py-3">
+                        @if (isPendingStatus(course.status)) {
+                          <input type="checkbox"
+                                 [checked]="isCourseSelected(course.id)"
+                                 (change)="toggleCourseSelection(course.id)"
+                                 class="w-4 h-4 rounded border-gray-300 text-[#0056D2] focus:ring-[#0056D2]">
+                        }
+                      </td>
                       <!-- Course Info -->
                       <td class="px-4 py-3">
                         <div class="flex items-center">
@@ -619,6 +692,39 @@
                 Xem chi tiết đầy đủ
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Bulk Reject Modal -->
+    @if (showBulkRejectModal()) {
+      <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+          <div class="px-6 py-4 border-b border-slate-100">
+            <h3 class="text-lg font-semibold text-slate-900">Từ chối hàng loạt</h3>
+            <p class="text-sm text-slate-500 mt-1">Nhập lý do từ chối {{ selectedCount() }} khóa học đã chọn</p>
+          </div>
+          <div class="px-6 py-4">
+            <textarea
+              [ngModel]="bulkRejectReason()"
+              (ngModelChange)="bulkRejectReason.set($event)"
+              name="bulkRejectReason"
+              rows="4"
+              class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
+              placeholder="Vui lòng giải thích lý do từ chối..."
+            ></textarea>
+          </div>
+          <div class="px-6 py-3 bg-slate-50 flex justify-end gap-3">
+            <button (click)="closeBulkRejectModal()"
+                    class="px-4 py-2 text-sm font-medium text-slate-700 bg-white rounded-lg ring-1 ring-slate-200 hover:bg-slate-50 transition-colors">
+              Hủy
+            </button>
+            <button (click)="confirmBulkReject()"
+                    [disabled]="!bulkRejectReason().trim()"
+                    class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+              Từ chối ({{ selectedCount() }})
+            </button>
           </div>
         </div>
       </div>

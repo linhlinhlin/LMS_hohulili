@@ -17,6 +17,11 @@ export const ADMIN_ENDPOINTS = {
   REJECT_COURSE: (courseId: string) => `/api/v3/admin/courses/${courseId}/reject`,
   REVOKE_COURSE: (courseId: string) => `/api/v3/admin/courses/${courseId}/revoke`,
   DELETE_COURSE: (courseId: string) => `/api/v3/admin/courses/${courseId}`,
+  BULK_APPROVE: '/api/v3/admin/courses/bulk-approve',
+  BULK_REJECT: '/api/v3/admin/courses/bulk-reject',
+
+  // === Categories ===
+  CATEGORIES: '/api/v3/categories',
 
   // === User Management ===
   USERS: '/api/v3/users',
@@ -44,3 +49,17 @@ export const ADMIN_ENDPOINTS = {
   VALIDATE_UPLOAD: '/api/v3/files/validate',
   DELETE_FILE: '/api/v3/files'
 } as const;
+
+export interface BulkActionResponse {
+  total: number;
+  success: number;
+  failed: number;
+  errors: string[];
+}
+
+export interface CategoryDTO {
+  id: string;
+  code: string;
+  name: string;
+  prefix: string;
+}

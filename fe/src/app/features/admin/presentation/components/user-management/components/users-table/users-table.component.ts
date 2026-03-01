@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UserManagementState } from '../../state/user-management.state';
 import { AdminUser } from '../../../../../infrastructure/services/admin.service';
+import { exportToCsv } from '../../../../../../../shared/utils/csv-export';
 
 @Component({
   selector: 'app-users-table',
@@ -30,6 +31,18 @@ import { AdminUser } from '../../../../../infrastructure/services/admin.service'
     td { overflow: visible; }
   `],
   template: `
+    <!-- Toolbar -->
+    <div class="flex items-center justify-end mb-4">
+      <button (click)="exportUsersToCsv()"
+              class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+              title="Xuất CSV">
+        <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        Xuất CSV
+      </button>
+    </div>
+
     <div class="bg-white rounded-lg border border-gray-200 overflow-hidden relative">
       <!-- Deletion Loading Overlay -->
       @if (state.isDeletingUser()) {
@@ -246,5 +259,19 @@ export class UsersTableComponent {
     if (status) {
       this.statusAction.emit({ user, status });
     }
+  }
+
+  exportUsersToCsv(): void {
+    const users = this.state.filteredUsers();
+    const headers = ['Email', 'Họ tên', 'Vai trò', 'Trạng thái', 'Ngày tạo'];
+    const rows = users.map(u => [
+      u.email,
+      u.name,
+      this.state.getRoleText(u.role),
+      this.state.getStatusLabel(u.accountStatus),
+      u.createdAt ? this.state.formatDate(u.createdAt) : ''
+    ]);
+    const today = new Date().toISOString().slice(0, 10);
+    exportToCsv(headers, rows, `users_${today}.csv`);
   }
 }
