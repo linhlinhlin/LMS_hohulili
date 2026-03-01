@@ -97,6 +97,12 @@ public class AcceptInviteUseCase {
             throw new ValidationException("invite", "Bạn đã là thành viên của tổ chức này");
         }
 
+        // P0: Block if user is already in a different org (must be removed first)
+        if (user.getOrganizationId() != null && !org.getId().equals(user.getOrganizationId())) {
+            throw new ValidationException("invite",
+                "Bạn đang thuộc tổ chức khác. Vui lòng liên hệ quản trị viên để chuyển tổ chức.");
+        }
+
         // Record use with TOCTOU protection
         try {
             invite.recordUse();
