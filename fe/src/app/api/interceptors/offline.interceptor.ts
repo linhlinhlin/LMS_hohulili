@@ -102,8 +102,9 @@ async function getOfflineFallback(url: string): Promise<any | null> {
     // Pattern: /api/v3/courses/{id}
     const courseMatch = path.match(/^\/api\/v3\/courses\/([a-f0-9-]+)$/);
     if (courseMatch) {
-      const course = await offlineDb.courses.get(courseMatch[1]);
-      if (course && course.userId === getCurrentUserId()) {
+      const userId = getCurrentUserId();
+      const course = await offlineDb.courses.get([userId, courseMatch[1]]);
+      if (course) {
         return { success: true, data: course, _offline: true };
       }
     }
@@ -152,8 +153,9 @@ async function getOfflineFallback(url: string): Promise<any | null> {
     // Pattern: /api/v3/lessons/{id} or similar lesson paths
     const lessonMatch = path.match(/\/lessons\/([a-f0-9-]+)$/);
     if (lessonMatch) {
-      const lesson = await offlineDb.lessons.get(lessonMatch[1]);
-      if (lesson && lesson.userId === getCurrentUserId()) {
+      const userId = getCurrentUserId();
+      const lesson = await offlineDb.lessons.get([userId, lessonMatch[1]]);
+      if (lesson) {
         return { success: true, data: lesson, _offline: true };
       }
     }

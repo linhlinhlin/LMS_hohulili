@@ -76,10 +76,11 @@ export class OfflineVideoService {
       });
       await cache.put(`/offline-video/${lessonId}`, cacheResponse);
 
-      // Update IndexedDB lesson record
-      const existingLesson = await offlineDb.lessons.get(lessonId);
-      if (existingLesson && existingLesson.userId === getCurrentUserId()) {
-        await offlineDb.lessons.update(lessonId, {
+      // Update IndexedDB lesson record (compound primary key: [userId, lessonId])
+      const userId = getCurrentUserId();
+      const existingLesson = await offlineDb.lessons.get([userId, lessonId]);
+      if (existingLesson) {
+        await offlineDb.lessons.update([userId, lessonId], {
           videoOfflineUri: `cache:${lessonId}`,
           downloadedAt: new Date(),
         });
@@ -102,6 +103,11 @@ export class OfflineVideoService {
    * Revokes previous blob URL for same lesson to prevent memory leaks.
    */
   async getVideoUrl(lessonId: string): Promise<string | null> {
+    // Verify lesson belongs to current user before serving video
+    const userId = getCurrentUserId();
+    const lesson = await offlineDb.lessons.get([userId, lessonId]);
+    if (!lesson) return null;
+
     const cache = await caches.open('offline-videos');
     const response = await cache.match(`/offline-video/${lessonId}`);
     if (!response) return null;
@@ -129,9 +135,10 @@ export class OfflineVideoService {
       this.blobUrls.delete(lessonId);
     }
 
-    const lesson = await offlineDb.lessons.get(lessonId);
-    if (lesson && lesson.userId === getCurrentUserId()) {
-      await offlineDb.lessons.update(lessonId, { videoOfflineUri: undefined });
+    const userId = getCurrentUserId();
+    const lesson = await offlineDb.lessons.get([userId, lessonId]);
+    if (lesson) {
+      await offlineDb.lessons.update([userId, lessonId], { videoOfflineUri: undefined });
     }
 
     await this.refreshList();
@@ -154,6 +161,7 @@ export class OfflineVideoService {
       const cache = await caches.open('offline-videos');
       const keys = await cache.keys();
       const entries: OfflineVideoEntry[] = [];
+      const userId = getCurrentUserId();
 
       for (const request of keys) {
         const url = new URL(request.url);
@@ -163,8 +171,8 @@ export class OfflineVideoService {
 
         // Use Content-Length header to avoid loading blob into RAM
         const sizeBytes = Number(response.headers.get('content-length')) || 0;
-        const lesson = await offlineDb.lessons.get(lessonId);
-        if (lesson && lesson.userId !== getCurrentUserId()) continue;
+        const lesson = await offlineDb.lessons.get([userId, lessonId]);
+        if (!lesson) continue;
 
         entries.push({
           lessonId,

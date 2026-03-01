@@ -168,9 +168,9 @@ export class LmsOfflineDatabase extends Dexie {
     });
 
     this.version(4).stores({
-      courses: 'id, [userId+id], userId, downloadedAt',
-      chapters: 'id, [userId+courseId], [userId+courseId+sortOrder]',
-      lessons: 'id, [userId+courseId], [userId+chapterId], [userId+courseId+sortOrder]',
+      courses: '[userId+id], userId, downloadedAt',
+      chapters: '[userId+id], [userId+courseId], [userId+courseId+sortOrder]',
+      lessons: '[userId+id], [userId+courseId], [userId+chapterId], [userId+courseId+sortOrder]',
       progress: '++id, lessonId, courseId, userId, syncStatus, updatedAt',
       submissions: '++id, assignmentId, userId, syncStatus, submittedAt',
       quizAttempts: '++id, quizId, userId, syncStatus, submittedAt',

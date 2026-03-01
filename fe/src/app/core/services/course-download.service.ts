@@ -215,7 +215,7 @@ export class CourseDownloadService {
     await offlineDb.lessons.where('[userId+courseId]').equals([userId, courseId]).delete();
     await offlineDb.chapters.where('[userId+courseId]').equals([userId, courseId]).delete();
     await offlineDb.progress.where('courseId').equals(courseId).filter(p => p.userId === userId).delete();
-    await offlineDb.courses.delete(courseId);
+    await offlineDb.courses.delete([userId, courseId]);
     await offlineDb.downloadCheckpoints.delete([userId, courseId]);
 
     // Clean orphaned syncQueue entries for this course
@@ -249,17 +249,17 @@ export class CourseDownloadService {
    * Check if a course is available offline (async version).
    */
   async isDownloaded(courseId: string): Promise<boolean> {
-    const course = await offlineDb.courses.get(courseId);
-    return course !== undefined && course.userId === getCurrentUserId();
+    const userId = getCurrentUserId();
+    const course = await offlineDb.courses.get([userId, courseId]);
+    return course !== undefined;
   }
 
   /**
    * Get offline course metadata.
    */
   async getOfflineCourse(courseId: string): Promise<OfflineCourse | undefined> {
-    const course = await offlineDb.courses.get(courseId);
-    if (course && course.userId === getCurrentUserId()) return course;
-    return undefined;
+    const userId = getCurrentUserId();
+    return offlineDb.courses.get([userId, courseId]);
   }
 
   /**
@@ -277,9 +277,8 @@ export class CourseDownloadService {
    * Get offline lesson content.
    */
   async getOfflineLesson(lessonId: string): Promise<OfflineLesson | undefined> {
-    const lesson = await offlineDb.lessons.get(lessonId);
-    if (lesson && lesson.userId === getCurrentUserId()) return lesson;
-    return undefined;
+    const userId = getCurrentUserId();
+    return offlineDb.lessons.get([userId, lessonId]);
   }
 
   /**
