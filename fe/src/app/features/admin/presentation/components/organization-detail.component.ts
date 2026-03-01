@@ -111,37 +111,47 @@ type Tab = 'members' | 'invites' | 'settings';
                         </span>
                       </td>
                       <td class="px-5 py-3.5">
-                        @if (editingTokenMemberId() === member.id) {
-                          <div class="flex items-center gap-1.5">
-                            <input #tokenInput type="number" [value]="member.tokenExpiryDays ?? ''"
-                                   min="1" [max]="org()!.tokenExpiryDays"
-                                   placeholder="Mặc định"
-                                   class="w-20 px-2 py-1 border border-gray-300 rounded-lg text-xs focus:ring-1 focus:ring-[#0056D2] focus:border-[#0056D2]">
-                            <button (click)="saveMemberTokenExpiry(member.id, tokenInput.value)"
-                                    class="p-1 text-[#0056D2] hover:bg-[#0056D2]/10 rounded transition-colors"
-                                    title="Lưu">
-                              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                              </svg>
+                        @if (canEditMember(member)) {
+                          @if (editingTokenMemberId() === member.id) {
+                            <div class="flex items-center gap-1.5">
+                              <input #tokenInput type="number" [value]="member.tokenExpiryDays ?? ''"
+                                     min="1" [max]="org()!.tokenExpiryDays"
+                                     placeholder="Mặc định"
+                                     class="w-20 px-2 py-1 border border-gray-300 rounded-lg text-xs focus:ring-1 focus:ring-[#0056D2] focus:border-[#0056D2]">
+                              <button (click)="saveMemberTokenExpiry(member.id, tokenInput.value)"
+                                      class="p-1 text-[#0056D2] hover:bg-[#0056D2]/10 rounded transition-colors"
+                                      title="Lưu">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                              </button>
+                              <button (click)="editingTokenMemberId.set('')"
+                                      class="p-1 text-gray-400 hover:bg-gray-100 rounded transition-colors"
+                                      title="Hủy">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                              </button>
+                            </div>
+                          } @else {
+                            <button (click)="editingTokenMemberId.set(member.id)"
+                                    class="text-xs text-gray-600 hover:text-[#0056D2] transition-colors"
+                                    title="Nhấn để chỉnh sửa">
+                              @if (member.tokenExpiryDays) {
+                                <span class="font-medium">{{ member.tokenExpiryDays }} ngày</span>
+                              } @else {
+                                <span class="text-gray-400">Mặc định tổ chức</span>
+                              }
                             </button>
-                            <button (click)="editingTokenMemberId.set('')"
-                                    class="p-1 text-gray-400 hover:bg-gray-100 rounded transition-colors"
-                                    title="Hủy">
-                              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                              </svg>
-                            </button>
-                          </div>
+                          }
                         } @else {
-                          <button (click)="editingTokenMemberId.set(member.id)"
-                                  class="text-xs text-gray-600 hover:text-[#0056D2] transition-colors"
-                                  title="Nhấn để chỉnh sửa">
+                          <span class="text-xs text-gray-400">
                             @if (member.tokenExpiryDays) {
-                              <span class="font-medium">{{ member.tokenExpiryDays }} ngày</span>
+                              {{ member.tokenExpiryDays }} ngày
                             } @else {
-                              <span class="text-gray-400">Mặc định tổ chức</span>
+                              Mặc định tổ chức
                             }
-                          </button>
+                          </span>
                         }
                       </td>
                       <td class="px-5 py-3.5">
@@ -465,6 +475,14 @@ export class OrganizationDetailComponent implements OnInit {
       next: (invites) => this.invites.set(invites),
       error: () => this.toast.error('Không thể tải danh sách lời mời')
     });
+  }
+
+  /** ORG_ADMIN cannot edit token expiry for ADMIN/ORG_ADMIN members */
+  canEditMember(member: OrgMember): boolean {
+    const currentRole = this.authService.userRole();
+    if (currentRole === 'admin') return true;
+    const memberRole = member.role?.toUpperCase();
+    return memberRole !== 'ADMIN' && memberRole !== 'ORG_ADMIN';
   }
 
   canRemoveMember(member: OrgMember): boolean {

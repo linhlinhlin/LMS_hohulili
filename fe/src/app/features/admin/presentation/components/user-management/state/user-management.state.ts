@@ -59,6 +59,8 @@ export class UserManagementState {
   searchQuery = signal('');
   roleFilter = signal('');
   statusFilter = signal('');
+  fromDate = signal('');
+  toDate = signal('');
 
   // Modal states
   showCreateModal = signal(false);
@@ -160,6 +162,8 @@ export class UserManagementState {
     if (this.searchQuery()) params.search = this.searchQuery();
     if (this.roleFilter()) params.role = this.roleFilter();
     if (this.statusFilter()) params.status = this.statusFilter();
+    if (this.fromDate()) params.fromDate = this.fromDate();
+    if (this.toDate()) params.toDate = this.toDate();
 
     this.adminService.getUsers(params)
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -208,10 +212,22 @@ export class UserManagementState {
     this.loadUsers(1);
   }
 
+  onFromDateChange(value: string): void {
+    this.fromDate.set(value);
+    this.loadUsers(1);
+  }
+
+  onToDateChange(value: string): void {
+    this.toDate.set(value);
+    this.loadUsers(1);
+  }
+
   clearFilters(): void {
     this.searchQuery.set('');
     this.roleFilter.set('');
     this.statusFilter.set('');
+    this.fromDate.set('');
+    this.toDate.set('');
     this.loadUsers(1);
   }
 

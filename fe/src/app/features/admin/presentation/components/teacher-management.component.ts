@@ -6,6 +6,7 @@ import { forkJoin } from 'rxjs';
 import { AdminService, AdminUser, UserAccountStatus, UpdateUserStatusRequest } from '../../infrastructure/services/admin.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
+import { AuthService } from '../../../../core/services/auth.service';
 
 /**
  * Teacher Management Component
@@ -30,6 +31,9 @@ export class TeacherManagementComponent implements OnInit {
   private adminService = inject(AdminService);
   private toast = inject(ToastService);
   private confirmDialog = inject(ConfirmDialogService);
+  private authService = inject(AuthService);
+
+  isSystemAdmin = computed(() => this.authService.userRole() === 'admin');
 
   // State
   allUsers = signal<AdminUser[]>([]);
@@ -85,7 +89,7 @@ export class TeacherManagementComponent implements OnInit {
 
   loadUsers() {
     this.isLoading.set(true);
-    this.adminService.getUsers({ page: 1, limit: 1000 }).subscribe({
+    this.adminService.getUsers({ page: 0, size: 200, role: 'TEACHER' }).subscribe({
       next: (response) => {
         this.allUsers.set(response.data || []);
         this.isLoading.set(false);

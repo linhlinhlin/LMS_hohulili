@@ -1,7 +1,8 @@
-import { Component, signal, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 
 import { AdminService, SystemAnalytics } from '../../infrastructure/services/admin.service';
 import { ToastService } from '../../../../core/services/toast.service';
+import { AuthService } from '../../../../core/services/auth.service';
 
 @Component({
   selector: 'app-admin-analytics',
@@ -12,6 +13,14 @@ import { ToastService } from '../../../../core/services/toast.service';
 export class AdminAnalyticsComponent implements OnInit {
   private adminService = inject(AdminService);
   private toast = inject(ToastService);
+  private authService = inject(AuthService);
+
+  isSystemAdmin = computed(() => this.authService.userRole() === 'admin');
+  pageTitle = computed(() => this.isSystemAdmin() ? 'Phân tích hệ thống' : 'Phân tích tổ chức');
+  pageSubtitle = computed(() => this.isSystemAdmin()
+    ? 'Theo dõi và phân tích hiệu suất tổng thể của hệ thống LMS'
+    : 'Theo dõi và phân tích hiệu suất của tổ chức bạn quản lý'
+  );
 
   // State
   analytics = signal<SystemAnalytics | null>(null);
