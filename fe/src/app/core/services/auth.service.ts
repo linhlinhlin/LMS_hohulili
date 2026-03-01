@@ -154,9 +154,7 @@ export class AuthService {
     // KEEP IndexedDB offline data (downloaded courses, progress)
     // KEEP lms_user in localStorage (for session resume to know who was logged in)
 
-    this.router.navigate(['/auth/login'], {
-      queryParams: { softLogout: 'true' }
-    });
+    this.router.navigate(['/auth/login']);
   }
 
   /**
@@ -227,7 +225,7 @@ export class AuthService {
     }
   }
 
-  private getSavedUser(): User | null {
+  getSavedUser(): User | null {
     if (typeof localStorage === 'undefined') {
       return null;
     }

@@ -1,6 +1,6 @@
 import { Component, signal, inject, ChangeDetectionStrategy, computed } from '@angular/core';
 
-import { RouterModule, Router, ActivatedRoute } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { FormBuilder, FormGroup, FormControl, Validators, ReactiveFormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
 import { NetworkStatusService } from '../../../core/services/network-status.service';
@@ -25,7 +25,6 @@ export class LoginComponent {
   protected network = inject(NetworkStatusService);
   protected UserRole = UserRole;
   private router = inject(Router);
-  private route = inject(ActivatedRoute);
   private fb = inject(FormBuilder);
 
   loginForm: FormGroup<LoginForm>;
@@ -34,14 +33,24 @@ export class LoginComponent {
   successMessage = signal('');
   isLoading = signal(false);
   errorMessage = signal('');
-  private returnUrl: string;
 
-  /** Soft logout detection — show "Resume offline" button */
-  readonly isSoftLogout = signal(false);
-  readonly canResume = computed(() =>
-    this.isSoftLogout() && this.authService.canResumeSession() && !this.network.online()
-  );
+  /** 3-mode login page: Online / Offline+Resume / Offline+NoSession */
   readonly isOffline = computed(() => !this.network.online());
+  readonly canResume = computed(() =>
+    this.isOffline() && this.authService.canResumeSession()
+  );
+  readonly isOfflineNoSession = computed(() =>
+    this.isOffline() && !this.canResume()
+  );
+  readonly savedUser = computed(() =>
+    this.canResume() ? this.authService.getSavedUser() : null
+  );
+  readonly savedUserInitial = computed(() => {
+    const user = this.savedUser();
+    if (!user) return '';
+    const name = user.fullName || user.name || user.email || '';
+    return name.charAt(0).toUpperCase();
+  });
 
   constructor() {
     this.loginForm = this.fb.group({
@@ -49,13 +58,6 @@ export class LoginComponent {
       password: ['', [Validators.required, Validators.minLength(6)]],
       rememberMe: [false]
     }) as FormGroup<LoginForm>;
-
-    this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/dashboard';
-
-    // Detect soft logout from query params
-    if (this.route.snapshot.queryParams['softLogout'] === 'true') {
-      this.isSoftLogout.set(true);
-    }
   }
 
   /** Resume the offline session — restores UI state from cached tokens */

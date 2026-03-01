@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, computed } from '@angular/core';
 import { Router } from '@angular/router';
 import { SessionExpiredService } from '../../../core/services/session-expired.service';
 
@@ -6,7 +6,7 @@ import { SessionExpiredService } from '../../../core/services/session-expired.se
   selector: 'app-session-expired-banner',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    @if (session.showExpiredBanner()) {
+    @if (showBanner()) {
       <div class="fixed top-0 left-0 right-0 z-[101] bg-amber-500 text-white px-4 py-2 flex items-center justify-between shadow-md"
            role="alert"
            aria-live="assertive">
@@ -30,6 +30,11 @@ import { SessionExpiredService } from '../../../core/services/session-expired.se
 export class SessionExpiredBannerComponent {
   protected readonly session = inject(SessionExpiredService);
   private readonly router = inject(Router);
+
+  /** Hide banner on auth pages — login page handles its own offline state */
+  protected readonly showBanner = computed(() =>
+    this.session.showExpiredBanner() && !this.router.url.startsWith('/auth')
+  );
 
   goToLogin(): void {
     // Can't login without network — only navigate if online
