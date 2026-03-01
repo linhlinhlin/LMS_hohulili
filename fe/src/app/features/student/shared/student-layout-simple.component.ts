@@ -452,11 +452,11 @@ export class StudentLayoutSimpleComponent implements OnInit, OnDestroy {
     const failed = this.syncService.failedCount();
 
     if (pending > 0 || failed > 0) {
-      if (this.network.online()) {
+      if (this.network.online() && pending > 0) {
         // Online with pending items — try to sync first
         const confirmed = await this.dialog.confirm({
           title: 'Đồng bộ trước khi đăng xuất?',
-          message: `Bạn có ${pending} mục chờ đồng bộ và ${failed} mục lỗi. Đồng bộ trước khi đăng xuất?`,
+          message: `Bạn có ${pending} mục chờ đồng bộ. Đồng bộ trước khi đăng xuất?`,
           variant: 'warning',
           confirmText: 'Đồng bộ & Đăng xuất',
           cancelText: 'Đăng xuất ngay'
@@ -469,7 +469,7 @@ export class StudentLayoutSimpleComponent implements OnInit, OnDestroy {
             // Sync failed — proceed with logout anyway
           }
         }
-      } else {
+      } else if (!this.network.online()) {
         // Offline with pending items — warn user
         const confirmed = await this.dialog.confirm({
           title: 'Dữ liệu chưa đồng bộ',
@@ -481,6 +481,8 @@ export class StudentLayoutSimpleComponent implements OnInit, OnDestroy {
 
         if (!confirmed) return;
       }
+      // Online with only failed items (pending === 0) — proceed directly
+      // (failed items need manual retry in Storage Management, not auto-sync)
     }
 
     this.authService.logout();

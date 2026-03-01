@@ -260,7 +260,6 @@ export class CourseDownloadService {
 
     await this.refreshDownloadedCourses();
     await this.storage.refresh();
-    this.toast.success('Đã xóa tất cả dữ liệu ngoại tuyến');
   }
 
   /**
