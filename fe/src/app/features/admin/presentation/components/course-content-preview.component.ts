@@ -1,5 +1,6 @@
 import { Component, ChangeDetectionStrategy, inject, signal, computed, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Location } from '@angular/common';
 import { DomSanitizer } from '@angular/platform-browser';
 import { CourseApi } from '../../../../api/client/course.api';
 import { AdminService } from '../../infrastructure/services/admin.service';
@@ -321,6 +322,7 @@ export class CourseContentPreviewComponent implements OnInit {
   private toast = inject(ToastService);
   private confirmDialog = inject(ConfirmDialogService);
   private sanitizer = inject(DomSanitizer);
+  private location = inject(Location);
 
   course = signal<CourseDetail | null>(null);
   chapters = signal<CourseContentChapter[]>([]);
@@ -532,6 +534,6 @@ export class CourseContentPreviewComponent implements OnInit {
   }
 
   goBack(): void {
-    this.router.navigate(['/admin/courses/review']);
+    this.location.back();
   }
 }

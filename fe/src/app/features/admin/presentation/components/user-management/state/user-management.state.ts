@@ -97,6 +97,29 @@ export class UserManagementState {
   isLoadingUsers = signal(false);
   isDeletingUser = signal(false);
 
+  // Role checks
+  /** True if current user is ADMIN (not ORG_ADMIN) */
+  readonly isSystemAdmin = computed(() => this.authService.userRole() === 'admin');
+
+  /** ORG_ADMIN cannot delete users (ADMIN-only backend endpoint) */
+  canDeleteUser(user: AdminUser): boolean {
+    return this.isSystemAdmin();
+  }
+
+  /** ORG_ADMIN cannot change status of ADMIN/ORG_ADMIN users */
+  canChangeStatus(user: AdminUser): boolean {
+    if (this.isSystemAdmin()) return true;
+    const role = user.role?.toUpperCase();
+    return role !== 'ADMIN' && role !== 'ORG_ADMIN';
+  }
+
+  /** ORG_ADMIN cannot change role of ADMIN/ORG_ADMIN users */
+  canChangeRole(user: AdminUser): boolean {
+    if (this.isSystemAdmin()) return true;
+    const role = user.role?.toUpperCase();
+    return role !== 'ADMIN' && role !== 'ORG_ADMIN';
+  }
+
   // Computed - Stats
   totalUsers = computed(() => this._localUsers().length);
   totalTeachers = computed(() => this._localUsers().filter(u => u.role === 'TEACHER').length);

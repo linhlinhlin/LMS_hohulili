@@ -18,6 +18,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
@@ -60,7 +61,8 @@ public class AdminCoursesControllerV3 {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String status,
-            @RequestParam(required = false) String search
+            @RequestParam(required = false) String search,
+            @AuthenticationPrincipal UserJpaEntity currentUser
     ) {
         // Sort PENDING first, then by createdAt descending
         PageRequest pageable = PageRequest.of(page, Math.min(size, 100),
@@ -87,6 +89,12 @@ public class AdminCoursesControllerV3 {
             courses = courseRepository.findAll(pageable);
         }
 
+        // ORG_ADMIN: filter to courses whose teacher is in their org
+        if (isOrgAdmin(currentUser)) {
+            Set<UUID> orgTeacherIds = getOrgTeacherIds(currentUser.getOrganizationId());
+            courses = filterCoursesByTeachers(courses, orgTeacherIds);
+        }
+
         Page<CourseAdminResponse> response = enrichCourses(courses);
         return ResponseEntity.ok(ApiResponse.success(response, "Danh sách khóa học"));
     }
@@ -96,10 +104,18 @@ public class AdminCoursesControllerV3 {
     @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN')")
     public ResponseEntity<ApiResponse<Page<CourseAdminResponse>>> getPendingCourses(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "10") int size,
+            @AuthenticationPrincipal UserJpaEntity currentUser
     ) {
         PageRequest pageable = PageRequest.of(page, Math.min(size, 100));
         Page<Course> courses = courseRepository.findByStatus(Course.CourseStatus.PENDING, pageable);
+
+        // ORG_ADMIN: filter to courses whose teacher is in their org
+        if (isOrgAdmin(currentUser)) {
+            Set<UUID> orgTeacherIds = getOrgTeacherIds(currentUser.getOrganizationId());
+            courses = filterCoursesByTeachers(courses, orgTeacherIds);
+        }
+
         Page<CourseAdminResponse> response = enrichCourses(courses);
         return ResponseEntity.ok(ApiResponse.success(response, "Danh sách khóa học chờ duyệt"));
     }
@@ -160,6 +176,8 @@ public class AdminCoursesControllerV3 {
             @AuthenticationPrincipal UserJpaEntity admin
     ) {
         String comment = request != null ? request.getComment() : "Đã duyệt";
+        // ORG_ADMIN: verify course teacher is in their org
+        verifyCourseOrgAccess(courseId, admin);
         // Delegate to use case — publishes CourseApprovedEvent domain events
         approveCourseUseCase.execute(courseId, admin.getId(), comment);
         Course course = courseRepository.findById(courseId)
@@ -175,6 +193,8 @@ public class AdminCoursesControllerV3 {
             @Valid @RequestBody RejectRequest request,
             @AuthenticationPrincipal UserJpaEntity admin
     ) {
+        // ORG_ADMIN: verify course teacher is in their org
+        verifyCourseOrgAccess(courseId, admin);
         // Delegate to use case for proper domain layer handling
         rejectCourseUseCase.execute(courseId, admin.getId(), request.getReason());
         Course course = courseRepository.findById(courseId)
@@ -191,6 +211,8 @@ public class AdminCoursesControllerV3 {
             @AuthenticationPrincipal UserJpaEntity admin
     ) {
         String reason = request != null ? request.getReason() : "Bị thu hồi bởi quản trị viên";
+        // ORG_ADMIN: verify course teacher is in their org
+        verifyCourseOrgAccess(courseId, admin);
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new EntityNotFoundException("Khóa học", courseId));
         course.revoke(admin.getId(), reason);
@@ -331,6 +353,42 @@ public class AdminCoursesControllerV3 {
                 .updatedAt(course.getUpdatedAt() != null ? course.getUpdatedAt().toString() : null)
                 .approvedAt(course.getReviewedAt() != null ? course.getReviewedAt().toString() : null)
                 .build();
+    }
+
+    // === Org-Scoping Helpers ===
+
+    private boolean isOrgAdmin(UserJpaEntity user) {
+        return user.getRole() == UserJpaEntity.UserRole.ORG_ADMIN;
+    }
+
+    private Set<UUID> getOrgTeacherIds(UUID organizationId) {
+        if (organizationId == null) return Set.of();
+        return userRepository.findByOrganizationId(organizationId).stream()
+                .filter(u -> u.getRole() == UserJpaEntity.UserRole.TEACHER)
+                .map(UserJpaEntity::getId)
+                .collect(Collectors.toSet());
+    }
+
+    private Page<Course> filterCoursesByTeachers(Page<Course> courses, Set<UUID> teacherIds) {
+        List<Course> filtered = courses.getContent().stream()
+                .filter(c -> c.getTeacherId() != null && teacherIds.contains(c.getTeacherId()))
+                .collect(Collectors.toList());
+        return new PageImpl<>(filtered, courses.getPageable(), filtered.size());
+    }
+
+    private void verifyCourseOrgAccess(UUID courseId, UserJpaEntity admin) {
+        if (!isOrgAdmin(admin)) return; // ADMIN has full access
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new EntityNotFoundException("Khóa học", courseId));
+        if (course.getTeacherId() == null) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Không có quyền truy cập khóa học này");
+        }
+        UserJpaEntity teacher = userRepository.findById(course.getTeacherId()).orElse(null);
+        if (teacher == null || !Objects.equals(teacher.getOrganizationId(), admin.getOrganizationId())) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Không có quyền truy cập khóa học của tổ chức khác");
+        }
     }
 
     // === DTOs ===

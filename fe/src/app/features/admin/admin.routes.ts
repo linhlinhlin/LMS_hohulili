@@ -47,6 +47,7 @@ export const adminRoutes: Routes = [
           {
             path: 'admins',
             loadComponent: () => import('./presentation/components/admin-user-management.component').then(m => m.AdminUserManagementComponent),
+            canActivate: [systemAdminGuard],
             title: 'Quản lý Quản trị viên'
           },
           {

@@ -90,41 +90,52 @@ import { AdminUser } from '../../../../../infrastructure/services/admin.service'
                   </td>
                   <!-- Vai trò -->
                   <td class="px-6 py-4 whitespace-nowrap">
-                    <select [ngModel]="user.role"
-                            (ngModelChange)="state.onRoleChange(user.id, user.role, $event)"
-                            [name]="'user-role-' + user.id"
-                            class="role-select px-3 py-1.5 text-xs font-medium rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-transparent cursor-pointer bg-white"
-                            [ngClass]="state.getRoleClass(user.role)"
-                            title="Click để thay đổi vai trò">
-                      @for (roleOpt of state.ROLE_OPTIONS; track roleOpt.value) {
-                        <option [value]="roleOpt.value">{{ roleOpt.label }}</option>
-                      }
-                    </select>
+                    @if (state.canChangeRole(user)) {
+                      <select [ngModel]="user.role"
+                              (ngModelChange)="state.onRoleChange(user.id, user.role, $event)"
+                              [name]="'user-role-' + user.id"
+                              class="role-select px-3 py-1.5 text-xs font-medium rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-transparent cursor-pointer bg-white"
+                              [ngClass]="state.getRoleClass(user.role)"
+                              title="Click để thay đổi vai trò">
+                        @for (roleOpt of state.ROLE_OPTIONS; track roleOpt.value) {
+                          <option [value]="roleOpt.value">{{ roleOpt.label }}</option>
+                        }
+                      </select>
+                    } @else {
+                      <span class="inline-flex px-3 py-1.5 text-xs font-medium rounded border"
+                            [ngClass]="state.getRoleClass(user.role)">
+                        {{ state.getRoleText(user.role) }}
+                      </span>
+                    }
                   </td>
                   <!-- Thao tác -->
                   <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                     <div class="flex items-center justify-center space-x-1">
-                      <select (change)="onStatusAction(user, $any($event.target).value); $any($event.target).value = ''"
-                              class="text-xs px-2 py-1 border border-gray-300 rounded bg-white cursor-pointer hover:border-gray-400 focus:outline-none focus:ring-1 focus:ring-[#0056D2]"
-                              title="Thay đổi trạng thái">
-                        <option value="" disabled selected>Trạng thái</option>
-                        @if (user.accountStatus !== 'ACTIVE') {
-                          <option value="ACTIVE">Kích hoạt</option>
-                        }
-                        @if (user.accountStatus !== 'BLOCKED') {
-                          <option value="BLOCKED">Khóa</option>
-                        }
-                        @if (user.accountStatus !== 'RESTRICTED') {
-                          <option value="RESTRICTED">Hạn chế</option>
-                        }
-                      </select>
-                      <button (click)="state.deleteUser(user.id)"
-                              class="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                              title="Vô hiệu hóa tài khoản">
-                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                          <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                        </svg>
-                      </button>
+                      @if (state.canChangeStatus(user)) {
+                        <select (change)="onStatusAction(user, $any($event.target).value); $any($event.target).value = ''"
+                                class="text-xs px-2 py-1 border border-gray-300 rounded bg-white cursor-pointer hover:border-gray-400 focus:outline-none focus:ring-1 focus:ring-[#0056D2]"
+                                title="Thay đổi trạng thái">
+                          <option value="" disabled selected>Trạng thái</option>
+                          @if (user.accountStatus !== 'ACTIVE') {
+                            <option value="ACTIVE">Kích hoạt</option>
+                          }
+                          @if (user.accountStatus !== 'BLOCKED') {
+                            <option value="BLOCKED">Khóa</option>
+                          }
+                          @if (user.accountStatus !== 'RESTRICTED') {
+                            <option value="RESTRICTED">Hạn chế</option>
+                          }
+                        </select>
+                      }
+                      @if (state.canDeleteUser(user)) {
+                        <button (click)="state.deleteUser(user.id)"
+                                class="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                                title="Vô hiệu hóa tài khoản">
+                          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                          </svg>
+                        </button>
+                      }
                     </div>
                   </td>
                   <!-- Trạng thái -->
