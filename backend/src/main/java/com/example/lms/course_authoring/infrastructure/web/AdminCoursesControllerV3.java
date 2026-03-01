@@ -62,6 +62,9 @@ public class AdminCoursesControllerV3 {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String search,
+            @RequestParam(required = false) UUID categoryId,
+            @RequestParam(required = false) String fromDate,
+            @RequestParam(required = false) String toDate,
             @AuthenticationPrincipal UserJpaEntity currentUser
     ) {
         // Sort PENDING first, then by createdAt descending
@@ -93,6 +96,21 @@ public class AdminCoursesControllerV3 {
         if (isOrgAdmin(currentUser)) {
             Set<UUID> orgTeacherIds = getOrgTeacherIds(currentUser.getOrganizationId());
             courses = filterCoursesByTeachers(courses, orgTeacherIds);
+        }
+
+        // Apply advanced filters (categoryId, date range) as in-memory post-filters
+        boolean hasCategoryFilter = categoryId != null;
+        Instant fromInstant = parseDate(fromDate, true);
+        Instant toInstant = parseDate(toDate, false);
+        boolean hasDateFilter = fromInstant != null || toInstant != null;
+
+        if (hasCategoryFilter || hasDateFilter) {
+            List<Course> filtered = courses.getContent().stream()
+                    .filter(c -> !hasCategoryFilter || categoryId.equals(c.getCategoryId()))
+                    .filter(c -> fromInstant == null || (c.getCreatedAt() != null && !c.getCreatedAt().isBefore(fromInstant)))
+                    .filter(c -> toInstant == null || (c.getCreatedAt() != null && !c.getCreatedAt().isAfter(toInstant)))
+                    .collect(Collectors.toList());
+            courses = new PageImpl<>(filtered, courses.getPageable(), filtered.size());
         }
 
         Page<CourseAdminResponse> response = enrichCourses(courses);
@@ -318,6 +336,85 @@ public class AdminCoursesControllerV3 {
         return ResponseEntity.ok(ApiResponse.success(toAdminResponse(course), "Đã thu hồi khóa học"));
     }
 
+    @Operation(summary = "Bulk approve courses")
+    @PatchMapping("/bulk-approve")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN')")
+    public ResponseEntity<ApiResponse<BulkActionResponse>> bulkApproveCourses(
+            @RequestBody @Valid BulkApproveRequest request,
+            @AuthenticationPrincipal UserJpaEntity admin
+    ) {
+        List<UUID> courseIds = request.getCourseIds();
+        if (courseIds == null || courseIds.isEmpty()) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("Danh sách khóa học không được để trống"));
+        }
+
+        int success = 0;
+        int failed = 0;
+        List<String> errors = new ArrayList<>();
+        String comment = request.getComment() != null ? request.getComment() : "Đã duyệt";
+
+        for (UUID courseId : courseIds) {
+            try {
+                // ORG_ADMIN: verify course teacher is in their org
+                verifyCourseOrgAccess(courseId, admin);
+                approveCourseUseCase.execute(courseId, admin.getId(), comment);
+                success++;
+            } catch (Exception e) {
+                failed++;
+                errors.add(courseId + ": " + e.getMessage());
+            }
+        }
+
+        BulkActionResponse result = BulkActionResponse.builder()
+                .total(courseIds.size())
+                .success(success)
+                .failed(failed)
+                .errors(errors)
+                .build();
+
+        return ResponseEntity.ok(ApiResponse.success(result, "Duyệt hàng loạt hoàn tất"));
+    }
+
+    @Operation(summary = "Bulk reject courses")
+    @PatchMapping("/bulk-reject")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN')")
+    public ResponseEntity<ApiResponse<BulkActionResponse>> bulkRejectCourses(
+            @RequestBody @Valid BulkRejectRequest request,
+            @AuthenticationPrincipal UserJpaEntity admin
+    ) {
+        List<UUID> courseIds = request.getCourseIds();
+        if (courseIds == null || courseIds.isEmpty()) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("Danh sách khóa học không được để trống"));
+        }
+
+        int success = 0;
+        int failed = 0;
+        List<String> errors = new ArrayList<>();
+
+        for (UUID courseId : courseIds) {
+            try {
+                // ORG_ADMIN: verify course teacher is in their org
+                verifyCourseOrgAccess(courseId, admin);
+                rejectCourseUseCase.execute(courseId, admin.getId(), request.getReason());
+                success++;
+            } catch (Exception e) {
+                failed++;
+                errors.add(courseId + ": " + e.getMessage());
+            }
+        }
+
+        BulkActionResponse result = BulkActionResponse.builder()
+                .total(courseIds.size())
+                .success(success)
+                .failed(failed)
+                .errors(errors)
+                .build();
+
+        return ResponseEntity.ok(ApiResponse.success(result, "Từ chối hàng loạt hoàn tất"));
+    }
+
     @Operation(summary = "Delete a course")
     @DeleteMapping("/{courseId}")
     @PreAuthorize("hasRole('ADMIN')")
@@ -474,6 +571,25 @@ public class AdminCoursesControllerV3 {
         return new PageImpl<>(filtered, courses.getPageable(), filtered.size());
     }
 
+    /**
+     * Parse ISO date string (e.g., "2026-01-01") to Instant.
+     * For start-of-day (isStart=true), returns start of the day.
+     * For end-of-day (isStart=false), returns end of the day.
+     */
+    private Instant parseDate(String dateStr, boolean isStart) {
+        if (dateStr == null || dateStr.isBlank()) return null;
+        try {
+            java.time.LocalDate date = java.time.LocalDate.parse(dateStr);
+            if (isStart) {
+                return date.atStartOfDay(ZoneId.systemDefault()).toInstant();
+            } else {
+                return date.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
+            }
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private void verifyCourseOrgAccess(UUID courseId, UserJpaEntity admin) {
         if (!isOrgAdmin(admin)) return; // ADMIN has full access
         Course course = courseRepository.findById(courseId)
@@ -549,5 +665,31 @@ public class AdminCoursesControllerV3 {
     public static class RejectRequest {
         @NotBlank(message = "Lý do không được để trống")
         private String reason;
+    }
+
+    @Data @NoArgsConstructor @AllArgsConstructor
+    public static class BulkApproveRequest {
+        @jakarta.validation.constraints.NotEmpty(message = "Danh sách khóa học không được để trống")
+        private List<UUID> courseIds;
+
+        @Size(max = 1000, message = "Nhận xét không được vượt quá 1000 ký tự")
+        private String comment;
+    }
+
+    @Data @NoArgsConstructor @AllArgsConstructor
+    public static class BulkRejectRequest {
+        @jakarta.validation.constraints.NotEmpty(message = "Danh sách khóa học không được để trống")
+        private List<UUID> courseIds;
+
+        @NotBlank(message = "Lý do không được để trống")
+        private String reason;
+    }
+
+    @Data @Builder @NoArgsConstructor @AllArgsConstructor
+    public static class BulkActionResponse {
+        private int total;
+        private int success;
+        private int failed;
+        private List<String> errors;
     }
 }

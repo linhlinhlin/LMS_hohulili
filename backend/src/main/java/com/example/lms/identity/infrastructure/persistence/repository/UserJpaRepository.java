@@ -68,5 +68,48 @@ public interface UserJpaRepository extends JpaRepository<UserJpaEntity, UUID> {
             @Param("search") String search,
             Pageable pageable
     );
+
+    // === ORG-SCOPED PAGINATION QUERIES ===
+
+    /**
+     * Find users by organization ID with pagination.
+     */
+    @Query("SELECT u FROM UserJpaEntity u WHERE u.organizationId = :orgId")
+    Page<UserJpaEntity> findByOrganizationId(@Param("orgId") UUID orgId, Pageable pageable);
+
+    /**
+     * Find users by organization ID and role with pagination.
+     */
+    @Query("SELECT u FROM UserJpaEntity u WHERE u.organizationId = :orgId AND u.role = :role")
+    Page<UserJpaEntity> findByOrganizationIdAndRole(
+            @Param("orgId") UUID orgId,
+            @Param("role") UserJpaEntity.UserRole role,
+            Pageable pageable
+    );
+
+    /**
+     * Search users by organization ID and keyword (email or fullName) with pagination.
+     */
+    @Query("SELECT u FROM UserJpaEntity u WHERE u.organizationId = :orgId AND " +
+           "(LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+           "LOWER(u.fullName) LIKE LOWER(CONCAT('%', :search, '%')))")
+    Page<UserJpaEntity> searchByOrganizationIdAndKeyword(
+            @Param("orgId") UUID orgId,
+            @Param("search") String search,
+            Pageable pageable
+    );
+
+    /**
+     * Search users by organization ID, role, and keyword with pagination.
+     */
+    @Query("SELECT u FROM UserJpaEntity u WHERE u.organizationId = :orgId AND u.role = :role AND " +
+           "(LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+           "LOWER(u.fullName) LIKE LOWER(CONCAT('%', :search, '%')))")
+    Page<UserJpaEntity> searchByOrganizationIdAndRoleAndKeyword(
+            @Param("orgId") UUID orgId,
+            @Param("role") UserJpaEntity.UserRole role,
+            @Param("search") String search,
+            Pageable pageable
+    );
 }
 

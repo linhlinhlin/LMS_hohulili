@@ -53,21 +53,43 @@ public class UserControllerV3 {
             @RequestParam(defaultValue = "10") int limit,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String role,
-            @RequestParam(required = false) String status
+            @RequestParam(required = false) String status,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal UserJpaEntity currentUser
     ) {
         PageRequest pageable = PageRequest.of(Math.max(0, page - 1), limit);
 
+        boolean hasRole = role != null && !role.isBlank();
+        boolean hasSearch = search != null && !search.isBlank();
+
         Page<UserJpaEntity> users;
-        if (role != null && !role.isBlank() && search != null && !search.isBlank()) {
-            UserJpaEntity.UserRole roleEnum = UserJpaEntity.UserRole.valueOf(role.toUpperCase());
-            users = userRepository.searchUsersByRole(roleEnum, search, pageable);
-        } else if (role != null && !role.isBlank()) {
-            UserJpaEntity.UserRole roleEnum = UserJpaEntity.UserRole.valueOf(role.toUpperCase());
-            users = userRepository.findByRole(roleEnum, pageable);
-        } else if (search != null && !search.isBlank()) {
-            users = userRepository.searchUsersByKeyword(search, pageable);
+
+        // ORG_ADMIN: filter to users within their organization
+        if (isOrgAdmin(currentUser) && currentUser.getOrganizationId() != null) {
+            UUID orgId = currentUser.getOrganizationId();
+            if (hasRole && hasSearch) {
+                UserJpaEntity.UserRole roleEnum = UserJpaEntity.UserRole.valueOf(role.toUpperCase());
+                users = userRepository.searchByOrganizationIdAndRoleAndKeyword(orgId, roleEnum, search, pageable);
+            } else if (hasRole) {
+                UserJpaEntity.UserRole roleEnum = UserJpaEntity.UserRole.valueOf(role.toUpperCase());
+                users = userRepository.findByOrganizationIdAndRole(orgId, roleEnum, pageable);
+            } else if (hasSearch) {
+                users = userRepository.searchByOrganizationIdAndKeyword(orgId, search, pageable);
+            } else {
+                users = userRepository.findByOrganizationId(orgId, pageable);
+            }
         } else {
-            users = userRepository.findAll(pageable);
+            // ADMIN: sees all users (unchanged)
+            if (hasRole && hasSearch) {
+                UserJpaEntity.UserRole roleEnum = UserJpaEntity.UserRole.valueOf(role.toUpperCase());
+                users = userRepository.searchUsersByRole(roleEnum, search, pageable);
+            } else if (hasRole) {
+                UserJpaEntity.UserRole roleEnum = UserJpaEntity.UserRole.valueOf(role.toUpperCase());
+                users = userRepository.findByRole(roleEnum, pageable);
+            } else if (hasSearch) {
+                users = userRepository.searchUsersByKeyword(search, pageable);
+            } else {
+                users = userRepository.findAll(pageable);
+            }
         }
 
         Page<UserResponse> response = users.map(this::toResponse);
@@ -77,8 +99,15 @@ public class UserControllerV3 {
     @Operation(summary = "Get all users (capped at 1000)")
     @GetMapping("/list/all")
     @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN')")
-    public ResponseEntity<ApiResponse<List<UserResponse>>> getAllUsersNoPagination() {
-        Page<UserJpaEntity> page = userRepository.findAll(PageRequest.of(0, 1000));
+    public ResponseEntity<ApiResponse<List<UserResponse>>> getAllUsersNoPagination(
+            @org.springframework.security.core.annotation.AuthenticationPrincipal UserJpaEntity currentUser
+    ) {
+        Page<UserJpaEntity> page;
+        if (isOrgAdmin(currentUser) && currentUser.getOrganizationId() != null) {
+            page = userRepository.findByOrganizationId(currentUser.getOrganizationId(), PageRequest.of(0, 1000));
+        } else {
+            page = userRepository.findAll(PageRequest.of(0, 1000));
+        }
         List<UserResponse> response = page.getContent().stream().map(this::toResponse).toList();
         return ResponseEntity.ok(ApiResponse.success(response, "Danh sách tất cả người dùng"));
     }
@@ -90,21 +119,43 @@ public class UserControllerV3 {
             @RequestParam(required = false) String role,
             @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int limit
+            @RequestParam(defaultValue = "10") int limit,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal UserJpaEntity currentUser
     ) {
         PageRequest pageable = PageRequest.of(Math.max(0, page - 1), limit);
 
+        boolean hasRole = role != null && !role.isBlank();
+        boolean hasSearch = q != null && !q.isBlank();
+
         Page<UserJpaEntity> users;
-        if (role != null && !role.isBlank() && q != null && !q.isBlank()) {
-            UserJpaEntity.UserRole roleEnum = UserJpaEntity.UserRole.valueOf(role.toUpperCase());
-            users = userRepository.searchUsersByRole(roleEnum, q, pageable);
-        } else if (role != null && !role.isBlank()) {
-            UserJpaEntity.UserRole roleEnum = UserJpaEntity.UserRole.valueOf(role.toUpperCase());
-            users = userRepository.findByRole(roleEnum, pageable);
-        } else if (q != null && !q.isBlank()) {
-            users = userRepository.searchUsersByKeyword(q, pageable);
+
+        // ORG_ADMIN: filter to users within their organization
+        if (isOrgAdmin(currentUser) && currentUser.getOrganizationId() != null) {
+            UUID orgId = currentUser.getOrganizationId();
+            if (hasRole && hasSearch) {
+                UserJpaEntity.UserRole roleEnum = UserJpaEntity.UserRole.valueOf(role.toUpperCase());
+                users = userRepository.searchByOrganizationIdAndRoleAndKeyword(orgId, roleEnum, q, pageable);
+            } else if (hasRole) {
+                UserJpaEntity.UserRole roleEnum = UserJpaEntity.UserRole.valueOf(role.toUpperCase());
+                users = userRepository.findByOrganizationIdAndRole(orgId, roleEnum, pageable);
+            } else if (hasSearch) {
+                users = userRepository.searchByOrganizationIdAndKeyword(orgId, q, pageable);
+            } else {
+                users = userRepository.findByOrganizationId(orgId, pageable);
+            }
         } else {
-            users = userRepository.findAll(pageable);
+            // ADMIN/TEACHER: unchanged
+            if (hasRole && hasSearch) {
+                UserJpaEntity.UserRole roleEnum = UserJpaEntity.UserRole.valueOf(role.toUpperCase());
+                users = userRepository.searchUsersByRole(roleEnum, q, pageable);
+            } else if (hasRole) {
+                UserJpaEntity.UserRole roleEnum = UserJpaEntity.UserRole.valueOf(role.toUpperCase());
+                users = userRepository.findByRole(roleEnum, pageable);
+            } else if (hasSearch) {
+                users = userRepository.searchUsersByKeyword(q, pageable);
+            } else {
+                users = userRepository.findAll(pageable);
+            }
         }
 
         Page<UserResponse> response = users.map(this::toResponse);
