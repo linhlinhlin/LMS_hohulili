@@ -1,6 +1,6 @@
 # Frontend Architecture Reference
 
-> **Last Updated**: 2026-03-03 | **Angular**: 20.3 | **Score**: 10/10
+> **Last Updated**: 2026-03-04 | **Angular**: 20.3 | **Score**: 10/10
 
 This document is the **single source of truth** for the LMS frontend architecture.
 Read this instead of re-auditing the codebase.
@@ -26,7 +26,7 @@ Read this instead of re-auditing the codebase.
 | API Endpoints | 23 |
 | API Types | 19 |
 | Shared Components | 49 |
-| Core Services | 16 |
+| Core Services | 17 |
 | State Services | 3 (global, course, class) |
 | Guards | 5 (in 3 files) |
 | Routes | 70+ |
@@ -46,7 +46,8 @@ fe/src/app/
 │   ├── interceptors/       # Auth, base-url, error, offline interceptors (4 files)
 │   └── operators/          # RxJS operators (unwrapSpringPage)
 ├── core/                   # Singleton services & guards
-│   ├── services/           # Auth, messaging, notification, PWA offline, etc. (22 services)
+│   ├── services/           # Auth, messaging, notification, PWA offline, presigned upload, etc. (23 services)
+│   ├── utils/              # server-upload-adapter.ts (CKEditor upload plugin)
 │   ├── db/                 # lms-offline.db.ts (Dexie.js 4 - 7 tables)
 │   └── guards/             # auth.guard, role.guard, enrollment.guard (5 guard fns in 3 files)
 ├── features/               # Feature modules (lazy-loaded)
@@ -150,7 +151,7 @@ teacher/
 │   ├── layouts/course-editor-layout/  # Collapsible sidebar, underline tabs, auto-select
 │   ├── components/ (header, sidebar)
 │   ├── pages/
-│   │   ├── course-info/
+│   │   ├── course-info/   # 5-card sidebar (Shopify pattern) + sticky save bar + drag-drop thumbnail
 │   │   ├── course-curriculum/ (680 LOC + extracted components)
 │   │   │   ├── components/ (chapter-item, lesson-item, etc.)
 │   │   │   └── state/ (curriculum state management)
@@ -433,6 +434,7 @@ ApiClient.delete<T> / deleteWithResponse<T>
 | **`screen-wake-lock.service.ts`** | ~80 | **Screen Wake Lock API (video playback)** |
 | **`qoe-tracker.service.ts`** | ~100 | **QoE metrics (startup, rebuffer, bitrate)** |
 | **`offline-video.service.ts`** | ~150 | **Video download via Cache API** |
+| **`presigned-upload.service.ts`** | ~140 | **3-step presigned URL upload: init → XHR PUT to R2 → confirm. Cancellable, progress tracking, dev fallback** |
 
 ### Guards (5 functions in 3 files)
 
@@ -520,7 +522,7 @@ ApiClient.delete<T> / deleteWithResponse<T>
 | Tailwind CSS | Utility-first styling |
 | VNPay | Payment gateway (Vietnamese) |
 | WebSocket | Real-time chat/notifications |
-| Cloudflare R2 | File storage |
+| Cloudflare R2 | File storage (presigned URL upload) |
 | Dexie.js 4 | IndexedDB offline storage (7 tables) |
 | Shaka Player 5.x | Adaptive video (maritime ABR) |
 | Angular Service Worker | PWA caching (ngsw-config.json) |

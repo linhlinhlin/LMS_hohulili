@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-> **Last Updated**: 2026-03-03 | **Version**: 15.1 | **Status**: Production Ready + Category Taxonomy Redesign (806 tests, 0 failures)
+> **Last Updated**: 2026-03-04 | **Version**: 15.2 | **Status**: Production Ready + Upload System Upgrade + Course Editor Redesign (806 tests, 0 failures)
 
 This file provides guidance to Claude Code for working with this repository. **Read this first before any task.**
 
@@ -40,7 +40,7 @@ chmod +x deploy.sh && ./deploy.sh
 
 ## CURRENT SYSTEM STATUS
 
-### Backend: RUNNING (426+ files | 806 tests | 290+ endpoints)
+### Backend: RUNNING (440+ files | 806 tests | 295+ endpoints)
 | Component | Port |
 |-----------|------|
 | Spring Boot API | 8088 |
@@ -75,7 +75,7 @@ backend/src/main/java/com/example/lms/
 ├── assessment/            # Assignment, Quiz, Question, Submission, Rubric, QuestionBank
 ├── communication/         # Messages, Conversations
 ├── ai_assistant/          # AI Chat integration (SSE streaming)
-├── shared/                # Value objects, domain events, exceptions, file service, payment (DDD), email, VNPay, admin settings
+├── shared/                # Value objects, domain events, exceptions, file service (presigned upload), payment (DDD), email, VNPay, admin settings
 └── config/                # Security, CORS, JWT, rate limiting, R2 storage
 ```
 
@@ -277,6 +277,9 @@ export class ExampleComponent {
 | Seed Data (Users+Courses) | `db/migration/V54__seed_users_courses_content.sql` |
 | Seed Data (Assessment) | `db/migration/V55__seed_assessment_enrollments.sql` |
 | Category/Tag Taxonomy | `db/migration/V70__course_categories_and_tags.sql` |
+| Upload Sessions | `db/migration/V74__upload_sessions.sql` |
+| Presigned Upload UseCase | `shared/application/usecase/PresignedUploadUseCase.java` |
+| Upload Cleanup Scheduler | `shared/infrastructure/service/UploadCleanupScheduler.java` |
 
 ### Frontend
 | Purpose | File |
@@ -289,6 +292,8 @@ export class ExampleComponent {
 | Auth Service | `fe/src/app/core/services/auth.service.ts` |
 | Global State | `fe/src/app/state/global.state.ts` |
 | Course Editor Store | `fe/src/app/features/teacher/course-editor/store/course-editor.store.ts` |
+| Presigned Upload Service | `fe/src/app/core/services/presigned-upload.service.ts` |
+| Server Upload Adapter | `fe/src/app/core/utils/server-upload-adapter.ts` |
 
 ### PWA / Offline
 | Purpose | File |
@@ -324,8 +329,8 @@ export class ExampleComponent {
 | assessment | 11 | 15 | 6 | 59 |
 | communication | 4 | 1 | 1 | 6 |
 | ai_assistant | 3 | 1 | 1 | 11 |
-| shared | 4 | 5 | 4 | 15 |
-| **Total** | **43** | **82** | **35** | **290+** |
+| shared | 4 | 6 | 4 | 18 |
+| **Total** | **43** | **83** | **35** | **295+** |
 
 ---
 
@@ -371,14 +376,12 @@ teacherGuard = [UserRole.TEACHER, UserRole.ADMIN, UserRole.ORG_ADMIN]
 
 | Sessions | Key Changes |
 |----------|-------------|
-| **S120** (2026-03-03) | Category/Taxonomy redesign: 2-level hierarchical `course_categories` + controlled vocabulary `course_tags` (V70 migration). Full DDD: domain models, JPA entities, repos, use cases, controllers, Spring Cache. FE: cascading category picker (course creation + editor), tag vocabulary picker, admin hierarchical filter, student browse API tabs. 16 BE + 6 FE files. BE+FE 0 errors. |
-| **S119** (2026-03-02) | Teacher portal design audit: `indigo-*`→`#0056D2` (13 files), `bg-gray-50`→`bg-slate-50` (5 pages), KPI rating bugs (BE batch queries), sidebar sync, student dashboard `max-width: 900→1100px` |
-| **S118** (2026-03-02) | P1 pagination bugfix: teacher/student management `size`→`limit`, `page:0`→`page:1`. CLAUDE.md trimmed 56.3k→16.3k chars |
-| **S116-S117** (2026-03-02) | ADMIN/ORG_ADMIN role separation, org-scoped analytics/users, bulk approve/reject, CSV export, advanced filters |
-| **S114-S115** (2026-03-02) | Teacher dashboard redesign (KPI cards, pill tabs, single-column), org management audit (11 bugs) |
-| **S110-S113c** (2026-03-01) | PWA research, multi-account IndexedDB isolation, student course detail redesign, storage management |
-| **S104-S109** (2026-03-01) | Dead code cleanup (-11,755 lines), org invitation system, student UX audit, token management |
-| **S93-S103** (2026-02-26) | VNPay security, PWA iOS, full audits, payment DDD, org-scoped multi-tenancy |
+| **S124** (2026-03-04) | Upload system upgrade: 3-step presigned URL flow (BE: PresignedUploadUseCase, V74 migration, UploadCleanupScheduler; FE: PresignedUploadService, ServerUploadAdapter for CKEditor). Course info page redesign: 5-card sidebar (Shopify pattern), sticky save bar with discard. Thumbnail drag-drop + progress + cancel UX. Course settings CSS fixes. V70 migration production fix (legacy course_tags rename). 9 new BE + 3 new FE files. Deployed to production. |
+| **S121-S123** (2026-03-03) | Course creation UX redesign (two-panel, live progress). DeliveryMode enforcement (lock after enrollment). Course editor bugfixes (categoryName, tags, price validation). |
+| **S120** (2026-03-03) | Category/Taxonomy redesign: 2-level `course_categories` + controlled vocabulary `course_tags` (V70). Full DDD. 16 BE + 6 FE files. |
+| **S116-S119** (2026-03-02) | ADMIN/ORG_ADMIN role separation, org-scoped analytics, pagination bugfix, teacher portal design audit, KPI rating bugs. |
+| **S110-S115** (2026-03-01-02) | PWA research, IndexedDB isolation, teacher dashboard redesign, org management audit. |
+| **S93-S109** (2026-02-26-03-01) | VNPay security, PWA iOS, payment DDD, org invitation system, student UX audit, dead code cleanup. |
 | **S82-S92** (2026-02-25) | Production deployment (GCP), seed data, course management, 806 tests |
 | **S8-S81** | MVP → production: auth, DDD, quiz, PWA, Vietnamese, security audits, design tokens |
 
