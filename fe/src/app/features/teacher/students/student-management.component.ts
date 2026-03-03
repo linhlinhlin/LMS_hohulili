@@ -10,7 +10,7 @@ import { CourseSummary } from '../../../api/types/course.types';
   selector: 'app-student-management',
   imports: [RouterModule, FormsModule],
   template: `
-    <div class="p-6 space-y-6">
+    <div class="min-h-screen bg-slate-50 p-6 space-y-6">
       <h1 class="text-2xl font-bold text-gray-900">Học viên</h1>
     
       <div class="bg-white rounded-xl shadow">
@@ -108,7 +108,7 @@ import { CourseSummary } from '../../../api/types/course.types';
                   </td>
                   <td class="px-6 py-5 whitespace-nowrap text-right text-base md:text-lg">
                     <a [routerLink]="['/teacher/students', s.id]"
-                      class="px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:text-indigo-900 rounded-md transition-colors text-xs font-medium inline-flex items-center gap-1">
+                      class="px-3 py-1.5 bg-[#0056D2]/5 text-[#0056D2] hover:text-[#004BB5] rounded-md transition-colors text-xs font-medium inline-flex items-center gap-1">
                       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -125,7 +125,7 @@ import { CourseSummary } from '../../../api/types/course.types';
                             </svg>
                             Nhắn tin
                           </button>
-                          <!-- <a [routerLink]="['/teacher/students', s.id]" class="text-indigo-600 hover:text-indigo-900 mr-4">Chi tiết</a>
+                          <!-- <a [routerLink]="['/teacher/students', s.id]" class="text-[#0056D2] hover:text-[#004BB5] mr-4">Chi tiết</a>
                           <button (click)="sendMessage(s.id)" class="text-[#0056D2] hover:text-[#004BB5]">Nhắn tin</button>-->
                         </td>
                       </tr>

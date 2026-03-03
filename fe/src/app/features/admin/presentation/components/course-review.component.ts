@@ -69,7 +69,7 @@ type CourseListItem = AdminCourseSummary | (PendingCourseSummary & { status: str
                   </tr>
                 </thead>
                 <tbody class="divide-y">
-                  @for (course of courses(); track course) {
+                  @for (course of courses(); track course.id) {
                     <tr class="hover:bg-gray-50">
                       <td class="px-6 py-4">
                         <div class="font-semibold text-gray-900">{{ course.title }}</div>

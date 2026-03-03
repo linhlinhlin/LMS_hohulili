@@ -16,7 +16,7 @@ import { AuditApi, AuditLogEntry } from '../../../../api/endpoints/audit.api';
         <div class="flex gap-4 items-end">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Bảng</label>
-            <select [(ngModel)]="tableFilter" (ngModelChange)="loadLogs()"
+            <select [(ngModel)]="tableFilter" (ngModelChange)="onFilterChange()"
                     class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-[#0056D2] focus:border-[#0056D2]">
               <option value="">Tất cả</option>
               <option value="courses">courses</option>
@@ -27,7 +27,7 @@ import { AuditApi, AuditLogEntry } from '../../../../api/endpoints/audit.api';
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Hành động</label>
-            <select [(ngModel)]="actionFilter" (ngModelChange)="loadLogs()"
+            <select [(ngModel)]="actionFilter" (ngModelChange)="onFilterChange()"
                     class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-[#0056D2] focus:border-[#0056D2]">
               <option value="">Tất cả</option>
               <option value="INSERT">INSERT</option>
@@ -146,6 +146,11 @@ export class AuditLogsComponent implements OnInit {
       },
       error: () => this.logs.set([])
     });
+  }
+
+  onFilterChange(): void {
+    this.currentPage.set(0);
+    this.loadLogs();
   }
 
   goToPage(page: number): void {

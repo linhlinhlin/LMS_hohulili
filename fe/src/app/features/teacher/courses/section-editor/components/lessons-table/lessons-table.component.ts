@@ -20,7 +20,7 @@ import { SectionEditorState, LessonItem } from '../../state/section-editor.state
         </thead>
         <tbody class="divide-y divide-gray-100">
           @for (lesson of state.lessons(); track lesson.id; let i = $index) {
-            <tr class="hover:bg-[#0056D2]/5/50 transition-colors">
+            <tr class="hover:bg-[#0056D2]/5 transition-colors">
               <td class="px-6 py-2 text-sm text-gray-500 font-medium text-center">{{ i + 1 }}</td>
               <td class="px-6 py-2">
                 <div class="flex items-start gap-3">

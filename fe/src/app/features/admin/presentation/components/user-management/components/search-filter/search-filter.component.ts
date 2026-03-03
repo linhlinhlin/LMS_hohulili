@@ -46,29 +46,15 @@ import { UserManagementState } from '../../state/user-management.state';
           </select>
         </div>
       </div>
-      <!-- Date Filters -->
-      <div class="flex flex-col sm:flex-row gap-3 mt-3">
-        <div class="flex items-center gap-2">
-          <label class="text-sm text-gray-600 whitespace-nowrap">Từ ngày</label>
-          <input type="date"
-                 [ngModel]="state.fromDate()"
-                 (ngModelChange)="state.onFromDateChange($event)"
-                 class="px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-transparent">
-        </div>
-        <div class="flex items-center gap-2">
-          <label class="text-sm text-gray-600 whitespace-nowrap">Đến ngày</label>
-          <input type="date"
-                 [ngModel]="state.toDate()"
-                 (ngModelChange)="state.onToDateChange($event)"
-                 class="px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-transparent">
-        </div>
-        @if (state.fromDate() || state.toDate() || state.searchQuery() || state.roleFilter() || state.statusFilter()) {
+      <!-- Clear Filters -->
+      @if (state.searchQuery() || state.roleFilter() || state.statusFilter()) {
+        <div class="mt-3">
           <button (click)="state.clearFilters()"
                   class="px-3 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded hover:bg-gray-50 transition-colors">
             Xoá bộ lọc
           </button>
-        }
-      </div>
+        </div>
+      }
       <!-- Results Count -->
       <div class="mt-3 pt-3 border-t border-gray-200">
         <p class="text-xs text-gray-600">

@@ -1,12 +1,13 @@
 package com.example.lms.course_authoring.application.usecase;
 
 import com.example.lms.course_authoring.application.dto.AuthoringDTOs;
-import com.example.lms.course_authoring.domain.model.Category;
 import com.example.lms.course_authoring.domain.model.Chapter;
 import com.example.lms.course_authoring.domain.model.Course;
+import com.example.lms.course_authoring.domain.model.CourseCategory;
 import com.example.lms.course_authoring.domain.model.Lesson;
-import com.example.lms.course_authoring.domain.repository.CategoryRepository;
+import com.example.lms.course_authoring.domain.repository.CourseCategoryRepository;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
+import com.example.lms.learning_delivery.domain.repository.EnrollmentRepositoryPort;
 import com.example.lms.shared.exception.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -26,7 +27,8 @@ import java.util.stream.Collectors;
 public class GetCourseDraftUseCase {
 
     private final CourseRepository courseRepository;
-    private final CategoryRepository categoryRepository;
+    private final CourseCategoryRepository courseCategoryRepository;
+    private final EnrollmentRepositoryPort enrollmentRepository;
 
     @Transactional(readOnly = true)
     public AuthoringDTOs.CourseDraftDTO execute(UUID courseId) {
@@ -62,13 +64,14 @@ public class GetCourseDraftUseCase {
                 .visibility(course.getVisibility() != null ? course.getVisibility().name() : null)
                 .tags(course.getTags())
                 .chapters(chapters)
+                .hasEnrollments(enrollmentRepository.existsByCourseId(course.getId()))
                 .build();
     }
 
     private String resolveCategoryName(UUID categoryId) {
         if (categoryId == null) return null;
-        return categoryRepository.findById(categoryId)
-                .map(Category::name)
+        return courseCategoryRepository.findById(categoryId)
+                .map(CourseCategory::getName)
                 .orElse(null);
     }
 

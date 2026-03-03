@@ -1,6 +1,6 @@
 # Maritime LMS Backend
 
-> **Spring Boot 3.2.6 + Java 21 + PostgreSQL 16** | Clean Architecture / DDD | 420+ source files | 806 tests | 275+ endpoints
+> **Spring Boot 3.2.6 + Java 21 + PostgreSQL 16** | Clean Architecture / DDD | 426+ source files | 806 tests | 290+ endpoints
 
 ## Quick Start
 
@@ -46,7 +46,7 @@ docker compose logs api --tail=100
 ```
 com.example.lms/
 ├── identity/              # Users, Authentication, Roles (JWT), Multi-tier Admin
-├── course_authoring/      # Course, Chapter, Lesson, ContentBlock, Package, Category, Review, Admin ops
+├── course_authoring/      # Course, Chapter, Lesson, ContentBlock, Package, CourseCategory (2-level hierarchy), CourseTag, Review, Admin ops
 ├── learning_delivery/     # LearningClass, Enrollment, Progress, Gamification, Analytics, Video, Certificate
 ├── assessment/            # Assignment, Quiz, Question, Submission, Rubric, QuestionBank
 ├── communication/         # Messages, Conversations
@@ -114,7 +114,7 @@ Domain ← Application ← Infrastructure
 - Can be used as Flyway baseline for fresh deployments
 
 **Schema Stats:**
-- **36 tables**: identity (1+2 org/invites), course_authoring (8+1 review), learning_delivery (8 incl. gamification/video/certificate), assessment (12+2 question_bank), communication (2), ai_assistant (2), shared (3+1 payment), security (2)
+- **39 tables**: identity (1+2 org/invites), course_authoring (8+1 review+3 category/tag), learning_delivery (8 incl. gamification/video/certificate), assessment (12+2 question_bank), communication (2), ai_assistant (2), shared (3+1 payment), security (2)
 - **94 indexes**: 60+ B-tree, 9 partial, 6 BRIN, 12 GIN, 7 unique
 - **54 foreign keys**: CASCADE on children, SET NULL on soft dependencies
 - **All enums validated** at DB level with CHECK constraints
@@ -315,7 +315,7 @@ curl -X POST http://localhost:8088/api/v3/teacher/courses \
 | REST endpoints | 234 |
 | JPA entities | 40 |
 | Repository ports | 34 |
-| Flyway migrations | V1 (reference) + V26-V65 (29 incremental) |
+| Flyway migrations | V1 (reference) + V26-V70 (30 incremental) |
 | Test files | 50 |
 | Test cases | 806 (0 failures) |
 | Domain events | 11 |
@@ -326,7 +326,7 @@ curl -X POST http://localhost:8088/api/v3/teacher/courses \
 | Module | Domain Models | Use Cases | Controllers | Endpoints |
 |--------|--------------|-----------|-------------|-----------|
 | identity | 4 (User, Role, Organization, OrganizationInvite) | 15 | 4 (Auth, User, Organization, Invite) | 37 |
-| course_authoring | 6 (Course, Chapter, Lesson, ContentBlock, Category, CourseReview) | 23 | 6 (Authoring, Query, Package, AdminCourses, TeacherCourses, CourseReview) | 53 |
+| course_authoring | 8 (Course, Chapter, Lesson, ContentBlock, Category, CourseReview, CourseCategory, CourseTag) | 26 | 8 (Authoring, Query, Package, AdminCourses, TeacherCourses, CourseReview, CourseCategory, CourseTag) | 68 |
 | learning_delivery | 9 (LearningClass, Enrollment, Certificate, VideoProgress, LearningStreak, Achievement, etc.) | 17 | 10 (Class, Enrollment, TeacherStudent, Gamification, Activity, Video, Analytics x2, Revenue, Invitation) | 51 |
 | assessment | 11 (Assignment, Quiz, Question, Submission, Rubric, QuestionBank, etc.) | 14 | 6 (Assignment, Submission, Quiz, Question, QuestionBank, Rubric) | 59 |
 | communication | 4 (Conversation, Message, etc.) | 1 | 1 | 6 |
@@ -889,6 +889,7 @@ Port: 5432 (Docker) / 5432 (local)
 | V62 | @Version optimistic locking on enrollments + assignment submissions |
 | V64 | Organizations + organization_invites tables (CODE/EMAIL types, constraints, indexes) |
 | V65 | users.token_expiry_days column — per-user refresh token expiry override |
+| V70 | course_categories (2-level hierarchy) + course_tags + course_tag_assignments. Migrates old flat categories, seeds 14 subcategories + 10 tags |
 
 **Note**: Migrations V1-V25 exist in production database history but SQL files are managed externally. V26+ are in `src/main/resources/db/migration/`.
 
@@ -1266,7 +1267,7 @@ public ResponseEntity<?> create(@Valid @RequestBody CreateCourseCommand cmd) {
 
 ### Step 4: Database
 1. Create Flyway migration in `src/main/resources/db/migration/V{N}__description.sql`
-2. Version must be next sequential number after V65
+2. Version must be next sequential number after V70
 
 ### Step 5: Testing
 1. Domain model tests (pure logic, no mocks)

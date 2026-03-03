@@ -20,8 +20,15 @@ export const ADMIN_ENDPOINTS = {
   BULK_APPROVE: '/api/v3/admin/courses/bulk-approve',
   BULK_REJECT: '/api/v3/admin/courses/bulk-reject',
 
-  // === Categories ===
+  // === Categories (legacy flat list) ===
   CATEGORIES: '/api/v3/categories',
+
+  // === Course Categories (new hierarchical) ===
+  COURSE_CATEGORIES: '/api/v3/admin/course-categories',
+  COURSE_CATEGORIES_REORDER: '/api/v3/admin/course-categories/reorder',
+
+  // === Course Tags ===
+  COURSE_TAGS: '/api/v3/admin/course-tags',
 
   // === User Management ===
   USERS: '/api/v3/users',
@@ -63,3 +70,9 @@ export interface CategoryDTO {
   name: string;
   prefix: string;
 }
+
+// Public endpoints (no auth required)
+export const PUBLIC_ENDPOINTS = {
+  COURSE_CATEGORIES: '/api/v3/course-categories',
+  COURSE_TAGS: '/api/v3/course-tags',
+} as const;

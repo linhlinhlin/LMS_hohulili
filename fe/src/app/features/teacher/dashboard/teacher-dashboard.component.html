@@ -51,10 +51,8 @@
       }
     </div>
 
-    <!-- Content Grid -->
-    <div class="content-grid">
-      <!-- Course List Panel -->
-      <div class="courses-panel">
+    <!-- Course List -->
+    <div class="courses-panel">
         <!-- Tabs + View All -->
         <div class="section-header">
           <div class="tabs-container" role="tablist">
@@ -200,75 +198,5 @@
           }
         }
       </div>
-
-      <!-- Sidebar -->
-      <div class="sidebar">
-        <!-- Status Distribution -->
-        @if (!teacher.isLoading() && teacher.courses().length > 0) {
-          <div class="sidebar-card">
-            <div class="sidebar-card-header">
-              <h3 class="sidebar-card-title">Trạng thái</h3>
-            </div>
-            <div class="sidebar-card-body">
-              <!-- Proportional bar -->
-              <div class="status-bar">
-                @if (statusPercent('PUBLISHED') + statusPercent('APPROVED') > 0) {
-                  <div class="status-bar-segment published" [style.width.%]="statusPercent('PUBLISHED') + statusPercent('APPROVED')"></div>
-                }
-                @if (statusPercent('PENDING') > 0) {
-                  <div class="status-bar-segment pending" [style.width.%]="statusPercent('PENDING')"></div>
-                }
-                @if (statusPercent('DRAFT') > 0) {
-                  <div class="status-bar-segment draft" [style.width.%]="statusPercent('DRAFT')"></div>
-                }
-                @if (statusPercent('REJECTED') > 0) {
-                  <div class="status-bar-segment rejected" [style.width.%]="statusPercent('REJECTED')"></div>
-                }
-              </div>
-
-              <div class="status-list">
-                @for (item of statusItems(); track item.status) {
-                  @if (item.count > 0) {
-                    <div class="status-item">
-                      <div class="status-dot" [style.background]="item.color"></div>
-                      <span class="status-label">{{ item.label }}</span>
-                      <span class="status-count" [style.color]="item.color">{{ item.count }}</span>
-                    </div>
-                  }
-                }
-              </div>
-            </div>
-          </div>
-        }
-
-        <!-- Course Performance -->
-        @if (analytics().coursePerformance.length > 0) {
-          <div class="sidebar-card">
-            <div class="sidebar-card-header">
-              <h3 class="sidebar-card-title">Hiệu suất</h3>
-            </div>
-            <div class="sidebar-card-body no-padding">
-              @for (perf of analytics().coursePerformance.slice(0, 4); track perf.courseId; let last = $last) {
-                <div class="perf-item" [class.last]="last">
-                  <p class="perf-title">{{ perf.courseTitle }}</p>
-                  <div class="perf-meta">
-                    <span>{{ perf.enrolledStudents }} học viên</span>
-                    @if (perf.averageRating > 0) {
-                      <span class="perf-rating">
-                        <svg width="12" height="12" viewBox="0 0 20 20" fill="#D97706"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                        {{ perf.averageRating.toFixed(1) }}
-                      </span>
-                    }
-                  </div>
-                </div>
-              }
-              <a routerLink="/teacher/analytics" class="sidebar-link">
-                Xem phân tích chi tiết &rarr;
-              </a>
-            </div>
-          </div>
-        }
-      </div>
-    </div>
   </div>
 </div>

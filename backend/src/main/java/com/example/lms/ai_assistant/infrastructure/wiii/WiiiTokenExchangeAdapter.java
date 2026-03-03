@@ -40,7 +40,6 @@ public class WiiiTokenExchangeAdapter {
     private static final Logger log = LoggerFactory.getLogger(WiiiTokenExchangeAdapter.class);
     private static final String HMAC_ALGO = "HmacSHA256";
     private static final String CONNECTOR_ID = "maritime-lms";
-    private static final String ORG_ID = "maritime-lms";
 
     private final WiiiIntegrationConfig config;
     private final ObjectMapper objectMapper;
@@ -78,13 +77,14 @@ public class WiiiTokenExchangeAdapter {
             // Map LMS role to Wiii role
             String wiiiRole = mapRole(role);
 
+            // Wiii resolves organization from connector_id config (SSOT)
+            // No need to hardcode organization_id here
             Map<String, Object> body = Map.of(
                     "connector_id", CONNECTOR_ID,
                     "lms_user_id", lmsUserId,
                     "email", email,
                     "name", fullName,
                     "role", wiiiRole,
-                    "organization_id", ORG_ID,
                     "timestamp", Instant.now().getEpochSecond()
             );
 
@@ -106,10 +106,11 @@ public class WiiiTokenExchangeAdapter {
                 JsonNode json = objectMapper.readTree(response.body());
                 String accessToken = json.path("access_token").asText();
                 String refreshToken = json.path("refresh_token").asText();
+                String orgId = json.path("organization_id").asText(null);
 
                 if (!accessToken.isBlank()) {
-                    log.info("Wiii token exchange success: user={}", lmsUserId);
-                    return Optional.of(new TokenPair(accessToken, refreshToken));
+                    log.info("Wiii token exchange success: user={}, org={}", lmsUserId, orgId);
+                    return Optional.of(new TokenPair(accessToken, refreshToken, orgId));
                 }
             }
 
@@ -154,6 +155,7 @@ public class WiiiTokenExchangeAdapter {
 
     /**
      * JWT token pair returned by Wiii.
+     * organizationId is resolved by Wiii from connector config (SSOT).
      */
-    public record TokenPair(String accessToken, String refreshToken) {}
+    public record TokenPair(String accessToken, String refreshToken, String organizationId) {}
 }

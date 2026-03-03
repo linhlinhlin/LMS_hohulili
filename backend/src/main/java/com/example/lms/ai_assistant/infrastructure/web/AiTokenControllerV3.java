@@ -66,10 +66,13 @@ public class AiTokenControllerV3 {
         }
 
         var pair = tokenPair.get();
-        return ApiResponse.success(Map.of(
-                "access_token", pair.accessToken(),
-                "refresh_token", pair.refreshToken(),
-                "token_type", "Bearer"
-        ), "Kết nối AI thành công");
+        var data = new java.util.HashMap<String, Object>();
+        data.put("access_token", pair.accessToken());
+        data.put("refresh_token", pair.refreshToken());
+        data.put("token_type", "Bearer");
+        if (pair.organizationId() != null) {
+            data.put("organization_id", pair.organizationId());
+        }
+        return ApiResponse.success(data, "Kết nối AI thành công");
     }
 }

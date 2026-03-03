@@ -472,16 +472,16 @@ public class CourseAuthoringControllerV3 {
 @RequiredArgsConstructor
 class CourseAuthoringSupportControllerV3 {
 
-    private final com.example.lms.course_authoring.infrastructure.persistence.repository.CategoryJpaRepository categoryJpaRepository;
+    private final com.example.lms.course_authoring.infrastructure.persistence.repository.CourseCategoryJpaRepository courseCategoryJpaRepository;
 
-    @Operation(summary = "Get all course categories")
+    @Operation(summary = "Get all course categories (backward-compatible flat list)")
     @GetMapping("/categories")
     @org.springframework.cache.annotation.Cacheable(value = "categories")
     public ResponseEntity<ApiResponse<java.util.List<CategoryDTO>>> getCategories() {
-        var categories = categoryJpaRepository.findAll().stream()
+        var categories = courseCategoryJpaRepository.findByParentIdIsNullOrderBySortOrder().stream()
             .map(c -> new CategoryDTO(c.getId().toString(), c.getCode(), c.getName(), c.getPrefix()))
             .toList();
-        return ResponseEntity.ok(ApiResponse.success(categories, "Danh sách danh mục"));
+        return ResponseEntity.ok(ApiResponse.success(categories, "Danh sach danh muc"));
     }
 
     // NOTE: getInstructors is now handled by UserControllerV3 at /api/v3/users/instructors

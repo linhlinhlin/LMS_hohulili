@@ -65,7 +65,8 @@ export const teacherRoutes: Routes = [
       {
         path: 'course-creation',
         loadComponent: () => import('./courses/course-creation.component').then(m => m.CourseCreationComponent),
-        title: 'Tạo khóa học mới'
+        title: 'Tạo khóa học mới',
+        canDeactivate: [(component: any) => component.canDeactivate()]
       },
 
       // Assignment Hub Routes (Unified Assignment + Grading)

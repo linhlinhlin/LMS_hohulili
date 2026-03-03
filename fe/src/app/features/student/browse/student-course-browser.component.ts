@@ -1,11 +1,13 @@
 import {
   Component, ChangeDetectionStrategy, inject, signal, computed, OnInit, DestroyRef
 } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { CourseApi } from '../../../api/client/course.api';
-import { CourseSummary } from '../../../api/types/course.types';
+import { CourseSummary, CourseCategoryDTO } from '../../../api/types/course.types';
 import { StudentEnrollmentService } from '../services/enrollment.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-student-course-browser',
@@ -33,18 +35,73 @@ import { ToastService } from '../../../core/services/toast.service';
         </div>
       </div>
 
-      <!-- Category Filter Pills -->
-      <div class="flex items-center gap-2 mb-4 overflow-x-auto pb-1 scrollbar-thin">
-        @for (cat of categoryList(); track cat) {
-          <button
-            (click)="selectCategory(cat)"
+      <!-- Category Filter Tabs -->
+      <div class="flex items-center gap-2 mb-2 overflow-x-auto pb-1 scrollbar-thin">
+        <button (click)="selectRootCategory(null)"
+          class="px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap border transition-colors"
+          [class]="!selectedRootCategory()
+            ? 'bg-[#0056D2] text-white border-[#0056D2]'
+            : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400 hover:bg-gray-50'">
+          Tất cả
+        </button>
+        @for (root of categoryTree(); track root.id) {
+          <button (click)="selectRootCategory(root)"
             class="px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap border transition-colors"
-            [class]="selectedCategory() === cat
+            [class]="selectedRootCategory()?.id === root.id
               ? 'bg-[#0056D2] text-white border-[#0056D2]'
               : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400 hover:bg-gray-50'">
-            {{ cat }}
+            {{ root.name }}
           </button>
         }
+      </div>
+      <!-- Subcategory Chips -->
+      @if (selectedRootCategory()?.children?.length) {
+        <div class="flex items-center gap-1.5 mb-4 overflow-x-auto pb-1">
+          <button (click)="selectedSubId.set(null)"
+            class="px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap transition-colors"
+            [class]="!selectedSubId()
+              ? 'bg-[#0056D2]/10 text-[#0056D2]'
+              : 'text-gray-500 hover:text-gray-700'">
+            Tất cả
+          </button>
+          @for (sub of selectedRootCategory()!.children; track sub.id) {
+            <button (click)="selectedSubId.set(sub.id)"
+              class="px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap transition-colors"
+              [class]="selectedSubId() === sub.id
+                ? 'bg-[#0056D2]/10 text-[#0056D2]'
+                : 'text-gray-500 hover:text-gray-700'">
+              {{ sub.name }}
+            </button>
+          }
+        </div>
+      } @else {
+        <div class="mb-4"></div>
+      }
+
+      <!-- Mode Filter -->
+      <div class="flex items-center gap-2 mb-4">
+        <span class="text-xs text-slate-500 mr-1">Hình thức:</span>
+        <button (click)="modeFilter.set('')"
+          class="px-2.5 py-1 rounded-full text-xs font-medium border transition-colors"
+          [class]="!modeFilter()
+            ? 'bg-slate-800 text-white border-slate-800'
+            : 'bg-white text-slate-600 border-slate-300 hover:border-slate-400'">
+          Tất cả
+        </button>
+        <button (click)="modeFilter.set('SELF_PACED')"
+          class="px-2.5 py-1 rounded-full text-xs font-medium border transition-colors"
+          [class]="modeFilter() === 'SELF_PACED'
+            ? 'bg-[#0056D2] text-white border-[#0056D2]'
+            : 'bg-white text-slate-600 border-slate-300 hover:border-slate-400'">
+          Khóa học
+        </button>
+        <button (click)="modeFilter.set('INSTRUCTOR_LED')"
+          class="px-2.5 py-1 rounded-full text-xs font-medium border transition-colors"
+          [class]="modeFilter() === 'INSTRUCTOR_LED'
+            ? 'bg-emerald-600 text-white border-emerald-600'
+            : 'bg-white text-slate-600 border-slate-300 hover:border-slate-400'">
+          Lớp học
+        </button>
       </div>
 
       <!-- Filters Bar: Result Count + Sort + Quick Toggle -->
@@ -143,6 +200,18 @@ import { ToastService } from '../../../core/services/toast.service';
                       {{ course.categoryName }}
                     </span>
                   }
+                  <!-- Mode badge -->
+                  @if (course.deliveryMode === 'INSTRUCTOR_LED') {
+                    <span class="absolute bottom-2 left-2 px-2 py-0.5 text-[10px] font-semibold bg-emerald-500/90 text-white rounded-md backdrop-blur-sm">
+                      Lớp học
+                    </span>
+                  }
+                  <!-- Capacity badge for full classes -->
+                  @if (course.deliveryMode === 'INSTRUCTOR_LED' && course.maxStudents && course.enrolledCount >= course.maxStudents) {
+                    <span class="absolute bottom-2 right-2 px-2 py-0.5 text-[10px] font-semibold bg-red-500/90 text-white rounded-md backdrop-blur-sm">
+                      Đã đủ
+                    </span>
+                  }
                   <!-- Enrolled badge -->
                   @if (isEnrolled(course.id)) {
                     <span class="absolute top-2 right-2 px-2 py-1 text-xs font-medium bg-green-500 text-white rounded-full">
@@ -212,6 +281,7 @@ export class StudentCourseBrowserComponent implements OnInit {
   private enrollmentService = inject(StudentEnrollmentService);
   private toast = inject(ToastService);
   private router = inject(Router);
+  private http = inject(HttpClient);
   private destroyRef = inject(DestroyRef);
 
   // Raw courses from API
@@ -222,34 +292,43 @@ export class StudentCourseBrowserComponent implements OnInit {
   currentPage = signal(0);
   totalPages = signal(1);
 
-  // New filter/sort state
-  selectedCategory = signal<string>('Tất cả');
+  // Category tree from API
+  categoryTree = signal<CourseCategoryDTO[]>([]);
+  selectedRootCategory = signal<CourseCategoryDTO | null>(null);
+  selectedSubId = signal<string | null>(null);
+
+  // Filter/sort state
   sortMode = signal<string>('newest');
   showEnrolledOnly = signal(false);
+  modeFilter = signal<'' | 'SELF_PACED' | 'INSTRUCTOR_LED'>('');
 
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly PAGE_SIZE = 12;
 
   private enrolledIds = computed(() => this.enrollmentService.enrolledCourseIds());
 
-  // Extract unique categories from loaded courses
-  categoryList = computed(() => {
-    const cats = new Set<string>();
-    cats.add('Tất cả');
-    for (const c of this.rawCourses()) {
-      if (c.categoryName) cats.add(c.categoryName);
-    }
-    return Array.from(cats);
-  });
-
   // Client-side filtered + sorted courses
   filteredCourses = computed(() => {
     let result = this.rawCourses();
 
-    // Category filter
-    const cat = this.selectedCategory();
-    if (cat !== 'Tất cả') {
-      result = result.filter(c => c.categoryName === cat);
+    // Category filter — match by categoryName (root or sub)
+    const root = this.selectedRootCategory();
+    if (root) {
+      const subId = this.selectedSubId();
+      if (subId) {
+        const sub = root.children?.find(c => c.id === subId);
+        if (sub) result = result.filter(c => c.categoryName === sub.name);
+      } else {
+        // Filter by root or any of its subcategories
+        const names = new Set([root.name, ...(root.children?.map(c => c.name) || [])]);
+        result = result.filter(c => c.categoryName && names.has(c.categoryName));
+      }
+    }
+
+    // Mode filter
+    const mode = this.modeFilter();
+    if (mode) {
+      result = result.filter(c => c.deliveryMode === mode);
     }
 
     // Enrolled-only filter
@@ -285,6 +364,14 @@ export class StudentCourseBrowserComponent implements OnInit {
   ngOnInit(): void {
     this.loadCourses();
     this.enrollmentService.loadEnrolledCourses(0);
+    this.loadCategoryTree();
+  }
+
+  private loadCategoryTree(): void {
+    this.http.get<{ data: CourseCategoryDTO[] }>(`${environment.apiUrl}/api/v3/course-categories`).subscribe({
+      next: (res) => this.categoryTree.set(res.data || []),
+      error: () => {} // Silent — categories are optional
+    });
   }
 
   onSearchInput(event: Event): void {
@@ -325,8 +412,9 @@ export class StudentCourseBrowserComponent implements OnInit {
     });
   }
 
-  selectCategory(cat: string): void {
-    this.selectedCategory.set(cat);
+  selectRootCategory(root: CourseCategoryDTO | null): void {
+    this.selectedRootCategory.set(root);
+    this.selectedSubId.set(null);
   }
 
   onSortChange(event: Event): void {

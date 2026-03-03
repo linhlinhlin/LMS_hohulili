@@ -162,8 +162,8 @@ export class UserManagementState {
     if (this.searchQuery()) params.search = this.searchQuery();
     if (this.roleFilter()) params.role = this.roleFilter();
     if (this.statusFilter()) params.status = this.statusFilter();
-    if (this.fromDate()) params.fromDate = this.fromDate();
-    if (this.toDate()) params.toDate = this.toDate();
+    // Note: fromDate/toDate not supported by UserControllerV3 backend — filtered client-side
+
 
     this.adminService.getUsers(params)
       .pipe(takeUntilDestroyed(this.destroyRef))

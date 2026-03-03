@@ -1,5 +1,5 @@
 ﻿import { Component, inject, signal, computed, effect, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
-
+import { HttpClient } from '@angular/common/http';
 import { Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -33,7 +33,8 @@ import {
   EventInfo
 } from 'ckeditor5';
 import 'ckeditor5/ckeditor5.css';
-import { Base64UploadAdapterPlugin } from '../../../../../core/utils/base64-upload-adapter';
+import { createServerUploadPlugin } from '../../../../../core/utils/server-upload-adapter';
+import { environment } from '../../../../../../environments/environment';
 import { PdfViewerService } from '../../../../../shared/services/pdf-viewer.service';
 import {
   LucideAngularModule
@@ -54,6 +55,7 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
 export class CourseCurriculumComponent implements OnDestroy {
   readonly store = inject(CourseEditorStore);
   readonly selectionService = inject(CurriculumSelectionService);
+  private http = inject(HttpClient);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private lessonApi = inject(LessonApi);
@@ -108,8 +110,8 @@ export class CourseCurriculumComponent implements OnDestroy {
       Table, TableToolbar, MediaEmbed,
       SourceEditing, Autoformat,
 
-      // Plugin Upload ảnh Base64 của bạn
-      Base64UploadAdapterPlugin
+      // Server-side image upload (prevents Base64 DB bloat)
+      createServerUploadPlugin(this.http, environment.apiUrl)
     ],
 
     // Cấu hình Toolbar (Thiết lập nút bấm)

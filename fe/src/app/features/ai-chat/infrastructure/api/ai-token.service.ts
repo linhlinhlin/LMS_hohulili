@@ -1,4 +1,4 @@
-import { Injectable, signal, computed, inject } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../../environments/environment';
 
@@ -6,6 +6,7 @@ interface AiTokenPair {
   access_token: string;
   refresh_token: string;
   token_type: string;
+  organization_id?: string;
 }
 
 /**
@@ -22,6 +23,7 @@ interface AiTokenPair {
 export class AiTokenService {
   private readonly _token = signal<string | null>(null);
   private readonly _refreshToken = signal<string | null>(null);
+  private readonly _organizationId = signal<string | null>(null);
   private readonly _expiresAt = signal<number>(0);
 
   readonly hasToken = computed(() => {
@@ -31,6 +33,9 @@ export class AiTokenService {
   });
 
   private http = inject(HttpClient);
+
+  /** Organization ID resolved by Wiii from connector config. */
+  readonly organizationId = computed(() => this._organizationId());
 
   /**
    * Get a valid AI token, exchanging if needed.
@@ -58,6 +63,7 @@ export class AiTokenService {
       if (response?.success && response.data?.access_token) {
         this._token.set(response.data.access_token);
         this._refreshToken.set(response.data.refresh_token);
+        this._organizationId.set(response.data.organization_id ?? null);
         // Cache for 14 minutes (JWT expires at 15 min)
         this._expiresAt.set(Date.now() + 14 * 60 * 1000);
         return response.data.access_token;
@@ -74,6 +80,7 @@ export class AiTokenService {
   clearToken(): void {
     this._token.set(null);
     this._refreshToken.set(null);
+    this._organizationId.set(null);
     this._expiresAt.set(0);
   }
 }

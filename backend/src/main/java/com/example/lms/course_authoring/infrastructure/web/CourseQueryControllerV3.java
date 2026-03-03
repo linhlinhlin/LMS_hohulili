@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
-import com.example.lms.course_authoring.infrastructure.persistence.entity.CategoryJpaEntity;
+import com.example.lms.course_authoring.infrastructure.persistence.entity.CourseCategoryJpaEntity;
 import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
 import com.example.lms.shared.infrastructure.persistence.entity.PaymentTransactionJpaEntity;
 import com.example.lms.shared.infrastructure.persistence.repository.PaymentTransactionJpaRepository;
@@ -46,7 +46,7 @@ public class CourseQueryControllerV3 {
     private final EnrollmentRepositoryImpl enrollmentRepository;
     private final com.example.lms.course_authoring.infrastructure.persistence.repository.ChapterJpaRepository chapterRepository;
     private final UserJpaRepository userJpaRepository;
-    private final com.example.lms.course_authoring.infrastructure.persistence.repository.CategoryJpaRepository categoryJpaRepository;
+    private final com.example.lms.course_authoring.infrastructure.persistence.repository.CourseCategoryJpaRepository courseCategoryJpaRepository;
     private final PaymentTransactionJpaRepository paymentRepository;
 
     @Operation(summary = "Get all published courses")
@@ -75,7 +75,7 @@ public class CourseQueryControllerV3 {
         Set<UUID> categoryIds = courses.getContent().stream()
                 .map(Course::getCategoryId).filter(Objects::nonNull).collect(Collectors.toSet());
         Map<UUID, String> categoryNameMap = categoryIds.isEmpty() ? Map.of() :
-                categoryJpaRepository.findAllById(categoryIds).stream()
+                courseCategoryJpaRepository.findAllById(categoryIds).stream()
                         .collect(Collectors.toMap(c -> c.getId(), c -> c.getName()));
 
         Page<CourseSummaryResponse> response = courses.map(course -> toSummaryBatch(course, teacherNameMap, categoryNameMap));
@@ -521,7 +521,7 @@ public class CourseQueryControllerV3 {
 
     private String resolveCategoryName(UUID categoryId) {
         if (categoryId == null) return null;
-        return categoryJpaRepository.findById(categoryId)
+        return courseCategoryJpaRepository.findById(categoryId)
                 .map(c -> c.getName())
                 .orElse(null);
     }

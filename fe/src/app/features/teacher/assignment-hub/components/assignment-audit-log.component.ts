@@ -101,7 +101,7 @@ export class AssignmentAuditLogComponent {
       'FEEDBACK_ADDED': 'bg-[#0056D2]/10',
       'RUBRIC_CHANGED': 'bg-purple-100',
       'DEADLINE_EXTENDED': 'bg-orange-100',
-      'ASSIGNMENT_DISTRIBUTED': 'bg-indigo-100'
+      'ASSIGNMENT_DISTRIBUTED': 'bg-[#0056D2]/10'
     };
     return classes[action] || 'bg-gray-100';
   }
@@ -113,7 +113,7 @@ export class AssignmentAuditLogComponent {
       'FEEDBACK_ADDED': 'text-[#0056D2]',
       'RUBRIC_CHANGED': 'text-purple-600',
       'DEADLINE_EXTENDED': 'text-orange-600',
-      'ASSIGNMENT_DISTRIBUTED': 'text-indigo-600'
+      'ASSIGNMENT_DISTRIBUTED': 'text-[#0056D2]'
     };
     return classes[action] || 'text-gray-600';
   }

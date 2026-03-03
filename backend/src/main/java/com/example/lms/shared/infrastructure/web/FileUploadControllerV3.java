@@ -1,5 +1,6 @@
 package com.example.lms.shared.infrastructure.web;
 
+import com.example.lms.shared.application.usecase.PresignedUploadUseCase;
 import com.example.lms.shared.infrastructure.service.LocalStorageService;
 import com.example.lms.shared.infrastructure.service.R2StorageService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -46,17 +47,20 @@ public class FileUploadControllerV3 {
     private final Optional<LocalStorageService> localStorageService;
     private final com.example.lms.shared.infrastructure.service.FileManagementService fileManagementService;
     private final com.example.lms.shared.infrastructure.persistence.repository.FileAttachmentJpaRepository fileAttachmentRepository;
+    private final PresignedUploadUseCase presignedUploadUseCase;
 
     @Autowired
     public FileUploadControllerV3(
             @Autowired(required = false) R2StorageService r2StorageService,
             @Autowired(required = false) LocalStorageService localStorageService,
             com.example.lms.shared.infrastructure.service.FileManagementService fileManagementService,
-            com.example.lms.shared.infrastructure.persistence.repository.FileAttachmentJpaRepository fileAttachmentRepository) {
+            com.example.lms.shared.infrastructure.persistence.repository.FileAttachmentJpaRepository fileAttachmentRepository,
+            PresignedUploadUseCase presignedUploadUseCase) {
         this.r2StorageService = Optional.ofNullable(r2StorageService);
         this.localStorageService = Optional.ofNullable(localStorageService);
         this.fileManagementService = fileManagementService;
         this.fileAttachmentRepository = fileAttachmentRepository;
+        this.presignedUploadUseCase = presignedUploadUseCase;
     }
 
     private boolean isStorageAvailable() {
@@ -224,6 +228,82 @@ public class FileUploadControllerV3 {
             ));
         }
     }
+
+    // ============ Presigned Upload Flow ============
+
+    @PostMapping("/upload/init")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @Operation(summary = "Initialize presigned upload — returns presigned PUT URL")
+    public ResponseEntity<Map<String, Object>> initUpload(
+            @RequestBody Map<String, Object> body,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        try {
+            if (user == null) {
+                return ResponseEntity.status(401).body(Map.of("success", false, "message", "Không được phép truy cập"));
+            }
+
+            String contentType = (String) body.get("contentType");
+            Number fileSizeNum = (Number) body.get("fileSize");
+            String folder = (String) body.getOrDefault("folder", "editor-images");
+
+            if (contentType == null || fileSizeNum == null) {
+                return ResponseEntity.badRequest().body(Map.of("success", false, "message", "contentType và fileSize là bắt buộc"));
+            }
+
+            var result = presignedUploadUseCase.initUpload(contentType, fileSizeNum.longValue(), folder, user.getId());
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("uploadUrl", result.uploadUrl());
+            response.put("storageKey", result.storageKey());
+            response.put("expiresAt", result.expiresAt() != null ? result.expiresAt().toString() : null);
+            response.put("isServerRelay", result.isServerRelay());
+            return ResponseEntity.ok(response);
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", e.getMessage()));
+        } catch (RuntimeException e) {
+            log.error("Init presigned upload failed", e);
+            return ResponseEntity.internalServerError().body(Map.of("success", false, "message", "Khởi tạo upload thất bại"));
+        }
+    }
+
+    @PostMapping("/upload/confirm")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @Operation(summary = "Confirm presigned upload — verifies file in storage, creates attachment record")
+    public ResponseEntity<Map<String, Object>> confirmUpload(
+            @RequestBody Map<String, String> body,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        try {
+            if (user == null) {
+                return ResponseEntity.status(401).body(Map.of("success", false, "message", "Không được phép truy cập"));
+            }
+
+            String storageKey = body.get("storageKey");
+            String originalName = body.get("originalName");
+
+            if (storageKey == null || storageKey.isBlank()) {
+                return ResponseEntity.badRequest().body(Map.of("success", false, "message", "storageKey là bắt buộc"));
+            }
+
+            var result = presignedUploadUseCase.confirmUpload(storageKey, originalName, user.getId());
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("id", result.id().toString());
+            response.put("url", result.publicUrl());
+            response.put("storageKey", result.storageKey());
+            return ResponseEntity.ok(response);
+
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", e.getMessage()));
+        } catch (RuntimeException e) {
+            log.error("Confirm presigned upload failed", e);
+            return ResponseEntity.internalServerError().body(Map.of("success", false, "message", "Xác nhận upload thất bại"));
+        }
+    }
+
+    // ============ Validation Helpers ============
 
     private String validateFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {

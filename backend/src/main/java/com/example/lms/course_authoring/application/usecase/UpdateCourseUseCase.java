@@ -4,6 +4,8 @@ import com.example.lms.course_authoring.application.dto.UpdateCourseCommand;
 import com.example.lms.course_authoring.application.dto.CourseResponse;
 import com.example.lms.course_authoring.domain.model.Course;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
+import com.example.lms.learning_delivery.domain.repository.EnrollmentRepositoryPort;
+import com.example.lms.shared.exception.BusinessRuleException;
 import com.example.lms.shared.exception.EntityNotFoundException;
 import com.example.lms.shared.exception.UnauthorizedException;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UpdateCourseUseCase {
 
     private final CourseRepository courseRepository;
+    private final EnrollmentRepositoryPort enrollmentRepository;
 
     @Transactional
     public CourseResponse execute(UpdateCourseCommand command) {
@@ -58,9 +61,23 @@ public class UpdateCourseUseCase {
             command.credits()
         );
 
-        // Update pricing
+        // Update pricing (with validation — Udemy/Coursera pattern)
         Course.PriceType priceType = parsePriceType(command.priceType());
         if (priceType != null || command.price() != null) {
+            // Validate: PAID requires price > 0 (Udemy/Coursera pattern)
+            Course.PriceType effectiveType = priceType != null ? priceType : course.getPriceType();
+            if (effectiveType == Course.PriceType.PAID) {
+                java.math.BigDecimal effectivePrice = command.price() != null ? command.price() : course.getPrice();
+                if (effectivePrice == null || effectivePrice.compareTo(java.math.BigDecimal.ZERO) <= 0) {
+                    throw new BusinessRuleException("Khóa học trả phí phải có giá lớn hơn 0.");
+                }
+                // Validate: salePrice < price when both set
+                java.math.BigDecimal effectiveSalePrice = command.salePrice() != null ? command.salePrice() : course.getSalePrice();
+                if (effectiveSalePrice != null && effectiveSalePrice.compareTo(java.math.BigDecimal.ZERO) > 0
+                        && effectivePrice != null && effectiveSalePrice.compareTo(effectivePrice) >= 0) {
+                    throw new BusinessRuleException("Giá khuyến mãi phải nhỏ hơn giá gốc.");
+                }
+            }
             course.updatePricing(priceType, command.price(), command.salePrice());
         }
 
@@ -70,10 +87,16 @@ public class UpdateCourseUseCase {
             course.updateVisibility(visibility);
         }
 
-        // Update delivery mode
-        Course.DeliveryMode deliveryMode = parseDeliveryMode(command.deliveryMode());
-        if (deliveryMode != null) {
-            course.updateDeliveryMode(deliveryMode);
+        // Update delivery mode (locked after first enrollment — Open edX immutable pattern)
+        Course.DeliveryMode newDeliveryMode = parseDeliveryMode(command.deliveryMode());
+        if (newDeliveryMode != null && newDeliveryMode != course.getDeliveryMode()) {
+            if (enrollmentRepository.existsByCourseId(course.getId())) {
+                throw new BusinessRuleException(
+                    "Không thể thay đổi hình thức giảng dạy khi đã có học viên đăng ký. " +
+                    "Vui lòng tạo khóa học mới với hình thức khác."
+                );
+            }
+            course.updateDeliveryMode(newDeliveryMode);
         }
 
         // Save course

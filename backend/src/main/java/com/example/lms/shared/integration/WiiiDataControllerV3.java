@@ -60,8 +60,9 @@ public class WiiiDataControllerV3 {
 
         // Get enrolled course names
         List<String> enrolledCourses = jdbc.queryForList(
-                "SELECT DISTINCT lc.name FROM enrollments e " +
+                "SELECT DISTINCT c.title FROM enrollments e " +
                 "JOIN learning_classes lc ON e.class_id = lc.id " +
+                "JOIN courses c ON lc.course_id = c.id " +
                 "WHERE e.student_id = ? AND e.status = 'ACTIVE'",
                 String.class, userId
         );
@@ -86,8 +87,10 @@ public class WiiiDataControllerV3 {
 
         List<Map<String, Object>> grades = jdbc.queryForList(
                 "SELECT " +
-                "  ch.course_id::text AS course_id, " +
-                "  lc.name AS course_name, " +
+                "  c.id::text AS course_id, " +
+                "  c.title AS course_name, " +
+                "  (SELECT lc.name FROM enrollments e2 JOIN learning_classes lc ON e2.class_id = lc.id " +
+                "   WHERE e2.student_id = qa.student_id AND lc.course_id = c.id LIMIT 1) AS class_name, " +
                 "  qa.score AS grade, " +
                 "  COALESCE(qa.max_score, 100.0) AS max_grade, " +
                 "  qa.submitted_at::text AS date " +
@@ -95,7 +98,7 @@ public class WiiiDataControllerV3 {
                 "JOIN quizzes q ON qa.quiz_id = q.id " +
                 "JOIN lessons l ON q.lesson_id = l.id " +
                 "JOIN chapters ch ON l.chapter_id = ch.id " +
-                "LEFT JOIN learning_classes lc ON ch.course_id = lc.course_id " +
+                "JOIN courses c ON ch.course_id = c.id " +
                 "WHERE qa.student_id = ? AND qa.status IN ('SUBMITTED', 'GRADED') " +
                 "ORDER BY qa.submitted_at DESC",
                 userId
@@ -116,14 +119,17 @@ public class WiiiDataControllerV3 {
 
         List<Map<String, Object>> enrollments = jdbc.queryForList(
                 "SELECT " +
-                "  lc.course_id::text AS course_id, " +
-                "  lc.name AS course_name, " +
+                "  c.id::text AS course_id, " +
+                "  c.title AS course_name, " +
+                "  lc.id::text AS class_id, " +
+                "  lc.name AS class_name, " +
                 "  lc.semester, " +
                 "  e.status, " +
                 "  e.completion_percent, " +
                 "  e.enrolled_at::text AS enrolled_at " +
                 "FROM enrollments e " +
                 "JOIN learning_classes lc ON e.class_id = lc.id " +
+                "JOIN courses c ON lc.course_id = c.id " +
                 "WHERE e.student_id = ? " +
                 "ORDER BY e.enrolled_at DESC",
                 userId
@@ -146,18 +152,21 @@ public class WiiiDataControllerV3 {
                 "SELECT " +
                 "  a.id::text AS assignment_id, " +
                 "  a.title AS assignment_name, " +
-                "  lc.course_id::text AS course_id, " +
-                "  lc.name AS course_name, " +
+                "  c.id::text AS course_id, " +
+                "  c.title AS course_name, " +
+                "  (SELECT lc2.name FROM enrollments e2 JOIN learning_classes lc2 ON e2.class_id = lc2.id " +
+                "   WHERE e2.student_id = ? AND e2.status = 'ACTIVE' AND lc2.course_id = c.id LIMIT 1) AS class_name, " +
                 "  a.due_date::text AS due_date " +
                 "FROM assignments a " +
-                "JOIN learning_classes lc ON a.course_id = lc.course_id " +
-                "JOIN enrollments e ON e.class_id = lc.id " +
-                "WHERE e.student_id = ? " +
-                "  AND e.status = 'ACTIVE' " +
-                "  AND (a.due_date IS NULL OR a.due_date > NOW()) " +
+                "JOIN courses c ON a.course_id = c.id " +
+                "WHERE EXISTS (" +
+                "  SELECT 1 FROM enrollments e JOIN learning_classes lc ON e.class_id = lc.id " +
+                "  WHERE e.student_id = ? AND e.status = 'ACTIVE' AND lc.course_id = a.course_id" +
+                ") " +
+                "AND (a.due_date IS NULL OR a.due_date > NOW()) " +
                 "ORDER BY a.due_date ASC NULLS LAST " +
                 "LIMIT 20",
-                userId
+                userId, userId
         );
 
         return ApiResponse.success(assignments);
@@ -177,8 +186,10 @@ public class WiiiDataControllerV3 {
                 "  qa.id::text AS attempt_id, " +
                 "  q.id::text AS quiz_id, " +
                 "  q.title AS quiz_name, " +
-                "  ch.course_id::text AS course_id, " +
-                "  lc.name AS course_name, " +
+                "  c.id::text AS course_id, " +
+                "  c.title AS course_name, " +
+                "  (SELECT lc.name FROM enrollments e2 JOIN learning_classes lc ON e2.class_id = lc.id " +
+                "   WHERE e2.student_id = qa.student_id AND lc.course_id = c.id LIMIT 1) AS class_name, " +
                 "  qa.score, " +
                 "  COALESCE(qa.max_score, 100.0) AS max_score, " +
                 "  qa.is_passed, " +
@@ -189,7 +200,7 @@ public class WiiiDataControllerV3 {
                 "JOIN quizzes q ON qa.quiz_id = q.id " +
                 "JOIN lessons l ON q.lesson_id = l.id " +
                 "JOIN chapters ch ON l.chapter_id = ch.id " +
-                "LEFT JOIN learning_classes lc ON ch.course_id = lc.course_id " +
+                "JOIN courses c ON ch.course_id = c.id " +
                 "WHERE qa.student_id = ? " +
                 "ORDER BY qa.started_at DESC " +
                 "LIMIT 50",

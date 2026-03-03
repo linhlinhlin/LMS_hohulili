@@ -20,5 +20,11 @@ public interface CourseReviewJpaRepository extends JpaRepository<CourseReviewJpa
     @Query("SELECT AVG(r.rating) FROM CourseReviewJpaEntity r WHERE r.courseId = :courseId")
     Double getAverageRatingByCourseId(@Param("courseId") UUID courseId);
 
+    @Query("SELECT r.courseId, AVG(r.rating) FROM CourseReviewJpaEntity r WHERE r.courseId IN :courseIds GROUP BY r.courseId")
+    List<Object[]> getAverageRatingsByCourseIds(@Param("courseIds") List<UUID> courseIds);
+
+    @Query("SELECT AVG(r.rating) FROM CourseReviewJpaEntity r WHERE r.courseId IN :courseIds")
+    Double getWeightedAverageRatingByCourseIds(@Param("courseIds") List<UUID> courseIds);
+
     long countByCourseId(UUID courseId);
 }

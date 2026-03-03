@@ -89,7 +89,7 @@ export class TeacherManagementComponent implements OnInit {
 
   loadUsers() {
     this.isLoading.set(true);
-    this.adminService.getUsers({ page: 0, size: 200, role: 'TEACHER' }).subscribe({
+    this.adminService.getUsers({ page: 1, limit: 200, role: 'TEACHER' }).subscribe({
       next: (response) => {
         this.allUsers.set(response.data || []);
         this.isLoading.set(false);

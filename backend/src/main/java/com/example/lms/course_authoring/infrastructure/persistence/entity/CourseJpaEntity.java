@@ -79,7 +79,7 @@ public class CourseJpaEntity {
     private UUID categoryId;
 
     @ElementCollection
-    @CollectionTable(name = "course_tags", joinColumns = @JoinColumn(name = "course_id"))
+    @CollectionTable(name = "course_embedded_tags", joinColumns = @JoinColumn(name = "course_id"))
     @Column(name = "tag_name")
     @Fetch(FetchMode.SUBSELECT)
     private Set<String> tags = new HashSet<>();

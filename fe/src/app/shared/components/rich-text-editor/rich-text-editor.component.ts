@@ -1,5 +1,5 @@
-import { Component, input, output, ViewEncapsulation, forwardRef, effect, ChangeDetectionStrategy } from '@angular/core';
-
+import { Component, inject, input, output, ViewEncapsulation, forwardRef, effect, ChangeDetectionStrategy } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { FormsModule, NG_VALUE_ACCESSOR, ControlValueAccessor } from '@angular/forms';
 import { CKEditorModule } from '@ckeditor/ckeditor5-angular';
 import {
@@ -14,7 +14,8 @@ import {
 } from 'ckeditor5';
 
 import 'ckeditor5/ckeditor5.css';
-import { Base64UploadAdapterPlugin } from '../../../core/utils/base64-upload-adapter';
+import { createServerUploadPlugin } from '../../../core/utils/server-upload-adapter';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -43,6 +44,8 @@ import { Base64UploadAdapterPlugin } from '../../../core/utils/base64-upload-ada
     ]
 })
 export class RichTextEditorComponent implements ControlValueAccessor {
+    private http = inject(HttpClient);
+
     // Signal inputs - Angular v20+
     placeholder = input<string>('Nhập nội dung...');
     height = input<number>(300);
@@ -70,7 +73,7 @@ export class RichTextEditorComponent implements ControlValueAccessor {
             Link, Image, ImageUpload, ImageToolbar, ImageStyle, ImageResize, ImageCaption,
             Table, TableToolbar, MediaEmbed,
             SourceEditing, Autoformat,
-            Base64UploadAdapterPlugin
+            createServerUploadPlugin(this.http, environment.apiUrl)
         ],
         toolbar: {
             items: [

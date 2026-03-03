@@ -100,7 +100,7 @@ interface EnrolledStudent {
           <mat-tab label="Thêm học viên">
             <div class="pt-6 space-y-6">
                 <!-- Manual Email Input -->
-                <div class="p-5 bg-[#0056D2]/5/50 rounded-2xl border border-[#0056D2]/10 space-y-4">
+                <div class="p-5 bg-[#0056D2]/5 rounded-2xl border border-[#0056D2]/10 space-y-4">
                     <div class="flex items-center gap-2 mb-2">
                         <mat-icon class="text-[#0056D2]">person_add</mat-icon>
                         <h4 class="text-sm font-black text-[#004BB5] uppercase tracking-wide">Nhập email thủ công</h4>

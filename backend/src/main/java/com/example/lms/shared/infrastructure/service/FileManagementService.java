@@ -57,7 +57,7 @@ public class FileManagementService implements FileManagementPort {
                 .fileSize(result.fileSize())
                 .contentType(file.getContentType())
                 .uploadedBy(uploadedBy)
-                .fileCategory("QUESTION_IMAGE") // Default category for now
+                .fileCategory(mapFolderToCategory(folder))
                 .status("ACTIVE")
                 .build();
 
@@ -105,6 +105,16 @@ public class FileManagementService implements FileManagementPort {
             }
         }
         return null;
+    }
+
+    private String mapFolderToCategory(String folder) {
+        if (folder == null) return "GENERAL";
+        return switch (folder) {
+            case "course", "course-thumbnails" -> "COURSE_THUMBNAIL";
+            case "editor-images", "question-images" -> "EDITOR_IMAGE";
+            case "videos" -> "VIDEO";
+            default -> "GENERAL";
+        };
     }
 
     private void linkFileByUrl(String url, UUID entityId, String entityType) {

@@ -14,16 +14,16 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
   selector: 'app-course-settings',
   imports: [FormsModule, CourseInstructorsComponent],
   template: `
-<div class="max-w-screen-2xl mx-auto px-8 py-6">
+<div class="max-w-screen-2xl mx-auto px-5 sm:px-8 py-5">
 
   <!-- Two-Column Layout matching Info page (WordPress/Shopify pattern) -->
-  <div class="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-start">
+  <div class="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6 items-start">
 
     <!-- ============ MAIN COLUMN ============ -->
     <div class="space-y-5 min-w-0">
 
       <!-- SECTION 1: QUYỀN TRUY CẬP -->
-      <section class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      <section class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div class="px-5 py-3.5 border-b border-slate-100 bg-slate-50/50">
           <h2 class="text-sm font-semibold text-slate-900">Hiển thị & Đăng ký</h2>
           <p class="text-xs text-slate-500 mt-0.5">Quản lý quyền truy cập và đăng ký khóa học</p>
@@ -33,7 +33,7 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
             <!-- Public Card -->
             <div class="border rounded-lg p-4 cursor-pointer transition-all group"
               [class]="visibility() === 'public'
-                ? 'border-[#0056D2] bg-[#0056D2]/5/50'
+                ? 'border-[#0056D2] bg-[#0056D2]/5'
                 : 'border-slate-200 hover:border-slate-300'"
               (click)="visibility.set('public')">
               <div class="flex items-center justify-between mb-1.5">
@@ -46,7 +46,7 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
             <!-- Private Card -->
             <div class="border rounded-lg p-4 cursor-pointer transition-all group"
               [class]="visibility() === 'private'
-                ? 'border-[#0056D2] bg-[#0056D2]/5/50'
+                ? 'border-[#0056D2] bg-[#0056D2]/5'
                 : 'border-slate-200 hover:border-slate-300'"
               (click)="visibility.set('private')">
               <div class="flex items-center justify-between mb-1.5">
@@ -58,7 +58,9 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
           </div>
 
           <!-- Toggle Options -->
-          <div class="bg-slate-50 rounded-lg p-4 border border-slate-200 space-y-4">
+          <div class="relative">
+            <span class="absolute -top-2.5 right-3 z-10 text-[10px] font-semibold uppercase tracking-wider text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">Sắp ra mắt</span>
+          <div class="bg-slate-50 rounded-lg p-4 border border-slate-200 space-y-4 opacity-50 pointer-events-none select-none">
             <label class="flex items-center justify-between cursor-pointer">
               <div>
                 <span class="block text-sm font-medium text-slate-900">Cho phép tự đăng ký</span>
@@ -80,22 +82,26 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
               </div>
             </div>
           </div>
+          </div>
         </div>
       </section>
 
       <!-- SECTION 2: LỘ TRÌNH HỌC -->
-      <section class="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div class="px-5 py-3.5 border-b border-slate-100 bg-slate-50/50">
-          <h2 class="text-sm font-semibold text-slate-900">Lộ trình & Điều kiện mở bài</h2>
-          <p class="text-xs text-slate-500 mt-0.5">Thiết lập cách học viên truy cập nội dung</p>
+      <section class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden relative">
+        <div class="px-5 py-3.5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+          <div>
+            <h2 class="text-sm font-semibold text-slate-900">Lộ trình & Điều kiện mở bài</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Thiết lập cách học viên truy cập nội dung</p>
+          </div>
+          <span class="text-[10px] font-semibold uppercase tracking-wider text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">Sắp ra mắt</span>
         </div>
-        <div class="p-5 space-y-5">
+        <div class="p-5 space-y-5 opacity-50 pointer-events-none select-none">
           <!-- Progression Mode -->
           <div class="space-y-3">
             <label class="block text-sm font-medium text-slate-700">Điều kiện học học phần</label>
             <div class="space-y-2">
               <label class="flex items-start gap-3 cursor-pointer group p-3 rounded-lg border border-transparent hover:bg-slate-50 transition-colors"
-                [class.bg-[#0056D2]/5/50]="progressionMode() === 'free'"
+                [class.bg-[#0056D2]/5]="progressionMode() === 'free'"
                 [class.border-[#0056D2]/20]="progressionMode() === 'free'">
                 <input type="radio" name="progression" value="free"
                   [ngModel]="progressionMode()" (ngModelChange)="progressionMode.set($event)"
@@ -106,7 +112,7 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
                 </div>
               </label>
               <label class="flex items-start gap-3 cursor-pointer group p-3 rounded-lg border border-transparent hover:bg-slate-50 transition-colors"
-                [class.bg-[#0056D2]/5/50]="progressionMode() === 'linear'"
+                [class.bg-[#0056D2]/5]="progressionMode() === 'linear'"
                 [class.border-[#0056D2]/20]="progressionMode() === 'linear'">
                 <input type="radio" name="progression" value="linear"
                   [ngModel]="progressionMode()" (ngModelChange)="progressionMode.set($event)"
@@ -124,7 +130,7 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
             <label class="block text-sm font-medium text-slate-700">Lịch trình mở bài học</label>
             <div class="space-y-2">
               <label class="flex items-center gap-3 cursor-pointer p-3 rounded-lg border border-transparent hover:bg-slate-50 transition-colors"
-                [class.bg-[#0056D2]/5/50]="dripType() === 'instant'"
+                [class.bg-[#0056D2]/5]="dripType() === 'instant'"
                 [class.border-[#0056D2]/20]="dripType() === 'instant'">
                 <input type="radio" name="drip" value="instant"
                   [ngModel]="dripType()" (ngModelChange)="dripType.set($event)"
@@ -133,7 +139,7 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
               </label>
 
               <label class="flex items-start gap-3 cursor-pointer p-3 rounded-lg border border-transparent hover:bg-slate-50 transition-colors"
-                [class.bg-[#0056D2]/5/50]="dripType() === 'date'"
+                [class.bg-[#0056D2]/5]="dripType() === 'date'"
                 [class.border-[#0056D2]/20]="dripType() === 'date'">
                 <input type="radio" name="drip" value="date"
                   [ngModel]="dripType()" (ngModelChange)="dripType.set($event)"
@@ -153,7 +159,7 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
               </label>
 
               <label class="flex items-start gap-3 cursor-pointer p-3 rounded-lg border border-transparent hover:bg-slate-50 transition-colors"
-                [class.bg-[#0056D2]/5/50]="dripType() === 'complete'"
+                [class.bg-[#0056D2]/5]="dripType() === 'complete'"
                 [class.border-[#0056D2]/20]="dripType() === 'complete'">
                 <input type="radio" name="drip" value="complete"
                   [ngModel]="dripType()" (ngModelChange)="dripType.set($event)"
@@ -192,14 +198,15 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
     </div>
 
     <!-- ============ SIDEBAR COLUMN (sticky) ============ -->
-    <div class="space-y-5 lg:sticky lg:top-4">
+    <div class="space-y-5 lg:sticky lg:top-5">
 
       <!-- SECTION 3: CHỨNG CHỈ -->
-      <section class="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div class="px-5 py-3.5 border-b border-slate-100 bg-slate-50/50">
+      <section class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-5 py-3.5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
           <h2 class="text-sm font-semibold text-slate-900">Chứng chỉ</h2>
+          <span class="text-[10px] font-semibold uppercase tracking-wider text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">Sắp ra mắt</span>
         </div>
-        <div class="p-4">
+        <div class="p-4 opacity-50 pointer-events-none select-none">
           <label class="flex items-center justify-between cursor-pointer">
             <div>
               <span class="block text-sm font-medium text-slate-900">Chứng chỉ hoàn thành</span>
@@ -214,7 +221,7 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
       </section>
 
       <!-- SECTION 4: GIẢNG VIÊN -->
-      <section class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      <section class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div class="px-5 py-3.5 border-b border-slate-100 bg-slate-50/50">
           <h2 class="text-sm font-semibold text-slate-900">Giảng viên</h2>
         </div>

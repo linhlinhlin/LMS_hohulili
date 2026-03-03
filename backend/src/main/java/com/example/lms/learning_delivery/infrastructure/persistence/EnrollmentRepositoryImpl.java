@@ -144,4 +144,9 @@ public class EnrollmentRepositoryImpl implements EnrollmentRepository, Enrollmen
                 .map(mapper::toDomain)
                 .toList();
     }
+
+    @Override
+    public boolean existsByCourseId(UUID courseId) {
+        return jpaRepository.existsByCourseId(courseId);
+    }
 }

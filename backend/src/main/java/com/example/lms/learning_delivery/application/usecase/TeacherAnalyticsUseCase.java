@@ -39,19 +39,14 @@ public class TeacherAnalyticsUseCase {
             totalRevenue = revenue != null ? revenue.doubleValue() : 0.0;
         }
 
-        // Average rating across all courses
+        // Weighted average rating across all courses (Udemy/Coursera pattern)
+        // SUM(all_ratings) / COUNT(all_ratings) — weighted by review count per course
         double averageRating = 0.0;
-        int ratedCourses = 0;
-        double ratingSum = 0.0;
-        for (UUID courseId : courseIds) {
-            Double avg = analyticsQuery.getAverageRatingByCourseId(courseId);
-            if (avg != null) {
-                ratingSum += avg;
-                ratedCourses++;
+        if (!courseIds.isEmpty()) {
+            Double weighted = analyticsQuery.getWeightedAverageRatingByCourseIds(courseIds);
+            if (weighted != null) {
+                averageRating = Math.round(weighted * 10.0) / 10.0;
             }
-        }
-        if (ratedCourses > 0) {
-            averageRating = Math.round(ratingSum / ratedCourses * 10.0) / 10.0;
         }
 
         // Pending grading

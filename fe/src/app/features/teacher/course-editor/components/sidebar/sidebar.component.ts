@@ -801,7 +801,7 @@ export class CourseEditorSidebarComponent implements OnDestroy {
           untracked(() => this.expandedChapters.set(new Set([chapters[0].id])));
         }
       }
-    }, { allowSignalWrites: true });
+    });
 
     // Auto-expand and open section modal when new lesson appears
     effect(() => {
@@ -824,7 +824,7 @@ export class CourseEditorSidebarComponent implements OnDestroy {
           this.showAddSectionModal(lastLesson, 0, chapterIndex);
         });
       }
-    }, { allowSignalWrites: true });
+    });
   }
 
   // --- Chapter expand/collapse (multi-expand) ---

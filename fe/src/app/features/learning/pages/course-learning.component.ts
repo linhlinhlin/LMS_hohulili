@@ -87,7 +87,7 @@ export class CourseLearningComponent implements OnInit {
         if (!hasLockedLesson) this.hasPaid.set(true); // Free course or already paid
       });
     }
-  }, { allowSignalWrites: true });
+  });
 
   // Sync section completion with lesson completion:
   // When a lesson is COMPLETED (from backend), all its sections must show completed.
@@ -129,7 +129,7 @@ export class CourseLearningComponent implements OnInit {
         });
       });
     }
-  }, { allowSignalWrites: true });
+  });
 
   private autoExpandEffect = effect(() => {
     const sections = this.sections();
@@ -152,7 +152,7 @@ export class CourseLearningComponent implements OnInit {
         }
       });
     }
-  }, { allowSignalWrites: true });
+  });
 
   // Computed from service
   course = this.learningService.course;

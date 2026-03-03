@@ -4,8 +4,8 @@ import com.example.lms.course_authoring.application.usecase.ApproveCourseUseCase
 import com.example.lms.course_authoring.application.usecase.RejectCourseUseCase;
 import com.example.lms.course_authoring.domain.model.Course;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
-import com.example.lms.course_authoring.infrastructure.persistence.entity.CategoryJpaEntity;
-import com.example.lms.course_authoring.infrastructure.persistence.repository.CategoryJpaRepository;
+import com.example.lms.course_authoring.infrastructure.persistence.entity.CourseCategoryJpaEntity;
+import com.example.lms.course_authoring.infrastructure.persistence.repository.CourseCategoryJpaRepository;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
 import com.example.lms.learning_delivery.infrastructure.persistence.JpaEnrollmentRepository;
@@ -48,7 +48,7 @@ public class AdminCoursesControllerV3 {
 
     private final CourseRepository courseRepository;
     private final UserJpaRepository userRepository;
-    private final CategoryJpaRepository categoryRepository;
+    private final CourseCategoryJpaRepository categoryRepository;
     private final JpaEnrollmentRepository enrollmentRepository;
     private final PaymentTransactionJpaRepository paymentTransactionRepository;
     private final ApproveCourseUseCase approveCourseUseCase;
@@ -445,7 +445,7 @@ public class AdminCoursesControllerV3 {
                 .map(Course::getCategoryId).filter(Objects::nonNull).collect(Collectors.toSet());
         Map<UUID, String> categoryMap = categoryIds.isEmpty() ? Map.of() :
                 categoryRepository.findAllById(categoryIds).stream()
-                        .collect(Collectors.toMap(CategoryJpaEntity::getId, CategoryJpaEntity::getName));
+                        .collect(Collectors.toMap(CourseCategoryJpaEntity::getId, CourseCategoryJpaEntity::getName));
 
         // Batch-fetch enrollment counts
         List<UUID> courseIds = courses.getContent().stream()
@@ -516,7 +516,7 @@ public class AdminCoursesControllerV3 {
 
         String categoryName = null;
         if (course.getCategoryId() != null) {
-            Optional<CategoryJpaEntity> category = categoryRepository.findById(course.getCategoryId());
+            Optional<CourseCategoryJpaEntity> category = categoryRepository.findById(course.getCategoryId());
             if (category.isPresent()) {
                 categoryName = category.get().getName();
             }

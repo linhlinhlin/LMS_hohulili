@@ -10,7 +10,7 @@ import { ToastService } from '../../../core/services/toast.service';
     selector: 'app-teacher-revenue-dashboard',
     imports: [RouterModule, FormsModule],
     template: `
-    <div class="min-h-screen bg-gray-50 p-6">
+    <div class="min-h-screen bg-slate-50 p-6">
       <div class="max-w-7xl mx-auto">
         <!-- Header -->
         <div class="mb-8">

@@ -28,4 +28,10 @@ public interface EnrollmentRepositoryPort {
     Optional<Enrollment> findByStudentIdAndCourseId(UUID studentId, UUID courseId);
 
     void deleteById(UUID id);
+
+    /**
+     * Check if any enrollment exists for a course (across all classes).
+     * Used to lock delivery mode after first enrollment.
+     */
+    boolean existsByCourseId(UUID courseId);
 }

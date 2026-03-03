@@ -1,9 +1,9 @@
 package com.example.lms.learning_delivery.infrastructure.web;
 
 import com.example.lms.course_authoring.infrastructure.persistence.JpaCourseRepository;
-import com.example.lms.course_authoring.infrastructure.persistence.entity.CategoryJpaEntity;
+import com.example.lms.course_authoring.infrastructure.persistence.entity.CourseCategoryJpaEntity;
 import com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity;
-import com.example.lms.course_authoring.infrastructure.persistence.repository.CategoryJpaRepository;
+import com.example.lms.course_authoring.infrastructure.persistence.repository.CourseCategoryJpaRepository;
 import com.example.lms.course_authoring.infrastructure.persistence.repository.ChapterJpaRepository;
 import com.example.lms.course_authoring.infrastructure.persistence.repository.LessonJpaRepository;
 import com.example.lms.course_authoring.infrastructure.persistence.entity.ChapterJpaEntity;
@@ -57,7 +57,7 @@ public class StudentEnrollmentControllerV3 {
     private final LearningClassRepository learningClassRepository;
     private final JpaCourseRepository courseJpaRepository;
     private final UserJpaRepository userJpaRepository;
-    private final CategoryJpaRepository categoryJpaRepository;
+    private final CourseCategoryJpaRepository categoryJpaRepository;
     private final ChapterJpaRepository chapterJpaRepository;
     private final LessonJpaRepository lessonJpaRepository;
     private final CertificateJpaRepository certificateRepository;
@@ -114,7 +114,7 @@ public class StudentEnrollmentControllerV3 {
                 .collect(Collectors.toSet());
         Map<UUID, String> categoryNameMap = categoryIds.isEmpty() ? Map.of()
                 : categoryJpaRepository.findAllById(categoryIds).stream()
-                        .collect(Collectors.toMap(CategoryJpaEntity::getId, CategoryJpaEntity::getName));
+                        .collect(Collectors.toMap(CourseCategoryJpaEntity::getId, CourseCategoryJpaEntity::getName));
 
         // Batch count lessons: chapters → lessons (2 queries instead of N*C)
         List<ChapterJpaEntity> allChapters = chapterJpaRepository.findByCourseIdInOrderByOrderIndex(new ArrayList<>(courseIds));

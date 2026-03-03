@@ -26,7 +26,7 @@ import { IconComponent } from '../../../../../shared/components/icon/icon.compon
     
       @if (isLoading()) {
         <div class="flex justify-center py-12">
-          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0056D2]"></div>
         </div>
       }
     

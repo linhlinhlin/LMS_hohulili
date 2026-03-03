@@ -38,6 +38,7 @@ public class CourseDTOs {
         private String title;
         private String description;
         private BigDecimal price;
+        private BigDecimal salePrice;
         private String priceType;
         private String thumbnailUrl;
         private String level;

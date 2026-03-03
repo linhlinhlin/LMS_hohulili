@@ -26,12 +26,12 @@ interface CoursePerformanceItem {
   selector: 'app-teacher-analytics',
   imports: [CommonModule],
   template: `
-    <div class="p-6 space-y-6">
+    <div class="min-h-screen bg-slate-50 p-6 space-y-6">
       <h1 class="text-2xl font-bold text-gray-900">Phân tích</h1>
 
       @if (isLoading()) {
         <div class="flex items-center justify-center py-12">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0056D2]"></div>
           <span class="ml-3 text-gray-600">Đang tải...</span>
         </div>
       } @else {
@@ -71,7 +71,7 @@ interface CoursePerformanceItem {
                       <p class="text-sm text-gray-500">{{ c.enrolledStudents }} học viên • {{ c.reviewCount }} đánh giá • Rating {{ c.averageRating }}/5</p>
                     </div>
                     <div class="w-40 bg-gray-100 rounded-full h-2 overflow-hidden">
-                      <div class="bg-indigo-500 h-2" [style.width.%]="(c.averageRating / 5) * 100"></div>
+                      <div class="bg-[#0056D2] h-2" [style.width.%]="(c.averageRating / 5) * 100"></div>
                     </div>
                   </div>
                 </div>

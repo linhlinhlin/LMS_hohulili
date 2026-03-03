@@ -85,6 +85,13 @@ export const adminRoutes: Routes = [
         ]
       },
 
+      // Category & Tag Management
+      {
+        path: 'categories',
+        loadComponent: () => import('./presentation/components/category-management.component').then(m => m.CategoryManagementComponent),
+        title: 'Quản lý danh mục'
+      },
+
       // Organization Management Routes
       {
         path: 'organizations',

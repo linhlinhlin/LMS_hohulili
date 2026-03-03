@@ -87,7 +87,7 @@ export class StudentManagementComponent implements OnInit {
 
   loadUsers() {
     this.isLoading.set(true);
-    this.adminService.getUsers({ page: 0, size: 200, role: 'STUDENT' }).subscribe({
+    this.adminService.getUsers({ page: 1, limit: 200, role: 'STUDENT' }).subscribe({
       next: (response) => {
         this.allUsers.set(response.data || []);
         this.isLoading.set(false);

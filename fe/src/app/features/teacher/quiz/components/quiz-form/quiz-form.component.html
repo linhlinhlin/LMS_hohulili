@@ -140,7 +140,7 @@
 
         <div class="flex gap-2">
           <button type="button" class="px-4 py-2 rounded-md text-sm font-medium transition-colors"
-            [class.bg-indigo-600]="activeSource() === 'my-questions'"
+            [class.bg-[#0056D2]]="activeSource() === 'my-questions'"
             [class.text-white]="activeSource() === 'my-questions'" [class.bg-white]="activeSource() !== 'my-questions'"
             [class.text-gray-700]="activeSource() !== 'my-questions'" [class.border]="activeSource() !== 'my-questions'"
             (click)="setSource('my-questions')">
@@ -148,7 +148,7 @@
           </button>
 
           <button type="button" class="px-4 py-2 rounded-md text-sm font-medium transition-colors"
-            [class.bg-indigo-600]="activeSource() === 'packages'" [class.text-white]="activeSource() === 'packages'"
+            [class.bg-[#0056D2]]="activeSource() === 'packages'" [class.text-white]="activeSource() === 'packages'"
             [class.bg-white]="activeSource() !== 'packages'" [class.text-gray-700]="activeSource() !== 'packages'"
             [class.border]="activeSource() !== 'packages'" (click)="setSource('packages')">
             <i class="fas fa-box-open mr-2"></i> Từ gói câu hỏi

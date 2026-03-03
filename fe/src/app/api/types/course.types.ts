@@ -1,10 +1,35 @@
 export type DeliveryMode = 'SELF_PACED' | 'INSTRUCTOR_LED';
 
+// Course Category (2-level hierarchy)
+export interface CourseCategoryDTO {
+  id: string;
+  parentId: string | null;
+  code: string;
+  name: string;
+  slug: string;
+  prefix: string | null;
+  description: string | null;
+  icon: string | null;
+  sortOrder: number;
+  active: boolean;
+  children: CourseCategoryDTO[];
+}
+
+// Course Tag
+export interface CourseTagDTO {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 export interface CreateCourseRequest {
   categoryId: string;
   title: string;
   description?: string;
   deliveryMode?: DeliveryMode;
+  priceType?: 'FREE' | 'PAID';
+  price?: number;
+  salePrice?: number;
 }
 
 export interface CourseSummary {

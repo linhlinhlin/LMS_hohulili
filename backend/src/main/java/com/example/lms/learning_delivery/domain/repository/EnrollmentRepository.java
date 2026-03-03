@@ -62,4 +62,9 @@ public interface EnrollmentRepository {
      * Delete an enrollment.
      */
     void delete(Enrollment enrollment);
+
+    /**
+     * Check if any enrollment exists for a course (across all classes).
+     */
+    boolean existsByCourseId(UUID courseId);
 }

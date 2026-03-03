@@ -2,10 +2,10 @@ package com.example.lms.course_authoring.application.usecase;
 
 import com.example.lms.course_authoring.application.dto.AuthoringDTOs;
 import com.example.lms.course_authoring.application.dto.CourseDTOs;
-import com.example.lms.course_authoring.domain.model.Category;
 import com.example.lms.course_authoring.domain.model.Course;
-import com.example.lms.course_authoring.domain.repository.CategoryRepository;
+import com.example.lms.course_authoring.domain.model.CourseCategory;
 import com.example.lms.course_authoring.domain.repository.ChapterRepositoryPort;
+import com.example.lms.course_authoring.domain.repository.CourseCategoryRepository;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
 import com.example.lms.shared.domain.valueobject.CourseCode;
 import com.example.lms.shared.exception.BusinessRuleException;
@@ -25,7 +25,7 @@ import java.util.UUID;
 public class CourseAuthoringUseCase {
 
     private final CourseRepository courseRepository;
-    private final CategoryRepository categoryRepository;
+    private final CourseCategoryRepository courseCategoryRepository;
     private final ChapterRepositoryPort chapterRepository;
     private final GetCourseDraftUseCase getCourseDraftUseCase;
 
@@ -35,10 +35,21 @@ public class CourseAuthoringUseCase {
 
     @Transactional
     public AuthoringDTOs.CourseDraftDTO createCourse(CourseDTOs.CreateCourseRequest request, UUID teacherId) {
-        Category category = categoryRepository.findById(request.getCategoryId())
+        CourseCategory selectedCategory = courseCategoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new EntityNotFoundException("Danh mục", request.getCategoryId()));
 
-        String prefix = category.prefix();
+        // Resolve prefix: subcategory → use parent's prefix; root → use own prefix
+        String prefix;
+        if (selectedCategory.isSubcategory()) {
+            CourseCategory parent = courseCategoryRepository.findById(selectedCategory.getParentId())
+                    .orElseThrow(() -> new EntityNotFoundException("Danh mục cha", selectedCategory.getParentId()));
+            prefix = parent.getPrefix();
+        } else {
+            prefix = selectedCategory.getPrefix();
+        }
+        if (prefix == null || prefix.isBlank()) {
+            throw new BusinessRuleException("NO_PREFIX", "Danh mục không có prefix để tạo mã khóa học");
+        }
 
         for (int attempt = 0; attempt < MAX_CODE_RETRY; attempt++) {
             int maxSeq = courseRepository.findMaxSequenceNumberByPrefix(prefix);
@@ -89,7 +100,17 @@ public class CourseAuthoringUseCase {
 
         if (request.getPriceType() != null || request.getPrice() != null) {
              Course.PriceType type = request.getPriceType() != null ? Course.PriceType.valueOf(request.getPriceType()) : course.getPriceType();
-             course.updatePricing(type, request.getPrice(), null);
+             // Validate salePrice < price (Udemy/Coursera pattern)
+             if (type == Course.PriceType.PAID) {
+                 java.math.BigDecimal effectivePrice = request.getPrice() != null ? request.getPrice() : course.getPrice();
+                 java.math.BigDecimal effectiveSalePrice = request.getSalePrice() != null ? request.getSalePrice() : course.getSalePrice();
+                 if (effectiveSalePrice != null && effectivePrice != null
+                         && effectiveSalePrice.compareTo(java.math.BigDecimal.ZERO) > 0
+                         && effectiveSalePrice.compareTo(effectivePrice) >= 0) {
+                     throw new BusinessRuleException("Giá khuyến mãi phải nhỏ hơn giá gốc.");
+                 }
+             }
+             course.updatePricing(type, request.getPrice(), request.getSalePrice());
         }
 
         if (request.getThumbnailUrl() != null) {
@@ -151,7 +172,7 @@ public class CourseAuthoringUseCase {
 
     private CourseDTOs.TeacherCourseResponse mapToTeacherCourseResponse(Course course) {
         String categoryName = course.getCategoryId() != null
-                ? categoryRepository.findById(course.getCategoryId()).map(Category::name).orElse(null)
+                ? courseCategoryRepository.findById(course.getCategoryId()).map(CourseCategory::getName).orElse(null)
                 : null;
 
         return CourseDTOs.TeacherCourseResponse.builder()

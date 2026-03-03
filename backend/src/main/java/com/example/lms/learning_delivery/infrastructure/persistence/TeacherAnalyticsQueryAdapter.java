@@ -51,6 +51,11 @@ public class TeacherAnalyticsQueryAdapter implements TeacherAnalyticsQueryPort {
     }
 
     @Override
+    public Double getWeightedAverageRatingByCourseIds(List<UUID> courseIds) {
+        return reviewRepository.getWeightedAverageRatingByCourseIds(courseIds);
+    }
+
+    @Override
     public long countReviewsByCourseId(UUID courseId) {
         return reviewRepository.countByCourseId(courseId);
     }

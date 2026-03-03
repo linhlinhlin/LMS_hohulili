@@ -25,6 +25,7 @@ public class AuthoringDTOs {
         private String visibility;
         private Set<String> tags;
         private List<ChapterDraftDTO> chapters;
+        private boolean hasEnrollments;
 
         // Manual Getters/Setters/Builder
         public UUID getId() { return id; }
@@ -59,6 +60,8 @@ public class AuthoringDTOs {
         public void setTags(Set<String> tags) { this.tags = tags; }
         public List<ChapterDraftDTO> getChapters() { return chapters; }
         public void setChapters(List<ChapterDraftDTO> chapters) { this.chapters = chapters; }
+        public boolean isHasEnrollments() { return hasEnrollments; }
+        public void setHasEnrollments(boolean hasEnrollments) { this.hasEnrollments = hasEnrollments; }
 
         public static CourseDraftDTOBuilder builder() { return new CourseDraftDTOBuilder(); }
         public static class CourseDraftDTOBuilder {
@@ -79,6 +82,7 @@ public class AuthoringDTOs {
             public CourseDraftDTOBuilder visibility(String v) { dto.setVisibility(v); return this; }
             public CourseDraftDTOBuilder tags(Set<String> t) { dto.setTags(t); return this; }
             public CourseDraftDTOBuilder chapters(List<ChapterDraftDTO> c) { dto.setChapters(c); return this; }
+            public CourseDraftDTOBuilder hasEnrollments(boolean h) { dto.setHasEnrollments(h); return this; }
             public CourseDraftDTO build() { return dto; }
         }
     }

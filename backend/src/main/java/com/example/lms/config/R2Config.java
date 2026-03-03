@@ -8,6 +8,7 @@ import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 import java.net.URI;
 
@@ -40,6 +41,18 @@ public class R2Config {
                         AwsBasicCredentials.create(accessKey, secretKey)))
                 .region(Region.of("auto")) // R2 uses "auto" region
                 .forcePathStyle(true) // Required for R2
+                .build();
+    }
+
+    @Bean
+    public S3Presigner r2Presigner() {
+        String endpoint = "https://" + accountId + ".r2.cloudflarestorage.com";
+
+        return S3Presigner.builder()
+                .endpointOverride(URI.create(endpoint))
+                .credentialsProvider(StaticCredentialsProvider.create(
+                        AwsBasicCredentials.create(accessKey, secretKey)))
+                .region(Region.of("auto"))
                 .build();
     }
 }

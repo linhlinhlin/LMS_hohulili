@@ -74,8 +74,11 @@ public class SecurityConfig {
                     "/api/v3/courses/*/content",
                     "/api/v3/courses/lessons/*",
                     "/api/v3/courses/chapters/*",
-                    // Categories
+                    // Categories (legacy + new hierarchical + tags)
                     "/api/v3/categories",
+                    "/api/v3/course-categories",
+                    "/api/v3/course-categories/**",
+                    "/api/v3/course-tags",
                     // Package endpoints now require authentication (P0-12)
                     // Uploaded files (static resources)
                     "/uploads/**",

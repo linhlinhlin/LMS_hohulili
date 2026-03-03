@@ -28,8 +28,7 @@ export class TeacherDashboardComponent implements OnInit {
     totalStudents: 0,
     totalRevenue: 0,
     averageRating: 0,
-    pendingGrading: 0,
-    coursePerformance: []
+    pendingGrading: 0
   });
 
   // Tab state
@@ -75,18 +74,6 @@ export class TeacherDashboardComponent implements OnInit {
     { label: 'Đánh giá TB', value: this.formatRating(this.analytics().averageRating), icon: 'star' as const, iconClass: 'icon-yellow' }
   ]);
 
-  statusItems = computed(() => {
-    const courses = this.teacher.courses();
-    return [
-      { status: 'PUBLISHED', label: 'Đã xuất bản', count: this.countStatus(courses, 'PUBLISHED'), color: '#10b981' },
-      { status: 'APPROVED', label: 'Đã duyệt', count: this.countStatus(courses, 'APPROVED'), color: '#22c55e' },
-      { status: 'PENDING', label: 'Chờ duyệt', count: this.countStatus(courses, 'PENDING'), color: '#f59e0b' },
-      { status: 'DRAFT', label: 'Nháp', count: this.countStatus(courses, 'DRAFT'), color: '#9ca3af' },
-      { status: 'REJECTED', label: 'Từ chối', count: this.countStatus(courses, 'REJECTED'), color: '#ef4444' },
-      { status: 'ARCHIVED', label: 'Lưu trữ', count: this.countStatus(courses, 'ARCHIVED'), color: '#6b7280' }
-    ];
-  });
-
   ngOnInit(): void {
     // Mark body as loaded to prevent FOUC (critical.scss hides .dashboard-container until loaded)
     if (typeof document !== 'undefined') {
@@ -109,8 +96,7 @@ export class TeacherDashboardComponent implements OnInit {
         totalStudents: data.totalStudents || 0,
         totalRevenue: data.totalRevenue || 0,
         averageRating: data.averageRating || 0,
-        pendingGrading: data.pendingGrading || 0,
-        coursePerformance: data.coursePerformance || []
+        pendingGrading: data.pendingGrading || 0
       });
     } catch {
       this.analytics.update(a => ({ ...a, totalCourses: this.teacher.totalCourses() }));
@@ -202,12 +188,6 @@ export class TeacherDashboardComponent implements OnInit {
     (event.target as HTMLImageElement).style.display = 'none';
   }
 
-  statusPercent(status: string): number {
-    const total = this.teacher.courses().length;
-    if (total === 0) return 0;
-    return (this.countStatus(this.teacher.courses(), status) / total) * 100;
-  }
-
   goToCourse(courseId: string): void {
     this.router.navigate(['/teacher/courses', courseId, 'editor']);
   }
@@ -238,9 +218,6 @@ export class TeacherDashboardComponent implements OnInit {
     }
   }
 
-  private countStatus(courses: TeacherCourse[], status: string): number {
-    return courses.filter(c => c.originalStatus === status).length;
-  }
 }
 
 interface DashboardAnalytics {
@@ -250,13 +227,4 @@ interface DashboardAnalytics {
   totalRevenue: number;
   averageRating: number;
   pendingGrading: number;
-  coursePerformance: CoursePerformanceItem[];
-}
-
-interface CoursePerformanceItem {
-  courseId: string;
-  courseTitle: string;
-  enrolledStudents: number;
-  averageRating: number;
-  reviewCount: number;
 }

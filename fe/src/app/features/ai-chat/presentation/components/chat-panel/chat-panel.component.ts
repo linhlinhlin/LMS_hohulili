@@ -19,6 +19,7 @@ import {
   input,
   output,
   signal,
+  effect,
   HostListener,
   OnInit,
   OnDestroy,
@@ -29,6 +30,7 @@ import {
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { AiTokenService } from '../../../infrastructure/api/ai-token.service';
 import { SessionManagementService } from '../../../application/services/session-management.service';
+import { WiiiContextService } from '../../../infrastructure/api/wiii-context.service';
 import { AuthService } from '../../../../../core/services/auth.service';
 import { environment } from '../../../../../../environments/environment';
 
@@ -364,6 +366,7 @@ import { environment } from '../../../../../../environments/environment';
 export class ChatPanelComponent implements OnInit, OnDestroy {
   private readonly tokenService = inject(AiTokenService);
   private readonly sessionService = inject(SessionManagementService);
+  private readonly contextService = inject(WiiiContextService);
   private readonly authService = inject(AuthService);
   private readonly sanitizer = inject(DomSanitizer);
 
@@ -384,6 +387,24 @@ export class ChatPanelComponent implements OnInit, OnDestroy {
 
   // Track message listener for cleanup
   private messageHandler: ((event: MessageEvent) => void) | null = null;
+
+  constructor() {
+    // Sprint 221: Connect iframe to WiiiContextService for page-aware AI.
+    // When the iframe viewChild becomes available (after embedUrl is set),
+    // attach a load listener so we connect after the Wiii embed app initializes.
+    effect((onCleanup) => {
+      const ref = this.wiiiIframe();
+      if (ref) {
+        const iframe = ref.nativeElement;
+        const onLoad = () => this.contextService.connectIframe(iframe);
+        iframe.addEventListener('load', onLoad, { once: true });
+        onCleanup(() => {
+          iframe.removeEventListener('load', onLoad);
+          this.contextService.disconnectIframe();
+        });
+      }
+    });
+  }
 
   ngOnInit(): void {
     this.checkMobile();
@@ -421,8 +442,8 @@ export class ChatPanelComponent implements OnInit, OnDestroy {
       if (token) {
         const wiiiEmbedUrl = environment.wiiiEmbedUrl;
         const role = this.sessionService.currentRole() || 'student';
-        // Sprint 220c: Pass mode=widget, hide_welcome, and org for multi-tenant context
-        const org = this.authService.getCurrentUser()?.organizationId || '';
+        // Org resolved by Wiii from connector config (SSOT) — no hardcoding needed
+        const org = this.tokenService.organizationId() || '';
         const hash = `token=${token}&domain=maritime&theme=light&role=${role}&mode=widget&hide_welcome=true${org ? '&org=' + encodeURIComponent(org) : ''}`;
         const url = `${wiiiEmbedUrl}#${hash}`;
         this.embedUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(url));

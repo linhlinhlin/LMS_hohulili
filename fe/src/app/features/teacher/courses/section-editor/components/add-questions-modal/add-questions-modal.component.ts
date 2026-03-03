@@ -57,7 +57,7 @@ import { SectionEditorState } from '../../state/section-editor.state';
                 </div>
                 <div class="max-h-[300px] overflow-y-auto divide-y divide-gray-100">
                   @for (q of state.inlinePackageQuestions(); track q.id) {
-                    <div class="p-4 hover:bg-[#0056D2]/5/50 cursor-pointer transition-colors"
+                    <div class="p-4 hover:bg-[#0056D2]/5 cursor-pointer transition-colors"
                          (click)="state.toggleInlineQuestion(q.id)">
                       <div class="flex items-start gap-3">
                         <input type="checkbox"

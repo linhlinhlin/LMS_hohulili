@@ -2,7 +2,7 @@ import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy } 
 import { Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AdminService, AdminCourseSummary } from '../../infrastructure/services/admin.service';
-import { CategoryDTO } from '../../../../api/endpoints/admin.endpoints';
+import { CourseCategoryDTO } from '../../../../api/types/course.types';
 import { ToastService } from '../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -34,7 +34,7 @@ export class CourseManagementComponent implements OnInit {
   // Data signals
   courses = signal<AdminCourseSummary[]>([]);
   isLoading = signal(true);
-  categories = signal<CategoryDTO[]>([]);
+  categoryTree = signal<CourseCategoryDTO[]>([]);
 
   // Bulk selection
   selectedCourses = signal<Set<string>>(new Set());
@@ -60,17 +60,11 @@ export class CourseManagementComponent implements OnInit {
   totalElements = signal(0);
   totalPages = computed(() => Math.ceil(this.totalElements() / this.pageSize()));
 
-  // Stats from pagination metadata (server-side)
+  // Stats from analytics API (system-wide, not page-level)
   totalCourses = computed(() => this.totalElements());
-  pendingCourses = computed(() => {
-    return this.courses().filter(c => c.status?.toLowerCase() === 'pending').length;
-  });
-  approvedCourses = computed(() => {
-    return this.courses().filter(c => c.status?.toLowerCase() === 'approved').length;
-  });
-  totalRevenue = computed(() => {
-    return this.courses().reduce((sum, c) => sum + (c.revenue || 0), 0);
-  });
+  pendingCourses = signal(0);
+  approvedCourses = signal(0);
+  totalRevenue = signal(0);
 
   // Modal state
   showRejectModal = signal(false);
@@ -84,6 +78,17 @@ export class CourseManagementComponent implements OnInit {
   ngOnInit(): void {
     this.loadCourses();
     this.loadCategories();
+    this.loadStats();
+  }
+
+  private loadStats(): void {
+    this.adminService.getSystemAnalytics().subscribe({
+      next: (analytics) => {
+        this.pendingCourses.set(analytics.pendingCourses);
+        this.approvedCourses.set(analytics.approvedCourses);
+        this.totalRevenue.set(analytics.totalRevenue);
+      }
+    });
   }
 
   loadCourses(): void {
@@ -130,8 +135,8 @@ export class CourseManagementComponent implements OnInit {
   }
 
   private loadCategories(): void {
-    this.adminService.getCategories().subscribe({
-      next: (cats) => this.categories.set(cats),
+    this.adminService.getCourseCategories().subscribe({
+      next: (tree) => this.categoryTree.set(tree),
       error: () => { /* Categories unavailable — filter dropdown shows only "Tất cả danh mục" */ }
     });
   }

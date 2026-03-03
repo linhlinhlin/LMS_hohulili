@@ -96,7 +96,7 @@ export interface AdminUser {
   isActive: boolean;
   accountStatus: UserAccountStatus; // NEW: ACTIVE, BLOCKED, RESTRICTED
   statusReason?: string; // NEW: Reason for blocking/restricting
-  lastLogin: Date;
+  lastLogin: Date | null;
   loginCount: number;
   coursesCreated?: number;  // For TEACHER: courses they own
   coursesCooped?: number;   // For TEACHER: courses they are invited as co-op
@@ -111,7 +111,7 @@ export interface BackendUser {
   username: string;
   email: string;
   fullName: string;
-  role: 'ADMIN' | 'TEACHER' | 'STUDENT';
+  role: 'ADMIN' | 'ORG_ADMIN' | 'TEACHER' | 'STUDENT';
   enabled: boolean;
   accountStatus?: string;  // ACTIVE, BLOCKED, RESTRICTED
   statusReason?: string;
@@ -376,13 +376,77 @@ export class AdminService {
   }
 
   // ============================================
-  // CATEGORIES
+  // CATEGORIES (legacy flat)
   // ============================================
 
   getCategories(): Observable<CategoryDTO[]> {
     return this.apiClient.getWithResponse<CategoryDTO[]>(ADMIN_ENDPOINTS.CATEGORIES).pipe(
       map(response => response.data || []),
       catchError(error => throwError(() => error))
+    );
+  }
+
+  // ============================================
+  // COURSE CATEGORIES (new hierarchical)
+  // ============================================
+
+  getCourseCategories(): Observable<import('../../../../api/types/course.types').CourseCategoryDTO[]> {
+    return this.apiClient.getWithResponse<import('../../../../api/types/course.types').CourseCategoryDTO[]>(ADMIN_ENDPOINTS.COURSE_CATEGORIES).pipe(
+      map(res => res.data || []),
+      catchError(error => throwError(() => error))
+    );
+  }
+
+  createCourseCategory(data: { parentId?: string; code: string; name: string; slug: string; prefix?: string; description?: string; icon?: string }): Observable<import('../../../../api/types/course.types').CourseCategoryDTO> {
+    return this.apiClient.postWithResponse<import('../../../../api/types/course.types').CourseCategoryDTO>(ADMIN_ENDPOINTS.COURSE_CATEGORIES, data).pipe(
+      map(res => res.data)
+    );
+  }
+
+  updateCourseCategory(id: string, data: { name: string; slug: string; description?: string; icon?: string; prefix?: string }): Observable<import('../../../../api/types/course.types').CourseCategoryDTO> {
+    return this.apiClient.putWithResponse<import('../../../../api/types/course.types').CourseCategoryDTO>(`${ADMIN_ENDPOINTS.COURSE_CATEGORIES}/${id}`, data).pipe(
+      map(res => res.data)
+    );
+  }
+
+  deleteCourseCategory(id: string): Observable<void> {
+    return this.apiClient.deleteWithResponse<void>(`${ADMIN_ENDPOINTS.COURSE_CATEGORIES}/${id}`).pipe(
+      map(() => undefined)
+    );
+  }
+
+  reorderCourseCategories(orderedIds: string[]): Observable<void> {
+    return this.apiClient.putWithResponse<void>(ADMIN_ENDPOINTS.COURSE_CATEGORIES_REORDER, orderedIds).pipe(
+      map(() => undefined)
+    );
+  }
+
+  // ============================================
+  // COURSE TAGS
+  // ============================================
+
+  getCourseTags(): Observable<import('../../../../api/types/course.types').CourseTagDTO[]> {
+    return this.apiClient.getWithResponse<import('../../../../api/types/course.types').CourseTagDTO[]>(ADMIN_ENDPOINTS.COURSE_TAGS).pipe(
+      map(res => res.data || []),
+      catchError(error => throwError(() => error))
+    );
+  }
+
+  createCourseTag(data: { name: string; slug: string }): Observable<import('../../../../api/types/course.types').CourseTagDTO> {
+    return this.apiClient.postWithResponse<import('../../../../api/types/course.types').CourseTagDTO>(ADMIN_ENDPOINTS.COURSE_TAGS, data).pipe(
+      map(res => res.data)
+    );
+  }
+
+  updateCourseTag(id: string, data: { name: string; slug: string }): Observable<import('../../../../api/types/course.types').CourseTagDTO> {
+    return this.apiClient.putWithResponse<import('../../../../api/types/course.types').CourseTagDTO>(`${ADMIN_ENDPOINTS.COURSE_TAGS}/${id}`, data).pipe(
+      map(res => res.data)
+    );
+  }
+
+  deleteCourseTag(id: string): Observable<void> {
+    return this.apiClient.deleteWithResponse<void>(`${ADMIN_ENDPOINTS.COURSE_TAGS}/${id}`).pipe(
+      map(() => undefined)
     );
   }
 
@@ -674,7 +738,7 @@ export class AdminService {
       accountStatus: accountStatus,
       statusReason: backendUser.statusReason,
       // Use actual data from backend instead of hardcoded values
-      lastLogin: backendUser.lastLogin ? new Date(backendUser.lastLogin) : new Date(),
+      lastLogin: backendUser.lastLogin ? new Date(backendUser.lastLogin) : null as any,
       loginCount: backendUser.loginCount ?? 0,
       coursesCreated: backendUser.coursesCreated ?? 0,
       coursesCooped: backendUser.coursesCooped ?? 0,
@@ -686,6 +750,7 @@ export class AdminService {
   private mapBackendRoleToUserRole(role: string): UserRole {
     switch (role.toUpperCase()) {
       case 'ADMIN': return UserRole.ADMIN;
+      case 'ORG_ADMIN': return UserRole.ORG_ADMIN;
       case 'TEACHER': return UserRole.TEACHER;
       case 'STUDENT': return UserRole.STUDENT;
       default: return UserRole.STUDENT;
@@ -695,6 +760,7 @@ export class AdminService {
   private getPermissionsForRole(role: string): string[] {
     switch (role.toUpperCase()) {
       case 'ADMIN': return ['all'];
+      case 'ORG_ADMIN': return ['users.manage', 'courses.manage', 'analytics.view'];
       case 'TEACHER': return ['courses.create', 'courses.edit', 'assignments.manage'];
       case 'STUDENT': return ['courses.view', 'assignments.submit'];
       default: return [];

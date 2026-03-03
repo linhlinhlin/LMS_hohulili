@@ -19,6 +19,8 @@ public interface TeacherAnalyticsQueryPort {
 
     Double getAverageRatingByCourseId(UUID courseId);
 
+    Double getWeightedAverageRatingByCourseIds(List<UUID> courseIds);
+
     long countReviewsByCourseId(UUID courseId);
 
     List<UUID> findAssignmentIdsByCourseIds(List<UUID> courseIds);

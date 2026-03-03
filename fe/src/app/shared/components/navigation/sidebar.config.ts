@@ -76,20 +76,24 @@ export const teacherSidebarConfig: SidebarConfig = {
   title: 'Cổng Giảng viên',
   logoIcon: 'courses',
   menuItems: [
+    // — Giảng dạy —
     {
       label: 'Trang chủ',
       route: '/teacher/dashboard',
-      icon: 'home'
+      icon: 'home',
+      group: 'Giảng dạy'
     },
     {
       label: 'Khóa học',
       route: '/teacher/courses',
-      icon: 'courses'
+      icon: 'courses',
+      group: 'Giảng dạy'
     },
     {
       label: 'Bài tập & Chấm điểm',
       route: '/teacher/assessments',
       icon: 'blog',
+      group: 'Giảng dạy',
       children: [
         {
           label: 'Bài tập tự luận',
@@ -113,26 +117,37 @@ export const teacherSidebarConfig: SidebarConfig = {
         }
       ]
     },
-
+    // — Quản lý —
+    {
+      label: 'Học viên',
+      route: '/teacher/students',
+      icon: 'users',
+      group: 'Quản lý'
+    },
     {
       label: 'Phân tích',
       route: '/teacher/analytics',
-      icon: 'bar-chart'
+      icon: 'bar-chart',
+      group: 'Quản lý'
     },
     {
       label: 'Doanh thu',
       route: '/teacher/revenue',
-      icon: 'tag'
+      icon: 'tag',
+      group: 'Quản lý'
     },
+    // — Khác —
     {
       label: 'Lời mời',
       route: '/teacher/invitations',
-      icon: 'mail'
+      icon: 'mail',
+      group: 'Khác'
     },
     {
       label: 'Thông báo',
       route: '/teacher/notifications',
-      icon: 'bell'
+      icon: 'bell',
+      group: 'Khác'
     },
     // Sprint 220b: "Trợ Lý AI" full-page route removed — AI chat is now an iframe widget (floating bubble)
 
@@ -156,6 +171,11 @@ const allAdminMenuItems: SidebarMenuItem[] = [
     label: 'Khóa học',
     route: '/admin/courses',
     icon: 'courses'
+  },
+  {
+    label: 'Danh mục',
+    route: '/admin/categories',
+    icon: 'tag'
   },
   {
     label: 'Phân tích',

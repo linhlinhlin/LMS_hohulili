@@ -37,6 +37,7 @@ public class TeacherCoursesControllerV3 {
     private final com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository userRepository;
     private final JpaCourseRepository jpaCourseRepository;
     private final JpaEnrollmentRepository jpaEnrollmentRepository;
+    private final com.example.lms.course_authoring.infrastructure.persistence.repository.CourseReviewJpaRepository courseReviewRepository;
 
     @GetMapping("/my-courses")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
@@ -77,12 +78,18 @@ public class TeacherCoursesControllerV3 {
                 lessonMap.put((UUID) row[0], (Long) row[1]);
             }
 
+            Map<UUID, Double> ratingMap = new HashMap<>();
+            for (Object[] row : courseReviewRepository.getAverageRatingsByCourseIds(courseIds)) {
+                ratingMap.put((UUID) row[0], Math.round((Double) row[1] * 10.0) / 10.0);
+            }
+
             response.getContent().forEach(c -> {
                 int enrolled = enrollmentMap.getOrDefault(c.getId(), 0L).intValue();
                 c.setEnrolledCount(enrolled);
                 c.setStudentsCount(enrolled);
                 c.setSectionCount(chapterMap.getOrDefault(c.getId(), 0L).intValue());
                 c.setLessonCount(lessonMap.getOrDefault(c.getId(), 0L).intValue());
+                c.setAverageRating(ratingMap.getOrDefault(c.getId(), 0.0));
             });
         }
 

@@ -2,6 +2,7 @@ import { Component, ChangeDetectionStrategy, inject, signal, computed, OnInit } 
 import { ActivatedRoute, Router } from '@angular/router';
 import { Location } from '@angular/common';
 import { DomSanitizer } from '@angular/platform-browser';
+import { forkJoin } from 'rxjs';
 import { CourseApi } from '../../../../api/client/course.api';
 import { AdminService } from '../../infrastructure/services/admin.service';
 import { ToastService } from '../../../../core/services/toast.service';
@@ -376,19 +377,13 @@ export class CourseContentPreviewComponent implements OnInit {
   private loadCourseData(courseId: string): void {
     this.loading.set(true);
 
-    this.courseApi.getCourseById(courseId).subscribe({
-      next: (res) => {
-        this.course.set(res.data);
-      },
-      error: () => {
-        this.toast.error('Không thể tải thông tin khóa học');
-        this.loading.set(false);
-      }
-    });
-
-    this.courseApi.getCourseContent(courseId).subscribe({
-      next: (res) => {
-        const chs = res.data || [];
+    forkJoin({
+      course: this.courseApi.getCourseById(courseId),
+      content: this.courseApi.getCourseContent(courseId)
+    }).subscribe({
+      next: ({ course, content }) => {
+        this.course.set(course.data);
+        const chs = content.data || [];
         this.chapters.set(chs);
         this.loading.set(false);
 
@@ -407,6 +402,7 @@ export class CourseContentPreviewComponent implements OnInit {
         }
       },
       error: () => {
+        this.toast.error('Không thể tải thông tin khóa học');
         this.loading.set(false);
       }
     });

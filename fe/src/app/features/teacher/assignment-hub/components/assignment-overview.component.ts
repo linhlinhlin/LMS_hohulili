@@ -175,7 +175,7 @@ import { ToastService } from '../../../../core/services/toast.service';
       <!-- Quick Actions (SOTA 2025: Gradient primary) -->
       @if (stats().pendingCount > 0) {
         <div class="bg-slate-900 rounded-2xl p-8 shadow-2xl relative overflow-hidden group">
-          <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/20 to-transparent opacity-50 transition-opacity group-hover:opacity-70"></div>
+          <div class="absolute inset-0 bg-gradient-to-br from-[#0056D2]/20 to-transparent opacity-50 transition-opacity group-hover:opacity-70"></div>
           <div class="relative flex flex-col md:flex-row items-center justify-between gap-6">
             <div class="text-center md:text-left">
               <h3 class="text-xl font-black text-white tracking-tight">{{ stats().pendingCount }} bài đang chờ đánh giá!</h3>

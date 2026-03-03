@@ -10,7 +10,7 @@ import { ConfirmDialogService } from '../../../core/services/confirm-dialog.serv
   selector: 'app-my-invitations',
   imports: [RouterModule],
   template: `
-    <div class="min-h-screen bg-gray-50 p-6">
+    <div class="min-h-screen bg-slate-50 p-6">
       <div class="max-w-4xl mx-auto">
         <!-- Header -->
         <div class="mb-6">

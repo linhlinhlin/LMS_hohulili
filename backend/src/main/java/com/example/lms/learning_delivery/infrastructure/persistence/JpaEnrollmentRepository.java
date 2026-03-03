@@ -61,6 +61,13 @@ public interface JpaEnrollmentRepository extends JpaRepository<EnrollmentJpaEnti
     long countByClassId(@Param("classId") UUID classId);
 
     /**
+     * Check if any enrollment exists for a course (across all classes).
+     * Used to lock delivery mode changes after first enrollment (Open edX immutable pattern).
+     */
+    @Query("SELECT COUNT(e) > 0 FROM EnrollmentJpaEntity e JOIN e.learningClass lc WHERE lc.courseId = :courseId")
+    boolean existsByCourseId(@Param("courseId") UUID courseId);
+
+    /**
      * SOTA: Single-query enrollment fetch with JOIN FETCH (Dec 2025)
      * Replaces 2 sequential queries with 1 query.
      * Pattern from Google/YouTube: Eliminate N+1 by eager loading related data.

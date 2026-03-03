@@ -120,8 +120,11 @@
                         (ngModelChange)="categoryFilter.set($event); onFilterChange()"
                         class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]">
                   <option value="">Tất cả danh mục</option>
-                  @for (cat of categories(); track cat.id) {
-                    <option [value]="cat.id">{{ cat.name }}</option>
+                  @for (root of categoryTree(); track root.id) {
+                    <option [value]="root.id">{{ root.name }}</option>
+                    @for (sub of root.children; track sub.id) {
+                      <option [value]="sub.id">&nbsp;&nbsp;↳ {{ sub.name }}</option>
+                    }
                   }
                 </select>
                 <button (click)="exportCoursesToCsv()"

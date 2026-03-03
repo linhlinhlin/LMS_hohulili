@@ -5,6 +5,7 @@ import { AdminService, SystemAnalytics, AdminCourseSummary } from '../../infrast
 import { LoadingComponent } from '../../../../shared/components/loading/loading.component';
 import { RevenueChartComponent, RevenueData } from './dashboard/components/revenue-chart.component';
 import { ToastService } from '../../../../core/services/toast.service';
+import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 import { AuthService } from '../../../../core/services/auth.service';
 
 interface PendingApproval {
@@ -237,17 +238,16 @@ export class AdminComponent implements OnInit {
     });
   }
 
-  rejectCourse(courseId: string): void {
-    // For now, just reject with a default reason
-    // In a real implementation, you might want to show a modal to get the reason
-    const reason = 'Từ chối từ dashboard admin';
-    this.adminService.rejectCourse(courseId, reason).subscribe({
+  async rejectCourse(courseId: string): Promise<void> {
+    const reason = prompt('Nhập lý do từ chối khóa học:');
+    if (!reason?.trim()) return;
+
+    this.adminService.rejectCourse(courseId, reason.trim()).subscribe({
       next: () => {
-        // Remove from pending list
         const currentList = this.pendingApprovals();
         this.pendingApprovals.set(currentList.filter(item => item.id !== courseId));
-        // Reload analytics to update pending count
         this.loadAnalytics();
+        this.toast.success('Đã từ chối khóa học');
       },
       error: () => {
         this.toast.error('Có lỗi xảy ra khi từ chối khóa học. Vui lòng thử lại.');

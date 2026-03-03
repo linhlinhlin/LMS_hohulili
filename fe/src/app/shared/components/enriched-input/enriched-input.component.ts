@@ -260,7 +260,7 @@ export class EnrichedInputFieldComponent {
             if (initVal && this.rawValue() === '') {
                 this.rawValue.set(initVal);
             }
-        }, { allowSignalWrites: true });
+        });
     }
 
     onTextInput(event: Event) {

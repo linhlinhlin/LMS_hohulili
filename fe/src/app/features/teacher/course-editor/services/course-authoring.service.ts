@@ -1,8 +1,13 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpEventType, HttpEvent } from '@angular/common/http';
 import { Observable, forkJoin } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { map, filter } from 'rxjs/operators';
 import { environment } from '../../../../../environments/environment';
+import { PresignedUploadService, UploadEvent } from '../../../../core/services/presigned-upload.service';
+
+export type UploadProgressEvent =
+  | { type: 'progress'; progress: number }
+  | { type: 'complete'; fileUrl: string };
 
 export interface SectionDraftDTO { // Renamed from TopicDraftDTO
     id: string;
@@ -107,6 +112,7 @@ export interface CourseDraftDTO {
     unlockMode?: string;
     settings?: CourseSettings;
     chapters: ChapterDraftDTO[];
+    hasEnrollments?: boolean;
 }
 
 // API Response types
@@ -138,6 +144,7 @@ interface CourseDetailResponse {
     price?: number;
     salePrice?: number;
     deliveryMode?: string;
+    hasEnrollments?: boolean;
     settings?: CourseSettings;
 }
 
@@ -218,6 +225,7 @@ interface ChapterResponse { // Was SectionWithLessons
 })
 export class CourseAuthoringService {
     private http = inject(HttpClient);
+    private presignedUpload = inject(PresignedUploadService);
     private baseUrl = `${environment.apiUrl}/api/v3`;
 
     // --- Draft Operations ---
@@ -225,10 +233,12 @@ export class CourseAuthoringService {
     getCourseDraft(courseId: string): Observable<CourseDraftDTO> {
         return forkJoin({
             course: this.http.get<ApiResponse<CourseDetailResponse>>(`${this.baseUrl}/courses/${courseId}`),
-            content: this.http.get<ApiResponse<ChapterResponse[]>>(`${this.baseUrl}/courses/${courseId}/content`)
+            content: this.http.get<ApiResponse<ChapterResponse[]>>(`${this.baseUrl}/courses/${courseId}/content`),
+            teacherDraft: this.http.get<ApiResponse<{ hasEnrollments?: boolean }>>(`${this.baseUrl}/teacher/courses/${courseId}`)
         }).pipe(
-            map(({ course, content }) => {
+            map(({ course, content, teacherDraft }) => {
                 const courseData = course.data;
+                courseData.hasEnrollments = teacherDraft.data?.hasEnrollments ?? false;
                 const backendChapters = content.data || [];
 
                 // Map chapters
@@ -301,6 +311,7 @@ export class CourseAuthoringService {
                     price: courseData.price,
                     salePrice: courseData.salePrice,
                     deliveryMode: (courseData.deliveryMode as DeliveryMode) || 'SELF_PACED',
+                    hasEnrollments: courseData.hasEnrollments,
                     settings: courseData.settings,
                     chapters
                 } satisfies CourseDraftDTO;
@@ -368,11 +379,32 @@ export class CourseAuthoringService {
     // --- Uploads ---
 
     uploadFile(file: File): Observable<{ fileUrl: string }> {
+        return this.presignedUpload.upload(file, 'course').pipe(
+            filter((e: UploadEvent) => e.type === 'complete'),
+            map((e: UploadEvent) => ({ fileUrl: (e as any).url || '' }))
+        );
+    }
+
+    uploadFileWithProgress(file: File, folder = 'course'): Observable<UploadProgressEvent> {
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('folder', 'course');
-        return this.http.post<any>(`${this.baseUrl}/files/upload/editor`, formData).pipe(
-            map((res: any) => ({ fileUrl: res.file?.url || '' }))
+        formData.append('folder', folder);
+        return this.http.post<any>(`${this.baseUrl}/files/upload/editor`, formData, {
+            reportProgress: true,
+            observe: 'events'
+        }).pipe(
+            filter((event: HttpEvent<any>) =>
+                event.type === HttpEventType.UploadProgress || event.type === HttpEventType.Response
+            ),
+            map((event: HttpEvent<any>): UploadProgressEvent => {
+                if (event.type === HttpEventType.UploadProgress) {
+                    const progress = event.total ? Math.round(100 * event.loaded / event.total) : 0;
+                    return { type: 'progress', progress };
+                }
+                // HttpEventType.Response
+                const body = (event as any).body;
+                return { type: 'complete', fileUrl: body?.file?.url || '' };
+            })
         );
     }
 
@@ -380,6 +412,27 @@ export class CourseAuthoringService {
         return this.http.get<ApiResponse<CategoryDTO[]>>(`${this.baseUrl}/categories`).pipe(
             map(res => res.data)
         );
+    }
+
+    /** Fetch hierarchical category tree (2-level) from new endpoint */
+    getCourseCategoryTree(): Observable<import('../../../../api/types/course.types').CourseCategoryDTO[]> {
+        return this.http.get<ApiResponse<import('../../../../api/types/course.types').CourseCategoryDTO[]>>(
+            `${this.baseUrl}/course-categories`
+        ).pipe(map(res => res.data));
+    }
+
+    /** Fetch controlled vocabulary tags */
+    getCourseTags(): Observable<import('../../../../api/types/course.types').CourseTagDTO[]> {
+        return this.http.get<ApiResponse<import('../../../../api/types/course.types').CourseTagDTO[]>>(
+            `${this.baseUrl}/course-tags`
+        ).pipe(map(res => res.data));
+    }
+
+    /** Assign controlled vocabulary tags to a course (max 5) */
+    setCourseTags(courseId: string, tagIds: string[]): Observable<void> {
+        return this.http.put<ApiResponse<void>>(
+            `${this.baseUrl}/courses/${courseId}/tags`, tagIds
+        ).pipe(map(() => void 0));
     }
 
     getInstructors(): Observable<any[]> {
