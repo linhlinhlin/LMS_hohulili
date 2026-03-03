@@ -28,7 +28,12 @@ CREATE INDEX idx_course_categories_active ON course_categories(is_active);
 
 COMMENT ON TABLE course_categories IS '2-level course taxonomy. parent_id=NULL → root category, non-null → subcategory. Max 2 levels enforced in application.';
 
--- 2. course_tags: flat controlled vocabulary
+-- 2. Rename legacy course_tags element collection (if exists) before creating new table
+ALTER TABLE IF EXISTS course_tags RENAME TO course_tags_legacy;
+ALTER INDEX IF EXISTS pk_course_tags RENAME TO pk_course_tags_legacy;
+ALTER TABLE IF EXISTS course_tags_legacy DROP CONSTRAINT IF EXISTS fk_course_tags_course;
+
+-- course_tags: flat controlled vocabulary (new structure with UUID PK)
 CREATE TABLE IF NOT EXISTS course_tags (
     id          UUID            PRIMARY KEY DEFAULT gen_random_uuid(),
     name        VARCHAR(100)    NOT NULL,
