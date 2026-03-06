@@ -1,0 +1,15 @@
+* text=auto
+
+*.{java,ts,js,json,yml,yaml,scss,css,html,md,sh} text eol=lf
+*.{ps1,bat,cmd} text eol=crlf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.docx binary
+*.woff binary
+*.woff2 binary
+*.ttf binary

@@ -41,7 +41,7 @@
               <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
               </svg>
-              +{{ analytics().userGrowth?.growthRate || 0 }}% so với tháng trước
+              +{{ analytics().userGrowth.growthRate || 0 }}% so với tháng trước
             </div>
           </div>
         </div>
@@ -204,14 +204,14 @@
           </div>
           <div class="p-5">
             <div class="flex items-center gap-3 py-3.5 border-b border-gray-50">
-              @if (analytics().systemHealth?.api === 'healthy') {
+              @if (analytics().systemHealth.api === 'healthy') {
                 <div class="w-2.5 h-2.5 rounded-full bg-green-500 ring-[3px] ring-green-100 shrink-0"></div>
               } @else {
                 <div class="w-2.5 h-2.5 rounded-full bg-red-500 ring-[3px] ring-red-100 shrink-0"></div>
               }
               <div class="flex-1 flex justify-between items-center">
                 <span class="text-sm font-medium text-gray-700">API Service</span>
-                @if (analytics().systemHealth?.api === 'healthy') {
+                @if (analytics().systemHealth.api === 'healthy') {
                   <span class="text-xs font-medium px-2.5 py-1 bg-green-100 text-green-800 rounded-md">Hoạt động</span>
                 } @else {
                   <span class="text-xs font-medium px-2.5 py-1 bg-red-100 text-red-800 rounded-md">Lỗi</span>
@@ -220,14 +220,14 @@
             </div>
 
             <div class="flex items-center gap-3 py-3.5 border-b border-gray-50">
-              @if (analytics().systemHealth?.database === 'healthy') {
+              @if (analytics().systemHealth.database === 'healthy') {
                 <div class="w-2.5 h-2.5 rounded-full bg-green-500 ring-[3px] ring-green-100 shrink-0"></div>
               } @else {
                 <div class="w-2.5 h-2.5 rounded-full bg-red-500 ring-[3px] ring-red-100 shrink-0"></div>
               }
               <div class="flex-1 flex justify-between items-center">
                 <span class="text-sm font-medium text-gray-700">Database</span>
-                @if (analytics().systemHealth?.database === 'healthy') {
+                @if (analytics().systemHealth.database === 'healthy') {
                   <span class="text-xs font-medium px-2.5 py-1 bg-green-100 text-green-800 rounded-md">Hoạt động</span>
                 } @else {
                   <span class="text-xs font-medium px-2.5 py-1 bg-red-100 text-red-800 rounded-md">Lỗi</span>
@@ -236,14 +236,14 @@
             </div>
 
             <div class="flex items-center gap-3 py-3.5 border-b border-gray-50">
-              @if (analytics().systemHealth?.email === 'healthy') {
+              @if (analytics().systemHealth.email === 'healthy') {
                 <div class="w-2.5 h-2.5 rounded-full bg-green-500 ring-[3px] ring-green-100 shrink-0"></div>
               } @else {
                 <div class="w-2.5 h-2.5 rounded-full bg-red-500 ring-[3px] ring-red-100 shrink-0"></div>
               }
               <div class="flex-1 flex justify-between items-center">
                 <span class="text-sm font-medium text-gray-700">Email Service</span>
-                @if (analytics().systemHealth?.email === 'healthy') {
+                @if (analytics().systemHealth.email === 'healthy') {
                   <span class="text-xs font-medium px-2.5 py-1 bg-green-100 text-green-800 rounded-md">Hoạt động</span>
                 } @else {
                   <span class="text-xs font-medium px-2.5 py-1 bg-red-100 text-red-800 rounded-md">Lỗi</span>
@@ -252,14 +252,14 @@
             </div>
 
             <div class="flex items-center gap-3 py-3.5">
-              @if (analytics().systemHealth?.storage === 'healthy') {
+              @if (analytics().systemHealth.storage === 'healthy') {
                 <div class="w-2.5 h-2.5 rounded-full bg-green-500 ring-[3px] ring-green-100 shrink-0"></div>
               } @else {
                 <div class="w-2.5 h-2.5 rounded-full bg-amber-500 ring-[3px] ring-amber-100 shrink-0"></div>
               }
               <div class="flex-1 flex justify-between items-center">
                 <span class="text-sm font-medium text-gray-700">Bộ nhớ</span>
-                @if (analytics().systemHealth?.storage === 'healthy') {
+                @if (analytics().systemHealth.storage === 'healthy') {
                   <span class="text-xs font-medium px-2.5 py-1 bg-green-100 text-green-800 rounded-md">Hoạt động</span>
                 } @else {
                   <span class="text-xs font-medium px-2.5 py-1 bg-amber-100 text-amber-800 rounded-md">Cần kiểm tra</span>

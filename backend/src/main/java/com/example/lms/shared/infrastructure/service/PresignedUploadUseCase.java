@@ -1,10 +1,9 @@
-package com.example.lms.shared.application.usecase;
+package com.example.lms.shared.infrastructure.service;
 
 import com.example.lms.shared.infrastructure.persistence.entity.FileAttachmentJpaEntity;
 import com.example.lms.shared.infrastructure.persistence.entity.UploadSessionJpaEntity;
 import com.example.lms.shared.infrastructure.persistence.repository.FileAttachmentJpaRepository;
 import com.example.lms.shared.infrastructure.persistence.repository.UploadSessionJpaRepository;
-import com.example.lms.shared.infrastructure.service.R2StorageService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,7 +26,6 @@ public class PresignedUploadUseCase {
 
     private static final Duration PRESIGN_TTL = Duration.ofMinutes(5);
 
-    // MIME whitelist per folder
     private static final Map<String, Set<String>> ALLOWED_TYPES = Map.of(
             "course-thumbnails", Set.of("image/jpeg", "image/png", "image/webp"),
             "editor-images", Set.of("image/jpeg", "image/png", "image/gif", "image/webp"),
@@ -35,9 +33,9 @@ public class PresignedUploadUseCase {
     );
 
     private static final Map<String, Long> MAX_SIZES = Map.of(
-            "course-thumbnails", 5L * 1024 * 1024,        // 5MB
-            "editor-images", 50L * 1024 * 1024,            // 50MB
-            "videos", 500L * 1024 * 1024                   // 500MB
+            "course-thumbnails", 5L * 1024 * 1024,
+            "editor-images", 50L * 1024 * 1024,
+            "videos", 500L * 1024 * 1024
     );
 
     private final Optional<S3Presigner> r2Presigner;
@@ -63,40 +61,30 @@ public class PresignedUploadUseCase {
         this.fileAttachmentRepository = fileAttachmentRepository;
     }
 
-    /**
-     * Step 1: Validate input, generate presigned PUT URL, save PENDING session.
-     * If presigner not available (dev mode), returns isServerRelay=true for FE fallback.
-     */
     @Transactional
     public InitUploadResult initUpload(String contentType, long fileSize, String folder, UUID userId) {
-        // Validate folder
         String sanitizedFolder = sanitizeFolder(folder);
 
-        // Validate MIME type
         Set<String> allowedTypes = ALLOWED_TYPES.getOrDefault(sanitizedFolder,
                 Set.of("image/jpeg", "image/png", "image/gif", "image/webp",
                         "application/pdf", "video/mp4", "video/webm"));
         if (!allowedTypes.contains(contentType.toLowerCase())) {
-            throw new IllegalArgumentException("Loại tập tin không được phép: " + contentType);
+            throw new IllegalArgumentException("Loáº¡i táº­p tin khÃ´ng Ä‘Æ°á»£c phÃ©p: " + contentType);
         }
 
-        // Validate size
         long maxSize = MAX_SIZES.getOrDefault(sanitizedFolder, 50L * 1024 * 1024);
         if (fileSize > maxSize) {
-            throw new IllegalArgumentException("Tập tin vượt quá dung lượng tối đa: " + (maxSize / 1024 / 1024) + "MB");
+            throw new IllegalArgumentException("Táº­p tin vÆ°á»£t quÃ¡ dung lÆ°á»£ng tá»‘i Ä‘a: " + (maxSize / 1024 / 1024) + "MB");
         }
 
-        // Dev fallback: no presigner → FE should use server relay
         if (r2Presigner.isEmpty()) {
             return new InitUploadResult(null, null, null, true);
         }
 
-        // Generate storage key
         String extension = mimeToExtension(contentType);
         String storageKey = sanitizedFolder + "/" + UUID.randomUUID() + extension;
         Instant expiresAt = Instant.now().plus(PRESIGN_TTL);
 
-        // Generate presigned PUT URL
         PutObjectRequest putRequest = PutObjectRequest.builder()
                 .bucket(bucket)
                 .key(storageKey)
@@ -111,7 +99,6 @@ public class PresignedUploadUseCase {
 
         String uploadUrl = r2Presigner.get().presignPutObject(presignRequest).url().toString();
 
-        // Save PENDING session
         UploadSessionJpaEntity session = UploadSessionJpaEntity.builder()
                 .storageKey(storageKey)
                 .userId(userId)
@@ -128,34 +115,26 @@ public class PresignedUploadUseCase {
         return new InitUploadResult(uploadUrl, storageKey, expiresAt, false);
     }
 
-    /**
-     * Step 3: Confirm upload — verify object exists in R2, create FileAttachment record.
-     */
     @Transactional
     public ConfirmUploadResult confirmUpload(String storageKey, String originalName, UUID userId) {
-        // Find PENDING session
         UploadSessionJpaEntity session = sessionRepository
                 .findByStorageKeyAndUserIdAndStatus(storageKey, userId, "PENDING")
-                .orElseThrow(() -> new IllegalArgumentException("Upload session không tồn tại hoặc đã hết hạn"));
+                .orElseThrow(() -> new IllegalArgumentException("Upload session khÃ´ng tá»“n táº¡i hoáº·c Ä‘Ã£ háº¿t háº¡n"));
 
-        // Verify the session hasn't expired
         if (session.getExpiresAt() != null && Instant.now().isAfter(session.getExpiresAt())) {
             session.setStatus("EXPIRED");
             sessionRepository.save(session);
-            throw new IllegalArgumentException("Upload session đã hết hạn");
+            throw new IllegalArgumentException("Upload session Ä‘Ã£ háº¿t háº¡n");
         }
 
-        // Verify object exists in R2
         if (r2StorageService.isPresent() && !r2StorageService.get().exists(storageKey)) {
-            throw new IllegalStateException("Tập tin chưa được tải lên storage");
+            throw new IllegalStateException("Táº­p tin chÆ°a Ä‘Æ°á»£c táº£i lÃªn storage");
         }
 
-        // Update session status
         session.setStatus("CONFIRMED");
         session.setConfirmedAt(Instant.now());
         sessionRepository.save(session);
 
-        // Create FileAttachment record
         String fileUrl = publicUrl + "/" + storageKey;
         FileAttachmentJpaEntity attachment = FileAttachmentJpaEntity.builder()
                 .fileUrl(fileUrl)
@@ -175,7 +154,9 @@ public class PresignedUploadUseCase {
     }
 
     private String sanitizeFolder(String folder) {
-        if (folder == null || folder.isBlank()) return "editor-images";
+        if (folder == null || folder.isBlank()) {
+            return "editor-images";
+        }
         return folder.replaceAll("[^a-zA-Z0-9_-]", "");
     }
 
@@ -194,7 +175,9 @@ public class PresignedUploadUseCase {
     }
 
     private String mapFolderToCategory(String folder) {
-        if (folder == null) return "GENERAL";
+        if (folder == null) {
+            return "GENERAL";
+        }
         return switch (folder) {
             case "course", "course-thumbnails" -> "COURSE_THUMBNAIL";
             case "editor-images", "question-images" -> "EDITOR_IMAGE";
@@ -204,5 +187,6 @@ public class PresignedUploadUseCase {
     }
 
     public record InitUploadResult(String uploadUrl, String storageKey, Instant expiresAt, boolean isServerRelay) {}
+
     public record ConfirmUploadResult(UUID id, String publicUrl, String storageKey) {}
 }

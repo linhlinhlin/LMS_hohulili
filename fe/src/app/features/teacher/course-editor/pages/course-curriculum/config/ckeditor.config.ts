@@ -9,7 +9,6 @@ import {
   Table, TableToolbar, MediaEmbed,
   SourceEditing, Autoformat
 } from 'ckeditor5';
-import 'ckeditor5/ckeditor5.css';
 import { createServerUploadPlugin } from '../../../../../../core/utils/server-upload-adapter';
 
 export const CKEDITOR_CLASS = ClassicEditor;

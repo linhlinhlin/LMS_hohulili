@@ -79,7 +79,7 @@
     "@types/node": "^20.17.19",
     "@types/xlsx": "^0.0.35",
     "autoprefixer": "^10.4.21",
-    "baseline-browser-mapping": "^2.8.28",
+    "baseline-browser-mapping": "^2.10.0",
     "fast-check": "^4.3.0",
     "jasmine-core": "~5.9.0",
     "karma": "~6.4.0",

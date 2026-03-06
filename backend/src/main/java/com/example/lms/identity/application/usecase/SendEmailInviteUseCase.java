@@ -7,13 +7,13 @@ import com.example.lms.identity.domain.model.OrganizationInvite;
 import com.example.lms.identity.domain.model.TokenHasher;
 import com.example.lms.identity.domain.repository.OrganizationInviteRepository;
 import com.example.lms.identity.domain.repository.OrganizationRepository;
-import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
-import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
+import com.example.lms.identity.domain.repository.UserRepository;
 import com.example.lms.shared.application.port.EmailServicePort;
 import com.example.lms.shared.exception.EntityNotFoundException;
 import com.example.lms.shared.exception.ValidationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,7 +29,8 @@ public class SendEmailInviteUseCase {
 
     private final OrganizationRepository orgRepo;
     private final OrganizationInviteRepository inviteRepo;
-    private final UserJpaRepository userJpaRepo;
+    @Qualifier("newUserRepositoryAdapter")
+    private final UserRepository userRepository;
     private final EmailServicePort emailService;
 
     @Value("${app.frontend-url:http://localhost:4200}")
@@ -47,8 +48,8 @@ public class SendEmailInviteUseCase {
         String email = command.email().toLowerCase().trim();
 
         // Audit fix: Check if email is already a member of this org
-        boolean alreadyMember = userJpaRepo.findByEmail(email)
-                .map(u -> organizationId.equals(u.getOrganizationId()))
+        boolean alreadyMember = userRepository.findByEmail(email)
+                .map(user -> organizationId.equals(user.getOrganizationId()))
                 .orElse(false);
         if (alreadyMember) {
             throw new ValidationException("email", "Người dùng này đã là thành viên của tổ chức");

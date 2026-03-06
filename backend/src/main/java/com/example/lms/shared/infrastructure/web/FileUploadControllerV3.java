@@ -1,7 +1,7 @@
 package com.example.lms.shared.infrastructure.web;
 
-import com.example.lms.shared.application.usecase.PresignedUploadUseCase;
 import com.example.lms.shared.infrastructure.service.LocalStorageService;
+import com.example.lms.shared.infrastructure.service.PresignedUploadUseCase;
 import com.example.lms.shared.infrastructure.service.R2StorageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

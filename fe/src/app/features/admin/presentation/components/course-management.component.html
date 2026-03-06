@@ -277,7 +277,7 @@
                               [class]="getStatusClass(course.status)">
                           {{ getStatusText(course.status) }}
                         </span>
-                        @if (course.rejectionReason && course.status?.toLowerCase() === 'rejected') {
+                        @if (course.rejectionReason && course.status.toLowerCase() === 'rejected') {
                           <div class="text-xs text-red-500 mt-1 max-w-[140px] truncate" [title]="course.rejectionReason">
                             {{ course.rejectionReason }}
                           </div>

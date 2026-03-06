@@ -32,7 +32,7 @@ cd ../ && docker compose -f docker-compose.yml -f docker-compose.dev.yml logs ba
 ```bash
 # Host-native backend run (matches the standard dev URL)
 cd backend
-SERVER_PORT=8088 ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+SERVER_PORT=8088 mvn spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
 | Service | URL | Credentials |

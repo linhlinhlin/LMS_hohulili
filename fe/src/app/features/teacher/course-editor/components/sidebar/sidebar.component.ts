@@ -332,7 +332,7 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
                                                 <p class="text-[13px] font-semibold text-slate-700 leading-snug line-clamp-2 break-words group-hover/ls:text-slate-900">
                                                     {{ lesson.title }}
                                                 </p>
-                                                @if (!isLessonExpanded(lesson.id) && lesson.sections?.length) {
+                                                @if (!isLessonExpanded(lesson.id) && lesson.sections.length) {
                                                   <span class="text-[11px] text-slate-500 font-medium">{{ lesson.sections.length }} nội dung</span>
                                                 }
                                             }
@@ -340,7 +340,7 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
 
                                           <!-- Lesson Actions -->
                                           <div class="flex items-center gap-0.5 flex-shrink-0" (click)="$event.stopPropagation()">
-                                            <button (click)="showAddSectionModal(lesson, lesson.sections?.length || 0, lessonIdx)"
+                                            <button (click)="showAddSectionModal(lesson, lesson.sections.length || 0, lessonIdx)"
                                                     class="p-1 rounded text-slate-400 hover:text-[#0056D2] hover:bg-[#E8F0FE] transition-colors opacity-0 group-hover/ls:opacity-100"
                                                     matTooltip="Thêm nội dung">
                                               <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -364,7 +364,7 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
                                                     <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                                                     Đổi tên
                                                   </button>
-                                                  <button (click)="showAddSectionModal(lesson, lesson.sections?.length || 0, lessonIdx); closeMenu()"
+                                                  <button (click)="showAddSectionModal(lesson, lesson.sections.length || 0, lessonIdx); closeMenu()"
                                                           class="w-full text-left px-3.5 py-2.5 hover:bg-slate-50 text-[13px] text-slate-700 font-medium flex items-center gap-2.5">
                                                     <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                                                     Thêm nội dung
@@ -456,7 +456,7 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
                                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
                                                           </button>
                                                         }
-                                                        @if (secIdx < (lesson.sections?.length || 0) - 1) {
+                                                        @if (secIdx < (lesson.sections.length || 0) - 1) {
                                                           <button (click)="moveSectionDown(lesson.id, secIdx)"
                                                                   class="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors"
                                                                   matTooltip="Di chuyển xuống">
@@ -485,7 +485,7 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
                                         }
 
                                         <!-- Add Content Button (visible when lesson expanded) -->
-                                        <button (click)="showAddSectionModal(lesson, lesson.sections?.length || 0, lessonIdx); $event.stopPropagation()"
+                                        <button (click)="showAddSectionModal(lesson, lesson.sections.length || 0, lessonIdx); $event.stopPropagation()"
                                                 class="ml-10 mb-1 text-[11px] font-semibold text-[#0056D2] hover:text-[#004BB5] transition-colors flex items-center gap-1 py-1 opacity-60 hover:opacity-100">
                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
@@ -1068,7 +1068,7 @@ export class CourseEditorSidebarComponent implements OnDestroy {
     const payload = {
       title: this.newSectionTitle.trim(),
       type: this.newSectionType,
-      orderIndex: (lesson.sections?.length || 0)
+      orderIndex: lesson.sections.length || 0
     };
     formData.append('data', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
     if (this.newSectionType === 'FILE' && this.selectedFile) {

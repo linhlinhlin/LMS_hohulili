@@ -18,9 +18,8 @@ Use `8088` from the host machine. Use `8080` only for container and reverse-prox
 | Docker Desktop | Current stable |
 | Node.js | 22.x |
 | Java | 21 |
+| Maven | 3.9+ (host-native backend only) |
 | Git | Current stable |
-
-Maven on the host is optional because the backend can run through Docker and includes `mvnw`.
 
 ## Recommended Local Setup
 
@@ -54,7 +53,7 @@ The frontend should use `fe/proxy.conf.json` for `/api/*` in development. Do not
 
 ```bash
 cd backend
-SERVER_PORT=8088 ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+SERVER_PORT=8088 mvn spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
 This keeps the same host-facing URL as the Docker-based setup.
@@ -84,7 +83,7 @@ For broader seeded data and manual verification flows, use [docs/testing/TEST_CH
 
 ```bash
 cd backend
-./mvnw test -B
+mvn test -B
 docker compose logs api --tail=100
 ```
 

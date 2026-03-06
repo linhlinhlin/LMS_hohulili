@@ -52,13 +52,9 @@ class AdminCoursesControllerV3Test {
 
     @BeforeEach
     void setUpUsers() {
-        adminUser = mock(UserJpaEntity.class);
-        when(adminUser.getRole()).thenReturn(UserJpaEntity.UserRole.ADMIN);
-
         orgId = UUID.randomUUID();
+        adminUser = mock(UserJpaEntity.class);
         orgAdminUser = mock(UserJpaEntity.class);
-        when(orgAdminUser.getRole()).thenReturn(UserJpaEntity.UserRole.ORG_ADMIN);
-        when(orgAdminUser.getOrganizationId()).thenReturn(orgId);
     }
 
     @Nested
@@ -67,6 +63,8 @@ class AdminCoursesControllerV3Test {
 
         @BeforeEach
         void setUpMocks() {
+            when(adminUser.getRole()).thenReturn(UserJpaEntity.UserRole.ADMIN);
+
             // Course counts
             when(courseRepository.count()).thenReturn(50L);
             when(courseRepository.countByStatus(Course.CourseStatus.PENDING)).thenReturn(5L);
@@ -190,6 +188,9 @@ class AdminCoursesControllerV3Test {
 
         @BeforeEach
         void setUpOrgData() {
+            when(orgAdminUser.getRole()).thenReturn(UserJpaEntity.UserRole.ORG_ADMIN);
+            when(orgAdminUser.getOrganizationId()).thenReturn(orgId);
+
             teacherId1 = UUID.randomUUID();
             teacherId2 = UUID.randomUUID();
             orgTeacherIds = Set.of(teacherId1, teacherId2);
@@ -198,8 +199,12 @@ class AdminCoursesControllerV3Test {
             UUID courseId2 = UUID.randomUUID();
             UUID courseId3 = UUID.randomUUID();
             orgCourseIds = List.of(courseId1, courseId2, courseId3);
+        }
 
-            // Org members
+        @Test
+        @DisplayName("ORG_ADMIN analytics should only count org members and org courses")
+        void orgAdminShouldReturnOrgScopedAnalytics() {
+            // Given
             UserJpaEntity teacher1 = mock(UserJpaEntity.class);
             when(teacher1.getRole()).thenReturn(UserJpaEntity.UserRole.TEACHER);
             when(teacher1.getId()).thenReturn(teacherId1);
@@ -219,12 +224,6 @@ class AdminCoursesControllerV3Test {
 
             when(userRepository.findByOrganizationId(orgId))
                     .thenReturn(List.of(teacher1, teacher2, student1, student2, orgAdmin));
-        }
-
-        @Test
-        @DisplayName("ORG_ADMIN analytics should only count org members and org courses")
-        void orgAdminShouldReturnOrgScopedAnalytics() {
-            // Given
             when(courseRepository.countByTeacherIdIn(anySet())).thenReturn(3L);
             when(courseRepository.countByStatusAndTeacherIdIn(eq(Course.CourseStatus.PENDING), anySet())).thenReturn(1L);
             when(courseRepository.countByStatusAndTeacherIdIn(eq(Course.CourseStatus.APPROVED), anySet())).thenReturn(1L);

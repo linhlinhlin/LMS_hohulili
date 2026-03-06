@@ -61,6 +61,7 @@ The system is designed around three practical requirements:
 | Docker | Current |
 | Node.js | 22.x |
 | Java | 21+ |
+| Maven | 3.9+ (host-native backend only) |
 
 ### Recommended: Docker Backend + Local Frontend
 
@@ -84,7 +85,7 @@ npm start
 
 ```bash
 cd backend
-SERVER_PORT=8088 ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+SERVER_PORT=8088 mvn spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
 ### Access Points
@@ -193,7 +194,7 @@ npm run build
 
 # Backend tests
 cd backend
-./mvnw test -B
+mvn test -B
 ```
 
 ### Configuration Notes
@@ -241,7 +242,7 @@ Minimum checks before shipping:
 
 ```bash
 # Backend
-cd backend && ./mvnw test -B
+cd backend && mvn test -B
 
 # Frontend
 cd fe && npm run build

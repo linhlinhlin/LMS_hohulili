@@ -13,7 +13,6 @@ import {
     SourceEditing, Autoformat
 } from 'ckeditor5';
 
-import 'ckeditor5/ckeditor5.css';
 import { createServerUploadPlugin } from '../../../core/utils/server-upload-adapter';
 import { environment } from '../../../../environments/environment';
 

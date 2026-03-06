@@ -227,12 +227,12 @@
         <a [href]="attachment.fileUrl" download target="_blank" rel="noopener noreferrer"
           class="flex items-center gap-3 p-2.5 border border-gray-200 rounded-lg hover:border-[#0056D2] hover:bg-blue-50/20 transition-all bg-white group min-w-[240px]">
           <div class="w-8 h-8 rounded flex items-center justify-center shrink-0"
-            [class.bg-red-50]="attachment.fileType?.includes('pdf')"
-            [class.text-red-600]="attachment.fileType?.includes('pdf')"
-            [class.bg-blue-50]="!attachment.fileType?.includes('pdf')"
-            [class.text-blue-600]="!attachment.fileType?.includes('pdf')">
+            [class.bg-red-50]="attachment.fileType.includes('pdf')"
+            [class.text-red-600]="attachment.fileType.includes('pdf')"
+            [class.bg-blue-50]="!attachment.fileType.includes('pdf')"
+            [class.text-blue-600]="!attachment.fileType.includes('pdf')">
             <span class="material-symbols-outlined text-lg">
-              {{ attachment.fileType?.includes('pdf') ? 'picture_as_pdf' : 'attach_file' }}
+              {{ attachment.fileType.includes('pdf') ? 'picture_as_pdf' : 'attach_file' }}
             </span>
           </div>
           <div class="flex-1 min-w-0">
@@ -357,12 +357,12 @@
         <a [href]="attachment.fileUrl" download target="_blank" rel="noopener noreferrer"
           class="flex items-center gap-4 p-4 border border-gray-200 rounded-lg hover:border-[#0056D2] hover:bg-blue-50/20 transition-all bg-white group">
           <div class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
-            [class.bg-red-50]="attachment.fileType?.includes('pdf')"
-            [class.text-red-600]="attachment.fileType?.includes('pdf')"
-            [class.bg-blue-50]="!attachment.fileType?.includes('pdf')"
-            [class.text-blue-600]="!attachment.fileType?.includes('pdf')">
+            [class.bg-red-50]="attachment.fileType.includes('pdf')"
+            [class.text-red-600]="attachment.fileType.includes('pdf')"
+            [class.bg-blue-50]="!attachment.fileType.includes('pdf')"
+            [class.text-blue-600]="!attachment.fileType.includes('pdf')">
             <span class="material-symbols-outlined text-xl">
-              {{ attachment.fileType?.includes('pdf') ? 'picture_as_pdf' : 'attach_file' }}
+              {{ attachment.fileType.includes('pdf') ? 'picture_as_pdf' : 'attach_file' }}
             </span>
           </div>
           <div class="flex-1 min-w-0">
