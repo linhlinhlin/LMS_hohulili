@@ -90,8 +90,12 @@ caddy_data/
 caddy_config/
 
 # === Local/temp files ===
-.claude/settings.local.json
 .claude/settings.local.json.tmp*
+.playwright-mcp/
+.cursor/*
+!fe/.cursor/
+!fe/.cursor/rules/
+!fe/.cursor/rules/cursor.mdc
 screenshots/
 screenshot*.js
 sidebar_screenshot.png
