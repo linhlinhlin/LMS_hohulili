@@ -80,7 +80,6 @@ services:
     networks:
       - lms-backend
       - lms-frontend
-      - wiii-network  # Sprint 220: Reach wiii-app for AI service
 
   # ===== Angular Frontend (nginx) =====
   frontend:
@@ -109,5 +108,4 @@ networks:
   lms-frontend:
     name: lms-frontend
     driver: bridge
-  wiii-network:
-    external: true  # Sprint 220: Created by Wiii's docker-compose
+  # wiii-network removed: Wiii now on separate server (wiii.holilihu.online)

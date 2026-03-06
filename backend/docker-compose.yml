@@ -40,12 +40,12 @@ services:
       - MAIL_USERNAME=${MAIL_USERNAME:-}
       - MAIL_PASSWORD=${MAIL_PASSWORD:-}
       - MAIL_FROM=${MAIL_FROM:-}
-      # Wiii AI Integration (Sprint 220)
-      - WIII_WEBHOOK_URL=http://wiii-app:8000/api/v1/lms/webhook/maritime-lms
+      # Wiii AI Integration (Sprint 220+226: separate server)
+      - WIII_WEBHOOK_URL=http://localhost:8000/api/v1/lms/webhook/maritime-lms
       - WIII_WEBHOOK_SECRET=wiii-lms-hmac-s3cr3t-2026
       - WIII_WEBHOOK_ENABLED=true
       - WIII_SERVICE_TOKEN=wiii-service-token-shared-secret
-      - WIII_TOKEN_EXCHANGE_URL=http://wiii-app:8000/api/v1/auth/lms/token
+      - WIII_TOKEN_EXCHANGE_URL=http://localhost:8000/api/v1/auth/lms/token
       # Fix: Override upload base-url with host port (container=8080, host=8088)
       - APP_STORAGE_LOCAL_BASE_URL=http://localhost:8088/uploads
     volumes:
@@ -56,7 +56,6 @@ services:
     restart: always
     networks:
       - default
-      - wiii-network  # Sprint 220: Reach wiii-app for AI chat
     deploy:
       resources:
         limits:
@@ -69,6 +68,4 @@ services:
 volumes:
   pgdata:
 
-networks:
-  wiii-network:
-    external: true  # Created by Wiii's docker-compose
+  # wiii-network removed: Wiii now on separate server (Sprint 226)

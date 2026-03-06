@@ -103,6 +103,13 @@ Escalation prevention: ORG_ADMIN cannot promote users to admin roles.
 
 ## Quick Start
 
+### Runtime Conventions
+
+- Frontend dev runs at `http://localhost:4200`
+- Backend dev is exposed on the host at `http://localhost:8088`
+- Spring Boot still listens on `8080` inside Docker containers
+- Production uses same-origin `/api/*` behind Caddy on `https://holilihu.online`
+
 ### Prerequisites
 
 | Tool | Version | Purpose |
@@ -130,7 +137,7 @@ cd fe && npm install && npm start
 ```bash
 # Backend
 cd backend
-./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+SERVER_PORT=8088 ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 
 # Frontend
 cd fe && npm install && npm start
@@ -144,6 +151,10 @@ cd fe && npm install && npm start
 | Backend API | http://localhost:8088/api/v3 |
 | Swagger UI | http://localhost:8088/swagger-ui |
 | pgAdmin | http://localhost:8081 |
+
+Notes:
+- `8088` is the stable host port for local development.
+- `8080` is the internal container/app port and is not the public dev URL.
 
 ### Test Accounts
 
@@ -435,7 +446,7 @@ LMS_hohulili/
 │   └── public/                     # Manifest, icons, browserconfig
 │
 ├── CLAUDE.md                       # AI agent development guide
-├── STREAMING_PWA_ROADMAP.md        # PWA/offline implementation roadmap
+├── docs/architecture/STREAMING_PWA_ROADMAP.md  # PWA/offline implementation roadmap
 └── README.md                       # This file
 ```
 
@@ -465,11 +476,11 @@ Configuration is managed via `application-dev.yml` and `application-prod.yml`.
 <details>
 <summary><b>Frontend configuration</b></summary>
 
-Edit `fe/src/environments/environment.ts`:
+Edit `fe/src/environments/environment.ts` and `fe/proxy.conf.json`:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `apiUrl` | Backend API base URL | `http://localhost:8088` |
+| `apiUrl` | Backend API base URL prefix | `''` (dev uses Angular proxy) |
 | `production` | Production mode flag | `false` |
 
 </details>
@@ -499,7 +510,8 @@ Edit `fe/src/environments/environment.ts`:
 | [`CLAUDE.md`](CLAUDE.md) | AI agent development guide (architecture, patterns, 255+ endpoints) |
 | [`backend/README.md`](backend/README.md) | Backend architecture, all endpoints, database schema |
 | [`fe/FRONTEND_ARCHITECTURE.md`](fe/FRONTEND_ARCHITECTURE.md) | Frontend architecture, 236 components, services, state |
-| [`STREAMING_PWA_ROADMAP.md`](STREAMING_PWA_ROADMAP.md) | PWA offline-first implementation details |
+| [`docs/architecture/STREAMING_PWA_ROADMAP.md`](docs/architecture/STREAMING_PWA_ROADMAP.md) | PWA offline-first implementation details |
+| [`docs/architecture/LESSON_VIEW_ARCHITECTURE.md`](docs/architecture/LESSON_VIEW_ARCHITECTURE.md) | Lesson viewer architecture and UX brief |
 | [`ONBOARDING.md`](ONBOARDING.md) | 15-minute team setup guide |
 
 ---

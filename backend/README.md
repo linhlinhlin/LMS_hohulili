@@ -4,6 +4,14 @@
 
 ## Quick Start
 
+### Runtime Conventions
+
+- Public dev API URL: `http://localhost:8088`
+- Spring Boot process/container port: `8080`
+- Production API URL: same-origin `/api/*` behind Caddy
+
+Use `8088` when calling the backend from the host machine. Use `8080` only for in-container and reverse-proxy wiring.
+
 ```bash
 # Start everything (DB + API)
 cd backend && docker compose up -d
@@ -13,6 +21,12 @@ curl -s http://localhost:8088/api/v3/courses | head -50
 
 # Logs
 docker compose logs api --tail=100
+```
+
+```bash
+# Host-native backend run (matches the standard dev URL)
+cd backend
+SERVER_PORT=8088 ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
 | Service | URL | Credentials |
@@ -35,7 +49,7 @@ docker compose logs api --tail=100
 **Seed Accounts** (V54/V55 migration — 10 STCW courses with full content):
 - 10 Teachers: `tranngocdai@maritime.edu`, `levanhung@maritime.edu`, etc. / `Maritime@2026`
 - 25 Students: `nguyenvanan@sv.maritime.edu`, `tranthibinh@sv.maritime.edu`, etc. / `Student@2026`
-- See `TEST_CHECKLIST.md` for full list.
+- See `docs/testing/TEST_CHECKLIST.md` for the full list.
 
 ---
 

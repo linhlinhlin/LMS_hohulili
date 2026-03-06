@@ -21,6 +21,13 @@ Cài đặt các tool sau trước khi tiếp tục:
 
 ## Quick Start (5 phút)
 
+### Runtime Baseline
+
+- Frontend dev URL: `http://localhost:4200`
+- Backend dev URL on host: `http://localhost:8088`
+- Spring Boot internal/container port: `8080`
+- Production API: same-origin `/api/*` on `https://holilihu.online`
+
 ### 1. Clone Repository
 
 ```bash
@@ -63,6 +70,15 @@ npm start
 Truy cập: **http://localhost:4200**
 
 ---
+
+### Alternative: Run backend directly on host
+
+If you do not use Docker for the backend, start it on the standard dev host port:
+
+```bash
+cd backend
+SERVER_PORT=8088 ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+```
 
 ## Test Accounts (Tài khoản mặc định)
 

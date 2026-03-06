@@ -52,7 +52,7 @@ public class SecurityConfig {
                     .maxAgeInSeconds(31536000)
                 )
                 .contentSecurityPolicy(csp -> csp
-                    .policyDirectives("default-src 'none'; frame-ancestors 'none'")
+                    .policyDirectives("default-src 'none'; frame-ancestors 'none'; frame-src https://wiii.holilihu.online")
                 )
             )
             .authorizeHttpRequests(auth -> auth

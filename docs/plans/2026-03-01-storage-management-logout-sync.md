@@ -541,7 +541,7 @@ git commit -m "feat(pwa): pre-logout sync check with ConfirmDialog warning"
 
 **Files:**
 - Modify: `fe/FRONTEND_ARCHITECTURE.md`
-- Modify: `STREAMING_PWA_ROADMAP.md`
+- Modify: `docs/architecture/STREAMING_PWA_ROADMAP.md`
 
 **Step 1: Update FRONTEND_ARCHITECTURE.md**
 
@@ -549,14 +549,14 @@ Find the PWA Known Issues section and mark P1 Storage Management and P1 Logout a
 - P1 "No storage management UI" → "Fixed S113: `/student/storage` page with segmented bar, per-item delete"
 - P1 "Full logout doesn't clean offline data" → "Fixed S113: Pre-logout sync check + explicit cleanup via Storage Management"
 
-**Step 2: Update STREAMING_PWA_ROADMAP.md**
+**Step 2: Update docs/architecture/STREAMING_PWA_ROADMAP.md**
 
 Check Phase 7 or Known Issues section and mark these P1 items as completed (S113).
 
 **Step 3: Commit**
 
 ```bash
-git add fe/FRONTEND_ARCHITECTURE.md STREAMING_PWA_ROADMAP.md
+git add fe/FRONTEND_ARCHITECTURE.md docs/architecture/STREAMING_PWA_ROADMAP.md
 git commit -m "docs: mark P1 storage management and logout sync as complete (S113)"
 ```
 

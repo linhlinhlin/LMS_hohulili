@@ -80,7 +80,6 @@ backend-lms-postgres/uploads/**
 
 # === DB dumps (gửi riêng, không commit) ===
 db_dump_*.sql
-export_db.sh
 
 fe/build_log*.txt
 fe/.npm-start.err
@@ -97,5 +96,8 @@ screenshots/
 screenshot*.js
 sidebar_screenshot.png
 *.png
+/*.jpg
+/*.jpeg
+/*.txt
 !fe/src/**/*.png
 !backend/src/**/*.png

@@ -12,6 +12,7 @@ import { distinctUntilChanged, map } from 'rxjs/operators';
 import { ChatContext, UserRole, ChatSession } from '../../domain/types';
 import { ChatStorageRepository } from '../../infrastructure/repositories/chat-storage.repository';
 import { AuthService } from '../../../../core/services/auth.service';
+import { AiTokenService } from '../../infrastructure/api/ai-token.service';
 import {
   createEmptyContext,
   mergeContexts,
@@ -25,6 +26,7 @@ export class SessionManagementService implements OnDestroy {
   private readonly storage = inject(ChatStorageRepository);
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
+  private readonly aiTokenService = inject(AiTokenService);
 
   private authSubscription?: Subscription;
 
@@ -114,6 +116,9 @@ export class SessionManagementService implements OnDestroy {
 
     // Reset storage userId
     this.storage.setCurrentUserId('');
+
+    // Clear cached AI JWT to prevent cross-user token reuse
+    this.aiTokenService.clearToken();
   }
 
   /**

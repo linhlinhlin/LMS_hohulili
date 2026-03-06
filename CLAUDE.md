@@ -299,7 +299,7 @@ export class ExampleComponent {
 | Purpose | File |
 |---------|------|
 | **PWA Deep Research** | **`docs/PWA_OFFLINE_RESEARCH.md`** |
-| **PWA Roadmap** | **`STREAMING_PWA_ROADMAP.md`** |
+| **PWA Roadmap** | **`docs/architecture/STREAMING_PWA_ROADMAP.md`** |
 | Dexie.js DB Schema | `fe/src/app/core/db/lms-offline.db.ts` |
 | NGSW Config | `fe/ngsw-config.json` |
 | Course Download | `fe/src/app/core/services/course-download.service.ts` |
@@ -315,7 +315,7 @@ export class ExampleComponent {
 | Caddy Reverse Proxy | `Caddyfile` (auto-HTTPS for holilihu.online) |
 | Deploy Script | `deploy.sh` |
 | PWA Build Fix | `fe/scripts/fix-ngsw.js` (removes phantom CSS from ngsw.json) |
-| Test Checklist | `TEST_CHECKLIST.md` |
+| Test Checklist | `docs/testing/TEST_CHECKLIST.md` |
 
 ---
 
@@ -400,4 +400,4 @@ Page BG: bg-slate-50 | Red: ONLY for semantic (errors, destructive)
 ---
 
 *This document is the single source of truth for Claude Code. Update after significant changes.*
-*Backend details: [`backend/README.md`](backend/README.md) | FE details: [`fe/FRONTEND_ARCHITECTURE.md`](fe/FRONTEND_ARCHITECTURE.md) | Test guide: [`TEST_CHECKLIST.md`](TEST_CHECKLIST.md)*
+*Backend details: [`backend/README.md`](backend/README.md) | FE details: [`fe/FRONTEND_ARCHITECTURE.md`](fe/FRONTEND_ARCHITECTURE.md) | Test guide: [`docs/testing/TEST_CHECKLIST.md`](docs/testing/TEST_CHECKLIST.md)*

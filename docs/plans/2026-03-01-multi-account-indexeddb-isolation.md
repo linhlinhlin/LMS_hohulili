@@ -781,7 +781,7 @@ git commit -m "fix(pwa): align getCurrentUserId localStorage key with auth.servi
 
 **Step 4: Update documentation**
 
-Update `STREAMING_PWA_ROADMAP.md` Phase 7 tasks 7.7, 7.8, 7.9 to checked:
+Update `docs/architecture/STREAMING_PWA_ROADMAP.md` Phase 7 tasks 7.7, 7.8, 7.9 to checked:
 ```markdown
 - [x] 7.7 **P0**: Add `userId` to courses/chapters/lessons/checkpoints (Dexie v4 migration)
 - [x] 7.8 **P0**: Filter all IndexedDB reads by current userId
@@ -792,7 +792,7 @@ Update `FRONTEND_ARCHITECTURE.md` PWA Known Issues table — mark P0 as **Fixed*
 
 Commit docs:
 ```bash
-git add STREAMING_PWA_ROADMAP.md fe/FRONTEND_ARCHITECTURE.md
+git add docs/architecture/STREAMING_PWA_ROADMAP.md fe/FRONTEND_ARCHITECTURE.md
 git commit -m "docs: mark P0 multi-account isolation as complete"
 ```
 
