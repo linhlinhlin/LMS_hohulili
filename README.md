@@ -230,6 +230,8 @@ Production deployment is container-based.
 - Dev environment template: `.env.dev.example`
 - Production environment template: `.env.prod.example`
 - CI workflow: `.github/workflows/ci.yml`
+- Manual deploy workflow: `.github/workflows/deploy.yml`
+- Deploy runbook: `docs/deployment/GITHUB_ACTIONS_DEPLOY.md`
 
 For production setup details, use `deploy.sh` together with `docker-compose.prod.yml` and the environment templates in the repository root.
 

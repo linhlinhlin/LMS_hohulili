@@ -12,6 +12,7 @@ Use them differently.
 - `../README.md`: product overview and current quick start.
 - `../ONBOARDING.md`: setup flow for new contributors.
 - `../backend/README.md`: backend-focused runbook and API notes.
+- `deployment/GITHUB_ACTIONS_DEPLOY.md`: GitHub Actions deployment runbook.
 - `PWA_OFFLINE_RESEARCH.md`: deep offline architecture context.
 
 ## Current Runtime Conventions
@@ -33,6 +34,7 @@ Why both `8088` and `8080` exist:
 ## Folder Meaning
 
 - `architecture/`: current deep-dive architecture references and subsystem briefs.
+- `deployment/`: deploy runbooks and environment setup notes.
 - `plans/`: working design/change plans. See `plans/README.md` for how to interpret them.
 - `research/`: supporting research and architecture comparisons.
 - `reports/`: investigation outputs and audit artifacts.
