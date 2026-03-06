@@ -36,7 +36,8 @@
             ],
             "allowedCommonJsDependencies": [
               "extend",
-              "fuzzysort"
+              "fuzzysort",
+              "es-toolkit/compat/isEqual"
             ],
             "server": "src/main.server.ts",
             "prerender": false,

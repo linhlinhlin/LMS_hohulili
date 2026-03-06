@@ -1,7 +1,22 @@
 * text=auto
+.gitattributes text eol=lf
 
-*.{java,ts,js,json,yml,yaml,scss,css,html,md,sh} text eol=lf
-*.{ps1,bat,cmd} text eol=crlf
+*.java text eol=lf
+*.ts text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.xml text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.scss text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.md text eol=lf
+*.sh text eol=lf
+
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
 
 *.png binary
 *.jpg binary
@@ -10,6 +25,7 @@
 *.ico binary
 *.pdf binary
 *.docx binary
+*.tgz binary
 *.woff binary
 *.woff2 binary
 *.ttf binary
