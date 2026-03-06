@@ -1,6 +1,6 @@
 # Maritime LMS Backend
 
-> **Spring Boot 3.2.6 + Java 21 + PostgreSQL 16** | Clean Architecture / DDD | 426+ source files | 806 tests | 290+ endpoints
+> Spring Boot 3.2.6 + Java 21 + PostgreSQL 16 with a modular Clean Architecture / DDD layout.
 
 ## Quick Start
 
@@ -32,7 +32,7 @@ SERVER_PORT=8088 ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 | Service | URL | Credentials |
 |---------|-----|-------------|
 | API | http://localhost:8088/api/v3 | JWT Bearer |
-| **Swagger UI** | **http://localhost:8088/swagger-ui** | - (234 endpoints documented) |
+| **Swagger UI** | **http://localhost:8088/swagger-ui** | Interactive API docs |
 | OpenAPI Spec | http://localhost:8088/v3/api-docs | - |
 | pgAdmin | http://localhost:8081 | `admin@devmail.net` / `devonly123` (env: PGADMIN_PASSWORD) |
 | PostgreSQL | localhost:5432/lms | `lms` / `lms` |
@@ -177,10 +177,9 @@ docker compose ps
 
 ```bash
 mvn test -B
-# Expected: Tests run: 806, Failures: 0, Errors: 0
 ```
 
-**Coverage**: ~50% (target: 60%+)
+Use the command above as the current source of truth instead of relying on hardcoded historical counts in docs.
 
 ---
 
@@ -191,11 +190,11 @@ mvn test -B
 **Access**: http://localhost:8088/swagger-ui
 
 **Features:**
-- ✅ **234 endpoints** fully documented with request/response schemas
-- ✅ **29 API tags** organized by domain module
-- ✅ **Try it out** - Test endpoints directly from browser
-- ✅ **JWT Authentication** - Built-in authorization testing
-- ✅ **OpenAPI 3.0.1** - Standard specification format
+- Request and response schemas generated from the current codebase
+- API tags grouped by backend module
+- Browser-based "Try it out" support
+- JWT authorization testing from Swagger UI
+- OpenAPI-based export through `/v3/api-docs`
 
 ### API Modules (31 controllers)
 
@@ -317,23 +316,15 @@ curl -X POST http://localhost:8088/api/v3/teacher/courses \
 
 ## Module Inventory
 
-### Codebase Stats
+### Codebase Snapshot
 
 | Metric | Count |
 |--------|-------|
-| Java source files | 420+ |
 | Bounded contexts (modules) | 8 |
-| Domain models | 40 |
-| Use cases | 72 |
-| REST controllers | 31 |
-| REST endpoints | 234 |
-| JPA entities | 40 |
-| Repository ports | 34 |
-| Flyway migrations | V1 (reference) + V26-V70 (30 incremental) |
-| Test files | 50 |
-| Test cases | 806 (0 failures) |
-| Domain events | 11 |
-| @PreAuthorize annotations | 163 |
+| Layering | `domain` / `application` / `infrastructure` per module |
+| Database migrations | `V1` reference schema plus incremental migrations in `src/main/resources/db/migration/` |
+| API documentation | SpringDoc / Swagger UI at `/swagger-ui` |
+| Tests | Run `mvn test -B` for the current backend suite status |
 
 ### Module Breakdown
 
@@ -351,7 +342,7 @@ curl -X POST http://localhost:8088/api/v3/teacher/courses \
 
 ---
 
-## API Reference (234 Endpoints)
+## API Reference
 
 ### Identity Module
 
@@ -1035,11 +1026,14 @@ docker compose down -v && docker compose up -d
 ## Testing
 
 ### Current Coverage
-- **522 tests** across 50 test files
-- All passing (BUILD SUCCESS, 0 failures, 0 errors)
-- Estimated line coverage: ~49%
 
-### Test Structure (50 files, 522 tests)
+Run the backend suite locally to get the current test count and pass/fail state:
+
+```bash
+mvn test -B
+```
+
+### Test Structure
 ```
 src/test/java/com/example/lms/
 ├── course_authoring/
@@ -1281,12 +1275,12 @@ public ResponseEntity<?> create(@Valid @RequestBody CreateCourseCommand cmd) {
 
 ### Step 4: Database
 1. Create Flyway migration in `src/main/resources/db/migration/V{N}__description.sql`
-2. Version must be next sequential number after V70
+2. Version must be the next sequential migration number in `src/main/resources/db/migration/`
 
 ### Step 5: Testing
 1. Domain model tests (pure logic, no mocks)
 2. Use case tests (@Mock repos, @InjectMocks use case)
-3. Run `mvn test -B` to verify all 806+ tests pass
+3. Run `mvn test -B` to verify the backend suite passes
 
 ### Checklist
 - [ ] Domain model has NO framework annotations
@@ -1337,4 +1331,4 @@ docker inspect lms-backend --format='{{.State.Health.Status}}'
 
 ---
 
-*Last updated: 2026-03-01 | 420+ files | 806 tests | 234 endpoints | 8 modules | 31 controllers*
+*Last updated: 2026-03-06*
