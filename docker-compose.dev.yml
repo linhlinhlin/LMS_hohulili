@@ -1,6 +1,6 @@
 # =============================================================================
 # Development Environment - Override Configuration
-# Usage: docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.dev.yml up
+# Usage: cp .env.dev.example .env && docker compose -f docker-compose.yml -f docker-compose.dev.yml up
 # =============================================================================
 
 services:

@@ -1,65 +1,16 @@
 #!/bin/bash
 # =============================================================================
 # LMS Maritime - Production Deploy Script
-# One-command deployment to GCP Compute Engine with Docker Compose + Caddy
-#
-# Usage: ./deploy.sh
-#
-# Prerequisites:
-#   - Docker & Docker Compose installed
-#   - .env.prod file configured (copy from .env.prod.example)
-#   - DNS: holilihu.online A record pointing to this server's IP
-#
-# === GCP VM Setup Guide ===
-#
-# 1. Create VM:
-#    gcloud compute instances create lms-maritime \
-#      --zone=asia-southeast1-b \
-#      --machine-type=e2-medium \
-#      --image-family=ubuntu-2404-lts-amd64 \
-#      --image-project=ubuntu-os-cloud \
-#      --boot-disk-size=50GB \
-#      --boot-disk-type=pd-balanced \
-#      --tags=http-server,https-server
-#
-# 2. Firewall rules (if not already created):
-#    gcloud compute firewall-rules create allow-http \
-#      --allow tcp:80 --target-tags http-server
-#    gcloud compute firewall-rules create allow-https \
-#      --allow tcp:443 --target-tags https-server
-#
-# 3. Get external IP:
-#    gcloud compute instances describe lms-maritime \
-#      --zone=asia-southeast1-b \
-#      --format='get(networkInterfaces[0].accessConfigs[0].natIP)'
-#
-# 4. DNS: Point holilihu.online A record → external IP
-#
-# 5. SSH into VM:
-#    gcloud compute ssh lms-maritime --zone=asia-southeast1-b
-#
-# 6. Install Docker:
-#    curl -fsSL https://get.docker.com | sh
-#    sudo usermod -aG docker $USER
-#    newgrp docker
-#
-# 7. Clone and deploy:
-#    git clone <repo-url> lms && cd lms
-#    cp .env.prod.example .env.prod
-#    nano .env.prod  # Fill real values
-#    chmod +x deploy.sh
-#    ./deploy.sh
-#
+# Deploy the currently checked-out revision with Docker Compose + Caddy.
 # =============================================================================
+
 set -euo pipefail
 
-COMPOSE_FILES="-f docker-compose.yml -f docker-compose.prod.yml"
-ENV_FILE="--env-file .env.prod"
+COMPOSE_ARGS=(--env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml)
 
 echo "=== LMS Maritime Production Deploy ==="
 echo ""
 
-# 1. Validate .env.prod exists
 if [ ! -f .env.prod ]; then
   echo "ERROR: .env.prod not found."
   echo "  cp .env.prod.example .env.prod"
@@ -67,45 +18,58 @@ if [ ! -f .env.prod ]; then
   exit 1
 fi
 
-# 2. Validate required vars are set
-source .env.prod
+set -a
+. ./.env.prod
+set +a
+
 if [ "${POSTGRES_PASSWORD:-}" = "CHANGE_ME_STRONG_PASSWORD" ] || [ -z "${POSTGRES_PASSWORD:-}" ]; then
   echo "ERROR: POSTGRES_PASSWORD not set in .env.prod"
   exit 1
 fi
+
 if [ "${JWT_SECRET:-}" = "CHANGE_ME_256_BIT_SECRET" ] || [ -z "${JWT_SECRET:-}" ]; then
   echo "ERROR: JWT_SECRET not set in .env.prod"
   exit 1
 fi
 
-echo "[1/4] Pulling latest code..."
-git pull origin main 2>/dev/null || echo "  (skipped git pull — not a git repo or no remote)"
+if [ "${WIII_WEBHOOK_ENABLED:-false}" = "true" ]; then
+  if [ -z "${WIII_WEBHOOK_URL:-}" ] || [ -z "${WIII_WEBHOOK_SECRET:-}" ] || [ -z "${WIII_SERVICE_TOKEN:-}" ] || [ -z "${WIII_TOKEN_EXCHANGE_URL:-}" ]; then
+    echo "ERROR: WIII_WEBHOOK_ENABLED=true but one or more Wiii variables are missing."
+    exit 1
+  fi
+fi
 
-echo "[2/4] Building and starting containers..."
-docker compose $COMPOSE_FILES $ENV_FILE up -d --build
+echo "[1/5] Validating Docker Compose configuration..."
+docker compose "${COMPOSE_ARGS[@]}" config -q
 
-echo "[3/4] Waiting for services to start..."
-sleep 30
+echo "[2/5] Deploying current checked-out revision..."
+if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  echo "  revision: $(git rev-parse --short HEAD)"
+else
+  echo "  revision: unknown (not a git work tree)"
+fi
 
-echo "[4/4] Health check..."
+echo "[3/5] Building and starting containers..."
+docker compose "${COMPOSE_ARGS[@]}" up -d --build --wait --remove-orphans
+
+echo "[4/5] Container status..."
 echo ""
-docker compose $COMPOSE_FILES $ENV_FILE ps
+docker compose "${COMPOSE_ARGS[@]}" ps
 echo ""
 
-# Check backend health (via Caddy reverse proxy — backend port not exposed to host)
+echo "[5/5] Edge health check..."
 if curl -sf http://localhost/actuator/health > /dev/null 2>&1; then
   echo "Backend: HEALTHY"
 elif curl -sf http://localhost:80/actuator/health > /dev/null 2>&1; then
   echo "Backend: HEALTHY"
 else
-  echo "Backend: Starting (check logs: docker compose $COMPOSE_FILES logs backend --tail=50)"
+  echo "Backend: Unhealthy (check logs: docker compose ${COMPOSE_ARGS[*]} logs backend --tail=50)"
 fi
 
-# Check Caddy
-if curl -sf -o /dev/null http://localhost:80 2>&1; then
+if curl -sf -o /dev/null http://localhost:80 > /dev/null 2>&1; then
   echo "Caddy:   HEALTHY"
 else
-  echo "Caddy:   Starting (check logs: docker compose $COMPOSE_FILES logs caddy --tail=50)"
+  echo "Caddy:   Unhealthy (check logs: docker compose ${COMPOSE_ARGS[*]} logs caddy --tail=50)"
 fi
 
 echo ""
@@ -115,7 +79,7 @@ echo "Swagger: https://holilihu.online/swagger-ui"
 echo "Health:  https://holilihu.online/actuator/health"
 echo ""
 echo "Useful commands:"
-echo "  docker compose $COMPOSE_FILES $ENV_FILE logs -f           # Follow all logs"
-echo "  docker compose $COMPOSE_FILES $ENV_FILE logs backend -f   # Backend logs"
-echo "  docker compose $COMPOSE_FILES $ENV_FILE ps                # Container status"
-echo "  docker compose $COMPOSE_FILES $ENV_FILE down              # Stop all"
+echo "  docker compose ${COMPOSE_ARGS[*]} logs -f           # Follow all logs"
+echo "  docker compose ${COMPOSE_ARGS[*]} logs backend -f   # Backend logs"
+echo "  docker compose ${COMPOSE_ARGS[*]} ps                # Container status"
+echo "  docker compose ${COMPOSE_ARGS[*]} down              # Stop all"

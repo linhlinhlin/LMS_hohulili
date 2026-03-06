@@ -13,14 +13,20 @@
 Use `8088` when calling the backend from the host machine. Use `8080` only for in-container and reverse-proxy wiring.
 
 ```bash
+# Prepare local env once
+cp ../.env.dev.example ../.env
+
 # Start everything (DB + API)
-cd backend && docker compose up -d
+cd ../ && docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+
+# Return to backend folder for backend-local commands
+cd backend
 
 # Verify
 curl -s http://localhost:8088/api/v3/courses | head -50
 
 # Logs
-docker compose logs api --tail=100
+cd ../ && docker compose -f docker-compose.yml -f docker-compose.dev.yml logs backend --tail=100
 ```
 
 ```bash

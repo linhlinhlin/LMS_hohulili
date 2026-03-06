@@ -65,15 +65,17 @@ The system is designed around three practical requirements:
 ### Recommended: Docker Backend + Local Frontend
 
 ```bash
-# 1. Start backend services
-cd backend
-docker compose up -d
+# 1. Prepare local env for Docker Compose
+cp .env.dev.example .env
 
-# 2. Verify backend
+# 2. Start backend services
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+
+# 3. Verify backend
 curl -s http://localhost:8088/actuator/health
 
-# 3. Start frontend
-cd ../fe
+# 4. Start frontend
+cd fe
 npm install
 npm start
 ```
@@ -119,6 +121,7 @@ Start here depending on what you need:
 | [docs/architecture/LESSON_VIEW_ARCHITECTURE.md](docs/architecture/LESSON_VIEW_ARCHITECTURE.md) | Lesson learning experience reference |
 | [docs/testing/TEST_CHECKLIST.md](docs/testing/TEST_CHECKLIST.md) | Manual QA checklist |
 | [CLAUDE.md](CLAUDE.md) | Internal agent/developer context file |
+| [.github/workflows/ci.yml](.github/workflows/ci.yml) | Baseline CI for backend, frontend, and compose validation |
 
 ## Architecture
 
@@ -224,7 +227,9 @@ Production deployment is container-based.
 - Production overrides: `docker-compose.prod.yml`
 - Reverse proxy: `Caddyfile`
 - Deploy helper: `deploy.sh`
+- Dev environment template: `.env.dev.example`
 - Production environment template: `.env.prod.example`
+- CI workflow: `.github/workflows/ci.yml`
 
 For production setup details, use `deploy.sh` together with `docker-compose.prod.yml` and the environment templates in the repository root.
 

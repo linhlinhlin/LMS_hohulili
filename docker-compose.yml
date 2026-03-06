@@ -1,6 +1,6 @@
 # =============================================================================
 # LMS Maritime - Docker Compose Base Configuration
-# Dev:  docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.dev.yml up
+# Dev:  cp .env.dev.example .env && docker compose -f docker-compose.yml -f docker-compose.dev.yml up
 # Prod: docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d
 # =============================================================================
 
@@ -88,7 +88,8 @@ services:
       dockerfile: Dockerfile
     container_name: lms-frontend
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - lms-frontend
 

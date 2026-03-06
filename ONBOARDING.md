@@ -27,8 +27,8 @@ Maven on the host is optional because the backend can run through Docker and inc
 ### 1. Start the backend stack
 
 ```bash
-cd backend
-docker compose up -d
+cp .env.dev.example .env
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 ```
 
 Verify:
@@ -76,6 +76,7 @@ For broader seeded data and manual verification flows, use [docs/testing/TEST_CH
 - [backend/README.md](backend/README.md): backend runbook, API notes, and backend workflows
 - [fe/FRONTEND_ARCHITECTURE.md](fe/FRONTEND_ARCHITECTURE.md): frontend structure and feature organization
 - [docs/README.md](docs/README.md): documentation map and folder semantics
+- [.github/workflows/ci.yml](.github/workflows/ci.yml): baseline CI checks for the repo
 
 ## Common Development Tasks
 

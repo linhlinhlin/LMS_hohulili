@@ -96,7 +96,7 @@ cloudflare:
     account-id: ${CLOUDFLARE_R2_ACCOUNT_ID:}
     access-key: ${CLOUDFLARE_R2_ACCESS_KEY:}
     secret-key: ${CLOUDFLARE_R2_SECRET_KEY:}
-    bucket-name: ${CLOUDFLARE_R2_BUCKET:lms-files}
+    bucket: ${CLOUDFLARE_R2_BUCKET:lms-files}
     public-url: ${CLOUDFLARE_R2_PUBLIC_URL:}
 
 # Actuator - Production endpoints
