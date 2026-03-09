@@ -13,6 +13,7 @@ import { ToastService } from '../../../core/services/toast.service';
 import { PaymentService } from '../../payment/payment.service';
 import { PaymentModalComponent, CoursePaymentInfo } from '../../payment/payment-modal.component';
 import { AuthService } from '../../../core/services/auth.service';
+import { StudentEnrollmentService } from '../../student/services/enrollment.service';
 
 /**
  * Course Learning Component
@@ -38,6 +39,7 @@ export class CourseLearningComponent implements OnInit {
   private toast = inject(ToastService);
   private paymentService = inject(PaymentService);
   private authService = inject(AuthService);
+  private enrollmentService = inject(StudentEnrollmentService);
   private destroyRef = inject(DestroyRef);
 
   // Payment state
@@ -451,6 +453,10 @@ export class CourseLearningComponent implements OnInit {
         // All sections done → mark lesson as complete on backend
         try {
           await firstValueFrom(this.lessonApi.markLessonComplete(lesson.id));
+          
+          // Refresh enrollment service before moving on
+          await this.enrollmentService.refreshCourseProgress(lesson.courseId);
+
           this.learningService.markCurrentLessonComplete();
           this.toast.success(`Đã hoàn thành bài: ${lesson.title}`);
         } catch {
@@ -509,6 +515,9 @@ export class CourseLearningComponent implements OnInit {
       const apiResult = await firstValueFrom(
         this.lessonApi.markLessonComplete(lesson.id)
       );
+
+      // Refresh enrollment service
+      await this.enrollmentService.refreshCourseProgress(lesson.courseId);
 
       // Cập nhật state phía FE qua service chung
       this.learningService.markCurrentLessonComplete();

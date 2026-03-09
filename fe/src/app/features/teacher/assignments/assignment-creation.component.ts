@@ -11,6 +11,7 @@ import { AssignmentStateService } from './services/assignment-state.service';
 import { validateAssignmentCreation, validateMaxScore } from './utils/assignment-validators';
 import { DistributionSelectorComponent, DistributionSettings } from '../assignment-hub/components/distribution-selector.component';
 import { DistributionService } from '../../../core/services/distribution.service';
+import { LucideAngularModule } from 'lucide-angular';
 
 // Interface for enrolled student (matches EnrolledStudent from allocation-utils)
 interface EnrolledStudentData {
@@ -30,239 +31,276 @@ interface EnrolledStudentData {
  */
 @Component({
   selector: 'app-assignment-creation',
-  imports: [ReactiveFormsModule, FormsModule, RouterModule, FileUploadComponent, DistributionSelectorComponent],
+  imports: [ReactiveFormsModule, FormsModule, RouterModule, FileUploadComponent, DistributionSelectorComponent, LucideAngularModule],
   template: `
-    <div class="max-w-10xl mx-auto pb-20 p-8">
+    <div class="max-w-[1400px] mx-auto pb-20 p-4 sm:p-8 animate-in fade-in duration-500">
       
       <!-- Top Navigation & Header -->
-      <div class="flex items-center justify-between mb-8">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-10">
         <div>
-          <nav class="flex items-center gap-2 text-xs text-gray-500 mb-2">
+          <nav class="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
             <a routerLink="/teacher/assignments" class="hover:text-[#0056D2] transition-colors">Bài tập</a>
-            <span>/</span>
-            <span class="text-gray-900 font-medium">Tạo mới</span>
+            <lucide-icon name="chevron-right" [size]="10"></lucide-icon>
+            <span class="text-slate-900">Thiết lập mới</span>
           </nav>
-          <h1 class="text-2xl font-bold text-gray-900">Thiết lập bài tập mới</h1>
+          <h1 class="text-3xl font-black text-slate-900 tracking-tight">Tạo bài tập tự luận mới</h1>
+          <p class="text-sm text-slate-500 font-medium mt-1.5 flex items-center gap-2">
+            <lucide-icon name="info" [size]="14" class="text-blue-500"></lucide-icon>
+            Điền thông tin và cấu hình phân phối cho bài tập
+          </p>
         </div>
-        <a routerLink="/teacher/assignments" 
-           class="px-5 py-2.5 rounded-lg border border-gray-300 font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2 text-sm">
-          Hủy bỏ
-        </a>
+        <div class="flex items-center gap-3">
+          <a routerLink="/teacher/assignments" 
+             class="h-11 px-6 flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 font-black text-[10px] uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm">
+            <lucide-icon name="x" [size]="14" class="mr-2"></lucide-icon>
+            Hủy bỏ
+          </a>
+        </div>
       </div>
 
-      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-0">
           
           <!-- LEFT COLUMN: Primary Fields (8 cols) -->
-          <div class="lg:col-span-8 space-y-6">
+          <div class="lg:col-span-8 p-6 sm:p-10 space-y-10 border-r border-slate-100">
             
             <!-- Section: Primary Info -->
-            <div class="space-y-4">
-              <h2 class="text-sm font-bold text-gray-900 uppercase tracking-tight">Thông tin chính bài tập</h2>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+            <div class="space-y-8">
+              <div class="flex items-center gap-3">
+                <div class="w-1.5 h-6 bg-[#0056D2] rounded-full"></div>
+                <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest">Thông tin chính bài tập</h2>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 
                 <!-- Title -->
-                <div class="md:col-span-2 space-y-2">
-                    <label class="block text-sm font-semibold text-gray-700">Tiêu đề bài tập <span class="text-red-500">*</span></label>
+                <div class="md:col-span-2 group/field">
+                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 group-focus-within/field:text-[#0056D2] transition-colors">
+                      Tiêu đề bài tập <span class="text-rose-500">*</span>
+                    </label>
                     <input 
                       formControlName="title" 
                       type="text" 
-                      class="w-full h-11 px-4 rounded-lg border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2] outline-none transition-all placeholder:text-gray-400 text-sm" 
+                      class="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-black text-slate-900 focus:bg-white focus:ring-4 focus:ring-[#0056D2]/5 focus:border-[#0056D2] outline-none transition-all shadow-inner placeholder:text-slate-300" 
                       placeholder="VD: Phân tích An toàn Hàng hải - Chương III" />
                     @if (form.controls.title.invalid && form.controls.title.touched) {
-                      <p class="text-xs text-red-500 mt-1 italic">Vui lòng nhập tiêu đề bài tập</p>
+                      <p class="text-[10px] font-black text-rose-600 uppercase tracking-wider mt-2 flex items-center gap-1">
+                        <lucide-icon name="alert-circle" [size]="12"></lucide-icon>
+                        Tiêu đề bài tập là bắt buộc
+                      </p>
                     }
                 </div>
 
                 <!-- Course Selection -->
-                <div class="space-y-2">
-                    <label class="block text-sm font-semibold text-gray-700">Khóa học <span class="text-red-500">*</span></label>
-                    <select 
-                      formControlName="courseId" 
-                      class="w-full h-11 px-4 rounded-lg border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2] outline-none transition-all cursor-pointer text-sm">
-                      <option value="" disabled>-- Chọn khóa học --</option>
-                      @for (course of courses(); track course.id) {
-                        <option [value]="course.id">{{ course.title }}</option>
-                      }
-                    </select>
+                <div class="group/field">
+                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 group-focus-within/field:text-[#0056D2] transition-colors">Khóa học áp dụng <span class="text-rose-500">*</span></label>
+                    <div class="relative">
+                      <select 
+                        formControlName="courseId" 
+                        class="w-full h-12 appearance-none pl-4 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-sm font-black text-slate-800 focus:bg-white focus:ring-4 focus:ring-[#0056D2]/5 focus:border-[#0056D2] outline-none transition-all cursor-pointer shadow-sm">
+                        <option value="" disabled>-- Chọn khóa học --</option>
+                        @for (course of courses(); track course.id) {
+                          <option [value]="course.id">{{ course.title }}</option>
+                        }
+                      </select>
+                      <lucide-icon name="chevron-down" [size]="14" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></lucide-icon>
+                    </div>
                     @if (form.controls.courseId.invalid && form.controls.courseId.touched) {
-                      <p class="text-xs text-red-500 mt-1 italic">Vui lòng chọn khóa học</p>
+                      <p class="text-[10px] font-black text-rose-600 uppercase tracking-wider mt-2">Vui lòng chọn khóa học</p>
                     }
                 </div>
 
                 <!-- Points/Max Score -->
-                <div class="space-y-2">
-                    <label class="block text-sm font-semibold text-gray-700">Cách tính điểm <span class="text-red-500">*</span></label>
+                <div class="group/field">
+                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 group-focus-within/field:text-[#0056D2] transition-colors">Thang điểm tối đa <span class="text-rose-500">*</span></label>
                     <div class="relative">
                       <input 
                         formControlName="maxScore" 
                         type="number" 
-                        class="w-full h-11 px-4 pr-12 rounded-lg border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2] outline-none transition-all text-sm" />
-                      <span class="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400 uppercase">Điểm</span>
+                        class="w-full h-12 pl-4 pr-16 bg-slate-50 border border-slate-200 rounded-xl text-sm font-black text-slate-900 focus:bg-white focus:ring-4 focus:ring-[#0056D2]/5 focus:border-[#0056D2] outline-none transition-all shadow-inner" />
+                      <span class="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-black text-slate-400 uppercase tracking-widest">Điểm</span>
                     </div>
                 </div>
               </div>
             </div>
 
-            <hr class="border-gray-100 my-2">
-
             <!-- Section: Requirements -->
-            <div class="space-y-4">
-              <h2 class="text-sm font-bold text-gray-900 uppercase tracking-tight">Nội dung & Yêu cầu</h2>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+            <div class="space-y-8">
+              <div class="flex items-center gap-3">
+                <div class="w-1.5 h-6 bg-slate-300 rounded-full"></div>
+                <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest">Nội dung & Yêu cầu</h2>
+              </div>
+              
+              <div class="space-y-8">
                 <!-- Description -->
-                <div class="md:col-span-2 space-y-2">
-                    <label class="block text-sm font-semibold text-gray-700">Tóm tắt mô tả</label>
+                <div class="group/field">
+                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 group-focus-within/field:text-[#0056D2] transition-colors">Tóm tắt mô tả</label>
                     <textarea 
                       formControlName="description" 
                       rows="2" 
-                      class="w-full p-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2] outline-none transition-all placeholder:text-gray-400 resize-none text-sm" 
-                      placeholder="Giới thiệu nội dung bài tập..."></textarea>
+                      class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:bg-white focus:ring-4 focus:ring-[#0056D2]/5 focus:border-[#0056D2] outline-none transition-all shadow-inner resize-none placeholder:text-slate-300" 
+                      placeholder="Giới thiệu nhanh nội dung bài tập..."></textarea>
                 </div>
 
                 <!-- Instructions -->
-                <div class="md:col-span-2 space-y-2">
-                    <label class="block text-sm font-semibold text-gray-700">Hướng dẫn chi tiết</label>
+                <div class="group/field">
+                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 group-focus-within/field:text-[#0056D2] transition-colors">Hướng dẫn làm bài chi tiết</label>
                     <textarea 
                       formControlName="instructions" 
-                      rows="8" 
-                      class="w-full p-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2] outline-none transition-all placeholder:text-gray-400 text-sm" 
-                      placeholder="Quy trình thực hiện, yêu cầu kỹ thuật và cách thức nộp bài..."></textarea>
+                      rows="10" 
+                      class="w-full p-6 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:bg-white focus:ring-4 focus:ring-[#0056D2]/5 focus:border-[#0056D2] outline-none transition-all shadow-inner resize-none placeholder:text-slate-300" 
+                      placeholder="Quy trình thực hiện, yêu cầu kỹ thuật và cách thức chấm điểm..."></textarea>
                 </div>
 
                 <!-- Attachments -->
-                <div class="md:col-span-2 space-y-4">
-                   <div>
-                      <label class="block text-sm font-semibold text-gray-700">Tài liệu bổ trợ</label>
-                      <p class="text-[11px] text-gray-500 mt-1 leading-relaxed">
-                        Tải lên tài liệu hướng dẫn. Chấp nhận các định dạng: .pdf, .doc, .docx, .txt, .jpg, .png, .zip, .dwg, .dxf (Tối đa 50MB/file, tối đa 10 file)
+                <div class="space-y-4">
+                   <div class="flex items-center gap-3">
+                      <lucide-icon name="paperclip" [size]="16" class="text-slate-400"></lucide-icon>
+                      <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tài liệu bổ trợ & Tài nguyên</label>
+                   </div>
+                   <div class="p-6 bg-slate-50/50 border-2 border-dashed border-slate-200 rounded-2xl transition-all hover:bg-white hover:border-[#0056D2]/30 group">
+                     <app-file-upload
+                        [config]="fileUploadConfig()"
+                        [existingFiles]="attachedFiles()"
+                        (filesUploaded)="onFilesUploaded($event)"
+                        (fileDeleted)="onFileDeleted($event)"
+                        (uploadError)="onFileUploadError($event)">
+                      </app-file-upload>
+                      <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-4 text-center">
+                        Hỗ trợ PDF, DOCX, ZIP, DWG (Tối đa 50MB)
                       </p>
                    </div>
-                   <app-file-upload
-                      [config]="fileUploadConfig()"
-                      [existingFiles]="attachedFiles()"
-                      (filesUploaded)="onFilesUploaded($event)"
-                      (fileDeleted)="onFileDeleted($event)"
-                      (uploadError)="onFileUploadError($event)">
-                    </app-file-upload>
                 </div>
               </div>
             </div>
 
-            <hr class="border-gray-100 my-2">
-
             <!-- Section: Distribution -->
-            <div class="space-y-4">
-              <h2 class="text-sm font-bold text-gray-900 uppercase tracking-tight">Cấu hình phân phối</h2>
+            <div class="space-y-8">
+              <div class="flex items-center gap-3">
+                <div class="w-1.5 h-6 bg-slate-300 rounded-full"></div>
+                <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest">Cấu hình phân phối học viên</h2>
+              </div>
               
-              @if (form.controls.courseId.value) {
-                @if (loadingStudents()) {
-                  <div class="p-10 bg-gray-50 border border-gray-200 rounded-lg flex flex-col items-center justify-center gap-3">
-                    <div class="w-6 h-6 border-2 border-[#0056D2] border-t-transparent rounded-full animate-spin"></div>
-                    <span class="text-xs font-medium text-gray-500">Đang tải danh sách học viên...</span>
-                  </div>
-                } @else {
-                  <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                    <app-distribution-selector
-                      #distributionSelector
-                      [courseId]="form.controls.courseId.value"
-                      [enrolledStudents]="enrolledStudents()"
-                      [initialDistributionType]="'ALL_STUDENTS'"
-                      [initialStudentIds]="[]"
-                      (distributionChange)="onDistributionChange($event)"
-                    ></app-distribution-selector>
-                  </div>
-                }
-              } @else {
-                 <div class="p-12 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center text-center">
-                    <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-4 text-gray-400">
-                      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
-                      </svg>
+              <div class="p-1 px-1">
+                @if (form.controls.courseId.value) {
+                  @if (loadingStudents()) {
+                    <div class="p-16 border-2 border-slate-100 rounded-2xl flex flex-col items-center justify-center gap-4 animate-pulse">
+                      <div class="w-12 h-12 bg-slate-50 rounded-2xl"></div>
+                      <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Đang tải danh sách học viên...</span>
                     </div>
-                    <p class="text-sm font-medium text-gray-500 max-w-xs">
-                      Chọn khóa học để thiết lập danh sách học viên
-                    </p>
-                 </div>
-              }
+                  } @else {
+                    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                      <app-distribution-selector
+                        #distributionSelector
+                        [courseId]="form.controls.courseId.value"
+                        [enrolledStudents]="enrolledStudents()"
+                        [initialDistributionType]="'ALL_STUDENTS'"
+                        [initialStudentIds]="[]"
+                        (distributionChange)="onDistributionChange($event)"
+                      ></app-distribution-selector>
+                    </div>
+                  }
+                } @else {
+                   <div class="p-16 bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center text-center group transition-all hover:bg-white hover:border-[#0056D2]/30">
+                      <div class="w-16 h-16 bg-white rounded-3xl flex items-center justify-center mb-6 text-slate-300 shadow-sm border border-slate-100 group-hover:scale-110 transition-transform">
+                        <lucide-icon name="users" [size]="28"></lucide-icon>
+                      </div>
+                      <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.1em] max-w-[200px]">
+                        Hãy chọn khóa học phía trên để thiết lập đối tượng bài tập
+                      </p>
+                   </div>
+                }
+              </div>
             </div>
           </div>
 
           <!-- RIGHT COLUMN: Settings & Actions (4 cols) -->
-          <div class="lg:col-span-4 space-y-6">
+          <div class="lg:col-span-4 p-6 sm:p-10 bg-slate-50/50 space-y-10">
             
             <!-- Schedule Settings -->
-            <div class="space-y-4">
-              <h2 class="text-sm font-bold text-gray-900 uppercase tracking-tight">Thời gian thực hiện</h2>
-              <div class="p-5 bg-gray-50 rounded-lg border border-gray-200 space-y-6">
-                 
+            <div class="space-y-6">
+              <div class="flex items-center gap-3">
+                <lucide-icon name="calendar" [size]="16" class="text-slate-400"></lucide-icon>
+                <h2 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Thời hạn & Tùy chọn</h2>
+              </div>
+
+              <div class="p-6 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-8">
                  <!-- Due Date -->
-                 <div class="space-y-2">
-                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-tight">Hạn chót nộp bài <span class="text-red-500">*</span></label>
+                 <div class="group/field">
+                    <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 group-focus-within/field:text-[#0056D2] transition-colors">Hạn chót nộp bài <span class="text-rose-500">*</span></label>
                     <input 
                       formControlName="dueDate" 
                       type="datetime-local" 
-                      class="w-full h-11 px-4 rounded-lg border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2] outline-none transition-all text-sm" />
+                      class="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl text-xs font-black text-slate-900 focus:bg-white focus:ring-4 focus:ring-[#0056D2]/5 focus:border-[#0056D2] outline-none transition-all shadow-inner" />
                     @if (form.controls.dueDate.invalid && form.controls.dueDate.touched) {
-                      <p class="text-[10px] font-bold text-red-500 mt-1 uppercase">Vui lòng chọn hạn nộp</p>
+                      <p class="text-[9px] font-black text-rose-500 mt-2 uppercase tracking-tight italic">Hạn nộp không được để trống</p>
                     }
                  </div>
 
                  <!-- Options -->
-                 <div class="space-y-4 pt-2">
-                    <label class="flex items-center gap-3 cursor-pointer group">
-                      <input type="checkbox" formControlName="allowLateSubmission" 
-                             class="w-5 h-5 rounded border-gray-300 text-[#0056D2] focus:ring-[#0056D2]">
-                      <span class="text-sm text-gray-700 font-medium group-hover:text-[#0056D2] transition-colors">Cho phép nộp muộn</span>
+                 <div class="space-y-6 pt-2">
+                    <label class="flex items-center gap-4 cursor-pointer group/opt">
+                      <div class="relative flex items-center">
+                        <input type="checkbox" formControlName="allowLateSubmission" 
+                               class="w-5 h-5 rounded border-slate-300 text-[#0056D2] focus:ring-[#0056D2]/20 transition-all cursor-pointer">
+                      </div>
+                      <div class="flex flex-col">
+                        <span class="text-xs font-black text-slate-700 uppercase tracking-tight group-hover/opt:text-[#0056D2] transition-colors">Cho phép nộp muộn</span>
+                        <span class="text-[9px] text-slate-400 font-bold tracking-tight uppercase mt-0.5">Ghi nhận nhưng đánh dấu trễ hạn</span>
+                      </div>
                     </label>
                     
-                    <label class="flex items-center gap-3 cursor-pointer group">
-                      <input type="checkbox" formControlName="isDraft" 
-                             class="w-5 h-5 rounded border-gray-300 text-[#0056D2] focus:ring-[#0056D2]">
+                    <label class="flex items-center gap-4 cursor-pointer group/opt">
+                      <div class="relative flex items-center">
+                        <input type="checkbox" formControlName="isDraft" 
+                               class="w-5 h-5 rounded border-slate-300 text-[#0056D2] focus:ring-[#0056D2]/20 transition-all cursor-pointer">
+                      </div>
                       <div class="flex flex-col">
-                        <span class="text-sm text-gray-700 font-medium group-hover:text-[#0056D2] transition-colors">Lưu dưới dạng nháp</span>
-                        <span class="text-[10px] text-gray-400 font-bold tracking-tight uppercase">Ẩn bài tập với học viên</span>
+                        <span class="text-xs font-black text-slate-700 uppercase tracking-tight group-hover/opt:text-[#0056D2] transition-colors">Lưu bản nháp</span>
+                        <span class="text-[9px] text-slate-400 font-bold tracking-tight uppercase mt-0.5">Học viên chưa thể thấy bài tập này</span>
                       </div>
                     </label>
                  </div>
               </div>
             </div>
 
-            <!-- Feedback Messages -->
-            @if (error()) {
-              <div class="p-4 bg-red-50 border border-red-100 rounded-lg text-red-700 text-xs font-semibold flex items-start gap-3">
-                <svg class="w-4 h-4 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
-                <span>{{ error() }}</span>
-              </div>
-            }
+            <!-- Validation/Status Messages -->
+            <div class="space-y-3">
+              @if (error()) {
+                <div class="p-4 bg-rose-50 border border-rose-100 rounded-xl text-rose-700 text-[10px] font-black uppercase tracking-wider flex items-start gap-3 animate-in shake duration-300">
+                  <lucide-icon name="alert-circle" [size]="14" class="mt-0.5 shrink-0"></lucide-icon>
+                  <span>{{ error() }}</span>
+                </div>
+              }
 
-            @if (success()) {
-              <div class="p-4 bg-green-50 border border-green-100 rounded-lg text-green-700 text-xs font-semibold flex items-start gap-3">
-                <svg class="w-4 h-4 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
-                <span>{{ success() }}</span>
-              </div>
-            }
+              @if (success()) {
+                <div class="p-4 bg-emerald-50 border border-emerald-100 rounded-xl text-emerald-700 text-[10px] font-black uppercase tracking-wider flex items-start gap-3 animate-in zoom-in duration-300">
+                  <lucide-icon name="check-circle" [size]="14" class="mt-0.5 shrink-0"></lucide-icon>
+                  <span>{{ success() }}</span>
+                </div>
+              }
+            </div>
 
             <!-- Primary Action -->
-            <div class="pt-4">
+            <div class="pt-4 space-y-4">
               <button 
                 type="submit" 
                 [disabled]="form.invalid || submitting()"
-                class="w-full h-12 rounded-lg bg-[#0056D2] text-white font-semibold hover:bg-[#004BB5] transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed uppercase text-xs tracking-wider">
+                class="w-full h-14 rounded-2xl bg-[#0056D2] text-white font-black text-[11px] uppercase tracking-widest hover:bg-[#004BB5] transition-all shadow-xl shadow-blue-100 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed group">
                 @if (submitting()) {
-                  <div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Đang xử lý...</span>
+                  <lucide-icon name="loader-2" [size]="16" class="animate-spin"></lucide-icon>
+                  <span>ĐANG XỬ LÝ...</span>
                 } @else {
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                  </svg>
-                  <span>Hoàn tất & Lưu bài tập</span>
+                  <lucide-icon name="save" [size]="16" class="group-hover:scale-110 transition-transform"></lucide-icon>
+                  <span>HOÀN TẤT & LƯU BÀI TẬP</span>
                 }
               </button>
-              <p class="mt-3 text-[11px] text-gray-400 text-center leading-relaxed">
-                Hệ thống sẽ tự động gán bài tập cho học viên đã chọn sau khi lưu thành công.
-              </p>
+              <div class="p-4 bg-blue-50/50 rounded-xl">
+                 <p class="text-[9px] text-slate-400 font-bold text-center leading-relaxed uppercase tracking-widest">
+                  Lưu ý: Sau khi lưu, bài tập sẽ tự động được gán và thông báo đến các học viên/lớp học đã chọn.
+                </p>
+              </div>
             </div>
           </div>
         </div>

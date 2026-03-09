@@ -1,87 +1,28 @@
 <div class="flex flex-col min-h-full">
 
-  <!-- VIDEO SECTION (Cinematic Wrapper) -->
-  @if (currentSection(); as section) {
-    @if (section.type === 'VIDEO' && section.videoUrl) {
-    <div class="w-full bg-[#111827]">
-      <div class="relative aspect-video max-w-5xl mx-auto">
-        @if (isYouTubeUrl(section.videoUrl)) {
-        <app-youtube-player
-          [videoUrl]="section.videoUrl"
-          [lessonId]="lesson().id"
-          [sectionId]="section.id"
-          (videoEnded)="onVideoEnd()" />
-        } @else {
-        <video [src]="getVideoSrc(section.videoUrl)" controls controlsList="nodownload"
-          class="w-full h-full object-contain bg-black"
-          (ended)="onVideoEnd()"
-          (loadedmetadata)="onVideoLoadedMetadata($event)"
-          (timeupdate)="onVideoTimeUpdate($event)">
-          Trình duyệt của bạn không hỗ trợ video.
-        </video>
-        }
-
-        <!-- Thin progress bar at top (server-confirmed watch %) -->
-        <div class="absolute top-0 left-0 right-0 h-[3px] bg-white/10 z-10">
-          <div class="h-full bg-[#0056D2] transition-all" [style.width.%]="videoProgress()"></div>
-        </div>
-
-        <!-- Completed badge -->
-        @if (videoCompleted()) {
-        <div class="absolute top-3 right-3 px-2 py-0.5 bg-green-500/90 text-white text-[11px] font-semibold rounded z-10">
-          Hoàn thành
-        </div>
-        }
-      </div>
-    </div>
-    }
-  }
-
-  <!-- Fallback: Lesson-level video (no sections) -->
-  @if (!hasSections() && lesson().videoUrl) {
-  <div class="w-full bg-[#111827]">
-    <div class="relative aspect-video max-w-5xl mx-auto">
-      @if (isYouTubeUrl(lesson().videoUrl)) {
-      <app-youtube-player
-        [videoUrl]="lesson().videoUrl!"
-        [lessonId]="lesson().id"
-        [sectionId]="'lesson-' + lesson().id"
-        (videoEnded)="onVideoEnd()" />
-      } @else {
-      <video [src]="getVideoSrc(lesson().videoUrl)" [poster]="lesson().thumbnail" controls controlsList="nodownload"
-        class="w-full h-full object-contain bg-black"
-        (ended)="onVideoEnd()"
-        (loadedmetadata)="onVideoLoadedMetadata($event)"
-        (timeupdate)="onVideoTimeUpdate($event)">
-        Trình duyệt của bạn không hỗ trợ video.
-      </video>
-      }
-
-      <!-- Thin progress bar at top -->
-      <div class="absolute top-0 left-0 right-0 h-[3px] bg-white/10 z-10">
-        <div class="h-full bg-[#0056D2] transition-all" [style.width.%]="videoProgress()"></div>
-      </div>
-
-      @if (videoCompleted()) {
-      <div class="absolute top-3 right-3 px-2 py-0.5 bg-green-500/90 text-white text-[11px] font-semibold rounded z-10">
-        Hoàn thành
-      </div>
-      }
-    </div>
-  </div>
-  }
 
   <!-- Reading Area -->
-  <div class="max-w-[800px] mx-auto w-full px-4 md:px-8">
+  <div class="max-w-[1150px] mx-auto w-full pt-3 px-4 md:px-0">
 
-    <!-- Tab Bar (always visible — Coursera/Udemy pattern) -->
-    <div class="flex items-center gap-1 border-b border-gray-200 mb-0"
-      [class.mt-6]="isVideoSection()" [class.mt-0]="!isVideoSection()">
-      <button class="relative px-4 py-3 text-sm font-medium transition-colors"
-        [class.text-[#0056D2]]="activeTab() === 'overview'"
-        [class.text-slate-500]="activeTab() !== 'overview'"
-        [class.hover:text-slate-700]="activeTab() !== 'overview'"
-        (click)="activeTab.set('overview')">
+    <!-- Lesson Title (Always at top) -->
+    @if (hasSections() && currentSection(); as section) {
+    <h1 class="text-xl md:text-2xl font-semibold text-gray-900 mb-2 leading-tight">
+      {{ lessonNumber() }}: {{ lesson().title }}
+    </h1>
+    <h3 class="text-xl md:text-xl font-semibold text-gray-700 mb-2 leading-tight">
+      {{ section.title }}
+    </h3>
+    } @else {
+    <h1 class="text-xl md:text-2xl font-semibold text-gray-900 mb-2 leading-tight">
+      {{ lesson().title }}
+    </h1>
+    }
+
+    <!-- Tab Bar -->
+    <div class="flex items-center gap-0.5 border-b border-gray-200 mb-0 mt-2">
+      <button class="relative px-3 py-2 text-sm font-medium transition-colors"
+        [class.text-[#0056D2]]="activeTab() === 'overview'" [class.text-slate-500]="activeTab() !== 'overview'"
+        [class.hover:text-slate-700]="activeTab() !== 'overview'" (click)="activeTab.set('overview')">
         <span class="flex items-center gap-1.5">
           <span class="material-symbols-outlined text-[18px]">article</span>
           Tổng quan
@@ -91,16 +32,16 @@
         }
       </button>
 
-      <button class="relative px-4 py-3 text-sm font-medium transition-colors"
-        [class.text-[#0056D2]]="activeTab() === 'notes'"
-        [class.text-slate-500]="activeTab() !== 'notes'"
-        [class.hover:text-slate-700]="activeTab() !== 'notes'"
-        (click)="activeTab.set('notes')">
+      <button class="relative px-3 py-2 text-sm font-medium transition-colors"
+        [class.text-[#0056D2]]="activeTab() === 'notes'" [class.text-slate-500]="activeTab() !== 'notes'"
+        [class.hover:text-slate-700]="activeTab() !== 'notes'" (click)="activeTab.set('notes')">
         <span class="flex items-center gap-1.5">
           <span class="material-symbols-outlined text-[18px]">edit_note</span>
           Ghi chú
           @if (lessonNotes().length > 0) {
-          <span class="ml-0.5 px-1.5 py-0 text-[10px] font-bold rounded-full bg-slate-100 text-slate-600">{{ lessonNotes().length }}</span>
+          <span class="ml-0.5 px-1.5 py-0 text-[10px] font-bold rounded-full bg-slate-100 text-slate-600">
+            {{ lessonNotes().length }}
+          </span>
           }
         </span>
         @if (activeTab() === 'notes') {
@@ -108,16 +49,16 @@
         }
       </button>
 
-      <button class="relative px-4 py-3 text-sm font-medium transition-colors"
-        [class.text-[#0056D2]]="activeTab() === 'materials'"
-        [class.text-slate-500]="activeTab() !== 'materials'"
-        [class.hover:text-slate-700]="activeTab() !== 'materials'"
-        (click)="activeTab.set('materials')">
+      <button class="relative px-3 py-2 text-sm font-medium transition-colors"
+        [class.text-[#0056D2]]="activeTab() === 'materials'" [class.text-slate-500]="activeTab() !== 'materials'"
+        [class.hover:text-slate-700]="activeTab() !== 'materials'" (click)="activeTab.set('materials')">
         <span class="flex items-center gap-1.5">
           <span class="material-symbols-outlined text-[18px]">folder_open</span>
           Tài liệu
           @if (lesson().attachments && lesson().attachments.length > 0) {
-          <span class="ml-0.5 px-1.5 py-0 text-[10px] font-bold rounded-full bg-slate-100 text-slate-600">{{ lesson().attachments.length }}</span>
+          <span class="ml-0.5 px-1.5 py-0 text-[10px] font-bold rounded-full bg-slate-100 text-slate-600">
+            {{ lesson().attachments.length }}
+          </span>
           }
         </span>
         @if (activeTab() === 'materials') {
@@ -126,53 +67,23 @@
       </button>
     </div>
 
-    <!-- Tab Content -->
-    <div class="pt-8">
+    <!-- Tab Content Container -->
+    <div class="pt-6">
 
-    <!-- Tab: Overview (default) -->
-    @if (activeTab() === 'overview') {
-
-    <!-- Lesson Title -->
-    @if (hasSections() && currentSection(); as section) {
-    <h1 class="text-2xl md:text-[32px] font-bold text-gray-900 mb-10 leading-tight">
-      {{ lessonNumber() }}: {{ section.title }}
-    </h1>
-    } @else {
-    <h1 class="text-2xl md:text-[32px] font-bold text-gray-900 mb-10 leading-tight">
-      {{ lesson().title }}
-    </h1>
-    }
-
-    <!-- Content Body -->
-    @if (currentSection(); as section) {
-    <div class="space-y-5 text-slate-800 text-[15px] leading-relaxed max-w-none pb-8">
-      @if (section.type === 'TEXT' && section.content) {
-      <div class="prose prose-slate max-w-none" #textContent [innerHTML]="getSanitizedHtml(section.content)"></div>
-      @if (readingProgress() > 0 && readingProgress() < 100) {
-      <div class="flex items-center gap-2 text-xs text-slate-400 mt-4">
-        <div class="flex-1 h-1 bg-slate-100 rounded-full">
-          <div class="h-full bg-green-500 rounded-full transition-all" [style.width.%]="readingProgress()"></div>
-        </div>
-        <span>{{ readingProgress() | number:'1.0-0' }}% đã đọc</span>
+      <!-- --- TAB: OVERVIEW --- -->
+      @if (activeTab() === 'overview') {
+      @if (currentSection(); as section) {
+      <div class="space-y-5 text-slate-800 text-[15px] leading-relaxed max-w-none pb-6">
+        @if (section.type === 'TEXT' && section.content) {
+        <div class="prose prose-slate max-w-none" #textContent [innerHTML]="getSanitizedHtml(section.content)"></div>
+        @if (readingProgress() > 0 && readingProgress() < 100) { <div
+          class="flex items-center gap-2 text-xs text-slate-400 mt-4">
+          <div class="flex-1 h-1 bg-slate-100 rounded-full">
+            <div class="h-full bg-green-500 rounded-full transition-all" [style.width.%]="readingProgress()"></div>
+          </div>
+          <span>{{ readingProgress() | number:'1.0-0' }}% đã đọc</span>
       </div>
       }
-      }
-
-      @if (section.type === 'FILE' && section.fileUrl) {
-      <div class="flex items-center gap-4 p-4 border border-gray-200 rounded-lg bg-white hover:border-[#0056D2] transition-colors">
-        <div class="w-10 h-10 bg-red-50 text-red-600 rounded-lg flex items-center justify-center shrink-0">
-          <span class="material-symbols-outlined">picture_as_pdf</span>
-        </div>
-        <div class="flex-1 min-w-0">
-          <h3 class="text-sm font-semibold text-slate-700 truncate">{{ section.title }}</h3>
-          <p class="text-xs text-slate-500">Nhấn để tải xuống tài liệu</p>
-        </div>
-        <a [href]="section.fileUrl" download target="_blank" rel="noopener noreferrer"
-          class="flex items-center gap-1.5 px-3 py-1.5 bg-[#0056D2] text-white text-xs font-medium rounded-lg hover:bg-[#004BB5] transition-colors">
-          <span class="material-symbols-outlined text-base">download</span>
-          Tải xuống
-        </a>
-      </div>
       }
 
       @if (section.type === 'QUIZ') {
@@ -200,13 +111,13 @@
     </div>
     } @else {
     @if (lesson().content) {
-    <div class="prose prose-slate max-w-none text-[15px] leading-relaxed pb-8" [innerHTML]="getSafeHtmlContent()"></div>
+    <div class="prose prose-slate max-w-none text-[15px] leading-relaxed pb-6" [innerHTML]="getSafeHtmlContent()"></div>
     }
     }
 
     <!-- Quiz Button (non-section QUIZ lessons) -->
     @if ((hasQuiz() || lesson().lessonType === LessonType.QUIZ) && !hasSections()) {
-    <div class="p-6 border border-amber-200 bg-amber-50 rounded-xl text-center mt-6">
+    <div class="p-6 border border-amber-200 bg-amber-50 rounded-xl text-center mt-6 mb-6">
       <span class="material-symbols-outlined text-4xl text-amber-600 mb-2">assignment</span>
       <h3 class="text-lg font-bold text-slate-800 mb-1">Kiểm tra</h3>
       <p class="text-sm text-slate-500 mb-4">Sẵn sàng kiểm tra kiến thức của bạn?</p>
@@ -217,60 +128,26 @@
       </button>
     </div>
     }
-
-    <!-- Attachments (bottom of overview tab) -->
-    @if (lesson().attachments && lesson().attachments.length > 0) {
-    <div class="mt-8 pt-6 border-t border-gray-100 pb-8">
-      <h4 class="text-sm font-bold text-slate-800 mb-3">Tài liệu đính kèm</h4>
-      <div class="flex flex-wrap gap-3">
-        @for (attachment of lesson().attachments; track attachment.id) {
-        <a [href]="attachment.fileUrl" download target="_blank" rel="noopener noreferrer"
-          class="flex items-center gap-3 p-2.5 border border-gray-200 rounded-lg hover:border-[#0056D2] hover:bg-blue-50/20 transition-all bg-white group min-w-[240px]">
-          <div class="w-8 h-8 rounded flex items-center justify-center shrink-0"
-            [class.bg-red-50]="attachment.fileType.includes('pdf')"
-            [class.text-red-600]="attachment.fileType.includes('pdf')"
-            [class.bg-blue-50]="!attachment.fileType.includes('pdf')"
-            [class.text-blue-600]="!attachment.fileType.includes('pdf')">
-            <span class="material-symbols-outlined text-lg">
-              {{ attachment.fileType.includes('pdf') ? 'picture_as_pdf' : 'attach_file' }}
-            </span>
-          </div>
-          <div class="flex-1 min-w-0">
-            <div class="text-xs font-semibold text-slate-700 group-hover:text-[#0056D2] truncate">{{ attachment.originalFileName }}</div>
-            @if (attachment.fileSize) {
-            <div class="text-[10px] text-slate-500">{{ formatFileSize(attachment.fileSize) }}</div>
-            }
-          </div>
-          <span class="material-symbols-outlined text-slate-400 group-hover:text-[#0056D2] text-lg">download</span>
-        </a>
-        }
-      </div>
-    </div>
     }
 
-    } <!-- end overview tab -->
-
-    <!-- Tab: Notes (Ghi chú) -->
+    <!-- --- TAB: NOTES (Ghi chú) --- -->
     @if (activeTab() === 'notes') {
-    <div class="pb-8">
-
+    <div class="pb-3">
       <!-- New Note Input -->
-      <div class="mb-6">
-        <div class="border border-gray-200 rounded-lg overflow-hidden focus-within:border-[#0056D2] focus-within:ring-1 focus-within:ring-[#0056D2] transition-all">
-          <textarea
-            class="w-full px-4 py-3 text-sm text-slate-800 placeholder-slate-400 resize-none outline-none"
-            rows="3"
-            placeholder="Viết ghi chú cho bài học này..."
-            [ngModel]="newNoteContent()"
+      <div class="mb-3">
+        <div
+          class="border border-gray-200 rounded-lg overflow-hidden focus-within:border-[#0056D2] focus-within:ring-1 focus-within:ring-[#0056D2] transition-all">
+          <textarea class="w-full px-4 py-3 text-sm text-slate-800 placeholder-slate-400 resize-none outline-none"
+            rows="3" placeholder="Viết ghi chú cho bài học này..." [ngModel]="newNoteContent()"
             (ngModelChange)="newNoteContent.set($event)"></textarea>
           <div class="flex items-center justify-between px-3 py-2 bg-slate-50 border-t border-gray-100">
             <span class="text-[11px] text-slate-400">
               <span class="material-symbols-outlined text-[13px] align-middle mr-0.5">info</span>
               Ghi chú chỉ hiển thị cho bạn
             </span>
-            <button class="px-4 py-1.5 bg-[#0056D2] text-white text-xs font-semibold rounded-lg hover:bg-[#004BB5] transition-colors disabled:opacity-40 disabled:pointer-events-none"
-              [disabled]="!newNoteContent().trim() || isSavingNote()"
-              (click)="createNote()">
+            <button
+              class="px-4 py-1.5 bg-[#0056D2] text-white text-xs font-semibold rounded-lg hover:bg-[#004BB5] transition-colors disabled:opacity-40 disabled:pointer-events-none"
+              [disabled]="!newNoteContent().trim() || isSavingNote()" (click)="createNote()">
               @if (isSavingNote()) {
               <span class="flex items-center gap-1">
                 <span class="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
@@ -286,54 +163,40 @@
 
       <!-- Notes List -->
       @if (isLoadingNotes()) {
-      <div class="flex items-center justify-center py-12 text-slate-400">
+      <div class="flex items-center justify-center py-4 text-slate-400">
         <div class="w-6 h-6 border-2 border-slate-200 border-t-[#0056D2] rounded-full animate-spin mr-3"></div>
         <span class="text-sm">Đang tải ghi chú...</span>
       </div>
       } @else if (lessonNotes().length === 0) {
-      <div class="flex flex-col items-center py-12 text-slate-400">
-        <span class="material-symbols-outlined text-4xl mb-2">edit_note</span>
-        <p class="text-sm font-medium text-slate-500">Chưa có ghi chú</p>
-        <p class="text-xs text-slate-400 mt-1">Thêm ghi chú đầu tiên cho bài học này</p>
-      </div>
+      
       } @else {
-      <div class="space-y-3">
+      <div class="space-y-3 mb-6">
         @for (note of lessonNotes(); track note.id) {
         <div class="border border-gray-200 rounded-lg bg-white hover:border-gray-300 transition-colors">
           @if (editingNoteId() === note.id) {
-          <!-- Edit Mode -->
           <div class="p-4">
             <textarea
               class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg outline-none focus:border-[#0056D2] focus:ring-1 focus:ring-[#0056D2] resize-none"
-              rows="4"
-              [ngModel]="editingNoteContent()"
-              (ngModelChange)="editingNoteContent.set($event)"></textarea>
+              rows="4" [ngModel]="editingNoteContent()" (ngModelChange)="editingNoteContent.set($event)"></textarea>
             <div class="flex items-center justify-end gap-2 mt-3">
               <button class="px-3 py-1.5 text-xs text-slate-500 hover:text-slate-700 font-medium transition-colors"
-                (click)="cancelEditNote()">
-                Hủy
-              </button>
-              <button class="px-4 py-1.5 bg-[#0056D2] text-white text-xs font-semibold rounded-lg hover:bg-[#004BB5] transition-colors disabled:opacity-40"
-                [disabled]="isSavingNote()"
-                (click)="saveEditNote()">
-                Cập nhật
-              </button>
+                (click)="cancelEditNote()">Hủy</button>
+              <button
+                class="px-4 py-1.5 bg-[#0056D2] text-white text-xs font-semibold rounded-lg hover:bg-[#004BB5] transition-colors disabled:opacity-40"
+                [disabled]="isSavingNote()" (click)="saveEditNote()">Cập nhật</button>
             </div>
           </div>
           } @else {
-          <!-- View Mode -->
           <div class="p-4">
             <p class="text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">{{ note.content }}</p>
             <div class="flex items-center justify-between mt-3 pt-2 border-t border-gray-50">
               <span class="text-[11px] text-slate-400">{{ note.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
               <div class="flex items-center gap-1">
-                <button class="p-1 text-slate-400 hover:text-[#0056D2] rounded transition-colors"
-                  title="Chỉnh sửa"
+                <button class="p-1 text-slate-400 hover:text-[#0056D2] rounded transition-colors" title="Chỉnh sửa"
                   (click)="startEditNote(note)">
                   <span class="material-symbols-outlined text-[16px]">edit</span>
                 </button>
-                <button class="p-1 text-slate-400 hover:text-red-500 rounded transition-colors"
-                  title="Xóa"
+                <button class="p-1 text-slate-400 hover:text-red-500 rounded transition-colors" title="Xóa"
                   (click)="deleteNote(note.id)">
                   <span class="material-symbols-outlined text-[16px]">delete</span>
                 </button>
@@ -346,9 +209,98 @@
       </div>
       }
     </div>
-    } <!-- end notes tab -->
+    }
 
-    <!-- Tab: Materials -->
+    <!-- --- MEDIA PREVIEW AREA (Video / File) --- -->
+    <!-- Resized to 80% (max-w-[920px]) and only on Overview/Notes tabs -->
+    @if (activeTab() === 'overview' || activeTab() === 'notes') {
+    <div class="mb-4 max-w-[920px] mx-auto w-full transition-all duration-300">
+      @if (currentSection(); as section) {
+      <!-- VIDEO SECTION -->
+      @if (section.type === 'VIDEO') {
+      <div class="relative aspect-video w-full rounded-xl overflow-hidden shadow-lg bg-black border border-gray-100 mb-6">
+        @if (isYouTubeUrl(section.videoUrl || lesson().videoUrl)) {
+        <app-youtube-player [videoUrl]="(section.videoUrl || lesson().videoUrl)!" [lessonId]="lesson().id" [sectionId]="section.id"
+          (videoEnded)="onVideoEnd()" />
+        } @else {
+        <video [src]="getVideoSrc(section.videoUrl || lesson().videoUrl)" controls controlsList="nodownload"
+          class="w-full h-full object-contain" (ended)="onVideoEnd()" (loadedmetadata)="onVideoLoadedMetadata($event)"
+          (timeupdate)="onVideoTimeUpdate($event)">
+          Trình duyệt của bạn không hỗ trợ video.
+        </video>
+        }
+        <!-- Thin progress bar at top -->
+        <div class="absolute top-0 left-0 right-0 h-[3px] bg-white/10 z-10">
+          <div class="h-full bg-[#0056D2] transition-all" [style.width.%]="videoProgress()"></div>
+        </div>
+        <!-- Completed badge -->
+        @if (videoCompleted()) {
+        <div
+          class="absolute top-3 right-3 px-2 py-0.5 bg-green-500/90 text-white text-[11px] font-semibold rounded z-10">
+          Hoàn thành
+        </div>
+        }
+      </div>
+      }
+
+      <!-- FILE SECTION (Inline Preview) -->
+      @if (section.type === 'FILE' && section.fileUrl) {
+      <div class="space-y-3">
+        <!-- PDF Viewer - Resized (20% reduction from 600/800px) -->
+        @if (safePdfUrl()) {
+        <div #pdfContainer class="relative w-full border border-gray-200 rounded-xl overflow-hidden bg-slate-100 shadow-sm group">
+          
+          <!-- PDF Toolbar (Floating/Sticky) -->
+          <div class="absolute top-4 right-4 z-20 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <button (click)="togglePdfFullscreen()" 
+              class="flex items-center gap-1.5 px-3 py-2 bg-white/90 backdrop-blur-md border border-gray-200 text-slate-700 text-xs font-bold rounded-lg shadow-sm hover:bg-white hover:text-[#0056D2] transition-all"
+              title="Xem toàn màn hình">
+              <lucide-icon name="maximize-2" [size]="14"></lucide-icon>
+              <span>Toàn màn hình</span>
+            </button>
+            <button (click)="openPdfInNewTab()" 
+              class="flex items-center gap-1.5 px-3 py-2 bg-white/90 backdrop-blur-md border border-gray-200 text-slate-700 text-xs font-bold rounded-lg shadow-sm hover:bg-white hover:text-[#0056D2] transition-all"
+              title="Mở trong tab mới">
+              <lucide-icon name="external-link" [size]="14"></lucide-icon>
+              <span>Mở tab mới</span>
+            </button>
+          </div>
+
+          <iframe [src]="safePdfUrl()" class="w-full h-[520px] md:h-[680px]" frameborder="0" loading="lazy"></iframe>
+        </div>
+        }
+      </div>
+      }
+      }
+
+      <!-- Fallback: Lesson-level video (if no sections) -->
+      @if (!hasSections() && lesson().videoUrl) {
+      <div class="relative aspect-video w-full rounded-xl overflow-hidden shadow-lg bg-black border border-gray-100">
+        @if (isYouTubeUrl(lesson().videoUrl)) {
+        <app-youtube-player [videoUrl]="lesson().videoUrl!" [lessonId]="lesson().id"
+          [sectionId]="'lesson-' + lesson().id" (videoEnded)="onVideoEnd()" />
+        } @else {
+        <video [src]="getVideoSrc(lesson().videoUrl)" [poster]="lesson().thumbnail" controls controlsList="nodownload"
+          class="w-full h-full object-contain" (ended)="onVideoEnd()" (loadedmetadata)="onVideoLoadedMetadata($event)"
+          (timeupdate)="onVideoTimeUpdate($event)">
+          Trình duyệt của bạn không hỗ trợ video.
+        </video>
+        }
+        <div class="absolute top-0 left-0 right-0 h-[3px] bg-white/10 z-10">
+          <div class="h-full bg-[#0056D2] transition-all" [style.width.%]="videoProgress()"></div>
+        </div>
+        @if (videoCompleted()) {
+        <div
+          class="absolute top-3 right-3 px-2 py-0.5 bg-green-500/90 text-white text-[11px] font-semibold rounded z-10">
+          Hoàn thành
+        </div>
+        }
+      </div>
+      }
+    </div>
+    }
+
+    <!-- --- TAB: MATERIALS --- -->
     @if (activeTab() === 'materials') {
     <div class="pb-8">
       @if (lesson().attachments && lesson().attachments.length > 0) {
@@ -366,12 +318,15 @@
             </span>
           </div>
           <div class="flex-1 min-w-0">
-            <div class="text-sm font-semibold text-slate-700 group-hover:text-[#0056D2] truncate">{{ attachment.originalFileName }}</div>
+            <div class="text-sm font-semibold text-slate-700 group-hover:text-[#0056D2] truncate">
+              {{ attachment.originalFileName }}
+            </div>
             @if (attachment.fileSize) {
             <div class="text-xs text-slate-400 mt-0.5">{{ formatFileSize(attachment.fileSize) }}</div>
             }
           </div>
-          <div class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 group-hover:bg-[#0056D2] text-slate-500 group-hover:text-white text-xs font-medium rounded-lg transition-colors shrink-0">
+          <div
+            class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 group-hover:bg-[#0056D2] text-slate-500 group-hover:text-white text-xs font-medium rounded-lg transition-colors shrink-0">
             <span class="material-symbols-outlined text-base">download</span>
             Tải xuống
           </div>
@@ -379,7 +334,7 @@
         }
       </div>
       } @else {
-      <div class="flex flex-col items-center py-12 text-slate-400">
+      <div class="flex flex-col items-center py-12 text-slate-400 text-center">
         <span class="material-symbols-outlined text-4xl mb-2">folder_open</span>
         <p class="text-sm font-medium text-slate-500">Chưa có tài liệu đính kèm</p>
         <p class="text-xs text-slate-400 mt-1">Giáo viên chưa thêm tài liệu cho bài học này</p>
@@ -388,6 +343,6 @@
     </div>
     }
 
-    </div> <!-- end tab content -->
-  </div>
+  </div> <!-- end Tab Content Container -->
+</div> <!-- end Reading Area -->
 </div>

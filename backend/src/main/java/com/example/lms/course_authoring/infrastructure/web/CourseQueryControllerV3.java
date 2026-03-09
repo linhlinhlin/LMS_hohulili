@@ -128,14 +128,14 @@ public class CourseQueryControllerV3 {
                         java.util.Map<String, Object> data = block.getData() != null ? block.getData() : new java.util.HashMap<>();
                         sectionResponses.add(SectionResponse.builder()
                             .id(block.getId())
-                            .title((String) data.getOrDefault("title", "Untitled"))
+                            .title(java.util.Optional.ofNullable(data.get("title")).map(Object::toString).orElse("Untitled"))
                             .type(block.getType())
-                            .content(showContent ? (String) data.get("content") : null)
-                            .videoUrl(showContent ? (String) data.get("videoUrl") : null)
-                            .fileUrl(showContent ? (String) data.get("fileUrl") : null)
-                            .duration(data.get("duration") != null ? ((Number) data.get("duration")).intValue() : 0)
-                            .orderIndex(data.get("orderIndex") != null ? ((Number) data.get("orderIndex")).intValue() : 0)
-                            .isRequired(data.get("isRequired") != null ? (Boolean) data.get("isRequired") : false)
+                            .content(showContent ? java.util.Optional.ofNullable(data.get("content")).map(Object::toString).orElse(null) : null)
+                            .videoUrl(showContent ? java.util.Optional.ofNullable(data.get("videoUrl")).map(Object::toString).orElse(null) : null)
+                            .fileUrl(showContent ? java.util.Optional.ofNullable(data.get("fileUrl")).map(Object::toString).orElse(null) : null)
+                            .duration(asInt(data.get("duration"), 0))
+                            .orderIndex(asInt(data.get("orderIndex"), 0))
+                            .isRequired(asBoolean(data.get("isRequired"), false))
                             .build());
                     }
                 }
@@ -333,21 +333,21 @@ public class CourseQueryControllerV3 {
                                             Map<String, Object> data = block.getData() != null ? block.getData() : new HashMap<>();
                                             sectionResponses.add(SectionResponse.builder()
                                                 .id(block.getId())
-                                                .title((String) data.getOrDefault("title", "Untitled"))
+                                                .title(java.util.Optional.ofNullable(data.get("title")).map(Object::toString).orElse("Untitled"))
                                                 .type(block.getType())
-                                                .content(showContent ? (String) data.get("content") : null)
-                                                .videoUrl(showContent ? (String) data.get("videoUrl") : null)
-                                                .fileUrl(showContent ? (String) data.get("fileUrl") : null)
-                                                .duration(data.get("duration") != null ? ((Number) data.get("duration")).intValue() : 0)
-                                                .orderIndex(data.get("orderIndex") != null ? ((Number) data.get("orderIndex")).intValue() : 0)
-                                                .isRequired(data.get("isRequired") != null ? (Boolean) data.get("isRequired") : false)
+                                                .content(showContent ? java.util.Optional.ofNullable(data.get("content")).map(Object::toString).orElse(null) : null)
+                                                .videoUrl(showContent ? java.util.Optional.ofNullable(data.get("videoUrl")).map(Object::toString).orElse(null) : null)
+                                                .fileUrl(showContent ? java.util.Optional.ofNullable(data.get("fileUrl")).map(Object::toString).orElse(null) : null)
+                                                .duration(asInt(data.get("duration"), 0))
+                                                .orderIndex(asInt(data.get("orderIndex"), 0))
+                                                .isRequired(asBoolean(data.get("isRequired"), false))
                                                 .build());
                                         }
                                         if (showContent) {
                                             // Populate content from first TEXT block as fallback
                                             contentText = lesson.getContentBlocks().stream()
                                                 .filter(b -> "TEXT".equals(b.getType()) && b.getData() != null)
-                                                .map(b -> (String) b.getData().get("content"))
+                                                .map(b -> java.util.Optional.ofNullable(b.getData().get("content")).map(Object::toString).orElse(null))
                                                 .findFirst().orElse(null);
                                         }
                                     }
@@ -397,14 +397,14 @@ public class CourseQueryControllerV3 {
                             Map<String, Object> data = block.getData() != null ? block.getData() : new HashMap<>();
                             sectionResponses.add(SectionResponse.builder()
                                 .id(block.getId())
-                                .title((String) data.getOrDefault("title", "Untitled"))
+                                .title(java.util.Optional.ofNullable(data.get("title")).map(Object::toString).orElse("Untitled"))
                                 .type(block.getType())
-                                .content((String) data.get("content"))
-                                .videoUrl((String) data.get("videoUrl"))
-                                .fileUrl((String) data.get("fileUrl"))
-                                .duration(data.get("duration") != null ? ((Number) data.get("duration")).intValue() : 0)
-                                .orderIndex(data.get("orderIndex") != null ? ((Number) data.get("orderIndex")).intValue() : 0)
-                                .isRequired(data.get("isRequired") != null ? (Boolean) data.get("isRequired") : false)
+                                .content(java.util.Optional.ofNullable(data.get("content")).map(Object::toString).orElse(null))
+                                .videoUrl(java.util.Optional.ofNullable(data.get("videoUrl")).map(Object::toString).orElse(null))
+                                .fileUrl(java.util.Optional.ofNullable(data.get("fileUrl")).map(Object::toString).orElse(null))
+                                .duration(asInt(data.get("duration"), 0))
+                                .orderIndex(asInt(data.get("orderIndex"), 0))
+                                .isRequired(asBoolean(data.get("isRequired"), false))
                                 .build());
                         }
                     }
@@ -565,6 +565,20 @@ public class CourseQueryControllerV3 {
         if (!course.getTeacherId().equals(user.getId())) {
             throw new org.springframework.security.access.AccessDeniedException("Bạn không sở hữu khóa học này");
         }
+    }
+
+    private int asInt(Object value, int defaultValue) {
+        if (value instanceof Number n) return n.intValue();
+        if (value instanceof String s) {
+            try { return Integer.parseInt(s); } catch (NumberFormatException e) { return defaultValue; }
+        }
+        return defaultValue;
+    }
+
+    private boolean asBoolean(Object value, boolean defaultValue) {
+        if (value instanceof Boolean b) return b;
+        if (value instanceof String s) return Boolean.parseBoolean(s);
+        return defaultValue;
     }
 
     // === Response DTOs ===

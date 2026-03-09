@@ -5,11 +5,13 @@
 ALTER TABLE categories ADD COLUMN prefix VARCHAR(10);
 
 -- 2. Set prefix values for existing categories
-UPDATE categories SET prefix = 'NAV' WHERE code = 'NAVIGATION';
-UPDATE categories SET prefix = 'ENG' WHERE code = 'ENGINEERING';
-UPDATE categories SET prefix = 'SAF' WHERE code = 'SAFETY';
-UPDATE categories SET prefix = 'LOG' WHERE code = 'LOGISTICS';
-UPDATE categories SET prefix = 'LAW' WHERE code = 'LAW';
+
+UPDATE categories SET prefix = 'NAV' WHERE code = 'NAVIGATION' AND prefix IS NULL;
+UPDATE categories SET prefix = 'ENG' WHERE code = 'ENGINEERING' AND prefix IS NULL;
+UPDATE categories SET prefix = 'SAF' WHERE code = 'SAFETY' AND prefix IS NULL;
+UPDATE categories SET prefix = 'LOG' WHERE code = 'LOGISTICS' AND prefix IS NULL;
+UPDATE categories SET prefix = 'LAW' WHERE code = 'LAW' AND prefix IS NULL;
+
 
 -- 3. Make prefix NOT NULL and UNIQUE
 ALTER TABLE categories ALTER COLUMN prefix SET NOT NULL;

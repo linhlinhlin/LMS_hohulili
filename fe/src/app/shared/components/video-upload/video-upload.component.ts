@@ -19,6 +19,7 @@ export interface VideoUploadResult {
       @if (!videoUrl() && !isUploading()) {
         <div class="upload-zone"
              [class.drag-over]="isDragOver()"
+             [class.compact]="compact()"
              (click)="triggerFileInput()"
              (dragover)="onDragOver($event)"
              (dragleave)="onDragLeave($event)"
@@ -139,6 +140,33 @@ export interface VideoUploadResult {
     .upload-zone:hover, .upload-zone.drag-over {
       border-color: #0056D2;
       background-color: #eff6ff;
+    }
+
+    .upload-zone.compact {
+      padding: 1.5rem 1rem;
+    }
+
+    .upload-zone.compact .upload-icon {
+      width: 2rem;
+      height: 2rem;
+    }
+
+    .upload-zone.compact .icon-wrapper {
+      width: 2rem;
+      height: 2rem;
+    }
+
+    .upload-zone.compact .video-icon {
+      width: 0.75rem;
+      height: 0.75rem;
+    }
+
+    .upload-zone.compact .upload-text {
+      font-size: 0.75rem;
+    }
+
+    .upload-zone.compact .upload-hint {
+      display: none;
     }
 
     .upload-content {
@@ -383,6 +411,7 @@ export class VideoUploadComponent {
   maxFileSize = input<number>(500 * 1024 * 1024); // 500MB default
   initialVideoUrl = input<string>('');
   disabled = input<boolean>(false);
+  compact = input<boolean>(false);
 
   // Outputs
   videoUploaded = output<VideoUploadResult>();

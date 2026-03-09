@@ -1,16 +1,18 @@
 import { Component, inject, computed, input, output, ChangeDetectionStrategy } from '@angular/core';
+import { CommonModule } from '@angular/common';
 
 import { Router, RouterModule } from '@angular/router';
 import { CourseEditorStore } from '../../store/course-editor.store';
 import { CourseAuthoringService } from '../../services/course-authoring.service';
+import { CurriculumSelectionService } from '../../services/curriculum-selection.service';
 import { AuthService } from '../../../../../core/services/auth.service';
 import { ToastService } from '../../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
 
 @Component({
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    changeDetection: ChangeDetectionStrategy.OnPush,
     selector: 'app-course-editor-header',
-    imports: [RouterModule],
+    imports: [CommonModule, RouterModule],
     template: `
     <header class="h-14 flex items-center justify-between px-4 bg-white">
         <div class="flex items-center gap-2 min-w-0">
@@ -41,13 +43,39 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
             }
 
             <div class="w-px h-6 bg-slate-200 mx-1 flex-shrink-0"></div>
-
-            <!-- Course Title + Tab Context -->
-            <div class="min-w-0">
-                <h1 class="text-sm font-semibold text-slate-900 line-clamp-1 break-words">
+            
+            <!-- Dynamic Breadcrumbs -->
+            <div class="flex items-center gap-1.5 min-w-0 overflow-hidden text-[13px] sm:text-sm">
+                <!-- Segment 1: Course Title -->
+                <button (click)="clearBreadcrumb()"
+                        class="text-slate-500 hover:text-[#0056D2] transition-colors truncate max-w-[120px] sm:max-w-[200px]"
+                        [class.font-semibold]="!breadcrumbChapter() && activeTab() === 'curriculum'"
+                        [class.text-slate-900]="!breadcrumbChapter() && activeTab() === 'curriculum'">
                     {{ store.courseInfo()?.title || 'Đang tải...' }}
-                </h1>
-                <p class="text-xs text-slate-400">{{ tabLabel() }}</p>
+                </button>
+
+                @if (activeTab() === 'curriculum') {
+                    @if (breadcrumbChapter()) {
+                        <svg class="w-3.5 h-3.5 text-slate-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                        <button (click)="selectChapter()"
+                                class="text-slate-500 hover:text-[#0056D2] transition-colors truncate max-w-[120px] sm:max-w-[180px]"
+                                [class.font-semibold]="!breadcrumbLesson()"
+                                [class.text-slate-900]="!breadcrumbLesson()">
+                            {{ breadcrumbChapter()?.title }}
+                        </button>
+                    }
+                    @if (breadcrumbLesson()) {
+                        <svg class="w-3.5 h-3.5 text-slate-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                        <span class="text-slate-900 font-semibold truncate max-w-[120px] sm:max-w-[380px]">
+                            {{ breadcrumbLesson()?.title }}
+                        </span>
+                    }
+                } @else {
+                    <svg class="w-3.5 h-3.5 text-slate-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    <span class="text-slate-900 font-semibold truncate">
+                        {{ tabLabel() }}
+                    </span>
+                }
             </div>
         </div>
 
@@ -130,6 +158,7 @@ export class CourseEditorHeaderComponent {
     toggleSidebar = output();
 
     store = inject(CourseEditorStore);
+    private selectionService = inject(CurriculumSelectionService);
     private router = inject(Router);
     private service = inject(CourseAuthoringService);
     private authService = inject(AuthService);
@@ -138,13 +167,27 @@ export class CourseEditorHeaderComponent {
 
     tabLabel = computed(() => {
         switch (this.activeTab()) {
-            case 'info': return 'Thông tin khóa học';
-            case 'curriculum': return 'Nội dung khóa học';
+            case 'info': return 'Thông tin chung';
+            case 'curriculum': return 'Nội dung';
             case 'settings': return 'Cài đặt khóa học';
             case 'classes': return 'Quản lý lớp học';
             default: return '';
         }
     });
+
+    breadcrumbChapter = this.selectionService.selectedChapter;
+    breadcrumbLesson = this.selectionService.selectedLesson;
+
+    clearBreadcrumb() {
+        this.selectionService.clearSelection();
+    }
+
+    selectChapter() {
+        const ch = this.breadcrumbChapter();
+        if (ch) {
+            this.selectionService.selectChapter(ch);
+        }
+    }
 
     isAdminViewMode = computed(() => {
         const role = this.authService.userRole();

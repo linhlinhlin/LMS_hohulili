@@ -1,7 +1,8 @@
-import { Component, signal, OnInit, inject, viewChild, ChangeDetectionStrategy } from '@angular/core';
+import { Component, signal, OnInit, inject, viewChild, ChangeDetectionStrategy, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
+import { LucideAngularModule } from 'lucide-angular';
 import { QuestionApi, Question, QuestionImportResult } from '../../../api/endpoints/question.api';
 import { QuestionBankApi } from '../../../api/endpoints/question-bank.api';
 import {
@@ -19,12 +20,9 @@ import { ConfirmDialogService } from '../../../core/services/confirm-dialog.serv
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-quiz-bank',
-  imports: [CommonModule, FormsModule, QuestionImportModalComponent],
+  imports: [CommonModule, FormsModule, QuestionImportModalComponent, LucideAngularModule],
   templateUrl: './quiz-bank.component.html',
   styles: [`
-    .material-symbols-outlined {
-      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-    }
     .line-clamp-2 {
       display: -webkit-box;
       -webkit-line-clamp: 2;
@@ -90,8 +88,55 @@ export class QuizBankComponent implements OnInit {
 
   filters = {
     search: '',
-    difficulty: ''
+    difficulty: '',
+    categoryId: '',
+    tag: ''
   };
+
+  // Dynamic filter options based on current dataset
+  availableCategories = computed(() => {
+    const ids = new Set(this.questions().map(q => (q as any).categoryId).filter(id => !!id));
+    return this.flatCategories().filter(f => ids.has(f.cat.id));
+  });
+
+  availableTags = computed(() => {
+    const tags = new Set<string>();
+    this.questions().forEach(q => {
+      if ((q as any).tags) {
+        (q as any).tags.split(',').forEach((t: string) => tags.add(t.trim()));
+      }
+    });
+    return Array.from(tags).sort();
+  });
+
+  availableDifficulties = computed(() => {
+    const diffs = new Set(this.questions().map(q => q.difficulty));
+    return Array.from(diffs).sort();
+  });
+
+  // Catalog view data
+  bankStats = computed(() => {
+    return this.banks().map(bank => {
+      const bankQuestions = this.questions().filter(q => (q as any).packageId === bank.id);
+      const total = bankQuestions.length || bank.questionCount || 0;
+      
+      const counts = {
+        EASY: bankQuestions.filter(q => q.difficulty === 'EASY').length,
+        MEDIUM: bankQuestions.filter(q => q.difficulty === 'MEDIUM').length,
+        HARD: bankQuestions.filter(q => q.difficulty === 'HARD').length
+      };
+
+      return {
+        ...bank,
+        realCount: total,
+        dist: {
+          easy: total ? (counts.EASY / total) * 100 : 0,
+          medium: total ? (counts.MEDIUM / total) * 100 : 0,
+          hard: total ? (counts.HARD / total) * 100 : 0
+        }
+      };
+    });
+  });
 
   // Expose for template - the bank id to use as packageId for import
   get selectedPackageId(): string {
@@ -136,7 +181,7 @@ export class QuizBankComponent implements OnInit {
       try {
         const allQuestions = await firstValueFrom(this.questionApi.getMyQuestions());
         this.questions.set(allQuestions || []);
-        this.filteredQuestions.set(allQuestions || []);
+        this.filterQuestions();
       } catch {
         this.questions.set([]);
         this.filteredQuestions.set([]);
@@ -175,12 +220,13 @@ export class QuizBankComponent implements OnInit {
         this.questionBankApi.getBankQuestions(bankId, categoryId || undefined)
       );
       this.questions.set(questions);
-      this.filteredQuestions.set(questions);
+      this.filterQuestions();
     } catch {
       this.questions.set([]);
       this.filteredQuestions.set([]);
     }
   }
+
 
   async onCategorySelect(categoryId: string | null) {
     this.selectedCategoryId.set(categoryId);
@@ -209,6 +255,17 @@ export class QuizBankComponent implements OnInit {
 
     if (this.filters.difficulty) {
       filtered = filtered.filter(q => q.difficulty === this.filters.difficulty);
+    }
+
+    if (this.filters.categoryId) {
+      filtered = filtered.filter(q => (q as any).categoryId === this.filters.categoryId);
+    }
+
+    if (this.filters.tag) {
+      filtered = filtered.filter(q => {
+        const tags = (q as any).tags || '';
+        return tags.split(',').map((t: string) => t.trim()).includes(this.filters.tag);
+      });
     }
 
     this.filteredQuestions.set(filtered);
@@ -247,10 +304,13 @@ export class QuizBankComponent implements OnInit {
   async archiveCurrentBank() {
     const bank = this.selectedBank();
     if (!bank) return;
+    await this.deleteBank(bank.id, bank.name);
+  }
 
+  async deleteBank(bankId: string, bankName: string) {
     const confirmed = await this.confirmDialog.confirm({
       title: 'Lưu trữ ngân hàng',
-      message: `Bạn có chắc chắn muốn lưu trữ ngân hàng "${bank.name}"?\n\nNgân hàng sẽ bị ẩn khỏi danh sách nhưng không bị xóa.`,
+      message: `Bạn có chắc chắn muốn lưu trữ ngân hàng "${bankName}"?\n\nNgân hàng sẽ bị ẩn khỏi danh sách nhưng không bị xóa hoàn toàn.`,
       variant: 'danger',
       confirmText: 'Lưu trữ',
       cancelText: 'Hủy'
@@ -258,18 +318,26 @@ export class QuizBankComponent implements OnInit {
     if (!confirmed) return;
 
     try {
-      await firstValueFrom(this.questionBankApi.archiveBank(bank.id));
+      await firstValueFrom(this.questionBankApi.archiveBank(bankId));
       this.toast.success('Đã lưu trữ ngân hàng thành công!');
 
-      this.selectedBankId.set('ALL');
-      this.selectedBank.set(null);
-      this.categoryTree.set([]);
-      this.flatCategories.set([]);
+      if (this.selectedBankId() === bankId) {
+        this.selectedBankId.set('ALL');
+        this.selectedBank.set(null);
+        this.categoryTree.set([]);
+        this.flatCategories.set([]);
+      }
 
       await this.loadBanks();
     } catch (error: any) {
       this.toast.error('Lỗi khi lưu trữ: ' + (error?.message || 'Lỗi không xác định'));
     }
+  }
+
+  editBank(bank: any) {
+    // For now, this could open the create modal in "edit" mode if we had that, 
+    // or just show a toast that this feature is coming.
+    this.toast.info('Tính năng chỉnh sửa thông tin ngân hàng đang được cập nhật.');
   }
 
   // ==================== Category CRUD ====================

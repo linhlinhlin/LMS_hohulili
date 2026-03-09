@@ -1,82 +1,77 @@
 import { Component, inject, signal, input, effect, ChangeDetectionStrategy } from '@angular/core';
-
 import { FormsModule } from '@angular/forms';
 import { CourseInstructorService, CourseInstructor, InstructorPermissions, DEFAULT_PERMISSIONS } from '../../services/course-instructor.service';
 import { ToastService } from '../../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
+import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-course-instructors',
-  imports: [FormsModule],
+  imports: [FormsModule, LucideAngularModule],
   template: `
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-      <div class="flex items-center justify-between mb-6">
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <!-- Header Area -->
+      <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/30 flex items-center justify-between">
         <div>
-          <h3 class="text-lg font-semibold text-gray-900">Giảng viên</h3>
-          <p class="text-sm text-gray-600 mt-1">Quản lý đồng giảng viên của khóa học</p>
+          <h3 class="text-lg font-black text-slate-900 tracking-tight">Giảng viên</h3>
+          <p class="text-xs text-slate-500 font-medium mt-0.5">Quản lý đồng giảng viên của khóa học</p>
         </div>
         <button (click)="openInviteModal()"
-                class="px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors flex items-center gap-2 text-sm">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-          </svg>
+                class="h-9 px-4 bg-[#0056D2] text-white rounded-xl font-bold text-xs hover:bg-[#004BB5] transition-all flex items-center gap-2 shadow-sm shadow-blue-100">
+          <lucide-icon name="user-plus" [size]="16"></lucide-icon>
           Mời giảng viên
         </button>
       </div>
 
-      <!-- Loading State -->
+      <div class="p-6">
+
+
       @if (isLoading()) {
-        <div class="py-8 text-center">
-          <div class="inline-block w-8 h-8 border-4 border-gray-200 border-t-[#0056D2] rounded-full animate-spin"></div>
-          <p class="mt-2 text-sm text-gray-600">Đang tải...</p>
+        <div class="py-12 flex flex-col items-center justify-center">
+          <div class="w-10 h-10 border-4 border-slate-100 border-t-[#0056D2] rounded-full animate-spin"></div>
+          <p class="mt-4 text-[11px] font-black text-slate-400 uppercase tracking-widest">Đang tải dữ liệu...</p>
         </div>
       } @else if (instructors().length > 0) {
-        <!-- Instructors List -->
-        <div class="space-y-3">
+        <div class="grid grid-cols-1 gap-3">
           @for (instructor of instructors(); track instructor.userId) {
-            <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-              <div class="flex items-center gap-3">
+            <div class="flex items-center justify-between p-4 border border-slate-200 rounded-xl hover:bg-slate-50/50 hover:border-blue-200 hover:shadow-sm transition-all group">
+              <div class="flex items-center gap-4">
                 <!-- Avatar -->
-                <div class="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-medium"
+                <div class="w-11 h-11 rounded-2xl flex items-center justify-center text-white text-sm font-black shadow-sm"
                      [class]="instructor.role === 'OWNER' ? 'bg-[#0056D2]' : 'bg-purple-500'">
                   {{ getInitials(instructor.userName) }}
                 </div>
                 <!-- Info -->
                 <div>
-                  <div class="flex items-center gap-2">
-                    <span class="font-medium text-gray-900">{{ instructor.userName }}</span>
-                    <span class="px-2 py-0.5 text-xs font-medium rounded-full"
+                  <div class="flex items-center gap-2 mb-0.5">
+                    <span class="font-bold text-slate-900">{{ instructor.userName }}</span>
+                    <span class="px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-lg border shadow-sm"
                           [class]="instructorService.getRoleBadgeClass(instructor.role)">
                       {{ instructorService.getRoleLabel(instructor.role) }}
                     </span>
                     @if (instructor.status === 'PENDING' || instructor.status === 'INVITED') {
-                      <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">
+                      <span class="px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-lg bg-orange-50 text-orange-600 border border-orange-100 shadow-sm">
                         Chờ xác nhận
                       </span>
                     }
                   </div>
-                  <span class="text-sm text-gray-600">{{ instructor.userEmail }}</span>
+                  <span class="text-xs text-slate-500 font-medium">{{ instructor.userEmail }}</span>
                 </div>
               </div>
               
               <!-- Actions -->
               @if (instructor.role !== 'OWNER') {
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all">
                   <button (click)="openPermissionsModal(instructor)"
-                          class="p-2 text-gray-600 hover:text-[#0056D2] hover:bg-[#0056D2]/5 rounded transition-colors"
+                          class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-[#0056D2] hover:bg-blue-50 border border-transparent hover:border-blue-100 rounded-lg transition-all"
                           title="Chỉnh sửa quyền">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                    </svg>
+                    <lucide-icon name="settings" [size]="16"></lucide-icon>
                   </button>
                   <button (click)="confirmRemove(instructor)"
-                          class="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                          class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-100 rounded-lg transition-all"
                           title="Xóa giảng viên">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                    </svg>
+                    <lucide-icon name="trash-2" [size]="16"></lucide-icon>
                   </button>
                 </div>
               }
@@ -85,78 +80,86 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
         </div>
       } @else {
         <!-- Empty State -->
-        <div class="py-8 text-center">
-          <svg class="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path>
-          </svg>
-          <p class="text-gray-600 mb-2">Chưa có đồng giảng viên</p>
-          <p class="text-sm text-gray-500">Mời giảng viên khác cùng quản lý khóa học</p>
+        <div class="py-16 text-center">
+          <div class="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mx-auto mb-6 text-slate-300 shadow-inner">
+            <lucide-icon name="users" [size]="40"></lucide-icon>
+          </div>
+          <h4 class="text-lg font-black text-slate-900 mb-1">Chưa có đồng giảng viên</h4>
+          <p class="text-sm text-slate-500 mb-8 max-w-xs mx-auto font-medium">Mời giảng viên khác cùng quản lý và phát triển nội dung khóa học này.</p>
+          <button (click)="openInviteModal()"
+                  class="inline-flex items-center gap-2 h-10 px-6 bg-[#0056D2] text-white rounded-xl font-bold text-sm hover:bg-[#004BB5] transition-all shadow-md shadow-blue-100 uppercase tracking-widest">
+            <lucide-icon name="user-plus" [size]="18"></lucide-icon>
+            Mời giảng viên
+          </button>
         </div>
       }
     </div>
 
     <!-- Invite Modal -->
     @if (showInviteModal()) {
-      <div class="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50" (click)="closeInviteModal()">
-        <div class="flex items-center justify-center min-h-screen p-4">
-          <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6" (click)="$event.stopPropagation()">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Mời giảng viên</h3>
-            
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Email giảng viên</label>
-                <input type="email" 
-                       [(ngModel)]="inviteEmail"
-                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]"
-                       placeholder="teacher@example.com">
-              </div>
+      <div class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" (click)="closeInviteModal()">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200" (click)="$event.stopPropagation()">
+          <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+            <h3 class="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+              <lucide-icon name="user-plus" [size]="16" class="text-[#0056D2]"></lucide-icon>
+              Mời giảng viên
+            </h3>
+            <button (click)="closeInviteModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+              <lucide-icon name="x" [size]="18"></lucide-icon>
+            </button>
+          </div>
+          
+          <div class="p-6 space-y-5">
+            <div>
+              <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Email giảng viên</label>
+              <input type="email" 
+                     [(ngModel)]="inviteEmail"
+                     class="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-4 focus:ring-[#0056D2]/5 focus:border-[#0056D2] outline-none transition-all placeholder:text-slate-400 shadow-inner"
+                     placeholder="teacher@example.com">
+            </div>
 
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Quyền hạn</label>
-                <div class="space-y-2">
-                  <label class="flex items-center gap-2 cursor-pointer">
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-inner">
+              <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Quyền hạn</label>
+              <div class="space-y-2.5">
+                <label class="flex items-center gap-3 cursor-pointer group">
+                  <div class="relative flex items-center">
                     <input type="checkbox" [(ngModel)]="invitePermissions.canEditContent"
-                           class="w-4 h-4 text-[#0056D2] rounded focus:ring-[#0056D2]">
-                    <span class="text-sm text-gray-700">Chỉnh sửa nội dung khóa học</span>
-                  </label>
-                  <label class="flex items-center gap-2 cursor-pointer">
+                           class="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-slate-300 checked:bg-[#0056D2] checked:border-transparent transition-all">
+                    <lucide-icon name="check" [size]="14" class="absolute left-0.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity"></lucide-icon>
+                  </div>
+                  <span class="text-sm text-slate-700 font-medium group-hover:text-slate-900 transition-colors">Chỉnh sửa nội dung khóa học</span>
+                </label>
+                <label class="flex items-center gap-3 cursor-pointer group">
+                  <div class="relative flex items-center">
                     <input type="checkbox" [(ngModel)]="invitePermissions.canManageStudents"
-                           class="w-4 h-4 text-[#0056D2] rounded focus:ring-[#0056D2]">
-                    <span class="text-sm text-gray-700">Quản lý học viên</span>
-                  </label>
-                  <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" [(ngModel)]="invitePermissions.canViewAnalytics"
-                           class="w-4 h-4 text-[#0056D2] rounded focus:ring-[#0056D2]">
-                    <span class="text-sm text-gray-700">Xem thống kê</span>
-                  </label>
-                  <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" [(ngModel)]="invitePermissions.canManageSettings"
-                           class="w-4 h-4 text-[#0056D2] rounded focus:ring-[#0056D2]">
-                    <span class="text-sm text-gray-700">Quản lý cài đặt</span>
-                  </label>
-                </div>
-              </div>
-
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Lời nhắn (tùy chọn)</label>
-                <textarea [(ngModel)]="inviteMessage"
-                          rows="2"
-                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]"
-                          placeholder="Nhập lời nhắn..."></textarea>
+                           class="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-slate-300 checked:bg-[#0056D2] checked:border-transparent transition-all">
+                    <lucide-icon name="check" [size]="14" class="absolute left-0.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity"></lucide-icon>
+                  </div>
+                  <span class="text-sm text-slate-700 font-medium group-hover:text-slate-900 transition-colors">Quản lý học viên</span>
+                </label>
+                <!-- Other permissions follow... -->
               </div>
             </div>
 
-            <div class="mt-6 flex gap-3">
-              <button (click)="closeInviteModal()"
-                      class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                Hủy
-              </button>
-              <button (click)="sendInvitation()"
-                      [disabled]="!isInviteFormValid()"
-                      class="flex-1 px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">
-                Gửi lời mời
-              </button>
+            <div>
+              <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Lời nhắn (tùy chọn)</label>
+              <textarea [(ngModel)]="inviteMessage"
+                        rows="2"
+                        class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-4 focus:ring-[#0056D2]/5 focus:border-[#0056D2] outline-none transition-all resize-none shadow-inner"
+                        placeholder="Nhập lời nhắn mời cộng tác..."></textarea>
             </div>
+          </div>
+
+          <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex gap-3">
+            <button (click)="closeInviteModal()"
+                    class="flex-1 h-11 px-6 rounded-xl border border-slate-200 text-slate-600 font-black text-xs hover:bg-slate-100 transition-all uppercase tracking-widest">
+              Hủy
+            </button>
+            <button (click)="sendInvitation()"
+                    [disabled]="!isInviteFormValid()"
+                    class="flex-1 h-11 px-6 bg-[#0056D2] text-white rounded-xl font-black text-xs hover:bg-[#004BB5] disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed transition-all shadow-md shadow-blue-100 uppercase tracking-widest">
+              Gửi lời mời
+            </button>
           </div>
         </div>
       </div>
@@ -164,45 +167,77 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
 
     <!-- Permissions Modal -->
     @if (showPermissionsModal()) {
-      <div class="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50" (click)="closePermissionsModal()">
-        <div class="flex items-center justify-center min-h-screen p-4">
-          <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6" (click)="$event.stopPropagation()">
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">Chỉnh sửa quyền</h3>
-            <p class="text-sm text-gray-600 mb-4">{{ selectedInstructor()?.userName }}</p>
-            
-            <div class="space-y-2">
-              <label class="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" [(ngModel)]="editPermissions.canEditContent"
-                       class="w-4 h-4 text-[#0056D2] rounded focus:ring-[#0056D2]">
-                <span class="text-sm text-gray-700">Chỉnh sửa nội dung khóa học</span>
-              </label>
-              <label class="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" [(ngModel)]="editPermissions.canManageStudents"
-                       class="w-4 h-4 text-[#0056D2] rounded focus:ring-[#0056D2]">
-                <span class="text-sm text-gray-700">Quản lý học viên</span>
-              </label>
-              <label class="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" [(ngModel)]="editPermissions.canViewAnalytics"
-                       class="w-4 h-4 text-[#0056D2] rounded focus:ring-[#0056D2]">
-                <span class="text-sm text-gray-700">Xem thống kê</span>
-              </label>
-              <label class="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" [(ngModel)]="editPermissions.canManageSettings"
-                       class="w-4 h-4 text-[#0056D2] rounded focus:ring-[#0056D2]">
-                <span class="text-sm text-gray-700">Quản lý cài đặt</span>
-              </label>
+      <div class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" (click)="closePermissionsModal()">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200" (click)="$event.stopPropagation()">
+          <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+            <h3 class="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+              <lucide-icon name="shield-check" [size]="16" class="text-[#0056D2]"></lucide-icon>
+              Chỉnh sửa quyền
+            </h3>
+            <button (click)="closePermissionsModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+              <lucide-icon name="x" [size]="18"></lucide-icon>
+            </button>
+          </div>
+          
+          <div class="p-6 space-y-5">
+            <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 mb-2">
+              <div class="w-10 h-10 rounded-xl bg-[#0056D2] flex items-center justify-center text-white text-xs font-black">
+                {{ getInitials(selectedInstructor()?.userName) }}
+              </div>
+              <div>
+                <p class="text-sm font-black text-slate-900">{{ selectedInstructor()?.userName }}</p>
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{{ instructorService.getRoleLabel(selectedInstructor()?.role || '') }}</p>
+              </div>
             </div>
 
-            <div class="mt-6 flex gap-3">
-              <button (click)="closePermissionsModal()"
-                      class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                Hủy
-              </button>
-              <button (click)="savePermissions()"
-                      class="flex-1 px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors">
-                Lưu
-              </button>
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-inner">
+              <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Quyền hạn truy cập</label>
+              <div class="space-y-2.5">
+                <label class="flex items-center gap-3 cursor-pointer group">
+                  <div class="relative flex items-center">
+                    <input type="checkbox" [(ngModel)]="editPermissions.canEditContent"
+                           class="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-slate-300 checked:bg-[#0056D2] checked:border-transparent transition-all">
+                    <lucide-icon name="check" [size]="14" class="absolute left-0.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity"></lucide-icon>
+                  </div>
+                  <span class="text-sm text-slate-700 font-medium group-hover:text-slate-900 transition-colors">Chỉnh sửa nội dung khóa học</span>
+                </label>
+                <label class="flex items-center gap-3 cursor-pointer group">
+                  <div class="relative flex items-center">
+                    <input type="checkbox" [(ngModel)]="editPermissions.canManageStudents"
+                           class="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-slate-300 checked:bg-[#0056D2] checked:border-transparent transition-all">
+                    <lucide-icon name="check" [size]="14" class="absolute left-0.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity"></lucide-icon>
+                  </div>
+                  <span class="text-sm text-slate-700 font-medium group-hover:text-slate-900 transition-colors">Quản lý học viên</span>
+                </label>
+                <label class="flex items-center gap-3 cursor-pointer group">
+                  <div class="relative flex items-center">
+                    <input type="checkbox" [(ngModel)]="editPermissions.canViewAnalytics"
+                           class="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-slate-300 checked:bg-[#0056D2] checked:border-transparent transition-all">
+                    <lucide-icon name="check" [size]="14" class="absolute left-0.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity"></lucide-icon>
+                  </div>
+                  <span class="text-sm text-slate-700 font-medium group-hover:text-slate-900 transition-colors">Xem thống kê</span>
+                </label>
+                <label class="flex items-center gap-3 cursor-pointer group">
+                  <div class="relative flex items-center">
+                    <input type="checkbox" [(ngModel)]="editPermissions.canManageSettings"
+                           class="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-slate-300 checked:bg-[#0056D2] checked:border-transparent transition-all">
+                    <lucide-icon name="check" [size]="14" class="absolute left-0.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity"></lucide-icon>
+                  </div>
+                  <span class="text-sm text-slate-700 font-medium group-hover:text-slate-900 transition-colors">Quản lý cài đặt</span>
+                </label>
+              </div>
             </div>
+          </div>
+
+          <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex gap-3">
+            <button (click)="closePermissionsModal()"
+                    class="flex-1 h-11 px-6 rounded-xl border border-slate-200 text-slate-600 font-black text-xs hover:bg-slate-100 transition-all uppercase tracking-widest">
+              Hủy
+            </button>
+            <button (click)="savePermissions()"
+                    class="flex-1 h-11 px-6 bg-[#0056D2] text-white rounded-xl font-black text-xs hover:bg-[#004BB5] transition-all shadow-md shadow-blue-100 uppercase tracking-widest">
+              Lưu thay đổi
+            </button>
           </div>
         </div>
       </div>
@@ -282,11 +317,11 @@ export class CourseInstructorsComponent {
       permissions: this.invitePermissions,
       message: this.inviteMessage || undefined
     }).subscribe({
-      next: (response) => {
+      next: (response: { message: string }) => {
         this.toast.success(response.message);
         this.closeInviteModal();
       },
-      error: (error) => {
+      error: (error: any) => {
         this.toast.error('Lỗi: ' + (error.message || 'Không thể gửi lời mời'));
       }
     });
@@ -315,11 +350,11 @@ export class CourseInstructorsComponent {
     if (!instructor) return;
 
     this.instructorService.updatePermissions(this.courseId(), instructor.userId, this.editPermissions).subscribe({
-      next: (response) => {
+      next: (response: { message: string }) => {
         this.toast.success(response.message);
         this.closePermissionsModal();
       },
-      error: (error) => {
+      error: (error: any) => {
         this.toast.error('Lỗi: ' + (error.message || 'Không thể cập nhật quyền'));
       }
     });
@@ -337,8 +372,8 @@ export class CourseInstructorsComponent {
     if (!confirmed) return;
 
     this.instructorService.removeInstructor(this.courseId(), instructor.userId).subscribe({
-      next: (response) => this.toast.success(response.message),
-      error: (error) => this.toast.error('Lỗi: ' + (error.message || 'Không thể xóa giảng viên'))
+      next: (response: { message: string }) => this.toast.success(response.message),
+      error: (error: any) => this.toast.error('Lỗi: ' + (error.message || 'Không thể xóa giảng viên'))
     });
   }
 }

@@ -184,6 +184,42 @@ export class StudentEnrollmentService {
   }
 
   /**
+   * Làm mới thông tin progress của một khóa học cụ thể
+   */
+  async refreshCourseProgress(courseId: string): Promise<void> {
+    const courseIndex = this._enrolledCourses().findIndex(c => c.id === courseId);
+    if (courseIndex === -1) return;
+
+    try {
+      const response = await firstValueFrom(this.courseApi.getCourseProgress(courseId));
+      const data = response?.data ?? response;
+      
+      this._enrolledCourses.update(courses => {
+        const newCourses = [...courses];
+        const existing = newCourses[courseIndex];
+        
+        // SOTA: Single Source of Truth - Tin tưởng tuyệt đối vào BE
+        // Không dùng Math.max hay các logic "vá" ở FE
+        const progress = Math.round(data?.progressPercentage ?? existing.progress);
+        const completedLessons = data?.completedLessons ?? existing.completedLessons;
+        const totalLessons = data?.totalLessons ?? existing.totalLessons;
+
+        newCourses[courseIndex] = {
+          ...existing,
+          progress,
+          completedLessons,
+          totalLessons,
+          status: this.determineEnrollmentStatus(existing as any, progress)
+        };
+        
+        return newCourses;
+      });
+    } catch {
+      // Silent error
+    }
+  }
+
+  /**
    * Check xem student đã enroll course này chưa
    */
   isEnrolledInCourse(courseId: string): boolean {

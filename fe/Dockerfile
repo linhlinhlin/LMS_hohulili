@@ -11,6 +11,7 @@ WORKDIR /app
 
 # Cache npm dependencies
 COPY package*.json ./
+COPY vendor ./vendor
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --prefer-offline --no-audit
 

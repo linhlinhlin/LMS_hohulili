@@ -496,9 +496,11 @@
   &::-webkit-scrollbar {
     width: 4px;
   }
+
   &::-webkit-scrollbar-track {
     background: transparent;
   }
+
   &::-webkit-scrollbar-thumb {
     background: #CBD5E1;
     border-radius: 2px;
@@ -635,8 +637,13 @@
   color: #6B7280;
 
   &.completed {
-    .section-title { color: #9CA3AF; }
-    .section-type-icon { color: #10B981; }
+    .section-title {
+      color: #9CA3AF;
+    }
+
+    .section-type-icon {
+      color: #10B981;
+    }
   }
 }
 

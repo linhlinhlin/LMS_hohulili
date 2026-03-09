@@ -95,4 +95,63 @@ ckeditor {
     .ck-balloon-panel[class*="ck-powered-by"] {
         display: none !important;
     }
+
+    /* FIX: Force height for editable area to avoid zero-height issue */
+    .ck-editor__editable {
+        min-height: 300px !important;
+        border: 1px solid #ddd !important;
+    }
+}
+
+.shake {
+    animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+}
+
+@keyframes shake {
+
+    10%,
+    90% {
+        transform: translate3d(-1px, 0, 0);
+    }
+
+    20%,
+    80% {
+        transform: translate3d(2px, 0, 0);
+    }
+
+    30%,
+    50%,
+    70% {
+        transform: translate3d(-4px, 0, 0);
+    }
+
+    40%,
+    60% {
+        transform: translate3d(4px, 0, 0);
+    }
+}
+
+/* --- SMART FILE CARD --- */
+.group:hover .group-hover\:scale-105 {
+    transform: scale(1.05);
+}
+
+.group:hover .group-hover\:scale-110 {
+    transform: scale(1.1);
+}
+
+/* Custom rounded for viewers */
+.rounded-xl-overflow {
+    border-radius: 0.75rem;
+    overflow: hidden;
+}
+
+/* Transition for file card interactive areas */
+h4.cursor-pointer {
+    &:hover {
+        color: #004BB5;
+    }
 }

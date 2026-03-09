@@ -1,7 +1,8 @@
 import { Component, inject, OnInit, signal, computed, ChangeDetectionStrategy } from '@angular/core';
-
+import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { LucideAngularModule } from 'lucide-angular';
 import { AssignmentDetailStore } from '../stores/assignment-detail.store';
 import { SubmissionsStore } from '../stores/submissions.store';
 import { SubmissionDetail, SubmissionGrade } from '../../../../api/client/assignment.api';
@@ -16,144 +17,271 @@ import { ToastService } from '../../../../core/services/toast.service';
  */
 @Component({
   selector: 'app-speed-grader',
-  imports: [ReactiveFormsModule],
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule, LucideAngularModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="h-screen flex flex-col bg-gray-100">
-      <!-- Header -->
-      <header class="bg-white border-b px-4 py-3 flex items-center justify-between flex-shrink-0">
-        <div class="flex items-center gap-4">
-          <button (click)="goBack()" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-            </svg>
+    <div class="h-screen flex flex-col bg-slate-50 overflow-hidden">
+      <!-- Premium Header -->
+      <header class="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between flex-shrink-0 z-30 shadow-sm">
+        <div class="flex items-center gap-6">
+          <button (click)="goBack()" 
+                  class="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-all group">
+            <lucide-icon name="arrow-left" [size]="18" class="group-hover:-translate-x-0.5 transition-transform"></lucide-icon>
           </button>
+          <div class="h-8 w-px bg-slate-100"></div>
           <div>
-            <h1 class="font-semibold text-gray-900">{{ assignmentStore.assignmentTitle() }}</h1>
-            @if (currentSubmission(); as sub) {
-              <p class="text-sm text-gray-500">{{ sub.studentName }}</p>
-            }
+            <h1 class="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+              <lucide-icon name="file-edit" [size]="14" class="text-[#0056D2]"></lucide-icon>
+              {{ assignmentStore.assignmentTitle() }}
+            </h1>
+            <div class="flex items-center gap-2 mt-0.5">
+              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tight">SpeedGrader™</span>
+              @if (currentSubmission(); as sub) {
+                <span class="w-1 h-1 rounded-full bg-slate-300"></span>
+                <span class="text-[10px] font-bold text-[#0056D2] uppercase tracking-tight">{{ sub.studentName }}</span>
+              }
+            </div>
           </div>
         </div>
         
-        <!-- Navigation -->
-        <div class="flex items-center gap-2">
+        <!-- Navigation Controls -->
+        <div class="flex items-center gap-4 bg-slate-50 p-1 rounded-2xl border border-slate-100">
           <button (click)="previousSubmission()" [disabled]="!hasPrevious()"
-                  class="px-3 py-1.5 border rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors">Trước</button>
-          <span class="text-sm text-gray-600">{{ currentIndex() + 1 }} / {{ totalSubmissions() }}</span>
+                  class="w-9 h-9 flex items-center justify-center rounded-xl bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm">
+            <lucide-icon name="chevron-left" [size]="18"></lucide-icon>
+          </button>
+          
+          <div class="px-4 flex items-center gap-1.5">
+            <span class="text-xs font-black text-slate-900">{{ currentIndex() + 1 }}</span>
+            <span class="text-[10px] font-bold text-slate-400 uppercase">/</span>
+            <span class="text-[10px] font-bold text-slate-400 uppercase">{{ totalSubmissions() }}</span>
+          </div>
+          
           <button (click)="nextSubmission()" [disabled]="!hasNext()"
-                  class="px-3 py-1.5 border rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors">Sau</button>
+                  class="w-9 h-9 flex items-center justify-center rounded-xl bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm">
+            <lucide-icon name="chevron-right" [size]="18"></lucide-icon>
+          </button>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <div class="hidden sm:flex flex-col items-end mr-2">
+            <span class="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em]">Trạng thái</span>
+            <span class="text-[10px] font-black text-emerald-600 uppercase">Auto-save On</span>
+          </div>
+          <button (click)="goBack()" class="w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 hover:bg-rose-50 hover:text-rose-500 transition-all">
+            <lucide-icon name="x" [size]="20"></lucide-icon>
+          </button>
         </div>
       </header>
 
-      <!-- Main Content -->
+      <!-- Main Workspace -->
       @if (currentSubmission(); as sub) {
-        <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
-          <!-- Left: Submission Content -->
-          <div class="w-full md:w-1/2 xl:w-3/5 border-r bg-white overflow-y-auto p-6">
-            @if (sub.content) {
-              <div class="prose max-w-none">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Nội dung bài nộp</h3>
-                <div class="bg-gray-50 rounded-xl p-4 whitespace-pre-wrap text-gray-700">
-                  {{ sub.content }}
-                </div>
-              </div>
-            } @else {
-              <div class="text-center py-12 text-gray-500">
-                <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                </svg>
-                <p>Không có nội dung văn bản</p>
-              </div>
-            }
-            
-            @if (sub.attachments && sub.attachments.length) {
-              <div class="mt-6">
-                <h4 class="text-sm font-medium text-gray-700 mb-3">Tệp đính kèm</h4>
-                <div class="space-y-2">
-                  @for (file of sub.attachments; track file.id) {
-                    <a [href]="file.fileUrl" target="_blank" 
-                       class="flex items-center gap-3 px-4 py-3 bg-[#0056D2]/5 text-[#0056D2] rounded-lg hover:bg-[#0056D2]/10 transition-colors">
-                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                      </svg>
-                      <span>{{ file.fileName }}</span>
-                    </a>
-                  }
-                </div>
-              </div>
-            }
-          </div>
-
-          <!-- Right: Grading Form -->
-          <div class="w-full md:w-1/2 xl:w-2/5 bg-white flex flex-col">
-            <!-- Student Info -->
-            <div class="p-4 border-b">
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-full bg-[#0056D2]/10 flex items-center justify-center">
-                  <span class="text-[#0056D2] font-medium">{{ getInitials(sub.studentName || '') }}</span>
-                </div>
-                <div>
-                  <p class="font-medium">{{ sub.studentName }}</p>
-                  <p class="text-sm text-gray-500">{{ sub.studentEmail }}</p>
-                </div>
-              </div>
-              @if (sub.isLate) {
-                <span class="mt-2 inline-block px-2 py-1 bg-red-100 text-red-600 text-xs rounded">Nộp muộn</span>
-              }
-            </div>
-
-            <!-- Form -->
-            <div class="flex-1 overflow-y-auto p-4">
-              <form [formGroup]="gradingForm">
-                <div class="mb-4">
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Điểm</label>
-                  <div class="flex items-center gap-2">
-                    <input type="number" formControlName="score" 
-                           class="w-24 px-3 py-2 border rounded-lg" [min]="0" [max]="maxScore()"/>
-                    <span class="text-gray-500">/ {{ maxScore() }}</span>
+        <div class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+          
+          <!-- Left: Submission Content Preview -->
+          <div class="flex-1 border-r border-slate-200 bg-white overflow-y-auto p-12 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
+            <div class="max-w-4xl mx-auto">
+              @if (sub.content) {
+                <div class="prose prose-slate max-w-none">
+                  <div class="flex items-center gap-3 mb-8">
+                    <div class="w-10 h-10 rounded-2xl bg-[#0056D2]/5 flex items-center justify-center text-[#0056D2]">
+                      <lucide-icon name="file-text" [size]="20"></lucide-icon>
+                    </div>
+                    <div>
+                      <h3 class="text-xl font-black text-slate-900 tracking-tight">Văn bản bài nộp</h3>
+                      <p class="text-xs font-medium text-slate-400">Nội dung được học viên nhập trực tiếp</p>
+                    </div>
+                  </div>
+                  
+                  <div class="bg-slate-50/50 rounded-3xl p-8 border border-slate-100 whitespace-pre-wrap text-slate-700 leading-relaxed font-medium shadow-inner shadow-slate-100/50">
+                    {{ sub.content }}
                   </div>
                 </div>
-                
-                <!-- Quick Scores -->
-                <div class="mb-4">
-                  <p class="text-xs text-gray-500 mb-2">Điểm nhanh</p>
-                  <div class="flex flex-wrap gap-2">
-                    @for (score of quickScores(); track score) {
-                      <button type="button" (click)="setScore(score)"
-                              class="px-3 py-1 text-sm border rounded-lg hover:bg-[#0056D2]/5 transition-colors">{{ score }}</button>
+              } @else {
+                <div class="py-32 flex flex-col items-center text-center">
+                  <div class="w-24 h-24 bg-slate-50 rounded-[2.5rem] flex items-center justify-center mb-6 border border-slate-100 shadow-sm text-slate-200">
+                    <lucide-icon name="file-question" [size]="48"></lucide-icon>
+                  </div>
+                  <h4 class="text-lg font-black text-slate-800 uppercase tracking-widest mb-2">Không có nội dung văn bản</h4>
+                  <p class="text-sm text-slate-500 font-medium max-w-xs">
+                    Học viên không cung cấp nội dung văn bản trực tiếp. Vui lòng kiểm tra các tệp đính kèm bên dưới.
+                  </p>
+                </div>
+              }
+              
+              @if (sub.attachments && sub.attachments.length) {
+                <div class="mt-12 pt-12 border-t border-slate-100">
+                  <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+                    <lucide-icon name="paperclip" [size]="12"></lucide-icon>
+                    Tệp đính kèm ({{ sub.attachments.length }})
+                  </h4>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    @for (file of sub.attachments; track file.id) {
+                      <a [href]="file.fileUrl" target="_blank" 
+                         class="group flex items-center justify-between p-4 bg-white border border-slate-200 rounded-2xl hover:border-[#0056D2] hover:shadow-lg hover:shadow-blue-50 transition-all duration-300">
+                        <div class="flex items-center gap-4">
+                          <div class="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-[#0056D2]/5 group-hover:text-[#0056D2] transition-colors">
+                            <lucide-icon name="file" [size]="18"></lucide-icon>
+                          </div>
+                          <div>
+                            <p class="text-sm font-black text-slate-900 tracking-tight group-hover:text-[#0056D2] transition-colors break-all line-clamp-1">{{ file.fileName }}</p>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase">Tệp bài làm</p>
+                          </div>
+                        </div>
+                        <lucide-icon name="external-link" [size]="14" class="text-slate-300 group-hover:text-[#0056D2] transition-colors"></lucide-icon>
+                      </a>
                     }
                   </div>
                 </div>
+              }
+            </div>
+          </div>
 
-                <div class="mb-4">
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Nhận xét</label>
-                  <textarea formControlName="feedback" rows="4"
-                            class="w-full px-3 py-2 border rounded-lg" placeholder="Nhập nhận xét..."></textarea>
+          <!-- Right: Sidebar Grading Panel -->
+          <div class="w-full md:w-[400px] xl:w-[460px] bg-white flex flex-col border-l border-slate-200 shadow-2xl shadow-slate-200/50 z-20">
+            <!-- Student Profile Summary -->
+            <div class="p-8 border-b border-slate-100 bg-slate-50/30">
+              <div class="flex items-start justify-between mb-6">
+                <div class="flex items-center gap-4">
+                  <div class="relative">
+                    <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#0056D2] to-[#004BB5] flex items-center justify-center text-white shadow-lg shadow-blue-100">
+                      <span class="text-lg font-black tracking-tighter">{{ getInitials(sub.studentName || '') }}</span>
+                    </div>
+                    @if (sub.isLate) {
+                      <div class="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-rose-500 border-2 border-white flex items-center justify-center shadow-md animate-bounce">
+                        <lucide-icon name="clock" [size]="12" class="text-white"></lucide-icon>
+                      </div>
+                    }
+                  </div>
+                  <div>
+                    <h4 class="text-base font-black text-slate-900 tracking-tight">{{ sub.studentName }}</h4>
+                    <p class="text-xs font-medium text-slate-400">{{ sub.studentEmail }}</p>
+                  </div>
+                </div>
+                
+                @if (sub.isLate) {
+                  <span class="px-3 py-1 bg-rose-50 text-rose-600 text-[10px] font-black uppercase tracking-widest rounded-lg border border-rose-100">
+                    Nộp muộn
+                  </span>
+                } @else {
+                  <span class="px-3 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest rounded-lg border border-emerald-100">
+                    Đúng hạn
+                  </span>
+                }
+              </div>
+
+              <!-- Quick Status Cards -->
+              <div class="grid grid-cols-2 gap-3">
+                <div class="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                  <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Thời gian nộp</p>
+                  <p class="text-[11px] font-black text-slate-900">12 Th03, 2024</p>
+                </div>
+                <div class="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                  <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Số lần nộp</p>
+                  <p class="text-[11px] font-black text-slate-900">Lần 1</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Grade Form Container -->
+            <div class="flex-1 overflow-y-auto p-8 scrollbar-thin scrollbar-thumb-slate-100 scrollbar-track-transparent">
+              <form [formGroup]="gradingForm" class="space-y-8">
+                <!-- Score Input -->
+                <section>
+                  <div class="flex items-center justify-between mb-4">
+                    <label class="text-[10px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                       <lucide-icon name="star" [size]="12" class="text-amber-400 fill-amber-400"></lucide-icon>
+                       Điểm số đánh giá
+                    </label>
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-tight">Thang {{ maxScore() }}đ</span>
+                  </div>
+                  
+                  <div class="flex items-end gap-4 p-6 bg-slate-50 rounded-[2rem] border border-slate-100 transition-all focus-within:bg-white focus-within:border-[#0056D2] focus-within:shadow-xl focus-within:shadow-blue-50/50">
+                    <input type="number" formControlName="score" 
+                           class="w-full bg-transparent border-none p-0 text-5xl font-black text-slate-900 focus:ring-0 placeholder:text-slate-200" 
+                           [min]="0" [max]="maxScore()" placeholder="0.0"/>
+                    <div class="flex flex-col items-center mb-1">
+                      <span class="text-lg font-black text-slate-300">/</span>
+                      <span class="text-xs font-black text-slate-400">{{ maxScore() }}</span>
+                    </div>
+                  </div>
+                  
+                  <!-- Quality Presets -->
+                  <div class="mt-4 flex flex-wrap gap-2">
+                    @for (score of quickScores(); track score) {
+                      <button type="button" (click)="setScore(score)"
+                              [class]="gradingForm.get('score')?.value === score ? 'bg-[#0056D2] text-white border-[#0056D2]' : 'bg-white text-slate-600 border-slate-200 hover:border-[#0056D2] hover:text-[#0056D2]'"
+                              class="px-4 py-2 text-[10px] font-black uppercase tracking-widest border rounded-xl transition-all shadow-sm">
+                        {{ score }}
+                      </button>
+                    }
+                  </div>
+                </section>
+
+                <div class="h-px bg-slate-100 mx-[-2rem]"></div>
+
+                <!-- Feedback Section -->
+                <section>
+                  <label class="text-[10px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2 mb-4">
+                     <lucide-icon name="message-square" [size]="12" class="text-blue-500"></lucide-icon>
+                     Nhận xét & Phản hồi
+                  </label>
+                  <div class="relative group">
+                    <textarea formControlName="feedback" rows="6"
+                              class="w-full p-5 bg-slate-50 border border-slate-100 rounded-3xl text-sm font-medium text-slate-700 placeholder:text-slate-300 focus:bg-white focus:border-[#0056D2] focus:ring-4 focus:ring-blue-50 transition-all resize-none" 
+                              placeholder="Viết nhận xét chi tiết để học viên cải thiện..."></textarea>
+                    <div class="absolute bottom-4 right-4 text-[9px] font-black text-slate-300 uppercase opacity-0 group-focus-within:opacity-100 transition-opacity">
+                      Học viên sẽ thấy nhận xét này
+                    </div>
+                  </div>
+                </section>
+                
+                <!-- Quick Feedback Buttons -->
+                <div class="flex flex-wrap gap-2 pb-8">
+                  <button type="button" class="px-3 py-1.5 bg-slate-50 text-slate-500 text-[9px] font-black uppercase tracking-widest rounded-lg border border-slate-100 hover:bg-slate-100 transition-colors">Yêu cầu sửa lại</button>
+                  <button type="button" class="px-3 py-1.5 bg-slate-50 text-slate-500 text-[9px] font-black uppercase tracking-widest rounded-lg border border-slate-100 hover:bg-slate-100 transition-colors">Bài làm xuất sắc</button>
+                  <button type="button" class="px-3 py-1.5 bg-slate-50 text-slate-500 text-[9px] font-black uppercase tracking-widest rounded-lg border border-slate-100 hover:bg-slate-100 transition-colors">Cần cải thiện trình bày</button>
                 </div>
               </form>
             </div>
 
-            <!-- Actions -->
-            <div class="p-4 border-t bg-gray-50">
-              <div class="flex gap-2">
-                <button (click)="saveDraft()" [disabled]="saving()" class="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-100 transition-colors">
+            <!-- Global Actions -->
+            <div class="p-8 bg-slate-50 border-t border-slate-200">
+              <div class="flex gap-4">
+                <button (click)="saveDraft()" [disabled]="saving()" 
+                        class="flex-1 h-12 flex items-center justify-center rounded-2xl bg-white border border-slate-200 text-slate-600 font-black text-[10px] uppercase tracking-[0.15em] hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm">
+                  <lucide-icon name="save" [size]="14" class="mr-2"></lucide-icon>
                   Lưu nháp
                 </button>
                 <button (click)="submitGrade()" [disabled]="saving() || gradingForm.invalid"
-                        class="flex-1 px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors">
-                  {{ saving() ? 'Đang lưu...' : 'Chấm điểm' }}
+                        [class.opacity-70]="saving()"
+                        class="flex-[1.5] h-12 flex items-center justify-center rounded-2xl bg-[#0056D2] text-white font-black text-[10px] uppercase tracking-[0.15em] hover:bg-[#004BB5] hover:shadow-xl hover:shadow-blue-200 transition-all shadow-lg shadow-blue-100 relative overflow-hidden group">
+                  <span class="relative z-10 flex items-center">
+                    @if (saving()) {
+                      <lucide-icon name="loader-2" [size]="14" class="mr-2 animate-spin"></lucide-icon>
+                      Đang lưu...
+                    } @else {
+                      <lucide-icon name="check-circle" [size]="14" class="mr-2"></lucide-icon>
+                      Hoàn thành chấm điểm
+                    }
+                  </span>
+                  <div class="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
                 </button>
               </div>
             </div>
           </div>
         </div>
       } @else {
-        <div class="flex-1 flex items-center justify-center bg-white">
-          <div class="text-center">
-             <div class="w-16 h-16 border-4 border-[#0056D2] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-             <p class="text-gray-500 font-medium">Đang tải dữ liệu bài nộp...</p>
+        <div class="flex-1 flex flex-col items-center justify-center bg-white">
+          <div class="relative">
+            <div class="w-24 h-24 border-8 border-slate-50 border-t-[#0056D2] rounded-full animate-spin"></div>
+            <div class="absolute inset-0 flex items-center justify-center">
+              <lucide-icon name="shield-check" [size]="32" class="text-[#0056D2]/20"></lucide-icon>
+            </div>
           </div>
+          <h3 class="text-sm font-black text-slate-800 uppercase tracking-[0.34em] mt-8">Đang tải SpeedGrader™</h3>
+          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2 animate-pulse">Đang chuẩn bị dữ liệu bài nộp...</p>
         </div>
       }
     </div>

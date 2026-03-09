@@ -13,6 +13,8 @@ import { VideoProgressApi } from '../../../../api/client/video-progress.api';
 import { YouTubePlayerComponent } from '../youtube-player/youtube-player.component';
 import { OfflineVideoService } from '../../../../core/services/offline-video.service';
 import { NoteApi, NoteResponse, CreateNoteRequest, UpdateNoteRequest } from '../../../../api/endpoints/note.api';
+import { PdfViewerService } from '../../../../shared/services/pdf-viewer.service';
+import { LucideAngularModule } from 'lucide-angular';
 
 /**
  * Lesson Content Component
@@ -24,7 +26,7 @@ import { NoteApi, NoteResponse, CreateNoteRequest, UpdateNoteRequest } from '../
  */
 @Component({
   selector: 'app-lesson-content',
-  imports: [YouTubePlayerComponent, CommonModule, FormsModule],
+  imports: [YouTubePlayerComponent, CommonModule, FormsModule, LucideAngularModule],
   templateUrl: './lesson-content.component.html',
   styleUrls: ['./lesson-content.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -38,6 +40,7 @@ export class LessonContentComponent implements AfterViewInit {
   private videoProgressApi = inject(VideoProgressApi);
   private offlineVideo = inject(OfflineVideoService);
   private noteApi = inject(NoteApi);
+  private pdfService = inject(PdfViewerService);
 
   // --- Notes state ---
   readonly lessonNotes = signal<NoteResponse[]>([]);
@@ -134,6 +137,9 @@ export class LessonContentComponent implements AfterViewInit {
   /** Reference to text content container for scroll tracking */
   readonly textContentRef = viewChild<ElementRef>('textContent');
 
+  /** Reference to PDF container for fullscreen */
+  readonly pdfContainerRef = viewChild<ElementRef>('pdfContainer');
+
   /** Server-confirmed progress for current video section */
   videoProgress = this.tracker.serverProgress;
   videoCompleted = this.tracker.serverCompleted;
@@ -181,7 +187,7 @@ export class LessonContentComponent implements AfterViewInit {
   /** Whether current view is a video section (used to show/hide tab bar) */
   readonly isVideoSection = computed(() => {
     const section = this.currentSection();
-    if (section) return section.type === 'VIDEO' && !!section.videoUrl;
+    if (section?.type === 'VIDEO') return true;
     return !this.hasSections() && !!this.lesson()?.videoUrl;
   });
 
@@ -197,6 +203,41 @@ export class LessonContentComponent implements AfterViewInit {
     const url = currentSec?.videoUrl || this.lesson()?.videoUrl;
     if (!url) return false;
     return url.includes('youtube.com') || url.includes('youtu.be');
+  }
+
+  // --- PDF Preview Logic ---
+  readonly safePdfUrl = signal<SafeResourceUrl | null>(null);
+
+  private pdfResolveEffect = effect(() => {
+    const section = this.currentSection();
+    if (section?.type === 'FILE' && section.fileUrl?.toLowerCase().endsWith('.pdf')) {
+      this.pdfService.getSafePdfUrl(section.fileUrl).subscribe(url => {
+        this.safePdfUrl.set(url);
+      });
+    } else {
+      this.safePdfUrl.set(null);
+      this.pdfService.cleanup();
+    }
+  });
+
+  togglePdfFullscreen(): void {
+    const el = this.pdfContainerRef()?.nativeElement;
+    if (!el) return;
+
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      el.requestFullscreen().catch((err: any) => {
+        console.error(`Error attempting to enable fullscreen: ${err.message}`);
+      });
+    }
+  }
+
+  openPdfInNewTab(): void {
+    const section = this.currentSection();
+    if (section?.fileUrl) {
+      window.open(section.fileUrl, '_blank');
+    }
   }
 
   getYouTubeEmbedUrl(): SafeResourceUrl {
@@ -251,6 +292,13 @@ export class LessonContentComponent implements AfterViewInit {
 
   ngAfterViewInit(): void {
     // Reading tracker initializes via effect when section changes
+  }
+
+  ngOnDestroy(): void {
+    this.pdfService.cleanup();
+    this.tracker.stopTracking();
+    this.heartbeat.stop();
+    this.readingTracker.stopTracking();
   }
 
   private initReadingTracker(): void {

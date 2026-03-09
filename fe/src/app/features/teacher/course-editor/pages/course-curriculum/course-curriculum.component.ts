@@ -1,4 +1,5 @@
-﻿import { Component, inject, signal, computed, effect, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, computed, effect, OnDestroy, ChangeDetectionStrategy, viewChild, ElementRef } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -12,8 +13,8 @@ import { ChapterApi } from '../../../../../api/client/chapter.api';
 import { SectionApi } from '../../../../../api/client/section.api';
 import { QuizApi } from '../../../../../api/endpoints/quiz.api';
 import { PackageApi } from '../../../../../api/endpoints/package.api';
-import { firstValueFrom } from 'rxjs';
-import { CKEditorModule } from '@ckeditor/ckeditor5-angular';
+import { firstValueFrom, Subject, debounceTime, distinctUntilChanged } from 'rxjs';
+import { CKEditorModule, CKEditorComponent } from '@ckeditor/ckeditor5-angular';
 import {
   ClassicEditor,
   // Essentials
@@ -46,7 +47,7 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-course-curriculum',
-  imports: [FormsModule, CKEditorModule, LucideAngularModule, VideoUploadComponent, QuestionCreateComponent],
+  imports: [CommonModule, FormsModule, CKEditorModule, LucideAngularModule, VideoUploadComponent, QuestionCreateComponent],
   styleUrl: './course-curriculum.component.scss',
   providers: [],
   templateUrl: './course-curriculum.component.html'
@@ -185,6 +186,8 @@ export class CourseCurriculumComponent implements OnDestroy {
     document.addEventListener('mouseup', onMouseUp);
   }
 
+  // Auto-save logic removed as per user request
+
 
 
   // Constants
@@ -200,7 +203,7 @@ export class CourseCurriculumComponent implements OnDestroy {
   // Section Logic (L3)
   editingSectionId = signal<string | null>(null);
   showSectionModal = signal(false);
-  newSectionType: 'TEXT' | 'VIDEO' | 'QUIZ' | 'FILE' = 'TEXT';
+  newSectionType = signal<'TEXT' | 'VIDEO' | 'QUIZ' | 'FILE'>('TEXT');
 
   // Section Form
   sectionTitle = '';
@@ -210,15 +213,33 @@ export class CourseCurriculumComponent implements OnDestroy {
   sectionFileUrl = signal<string | null>(null); // [NEW] For FILE type sections
   sectionVideoType: 'YOUTUBE' | 'CLOUDFLARE' | null = null; // [NEW] Video source type
   sectionCfObjectKey: string | null = null; // [NEW] Cloudflare R2 object key
-  selectedFile: File | null = null; // [NEW] For FILE upload
+  selectedFile = signal<File | null>(null); // [NEW] For FILE upload
+  attachment = computed(() => {
+    const file = this.selectedFile();
+    if (file) return { name: file.name, size: file.size, isNew: true };
+    const url = this.sectionFileUrl();
+    if (url) return { name: this.getFileNameFromUrl(url), size: 0, isNew: false, url };
+    return null;
+  });
   safeVideoUrl = signal<SafeResourceUrl | null>(null); // [NEW]
   safePdfUrl = signal<SafeResourceUrl | null>(null); // [NEW] SOTA 2025 Secure PDF
 
   // State
   isSaving = signal(false);
+  isDataLoaded = signal(false);
   isLoadingLesson = signal(false);
   showVideoPreview = signal(false);
   wordCount = signal(0); // Optimisation: Signal based word count
+  videoSourceMode = signal<'upload' | 'url'>('upload');
+  videoContentRef = viewChild<ElementRef>('videoContent');
+  urlInputRef = viewChild<ElementRef>('urlInput');
+  fileInputRef = viewChild<ElementRef>('fileInput');
+
+  // Smart URL Preview state
+  isUrlEditMode = signal(false);
+  isLoadingMetadata = signal(false);
+  urlError = signal<string | null>(null);
+  urlMetadata = signal<{ title?: string; thumbnail?: string; channel?: string } | null>(null);
 
   // Chapter form
   chapterTitle = '';
@@ -305,7 +326,7 @@ export class CourseCurriculumComponent implements OnDestroy {
 
         this.editingSectionId.set(section.id);
         this.sectionTitle = section.title;
-        this.newSectionType = (section.type as any) || 'TEXT';
+        this.newSectionType.set((section.type as any) || 'TEXT');
         this.sectionContent = section.content || '';
         this.sectionVideoUrl = section.videoUrl || '';
         this.sectionVideoType = (section as any).videoType || null; // [NEW] Load videoType
@@ -315,7 +336,7 @@ export class CourseCurriculumComponent implements OnDestroy {
         this.updateVideoPreview(this.sectionVideoUrl); // [NEW] Init preview
 
         // [NEW] Hydrate Quiz Data for QUIZ type sections - SOTA 2025
-        if (this.newSectionType === 'QUIZ') {
+        if (this.newSectionType() === 'QUIZ') {
           const quizData = (section as any).quizData;
           if (quizData) {
             // Hydrate quiz settings
@@ -348,7 +369,7 @@ export class CourseCurriculumComponent implements OnDestroy {
           this.isDataLoaded.set(true);
         }
         // Handle PDF Secure Streaming [SOTA 2025]
-        else if (this.newSectionType === 'FILE') {
+        else if (this.newSectionType() === 'FILE') {
           if (this.isPdfFile(section) && section.fileUrl) {
             this.pdfService.getSafePdfUrl(section.fileUrl).subscribe(url => {
               this.safePdfUrl.set(url);
@@ -357,7 +378,7 @@ export class CourseCurriculumComponent implements OnDestroy {
             this.safePdfUrl.set(null);
           }
           this.isDataLoaded.set(true);
-        } else if (this.newSectionType === 'TEXT') {
+        } else if (this.newSectionType() === 'TEXT') {
           // Delay để CKEditor có thời gian khởi tạo
           setTimeout(() => {
             this.isDataLoaded.set(true);
@@ -394,6 +415,7 @@ export class CourseCurriculumComponent implements OnDestroy {
         }
       }
     });
+
   }
 
   getLessonType(lesson: LessonDraftDTO | null): string {
@@ -419,13 +441,17 @@ export class CourseCurriculumComponent implements OnDestroy {
     }
   }
 
+  updateWordCount(content: string) {
+    const plainText = (content || '').replace(/<[^>]*>/g, ' '); // Loại bỏ HTML tags
+    const count = plainText.trim() ? plainText.trim().split(/\s+/).length : 0;
+    this.wordCount.set(count);
+  }
+
   onEditorChange(event: any) {
     const editor = event.editor;
     if (editor) {
       const data = editor.getData();
-      const plainText = data.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-      const count = plainText ? plainText.split(' ').length : 0;
-      this.wordCount.set(count);
+      this.updateWordCount(data);
     }
   }
   selectLessonFromChapter(lesson: LessonDraftDTO) {
@@ -466,9 +492,98 @@ export class CourseCurriculumComponent implements OnDestroy {
   }
 
   // YouTube helpers
+  scrollToVideo(): void {
+    const element = this.videoContentRef()?.nativeElement;
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  enterUrlEditMode(): void {
+    if (this.isLoadingMetadata()) return;
+    this.isUrlEditMode.set(true);
+    setTimeout(() => {
+      const input = this.urlInputRef()?.nativeElement as HTMLInputElement;
+      if (input) {
+        input.focus();
+        input.select();
+      }
+    }, 0);
+  }
+
+  onUrlInputBlur(): void {
+    if (this.sectionVideoUrl) {
+      this.fetchUrlMetadata(this.sectionVideoUrl);
+    } else {
+      this.isUrlEditMode.set(true);
+    }
+  }
+
+  onUrlKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter') {
+      this.onUrlInputBlur();
+    }
+  }
+
+  fetchUrlMetadata(url: string): void {
+    if (!url) {
+      this.urlMetadata.set(null);
+      this.isUrlEditMode.set(true);
+      this.urlError.set(null);
+      return;
+    }
+
+    if (!this.isYouTubeUrl(url) && !this.isVimeoUrl(url)) {
+      this.urlError.set('Đường dẫn không hợp lệ, vui lòng kiểm tra lại');
+      this.urlMetadata.set(null);
+      this.isUrlEditMode.set(true);
+      return;
+    }
+
+    this.urlError.set(null);
+    this.isLoadingMetadata.set(true);
+    // Use OEmbed for YouTube
+    const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`;
+
+    this.http.get<any>(oembedUrl).subscribe({
+      next: (data) => {
+        this.urlMetadata.set({
+          title: data.title,
+          thumbnail: data.thumbnail_url,
+          channel: data.author_name
+        });
+
+        // Auto-update section title if empty or default
+        if (!this.sectionTitle || this.sectionTitle.trim() === '' || this.sectionTitle === 'Untitled Section' || this.sectionTitle === 'Tiêu đề mặc định') {
+          this.sectionTitle = data.title;
+        }
+
+        this.isLoadingMetadata.set(false);
+        this.isUrlEditMode.set(false);
+        this.updateVideoPreview(url);
+      },
+      error: () => {
+        // Fallback for metadata but keep the URL if it's a valid video link
+        this.urlMetadata.set({
+          title: 'Video Content',
+          thumbnail: '',
+          channel: 'Video Source'
+        });
+        this.isLoadingMetadata.set(false);
+        this.isUrlEditMode.set(false);
+        this.updateVideoPreview(url);
+      }
+    });
+  }
+
   isYouTubeUrl(url: string): boolean {
     if (!url) return false;
     return url.includes('youtube.com') || url.includes('youtu.be');
+  }
+
+  isVimeoUrl(url: string): boolean {
+    if (!url) return false;
+    return url.includes('vimeo.com');
   }
 
   // Trong Component Class
@@ -770,22 +885,31 @@ export class CourseCurriculumComponent implements OnDestroy {
   }
   // Section Methods (L3)
   openSectionEditor(type: 'TEXT' | 'VIDEO' | 'QUIZ' | 'FILE') {
+    this.isDataLoaded.set(false);
     this.editingSectionId.set(null);
-    this.newSectionType = type as any;
+    this.newSectionType.set(type);
     this.sectionTitle = '';
     this.sectionContent = '';
+    this.wordCount.set(0);
     this.sectionVideoUrl = '';
-    this.sectionVideoType = null; // [NEW] Reset video type
-    this.sectionCfObjectKey = null; // [NEW] Reset R2 object key
+    this.sectionVideoType = null;
+    this.sectionCfObjectKey = null;
     this.sectionFileUrl.set(null);
-    this.selectedFile = null;
+    this.selectedFile.set(null);
     this.sectionIsRequired = false;
-    this.resetSectionQuizFields(); // Reset quiz fields for new section
+    this.resetSectionQuizFields();
+    this.videoSourceMode.set('upload');
     this.showSectionModal.set(true);
+
+    if (type === 'TEXT') {
+      requestAnimationFrame(() => {
+        this.isDataLoaded.set(true);
+      });
+    } else {
+      this.isDataLoaded.set(true);
+    }
   }
 
-  // Flag to control editor loading timing
-  isDataLoaded = signal<boolean>(false);
 
   editSection(section: SectionDraftDTO) {
     this.isDataLoaded.set(false); // Reset before loading
@@ -793,8 +917,25 @@ export class CourseCurriculumComponent implements OnDestroy {
     // this.isEditingSection.set(true); // Removed as property doesn't exist
     this.editingSectionId.set(section.id);
     this.sectionTitle = section.title;
-    this.newSectionType = section.type as any;
+    this.newSectionType.set(section.type as any);
     this.sectionIsRequired = section.isRequired || false;
+
+    // Check initial video source mode
+    if (this.newSectionType() === 'VIDEO') {
+      if (this.sectionVideoUrl && !this.sectionCfObjectKey && this.isYouTubeUrl(this.sectionVideoUrl)) {
+        this.videoSourceMode.set('url');
+        this.isUrlEditMode.set(false);
+        this.fetchUrlMetadata(this.sectionVideoUrl);
+      } else {
+        this.videoSourceMode.set('upload');
+        this.isUrlEditMode.set(true);
+      }
+
+      // Focus Mode: Auto-scroll to video content
+      setTimeout(() => {
+        this.scrollToVideo();
+      }, 100);
+    }
 
     // Reset content fields
     this.sectionContent = '';
@@ -802,15 +943,15 @@ export class CourseCurriculumComponent implements OnDestroy {
     this.sectionVideoType = null; // [NEW] Reset video type
     this.sectionCfObjectKey = null; // [NEW] Reset R2 object key
     this.safeVideoUrl.set(null);
-    this.selectedFile = null;
+    this.selectedFile.set(null);
     this.sectionFileUrl.set(null); // Ensure file URL is also reset
 
     if (section.type === 'TEXT') {
-      // Load content and delay flag set
       this.sectionContent = section.content || '';
-      setTimeout(() => {
+      requestAnimationFrame(() => {
         this.isDataLoaded.set(true);
-      }, 50);
+        this.updateWordCount(this.sectionContent);
+      });
     } else if (section.type === 'VIDEO') {
       // ... existing video logic
       if (section.videoUrl) {
@@ -873,27 +1014,27 @@ export class CourseCurriculumComponent implements OnDestroy {
     return this.sanitizer.bypassSecurityTrustResourceUrl(url);
   }
 
-  async saveSection() {
+  async saveSection(isAutoSave = false) {
     const lesson = this.selectedLesson();
     if (!lesson || !this.sectionTitle.trim()) return;
 
-    this.isSaving.set(true);
+    if (!isAutoSave) this.isSaving.set(true);
     try {
       // Construction of DTO Payload
       const payload: any = {
         lessonId: lesson.id,
         title: this.sectionTitle.trim(),
-        type: this.newSectionType,
+        type: this.newSectionType(),
         isRequired: this.sectionIsRequired
       };
 
-      if (this.newSectionType === 'TEXT') {
+      if (this.newSectionType() === 'TEXT') {
         payload.content = this.sectionContent;
-      } else if (this.newSectionType === 'VIDEO') {
+      } else if (this.newSectionType() === 'VIDEO') {
         payload.videoUrl = this.sectionVideoUrl;
         payload.videoType = this.sectionVideoType;
         payload.cfObjectKey = this.sectionCfObjectKey;
-      } else if (this.newSectionType === 'QUIZ') {
+      } else if (this.newSectionType() === 'QUIZ') {
         payload.quizData = {
           // Mapping variables to DTO fields
           quizType: this.sectionQuizType,
@@ -912,8 +1053,8 @@ export class CourseCurriculumComponent implements OnDestroy {
       formData.append('data', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
 
       // append File if existing
-      if (this.newSectionType === 'FILE' && this.selectedFile) {
-        formData.append('file', this.selectedFile);
+      if (this.newSectionType() === 'FILE' && this.selectedFile()) {
+        formData.append('file', this.selectedFile()!);
       }
 
 
@@ -923,7 +1064,7 @@ export class CourseCurriculumComponent implements OnDestroy {
       if (this.editingSectionId()) {
         const res: any = await firstValueFrom(this.sectionApi.updateSection(lesson.id, this.editingSectionId()!, formData));
         const updatedSection = res.data || res;
-        if (updatedSection?.fileUrl && this.newSectionType === 'FILE') {
+        if (updatedSection?.fileUrl && this.newSectionType() === 'FILE') {
           this.sectionFileUrl.set(updatedSection.fileUrl);
         }
       } else {
@@ -931,16 +1072,20 @@ export class CourseCurriculumComponent implements OnDestroy {
       }
 
       // Clear staged file after successful save
-      this.selectedFile = null;
+      this.selectedFile.set(null);
 
       // Reload course to refresh tree
       const courseId = this.store.courseTree()?.id;
       if (courseId) this.store.loadCourse(courseId, true);
-      this.showSectionModal.set(false);
+      if (!isAutoSave) {
+        this.showSectionModal.set(false);
+      } else {
+        console.log('Auto-saved TEXT content');
+      }
     } catch (e: any) {
-      this.toast.error('Lỗi khi lưu Mục: ' + (e?.message || 'Không rõ lỗi'));
+      if (!isAutoSave) this.toast.error('Lỗi khi lưu Mục: ' + (e?.message || 'Không rõ lỗi'));
     } finally {
-      this.isSaving.set(false);
+      if (!isAutoSave) this.isSaving.set(false);
     }
   }
 
@@ -980,7 +1125,7 @@ export class CourseCurriculumComponent implements OnDestroy {
   onFileSelected(event: Event) {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files[0]) {
-      this.selectedFile = input.files[0];
+      this.selectedFile.set(input.files[0]);
     }
   }
 
@@ -996,6 +1141,47 @@ export class CourseCurriculumComponent implements OnDestroy {
       // If URL parsing fails, try simple approach
       const lastSlash = url.lastIndexOf('/');
       return lastSlash >= 0 ? url.substring(lastSlash + 1) : url;
+    }
+  }
+ 
+  // [NEW] Smart File Card Utilities
+  getFileIcon(url: string | null): string {
+    if (!url) return 'file';
+    const ext = url.split('.').pop()?.toLowerCase();
+    switch (ext) {
+      case 'pdf': return 'file-text';
+      case 'doc':
+      case 'docx': return 'file-text';
+      case 'xls':
+      case 'xlsx': return 'file-spreadsheet';
+      case 'ppt':
+      case 'pptx': return 'presentation';
+      case 'zip':
+      case 'rar': return 'archive';
+      default: return 'file';
+    }
+  }
+ 
+  getFileColorClass(url: string | null): string {
+    if (!url) return 'text-slate-400 bg-slate-50';
+    const ext = url.split('.').pop()?.toLowerCase();
+    switch (ext) {
+      case 'pdf': return 'text-rose-600 bg-rose-50 border-rose-100';
+      case 'doc':
+      case 'docx': return 'text-blue-600 bg-blue-50 border-blue-100';
+      case 'xls':
+      case 'xlsx': return 'text-emerald-600 bg-emerald-50 border-emerald-100';
+      case 'ppt':
+      case 'pptx': return 'text-orange-600 bg-orange-50 border-orange-100';
+      default: return 'text-slate-600 bg-slate-50 border-slate-100';
+    }
+  }
+ 
+  triggerFileUpload(input?: HTMLInputElement) {
+    if (input) {
+      input.click();
+    } else {
+      this.fileInputRef()?.nativeElement.click();
     }
   }
 
@@ -1134,5 +1320,6 @@ export class CourseCurriculumComponent implements OnDestroy {
     this.sectionQuizShuffleOptions = true;
     this.sectionQuizShowResults = true;
     this.sectionQuizSelectedQuestions.set([]);
+    this.selectedFile.set(null);
   }
 }

@@ -92,12 +92,17 @@ export class StudentDashboardComponent implements OnInit {
     const data = this.continueData();
     if (!data?.courseId) return null;
     const course = this.enrolledCourses().find(c => c.id === data.courseId);
+    
+    // Fallback: Nếu service chưa có counts, dùng dữ liệu thô từ data (nếu backend trả về đầy đủ)
+    const total = course?.totalLessons || (data as any).totalLessons || 0;
+    const completed = course?.completedLessons || (data as any).completedLessons || 0;
+
     return {
       ...data,
       thumbnail: course?.thumbnail ?? null,
       progress: course?.progress ?? 0,
-      completedLessons: course?.completedLessons ?? 0,
-      totalLessons: course?.totalLessons ?? 0,
+      completedLessons: completed,
+      totalLessons: total,
     };
   });
 
@@ -180,16 +185,10 @@ export class StudentDashboardComponent implements OnInit {
       // Find the first incomplete lesson across all modules (= current lesson)
       const currentLessonId = this.findFirstIncompleteLessonId(rawModules);
 
-      // Recalculate progress from actual completion data when modules are loaded
-      const totalFromModules = enrichedModules.reduce((sum, m) => sum + (m.totalCount || 0), 0);
-      const completedFromModules = enrichedModules.reduce((sum, m) => sum + (m.completedCount || 0), 0);
-      const actualProgress = totalFromModules > 0 ? Math.round((completedFromModules / totalFromModules) * 100) : 0;
-      const progress = enrichedModules.length > 0 ? Math.max(course.progress, actualProgress) : course.progress;
-
       return {
         id: course.id,
         title: course.title,
-        progress,
+        progress: course.progress,
         completedLessons: course.completedLessons,
         totalLessons: course.totalLessons,
         status: (course.status === 'enrolled' ? 'in-progress' : course.status) as 'in-progress' | 'completed',

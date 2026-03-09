@@ -50,11 +50,11 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
         <div class="resize-handle absolute right-0 top-0 w-1 h-full cursor-col-resize hover:bg-[#0056D2]/40 active:bg-[#E8F0FE]/60 transition-colors z-50"></div>
 
         <!-- Header -->
-        <div class="p-3.5 pb-2.5 border-b border-slate-200">
-            <div class="flex items-center justify-between mb-2.5">
-              <h2 class="text-xs font-bold text-slate-600 uppercase tracking-wider">Cấu trúc khóa học</h2>
-              <div class="flex items-center gap-1.5">
-                <span class="text-[11px] font-semibold text-slate-500">{{ publishedCount() }}/{{ totalCount() }}</span>
+        <div class="p-4 pb-3 border-b border-slate-200">
+            <div class="flex items-center justify-between mb-3">
+              <h2 class="text-[11px] font-extrabold text-slate-500 uppercase tracking-widest">Cấu trúc khóa học</h2>
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-bold text-slate-400">{{ publishedCount() }}/{{ totalCount() }}</span>
                 <button (click)="toggleAll()"
                         class="p-1.5 rounded-md hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-colors"
                         [matTooltip]="isAllExpanded() ? 'Thu gọn tất cả' : 'Mở rộng tất cả'">
@@ -70,14 +70,14 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
             </div>
             <!-- Search -->
             <div class="relative">
-                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                 </svg>
                 <input type="text"
                        [(ngModel)]="tempSearch"
                        (input)="onSearch(tempSearch)"
                        placeholder="Tìm kiếm... (Ctrl+K)"
-                       class="w-full h-9 pl-9 pr-3 bg-white border border-slate-200 rounded-lg text-[13px] text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20 focus:border-[#0056D2] transition-all placeholder:text-slate-400 shadow-sm">
+                       class="w-full h-10 pl-10 pr-4 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20 focus:border-[#0056D2] transition-all placeholder:text-slate-400 shadow-sm">
             </div>
         </div>
 
@@ -178,11 +178,11 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
                                          (blur)="confirmEditChapter(chapter.id)"
                                          (keydown)="onEditKeydown($event, 'chapter', chapter.id)"
                                          (click)="$event.stopPropagation()"
-                                         class="w-full text-sm font-semibold text-slate-800 bg-white border border-[#0056D2] rounded px-2 py-1 outline-none focus:ring-2 focus:ring-[#0056D2]/30"
+                                         class="w-full text-base font-bold text-slate-800 bg-white border border-[#0056D2] rounded px-2 py-1 outline-none focus:ring-2 focus:ring-[#0056D2]/30"
                                          #editInput>
                               } @else {
-                                  <h4 class="text-sm font-bold text-slate-800 leading-snug line-clamp-2 break-words">{{ chapter.title }}</h4>
-                                  <span class="text-[11px] text-slate-500 font-medium">{{ chapter.lessons.length }} bài học</span>
+                                  <h4 class="text-base font-bold text-slate-800 leading-tight line-clamp-2 break-words">{{ chapter.title }}</h4>
+                                  <span class="text-xs text-slate-500 font-medium">{{ chapter.lessons.length }} bài học</span>
                               }
                           </div>
 
@@ -326,14 +326,14 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
                                                        (blur)="confirmEditLesson(lesson.id)"
                                                        (keydown)="onEditKeydown($event, 'lesson', lesson.id)"
                                                        (click)="$event.stopPropagation()"
-                                                       class="w-full text-[13px] font-medium text-slate-700 bg-white border border-[#0056D2] rounded px-2 py-0.5 outline-none focus:ring-2 focus:ring-[#0056D2]/30"
+                                                       class="w-full text-sm font-medium text-slate-700 bg-white border border-[#0056D2] rounded px-2 py-0.5 outline-none focus:ring-2 focus:ring-[#0056D2]/30"
                                                        #editInput>
                                             } @else {
-                                                <p class="text-[13px] font-semibold text-slate-700 leading-snug line-clamp-2 break-words group-hover/ls:text-slate-900">
+                                                <p class="text-sm font-semibold text-slate-700 leading-snug line-clamp-2 break-words group-hover/ls:text-slate-900">
                                                     {{ lesson.title }}
                                                 </p>
                                                 @if (!isLessonExpanded(lesson.id) && lesson.sections.length) {
-                                                  <span class="text-[11px] text-slate-500 font-medium">{{ lesson.sections.length }} nội dung</span>
+                                                  <span class="text-xs text-slate-500 font-medium">{{ lesson.sections.length }} nội dung</span>
                                                 }
                                             }
                                           </div>
@@ -441,10 +441,10 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
                                                       <div [class]="'w-1 h-4 rounded-full flex-shrink-0 ' + getTypeColor(section.type)"></div>
 
                                                       <div class="flex-grow min-w-0">
-                                                          <p class="text-xs text-slate-600 leading-snug line-clamp-2 break-words group-hover/sec:text-slate-900 font-medium">
+                                                          <p class="text-[13px] text-slate-600 leading-snug line-clamp-2 break-words group-hover/sec:text-slate-900 font-medium">
                                                               {{ section.title }}
                                                           </p>
-                                                          <span class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">{{ section.type }}</span>
+                                                          <span class="text-[11px] text-slate-400 uppercase tracking-widest font-bold">{{ section.type }}</span>
                                                       </div>
 
                                                       <!-- Section Actions -->

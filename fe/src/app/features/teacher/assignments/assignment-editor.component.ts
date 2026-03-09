@@ -1,4 +1,4 @@
-﻿import { Component, ChangeDetectionStrategy, inject, signal, OnInit, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, signal, OnInit, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -7,6 +7,7 @@ import { AssignmentStateService } from './services/assignment-state.service';
 import { validateMaxScore } from './utils/assignment-validators';
 import { DistributionSelectorComponent, DistributionSettings } from '../assignment-hub/components/distribution-selector.component';
 import { CourseApi } from '../../../api/client/course.api';
+import { LucideAngularModule } from 'lucide-angular';
 
 type AssignmentStatus = 'pending' | 'published' | 'closed' | 'DRAFT' | 'PUBLISHED' | 'CLOSED';
 
@@ -27,7 +28,7 @@ interface EnrolledStudentData {
  */
 @Component({
   selector: 'app-assignment-editor',
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterModule, DistributionSelectorComponent],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterModule, DistributionSelectorComponent, LucideAngularModule],
   templateUrl: './assignment-editor.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })

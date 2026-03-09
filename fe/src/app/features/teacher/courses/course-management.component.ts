@@ -2,7 +2,7 @@ import { Component, ChangeDetectionStrategy, inject, signal, computed, DestroyRe
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { CourseApi } from '../../../api/client/course.api';
 import { CourseSummary } from '../../../api/types/course.types';
 import { ToastService } from '../../../core/services/toast.service';
@@ -78,221 +78,141 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
           </div>
         </div>
 
-        <!-- Table Card -->
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <table class="w-full">
-            <thead>
-              <tr class="border-b border-gray-200 bg-gray-50/80">
-                <th class="px-5 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Khóa học</th>
-                <th class="px-4 py-3 text-center text-[11px] font-semibold text-gray-500 uppercase tracking-wider w-[100px]">Hình thức</th>
-                <th class="px-4 py-3 text-center text-[11px] font-semibold text-gray-500 uppercase tracking-wider w-[100px]">Trạng thái</th>
-                <th class="px-4 py-3 text-center text-[11px] font-semibold text-gray-500 uppercase tracking-wider w-[110px]">Học viên</th>
-                <th class="px-4 py-3 text-center text-[11px] font-semibold text-gray-500 uppercase tracking-wider w-[110px]">Nội dung</th>
-                <th class="px-4 py-3 text-right text-[11px] font-semibold text-gray-500 uppercase tracking-wider w-[220px]">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100">
-              @for (c of paged(); track c.id; let i = $index) {
-                <tr class="hover:bg-[#0056D2]/5/40 transition-colors group">
-                  <!-- Col 1: Course info (thumbnail + title + desc + category) -->
-                  <td class="px-5 py-3">
-                    <div class="flex items-center gap-3">
-                      <!-- Thumbnail -->
-                      <div class="w-[72px] h-[48px] rounded-lg overflow-hidden flex-shrink-0 border border-gray-200/60">
-                        @if (c.thumbnailUrl) {
-                          <img [src]="c.thumbnailUrl" [alt]="c.title" class="w-full h-full object-cover"/>
-                        } @else {
-                          <div class="w-full h-full flex items-center justify-center" [style.background]="getThumbnailGradient(c.title)">
-                            <span class="text-base font-bold text-white/90">{{ c.title.charAt(0).toUpperCase() }}</span>
-                          </div>
-                        }
-                      </div>
-                      <!-- Info -->
-                      <div class="min-w-0 flex-1">
-                        <div class="text-sm font-semibold text-gray-900 line-clamp-1 break-words">{{ c.title }}</div>
-                        @if (c.description) {
-                          <div class="text-xs text-gray-500 line-clamp-1 mt-0.5">{{ c.description }}</div>
-                        }
-                        <div class="flex items-center gap-1.5 mt-1">
-                          @if (c.categoryName) {
-                            <span class="inline-flex items-center bg-[#0056D2]/5 text-[#0056D2] text-[10px] font-medium px-1.5 py-px rounded">{{ c.categoryName }}</span>
-                          }
-                          @if (c.code) {
-                            <span class="text-[10px] text-gray-400 font-mono">{{ c.code }}</span>
-                          }
-                        </div>
-                      </div>
+        <!-- Course List -->
+        <div class="courses-list mt-6">
+          @for (c of paged(); track c.id) {
+            <div class="course-card" (click)="onEdit(c.id)">
+              <div class="course-card-body">
+                <!-- Thumbnail -->
+                <div class="course-thumbnail">
+                  @if (c.thumbnailUrl) {
+                    <img [src]="c.thumbnailUrl" [alt]="c.title" class="thumbnail-image" loading="lazy" />
+                  } @else {
+                    <div class="thumbnail-placeholder">
+                      <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/>
+                      </svg>
                     </div>
-                  </td>
+                  }
+                </div>
 
-                  <!-- Col 2: Delivery mode -->
-                  <td class="px-4 py-3 text-center">
-                    @if (c.deliveryMode === 'INSTRUCTOR_LED') {
-                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700">
-                        <app-icon name="graduation-cap" size="xs" class="text-emerald-500"/>
+                <!-- Info -->
+                <div class="course-metadata">
+                  <h3 class="course-title">{{ c.title }}</h3>
+                  <div class="course-meta">
+                    @if (c.code) {
+                      <span class="meta-code">{{ c.code }}</span>
+                      <span class="separator">&middot;</span>
+                    }
+                    <span>{{ c.enrolledCount || 0 }} học viên</span>
+                    @if (c.sectionCount) {
+                      <span class="separator">&middot;</span>
+                      <span>{{ c.sectionCount }} chương</span>
+                    }
+                  </div>
+                  <div class="course-badges">
+                    <span class="delivery-badge" [class.class-mode]="c.deliveryMode === 'INSTRUCTOR_LED'">
+                      @if (c.deliveryMode === 'INSTRUCTOR_LED') {
+                        <app-icon name="graduation-cap" size="xs" class="mr-1 inline-block" />
                         Lớp học
-                      </span>
-                    } @else {
-                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#0056D2]/5 text-[#0056D2]">
-                        <app-icon name="video" size="xs" class="text-[#0056D2]"/>
-                        Khóa học
-                      </span>
-                    }
-                  </td>
-
-                  <!-- Col 3: Status -->
-                  <td class="px-4 py-3 text-center">
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold"
-                      [class]="getStatusBadgeClass(c.status)">
-                      <span class="w-1.5 h-1.5 rounded-full mr-1" [class]="getStatusDotClass(c.status)"></span>
-                      {{ getStatusLabel(c.status) }}
-                    </span>
-                  </td>
-
-                  <!-- Col 4: Learner count (differentiated) -->
-                  <td class="px-4 py-3 text-center">
-                    @if (c.deliveryMode === 'INSTRUCTOR_LED') {
-                      <div class="flex flex-col items-center">
-                        <span class="text-sm font-semibold text-gray-800">
-                          {{ c.enrolledCount || 0 }}@if (c.maxStudents) {<span class="text-gray-400 font-normal"> / {{ c.maxStudents }}</span>}
-                        </span>
-                        <span class="text-[10px] text-emerald-600 font-medium">sĩ số</span>
-                      </div>
-                    } @else {
-                      <div class="flex flex-col items-center">
-                        <span class="text-sm font-semibold text-gray-800">{{ c.enrolledCount || 0 }}</span>
-                        <span class="text-[10px] text-[#0056D2] font-medium">người học</span>
-                      </div>
-                    }
-                  </td>
-
-                  <!-- Col 5: Content stats -->
-                  <td class="px-4 py-3 text-center">
-                    <div class="flex flex-col items-center gap-0.5 text-[11px] text-gray-500">
-                      @if (c.sectionCount) {
-                        <span>{{ c.sectionCount }} chương</span>
-                      }
-                      @if (c.lessonCount) {
-                        <span>{{ c.lessonCount }} bài</span>
-                      }
-                      @if (!c.sectionCount && !c.lessonCount) {
-                        <span class="text-gray-300">--</span>
-                      }
-                    </div>
-                  </td>
-
-                  <!-- Col 6: Actions (3-slot fixed layout for alignment) -->
-                  <td class="px-4 py-3">
-                    <div class="flex items-center gap-1.5 justify-end">
-                      <!-- Slot 1: Edit button (fixed width) -->
-                      @if (c.status.toUpperCase() !== 'PENDING') {
-                        <a [routerLink]="['/teacher/courses', c.id, 'editor']"
-                          class="w-[52px] py-1 bg-[#0056D2] text-white hover:bg-[#004BB5] rounded-md transition-colors text-xs font-medium inline-flex items-center justify-center gap-1">
-                          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                          </svg>
-                          Sửa
-                        </a>
                       } @else {
-                        <button disabled
-                          class="w-[52px] py-1 bg-gray-100 text-gray-400 rounded-md text-xs font-medium inline-flex items-center justify-center gap-1 cursor-not-allowed">
-                          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                          </svg>
-                          Sửa
-                        </button>
+                        <app-icon name="video" size="xs" class="mr-1 inline-block" />
+                        Khóa học
                       }
+                    </span>
+                  </div>
+                </div>
 
-                      <!-- Slot 2: Context action (fixed width, preserves alignment) -->
-                      <div class="w-[80px] flex justify-center">
-                        @if (c.status === 'DRAFT' || c.status === 'REJECTED') {
-                          <button
-                            class="w-full py-1 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-md transition-colors text-xs font-medium disabled:opacity-50 text-center"
-                            [disabled]="submittingId() === c.id"
-                            (click)="submitForApproval(c.id)">
-                            Gửi duyệt
+                <!-- Status + Action -->
+                <div class="course-actions">
+                  <span [class]="getStatusClasses(c.status)">
+                    {{ getStatusLabel(c.status) }}
+                  </span>
+                  <span class="course-date">Cập nhật: {{ formatDate(c.updatedAt || c.createdAt) }}</span>
+                  
+                  <div class="flex items-center gap-2">
+                    <button class="edit-button" (click)="onEdit(c.id); $event.stopPropagation()">
+                      Chỉnh sửa
+                    </button>
+                    
+                    <!-- Kebab Menu -->
+                    <div class="relative">
+                      <button (click)="toggleMenu(c.id); $event.stopPropagation()"
+                        class="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors">
+                        <svg class="w-4.5 h-4.5" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/>
+                        </svg>
+                      </button>
+                      
+                      @if (openMenuId() === c.id) {
+                        <div class="absolute right-0 top-full mt-1 w-44 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                          <button (click)="onStatistics(c.id); closeMenu()"
+                            class="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2 font-medium">
+                            <app-icon name="bar-chart" size="xs" class="text-blue-500" />
+                            Thống kê
                           </button>
-                        }
-                        @if (c.status === 'PENDING') {
-                          <button
-                            class="w-full py-1 bg-amber-50 text-amber-600 hover:bg-amber-100 rounded-md transition-colors text-xs font-medium disabled:opacity-50 text-center"
-                            [disabled]="cancellingId() === c.id"
-                            (click)="cancelApproval(c.id)">
-                            Hủy duyệt
-                          </button>
-                        }
-                      </div>
-
-                      <!-- Slot 3: Kebab menu (always same position) -->
-                      <div class="relative">
-                        <button (click)="toggleMenu(c.id)"
-                          class="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors">
-                          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/>
-                          </svg>
-                        </button>
-                        @if (openMenuId() === c.id) {
-                          <div class="absolute right-0 top-full mt-1 w-44 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
-                            @if (c.status === 'REJECTED') {
-                              <button (click)="viewReviewComment(c.id); closeMenu()"
-                                class="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2">
-                                <svg class="w-3.5 h-3.5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
-                                </svg>
-                                Xem phản hồi
-                              </button>
-                            }
-                            <button (click)="deleteCourse(c.id, c.title); closeMenu()"
-                              class="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2"
-                              [disabled]="deletingId() === c.id">
-                              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                              </svg>
-                              Xóa khóa học
+                          
+                          @if (c.status === 'DRAFT' || c.status === 'REJECTED') {
+                            <button (click)="submitForApproval(c.id); closeMenu()"
+                              class="w-full text-left px-3 py-2 text-xs text-emerald-600 hover:bg-emerald-50 flex items-center gap-2 font-medium">
+                              <app-icon name="check" size="xs" />
+                              Gửi duyệt
                             </button>
-                          </div>
-                        }
-                      </div>
+                          }
+                          
+                          @if (c.status === 'PENDING') {
+                            <button (click)="cancelApproval(c.id); closeMenu()"
+                              class="w-full text-left px-3 py-2 text-xs text-amber-600 hover:bg-amber-50 flex items-center gap-2 font-medium">
+                              <app-icon name="x" size="xs" />
+                              Hủy duyệt
+                            </button>
+                          }
+                          
+                          @if (c.status === 'REJECTED') {
+                            <button (click)="viewReviewComment(c.id); closeMenu()"
+                              class="w-full text-left px-3 py-2 text-xs text-purple-600 hover:bg-purple-50 flex items-center gap-2 font-medium">
+                              <app-icon name="info" size="xs" />
+                              Xem phản hồi
+                            </button>
+                          }
+                          
+                          <div class="border-t border-gray-100 my-1"></div>
+                          
+                          <button (click)="deleteCourse(c.id, c.title); closeMenu()"
+                            class="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2 font-medium">
+                            <app-icon name="trash" size="xs" />
+                            Xóa khóa học
+                          </button>
+                        </div>
+                      }
                     </div>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-
-          <!-- Empty State -->
-          @if (paged().length === 0 && !error()) {
-            <div class="text-center py-16">
-              <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
-                <app-icon name="file-text" size="xl" class="text-gray-300"/>
+                  </div>
+                </div>
               </div>
-              <h3 class="text-base font-medium text-gray-900 mb-1">Không tìm thấy khóa học</h3>
-              <p class="text-sm text-gray-500 mb-5">Thử thay đổi bộ lọc hoặc tạo khóa học mới</p>
-              <a routerLink="/teacher/course-creation"
-                class="inline-flex items-center gap-2 px-4 py-2 bg-[#0056D2] text-white hover:bg-[#004BB5] rounded-lg transition-colors font-medium text-sm">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                </svg>
-                Tạo khóa học
-              </a>
             </div>
           }
+        </div>
 
-          <!-- Error State -->
-          @if (error()) {
-            <div class="p-8 text-center">
-              <svg class="w-12 h-12 text-red-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        <!-- Empty State -->
+        @if (paged().length === 0 && !error()) {
+          <div class="empty-state mt-8">
+            <div class="empty-state-icon">
+              <svg width="40" height="40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/>
               </svg>
-              <p class="text-red-600 font-medium text-sm">{{ error() }}</p>
             </div>
-          }
+            <h3 class="empty-state-title">Không tìm thấy khóa học</h3>
+            <p class="empty-state-text">Thử thay đổi bộ lọc hoặc tạo khóa học mới để bắt đầu giảng dạy</p>
+            <a routerLink="/teacher/course-creation" class="retry-link">Tạo khóa học ngay &rarr;</a>
+          </div>
+        }
 
-          <!-- Pagination -->
-          <div class="px-5 py-3 border-t border-gray-200 flex items-center justify-between bg-gray-50/50">
-            <div class="flex items-center gap-2 text-sm text-gray-500">
-              <span>Hiển thị</span>
-              <select class="border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[#0056D2]"
+        <!-- Pagination -->
+        @if (total() > 0) {
+          <div class="courses-footer mt-8">
+            <div class="flex items-center gap-3">
+              <span class="footer-summary">Hiển thị</span>
+              <select class="border border-gray-200 rounded px-2 py-1 text-xs font-semibold text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                 [ngModel]="pageSize()"
                 (ngModelChange)="onPageSizeChange($event)">
                 <option [ngValue]="5">5</option>
@@ -300,26 +220,30 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
                 <option [ngValue]="20">20</option>
                 <option [ngValue]="50">50</option>
               </select>
-              <span>/ trang</span>
+              <span class="footer-summary">dòng / trang</span>
             </div>
-            <div class="flex items-center gap-2">
-              <button class="px-3 py-1 border border-gray-200 rounded text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-medium transition-colors"
-                [disabled]="pageIndex() <= 1"
-                (click)="prevPage()">
-                Trước
-              </button>
-              <span class="text-xs text-gray-600 px-1">Trang {{ pageIndex() }} / {{ totalPages() }}</span>
-              <button class="px-3 py-1 border border-gray-200 rounded text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-medium transition-colors"
-                [disabled]="pageIndex() >= totalPages()"
-                (click)="nextPage()">
-                Sau
-              </button>
+            
+            <div class="flex items-center gap-4">
+              <span class="footer-summary">Trang <strong>{{ pageIndex() }}</strong> / {{ totalPages() }}</span>
+              <div class="flex items-center gap-1.5">
+                <button class="p-1.5 rounded-md border border-gray-200 hover:bg-gray-50 text-gray-500 disabled:opacity-30 transition-colors"
+                  [disabled]="pageIndex() <= 1"
+                  (click)="prevPage()">
+                  <app-icon name="chevron-left" size="sm" />
+                </button>
+                <button class="p-1.5 rounded-md border border-gray-200 hover:bg-gray-50 text-gray-500 disabled:opacity-30 transition-colors"
+                  [disabled]="pageIndex() >= totalPages()"
+                  (click)="nextPage()">
+                  <app-icon name="chevron-right" size="sm" />
+                </button>
+              </div>
             </div>
-            <div class="text-xs text-gray-500">
-              Tổng: <span class="font-semibold text-[#0056D2]">{{ total() }}</span> khóa học
+            
+            <div class="footer-summary">
+              Tổng số <span class="text-blue-600 font-bold">{{ total() }}</span> khóa học
             </div>
           </div>
-        </div>
+        }
       </div>
     </div>
 
@@ -352,6 +276,271 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
       </div>
     }
   `,
+  styles: [`
+    .courses-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .course-card {
+      background: white;
+      border-radius: 12px;
+      border: 1px solid #E5E7EB;
+      box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      transition: all 0.2s ease;
+      overflow: hidden;
+      cursor: pointer;
+
+      &:hover {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        border-color: #D1D5DB;
+
+        .course-title {
+          color: #0056D2;
+        }
+      }
+    }
+
+    .course-card-body {
+      display: flex;
+      gap: 16px;
+      padding: 12px;
+      align-items: center;
+    }
+
+    .course-thumbnail {
+      width: 140px;
+      height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      flex-shrink: 0;
+      overflow: hidden;
+      background: #F3F4F6;
+      border: 1px solid #F3F4F6;
+    }
+
+    .thumbnail-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .thumbnail-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #94A3B8;
+      background: #F1F5F9;
+    }
+
+    .course-metadata {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .course-title {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: #111827;
+      line-height: 1.4;
+      transition: color 0.2s ease;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .course-meta {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+      font-size: 12px;
+      color: #6B7280;
+    }
+
+    .meta-code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      color: #9CA3AF;
+    }
+
+    .separator {
+      color: #D1D5DB;
+    }
+
+    .course-badges {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .delivery-badge {
+      font-size: 11px;
+      font-weight: 600;
+      color: #0056D2;
+      background: #EFF6FF;
+      padding: 2px 8px;
+      border-radius: 9999px;
+
+      &.class-mode {
+        color: #059669;
+        background: #ECFDF5;
+      }
+    }
+
+    .course-actions {
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+      min-width: 160px;
+      padding-left: 16px;
+      border-left: 1px solid #F3F4F6;
+    }
+
+    .status-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 10px;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.025em;
+
+      &.badge-approved, &.badge-published {
+        background: #ECFDF5;
+        color: #059669;
+      }
+
+      &.badge-pending {
+        background: #FFFBEB;
+        color: #D97706;
+      }
+
+      &.badge-draft {
+        background: #F3F4F6;
+        color: #6B7280;
+      }
+
+      &.badge-rejected {
+        background: #FEF2F2;
+        color: #DC2626;
+      }
+    }
+
+    .course-date {
+      font-size: 11px;
+      color: #9CA3AF;
+    }
+
+    .edit-button {
+      padding: 6px 16px;
+      border: 1px solid #0056D2;
+      border-radius: 6px;
+      background: white;
+      color: #0056D2;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: #0056D2;
+        color: white;
+      }
+    }
+
+    /* Footer / Pagination Styles */
+    .courses-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      background: white;
+      border: 1px solid #E5E7EB;
+      border-radius: 12px;
+      box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    }
+
+    .footer-summary {
+      font-size: 13px;
+      color: #6B7280;
+    }
+
+    /* Empty State Styles */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 24px;
+      background: white;
+      border-radius: 12px;
+      border: 2px dashed #E5E7EB;
+      text-align: center;
+    }
+
+    .empty-state-icon {
+      color: #D1D5DB;
+      margin-bottom: 12px;
+    }
+
+    .empty-state-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 4px;
+    }
+
+    .empty-state-text {
+      font-size: 14px;
+      color: #6B7280;
+      margin-bottom: 16px;
+      max-width: 320px;
+    }
+
+    .retry-link {
+      font-size: 14px;
+      font-weight: 600;
+      color: #0056D2;
+      text-decoration: none;
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .course-card-body {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .course-thumbnail {
+        width: 100%;
+        height: 160px;
+      }
+      .course-actions {
+        width: 100%;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        padding-left: 0;
+        padding-top: 12px;
+        border-left: none;
+        border-top: 1px solid #F3F4F6;
+      }
+    }
+  `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CourseManagementComponent {
@@ -359,6 +548,7 @@ export class CourseManagementComponent {
   private toast = inject(ToastService);
   private confirmDialog = inject(ConfirmDialogService);
   private destroyRef = inject(DestroyRef);
+  private router = inject(Router);
 
   showReviewModal = signal(false);
   reviewComment = signal('');
@@ -417,36 +607,59 @@ export class CourseManagementComponent {
     this.pageIndex.set(1);
   }
 
-  getStatusBadgeClass(status: string): string {
-    switch (status) {
-      case 'APPROVED': return 'bg-emerald-50 text-emerald-700';
-      case 'PENDING': return 'bg-amber-50 text-amber-700';
-      case 'REJECTED': return 'bg-red-50 text-red-700';
-      default: return 'bg-gray-100 text-gray-600';
-    }
-  }
-
-  getStatusDotClass(status: string): string {
-    switch (status) {
-      case 'APPROVED': return 'bg-emerald-500';
-      case 'PENDING': return 'bg-amber-500';
-      case 'REJECTED': return 'bg-red-500';
-      default: return 'bg-gray-400';
-    }
+  getStatusClasses(status: string): string {
+    const m: Record<string, string> = {
+      'APPROVED': 'badge-approved',
+      'PUBLISHED': 'badge-published',
+      'PENDING': 'badge-pending',
+      'DRAFT': 'badge-draft',
+      'REJECTED': 'badge-rejected',
+      'ARCHIVED': 'badge-archived'
+    };
+    return 'status-badge ' + (m[status?.toUpperCase()] || 'badge-draft');
   }
 
   getStatusLabel(status: string): string {
-    switch (status) {
-      case 'APPROVED': return 'Đã duyệt';
-      case 'PENDING': return 'Chờ duyệt';
-      case 'REJECTED': return 'Từ chối';
-      default: return 'Nháp';
+    const m: Record<string, string> = {
+      'APPROVED': 'Đã duyệt',
+      'PUBLISHED': 'Xuất bản',
+      'PENDING': 'Chờ duyệt',
+      'DRAFT': 'Nháp',
+      'REJECTED': 'Từ chối',
+      'ARCHIVED': 'Lưu trữ'
+    };
+    return m[status?.toUpperCase()] || status;
+  }
+
+  formatDate(dateStr: string | undefined): string {
+    if (!dateStr) return '';
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return '';
+      const now = new Date();
+      const diffMs = now.getTime() - d.getTime();
+      const diffDays = Math.floor(diffMs / 86400000);
+      
+      if (diffDays === 0) return 'Hôm nay';
+      if (diffDays === 1) return 'Hôm qua';
+      if (diffDays < 7) return `${diffDays} ngày trước`;
+      return d.toLocaleDateString('vi-VN');
+    } catch {
+      return '';
     }
   }
 
   getThumbnailGradient(title: string): string {
     const hash = title.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
     return this.GRADIENTS[hash % this.GRADIENTS.length];
+  }
+
+  onEdit(id: string) {
+    this.router.navigate(['/teacher/courses', id, 'editor']);
+  }
+
+  onStatistics(id: string) {
+    this.router.navigate(['/teacher/courses', id, 'statistics']);
   }
 
   toggleMenu(id: string) {

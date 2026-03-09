@@ -17,7 +17,7 @@ import { ToastService } from '../../../core/services/toast.service';
   imports: [ReactiveFormsModule, BlockEditorComponent, EnrichedInputFieldComponent, AuthImagePipe, QuestionPreviewComponent],
   template: `
     <div class="min-h-screen bg-gray-50 p-6">
-      <div class="max-w-4xl mx-auto">
+      <div class="max-w-6xl mx-auto">
         <!-- Header with Preview Button -->
         <div class="mb-8 flex justify-between items-start">
           <div>

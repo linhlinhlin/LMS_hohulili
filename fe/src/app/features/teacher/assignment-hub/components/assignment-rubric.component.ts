@@ -1,6 +1,7 @@
 import { Component, ChangeDetectionStrategy, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, ActivatedRoute } from '@angular/router';
+import { LucideAngularModule } from 'lucide-angular';
 import { RubricApi, RubricDTO, RubricCriterionDTO } from '../../../../api/endpoints/rubric.api';
 
 /**
@@ -12,86 +13,134 @@ import { RubricApi, RubricDTO, RubricCriterionDTO } from '../../../../api/endpoi
  */
 @Component({
   selector: 'app-assignment-rubric',
-  imports: [CommonModule, RouterLink],
+  standalone: true,
+  imports: [CommonModule, RouterLink, LucideAngularModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="bg-white rounded shadow p-6">
-      <div class="flex items-center justify-between mb-6">
-        <h3 class="text-lg font-semibold text-gray-900">Rubric bài tập</h3>
-        <div class="flex gap-2">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+      
+      <!-- Header Area -->
+      <div class="px-8 py-6 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-slate-50/30">
+        <div>
+          <h3 class="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+            <lucide-icon name="list-checks" [size]="16" class="text-[#0056D2]"></lucide-icon>
+            Rubric & Tiêu chí chấm điểm
+          </h3>
+          <p class="text-[10px] text-slate-500 font-bold uppercase tracking-tight mt-1">
+            Sử dụng để đánh giá công bằng và chi tiết cho bài nộp của học viên
+          </p>
+        </div>
+        
+        <div class="flex items-center gap-3">
           @if (!rubric()) {
-            <a routerLink="/teacher/assignments/rubrics" class="px-4 py-2 border rounded-lg hover:bg-gray-50 text-sm transition-colors">
+            <a routerLink="/teacher/assignments/rubrics" 
+               class="h-10 px-5 flex items-center justify-center rounded-xl bg-[#0056D2] text-white font-black text-[10px] uppercase tracking-widest hover:bg-[#004BB5] transition-all shadow-lg shadow-blue-100">
+              <lucide-icon name="plus" [size]="14" class="mr-2"></lucide-icon>
               Chọn từ thư viện
             </a>
-          }
-          @if (rubric()) {
-            <button (click)="removeRubric()" class="px-4 py-2 border border-red-200 text-red-600 rounded-lg hover:bg-red-50 text-sm transition-colors">
-              Gỡ rubric
+          } @else {
+            <button (click)="removeRubric()" 
+                    class="h-10 px-5 flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50 text-rose-600 font-black text-[10px] uppercase tracking-widest hover:bg-rose-100 transition-all">
+              <lucide-icon name="trash-2" [size]="14" class="mr-2"></lucide-icon>
+              Gỡ rubric khỏi bài tập
             </button>
           }
         </div>
       </div>
 
-      @if (loading()) {
-        <div class="flex items-center justify-center py-12">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0056D2]"></div>
-        </div>
-      } @else if (rubric(); as r) {
-        <!-- Rubric Content -->
-        <div class="mb-4">
-          <h4 class="text-base font-medium text-gray-900">{{ r.title }}</h4>
-          @if (r.description) {
-            <p class="text-sm text-gray-500 mt-1">{{ r.description }}</p>
-          }
-          <p class="text-sm text-[#0056D2] mt-1">Tổng điểm: {{ r.maxPoints }}</p>
-        </div>
-
-        <!-- Criteria Table -->
-        <div class="border rounded-lg overflow-hidden">
-          <table class="w-full text-sm">
-            <thead class="bg-gray-50">
-              <tr>
-                <th class="px-4 py-3 text-left font-medium text-gray-700">Tiêu chí</th>
-                @for (level of getLevelHeaders(r.criteria); track level) {
-                  <th class="px-4 py-3 text-center font-medium text-gray-700">{{ level }}</th>
+      <!-- Content Area -->
+      <div class="p-0">
+        @if (loading()) {
+          <div class="p-20 flex flex-col items-center justify-center gap-4">
+            <lucide-icon name="loader-2" [size]="32" class="text-[#0056D2] animate-spin"></lucide-icon>
+            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Đang tải cấu hình rubric...</span>
+          </div>
+        } @else if (rubric(); as r) {
+          <!-- Rubric Info Header -->
+          <div class="px-8 py-8 border-b border-slate-50 bg-white">
+            <div class="flex items-start justify-between gap-6">
+              <div class="space-y-2">
+                <h4 class="text-lg font-black text-slate-900 tracking-tight">{{ r.title }}</h4>
+                @if (r.description) {
+                  <p class="text-sm text-slate-500 font-medium max-w-2xl leading-relaxed">{{ r.description }}</p>
                 }
-              </tr>
-            </thead>
-            <tbody class="divide-y">
-              @for (criterion of r.criteria; track criterion.name) {
-                <tr>
-                  <td class="px-4 py-3 font-medium text-gray-900">
-                    {{ criterion.name }}
-                    @if (criterion.maxPoints) {
-                      <span class="text-xs text-gray-400 ml-1">({{ criterion.maxPoints }} đ)</span>
-                    }
-                  </td>
-                  @for (level of criterion.levels; track level.label) {
-                    <td class="px-4 py-3 text-center text-gray-600">
-                      <div class="font-medium">{{ level.points ?? '-' }}</div>
-                      @if (level.description) {
-                        <div class="text-xs text-gray-400 mt-1">{{ level.description }}</div>
-                      }
-                    </td>
+              </div>
+              <div class="px-6 py-4 bg-slate-50 rounded-2xl border border-slate-100 text-center shrink-0">
+                <p class="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Tổng điểm</p>
+                <p class="text-2xl font-black text-[#0056D2]">{{ r.maxPoints }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Criteria Table -->
+          <div class="overflow-x-auto">
+            <table class="w-full border-collapse">
+              <thead>
+                <tr class="bg-slate-50/80">
+                  <th class="px-8 py-4 text-left border-b border-slate-100">
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tiêu chí đánh giá</span>
+                  </th>
+                  @for (level of getLevelHeaders(r.criteria); track level) {
+                    <th class="px-6 py-4 text-center border-b border-slate-100 min-w-[120px]">
+                      <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">{{ level }}</span>
+                    </th>
                   }
                 </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      } @else {
-        <!-- Empty State -->
-        <div class="text-center py-12 text-gray-500">
-          <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-          </svg>
-          <p class="mb-2">Chưa có rubric cho bài tập này</p>
-          <p class="text-sm">Chọn từ thư viện để gắn rubric vào bài tập</p>
-        </div>
-      }
+              </thead>
+              <tbody class="divide-y divide-slate-50">
+                @for (criterion of r.criteria; track criterion.name) {
+                  <tr class="hover:bg-slate-50/30 transition-colors group">
+                    <td class="px-8 py-6 align-top">
+                      <div class="flex items-start gap-4">
+                        <div class="w-1 h-8 bg-slate-200 rounded-full group-hover:bg-[#0056D2] transition-colors shrink-0"></div>
+                        <div>
+                          <p class="text-sm font-black text-slate-800 tracking-tight mb-1">{{ criterion.name }}</p>
+                          @if (criterion.maxPoints) {
+                            <div class="inline-flex items-center px-2 py-0.5 bg-[#0056D2]/5 text-[#0056D2] rounded text-[9px] font-black uppercase tracking-wider">
+                              Max {{ criterion.maxPoints }} đ
+                            </div>
+                          }
+                        </div>
+                      </div>
+                    </td>
+                    @for (level of criterion.levels; track level.label) {
+                      <td class="px-6 py-6 text-center align-top border-l border-slate-50/50">
+                        <div class="text-sm font-black text-slate-900 mb-2">{{ level.points ?? '-' }} đ</div>
+                        @if (level.description) {
+                          <p class="text-[11px] text-slate-400 font-medium leading-relaxed italic">{{ level.description }}</p>
+                        }
+                      </td>
+                    }
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <!-- Empty State -->
+          <div class="py-24 flex flex-col items-center text-center px-8">
+            <div class="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mb-6 border border-slate-100 shadow-sm text-slate-300">
+              <lucide-icon name="clipboard-list" [size]="40"></lucide-icon>
+            </div>
+            <h4 class="text-base font-black text-slate-800 uppercase tracking-widest mb-2">Chưa thiết lập Rubric</h4>
+            <p class="text-sm text-slate-500 font-medium max-w-xs mb-8">
+              Gắn Rubric vào bài tập để chuẩn hóa quy trình chấm điểm và cung cấp phản hồi minh bạch cho học viên.
+            </p>
+            <a routerLink="/teacher/assignments/rubrics" 
+               class="h-11 px-8 rounded-xl bg-white border border-slate-200 text-slate-600 font-black text-[10px] uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm flex items-center gap-2">
+              <lucide-icon name="search" [size]="14" class="text-blue-500"></lucide-icon>
+              Duyệt thư viện Rubric
+            </a>
+          </div>
+        }
+      </div>
 
+      <!-- Error Message -->
       @if (error()) {
-        <div class="mt-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm">{{ error() }}</div>
+        <div class="m-6 p-4 bg-rose-50 border border-rose-100 rounded-xl text-rose-600 text-[10px] font-black uppercase tracking-wider flex items-center gap-3 animate-in shake">
+          <lucide-icon name="alert-circle" [size]="14"></lucide-icon>
+          {{ error() }}
+        </div>
       }
     </div>
   `

@@ -11,7 +11,7 @@ import { QuestionApi, Question } from '../../../api/endpoints/question.api';
   imports: [ReactiveFormsModule, FormsModule],
   template: `
     <div class="min-h-screen bg-gray-50 p-6">
-      <div class="max-w-4xl mx-auto">
+      <div class="max-w-6xl mx-auto">
         <!-- Header -->
         <div class="mb-8">
           <h1 class="text-3xl font-bold text-gray-900 mb-2">Chỉnh sửa Quiz</h1>

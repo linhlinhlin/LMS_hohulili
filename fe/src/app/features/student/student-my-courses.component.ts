@@ -58,7 +58,7 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
     RouterModule,
     IconComponent,
     ButtonComponent,
-],
+  ],
   template: `
     <div class="my-courses-container">
       <!-- Main Content Area (70%) -->
@@ -1050,21 +1050,21 @@ export class StudentMyCoursesComponent implements OnInit {
         if (currentLessonId) break;
       }
 
-      // Recalculate progress from actual completion data
-      const totalLessons = modules.reduce((sum: number, m: any) => sum + m.totalCount, 0);
-      const completedLessons = modules.reduce((sum: number, m: any) => sum + m.completedCount, 0);
-      const actualProgress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
-
-      // Update the specific course with loaded modules + recalculated progress
+      // 3. Update the specific course with loaded modules (Keep progress/counts as provided by service)
       this.enrolledCourses.update(courses =>
         courses.map(c => {
           if (c['id'] !== courseId) return c;
-          // Use the higher of enrollment progress vs actual progress
-          const newProgress = Math.max(c['progress'] || 0, actualProgress);
-          return { ...c, modules, currentLessonId, progress: newProgress };
+          return { 
+            ...c, 
+            modules, 
+            currentLessonId
+          };
         })
       );
-    } catch {
+
+      // 4. Force refresh progress from BE via service (SSoT)
+      await this.enrollmentService.refreshCourseProgress(courseId);
+    } catch (err: any) {
       this.toast.error('Không thể tải nội dung khóa học.');
     }
   }

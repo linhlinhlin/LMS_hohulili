@@ -14,7 +14,7 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
   selector: 'app-course-settings',
   imports: [FormsModule, CourseInstructorsComponent],
   template: `
-<div class="max-w-screen-2xl mx-auto px-5 sm:px-8 py-5">
+<div class="max-w-screen-2xl mx-auto px-3 sm:px-4 py-3">
 
   <!-- Two-Column Layout matching Info page (WordPress/Shopify pattern) -->
   <div class="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6 items-start">

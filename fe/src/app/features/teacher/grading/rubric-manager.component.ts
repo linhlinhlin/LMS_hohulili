@@ -1,6 +1,7 @@
 import { Component, ChangeDetectionStrategy, inject, signal, OnInit, computed } from '@angular/core';
-
+import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { LucideAngularModule } from 'lucide-angular';
 import { Rubric, validateRubricDeletion } from './utils/rubric-calculator';
 import { RubricApi } from '../../../api/endpoints/rubric.api';
 
@@ -9,114 +10,122 @@ import { RubricApi } from '../../../api/endpoints/rubric.api';
  * 
  * Displays and manages rubrics for grading.
  * Features: list view, create/edit/delete actions, usage statistics.
- * 
- * @requirements 6.2, 6.5
  */
 @Component({
   selector: 'app-rubric-manager',
-  imports: [RouterLink],
+  standalone: true,
+  imports: [CommonModule, RouterLink, LucideAngularModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="max-w-6xl mx-auto p-6">
-      <!-- Header -->
-      <div class="flex items-center justify-between mb-6">
-        <div>
-          <h1 class="text-2xl font-bold text-gray-900">Quản lý Rubric</h1>
-          <p class="text-gray-600 mt-1">Tạo và quản lý các bảng tiêu chí chấm điểm</p>
-        </div>
-        <a routerLink="create" class="px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] flex items-center gap-2">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-          </svg>
-          Tạo Rubric mới
-        </a>
-      </div>
-
-      <!-- Stats -->
-      <div class="grid grid-cols-3 gap-4 mb-6">
-        <div class="bg-white rounded-xl shadow-sm border p-4 text-center">
-          <div class="text-2xl font-bold text-[#0056D2]">{{ totalRubrics() }}</div>
-          <div class="text-sm text-gray-500">Tổng số Rubric</div>
-        </div>
-        <div class="bg-white rounded-xl shadow-sm border p-4 text-center">
-          <div class="text-2xl font-bold text-green-600">{{ inUseCount() }}</div>
-          <div class="text-sm text-gray-500">Đang sử dụng</div>
-        </div>
-        <div class="bg-white rounded-xl shadow-sm border p-4 text-center">
-          <div class="text-2xl font-bold text-gray-600">{{ unusedCount() }}</div>
-          <div class="text-sm text-gray-500">Chưa sử dụng</div>
+    <div class="min-h-screen bg-slate-50/50">
+      <!-- Header Section -->
+      <div class="bg-white border-b border-slate-200">
+        <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 py-6">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h1 class="text-2xl font-black text-slate-900 tracking-tight">Quản lý Rubric</h1>
+              <p class="text-sm text-slate-500 font-medium">Thiết kế và chuẩn hóa các tiêu chí đánh giá năng lực học viên</p>
+            </div>
+            <div class="flex items-center gap-3">
+              <a routerLink="create" 
+                class="h-14 px-8 bg-[#0056D2] text-white rounded-2xl hover:bg-[#004BB5] hover:shadow-xl hover:shadow-blue-200 transition-all flex items-center gap-3 font-black text-xs uppercase tracking-widest group shadow-lg shadow-blue-100">
+                <lucide-icon name="plus" [size]="20" class="group-hover:rotate-90 transition-transform duration-300"></lucide-icon>
+                Tạo Rubric mới
+              </a>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Loading State -->
+      <div class="max-w-screen-2xl mx-auto p-3 sm:px-4">      
+
+      <!-- Content Area -->
       @if (loading()) {
-        <div class="flex items-center justify-center py-12">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0056D2]"></div>
+        <div class="bg-white rounded-[2.5rem] border border-slate-200 p-24 text-center shadow-sm">
+          <div class="w-16 h-16 border-4 border-slate-100 border-t-[#0056D2] rounded-full animate-spin mx-auto mb-6"></div>
+          <p class="text-slate-400 font-black uppercase tracking-[0.3em] text-xs">Đang đồng bộ dữ liệu...</p>
         </div>
       } @else if (rubrics().length === 0) {
-        <!-- Empty State -->
-        <div class="bg-white rounded-xl shadow-sm border p-12 text-center">
-          <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-          </svg>
-          <h3 class="text-lg font-medium text-gray-900 mb-2">Chưa có Rubric nào</h3>
-          <p class="text-gray-500 mb-4">Tạo rubric đầu tiên để bắt đầu chấm điểm theo tiêu chí</p>
-          <a routerLink="create" class="inline-flex items-center gap-2 px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5]">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-            </svg>
-            Tạo Rubric mới
+        <div class="bg-white rounded-[2.5rem] border border-slate-200 p-24 text-center shadow-sm">
+          <div class="w-24 h-24 bg-slate-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 border border-slate-100 transition-transform hover:scale-105 duration-500">
+            <lucide-icon name="file-question" [size]="48" class="text-slate-300"></lucide-icon>
+          </div>
+          <h3 class="text-2xl font-black text-slate-900 tracking-tight mb-3">Thư viện trống</h3>
+          <p class="text-slate-500 font-medium mb-10 max-w-sm mx-auto text-lg leading-relaxed">
+            Bạn chưa tạo bất kỳ tiêu chí chấm điểm nào. Hãy bắt đầu chuẩn hóa việc đánh giá tại đây.
+          </p>
+          <a routerLink="create" class="inline-flex h-12 px-8 bg-slate-900 text-white rounded-2xl hover:bg-[#0056D2] hover:shadow-xl hover:shadow-blue-100 transition-all items-center gap-3 font-black text-[10px] uppercase tracking-[0.2em] shadow-lg shadow-slate-200">
+            <lucide-icon name="plus" [size]="16"></lucide-icon>
+            Tạo Rubric đầu tiên
           </a>
         </div>
       } @else {
-        <!-- Rubric List -->
-        <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
-          <table class="w-full">
-            <thead class="bg-gray-50 border-b">
-              <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên Rubric</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số tiêu chí</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tổng điểm</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Đang dùng</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày tạo</th>
-                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
+        <!-- Enhanced Table List -->
+        <div class="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-sm">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-50/50 border-b border-slate-100">
+                <th class="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Thông tin Rubric</th>
+                <th class="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Cấu trúc</th>
+                <th class="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Sử dụng</th>
+                <th class="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Cập nhật</th>
+                <th class="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">Hành động</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-200">
+            <tbody class="divide-y divide-slate-100">
               @for (rubric of rubrics(); track rubric.id) {
-                <tr class="hover:bg-gray-50">
-                  <td class="px-6 py-4">
-                    <div class="font-medium text-gray-900">{{ rubric.name }}</div>
-                    @if (rubric.description) {
-                      <div class="text-sm text-gray-500 truncate max-w-xs">{{ rubric.description }}</div>
-                    }
+                <tr class="group hover:bg-slate-50/30 transition-colors">
+                  <td class="px-8 py-6">
+                    <div class="flex items-start gap-4">
+                      <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-[#0056D2]/10 group-hover:text-[#0056D2] transition-all">
+                        <lucide-icon name="file-text" [size]="18"></lucide-icon>
+                      </div>
+                      <div class="max-w-md">
+                        <div class="font-black text-slate-900 tracking-tight group-hover:text-[#0056D2] transition-colors mb-1">{{ rubric.name }}</div>
+                        <div class="text-xs font-medium text-slate-400 line-clamp-1 italic">{{ rubric.description || 'Không có mô tả chi tiết' }}</div>
+                      </div>
+                    </div>
                   </td>
-                  <td class="px-6 py-4 text-sm text-gray-600">{{ rubric.criteria.length }} tiêu chí</td>
-                  <td class="px-6 py-4 text-sm text-gray-600">{{ rubric.totalPoints }} điểm</td>
-                  <td class="px-6 py-4">
+                  <td class="px-8 py-6">
+                    <div class="flex items-center gap-4">
+                      <div class="text-center">
+                        <div class="text-sm font-black text-slate-900">{{ rubric.criteria.length }}</div>
+                        <div class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Tiêu chí</div>
+                      </div>
+                      <div class="w-px h-6 bg-slate-200"></div>
+                      <div class="text-center">
+                        <div class="text-sm font-black text-emerald-600">{{ rubric.totalPoints }}</div>
+                        <div class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Điểm tối đa</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-8 py-6">
                     @if (rubric.usageCount && rubric.usageCount > 0) {
-                      <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
-                        {{ rubric.usageCount }} bài tập
-                      </span>
+                      <div class="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-xl w-fit border border-emerald-100">
+                        <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                        <span class="text-[10px] font-black uppercase tracking-widest">{{ rubric.usageCount }} Bài tập</span>
+                      </div>
                     } @else {
-                      <span class="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded-full">
-                        Chưa dùng
-                      </span>
+                      <div class="px-3 py-1.5 bg-slate-100 text-slate-500 rounded-xl w-fit border border-slate-200">
+                        <span class="text-[10px] font-black uppercase tracking-widest">Lưu trữ</span>
+                      </div>
                     }
                   </td>
-                  <td class="px-6 py-4 text-sm text-gray-500">{{ formatDate(rubric.createdAt || '') }}</td>
-                  <td class="px-6 py-4 text-right">
+                  <td class="px-8 py-6">
+                    <div class="flex items-center gap-2 text-slate-400 font-medium text-xs">
+                      <lucide-icon name="calendar" [size]="12"></lucide-icon>
+                      {{ formatDate(rubric.createdAt || '') }}
+                    </div>
+                  </td>
+                  <td class="px-8 py-6">
                     <div class="flex items-center justify-end gap-2">
-                      <a [routerLink]="['edit', rubric.id]" class="p-2 text-gray-400 hover:text-[#0056D2] hover:bg-[#0056D2]/5 rounded-lg" title="Sửa">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                        </svg>
+                      <a [routerLink]="['edit', rubric.id]" 
+                         class="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-[#0056D2] hover:border-[#0056D2] transition-all shadow-sm group/btn">
+                        <lucide-icon name="edit-3" [size]="16" class="group-hover/btn:scale-110 transition-transform"></lucide-icon>
                       </a>
                       <button (click)="confirmDelete(rubric)" [disabled]="rubric.usageCount && rubric.usageCount > 0"
-                              class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed" title="Xóa">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                        </svg>
+                              class="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 transition-all shadow-sm disabled:opacity-30 disabled:cursor-not-allowed group/btn2">
+                        <lucide-icon name="trash-2" [size]="16" class="group-hover/btn2:rotate-6 transition-transform"></lucide-icon>
                       </button>
                     </div>
                   </td>
@@ -127,36 +136,55 @@ import { RubricApi } from '../../../api/endpoints/rubric.api';
         </div>
       }
 
-      <!-- Delete Confirmation Modal -->
+      <!-- Slender Modal Deletion Confirmation -->
       @if (showDeleteModal()) {
-        <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div class="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">Xác nhận xóa</h3>
-            <p class="text-gray-600 mb-4">
-              Bạn có chắc chắn muốn xóa rubric "{{ rubricToDelete()?.name }}"? Hành động này không thể hoàn tác.
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[100] p-6">
+          <div class="bg-white rounded-[2.5rem] shadow-2xl border border-slate-100 max-w-md w-full p-10 transform scale-100 animate-in fade-in zoom-in duration-300">
+            <div class="w-20 h-20 bg-rose-50 rounded-[2rem] flex items-center justify-center text-rose-500 mb-8 mx-auto">
+              <lucide-icon name="alert-triangle" [size]="40"></lucide-icon>
+            </div>
+            
+            <h3 class="text-2xl font-black text-slate-900 tracking-tight text-center mb-4">Xác nhận xóa Rubric?</h3>
+            <p class="text-slate-500 font-medium text-center mb-10 leading-relaxed">
+              Bạn đang chuẩn bị xóa rubric <span class="text-slate-900 font-bold">"{{ rubricToDelete()?.name }}"</span>. 
+              Hành động này sẽ xóa vĩnh viễn và không thể khôi phục.
             </p>
+
             @if (deleteError()) {
-              <div class="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm">
+              <div class="mb-8 p-4 bg-rose-50 text-rose-600 border border-rose-100 rounded-2xl text-[11px] font-black uppercase tracking-widest flex items-center gap-3">
+                <lucide-icon name="alert-octagon" [size]="16" class="flex-shrink-0"></lucide-icon>
                 {{ deleteError() }}
               </div>
             }
-            <div class="flex justify-end gap-3">
-              <button (click)="cancelDelete()" class="px-4 py-2 border rounded-lg hover:bg-gray-50">
-                Hủy
-              </button>
+
+            <div class="flex flex-col gap-3">
               <button (click)="deleteRubric()" [disabled]="deleting()" 
-                      class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50">
-                {{ deleting() ? 'Đang xóa...' : 'Xóa' }}
+                      class="h-12 bg-rose-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-rose-700 hover:shadow-xl hover:shadow-rose-100 transition-all shadow-lg shadow-rose-50 flex items-center justify-center">
+                @if (deleting()) {
+                  <lucide-icon name="loader-2" [size]="14" class="mr-2 animate-spin"></lucide-icon>
+                  ĐANG XỬ LÝ...
+                } @else {
+                  XÓA VĨNH VIỄN
+                }
+              </button>
+              <button (click)="cancelDelete()" class="h-12 bg-slate-100 text-slate-600 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-slate-200 transition-colors">
+                HỦY BỎ
               </button>
             </div>
           </div>
         </div>
       }
 
-      <!-- Error Message -->
+      <!-- Global Error Notification -->
       @if (error()) {
-        <div class="mt-4 p-4 bg-red-50 text-red-600 rounded-lg">
-          {{ error() }}
+        <div class="fixed bottom-10 left-1/2 -translate-x-1/2 p-5 bg-slate-900 text-white border border-slate-800 rounded-2xl shadow-2xl flex items-center gap-4 z-[200] animate-in slide-in-from-bottom duration-500">
+          <div class="w-8 h-8 rounded-lg bg-rose-500 flex items-center justify-center text-white">
+            <lucide-icon name="alert-circle" [size]="18"></lucide-icon>
+          </div>
+          <span class="text-xs font-black uppercase tracking-widest">{{ error() }}</span>
+          <button (click)="error.set(null)" class="text-slate-400 hover:text-white transition-colors">
+            <lucide-icon name="x" [size]="16"></lucide-icon>
+          </button>
         </div>
       }
     </div>
@@ -179,7 +207,7 @@ export class RubricManagerComponent implements OnInit {
 
   // Computed signals
   totalRubrics = computed(() => this.rubrics().length);
-  inUseCount = computed(() => this.rubrics().filter((r: Rubric) => r.usageCount && r.usageCount > 0).length);
+  inUseCount = computed(() => this.rubrics().filter((r: Rubric) => (r.usageCount && r.usageCount > 0)).length);
   unusedCount = computed(() => this.rubrics().filter((r: Rubric) => !r.usageCount || r.usageCount === 0).length);
 
   ngOnInit(): void {
@@ -224,7 +252,6 @@ export class RubricManagerComponent implements OnInit {
   }
 
   confirmDelete(rubric: Rubric): void {
-    // Validate deletion
     const validation = validateRubricDeletion(rubric, this.assignmentRubricIds());
     if (!validation.isValid) {
       this.error.set(validation.errors[0]?.message || 'Không thể xóa rubric này');

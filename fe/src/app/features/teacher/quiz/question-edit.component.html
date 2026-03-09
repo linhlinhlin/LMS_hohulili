@@ -1,204 +1,198 @@
-<div class="min-h-screen bg-gray-50 p-6">
-  <div class="max-w-4xl mx-auto">
-    <!-- Header with Preview Button -->
-    <div class="mb-8 flex justify-between items-start">
-      <div>
-        <h1 class="text-3xl font-bold text-gray-900 mb-2">Chỉnh sửa Câu Hỏi</h1>
-        <p class="text-gray-600">Cập nhật câu hỏi trắc nghiệm với nội dung phong phú</p>
+<div class="min-h-screen bg-slate-50/50">
+  <!-- Slender Header -->
+  <div class="bg-white border-b border-slate-200 sticky top-0 z-50">
+    <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 py-6 font-sans">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            <button (click)="onCancel()" class="p-1 -ml-1 text-slate-400 hover:text-[#0056D2] transition-colors">
+              <lucide-icon name="arrow-left" [size]="18"></lucide-icon>
+            </button>
+            <span class="text-[10px] font-black text-[#0056D2] uppercase tracking-[0.2em]">Ngân hàng câu hỏi</span>
+          </div>
+          <h1 class="text-2xl font-black text-slate-900 tracking-tight">Chỉnh sửa Câu hỏi</h1>
+          <p class="text-sm text-slate-500 font-medium">Cập nhật nội dung và cấu trúc đáp án</p>
+        </div>
+        
+        <div class="flex items-center gap-3">
+          <button type="button" (click)="showPreview = true" 
+                  class="h-10 px-4 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition-all flex items-center gap-2 font-bold text-xs shadow-sm">
+            <lucide-icon name="eye" [size]="16"></lucide-icon>
+            Xem trước
+          </button>
+          <button type="submit" form="questionEditForm" [disabled]="questionForm.invalid || !getCorrectOptionKey() || options.length < 2"
+                  class="h-10 px-6 bg-[#0056D2] text-white rounded-xl font-bold text-sm hover:bg-[#004BB5] transition-all flex items-center gap-2 shadow-md shadow-blue-100 disabled:opacity-50">
+            <lucide-icon name="save" [size]="18"></lucide-icon>
+            Cập nhật
+          </button>
+        </div>
       </div>
-      <button type="button" (click)="showPreview = true"
-        class="flex items-center gap-2 px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors shadow-md">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-        </svg>
-        Xem trước
-      </button>
     </div>
+  </div>
 
+  <div class="max-w-screen-2xl mx-auto p-4 sm:p-6">
     <!-- Loading State -->
     @if (isLoading) {
-    <div class="flex justify-center items-center py-12">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0056D2]"></div>
-      <span class="ml-2 text-gray-600">Đang tải...</span>
-    </div>
+      <div class="bg-white rounded-2xl border border-slate-200 p-24 text-center shadow-sm">
+        <div class="w-16 h-16 border-4 border-slate-100 border-t-[#0056D2] rounded-full animate-spin mx-auto mb-6"></div>
+        <p class="text-slate-400 font-black uppercase tracking-[0.3em] text-xs">Đang tải câu hỏi...</p>
+      </div>
     }
 
     <!-- Question Edit Form -->
     @if (!isLoading) {
-    <form [formGroup]="questionForm" (ngSubmit)="onSubmit()" class="space-y-6">
-      <!-- Question Info -->
-      <div class="bg-white rounded-lg shadow p-6">
-        <h2 class="text-xl font-semibold mb-4 text-gray-800">Thông tin câu hỏi</h2>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700">ID Câu hỏi</label>
-            <p class="text-sm text-gray-900 bg-gray-50 p-2 rounded">{{ question?.id }}</p>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Trạng thái</label>
-            <p class="text-sm text-gray-900 bg-gray-50 p-2 rounded">
-              {{ getStatusText(question?.status) }}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Basic Information -->
-      <div class="bg-white rounded-lg shadow p-6">
-        <h2 class="text-xl font-semibold mb-4 text-gray-800">Nội dung câu hỏi</h2>
-
-        <!-- Question Content Block Editor -->
-        <div class="mb-4">
-          <label class="block text-sm font-medium text-gray-700 mb-2">
-            Nội dung câu hỏi *
-          </label>
-
-          <div class="min-h-[150px]">
-            <app-block-editor #blockEditor [initialBlocks]="questionBlocks()"
-              (blocksChange)="onQuestionContentChange($event)">
-            </app-block-editor>
-          </div>
-
-          @if (questionBlocks().length === 0 && questionForm.touched) {
-          <div class="text-red-500 text-sm mt-1">
-            Nội dung câu hỏi là bắt buộc
-          </div>
-          }
-        </div>
-
-        <!-- Difficulty and Tags -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <!-- Difficulty -->
-          <div>
-            <label for="difficulty" class="block text-sm font-medium text-gray-700 mb-2">
-              Độ khó
-            </label>
-            <select id="difficulty" formControlName="difficulty"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]">
-              <option value="EASY">Dễ</option>
-              <option value="MEDIUM">Trung bình</option>
-              <option value="HARD">Khó</option>
-            </select>
-          </div>
-
-          <!-- Tags -->
-          <div>
-            <label for="tags" class="block text-sm font-medium text-gray-700 mb-2">
-              Thẻ (tags)
-            </label>
-            <input id="tags" type="text" formControlName="tags"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]"
-              placeholder="ví dụ: toán học, đại số">
-            <div class="text-xs text-gray-500 mt-1">
-              Phân cách bằng dấu phẩy
+      <form id="questionEditForm" [formGroup]="questionForm" (ngSubmit)="onSubmit()" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Main Content -->
+        <div class="lg:col-span-8 space-y-6">
+          <!-- Editor Section -->
+          <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+            <h2 class="text-[13px] font-black text-slate-900 uppercase tracking-widest mb-6 flex items-center gap-3">
+              <span class="w-1.5 h-1.5 rounded-full bg-[#0056D2]"></span>
+              Nội dung Câu hỏi
+            </h2>
+            
+            <div class="min-h-[200px] bg-slate-50 rounded-xl border border-slate-100 p-1">
+              <app-block-editor #blockEditor [initialBlocks]="questionBlocks()"
+                (blocksChange)="onQuestionContentChange($event)">
+              </app-block-editor>
             </div>
-          </div>
-        </div>
-
-        <!-- Status -->
-        <div class="mt-4">
-          <label for="status" class="block text-sm font-medium text-gray-700 mb-2">
-            Trạng thái
-          </label>
-          <select id="status" formControlName="status"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]">
-            <option value="DRAFT">Bản nháp</option>
-            <option value="ACTIVE">Hoạt động</option>
-            <option value="INACTIVE">Không hoạt động</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- Options -->
-      <div class="bg-white rounded-lg shadow p-6">
-        <div class="flex justify-between items-center mb-4">
-          <h2 class="text-xl font-semibold text-gray-800">Đáp án</h2>
-          <button type="button" (click)="addOption()"
-            class="px-3 py-1 text-sm bg-[#0056D2] text-white rounded-md hover:bg-[#004BB5] focus:outline-none focus:ring-2 focus:ring-[#0056D2]">
-            Thêm đáp án
-          </button>
-        </div>
-
-        <!-- Options List -->
-        <div formArrayName="options" class="space-y-3">
-          @for (option of options.controls; track $index; let i = $index) {
-          <div [formGroupName]="i" class="flex items-center space-x-3 p-3 border rounded-lg"
-            [class.border-green-500]="i === getCorrectOptionIndex()"
-            [class.bg-green-50]="i === getCorrectOptionIndex()">
-
-            <!-- Option Key -->
-            <div class="flex-shrink-0">
-              <span
-                class="inline-flex items-center justify-center w-8 h-8 bg-gray-200 rounded-full text-sm font-medium">
-                {{ getOptionKey(i) }}
-              </span>
-            </div>
-
-            <!-- Option Content (Enriched Input) -->
-            <div class="flex-1">
-              <app-enriched-input [placeholder]="'Nhập nội dung đáp án...'"
-                [initialValue]="option.get('content')?.value" (valueChange)="updateOptionText(i, $event)"
-                (blocksChange)="updateOptionBlocks(i, $event)"></app-enriched-input>
-            </div>
-
-            <!-- Correct Option Radio -->
-            <div class="flex-shrink-0">
-              <input type="radio" [value]="getOptionKey(i)" [checked]="getCorrectOptionKey() === getOptionKey(i)"
-                (change)="setCorrectOption(getOptionKey(i))"
-                class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300">
-              <label class="ml-1 text-xs text-gray-600">Đúng</label>
-            </div>
-
-            <!-- Remove Option -->
-            @if (options.length > 2) {
-            <div class="flex-shrink-0">
-              <button type="button" (click)="removeOption(i)"
-                class="text-red-500 hover:text-red-700 focus:outline-none">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-              </button>
-            </div>
+            
+            @if (questionBlocks().length === 0 && questionForm.touched) {
+              <p class="text-rose-500 text-[10px] font-black uppercase tracking-widest mt-3 ml-1">Nội dung câu hỏi là bắt buộc</p>
             }
           </div>
-          }
-        </div>
 
-        <!-- Warning if no correct option selected -->
-        @if (!getCorrectOptionKey()) {
-        <div class="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-          <div class="text-sm text-yellow-800">
-            <strong>Lưu ý:</strong> Bạn cần chọn ít nhất một đáp án đúng.
+          <!-- Options Section -->
+          <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+            <div class="flex items-center justify-between mb-6">
+              <h2 class="text-[13px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-3">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                Các phương án trả lời
+              </h2>
+              <button type="button" (click)="addOption()"
+                      class="h-8 px-3 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-all flex items-center gap-2 font-black text-[10px] uppercase tracking-widest border border-emerald-100 shadow-sm">
+                <lucide-icon name="plus" [size]="14"></lucide-icon>
+                Thêm đáp án
+              </button>
+            </div>
+
+            <div formArrayName="options" class="space-y-3">
+              @for (option of options.controls; track $index; let i = $index) {
+                <div [formGroupName]="i" class="group relative flex items-center gap-4 p-4 bg-slate-50/50 rounded-xl border border-slate-100 hover:bg-white hover:border-[#0056D2]/20 hover:shadow-lg hover:shadow-blue-50/50 transition-all"
+                     [class.border-emerald-500/30]="getCorrectOptionKey() === getOptionKey(i)"
+                     [class.bg-emerald-50/30]="getCorrectOptionKey() === getOptionKey(i)">
+                  
+                  <div class="flex-shrink-0 w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center text-xs font-black shadow-sm">
+                    {{ getOptionKey(i) }}
+                  </div>
+
+                  <div class="flex-1 min-w-0">
+                    <app-enriched-input [placeholder]="'Nhập nội dung đáp án...'"
+                      [initialValue]="option.get('content')?.value" 
+                      (valueChange)="updateOptionText(i, $event)"
+                      (blocksChange)="updateOptionBlocks(i, $event)"></app-enriched-input>
+                  </div>
+
+                  <div class="flex items-center gap-3 pr-2">
+                    <div class="flex items-center gap-2 cursor-pointer group/correct">
+                      <input type="radio" [id]="'opt-'+i" [value]="getOptionKey(i)" 
+                             [checked]="getCorrectOptionKey() === getOptionKey(i)"
+                             (change)="setCorrectOption(getOptionKey(i))"
+                             class="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-slate-300">
+                      <label [for]="'opt-'+i" class="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover/correct:text-emerald-600 transition-colors">Đúng</label>
+                    </div>
+
+                    @if (options.length > 2) {
+                      <button type="button" (click)="removeOption(i)"
+                              class="w-8 h-8 flex items-center justify-center text-slate-300 hover:text-rose-500 transition-colors">
+                        <lucide-icon name="trash-2" [size]="14"></lucide-icon>
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+
+            @if (!getCorrectOptionKey()) {
+              <div class="mt-4 p-4 bg-amber-50 rounded-xl border border-amber-100 flex items-center gap-3">
+                <lucide-icon name="alert-triangle" [size]="16" class="text-amber-500"></lucide-icon>
+                <p class="text-[10px] font-bold text-amber-700 uppercase tracking-widest">Cần chọn ít nhất một đáp án đúng</p>
+              </div>
+            }
           </div>
         </div>
-        }
 
-        <!-- Minimum options warning -->
-        @if (options.length < 2) { <div class="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-          <div class="text-sm text-yellow-800">
-            Câu hỏi cần ít nhất 2 đáp án.
+        <!-- Sidebar -->
+        <div class="lg:col-span-4 space-y-6">
+          <div class="sticky top-24 space-y-6">
+            <!-- Properties Card -->
+            <div class="bg-indigo-950 rounded-2xl p-6 shadow-xl text-white relative overflow-hidden">
+              <div class="absolute -bottom-6 -right-6 text-white/5 pointer-events-none">
+                <lucide-icon name="database" [size]="120" strokeWidth="1"></lucide-icon>
+              </div>
+              
+              <h3 class="text-[10px] font-black uppercase tracking-widest mb-6 flex items-center gap-3">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                Thuộc tính Câu hỏi
+              </h3>
+
+              <div class="space-y-6 relative z-10">
+                <div class="grid grid-cols-2 gap-3">
+                  <div class="p-3 bg-white/5 rounded-xl border border-white/10">
+                    <p class="text-[10px] font-black uppercase tracking-widest text-white/40 mb-1">ID Hệ thống</p>
+                    <p class="text-[11px] font-bold truncate">{{ question?.id }}</p>
+                  </div>
+                  <div class="p-3 bg-white/5 rounded-xl border border-white/10">
+                    <p class="text-[10px] font-black uppercase tracking-widest text-white/40 mb-1">Trạng thái</p>
+                    <p class="text-[11px] font-bold">{{ getStatusText(question?.status) }}</p>
+                  </div>
+                </div>
+
+                <div class="space-y-2">
+                  <label class="text-[10px] font-black uppercase tracking-widest text-white/40 ml-1">Độ khó bài tập</label>
+                  <select formControlName="difficulty"
+                          class="w-full h-10 px-3 bg-white/10 border border-white/10 rounded-xl text-xs font-bold focus:bg-white focus:text-slate-900 transition-all outline-none">
+                    <option value="EASY">Dễ</option>
+                    <option value="MEDIUM">Trung bình</option>
+                    <option value="HARD">Khó</option>
+                  </select>
+                </div>
+
+                <div class="space-y-2">
+                  <label class="text-[10px] font-black uppercase tracking-widest text-white/40 ml-1">Thẻ phân loại</label>
+                  <input type="text" formControlName="tags"
+                         class="w-full h-10 px-3 bg-white/10 border border-white/10 rounded-xl text-xs font-bold focus:bg-white focus:text-slate-900 transition-all outline-none"
+                         placeholder="toán học, đại số..."/>
+                </div>
+
+                <div class="space-y-2">
+                  <label class="text-[10px] font-black uppercase tracking-widest text-white/40 ml-1">Trạng thái hiển thị</label>
+                  <select formControlName="status"
+                          class="w-full h-10 px-3 bg-white/10 border border-white/10 rounded-xl text-xs font-bold focus:bg-white focus:text-slate-900 transition-all outline-none">
+                    <option value="DRAFT">Bản nháp</option>
+                    <option value="ACTIVE">Hoạt động</option>
+                    <option value="INACTIVE">Không hoạt động</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Contextual Help -->
+            <div class="bg-white rounded-2xl p-6 border border-slate-200">
+              <h4 class="text-[13px] font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center gap-2">
+                <lucide-icon name="help-circle" [size]="14" class="text-[#0056D2]"></lucide-icon>
+                Hướng dẫn
+              </h4>
+              <div class="space-y-3">
+                <p class="text-[11px] font-semibold text-slate-500 leading-relaxed uppercase tracking-widest">• Nội dung nên chứa đủ thông tin để học viên hiểu yêu cầu.</p>
+                <p class="text-[11px] font-semibold text-slate-500 leading-relaxed uppercase tracking-widest">• Có thể chèn ảnh, công thức latex qua thanh công cụ.</p>
+              </div>
+            </div>
           </div>
-      </div>
-      }
+        </div>
+      </form>
+    }
   </div>
-
-  <!-- Actions -->
-  <div class="flex justify-end space-x-4">
-    <button type="button" (click)="onCancel()"
-      class="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500">
-      Hủy
-    </button>
-    <button type="submit" [disabled]="questionForm.invalid || !getCorrectOptionKey() || options.length < 2"
-      class="px-6 py-2 bg-[#0056D2] text-white rounded-md hover:bg-[#004BB5] focus:outline-none focus:ring-2 focus:ring-[#0056D2] disabled:opacity-50 disabled:cursor-not-allowed">
-      Cập nhật Câu Hỏi
-    </button>
-  </div>
-  </form>
-  }
-</div>
 </div>
 
 <!-- Preview Modal -->

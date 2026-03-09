@@ -7,6 +7,7 @@ import { ContentBlock } from '../../../api/types/content-block.types';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { MathQuickToolbarComponent } from '../math-quick-toolbar/math-quick-toolbar.component';
 import { IconComponent } from '../icon/icon.component';
+import { LucideAngularModule } from 'lucide-angular';
 import katex from 'katex';
 
 /**
@@ -21,7 +22,7 @@ import katex from 'katex';
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
     selector: 'app-enriched-input',
-    imports: [FormsModule, MathQuickToolbarComponent, IconComponent],
+    imports: [FormsModule, MathQuickToolbarComponent, IconComponent, LucideAngularModule],
     template: `
     <div class="relative w-full group">
       <!-- Math Toolbar (Visible when focused or has math) -->
@@ -48,85 +49,62 @@ import katex from 'katex';
       }
 
       <!-- Main Input Container -->
-      <div class="relative border rounded-lg bg-white transition-all overflow-hidden"
-           [class.border-gray-300]="!isInvalid() && !isFocused()"
+      <div class="relative border rounded-xl bg-white transition-all overflow-hidden"
+           [class.border-slate-200]="!isInvalid() && !isFocused()"
            [class.border-[#0056D2]]="isFocused()"
-           [class.ring-2]="isFocused()"
-           [class.ring-[#0056D2]/10]="isFocused()"
+           [class.ring-4]="isFocused()"
+           [class.ring-[#0056D2]/5]="isFocused()"
            [class.border-red-500]="isInvalid()">
         
         <!-- Content Display Area (Chips + Text Input) -->
-        <div class="flex flex-wrap items-center gap-1.5 p-2 min-h-[44px]">
+        <div class="flex flex-wrap items-center gap-1.5 p-1 min-h-[40px]">
           
-          <!-- Image Chips (Click to expand) -->
+          <!-- Image Chips (Optional, keeping for better UX with files) -->
           @for (img of imageChips(); track img.uuid; let i = $index) {
-            <div class="inline-flex items-center gap-1 px-2 py-1 bg-[#0056D2]/5 border border-[#0056D2]/20 rounded-lg group/chip hover:shadow-md transition-all cursor-pointer"
+            <div class="inline-flex items-center gap-1.5 px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg group/chip hover:shadow-sm transition-all cursor-pointer"
                  (click)="expandImage(img)">
-              <!-- Image Thumbnail -->
               <img [src]="img.url" 
                    class="w-6 h-6 rounded object-cover border border-white shadow-sm" 
                    [alt]="'Image ' + (i + 1)"
                    (error)="onImageError($event)">
-              <!-- Image Icon SVG -->
-              <svg class="w-4 h-4 text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-              </svg>
-              <span class="text-xs text-[#004BB5] font-medium">Ảnh {{i + 1}}</span>
+              <span class="text-[10px] text-slate-500 font-black uppercase tracking-wider">Ảnh {{i + 1}}</span>
               <button type="button" 
                       (click)="removeImage(img.uuid); $event.stopPropagation()" 
-                      class="w-4 h-4 flex items-center justify-center rounded-full bg-red-100 text-red-500 hover:bg-red-500 hover:text-white opacity-0 group-hover/chip:opacity-100 transition-all text-[10px]"
+                      class="w-4 h-4 flex items-center justify-center rounded-full bg-slate-200 text-slate-500 hover:bg-rose-500 hover:text-white opacity-0 group-hover/chip:opacity-100 transition-all text-[10px]"
                       title="Xóa ảnh">
                 ×
               </button>
             </div>
           }
 
-          <!-- Formula Chips -->
-          @for (formula of formulaChips(); track $index; let i = $index) {
-            <div class="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 border border-amber-200 rounded-full group/chip">
-              <span class="text-amber-700 font-serif italic">Σ</span>
-              <span [innerHTML]="renderFormulaPreview(formula.content)" class="text-xs max-w-[100px] overflow-hidden"></span>
-              <button type="button" 
-                      (click)="removeFormula(i)" 
-                      class="w-4 h-4 flex items-center justify-center rounded-full bg-red-100 text-red-500 hover:bg-red-500 hover:text-white opacity-0 group-hover/chip:opacity-100 transition-all text-[10px]">
-                ×
-              </button>
-            </div>
-          }
-
-          <!-- Text Input (for remaining text) -->
-          <input
-            #inputRef
-            type="text"
-            [attr.placeholder]="imageChips().length === 0 && formulaChips().length === 0 ? placeholder() : 'Thêm nội dung...'"
-            [value]="textOnlyValue()"
-            (input)="onTextInput($event)"
-            (paste)="onPaste($event)"
-            (focus)="isFocused.set(true)"
-            (blur)="onBlur()"
-            (keydown)="onKeyDown($event)"
-            class="flex-1 min-w-[120px] px-2 py-1 border-none focus:ring-0 focus:outline-none bg-transparent text-sm text-gray-900 placeholder-gray-400"
-          />
+          <!-- Unified Rich Input -->
+            <textarea
+              #inputRef
+              [attr.placeholder]="placeholder() || 'Nhập nội dung...'"
+              [value]="rawValue()"
+              (input)="onInput($event)"
+              (paste)="onPaste($event)"
+              (focus)="isFocused.set(true)"
+              (blur)="onBlur()"
+              (keydown)="onKeyDown($event)"
+              rows="1"
+              class="flex-1 w-full px-3 py-1.5 border-none focus:ring-0 focus:outline-none bg-transparent text-sm text-slate-900 font-medium placeholder-slate-400 resize-none min-h-[32px] overflow-hidden"
+              style="line-height: 1.5;"
+            ></textarea>
         </div>
 
-        <!-- Action Buttons (Right aligned, inside border) -->
-        <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center space-x-1 text-gray-400">
-           <!-- Image Upload Button -->
+        <!-- Action Buttons -->
+        <div class="absolute right-1 bottom-1 flex items-center space-x-1 text-slate-400 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
            <button type="button" (click)="fileInput.click()" 
-                   class="p-1.5 hover:text-[#0056D2] rounded-md hover:bg-[#0056D2]/5 transition-colors relative group/btn"
-                   [class.text-[#0056D2]]="hasImage()"
-                   [class.bg-[#0056D2]/5]="hasImage()">
-             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-             <div class="hidden group-hover/btn:block absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-gray-800 text-white text-[10px] rounded whitespace-nowrap z-50">Chèn ảnh</div>
+                   class="w-7 h-7 flex items-center justify-center hover:text-[#0056D2] rounded-lg hover:bg-[#0056D2]/5 transition-colors relative group/btn">
+             <lucide-icon name="image" size="16"></lucide-icon>
+             <div class="hidden group-hover/btn:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-lg whitespace-nowrap z-50">Chèn ảnh</div>
            </button>
            
-           <!-- Math Toggle Button -->
            <button type="button" (click)="insertMath()" 
-                   class="p-1.5 hover:text-[#0056D2] rounded-md hover:bg-[#0056D2]/5 transition-colors relative group/btn"
-                   [class.text-amber-600]="isFormula()"
-                   [class.bg-amber-50]="isFormula()">
-             <span class="font-serif italic font-bold text-lg leading-none">Σ</span>
-             <div class="hidden group-hover/btn:block absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-gray-800 text-white text-[10px] rounded whitespace-nowrap z-50">Công thức</div>
+                   class="w-7 h-7 flex items-center justify-center hover:text-amber-600 rounded-lg hover:bg-amber-50 transition-colors relative group/btn">
+             <span class="font-serif italic font-bold text-base leading-none">Σ</span>
+             <div class="hidden group-hover/btn:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-lg whitespace-nowrap z-50">Công thức</div>
            </button>
         </div>
       </div>
@@ -252,37 +230,185 @@ export class EnrichedInputFieldComponent {
         return this.rawValue().includes('[IMG:');
     });
 
-    inputRef = viewChild<ElementRef<HTMLInputElement>>('inputRef');
+    // Computed: Visual feedback parts for the backdrop layer
+    highlightedParts = computed(() => {
+        const val = this.rawValue();
+        const parts: { text: string; type: 'text' | 'latex' | 'image' }[] = [];
+        const regex = /(\[IMG:[a-zA-Z0-9-]+\]|\$\$[\s\S]*?\$\$|\$[\s\S]*?\$)/g;
+        
+        const splitParts = val.split(regex);
+        splitParts.forEach(part => {
+            if (!part) return;
+            if (part.startsWith('[IMG:')) {
+                parts.push({ text: part, type: 'image' });
+            } else if (part.startsWith('$')) {
+                parts.push({ text: part, type: 'latex' });
+            } else {
+                parts.push({ text: part, type: 'text' });
+            }
+        });
+        return parts;
+    });
+
+    inputRef = viewChild<ElementRef<HTMLTextAreaElement>>('inputRef');
 
     constructor() {
         effect(() => {
             const initVal = this.initialValue();
             if (initVal && this.rawValue() === '') {
                 this.rawValue.set(initVal);
+                setTimeout(() => this.adjustHeight());
             }
         });
     }
 
-    onTextInput(event: Event) {
-        const target = event.target as HTMLInputElement;
-        const newText = target.value;
+    onInput(event: Event) {
+        const target = event.target as HTMLTextAreaElement;
+        const newValue = target.value;
 
-        // Rebuild the full value: [images] + [formulas] + text
-        const images = this.imageChips().map(img => `[IMG:${img.uuid}]`).join(' ');
-        const formulas = this.formulaChips().map(f => f.isDisplay ? `$$${f.content}$$` : `$${f.content}$`).join(' ');
-
-        const parts = [images, formulas, newText].filter(p => p.trim()).join(' ');
-        this.rawValue.set(parts);
+        this.rawValue.set(newValue);
         this.emitChanges();
+        this.adjustHeight();
+    }
+
+    private adjustHeight() {
+        const el = this.inputRef()?.nativeElement;
+        if (!el) return;
+        el.style.height = 'auto';
+        el.style.height = el.scrollHeight + 'px';
     }
 
     onBlur() {
-        setTimeout(() => this.isFocused.set(false), 200);
+        this.isFocused.set(false);
         this.emitChanges();
     }
 
     onKeyDown(event: KeyboardEvent) {
         event.stopPropagation();
+        
+        const el = this.inputRef()?.nativeElement;
+        if (!el) return;
+
+        const val = el.value;
+        const start = el.selectionStart ?? 0;
+        const end = el.selectionEnd ?? 0;
+
+        // --- Math Shortcuts ---
+        if (event.key === '/') {
+            event.preventDefault();
+            this.insertAtCursor('\\frac{tử số}{mẫu số}');
+        } else if (event.key === '^') {
+            event.preventDefault();
+            this.insertAtCursor('^{số mũ}');
+        } else if (event.key === '_') {
+            event.preventDefault();
+            this.insertAtCursor('_{chỉ số}');
+        }
+        
+        // --- Smart Tab Navigation ---
+        else if (event.key === 'Tab') {
+            if (this.handleSmartNavigation(event, val, start)) {
+                event.preventDefault();
+            }
+        }
+        
+        // --- Exit Block with Space ---
+        else if (event.key === ' ' && start === end && start > 0 && val[start - 1] === '}') {
+            // Optional: Jump out of brace on space
+            // event.preventDefault();
+            // el.setSelectionRange(start + 1, start + 1);
+        }
+    }
+
+    private insertAtCursor(text: string) {
+        const el = this.inputRef()?.nativeElement;
+        if (!el) return;
+
+        const val = el.value;
+        const start = el.selectionStart ?? 0;
+        const end = el.selectionEnd ?? 0;
+
+        // Smart wrap if needed
+        let contentToInsert = text;
+        const isInsideMath = this.isCursorInsideMath(val, start);
+        if (!isInsideMath && !text.startsWith('$')) {
+            contentToInsert = `$${text}$`;
+        }
+
+        const newValue = val.substring(0, start) + contentToInsert + val.substring(end);
+        this.rawValue.set(newValue);
+        this.emitChanges();
+
+        // Position cursor at first placeholder
+        setTimeout(() => {
+            const placeholderMatch = contentToInsert.match(/[a-zà-ỹA-ZÀ-Ỹ\s]{2,}/u);
+            const inputEl = this.inputRef()?.nativeElement;
+            if (!inputEl) return;
+
+            if (placeholderMatch) {
+                const p = placeholderMatch[0];
+                const pStart = start + contentToInsert.indexOf(p);
+                inputEl.setSelectionRange(pStart, pStart + p.length);
+            } else {
+                const newPos = start + contentToInsert.length;
+                inputEl.setSelectionRange(newPos, newPos);
+            }
+            this.adjustHeight();
+        });
+    }
+
+    private isCursorInsideMath(val: string, pos: number): boolean {
+        const before = val.substring(0, pos);
+        const after = val.substring(pos);
+        const dollarCountBefore = (before.match(/\$/g) || []).length;
+        // Simple parity check: if odd number of $ before, we are likely inside
+        return dollarCountBefore % 2 !== 0;
+    }
+
+    private handleSmartNavigation(e: KeyboardEvent, value: string, pos: number): boolean {
+        const el = this.inputRef()?.nativeElement;
+        if (!el) return false;
+
+        const isShift = e.shiftKey;
+        
+        // Pattern: placeholder inside braces
+        const placeholderRegex = /\{([a-zà-ỹA-ZÀ-Ỹ\s]{2,})\}/gu;
+        let match;
+        const matches: { start: number; end: number }[] = [];
+
+        while ((match = placeholderRegex.exec(value)) !== null) {
+            matches.push({
+                start: match.index + 1,
+                end: match.index + 1 + match[1].length
+            });
+        }
+
+        if (isShift) {
+            // Jump Back
+            for (let i = matches.length - 1; i >= 0; i--) {
+                if (matches[i].end < pos) {
+                    el.setSelectionRange(matches[i].start, matches[i].end);
+                    return true;
+                }
+            }
+        } else {
+            // Jump Forward
+            for (let i = 0; i < matches.length; i++) {
+                if (matches[i].start > pos) {
+                    el.setSelectionRange(matches[i].start, matches[i].end);
+                    return true;
+                }
+            }
+            
+            // No more placeholders, find next closing brace to jump out
+            const nextBrace = value.indexOf('}', pos);
+            if (nextBrace !== -1) {
+                el.setSelectionRange(nextBrace + 1, nextBrace + 1);
+                return true;
+            }
+        }
+
+        return false;
     }
 
     removeImage(uuid: string) {
@@ -388,17 +514,7 @@ export class EnrichedInputFieldComponent {
     }
 
     onInsertSymbol(symbol: string) {
-        let contentToInsert = symbol;
-        const current = this.rawValue();
-
-        // Smart wrap: if valid TeX command and no $ in text, wrap in $...$
-        if (symbol.startsWith('\\') && !current.includes('$')) {
-            contentToInsert = `$${symbol}$`;
-        }
-
-        const newValue = current + ' ' + contentToInsert + ' ';
-        this.rawValue.set(newValue);
-        this.emitChanges();
+        this.insertAtCursor(symbol);
     }
 
     private uploadAndInsert(file: File) {
