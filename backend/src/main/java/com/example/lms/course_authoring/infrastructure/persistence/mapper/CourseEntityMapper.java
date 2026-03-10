@@ -42,6 +42,7 @@ public class CourseEntityMapper {
         entity.setThumbnailUrl(domain.getThumbnailUrl());
         entity.setDeliveryMode(mapDeliveryModeToEntity(domain.getDeliveryMode()));
         entity.setAllowOfflineDownload(domain.isAllowOfflineDownload());
+        entity.setContentVersion(domain.getContentVersion());
         entity.setReviewComment(domain.getReviewComment());
         entity.setReviewedAt(domain.getReviewedAt());
         entity.setReviewedById(domain.getReviewedById());
@@ -141,6 +142,7 @@ public class CourseEntityMapper {
             setField(course, "thumbnailUrl", entity.getThumbnailUrl());
             setField(course, "deliveryMode", mapDeliveryModeToDomain(entity.getDeliveryMode()));
             setField(course, "allowOfflineDownload", entity.isAllowOfflineDownload());
+            setField(course, "contentVersion", entity.getContentVersion());
             setField(course, "reviewComment", entity.getReviewComment());
             setField(course, "reviewedAt", entity.getReviewedAt());
             setField(course, "reviewedById", entity.getReviewedById());

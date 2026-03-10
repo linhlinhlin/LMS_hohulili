@@ -190,7 +190,8 @@ export class OfflineSyncService {
 
   /**
    * Check if any downloaded courses have been updated on the server.
-   * Compares server `updatedAt` with local `downloadedAt`.
+   * Uses batch endpoint GET /api/v3/courses/versions?ids=... for efficiency.
+   * Compares server contentVersion + updatedAt with local values.
    * Shows non-blocking toast if stale courses found — user navigates to storage.
    */
   async checkContentFreshness(): Promise<void> {
@@ -199,26 +200,33 @@ export class OfflineSyncService {
       const offlineCourses = await offlineDb.courses.where('userId').equals(userId).toArray();
       if (offlineCourses.length === 0) return;
 
+      const courseIds = offlineCourses.map(c => c.id);
+      const params = courseIds.map(id => `ids=${id}`).join('&');
+
+      const res: any = await firstValueFrom(
+        this.http.get(`${environment.apiUrl}/api/v3/courses/versions?${params}`)
+      );
+      const versions = res?.data || res || {};
+
       const staleCourseNames: string[] = [];
 
       for (const course of offlineCourses) {
-        try {
-          const res: any = await firstValueFrom(
-            this.http.get(`${environment.apiUrl}/api/v3/courses/${course.id}`)
-          );
-          const serverCourse = res?.data || res;
-          const serverUpdatedAt = serverCourse?.updatedAt ? new Date(serverCourse.updatedAt) : null;
-          const localDownloadedAt = course.downloadedAt ? new Date(course.downloadedAt) : null;
+        const serverInfo = versions[course.id];
+        if (!serverInfo) continue;
 
-          if (serverUpdatedAt && localDownloadedAt && serverUpdatedAt > localDownloadedAt) {
-            staleCourseNames.push(course.title);
-            // Mark as stale in local DB
-            await offlineDb.courses.update([userId, course.id], {
-              isStale: true,
-            } as any);
-          }
-        } catch {
-          // Skip individual course check failures
+        const serverVersion = serverInfo.contentVersion || 1;
+        const localVersion = (course as any).contentVersion || 1;
+        const serverUpdatedAt = serverInfo.updatedAt ? new Date(serverInfo.updatedAt) : null;
+        const localDownloadedAt = course.downloadedAt ? new Date(course.downloadedAt) : null;
+
+        const isStale = serverVersion > localVersion ||
+          (serverUpdatedAt && localDownloadedAt && serverUpdatedAt > localDownloadedAt);
+
+        if (isStale) {
+          staleCourseNames.push(course.title);
+          await offlineDb.courses.update([userId, course.id], {
+            isStale: true,
+          } as any);
         }
       }
 

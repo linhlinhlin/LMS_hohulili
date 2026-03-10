@@ -116,6 +116,28 @@ public class CourseQueryControllerV3 {
                 .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Khóa học", courseId));
     }
 
+    @Operation(summary = "Batch check course content versions (for PWA offline freshness)")
+    @GetMapping("/versions")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getCourseVersions(
+            @RequestParam List<UUID> ids
+    ) {
+        if (ids == null || ids.isEmpty() || ids.size() > 50) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Cần 1-50 course IDs"));
+        }
+
+        Map<String, Object> versions = new LinkedHashMap<>();
+        for (UUID id : ids) {
+            courseRepository.findById(id).ifPresent(course -> {
+                Map<String, Object> info = new LinkedHashMap<>();
+                info.put("contentVersion", course.getContentVersion());
+                info.put("updatedAt", course.getUpdatedAt() != null ? course.getUpdatedAt().toString() : null);
+                versions.put(id.toString(), info);
+            });
+        }
+
+        return ResponseEntity.ok(ApiResponse.success(versions, "Course versions"));
+    }
+
     @Operation(summary = "Get course content (chapters and lessons)")
     @GetMapping("/{courseId}/content")
     public ResponseEntity<ApiResponse<List<ChapterResponse>>> getCourseContent(
@@ -506,6 +528,7 @@ public class CourseQueryControllerV3 {
                 .price(course.getPrice())
                 .salePrice(course.getSalePrice())
                 .allowOfflineDownload(course.isAllowOfflineDownload())
+                .contentVersion(course.getContentVersion())
                 .enrolledCount(enrolledCount)
                 // Counts & timestamps
                 .chapterCount(course.getChapters() != null ? course.getChapters().size() : 0)
@@ -721,6 +744,7 @@ public class CourseQueryControllerV3 {
         private java.math.BigDecimal price;
         private java.math.BigDecimal salePrice;
         private Boolean allowOfflineDownload;
+        private Integer contentVersion;
         // Counts & timestamps
         private Integer chapterCount;
         private String createdAt;

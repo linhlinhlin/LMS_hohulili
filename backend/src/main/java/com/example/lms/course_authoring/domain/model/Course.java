@@ -39,6 +39,7 @@ public class Course extends AggregateRoot {
     private BigDecimal salePrice;
     private DeliveryMode deliveryMode = DeliveryMode.SELF_PACED;
     private boolean allowOfflineDownload = true;
+    private int contentVersion = 1;
 
     // Review workflow fields
     private String reviewComment;
@@ -397,6 +398,7 @@ public class Course extends AggregateRoot {
     public BigDecimal getSalePrice() { return salePrice; }
     public DeliveryMode getDeliveryMode() { return deliveryMode; }
     public boolean isAllowOfflineDownload() { return allowOfflineDownload; }
+    public int getContentVersion() { return contentVersion; }
     public String getReviewComment() { return reviewComment; }
     public Instant getReviewedAt() { return reviewedAt; }
     public UUID getReviewedById() { return reviewedById; }

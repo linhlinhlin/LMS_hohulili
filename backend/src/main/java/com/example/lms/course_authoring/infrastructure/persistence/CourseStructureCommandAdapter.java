@@ -1,6 +1,7 @@
 package com.example.lms.course_authoring.infrastructure.persistence;
 
 import com.example.lms.course_authoring.application.port.CourseStructureCommandPort;
+import com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity;
 import com.example.lms.course_authoring.infrastructure.persistence.entity.LessonJpaEntity;
 import com.example.lms.course_authoring.infrastructure.persistence.repository.ChapterJpaRepository;
 import com.example.lms.course_authoring.infrastructure.persistence.repository.LessonJpaRepository;
@@ -22,6 +23,7 @@ public class CourseStructureCommandAdapter implements CourseStructureCommandPort
 
     private final ChapterJpaRepository chapterJpaRepository;
     private final LessonJpaRepository lessonJpaRepository;
+    private final JpaCourseRepository jpaCourseRepository;
 
     @Override
     public ChapterSnapshot updateChapter(UUID courseId, UUID chapterId, String title, String description) {
@@ -33,6 +35,7 @@ public class CourseStructureCommandAdapter implements CourseStructureCommandPort
         chapter.setDescription(description);
 
         var savedChapter = chapterJpaRepository.save(chapter);
+        bumpContentVersion(courseId);
         return new ChapterSnapshot(
                 savedChapter.getId(),
                 savedChapter.getTitle(),
@@ -88,6 +91,7 @@ public class CourseStructureCommandAdapter implements CourseStructureCommandPort
             resequenceLessons(targetChapterId);
             savedLesson = lessonJpaRepository.findById(lessonId).orElse(savedLesson);
         }
+        bumpContentVersion(courseId);
 
         return new LessonSnapshot(
                 savedLesson.getId(),
@@ -121,6 +125,7 @@ public class CourseStructureCommandAdapter implements CourseStructureCommandPort
         lessonJpaRepository.deleteAll(lessons);
         chapterJpaRepository.delete(chapter);
         resequenceChapters(courseId);
+        bumpContentVersion(courseId);
     }
 
     @Override
@@ -134,6 +139,18 @@ public class CourseStructureCommandAdapter implements CourseStructureCommandPort
 
         lessonJpaRepository.delete(lesson);
         resequenceLessons(chapterId);
+        bumpContentVersion(courseId);
+    }
+
+    /**
+     * Increment content_version on the course whenever structure changes.
+     * Used by PWA to detect stale offline content.
+     */
+    private void bumpContentVersion(UUID courseId) {
+        jpaCourseRepository.findById(courseId).ifPresent(course -> {
+            course.incrementContentVersion();
+            jpaCourseRepository.save(course);
+        });
     }
 
     private com.example.lms.course_authoring.infrastructure.persistence.entity.ChapterJpaEntity findChapter(UUID courseId, UUID chapterId) {

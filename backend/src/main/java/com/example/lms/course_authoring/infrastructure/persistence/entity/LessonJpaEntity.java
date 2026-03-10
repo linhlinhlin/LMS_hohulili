@@ -84,6 +84,9 @@ public class LessonJpaEntity {
     @Column(columnDefinition = "jsonb")
     private List<ContentBlock> contentBlocks = new ArrayList<>();
 
+    @Column(name = "stream_video_uid")
+    private String streamVideoUid;
+
     // Getters/Setters
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
@@ -109,6 +112,8 @@ public class LessonJpaEntity {
     public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
     public List<ContentBlock> getContentBlocks() { return contentBlocks; }
     public void setContentBlocks(List<ContentBlock> contentBlocks) { this.contentBlocks = contentBlocks; }
+    public String getStreamVideoUid() { return streamVideoUid; }
+    public void setStreamVideoUid(String streamVideoUid) { this.streamVideoUid = streamVideoUid; }
 
     public enum LessonType {
         VIDEO, TEXT, QUIZ, ASSIGNMENT, LECTURE

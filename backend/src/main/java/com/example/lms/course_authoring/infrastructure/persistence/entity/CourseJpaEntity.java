@@ -124,6 +124,9 @@ public class CourseJpaEntity {
     @Column(name = "allow_offline_download", nullable = false)
     private boolean allowOfflineDownload = true;
 
+    @Column(name = "content_version", nullable = false)
+    private int contentVersion = 1;
+
     @Column(name = "review_comment", columnDefinition = "TEXT")
     private String reviewComment;
 
@@ -180,6 +183,9 @@ public class CourseJpaEntity {
     public void setDeliveryMode(DeliveryMode deliveryMode) { this.deliveryMode = deliveryMode; }
     public boolean isAllowOfflineDownload() { return allowOfflineDownload; }
     public void setAllowOfflineDownload(boolean allowOfflineDownload) { this.allowOfflineDownload = allowOfflineDownload; }
+    public int getContentVersion() { return contentVersion; }
+    public void setContentVersion(int contentVersion) { this.contentVersion = contentVersion; }
+    public void incrementContentVersion() { this.contentVersion++; }
     public String getReviewComment() { return reviewComment; }
     public void setReviewComment(String reviewComment) { this.reviewComment = reviewComment; }
     public Instant getReviewedAt() { return reviewedAt; }
