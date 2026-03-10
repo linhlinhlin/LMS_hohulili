@@ -181,7 +181,7 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
                                          class="w-full text-base font-bold text-slate-800 bg-white border border-[#0056D2] rounded px-2 py-1 outline-none focus:ring-2 focus:ring-[#0056D2]/30"
                                          #editInput>
                               } @else {
-                                  <h4 class="text-base font-bold text-slate-800 leading-tight line-clamp-2 break-words">{{ chapter.title }}</h4>
+                                  <h4 class="text-base font-bold text-slate-800 leading-tight line-clamp-2 break-words"><span class="text-[#0056D2] font-extrabold">Chương {{ chapterIdx + 1 }}:</span> {{ getChapterDisplayTitle(chapter.title, chapterIdx) }}</h4>
                                   <span class="text-xs text-slate-500 font-medium">{{ chapter.lessons.length }} bài học</span>
                               }
                           </div>
@@ -329,9 +329,7 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
                                                        class="w-full text-sm font-medium text-slate-700 bg-white border border-[#0056D2] rounded px-2 py-0.5 outline-none focus:ring-2 focus:ring-[#0056D2]/30"
                                                        #editInput>
                                             } @else {
-                                                <p class="text-sm font-semibold text-slate-700 leading-snug line-clamp-2 break-words group-hover/ls:text-slate-900">
-                                                    {{ lesson.title }}
-                                                </p>
+                                                <p class="text-sm font-semibold text-slate-700 leading-snug line-clamp-2 break-words group-hover/ls:text-slate-900"><span class="font-extrabold text-[#0056D2]">Bài {{ lessonIdx + 1 }}:</span> {{ getLessonDisplayTitle(lesson.title, lessonIdx) }}</p>
                                                 @if (!isLessonExpanded(lesson.id) && lesson.sections.length) {
                                                   <span class="text-xs text-slate-500 font-medium">{{ lesson.sections.length }} nội dung</span>
                                                 }
@@ -1192,6 +1190,35 @@ export class CourseEditorSidebarComponent implements OnDestroy {
   getTypeColor(type: string): string {
     const key = (type || 'TEXT').toUpperCase() as ContentType;
     return CONTENT_TYPE_CONFIG[key]?.color || 'bg-slate-300';
+  }
+
+  // Helper to strip chapter prefix if already present in title
+  getChapterDisplayTitle(title: string, index: number): string {
+    // If title already starts with "Chương X:" or "Chương X.", strip it to avoid duplication
+    // Match patterns like "Chương 1:", "Chương 1.", "CHƯƠNG 1:" etc.
+    const chapterPattern = /^chương\s+\d+[.:.]/i;
+    if (chapterPattern.test(title)) {
+      // Find where the prefix ends and return the rest
+      const match = title.match(/^chương\s+\d+[.:.]\s*/i);
+      if (match) {
+        return title.slice(match[0].length).trim();
+      }
+    }
+    return title;
+  }
+
+  // Helper to strip lesson prefix if already present in title
+  getLessonDisplayTitle(title: string, index: number): string {
+    // If title already starts with "Bài X:" or "Bài X.", strip it to avoid duplication
+    // Match patterns like "Bài 1:", "Bài 1.", "BÀI 1:" etc.
+    const lessonPattern = /^bài\s+\d+[.:.]/i;
+    if (lessonPattern.test(title)) {
+      const match = title.match(/^bài\s+\d+[.:.]\s*/i);
+      if (match) {
+        return title.slice(match[0].length).trim();
+      }
+    }
+    return title;
   }
 
   ngOnDestroy() {

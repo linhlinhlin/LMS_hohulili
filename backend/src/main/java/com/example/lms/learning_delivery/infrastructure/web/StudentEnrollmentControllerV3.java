@@ -784,6 +784,48 @@ public class StudentEnrollmentControllerV3 {
     // NOTE: Student Assignment endpoints moved to StudentAssignmentControllerV3
     // in assessment module (Canvas-style typed DTOs, submit + submission endpoints)
 
+    @Operation(summary = "Recalculate all enrollment progress for current user")
+    @PostMapping("/progress/recalculate")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> recalculateProgress(
+            @AuthenticationPrincipal UserJpaEntity currentUser
+    ) {
+        if (currentUser == null) {
+            return ResponseEntity.status(401)
+                .body(ApiResponse.error("Người dùng chưa xác thực"));
+        }
+
+        UUID studentId = currentUser.getId();
+        List<Enrollment> enrollments = enrollmentRepository.findActiveAndCompletedWithClass(studentId);
+        
+        int updatedCount = 0;
+        for (Enrollment enrollment : enrollments) {
+            if (enrollment.getLearningClass() == null) continue;
+            
+            UUID courseId = enrollment.getLearningClass().getCourseId();
+            if (courseId == null) continue;
+            
+            long totalLessons = countTotalLessonsForCourse(courseId);
+            if (totalLessons > 0 && enrollment.getProgress() != null) {
+                long completedCount = enrollment.getProgress().values().stream()
+                    .filter(p -> "COMPLETED".equals(p.getStatus()))
+                    .count();
+                int percent = (int) Math.min(100, Math.round((double) completedCount / totalLessons * 100));
+                
+                if (enrollment.getCompletionPercent() == null || enrollment.getCompletionPercent() != percent) {
+                    enrollment.updateCompletionPercent(percent);
+                    enrollmentRepository.save(enrollment);
+                    updatedCount++;
+                }
+            }
+        }
+
+        return ResponseEntity.ok(ApiResponse.success(
+            Map.of("updatedCount", updatedCount),
+            "Đã tính lại tiến độ cho " + updatedCount + " khóa học"
+        ));
+    }
+
     // Response DTOs
     @lombok.Builder
     @lombok.Data

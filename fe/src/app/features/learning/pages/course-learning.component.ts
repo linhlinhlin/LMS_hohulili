@@ -641,6 +641,11 @@ export class CourseLearningComponent implements OnInit {
     return section.lessons.filter((l: any) => this.learningService.isLessonCompleted(l.id)()).length;
   }
 
+  // Get section number (e.g., "1.1", "1.2", "2.1")
+  getSectionNumber(chapterIndex: number, lessonIndex: number, sectionIndex: number): string {
+    return `${chapterIndex + 1}.${lessonIndex + 1}.${sectionIndex + 1}`;
+  }
+
   // Chapter progress percentage (for mini progress bar in sidebar)
   getChapterProgress(section: any): number {
     if (!section.lessons || section.lessons.length === 0) return 0;
@@ -843,5 +848,29 @@ export class CourseLearningComponent implements OnInit {
   goToQuiz(lessonId: string, event: Event): void {
     event.stopPropagation(); // Prevent lesson selection
     this.router.navigate(['/student/quiz/take', lessonId]);
+  }
+
+  // Helper to strip chapter prefix if already present in title
+  getChapterDisplayTitle(title: string, index: number): string {
+    // If title already starts with "Chương X:", strip it to avoid duplication
+    if (title.toLowerCase().startsWith('chương') && title.includes(':')) {
+      const parts = title.split(':');
+      if (parts.length > 1) {
+        return parts.slice(1).join(':').trim();
+      }
+    }
+    return title;
+  }
+
+  // Helper to strip lesson prefix if already present in title
+  getLessonDisplayTitle(title: string, index: number): string {
+    // If title already starts with "Bài X:", strip it to avoid duplication
+    if (title.toLowerCase().startsWith('bài') && title.includes(':')) {
+      const parts = title.split(':');
+      if (parts.length > 1) {
+        return parts.slice(1).join(':').trim();
+      }
+    }
+    return title;
   }
 }

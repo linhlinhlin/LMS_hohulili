@@ -778,53 +778,75 @@ export class LearningService {
     // Clear the sections cache for new course
     this.lessonSectionsCache.clear();
 
-    return data
+    // Deduplicate chapters by ID to prevent duplicates from backend
+    const seenChapterIds = new Set<string>();
+    const uniqueChapters = data.filter(chapter => {
+      if (seenChapterIds.has(chapter.id)) {
+        return false;
+      }
+      seenChapterIds.add(chapter.id);
+      return true;
+    });
+
+    return uniqueChapters
       .sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
-      .map(section => ({
-        id: section.id,
-        title: section.title,
-        description: section.description || '',
-        orderIndex: section.orderIndex || 0,
-        lessons: (section.lessons || [])
-          .sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
-          .map((lesson: ApiLessonSummary, idx) => {
-            // Cache sections from /content for later use in loadLesson()
-            if (lesson.sections && lesson.sections.length > 0) {
-              this.lessonSectionsCache.set(lesson.id, lesson.sections.map(s => ({
-                id: s.id,
-                title: s.title,
-                type: (s.type?.toUpperCase() || 'TEXT') as 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT',
-                content: s.content,
-                videoUrl: s.videoUrl,
-                fileUrl: s.fileUrl,
-                duration: s.duration,
-                orderIndex: s.orderIndex ?? 0,
-                isRequired: s.isRequired ?? false
-              })));
-            }
-            return {
-              id: lesson.id,
-              title: lesson.title,
-              description: lesson.description || '',
-              lessonType: (lesson as any).lessonType || getLessonTypeFromTitle(lesson.title),
-              duration: 0, // Will be loaded when lesson is selected
-              orderIndex: lesson.orderIndex || idx,
-              isFree: (lesson as any).isFree === true,
-              locked: (lesson as any).locked === true,
-              sections: (lesson.sections || []).map(s => ({
-                id: s.id,
-                title: s.title,
-                type: (s.type?.toUpperCase() || 'TEXT') as 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT',
-                content: s.content,
-                videoUrl: s.videoUrl,
-                fileUrl: s.fileUrl,
-                duration: s.duration,
-                orderIndex: s.orderIndex ?? 0,
-                isRequired: s.isRequired ?? false
-              }))
-            };
-          })
-      }));
+      .map(section => {
+        // Deduplicate lessons within each chapter
+        const seenLessonIds = new Set<string>();
+        const uniqueLessons = (section.lessons || []).filter(lesson => {
+          if (seenLessonIds.has(lesson.id)) {
+            return false;
+          }
+          seenLessonIds.add(lesson.id);
+          return true;
+        });
+
+        return {
+          id: section.id,
+          title: section.title,
+          description: section.description || '',
+          orderIndex: section.orderIndex || 0,
+          lessons: uniqueLessons
+            .sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
+            .map((lesson: ApiLessonSummary, idx) => {
+              // Cache sections from /content for later use in loadLesson()
+              if (lesson.sections && lesson.sections.length > 0) {
+                this.lessonSectionsCache.set(lesson.id, lesson.sections.map(s => ({
+                  id: s.id,
+                  title: s.title,
+                  type: (s.type?.toUpperCase() || 'TEXT') as 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT',
+                  content: s.content,
+                  videoUrl: s.videoUrl,
+                  fileUrl: s.fileUrl,
+                  duration: s.duration,
+                  orderIndex: s.orderIndex ?? 0,
+                  isRequired: s.isRequired ?? false
+                })));
+              }
+              return {
+                id: lesson.id,
+                title: lesson.title,
+                description: lesson.description || '',
+                lessonType: (lesson as any).lessonType || getLessonTypeFromTitle(lesson.title),
+                duration: 0, // Will be loaded when lesson is selected
+                orderIndex: lesson.orderIndex || idx,
+                isFree: (lesson as any).isFree === true,
+                locked: (lesson as any).locked === true,
+                sections: (lesson.sections || []).map(s => ({
+                  id: s.id,
+                  title: s.title,
+                  type: (s.type?.toUpperCase() || 'TEXT') as 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT',
+                  content: s.content,
+                  videoUrl: s.videoUrl,
+                  fileUrl: s.fileUrl,
+                  duration: s.duration,
+                  orderIndex: s.orderIndex ?? 0,
+                  isRequired: s.isRequired ?? false
+                }))
+              };
+            })
+        };
+      });
   }
 
   private countLessons(sections: CourseContentChapter[]): number {

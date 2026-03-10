@@ -150,27 +150,37 @@
                       @if (expandedChapters().has(chapter.id)) {
                         <div class="border-t border-gray-200 divide-y divide-gray-100">
                           @for (lesson of chapter.lessons; track lesson.id; let lIdx = $index) {
-                            <div class="flex items-center justify-between p-4 hover:bg-gray-50">
-                              <div class="flex items-center gap-3">
-                                @if (lesson.isFree || isPaid()) {
-                                  <svg class="w-5 h-5 text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                  </svg>
-                                } @else {
-                                  <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                                  </svg>
-                                }
-                                <span class="text-gray-700">Bài {{ chIdx + 1 }}.{{ lIdx + 1 }}: {{ lesson.title }}</span>
-                                @if (lesson.isFree && !isPaid()) {
-                                  <span class="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-medium">Xem trước</span>
+                            <!-- Only show first 2 lessons as free preview for SELF_PACED courses when not enrolled/paid -->
+                            @if (isPaid() || isEnrolled() || lIdx < 2) {
+                              <div class="flex items-center justify-between p-4 hover:bg-gray-50">
+                                <div class="flex items-center gap-3">
+                                  @if (lesson.isFree || isPaid() || isEnrolled()) {
+                                    <svg class="w-5 h-5 text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                  } @else {
+                                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                    </svg>
+                                  }
+                                  <span class="text-gray-700">Bài {{ chIdx + 1 }}.{{ lIdx + 1 }}: {{ getLessonDisplayTitle(lesson.title, lIdx) }}</span>
+                                  @if ((lesson.isFree || isPaid() || isEnrolled()) && !isPaid() && !isEnrolled() && lIdx < 2) {
+                                    <span class="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-medium">Xem trước</span>
+                                  }
+                                </div>
+                                @if (lesson.durationMinutes) {
+                                  <span class="text-sm text-gray-500">{{ lesson.durationMinutes }} phút</span>
                                 }
                               </div>
-                              @if (lesson.durationMinutes) {
-                                <span class="text-sm text-gray-500">{{ lesson.durationMinutes }} phút</span>
-                              }
-                            </div>
+                            } @else if (lIdx === 2) {
+                              <div class="p-4 text-center text-gray-400 text-sm bg-gray-50">
+                                <svg class="w-5 h-5 mx-auto mb-1 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                </svg>
+                                <span>Đăng ký để xem tiếp {{ chapter.lessons.length - 2 }} bài còn lại</span>
+                              </div>
+                            }
                           }
                         </div>
                       }

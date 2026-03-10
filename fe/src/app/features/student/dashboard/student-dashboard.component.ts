@@ -205,13 +205,19 @@ export class StudentDashboardComponent implements OnInit {
   // Load course content (modules/lessons) from API
   private async loadCourseContent(courseId: string): Promise<void> {
     try {
-      // Fetch content + completed lesson IDs in parallel
-      const [contentRes, completedIds] = await Promise.all([
+      // Fetch content + progress + completed lesson IDs in parallel
+      const [contentRes, progressRes, completedIds] = await Promise.all([
         firstValueFrom(this.courseApi.getCourseContent(courseId)),
+        firstValueFrom(this.courseApi.getCourseProgress(courseId)),
         this.fetchCompletedLessonIds(courseId)
       ]);
       const sections = contentRes.data || [];
       const completedSet = new Set(completedIds);
+      
+      // Get real progress from API
+      const progressData = progressRes?.data;
+      const totalLessons = progressData?.totalLessons || 0;
+      const completedLessons = progressData?.completedLessons || 0;
 
       // Transform API response to Module format with completion status
       const modules: Module[] = sections.map((section: any) => ({
@@ -226,7 +232,10 @@ export class StudentDashboardComponent implements OnInit {
             title: s.title,
             type: s.type || 'TEXT'
           }))
-        }))
+        })),
+        // Calculate module-level completion
+        completedCount: (section.lessons || []).filter((l: any) => completedSet.has(l.id)).length,
+        totalCount: (section.lessons || []).length
       }));
 
       // Update courseContents map
@@ -235,6 +244,9 @@ export class StudentDashboardComponent implements OnInit {
         newMap.set(courseId, modules);
         return newMap;
       });
+      
+      // Force refresh progress from BE via enrollment service
+      await this.enrollmentService.refreshCourseProgress(courseId);
     } catch {
       this.toast.error('Không thể tải nội dung khóa học.');
     }

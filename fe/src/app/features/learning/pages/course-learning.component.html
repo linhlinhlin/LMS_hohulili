@@ -81,7 +81,7 @@
             <h3 class="text-sm font-bold"
               [class.text-[#0056D2]]="isSectionExpanded(section.id)"
               [class.text-slate-800]="!isSectionExpanded(section.id)">
-              {{ section.title }}
+              <span class="text-[#0056D2] font-extrabold">Chương {{ $index + 1 }}:</span> {{ getChapterDisplayTitle(section.title, $index) }}
             </h3>
             <p class="text-[11px] mt-0.5"
               [class.text-green-600]="getCompletedLessonCount(section) === section.lessons.length && section.lessons.length > 0"
@@ -100,7 +100,7 @@
         <!-- Level 2 + Level 3: Lessons + Sections -->
         @if (isSectionExpanded(section.id)) {
         <div>
-          @for (lesson of section.lessons; track lesson.id) {
+          @for (lesson of section.lessons; track lesson.id; let lessonIdx = $index) {
           <!-- Level 2: Lesson Item -->
           <button class="flex items-start gap-3 w-full px-4 py-2.5 cursor-pointer hover:bg-slate-50 transition-colors border-l-4 text-left"
             [class.bg-[#E6F0FA]]="currentLesson()?.id === lesson.id"
@@ -127,7 +127,7 @@
                 [class.font-bold]="currentLesson()?.id === lesson.id"
                 [class.text-[#0056D2]]="currentLesson()?.id === lesson.id"
                 [class.text-slate-700]="currentLesson()?.id !== lesson.id">
-                {{ lesson.title }}
+                <span class="font-extrabold text-[#0056D2]">Bài {{ lessonIdx + 1 }}:</span> {{ getLessonDisplayTitle(lesson.title, lessonIdx) }}
               </div>
               @if (lesson.duration > 0) {
               <div class="text-xs text-slate-400 mt-0.5">{{ lesson.duration }} phút</div>
@@ -153,7 +153,8 @@
             [class.bg-blue-50]="currentLesson()?.id === lesson.id && currentSectionIndex() === sectionIndex"
             [class.text-slate-500]="!isSectionCompleted(sectionItem.id) && !(currentLesson()?.id === lesson.id && currentSectionIndex() === sectionIndex)"
             (click)="selectSectionInSidebar(sectionIndex, $event)">
-            @if (sectionItem.type === 'VIDEO') {
+              <span class="font-bold text-[10px] text-[#0056D2] min-w-[20px]">{{ $index + 1 }}.{{ sectionIndex + 1 }}</span>
+              @if (sectionItem.type === 'VIDEO') {
             <span class="material-symbols-outlined text-[14px]">play_circle</span>
             } @else if (sectionItem.type === 'TEXT') {
             <span class="material-symbols-outlined text-[14px]">description</span>

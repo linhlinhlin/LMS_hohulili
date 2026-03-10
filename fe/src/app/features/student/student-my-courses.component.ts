@@ -1007,14 +1007,21 @@ export class StudentMyCoursesComponent implements OnInit {
   // Load course content (modules/lessons) from API
   private async loadCourseContent(courseId: string): Promise<void> {
     try {
-      // Fetch content + completed lesson IDs in parallel
-      const [response, completedIds] = await Promise.all([
+      // Fetch content + progress + completed lesson IDs in parallel
+      const [contentRes, progressRes, completedIds] = await Promise.all([
         firstValueFrom(this.courseApi.getCourseContent(courseId)),
+        firstValueFrom(this.courseApi.getCourseProgress(courseId)),
         this.fetchCompletedLessonIds(courseId)
       ]);
-      const sections = response.data || [];
+      
+      const sections = contentRes.data || [];
       const completedSet = new Set(completedIds);
-
+      
+      // Get real progress from API
+      const progressData = progressRes?.data;
+      const totalLessons = progressData?.totalLessons || 0;
+      const completedLessons = progressData?.completedLessons || 0;
+      
       // Transform API response to module format with completion status
       const modules = sections.map((section: any) => {
         const lessons = (section.lessons || []).map((lesson: any) => ({
@@ -1033,12 +1040,13 @@ export class StudentMyCoursesComponent implements OnInit {
           id: section.id,
           title: section.title,
           lessons,
+          // Calculate module-level completed count from lessons
           completedCount: lessons.filter((l: any) => l.completed).length,
           totalCount: lessons.length,
         };
       });
 
-      // Find the first incomplete lesson across all modules
+      // Find the first incomplete lesson (current lesson) across all modules
       let currentLessonId: string | null = null;
       for (const mod of modules) {
         for (const lesson of mod.lessons) {
@@ -1050,19 +1058,23 @@ export class StudentMyCoursesComponent implements OnInit {
         if (currentLessonId) break;
       }
 
-      // 3. Update the specific course with loaded modules (Keep progress/counts as provided by service)
+      // Update the specific course with loaded modules
       this.enrolledCourses.update(courses =>
         courses.map(c => {
           if (c['id'] !== courseId) return c;
           return { 
             ...c, 
             modules, 
-            currentLessonId
+            currentLessonId,
+            // Use real progress from API
+            progress: progressData?.progressPercentage || c.progress,
+            completedLessons: completedLessons,
+            totalLessons: totalLessons
           };
         })
       );
 
-      // 4. Force refresh progress from BE via service (SSoT)
+      // Force refresh progress from BE via service
       await this.enrollmentService.refreshCourseProgress(courseId);
     } catch (err: any) {
       this.toast.error('Không thể tải nội dung khóa học.');

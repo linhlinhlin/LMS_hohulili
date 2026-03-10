@@ -92,6 +92,39 @@
       </div>
 
       <!-- Progress Section (horizontal bar — consistent with dashboard/my-courses) -->
+      <!-- Only show if enrolled, otherwise show enrollment CTA -->
+      @if (!isEnrolled()) {
+        <div class="hero-progress-section" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 24px; border-radius: 12px; margin-top: 24px;">
+          <div style="text-align: center;">
+            <h3 style="color: white; font-size: 20px; font-weight: bold; margin-bottom: 8px;">Đăng ký ngay để bắt đầu học</h3>
+            <p style="color: rgba(255,255,255,0.9); font-size: 14px; margin-bottom: 16px;">Truy cập đầy đủ {{ totalLessons() }} bài học và theo dõi tiến độ của bạn</p>
+            @if (course()?.price && (course()!.price ?? 0) > 0) {
+              <div style="margin-bottom: 16px;">
+                <span style="color: rgba(255,255,255,0.7); text-decoration: line-through; font-size: 14px;">{{ formatPrice(course()?.price ?? 0) }}</span>
+                <span style="color: #FFD700; font-size: 28px; font-weight: bold; margin-left: 8px;">{{ formatPrice(course()?.salePrice ?? course()?.price ?? 0) }}</span>
+              </div>
+            } @else {
+              <div style="margin-bottom: 16px;">
+                <span style="color: #4ADE80; font-size: 24px; font-weight: bold;">Miễn phí</span>
+              </div>
+            }
+            <button (click)="handleEnroll()" [disabled]="isEnrolling()" class="btn-cta" style="background: white; color: #667eea; padding: 12px 32px; font-size: 16px; font-weight: bold; border: none; cursor: pointer; border-radius: 8px;">
+              @if (isEnrolling()) {
+                <svg class="animate-spin -ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" style="display: inline-block; width: 16px; height: 16px;">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Đang đăng ký...
+              } @else {
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: inline-block; margin-right: 8px;">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                </svg>
+                Đăng ký ngay
+              }
+            </button>
+          </div>
+        </div>
+      } @else {
       <div class="hero-progress-section">
         <div class="progress-bar-thin">
           <div class="progress-fill"
@@ -135,6 +168,7 @@
           }
         </div>
       </div>
+      }
     </div>
   </header>
 
@@ -370,7 +404,7 @@
                           }
                         </div>
                         <div class="lesson-info">
-                          <span class="lesson-title">{{ lesson.title }}</span>
+                          <span class="lesson-title">{{ getLessonDisplayTitle(lesson.title) }}</span>
                           <div class="lesson-tags">
                             <!-- Lesson type badge -->
                             @if (lesson.primaryType === 'VIDEO') {

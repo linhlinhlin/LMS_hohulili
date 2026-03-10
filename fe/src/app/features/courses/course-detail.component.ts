@@ -156,6 +156,31 @@ export class CourseDetailComponent implements OnInit {
     const courseId = this.course()?.id;
     if (!courseId) return;
 
+    // SELF_PACED course type (khóa học) - enroll directly without class selection
+    if (this.course()?.deliveryMode === 'SELF_PACED') {
+      // Free course - enroll directly
+      if (!this.course()?.price || this.course()!.price === 0) {
+        this.isEnrolling.set(true);
+        try {
+          await this.courseService.enrollInCourse(courseId, this.authService.currentUser()!.id);
+          this.toast.success('Đăng ký thành công! Chuyển đến trang học.');
+          this.isEnrolled.set(true);
+          this.isPaid.set(true);
+          this.router.navigate(['/student/learn/course', courseId]);
+        } catch (e: any) {
+          this.toast.error('Đăng ký thất bại: ' + (e.error?.message || e.message));
+        } finally {
+          this.isEnrolling.set(false);
+        }
+        return;
+      }
+
+      // Paid course - open payment
+      this.openPaymentModal();
+      return;
+    }
+
+    // INSTRUCTOR_LED course type (lớp học) - need to select class
     // Paid course → open payment modal (VNPay) instead of direct enrollment
     if (this.course()?.price && this.course()!.price > 0) {
       this.openPaymentModal();
@@ -298,5 +323,17 @@ export class CourseDetailComponent implements OnInit {
     this.meta.updateTag({ property: 'og:title', content: pageTitle });
     this.meta.updateTag({ property: 'og:description', content: description });
     this.meta.updateTag({ property: 'og:type', content: 'website' });
+  }
+
+  // Helper to strip lesson prefix if already present in title
+  getLessonDisplayTitle(title: string, index: number): string {
+    // If title already starts with "Bài X:", strip it to avoid duplication
+    if (title.toLowerCase().startsWith('bài') && title.includes(':')) {
+      const parts = title.split(':');
+      if (parts.length > 1) {
+        return parts.slice(1).join(':').trim();
+      }
+    }
+    return title;
   }
 }

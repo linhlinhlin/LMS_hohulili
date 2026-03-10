@@ -232,23 +232,19 @@ import { environment } from '../../../../environments/environment';
 
                   <!-- Footer -->
                   <div class="flex items-center justify-between pt-3 border-t border-gray-100">
-                    @if (course.priceType === 'FREE' || !course.price) {
-                      <span class="text-sm font-medium text-green-600">Miễn phí</span>
-                    } @else {
-                      <span class="text-sm font-semibold text-gray-900">{{ formatPrice(course.price) }}</span>
-                    }
+                    <div class="flex items-center gap-2">
+                      @if (course.priceType === 'FREE' || !course.price) {
+                        <span class="text-sm font-medium text-green-600">Miễn phí</span>
+                      } @else {
+                        <span class="text-sm font-semibold text-gray-900">{{ formatPrice(course.price) }}</span>
+                      }
+                    </div>
 
-                    @if (isEnrolled(course.id)) {
-                      <button (click)="continueLearning(course.id); $event.stopPropagation()"
-                        class="px-3 py-1.5 text-sm font-medium text-[#0056D2] border border-[#0056D2] rounded-lg hover:bg-[#0056D2] hover:text-white transition-colors">
-                        Tiếp tục học
-                      </button>
-                    } @else {
-                      <button (click)="viewDetail(course.id); $event.stopPropagation()"
-                        class="px-3 py-1.5 text-sm font-medium bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors">
-                        Xem chi tiết
-                      </button>
-                    }
+                    <!-- Nút Đăng ký ngay - luôn hiển thị -->
+                    <button (click)="enrollDirectly(course.id); $event.stopPropagation()"
+                      class="px-4 py-2 text-sm font-bold text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors shadow-sm">
+                      Đăng ký ngay
+                    </button>
                   </div>
                 </div>
               </div>
@@ -435,6 +431,22 @@ export class StudentCourseBrowserComponent implements OnInit {
 
   viewDetail(courseId: string): void {
     this.router.navigate(['/student/course', courseId]);
+  }
+
+  enrollDirectly(courseId: string): void {
+    // Gọi API đăng ký trực tiếp
+    this.courseApi.enrollCourse(courseId).subscribe({
+      next: (res) => {
+        this.toast.success('Đăng ký khóa học thành công!');
+        // Refresh danh sách đã đăng ký
+        this.enrollmentService.loadEnrolledCourses(0);
+        // Chuyển đến trang học
+        this.continueLearning(courseId);
+      },
+      error: (err) => {
+        this.toast.error('Đăng ký thất bại: ' + (err.error?.message || 'Có lỗi xảy ra'));
+      }
+    });
   }
 
   prevPage(): void {

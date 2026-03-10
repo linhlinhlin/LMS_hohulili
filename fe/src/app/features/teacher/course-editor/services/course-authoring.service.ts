@@ -241,55 +241,77 @@ export class CourseAuthoringService {
                 courseData.hasEnrollments = teacherDraft.data?.hasEnrollments ?? false;
                 const backendChapters = content.data || [];
 
-                // Map chapters
-                const chapters: ChapterDraftDTO[] = backendChapters.map(ch => ({
-                    id: ch.id,
-                    title: ch.title,
-                    description: ch.description,
-                    orderIndex: ch.orderIndex,
-                    lessons: (ch.lessons || []).map(lesson => ({
-                        id: lesson.id,
-                        title: lesson.title,
-                        type: lesson.lessonType || 'LECTURE',
-                        orderIndex: lesson.orderIndex,
-                        isRequired: true,
-                        content: lesson.content || '',
-                        videoUrl: lesson.videoUrl || '',
-                        // Quiz fields
-                        quizTimeLimit: lesson.quizTimeLimit,
-                        quizPassingScore: lesson.quizMaxScore, // API maps quizMaxScore -> quizPassingScore usually or vice versa. Check backend. Backend mapped quizMaxScore to DTO quizMaxScore. Frontend LessonDraft uses quizPassingScore. Adjusted.
-                        quizMaxAttempts: lesson.quizMaxAttempts,
-                        // Assignment fields
-                        assignmentDescription: lesson.assignment?.description,
-                        assignmentInstructions: lesson.assignment?.instructions,
-                        assignmentDueDate: lesson.assignment?.dueDate,
-                        assignmentMaxScore: lesson.assignment?.maxScore,
+                // Deduplicate chapters by ID to prevent duplicates from backend
+                const seenChapterIds = new Set<string>();
+                const uniqueChapters = backendChapters.filter(ch => {
+                    if (seenChapterIds.has(ch.id)) {
+                        return false;
+                    }
+                    seenChapterIds.add(ch.id);
+                    return true;
+                });
 
-                        // Map Sections (Level 3)
-                        sections: (lesson.sections || lesson.topics || []).map((t: any) => ({
-                            id: t.id,
-                            title: t.title,
-                            type: t.type,
-                            content: t.content,
-                            videoUrl: t.videoUrl,
-                            fileUrl: t.fileUrl,
-                            duration: t.duration,
-                            orderIndex: t.orderIndex,
-                            isRequired: t.isRequired,
-                            // [NEW] Quiz Data hydration - SOTA 2025
-                            quizData: t.quizData ? {
-                                quizId: t.quizData.quizId,
-                                timeLimitMinutes: t.quizData.timeLimitMinutes,
-                                passingScore: t.quizData.passingScore,
-                                maxAttempts: t.quizData.maxAttempts,
-                                shuffleQuestions: t.quizData.shuffleQuestions,
-                                shuffleOptions: t.quizData.shuffleOptions,
-                                showResultsImmediately: t.quizData.showResultsImmediately,
-                                questions: t.quizData.questions || []
-                            } : undefined
+                // Map chapters
+                const chapters: ChapterDraftDTO[] = uniqueChapters.map(ch => {
+                    // Deduplicate lessons within each chapter
+                    const seenLessonIds = new Set<string>();
+                    const uniqueLessons = (ch.lessons || []).filter(lesson => {
+                        if (seenLessonIds.has(lesson.id)) {
+                            return false;
+                        }
+                        seenLessonIds.add(lesson.id);
+                        return true;
+                    });
+
+                    return {
+                        id: ch.id,
+                        title: ch.title,
+                        description: ch.description,
+                        orderIndex: ch.orderIndex,
+                        lessons: uniqueLessons.map(lesson => ({
+                            id: lesson.id,
+                            title: lesson.title,
+                            type: lesson.lessonType || 'LECTURE',
+                            orderIndex: lesson.orderIndex,
+                            isRequired: true,
+                            content: lesson.content || '',
+                            videoUrl: lesson.videoUrl || '',
+                            // Quiz fields
+                            quizTimeLimit: lesson.quizTimeLimit,
+                            quizPassingScore: lesson.quizMaxScore, // API maps quizMaxScore -> quizPassingScore usually or vice versa. Check backend. Backend mapped quizMaxScore to DTO quizMaxScore. Frontend LessonDraft uses quizPassingScore. Adjusted.
+                            quizMaxAttempts: lesson.quizMaxAttempts,
+                            // Assignment fields
+                            assignmentDescription: lesson.assignment?.description,
+                            assignmentInstructions: lesson.assignment?.instructions,
+                            assignmentDueDate: lesson.assignment?.dueDate,
+                            assignmentMaxScore: lesson.assignment?.maxScore,
+
+                            // Map Sections (Level 3)
+                            sections: (lesson.sections || lesson.topics || []).map((t: any) => ({
+                                id: t.id,
+                                title: t.title,
+                                type: t.type,
+                                content: t.content,
+                                videoUrl: t.videoUrl,
+                                fileUrl: t.fileUrl,
+                                duration: t.duration,
+                                orderIndex: t.orderIndex,
+                                isRequired: t.isRequired,
+                                // [NEW] Quiz Data hydration - SOTA 2025
+                                quizData: t.quizData ? {
+                                    quizId: t.quizData.quizId,
+                                    timeLimitMinutes: t.quizData.timeLimitMinutes,
+                                    passingScore: t.quizData.passingScore,
+                                    maxAttempts: t.quizData.maxAttempts,
+                                    shuffleQuestions: t.quizData.shuffleQuestions,
+                                    shuffleOptions: t.quizData.shuffleOptions,
+                                    showResultsImmediately: t.quizData.showResultsImmediately,
+                                    questions: t.quizData.questions || []
+                                } : undefined
+                            }))
                         }))
-                    }))
-                }));
+                    };
+                });
 
                 return {
                     id: courseData.id,
