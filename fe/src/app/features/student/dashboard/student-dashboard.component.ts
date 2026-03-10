@@ -9,6 +9,7 @@ import { LearningActivityApi } from '../../../api/client/learning-activity.api';
 import { IconComponent } from '../../../shared/components/ui/icon/icon.component';
 import { ButtonComponent } from '../../../shared/components/ui/button/button.component';
 import { ToastService } from '../../../core/services/toast.service';
+import { CourseDownloadButtonComponent } from '../../../shared/components/course-download-button/course-download-button.component';
 
 
 interface LessonSection {
@@ -61,7 +62,8 @@ interface Course {
   imports: [
     RouterModule,
     IconComponent,
-    ButtonComponent
+    ButtonComponent,
+    CourseDownloadButtonComponent,
 ],
   templateUrl: './student-dashboard.component.html',
   styleUrls: ['./student-dashboard.component.scss']
@@ -380,6 +382,13 @@ export class StudentDashboardComponent implements OnInit {
 
   switchTab(tab: 'in-progress' | 'completed'): void {
     this.activeTab.set(tab);
+  }
+
+  canDownload(course: Course): boolean {
+    const enrolled = this.enrolledCourses().find(c => c.id === course.id);
+    const allowDownload = (enrolled as any)?.allowOfflineDownload !== false;
+    const isPaid = (enrolled as any)?.isPaid !== false;
+    return allowDownload && isPaid;
   }
 
   private getInstructorName(instructor: string | { name: string } | undefined): string {

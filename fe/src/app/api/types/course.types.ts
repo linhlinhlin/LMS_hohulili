@@ -50,6 +50,7 @@ export interface CourseSummary {
   salePrice?: number;
   // Delivery mode + content stats
   deliveryMode?: DeliveryMode;
+  allowOfflineDownload?: boolean;
   sectionCount?: number;
   lessonCount?: number;
   maxStudents?: number;
@@ -89,6 +90,7 @@ export interface CourseDetail {
 
   // Delivery mode
   deliveryMode?: DeliveryMode;
+  allowOfflineDownload?: boolean;
 
   // Price fields - CRITICAL for payment flow
   priceType?: 'FREE' | 'PAID' | 'SUBSCRIPTION';

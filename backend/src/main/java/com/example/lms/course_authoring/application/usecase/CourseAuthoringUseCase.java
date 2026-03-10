@@ -66,7 +66,12 @@ public class CourseAuthoringUseCase {
             // Set delivery mode if specified
             if (request.getDeliveryMode() != null && !request.getDeliveryMode().isBlank()) {
                 try {
-                    course.updateDeliveryMode(Course.DeliveryMode.valueOf(request.getDeliveryMode().toUpperCase()));
+                    Course.DeliveryMode mode = Course.DeliveryMode.valueOf(request.getDeliveryMode().toUpperCase());
+                    course.updateDeliveryMode(mode);
+                    // INSTRUCTOR_LED courses default to no offline download
+                    if (mode == Course.DeliveryMode.INSTRUCTOR_LED) {
+                        course.updateAllowOfflineDownload(false);
+                    }
                 } catch (IllegalArgumentException ignored) {
                     // Default SELF_PACED is already set
                 }

@@ -80,7 +80,7 @@ class UpdateCourseUseCaseTest {
                     "Tên mới", "Mô tả mới",
                     "https://img.example.com/thumb.jpg",
                     null, null, null, null, null, null, null,
-                    "PUBLIC", "FREE", null, null, "SELF_PACED", false
+                    "PUBLIC", "FREE", null, null, "SELF_PACED", null, false
             );
 
             when(courseRepository.findById(courseId)).thenReturn(Optional.of(draftCourse));
@@ -116,7 +116,7 @@ class UpdateCourseUseCaseTest {
                     3,
                     "PUBLIC", "PAID",
                     new BigDecimal("199000"), new BigDecimal("149000"),
-                    "SELF_PACED", false
+                    "SELF_PACED", null, false
             );
 
             when(courseRepository.findById(courseId)).thenReturn(Optional.of(draftCourse));
@@ -155,7 +155,7 @@ class UpdateCourseUseCaseTest {
                     nonExistentId, teacherId,
                     "Tên mới", "Mô tả mới",
                     null, null, null, null, null, null, null, null,
-                    null, null, null, null, null, false
+                    null, null, null, null, null, null, false
             );
 
             when(courseRepository.findById(nonExistentId)).thenReturn(Optional.empty());
@@ -183,7 +183,7 @@ class UpdateCourseUseCaseTest {
                     courseId, otherUserId,
                     "Tên mới", "Mô tả mới",
                     null, null, null, null, null, null, null, null,
-                    null, null, null, null, null, false
+                    null, null, null, null, null, null, false
             );
 
             when(courseRepository.findById(courseId)).thenReturn(Optional.of(draftCourse));
@@ -213,7 +213,7 @@ class UpdateCourseUseCaseTest {
                     courseId, teacherId,
                     "Tên mới", "Mô tả mới",
                     null, null, null, null, null, null, null, null,
-                    null, null, null, null, null, false
+                    null, null, null, null, null, null, false
             );
 
             when(courseRepository.findById(courseId)).thenReturn(Optional.of(draftCourse));

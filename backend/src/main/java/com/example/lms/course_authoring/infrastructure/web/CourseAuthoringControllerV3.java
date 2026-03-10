@@ -351,6 +351,7 @@ public class CourseAuthoringControllerV3 {
             request.price(),
             request.salePrice(),
             request.deliveryMode(),
+            request.allowOfflineDownload(),
             isAdminRole(user)
         );
         com.example.lms.course_authoring.application.dto.CourseResponse response = updateCourseUseCase.execute(command);
@@ -445,7 +446,8 @@ public class CourseAuthoringControllerV3 {
         String priceType,
         @jakarta.validation.constraints.DecimalMin(value = "0", message = "Giá phải >= 0") java.math.BigDecimal price,
         @jakarta.validation.constraints.DecimalMin(value = "0", message = "Giá khuyến mãi phải >= 0") java.math.BigDecimal salePrice,
-        String deliveryMode
+        String deliveryMode,
+        Boolean allowOfflineDownload
     ) {}
 
     public record ReorderChaptersRequest(

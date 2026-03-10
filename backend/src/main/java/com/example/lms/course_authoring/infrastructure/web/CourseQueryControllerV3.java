@@ -470,6 +470,7 @@ public class CourseQueryControllerV3 {
                 .priceType(course.getPriceType() != null ? course.getPriceType().name() : "FREE")
                 .price(course.getPrice())
                 .salePrice(course.getSalePrice())
+                .allowOfflineDownload(course.isAllowOfflineDownload())
                 .enrolledCount(enrollmentCountMap.getOrDefault(course.getId(), 0L).intValue())
                 .build();
     }
@@ -504,6 +505,7 @@ public class CourseQueryControllerV3 {
                 .priceType(course.getPriceType() != null ? course.getPriceType().name() : "FREE")
                 .price(course.getPrice())
                 .salePrice(course.getSalePrice())
+                .allowOfflineDownload(course.isAllowOfflineDownload())
                 .enrolledCount(enrolledCount)
                 // Counts & timestamps
                 .chapterCount(course.getChapters() != null ? course.getChapters().size() : 0)
@@ -686,6 +688,7 @@ public class CourseQueryControllerV3 {
         private String priceType;
         private java.math.BigDecimal price;
         private java.math.BigDecimal salePrice;
+        private Boolean allowOfflineDownload;
         private Integer enrolledCount;
     }
 
@@ -717,6 +720,7 @@ public class CourseQueryControllerV3 {
         private String priceType;
         private java.math.BigDecimal price;
         private java.math.BigDecimal salePrice;
+        private Boolean allowOfflineDownload;
         // Counts & timestamps
         private Integer chapterCount;
         private String createdAt;

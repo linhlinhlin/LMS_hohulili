@@ -38,6 +38,7 @@ public class Course extends AggregateRoot {
     private BigDecimal price;
     private BigDecimal salePrice;
     private DeliveryMode deliveryMode = DeliveryMode.SELF_PACED;
+    private boolean allowOfflineDownload = true;
 
     // Review workflow fields
     private String reviewComment;
@@ -141,6 +142,14 @@ public class Course extends AggregateRoot {
     public void updateDeliveryMode(DeliveryMode deliveryMode) {
         ensureEditable();
         this.deliveryMode = deliveryMode != null ? deliveryMode : DeliveryMode.SELF_PACED;
+    }
+
+    /**
+     * Update whether offline download is allowed for this course.
+     */
+    public void updateAllowOfflineDownload(boolean value) {
+        ensureEditable();
+        this.allowOfflineDownload = value;
     }
 
     /**
@@ -387,6 +396,7 @@ public class Course extends AggregateRoot {
     public BigDecimal getPrice() { return price; }
     public BigDecimal getSalePrice() { return salePrice; }
     public DeliveryMode getDeliveryMode() { return deliveryMode; }
+    public boolean isAllowOfflineDownload() { return allowOfflineDownload; }
     public String getReviewComment() { return reviewComment; }
     public Instant getReviewedAt() { return reviewedAt; }
     public UUID getReviewedById() { return reviewedById; }

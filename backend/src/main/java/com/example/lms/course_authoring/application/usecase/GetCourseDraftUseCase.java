@@ -60,6 +60,7 @@ public class GetCourseDraftUseCase {
                 .categoryId(course.getCategoryId())
                 .categoryName(categoryName)
                 .deliveryMode(course.getDeliveryMode() != null ? course.getDeliveryMode().name() : null)
+                .allowOfflineDownload(course.isAllowOfflineDownload())
                 .status(course.getStatus() != null ? course.getStatus().name() : null)
                 .visibility(course.getVisibility() != null ? course.getVisibility().name() : null)
                 .tags(course.getTags())

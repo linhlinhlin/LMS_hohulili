@@ -37,5 +37,6 @@ public record UpdateCourseCommand(
 
     BigDecimal salePrice,
     String deliveryMode,
+    Boolean allowOfflineDownload,
     boolean isAdmin
 ) {}

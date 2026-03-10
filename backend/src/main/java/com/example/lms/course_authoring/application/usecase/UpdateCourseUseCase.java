@@ -87,6 +87,11 @@ public class UpdateCourseUseCase {
             course.updateVisibility(visibility);
         }
 
+        // Update allowOfflineDownload
+        if (command.allowOfflineDownload() != null) {
+            course.updateAllowOfflineDownload(command.allowOfflineDownload());
+        }
+
         // Update delivery mode (locked after first enrollment — Open edX immutable pattern)
         Course.DeliveryMode newDeliveryMode = parseDeliveryMode(command.deliveryMode());
         if (newDeliveryMode != null && newDeliveryMode != course.getDeliveryMode()) {

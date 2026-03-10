@@ -85,6 +85,10 @@ export class CourseSettingsComponent {
     this.visibility.set(value);
   }
 
+  toggleOfflineDownload() {
+    this.allowOfflineDownload.set(!this.allowOfflineDownload());
+  }
+
   async canDeactivate(): Promise<boolean> {
     if (!this.hasPersistableChanges() && !this.isLoading()) {
       return true;

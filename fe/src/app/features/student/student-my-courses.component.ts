@@ -13,6 +13,7 @@ import { CardComponent } from '../../shared/components/ui/card/card.component';
 import { ProgressBarComponent } from '../../shared/components/ui/progress-bar/progress-bar.component';
 import { TabsComponent, Tab } from '../../shared/components/ui/tabs/tabs.component';
 import { ToastService } from '../../core/services/toast.service';
+import { CourseDownloadButtonComponent } from '../../shared/components/course-download-button/course-download-button.component';
 
 // Enhanced course with modules
 interface LessonSection {
@@ -58,6 +59,7 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
     RouterModule,
     IconComponent,
     ButtonComponent,
+    CourseDownloadButtonComponent,
   ],
   template: `
     <div class="my-courses-container">
@@ -159,6 +161,12 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
                     (clicked)="resumeCourse(course.id)">
                     {{ course.progress >= 100 ? 'Xem lại' : course.progress > 0 ? 'Tiếp tục học' : 'Bắt đầu ngay' }}
                   </app-button>
+                  @if (canDownload(course)) {
+                    <app-course-download-button
+                      [courseId]="course.id"
+                      [courseTitle]="course.title"
+                      [allowOfflineDownload]="true" />
+                  }
                   <button class="dropdown-button" (click)="toggleModules(course.id)" aria-label="Show lessons">
                     <app-icon [name]="course.showModules ? 'chevron-up' : 'chevron-down'" size="sm" />
                   </button>
@@ -1185,5 +1193,12 @@ export class StudentMyCoursesComponent implements OnInit {
 
   toggleFilterCompleted(): void {
     this.filterCompleted.update(v => !v);
+  }
+
+  canDownload(course: EnhancedEnrolledCourse): boolean {
+    // Only show download if: teacher enabled offline download AND (course is FREE or student has paid)
+    const allowDownload = (course as any).allowOfflineDownload !== false;
+    const isPaid = (course as any).isPaid !== false;
+    return allowDownload && isPaid;
   }
 }

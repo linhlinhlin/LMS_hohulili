@@ -148,6 +148,7 @@ export interface ExtendedCourse extends Course {
   salePrice?: number;
   categoryName?: string;
   deliveryMode?: 'SELF_PACED' | 'INSTRUCTOR_LED';
+  allowOfflineDownload?: boolean;
 }
 
 // Course Review interface
@@ -253,6 +254,9 @@ export interface EnrolledCourse {
   notesCount?: number;
   bookmarksCount?: number;
   isFavorite?: boolean;
+  isPaid?: boolean;
+  allowOfflineDownload?: boolean;
+  priceType?: 'FREE' | 'PAID' | 'SUBSCRIPTION';
   lastLessonCompleted?: string;
   upcomingDeadlines?: Date[];
   certificateAvailable?: boolean;

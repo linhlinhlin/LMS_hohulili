@@ -27,6 +27,9 @@ public interface PaymentTransactionJpaRepository extends JpaRepository<PaymentTr
 
     boolean existsByStudentIdAndCourseIdAndStatus(UUID studentId, UUID courseId, PaymentTransactionJpaEntity.PaymentStatus status);
 
+    @Query("SELECT p.courseId FROM PaymentTransactionJpaEntity p WHERE p.studentId = :studentId AND p.courseId IN :courseIds AND p.status = :status")
+    List<UUID> findPaidCourseIds(@Param("studentId") UUID studentId, @Param("courseIds") java.util.Collection<UUID> courseIds, @Param("status") PaymentTransactionJpaEntity.PaymentStatus status);
+
     // Admin queries
     org.springframework.data.domain.Page<PaymentTransactionJpaEntity> findByStatus(PaymentTransactionJpaEntity.PaymentStatus status, org.springframework.data.domain.Pageable pageable);
 

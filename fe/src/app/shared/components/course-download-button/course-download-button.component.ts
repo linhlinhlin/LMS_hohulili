@@ -11,6 +11,7 @@ import { ToastService } from '../../../core/services/toast.service';
   selector: 'app-course-download-button',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    @if (allowOfflineDownload()) {
     @if (isDownloaded()) {
       <!-- Already downloaded -->
       <div class="flex items-center gap-2">
@@ -52,6 +53,7 @@ import { ToastService } from '../../../core/services/toast.service';
         Tải xuống
       </button>
     }
+    }
   `,
 })
 export class CourseDownloadButtonComponent implements OnInit {
@@ -61,6 +63,7 @@ export class CourseDownloadButtonComponent implements OnInit {
 
   courseId = input.required<string>();
   courseTitle = input<string>('');
+  allowOfflineDownload = input<boolean>(true);
 
   protected isDownloaded = signal(false);
   protected isDownloading = computed(() =>

@@ -107,6 +107,41 @@
       </section>
 
       <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div class="border-b border-slate-100 bg-slate-50/60 px-5 py-3.5">
+          <h2 class="text-sm font-semibold text-slate-900">Tải xuống ngoại tuyến</h2>
+          <p class="mt-0.5 text-xs text-slate-500">
+            Cho phép học viên tải nội dung khóa học để xem khi không có mạng.
+          </p>
+        </div>
+
+        <div class="p-5">
+          <label class="flex cursor-pointer items-center justify-between gap-4">
+            <div>
+              <span class="text-sm font-medium text-slate-900">Cho phép tải xuống</span>
+              <p class="mt-0.5 text-xs text-slate-500">
+                Học viên có thể tải bài giảng, video và tài liệu để xem ngoại tuyến.
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              [attr.aria-checked]="allowOfflineDownload()"
+              (click)="toggleOfflineDownload()"
+              class="relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:ring-offset-2"
+              [class.bg-[#0056D2]]="allowOfflineDownload()"
+              [class.bg-slate-200]="!allowOfflineDownload()"
+            >
+              <span
+                class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                [class.translate-x-5]="allowOfflineDownload()"
+                [class.translate-x-0]="!allowOfflineDownload()"
+              ></span>
+            </button>
+          </label>
+        </div>
+      </section>
+
+      <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50/60 px-5 py-3.5">
           <div>
             <h2 class="text-sm font-semibold text-slate-900">Thiết lập nâng cao</h2>

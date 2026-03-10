@@ -67,6 +67,7 @@ public class StudentEnrollmentControllerV3 {
     private final AssignmentSubmissionJpaRepository submissionJpaRepository;
     private final QuizJpaRepositoryV3 quizJpaRepository;
     private final QuizAttemptJpaRepository quizAttemptJpaRepository;
+    private final com.example.lms.shared.infrastructure.persistence.repository.PaymentTransactionJpaRepository paymentTransactionJpaRepository;
 
     @Operation(summary = "Get student's enrolled courses")
     @GetMapping("/courses/enrolled")
@@ -133,6 +134,13 @@ public class StudentEnrollmentControllerV3 {
             }
         }
 
+        // Batch check which PAID courses the student has completed payment for (1 query)
+        Set<UUID> paidCourseIds = !courseIds.isEmpty()
+                ? new HashSet<>(paymentTransactionJpaRepository.findPaidCourseIds(
+                        studentId, courseIds,
+                        com.example.lms.shared.infrastructure.persistence.entity.PaymentTransactionJpaEntity.PaymentStatus.COMPLETED))
+                : Set.of();
+
         // Build response with real course data
         List<EnrolledCourseResponse> courseResponses = courseEnrollments.entrySet().stream()
                 .map(entry -> {
@@ -172,6 +180,12 @@ public class StudentEnrollmentControllerV3 {
                                 : 0)
                             .enrolledAt(enrollment.getEnrolledAt() != null ? enrollment.getEnrolledAt().toString() : null)
                             .lastAccessedAt(enrollment.getLastAccessedAt() != null ? enrollment.getLastAccessedAt().toString() : null)
+                            .priceType(course != null && course.getPriceType() != null ? course.getPriceType().name() : "FREE")
+                            .allowOfflineDownload(course != null && course.isAllowOfflineDownload())
+                            .isPaid(course == null
+                                    || course.getPriceType() == com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity.PriceType.FREE
+                                    || paidCourseIds.contains(courseId))
+                            .deliveryMode(course != null && course.getDeliveryMode() != null ? course.getDeliveryMode().name() : "SELF_PACED")
                             .build();
                 })
                 .collect(Collectors.toList());
@@ -843,6 +857,11 @@ public class StudentEnrollmentControllerV3 {
         private String enrolledAt;
         private String lastAccessedAt;
         private String createdAt;
+        // Payment & offline download fields
+        private String priceType;
+        private boolean allowOfflineDownload;
+        private boolean isPaid;
+        private String deliveryMode;
     }
 
     @lombok.Builder

@@ -21,6 +21,7 @@ public class AuthoringDTOs {
         private UUID categoryId;
         private String categoryName;
         private String deliveryMode;
+        private boolean allowOfflineDownload = true;
         private String status;
         private String visibility;
         private Set<String> tags;
@@ -52,6 +53,8 @@ public class AuthoringDTOs {
         public void setCategoryName(String categoryName) { this.categoryName = categoryName; }
         public String getDeliveryMode() { return deliveryMode; }
         public void setDeliveryMode(String deliveryMode) { this.deliveryMode = deliveryMode; }
+        public boolean isAllowOfflineDownload() { return allowOfflineDownload; }
+        public void setAllowOfflineDownload(boolean allowOfflineDownload) { this.allowOfflineDownload = allowOfflineDownload; }
         public String getStatus() { return status; }
         public void setStatus(String status) { this.status = status; }
         public String getVisibility() { return visibility; }
@@ -78,6 +81,7 @@ public class AuthoringDTOs {
             public CourseDraftDTOBuilder categoryId(UUID c) { dto.setCategoryId(c); return this; }
             public CourseDraftDTOBuilder categoryName(String c) { dto.setCategoryName(c); return this; }
             public CourseDraftDTOBuilder deliveryMode(String dm) { dto.setDeliveryMode(dm); return this; }
+            public CourseDraftDTOBuilder allowOfflineDownload(boolean a) { dto.setAllowOfflineDownload(a); return this; }
             public CourseDraftDTOBuilder status(String s) { dto.setStatus(s); return this; }
             public CourseDraftDTOBuilder visibility(String v) { dto.setVisibility(v); return this; }
             public CourseDraftDTOBuilder tags(Set<String> t) { dto.setTags(t); return this; }
